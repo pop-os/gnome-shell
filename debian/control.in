@@ -1,0 +1,51 @@
+Source: gnome-shell
+Section: gnome
+Priority: extra
+Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
+Uploaders: @GNOME_TEAM@
+Build-Depends: cdbs,
+               debhelper (>= 7),
+               autotools-dev,
+               libgjs-dev,
+               gvfs-backends,
+               gobject-introspection,
+               gobject-introspection-freedesktop,
+               gobject-introspection-glib-2.0,
+               gobject-introspection-repository,
+               libcroco3-dev (>= 0.6),
+               libdbus-glib-1-dev,
+               libgconf2-dev,
+               libgirepository1.0-dev (>= 0.6.5),
+               libglib2.0-dev,
+               libgnome-desktop-dev,
+               libgnome-menu-dev,
+               libgstreamer0.10-dev (>= 0.10.16),
+               libgtk2.0-dev,
+               libstartup-notification0-dev,
+               libmutter-dev (>= 2.28),
+               librsvg2-dev,
+               libwnck-dev,
+               libclutter-1.0-dev,
+               libxfixes-dev,
+               libxss-dev,
+Standards-Version: 3.8.1
+Homepage: http://live.gnome.org/GnomeShell
+
+Package: gnome-shell
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         mutter,
+         gobject-introspection-glib-2.0,
+         gobject-introspection-freedesktop,
+         gobject-introspection-repository
+Description: graphical shell for the GNOME desktop
+ The GNOME Shell redefines user interactions with the GNOME desktop.
+ In particular, it offers new paradigms for launching applications,
+ accessing documents, and organizing open windows in GNOME. Later, it
+ will introduce a new applets eco-system and offer new solutions for
+ other desktop features, such as notifications and contacts
+ management. The GNOME Shell is intended to replace functions handled
+ by the GNOME Panel and by the window manager in previous versions of
+ GNOME. The GNOME Shell has rich visual effects enabled by new
+ graphical technologies.

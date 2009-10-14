@@ -1,0 +1,122 @@
+gnome-shell (2.28.0-1) unstable; urgency=low
+
+  * Initial upload, based on the Ubuntu package (Closes: #550956)
+  * debian/patches:
+  - drop two unnecessary patches
+  * debian/rules:
+  - cleanup, and add Debian GNOME Team rules include
+  * debian/control.in:
+  - add Debian GNOME Team stuff
+  - fix alignment
+  - remove Recommends for xserver-xephyr
+  - fix build-dependencies package names
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Wed, 14 Oct 2009 11:31:23 -0300
+
+gnome-shell (2.28.0-0ubuntu2) karmic; urgency=low
+
+  * Add libcroco3-dev to Build-Depends.  Fixes FTBFS.
+
+ -- Christopher James Halse Rogers <raof@ubuntu.com>  Tue, 13 Oct 2009 17:50:23 +1100
+
+gnome-shell (2.28.0-0ubuntu1) karmic; urgency=low
+
+  * New upstream version
+  * debian/control:
+    - updated build requirement
+  * debian/patches/80_git_change_fix_alt_tab_ressource_usage.patch:
+    - git change to fix ressources not being freed on alt-tab
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 12 Oct 2009 22:44:00 +0200
+
+gnome-shell (2.27.3-0ubuntu1) karmic; urgency=low
+
+  * New upstream version
+  * debian/control:
+    - depends on python since it's used in the wrapper 
+      (lp: #413096)
+    - updated gir requirement
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 30 Sep 2009 23:09:56 +0200
+
+gnome-shell (2.27.2-0ubuntu1) karmic; urgency=low
+
+  * New upstream version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 08 Sep 2009 00:31:49 +0200
+
+gnome-shell (2.27.1-0ubuntu1) karmic; urgency=low
+
+  * New upstream version
+  * debian/control:
+    - updated build requirements
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 02 Sep 2009 10:44:03 +0200
+
+gnome-shell (2.27.0-0ubuntu3) karmic; urgency=low
+
+  * Requires gvfs-backends now
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 12 Aug 2009 01:46:57 +0200
+
+gnome-shell (2.27.0-0ubuntu2) karmic; urgency=low
+
+  * Require gobject-introspection-freedesktop too
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 12 Aug 2009 01:29:04 +0200
+
+gnome-shell (2.27.0-0ubuntu1) karmic; urgency=low
+
+  * New upstream version
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 11 Aug 2009 19:36:26 +0200
+
+gnome-shell (0.0.1~git20090805-0ubuntu1) karmic; urgency=low
+
+  * New upstream snapshot
+  * debian/control:
+    - require new clutter
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 05 Aug 2009 19:04:15 +0100
+
+gnome-shell (0.0.1~git20090715-0ubuntu1) karmic; urgency=low
+
+  * New upstream snapshot
+  * debian/control:
+    - build-depends on libglib
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 15 Jul 2009 15:57:33 +0200
+
+gnome-shell (0.0.1~git20090702-0ubuntu0.2) karmic; urgency=low
+
+  * debian/control:
+    - recommends xserver-xephyr
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 02 Jul 2009 19:48:06 +0200
+
+gnome-shell (0.0.1~git20090702-0ubuntu0.1) karmic; urgency=low
+
+  * New git version
+  * debian/control:
+    - updated the depends
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 02 Jul 2009 15:59:22 +0200
+
+gnome-shell (0.0.1~git20090701-0ubuntu0.3) karmic; urgency=low
+
+  * debian/control:
+    - build-depends on gobject-introspection-glib-2.0 and not on libdesk
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 02 Jul 2009 10:18:37 +0200
+
+gnome-shell (0.0.1~git20090701-0ubuntu0.2) karmic; urgency=low
+
+  * debian/control: build-depends on gobject-introspection
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Thu, 02 Jul 2009 09:51:01 +0200
+
+gnome-shell (0.0.1~git20090701-0ubuntu0.1) karmic; urgency=low
+
+  * Initial ppa upload
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 01 Jul 2009 23:29:31 +0200

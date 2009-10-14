@@ -1,0 +1,170 @@
+Subject: Use clutter_actor_destroy in dispose, add _dispose where needed
+
+ClutterGroup calls _destroy, but most of St was just calling _unparent.
+This caused problems because the DESTROY signal was not emitted
+for child elements after destroying a toplevel.  Also, in a GC'd
+binding it would cause unpredictable lifetime of children.
+
+Some St widgets simply didn't have _dispose at all; implement it.
+
+Note because of the usage of the background_image in StButton,
+we can't cleanly destroy it inside the StWidget.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=597845
+---
+diff --git a/src/st/st-bin.c b/src/st/st-bin.c
+index ed00e63..4c862b6 100644
+--- a/src/st/st-bin.c
++++ b/src/st/st-bin.c
+@@ -352,10 +352,8 @@ st_bin_dispose (GObject *gobject)
+   StBinPrivate *priv = ST_BIN (gobject)->priv;
+ 
+   if (priv->child)
+-    {
+-      clutter_actor_unparent (priv->child);
+-      priv->child = NULL;
+-    }
++    clutter_actor_destroy (priv->child);
++  g_assert (priv->child == NULL);
+ 
+   G_OBJECT_CLASS (st_bin_parent_class)->dispose (gobject);
+ }
+diff --git a/src/st/st-box-layout.c b/src/st/st-box-layout.c
+index b87b072..e81f64c 100644
+--- a/src/st/st-box-layout.c
++++ b/src/st/st-box-layout.c
+@@ -403,11 +403,7 @@ st_box_layout_dispose (GObject *object)
+   StBoxLayoutPrivate *priv = ST_BOX_LAYOUT (object)->priv;
+ 
+   while (priv->children)
+-    {
+-      clutter_actor_unparent (CLUTTER_ACTOR (priv->children->data));
+-
+-      priv->children = g_list_delete_link (priv->children, priv->children);
+-    }
++    clutter_actor_destroy (priv->children->data);
+ 
+   if (priv->hadjustment)
+     {
+diff --git a/src/st/st-entry.c b/src/st/st-entry.c
+index 450f4cc..ac79f4e 100644
+--- a/src/st/st-entry.c
++++ b/src/st/st-entry.c
+@@ -162,7 +162,7 @@ st_entry_dispose (GObject *object)
+ 
+   if (priv->entry)
+     {
+-      clutter_actor_unparent (priv->entry);
++      clutter_actor_destroy (priv->entry);
+       priv->entry = NULL;
+     }
+ }
+diff --git a/src/st/st-label.c b/src/st/st-label.c
+index 88fa868..db9b0c1 100644
+--- a/src/st/st-label.c
++++ b/src/st/st-label.c
+@@ -184,6 +184,20 @@ st_label_allocate (ClutterActor          *actor,
+ }
+ 
+ static void
++st_label_dispose (GObject   *actor)
++{
++  StLabelPrivate *priv = ST_LABEL (actor)->priv;
++
++  if (priv->label)
++    {
++      clutter_actor_destroy (priv->label);
++      priv->label = NULL;
++    }
++
++  G_OBJECT_CLASS (st_label_parent_class)->dispose (G_OBJECT (actor));
++}
++
++static void
+ st_label_paint (ClutterActor *actor)
+ {
+   StLabelPrivate *priv = ST_LABEL (actor)->priv;
+@@ -227,6 +241,7 @@ st_label_class_init (StLabelClass *klass)
+ 
+   gobject_class->set_property = st_label_set_property;
+   gobject_class->get_property = st_label_get_property;
++  gobject_class->dispose = st_label_dispose;
+ 
+   actor_class->paint = st_label_paint;
+   actor_class->allocate = st_label_allocate;
+diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
+index 2dd6f6e..cb555eb 100644
+--- a/src/st/st-scroll-view.c
++++ b/src/st/st-scroll-view.c
+@@ -129,13 +129,13 @@ st_scroll_view_dispose (GObject *object)
+ 
+   if (priv->vscroll)
+     {
+-      clutter_actor_unparent (priv->vscroll);
++      clutter_actor_destroy (priv->vscroll);
+       priv->vscroll = NULL;
+     }
+ 
+   if (priv->hscroll)
+     {
+-      clutter_actor_unparent (priv->hscroll);
++      clutter_actor_destroy (priv->hscroll);
+       priv->hscroll = NULL;
+     }
+ 
+diff --git a/src/st/st-table.c b/src/st/st-table.c
+index 9ef2cf1..e844ff6 100644
+--- a/src/st/st-table.c
++++ b/src/st/st-table.c
+@@ -271,15 +271,9 @@ static void
+ st_table_dispose (GObject *gobject)
+ {
+   StTablePrivate *priv = ST_TABLE (gobject)->priv;
+-  GSList *l, *next;
+ 
+-  for (l = priv->children; l;)
+-    {
+-      next = l->next;
+-      clutter_container_remove_actor ((ClutterContainer *) gobject,
+-                                      CLUTTER_ACTOR (l->data));
+-      l = next;
+-    }
++  while (priv->children)
++    clutter_actor_destroy (priv->children->data);
+ 
+   G_OBJECT_CLASS (st_table_parent_class)->dispose (gobject);
+ }
+diff --git a/src/st/st-tooltip.c b/src/st/st-tooltip.c
+index 9ed299e..5232dbc 100644
+--- a/src/st/st-tooltip.c
++++ b/src/st/st-tooltip.c
+@@ -356,6 +356,20 @@ st_tooltip_unmap (ClutterActor *self)
+ }
+ 
+ static void
++st_tooltip_dispose (GObject *self)
++{
++  StTooltipPrivate *priv = ST_TOOLTIP (self)->priv;
++
++  if (priv->label)
++    {
++      clutter_actor_destroy (priv->label);
++      priv->label = NULL;
++    }
++
++  G_OBJECT_CLASS (st_tooltip_parent_class)->dispose (self);
++}
++
++static void
+ st_tooltip_class_init (StTooltipClass *klass)
+ {
+   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+@@ -367,6 +381,7 @@ st_tooltip_class_init (StTooltipClass *klass)
+ 
+   gobject_class->set_property = st_tooltip_set_property;
+   gobject_class->get_property = st_tooltip_get_property;
++  gobject_class->dispose = st_tooltip_dispose;
+ 
+   actor_class->get_preferred_width = st_tooltip_get_preferred_width;
+   actor_class->get_preferred_height = st_tooltip_get_preferred_height;
+
