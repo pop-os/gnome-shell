@@ -8,10 +8,10 @@ Build-Depends: cdbs,
                autotools-dev,
                libgjs-dev,
                gvfs-backends,
-               gobject-introspection,
-               gobject-introspection-freedesktop,
-               gobject-introspection-glib-2.0,
-               gobject-introspection-repository,
+               gobject-introspection (>= 0.6.5-3),
+               gir1.0-freedesktop,
+               gir1.0-glib-2.0,
+               gir-repository-dev,
                libcroco3-dev (>= 0.6),
                libdbus-glib-1-dev,
                libgconf2-dev,
@@ -33,12 +33,10 @@ Homepage: http://live.gnome.org/GnomeShell
 
 Package: gnome-shell
 Architecture: any
-Depends: ${shlibs:Depends},
+Depends: ${gir:Depends},
+         ${shlibs:Depends},
          ${misc:Depends},
-         mutter,
-         gobject-introspection-glib-2.0,
-         gobject-introspection-freedesktop,
-         gobject-introspection-repository
+         mutter
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
  In particular, it offers new paradigms for launching applications,
