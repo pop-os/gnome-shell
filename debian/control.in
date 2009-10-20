@@ -38,6 +38,7 @@ Homepage: http://live.gnome.org/GnomeShell
 Package: gnome-shell
 Architecture: any
 Depends: ${gir:Depends},
+         gir1.0-mutter-2.28,
          ${shlibs:Depends},
          ${misc:Depends},
          mutter

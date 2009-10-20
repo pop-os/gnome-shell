@@ -8,6 +8,16 @@ include /usr/share/cdbs/1/class/gnome.mk
 include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
 
 $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
-	dh_girepository -p$(cdbs_curpkg)
+	# Dirty hack to work-around dh_girepository limitation
+	# Should we make it scan for typelib files everywhere?
+	mkdir -p debian/gnome-shell/usr/lib/girepository-1.0
+	cp debian/gnome-shell/usr/lib/gnome-shell/*typelib \
+		debian/gnome-shell/usr/lib/girepository-1.0/
+	# Also... hrm. What do we do regarding these other "private"
+	# ones?
+	cp /usr/lib/mutter/*typelib \
+		debian/gnome-shell/usr/lib/girepository-1.0/
+	dh_girepository -p$(cdbs_curpkg) -l src:/usr/lib/mutter/
+	rm -rf debian/gnome-shell/usr/lib/girepository-1.0
 
 DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
