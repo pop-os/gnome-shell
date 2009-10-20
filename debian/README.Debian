@@ -34,6 +34,6 @@ to 'gnome-shell':
 
 Here's the gconftool command, if you're feeling lazy:
 
-       $ gconftool-2 -s string /desktop/gnome/session/required_components/windowmanager gnome-shell
+       $ gconftool-2 -t string -s /desktop/gnome/session/required_components/windowmanager gnome-shell
 
- -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>, Wed, 14 Oct 2009 11:27:32 -0300
+ -- Gustavo Noronha Silva <kov@debian.org>, Tue, 20 Oct 2009 14:50:12 -0200
