@@ -6,6 +6,7 @@ Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.o
 Build-Depends: cdbs,
                debhelper (>= 7),
                autotools-dev,
+               gnome-pkg-tools (>= 0.11),
                libgjs-dev,
                gvfs-backends,
                gobject-introspection (>= 0.6.5-3),

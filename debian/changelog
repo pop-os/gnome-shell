@@ -10,6 +10,7 @@ gnome-shell (2.28.1~git20091020-1) unstable; urgency=low
   - fix alignment
   - remove Recommends for xserver-xephyr
   - fix build-dependencies package names
+  - build-depend on gnome-pkg-tools for uploaders
 
  -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Wed, 14 Oct 2009 11:31:23 -0300
 
