@@ -1,3 +1,10 @@
+gnome-shell (2.28.1~git20091020-2) UNRELEASED; urgency=low
+
+  * debian/control.in:
+  - ok, I agree, let's recommend Xephyr for now (Closes: #552141)
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Sat, 24 Oct 2009 13:22:02 -0200
+
 gnome-shell (2.28.1~git20091020-1) unstable; urgency=low
 
   * Initial upload, based on the Ubuntu package (Closes: #550956)

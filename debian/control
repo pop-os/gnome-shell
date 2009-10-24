@@ -44,6 +44,7 @@ Depends: ${gir:Depends},
          ${shlibs:Depends},
          ${misc:Depends},
          mutter
+Recommends: xserver-xephyr
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
  In particular, it offers new paradigms for launching applications,
