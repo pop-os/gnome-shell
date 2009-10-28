@@ -21,3 +21,5 @@ $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
 	rm -rf debian/gnome-shell/usr/lib/girepository-1.0
 
 DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
+
+DEB_DH_MAKESHLIBS_ARGS_gnome-shell = -Xlibgnome-shell
