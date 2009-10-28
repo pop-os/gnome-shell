@@ -34,7 +34,7 @@ Build-Depends: cdbs,
                libclutter-1.0-dev,
                libxfixes-dev,
                libxss-dev,
-Standards-Version: 3.8.1
+Standards-Version: 3.8.3
 Homepage: http://live.gnome.org/GnomeShell
 
 Package: gnome-shell
