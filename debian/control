@@ -43,7 +43,8 @@ Depends: ${gir:Depends},
          gir1.0-mutter-2.28,
          ${shlibs:Depends},
          ${misc:Depends},
-         mutter
+         mutter,
+         python
 Recommends: xserver-xephyr
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
