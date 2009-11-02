@@ -1,0 +1,13 @@
+diff --git a/data/gnome-shell.schemas b/data/gnome-shell.schemas
+index 9ace3bc..4349afc 100644
+--- a/data/gnome-shell.schemas
++++ b/data/gnome-shell.schemas
+@@ -36,7 +36,7 @@
+ 	<owner>gnome-shell</owner>
+ 	<type>list</type>
+ 	<list_type>string</list_type>
+-	<default>[mozilla-firefox.desktop,evolution.desktop,openoffice.org-writer.desktop]</default>
++	<default>[epiphany.desktop,evolution.desktop,openoffice.org-writer.desktop]</default>
+ 	<locale name="C">
+ 	  <short>List of desktop file IDs for favorite applications</short>
+ 	  <long>
