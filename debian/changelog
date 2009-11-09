@@ -8,6 +8,10 @@ gnome-shell (2.28.1~git20091028-2) UNRELEASED; urgency=low
     regarding the server's GLX support; thanks to alex bodnaru
     <alexbodn@012.net.il> for noticing this is needed
     (Closes: #553440)
+  * debian/patches/02_allow_non_uri_apps.diff:
+  - patch by Guido Günther <agx@sigxcpu.org> to drop the requirement that
+    associated apps support URIs, for local files at least
+    (Closes: #553618)
 
  -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Mon, 09 Nov 2009 15:32:14 -0200
 

@@ -1,0 +1,35 @@
+From e33c4221616a9a0d37ee38c8a2c16a5fabb26471 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Mon, 9 Nov 2009 15:54:44 -0200
+Subject: [PATCH] Don't require applications to accept URIs for recent files
+
+This should not be required, since glib correctly deals with such
+applications by giving them the local gvfs path, and those
+applications which do support URIs keep being able to use the URIs in
+GFiles.
+---
+ js/misc/docInfo.js |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
+
+diff --git a/js/misc/docInfo.js b/js/misc/docInfo.js
+index 021dce4..e059c50 100644
+--- a/js/misc/docInfo.js
++++ b/js/misc/docInfo.js
+@@ -36,8 +36,13 @@ DocInfo.prototype = {
+         // shorter in terms of lines of code, we are not doing so
+         // because that would duplicate the work of retrieving the
+         // mime type.
++        let needsUri = true;
+ 
+-        let appInfo = Gio.app_info_get_default_for_type(this.mimeType, true);
++        if  (this.uri.substring(0, 7) == "file://") {
++                needsUri = false;
++        }
++
++        let appInfo = Gio.app_info_get_default_for_type(this.mimeType, needsUri);
+ 
+         if (appInfo != null) {
+             appInfo.launch_uris([this.uri], Main.createAppLaunchContext());
+-- 
+1.6.5.2
+
