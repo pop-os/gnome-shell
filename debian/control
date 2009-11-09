@@ -45,7 +45,8 @@ Depends: ${gir:Depends},
          ${misc:Depends},
          mutter,
          python,
-         pkg-config
+         pkg-config,
+         mesa-utils
 Recommends: xserver-xephyr
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.

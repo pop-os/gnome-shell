@@ -3,8 +3,13 @@ gnome-shell (2.28.1~git20091028-2) UNRELEASED; urgency=low
   * debian/patches/01_favorite_apps.diff:
   - change the default favorite browser desktop file to be Epiphany's
     (Closes: #553054)
+  * debian/control.in:
+  - gnome-shell's startup script wants to run glxinfo to get information
+    regarding the server's GLX support; thanks to alex bodnaru
+    <alexbodn@012.net.il> for noticing this is needed
+    (Closes: #553440)
 
- -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Mon, 02 Nov 2009 19:44:36 -0200
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Mon, 09 Nov 2009 15:32:14 -0200
 
 gnome-shell (2.28.1~git20091028-1) unstable; urgency=low
 
