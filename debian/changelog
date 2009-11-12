@@ -1,3 +1,9 @@
+gnome-shell (2.28.1~git20091112-1) unstable; urgency=low
+
+  * New upstream snapshot
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Mon, 12 Nov 2009 10:43:05 -0200
+
 gnome-shell (2.28.1~git20091028-2) unstable; urgency=low
 
   * debian/patches/01_favorite_apps.diff:
