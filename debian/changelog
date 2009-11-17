@@ -1,4 +1,4 @@
-gnome-shell (2.28.1~git20091117-1) UNRELEASED; urgency=low
+gnome-shell (2.28.1~git20091117-1) unstable; urgency=low
 
   * New upstream snapshot
   * debian/patches/02_allow_non_uri_apps.diff:
