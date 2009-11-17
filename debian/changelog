@@ -3,6 +3,8 @@ gnome-shell (2.28.1~git20091117-1) UNRELEASED; urgency=low
   * New upstream snapshot
   * debian/patches/02_allow_non_uri_apps.diff:
   - dropped; applied upstream
+  * debian/upstream.gitlog, debian/rules:
+  - ship upstream's git log as upstream changelog (Closes: #556354)
 
  -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Thu, 12 Nov 2009 12:02:52 -0200
 
