@@ -1,3 +1,9 @@
+gnome-shell (2.28.1~git20091125-1) unstable; urgency=low
+
+  * New upstream snapshot
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Wed, 25 Nov 2009 19:06:40 -0200
+
 gnome-shell (2.28.1~git20091117-1) unstable; urgency=low
 
   * New upstream snapshot
