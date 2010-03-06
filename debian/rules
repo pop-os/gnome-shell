@@ -19,6 +19,7 @@ $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
 		debian/gnome-shell/usr/lib/girepository-1.0/
 	dh_girepository -p$(cdbs_curpkg) -l src:/usr/lib/mutter/
 	rm -rf debian/gnome-shell/usr/lib/girepository-1.0
+	find debian/$(cdbs_curpkg) -name '*.la' -exec rm -f '{}' ';'
 
 DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
 

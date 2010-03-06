@@ -1,3 +1,10 @@
+gnome-shell (2.28.1~git20100129-2) UNRELEASED; urgency=low
+
+  * debian/rules:
+    - Don't install *.la.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 06 Mar 2010 21:25:37 +0100
+
 gnome-shell (2.28.1~git20100129-1) unstable; urgency=low
 
   * New upstream snapshot.
