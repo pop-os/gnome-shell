@@ -1,9 +1,14 @@
-gnome-shell (2.28.1~git20100129-2) UNRELEASED; urgency=low
+gnome-shell (2.29.0-1) unstable; urgency=low
 
+  [ Emilio Pozuelo Monfort ]
   * debian/rules:
     - Don't install *.la.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 06 Mar 2010 21:25:37 +0100
+  [ Gustavo Noronha Silva ]
+  * New upstream development release.
+  - should work with the newer mutter (Closes: #572718)
+
+ -- Gustavo Noronha Silva <kov@debian.org>  Tue, 09 Mar 2010 18:11:05 -0300
 
 gnome-shell (2.28.1~git20100129-1) unstable; urgency=low
 
