@@ -1,3 +1,10 @@
+gnome-shell (2.29.0-2) unstable; urgency=low
+
+  * debian/control:
+  - really fix #572718 by bumping the version in mutter's gir package name
+
+ -- Gustavo Noronha Silva <kov@debian.org>  Mon, 15 Mar 2010 17:33:24 -0300
+
 gnome-shell (2.29.0-1) unstable; urgency=low
 
   [ Emilio Pozuelo Monfort ]
