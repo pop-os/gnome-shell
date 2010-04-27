@@ -1,3 +1,16 @@
+gnome-shell (2.29.0-3) UNRELEASED; urgency=low
+
+  * debian/patches/02_gjs_build_fix.patch:
+    - Backport upstream commit to fix the build with recent gjs.
+  * debian/source/format,
+    debian/patches/series,
+    debian/rules:
+    - Convert to source format 3.0 (quilt).
+  * debian/rules:
+    - Include gnome-get-source.mk.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 27 Apr 2010 21:02:20 +0200
+
 gnome-shell (2.29.0-2) unstable; urgency=low
 
   * debian/control:
