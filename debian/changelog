@@ -1,3 +1,11 @@
+gnome-shell (2.31.2-1) experimental; urgency=low
+
+  * New upstream release
+  - depends on mutter 2.31
+  - includes debian/patches/02_gjs_build_fix.patch, so removing
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Mon, 31 May 2010 11:03:29 -0300
+
 gnome-shell (2.29.0-3) unstable; urgency=low
 
   [ Emilio Pozuelo Monfort ]
