@@ -10,6 +10,8 @@ gnome-shell (2.31.5-1) experimental; urgency=low
     we need newer glib bindings
   * debian/patches/02_undo_gtk3_transition.diff:
   - undo gtk2->gtk3 migration since we do not yet have gtk+ 3 on Debian
+  * debian/patches/03_fix_dconf_service_location.diff:
+  - fix the path used to start dconf-service
 
  -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Tue, 13 Jul 2010 14:36:34 -0300
 

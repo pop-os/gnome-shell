@@ -1,0 +1,13 @@
+Index: gnome-shell-2.31.5/src/gnome-shell.in
+===================================================================
+--- gnome-shell-2.31.5.orig/src/gnome-shell.in	2010-07-13 18:28:01.996108856 -0300
++++ gnome-shell-2.31.5/src/gnome-shell.in	2010-07-13 18:29:17.944109107 -0300
+@@ -149,7 +149,7 @@
+     print "Starting dconf-service... ",
+     sys.stdout.flush()
+ 
+-    dconf_path = os.path.join('@libexecdir@', 'dconf-service')
++    dconf_path = os.path.join('/usr/lib/d-conf/', 'dconf-service')
+     try:
+         subprocess.Popen([dconf_path, '--keep-alive'])
+     except OSError, e:
