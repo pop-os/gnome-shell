@@ -1,4 +1,4 @@
-gnome-shell (2.31.5-1) UNRELEASED; urgency=low
+gnome-shell (2.31.5-1) experimental; urgency=low
 
   * New development release.
   - depend on mutter 2.31.5
