@@ -3,6 +3,7 @@ gnome-shell (2.31.5-1) experimental; urgency=low
   * New development release.
   - depend on mutter 2.31.5
   - refresh patches
+  - fixes requirements on mutter (Closes: #586124)
   * debian/control.in:
   - Build-depend on glib >= 2.25.11-1 because we use glib-compile-schemas
   - Build-depend on gtk+ >= 2.21.1
