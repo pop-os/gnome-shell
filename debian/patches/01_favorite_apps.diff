@@ -1,13 +1,13 @@
-diff --git a/data/gnome-shell.schemas b/data/gnome-shell.schemas
-index 9ace3bc..4349afc 100644
---- a/data/gnome-shell.schemas
-+++ b/data/gnome-shell.schemas
-@@ -36,7 +36,7 @@
- 	<owner>gnome-shell</owner>
- 	<type>list</type>
- 	<list_type>string</list_type>
--	<default>[mozilla-firefox.desktop,evolution.desktop,openoffice.org-writer.desktop]</default>
-+	<default>[epiphany.desktop,evolution.desktop,openoffice.org-writer.desktop]</default>
- 	<locale name="C">
- 	  <short>List of desktop file IDs for favorite applications</short>
- 	  <long>
+Index: gnome-shell-2.31.5/data/org.gnome.shell.gschema.xml.in
+===================================================================
+--- gnome-shell-2.31.5.orig/data/org.gnome.shell.gschema.xml.in	2010-07-13 14:50:55.200135868 -0300
++++ gnome-shell-2.31.5/data/org.gnome.shell.gschema.xml.in	2010-07-13 14:51:01.556193821 -0300
+@@ -30,7 +30,7 @@
+       </_description>
+     </key>
+     <key name="favorite-apps" type="as">
+-      <default>[ 'mozilla-firefox.desktop', 'evolution.desktop', 'openoffice.org-writer.desktop' ]</default>
++      <default>[ 'epiphany.desktop', 'evolution.desktop', 'openoffice.org-writer.desktop' ]</default>
+       <_summary>List of desktop file IDs for favorite applications</_summary>
+       <_description>
+         The applications corresponding to these identifiers

@@ -1,3 +1,11 @@
+gnome-shell (2.31.5-1) UNRELEASED; urgency=low
+
+  * New development release.
+  - depend on mutter 2.31.5
+  - refresh patches
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Tue, 13 Jul 2010 14:36:34 -0300
+
 gnome-shell (2.31.2-1) experimental; urgency=low
 
   * New upstream release
