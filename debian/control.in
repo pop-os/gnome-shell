@@ -10,7 +10,7 @@ Build-Depends: cdbs,
                intltool,
                libgjs-dev (>= 0.4-3),
                gvfs-backends,
-               gobject-introspection (>= 0.6.15~git20100713-1),
+               gobject-introspection (>= 0.6.15~git20100713),
                gir1.0-clutter-1.0,
                gir1.0-freedesktop,
                gir1.0-glib-2.0,
@@ -24,7 +24,7 @@ Build-Depends: cdbs,
                libgconf2-dev,
                libgirepository1.0-dev (>= 0.6.5),
                libglib2.0-dev,
-               libglib2.0-bin (>= 2.25.11-1),
+               libglib2.0-bin (>= 2.25.11),
                libgnome-desktop-dev,
                libgnome-menu-dev,
                libgstreamer0.10-dev (>= 0.10.16),
@@ -36,7 +36,7 @@ Build-Depends: cdbs,
                libclutter-1.0-dev (>= 1.2.8),
                libxfixes-dev,
                libxss-dev,
-Standards-Version: 3.8.3
+Standards-Version: 3.9.0
 Homepage: http://live.gnome.org/GnomeShell
 
 Package: gnome-shell
