@@ -1,11 +1,11 @@
-gnome-shell (2.31.5-2) UNRELEASED; urgency=low
+gnome-shell (2.31.5-2) experimental; urgency=low
 
   * debian/control:
   - depend and build-depend on gir1.0-glib-2.0 (>= 0.6.15~git20100713)
   - also depend on gjs, because the clock preferences uses gjs-console for
     some reason
 
- -- Gustavo Noronha Silva <kov@goiaba>  Thu, 15 Jul 2010 11:36:37 -0300
+ -- Gustavo Noronha Silva <kov@debian.org>  Wed, 28 Jul 2010 11:45:06 +0200
 
 gnome-shell (2.31.5-1) experimental; urgency=low
 
