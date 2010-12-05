@@ -7,6 +7,8 @@ gnome-shell (2.91.3-1) UNRELEASED; urgency=low
       + Removed, let's use GTK+3 from now on.
     - debian/patches/03_fix_dconf_service_location.diff:
       + Updated.
+    - debian/rules:
+      + Add a dirty hack so we can find the mutter gir.
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 05 Dec 2010 20:08:44 +0100
 

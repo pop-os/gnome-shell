@@ -17,6 +17,9 @@ $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
 	# ones?
 	cp /usr/lib/mutter/*typelib \
 		debian/gnome-shell/usr/lib/girepository-1.0/
+	# I'm not proud of this
+	mkdir debian/gnome-shell/usr/share/gir-1.0/
+	cp /usr/lib/mutter/*gir debian/gnome-shell/usr/share/gir-1.0
 	dh_girepository -p$(cdbs_curpkg) -l src:/usr/lib/mutter/
 	rm -rf debian/gnome-shell/usr/lib/girepository-1.0
 	find debian/$(cdbs_curpkg) -name '*.la' -exec rm -f '{}' ';'
