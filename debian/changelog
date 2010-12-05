@@ -1,3 +1,15 @@
+gnome-shell (2.91.3-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+    - debian/control.in:
+      + Updated build dependencies.
+    - debian/patches/02_undo_gtk3_transition.diff:
+      + Removed, let's use GTK+3 from now on.
+    - debian/patches/03_fix_dconf_service_location.diff:
+      + Updated.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 05 Dec 2010 20:08:44 +0100
+
 gnome-shell (2.31.5-2) experimental; urgency=low
 
   * debian/control:
