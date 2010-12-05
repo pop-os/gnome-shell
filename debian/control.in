@@ -46,8 +46,9 @@ Package: gnome-shell
 Architecture: any
 Depends: ${gir:Depends},
          gir1.0-mutter-2.91,
-         gir1.0-gconf-2.0 (>= 2.31.5),
+         gir1.0-gconf-2.0 (>= 2.32.1-1~),
          gir1.0-glib-2.0 (>= 0.9),
+         gir1.0-pango-1.0 (>= 1.28),
          gjs,
          ${shlibs:Depends},
          ${misc:Depends},
