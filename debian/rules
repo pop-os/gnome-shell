@@ -8,7 +8,7 @@ include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
 -include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
 $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
-	dh_girepository -p$(cdbs_curpkg) -l src -i /usr/lib/mutter/ \
+	dh_girepository -p$(cdbs_curpkg) -l src -p /usr/lib/mutter \
 		/usr/lib/gnome-shell
 	find debian/$(cdbs_curpkg) -name '*.la' -exec rm -f '{}' ';'
 
