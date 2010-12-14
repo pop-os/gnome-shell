@@ -53,6 +53,7 @@ Depends: ${gir:Depends},
          ${shlibs:Depends},
          ${misc:Depends},
          mutter (>= 2.91.3),
+         gnome-settings-daemon (>= 2.91.5.1),
          python,
          pkg-config,
          mesa-utils
