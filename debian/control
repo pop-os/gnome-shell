@@ -7,7 +7,7 @@ Source: gnome-shell
 Section: gnome
 Priority: extra
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Gustavo Noronha Silva <kov@debian.org>, Josselin Mouette <joss@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Gustavo Noronha Silva <kov@debian.org>, Josselin Mouette <joss@debian.org>, Laurent Bigonville <bigon@debian.org>
 Build-Depends: cdbs,
                debhelper (>= 7),
                autotools-dev,
@@ -45,6 +45,8 @@ Build-Depends: cdbs,
                libcanberra-dev
 Standards-Version: 3.9.1
 Homepage: http://live.gnome.org/GnomeShell
+Vcs-Svn: svn://svn.debian.org/svn/pkg-gnome/packages/unstable/gnome-shell
+Vcs-Browser: http://svn.debian.org/viewsvn/pkg-gnome/packages/unstable/gnome-shell/
 
 Package: gnome-shell
 Architecture: any
