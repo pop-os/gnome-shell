@@ -21,6 +21,14 @@ gnome-shell (2.91.3-1) UNRELEASED; urgency=low
   * debian/control.in: Add Vcs-* fields
   * debian/watch: Add watch file
 
+  [ Emilio Pozuelo Monfort ]
+  * debian/patches/02_fix_build_with_latest_gtk.patch:
+    - Patch from upstream git, fix build with GTK+ 2.91.6.
+  * debian/control.in:
+    - Bump the libgtk3.0-dev accordingly.
+  * debian/patches/*.diff:
+    - Renamed to debian/patches/*.patch.
+
  -- Laurent Bigonville <bigon@debian.org>  Thu, 16 Dec 2010 14:32:31 +0100
 
 gnome-shell (2.31.5-2) experimental; urgency=low

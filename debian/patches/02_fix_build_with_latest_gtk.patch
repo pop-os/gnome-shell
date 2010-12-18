@@ -1,0 +1,80 @@
+From 7ce65e421b0123d3a86fa26aca5f991c5987f45e Mon Sep 17 00:00:00 2001
+From: Jason D. Clinton <me@jasonclinton.com>
+Date: Thu, 02 Dec 2010 22:07:34 +0000
+Subject: Fix compilation against latest GTK+-3 changes
+
+GDK_WINDOW_XWINDOW has been removed. All calls should use
+gdk_x11_window_get_xid() instead.
+---
+diff --git a/src/shell-embedded-window.c b/src/shell-embedded-window.c
+index a3b9153..01a5a4d 100644
+--- a/src/shell-embedded-window.c
++++ b/src/shell-embedded-window.c
+@@ -106,7 +106,7 @@ shell_embedded_window_realize (GtkWidget *widget)
+    * modifying the GDK hierarchy.
+    */
+   XReparentWindow (GDK_DISPLAY_XDISPLAY (gtk_widget_get_display (widget)),
+-                   GDK_WINDOW_XWINDOW (gtk_widget_get_window (widget)),
++                   gdk_x11_window_get_xid (gtk_widget_get_window (widget)),
+                    window->priv->stage_xwindow,
+                    window->priv->position.x, window->priv->position.y);
+ }
+diff --git a/src/shell-gtk-embed.c b/src/shell-gtk-embed.c
+index c138418..a7c7bbe 100644
+--- a/src/shell-gtk-embed.c
++++ b/src/shell-gtk-embed.c
+@@ -39,7 +39,7 @@ shell_gtk_embed_on_window_realize (GtkWidget     *widget,
+    * screen.
+    */
+   clutter_x11_texture_pixmap_set_window (CLUTTER_X11_TEXTURE_PIXMAP (embed),
+-                                         GDK_WINDOW_XWINDOW (gtk_widget_get_window (widget)),
++                                         gdk_x11_window_get_xid (gtk_widget_get_window (widget)),
+                                          FALSE);
+ }
+ 
+diff --git a/src/tray/na-tray-child.c b/src/tray/na-tray-child.c
+index e5cc2a6..37db2e0 100644
+--- a/src/tray/na-tray-child.c
++++ b/src/tray/na-tray-child.c
+@@ -420,7 +420,7 @@ na_tray_child_force_redraw (NaTrayChild *child)
+       gtk_widget_get_allocation (widget, &allocation);
+ 
+       xev.xexpose.type = Expose;
+-      xev.xexpose.window = GDK_WINDOW_XWINDOW (plug_window);
++      xev.xexpose.window = gdk_x11_window_get_xid (plug_window);
+       xev.xexpose.x = 0;
+       xev.xexpose.y = 0;
+       xev.xexpose.width = allocation.width;
+diff --git a/src/tray/na-tray-manager.c b/src/tray/na-tray-manager.c
+index bccda63..64300bc 100644
+--- a/src/tray/na-tray-manager.c
++++ b/src/tray/na-tray-manager.c
+@@ -601,7 +601,7 @@ na_tray_manager_set_orientation_property (NaTrayManager *manager)
+ 		SYSTEM_TRAY_ORIENTATION_VERT;
+ 
+   XChangeProperty (GDK_DISPLAY_XDISPLAY (display),
+-		   GDK_WINDOW_XWINDOW (window),
++		   gdk_x11_window_get_xid (window),
+                    orientation_atom,
+ 		   XA_CARDINAL, 32,
+ 		   PropModeReplace,
+@@ -646,7 +646,7 @@ na_tray_manager_set_visual_property (NaTrayManager *manager)
+   data[0] = XVisualIDFromVisual (xvisual);
+ 
+   XChangeProperty (GDK_DISPLAY_XDISPLAY (display),
+-                   GDK_WINDOW_XWINDOW (window),
++                   gdk_x11_window_get_xid (window),
+                    visual_atom,
+                    XA_VISUALID, 32,
+                    PropModeReplace,
+@@ -724,7 +724,7 @@ na_tray_manager_manage_screen_x11 (NaTrayManager *manager,
+       xev.data.l[0] = timestamp;
+       xev.data.l[1] = gdk_x11_atom_to_xatom_for_display (display,
+                                                          manager->selection_atom);
+-      xev.data.l[2] = GDK_WINDOW_XWINDOW (window);
++      xev.data.l[2] = gdk_x11_window_get_xid (window);
+       xev.data.l[3] = 0;	/* manager specific data */
+       xev.data.l[4] = 0;	/* manager specific data */
+ 
+--
+cgit v0.8.3.1
