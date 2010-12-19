@@ -1,4 +1,4 @@
-gnome-shell (2.91.3-1) UNRELEASED; urgency=low
+gnome-shell (2.91.3-1) experimental; urgency=low
 
   [ Emilio Pozuelo Monfort ]
   * New upstream release (Closes: #605098, CVE-2010-4000).
@@ -29,7 +29,7 @@ gnome-shell (2.91.3-1) UNRELEASED; urgency=low
   * debian/patches/*.diff:
     - Renamed to debian/patches/*.patch.
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 16 Dec 2010 14:32:31 +0100
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 19 Dec 2010 00:08:30 +0000
 
 gnome-shell (2.31.5-2) experimental; urgency=low
 

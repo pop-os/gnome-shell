@@ -51,6 +51,7 @@ Depends: ${gir:Depends},
          ${misc:Depends},
          mutter (>= 2.91.3),
          gnome-settings-daemon (>= 2.91.5.1),
+         gir1.2-gconf-2.0,
          python,
          pkg-config,
          mesa-utils
