@@ -1,9 +1,9 @@
-gnome-shell (2.91.3-2) UNRELEASED; urgency=low
+gnome-shell (2.91.3-2) experimental; urgency=low
 
   * debian/control.in:
     - Build depend on libdconf0 for dconf-service. Closes: #595598.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 19 Dec 2010 16:25:10 +0000
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 19 Dec 2010 16:36:11 +0000
 
 gnome-shell (2.91.3-1) experimental; urgency=low
 
