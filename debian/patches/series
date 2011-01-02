@@ -1,3 +1,2 @@
 01_favorite_apps.patch
-02_fix_build_with_latest_gtk.patch
 03_fix_dconf_service_location.patch
