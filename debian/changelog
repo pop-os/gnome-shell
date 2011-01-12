@@ -1,8 +1,10 @@
-gnome-shell (2.91.4-1) UNRELEASED; urgency=low
+gnome-shell (2.91.5-1) UNRELEASED; urgency=low
 
   * New upstream release.
     + debian/patches/02_fix_build_with_latest_gtk.patch:
       - Removed, fixed upstream.
+    + debian/patches/01_favorite_apps.patch:
+      - Refreshed.
     + debian/control.in:
       - Updated build dependencies.
 
