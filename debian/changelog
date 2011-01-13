@@ -1,4 +1,4 @@
-gnome-shell (2.91.5-1) UNRELEASED; urgency=low
+gnome-shell (2.91.5-1) experimental; urgency=low
 
   * New upstream release.
     + debian/patches/02_fix_build_with_latest_gtk.patch:
@@ -8,7 +8,7 @@ gnome-shell (2.91.5-1) UNRELEASED; urgency=low
     + debian/control.in:
       - Updated build dependencies.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 02 Jan 2011 19:20:06 +0000
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 12 Jan 2011 23:41:41 +0000
 
 gnome-shell (2.91.3-2) experimental; urgency=low
 
