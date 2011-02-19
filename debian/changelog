@@ -1,4 +1,4 @@
-gnome-shell (2.91.6-1) UNRELEASED; urgency=low
+gnome-shell (2.91.6-1) experimental; urgency=low
 
   [ Emilio Pozuelo Monfort ]
   * debian/control.in:
@@ -13,7 +13,12 @@ gnome-shell (2.91.6-1) UNRELEASED; urgency=low
     - Make mutter depends on libdconf0 | gsettings-backend instead of
       libdconf0 only
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 07 Feb 2011 01:53:03 +0100
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Update for the new gtk+ 3 package names.
+    + Add missing dependency on gir1.2-gnomekbd-3.0.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 19 Feb 2011 16:45:48 +0000
 
 gnome-shell (2.91.5-1) experimental; urgency=low
 

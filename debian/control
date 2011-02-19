@@ -7,7 +7,7 @@ Source: gnome-shell
 Section: gnome
 Priority: extra
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Gustavo Noronha Silva <kov@debian.org>, Josselin Mouette <joss@debian.org>, Laurent Bigonville <bigon@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Gustavo Noronha Silva <kov@debian.org>, Josselin Mouette <joss@debian.org>
 Build-Depends: cdbs,
                debhelper (>= 7),
                autotools-dev,
@@ -33,7 +33,7 @@ Build-Depends: cdbs,
                libgnome-desktop-3-dev (>= 2.90.0),
                libgnome-menu-dev,
                libgstreamer0.10-dev (>= 0.10.16),
-               libgtk3.0-dev (>= 2.99.3),
+               libgtk-3-dev (>= 3.0.0),
                libstartup-notification0-dev,
                libmutter-dev (>= 2.91.4),
                librsvg2-dev,
@@ -62,6 +62,7 @@ Depends: ${gir:Depends},
          gnome-settings-daemon (>= 2.91.5.1),
          gnome-control-center (>= 2.91),
          gir1.2-gconf-2.0,
+         gir1.2-gnomekbd-3.0,
          python,
          pkg-config,
          mesa-utils
