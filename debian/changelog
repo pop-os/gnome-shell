@@ -1,3 +1,12 @@
+gnome-shell (2.91.90-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+    + Build depend on libtelepathy-glib-dev for the updated Telepathy
+      integration.
+    + Build depend on libpolkit-agent-1-dev for the new authorization dialogs.
+
+ -- Frederic Peters <fpeters@debian.org>  Wed, 23 Feb 2011 10:24:23 +0100
+
 gnome-shell (2.91.6-1) experimental; urgency=low
 
   [ Emilio Pozuelo Monfort ]

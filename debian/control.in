@@ -8,7 +8,7 @@ Build-Depends: cdbs,
                autotools-dev,
                gnome-pkg-tools (>= 0.11),
                intltool,
-               libgjs-dev (>= 0.7.8),
+               libgjs-dev (>= 0.7.11),
                gvfs-backends,
                gobject-introspection (>= 0.10.1),
                gir1.2-atk-1.0 (>= 1.32),
@@ -18,7 +18,7 @@ Build-Depends: cdbs,
                gir1.2-gtk-3.0,
                gir1.2-json-glib-1.0,
                gir1.2-mutter-2.91,
-               mutter (>= 2.91.3),
+               mutter (>= 2.91.90),
                libcroco3-dev (>= 0.6),
                libdbus-glib-1-dev,
                libgconf2-dev,
@@ -40,7 +40,9 @@ Build-Depends: cdbs,
                libcanberra-dev,
                libecal1.2-dev (>= 1.6.0),
                libedataserver1.2-dev (>= 1.2.0),
-               libedataserverui1.2-dev (>= 1.2.0)
+               libedataserverui1.2-dev (>= 1.2.0),
+               libtelepathy-glib-dev (>= 0.13.12),
+               libpolkit-agent-1-dev (>= 0.100)
 Standards-Version: 3.9.1
 Homepage: http://live.gnome.org/GnomeShell
 Vcs-Svn: svn://svn.debian.org/svn/pkg-gnome/packages/unstable/gnome-shell
