@@ -7,6 +7,7 @@ gnome-shell (2.91.90-1) UNRELEASED; urgency=low
     + Build depend, and depend, on appropriate gir packages (polkit,
       telepathy, and upower).
     + Update build dep on libmutter-dev.
+    + Update depends for new libgnomekbd gir package name.
     + Remove Recommends on xserver-xephyr.
 
  -- Frederic Peters <fpeters@debian.org>  Wed, 23 Feb 2011 10:24:23 +0100
