@@ -1,4 +1,4 @@
-gnome-shell (2.91.90-1) UNRELEASED; urgency=low
+gnome-shell (2.91.90-1) experimental; urgency=low
 
   * New upstream release.
     + Build depend on libtelepathy-glib-dev for the updated Telepathy
@@ -10,7 +10,7 @@ gnome-shell (2.91.90-1) UNRELEASED; urgency=low
     + Update depends for new libgnomekbd gir package name.
     + Remove Recommends on xserver-xephyr.
 
- -- Frederic Peters <fpeters@debian.org>  Wed, 23 Feb 2011 10:24:23 +0100
+ -- Frederic Peters <fpeters@debian.org>  Fri, 25 Feb 2011 12:23:23 +0100
 
 gnome-shell (2.91.6-1) experimental; urgency=low
 
