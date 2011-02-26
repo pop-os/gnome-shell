@@ -1,3 +1,10 @@
+gnome-shell (2.91.90-2) UNRELEASED; urgency=low
+
+  * debian/control.in:
+    + Depend on gsettings-desktop-schemas. Closes: #614945.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 26 Feb 2011 11:02:14 +0000
+
 gnome-shell (2.91.90-1) experimental; urgency=low
 
   * New upstream release.
