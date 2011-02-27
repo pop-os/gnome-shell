@@ -7,7 +7,7 @@ Source: gnome-shell
 Section: gnome
 Priority: extra
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Frederic Peters <fpeters@debian.org>, Gustavo Noronha Silva <kov@debian.org>, Josselin Mouette <joss@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Gustavo Noronha Silva <kov@debian.org>, Josselin Mouette <joss@debian.org>
 Build-Depends: cdbs,
                debhelper (>= 7),
                autotools-dev,
@@ -65,8 +65,10 @@ Depends: ${gir:Depends},
          libdconf0 | gsettings-backend,
          gnome-settings-daemon (>= 2.91.5.1),
          gnome-control-center (>= 2.91),
+         gsettings-desktop-schemas (>= 0.1.7),
          gir1.2-gconf-2.0,
          gir1.2-gkbd-3.0,
+         gir1.2-mutter-2.91 (>= 2.91.90),
          gir1.2-polkit-1.0,
          gir1.2-upowerglib-1.0,
          gir1.2-telepathyglib-0.12,
