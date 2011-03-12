@@ -1,0 +1,33 @@
+Use gnome-session-save in fallback if gnome-session-quit doesn't work, so
+gnome-shell keeps working with older gnome-session versions.
+
+Index: gnome-shell-2.91.91/js/ui/statusMenu.js
+===================================================================
+--- gnome-shell-2.91.91.orig/js/ui/statusMenu.js	2011-03-12 19:15:58.068843000 +0100
++++ gnome-shell-2.91.91/js/ui/statusMenu.js	2011-03-12 19:22:18.140843002 +0100
+@@ -199,7 +199,11 @@
+ 
+     _onQuitSessionActivate: function() {
+         Main.overview.hide();
+-        Util.spawn(['gnome-session-quit', '--logout']);
++        try {
++            Util.trySpawn(['gnome-session-quit', '--logout']);
++        } catch (err) {
++            Util.spawn(['gnome-session-save', '--logout']);
++        }
+     },
+ 
+     _onSuspendOrPowerOffActivate: function() {
+@@ -209,7 +213,11 @@
+             this._suspendOrPowerOffItem.state == PopupMenu.PopupAlternatingMenuItemState.DEFAULT) {
+             this._upClient.suspend_sync(null);
+         } else {
+-            Util.spawn(['gnome-session-quit', '--power-off']);
++            try {
++                Util.spawn(['gnome-session-quit', '--power-off']);
++            } catch (err) {
++                Util.spawn(['gnome-session-save', '--power-off']);
++            }
+         }
+     },
+ 

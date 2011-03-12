@@ -1,2 +1,2 @@
 01_favorite_apps.patch
-03_fix_dconf_service_location.patch
+04_gnome_session_quit.patch

@@ -1,10 +1,23 @@
-gnome-shell (2.91.90-2) UNRELEASED; urgency=low
+gnome-shell (2.91.91-1) UNRELEASED; urgency=low
 
+  * New upstream release.
+
+  [ Emilio Pozuelo Monfort ]
   * debian/control.in:
     + Depend on gsettings-desktop-schemas. Closes: #614945.
     + Depend on gir1.2-mutter-2.91. Closes: #615588.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 26 Feb 2011 11:02:14 +0000
+  [ Frederic Peters ]
+  * debian/control.in:
+    + Don't depend on mutter, it now links against libmutter-wm0.
+  * debian/patches/03_fix_dconf_service_location.patch: remove, no longer
+    necessary now that gnome-shell is a real binary and doesn't try to arrange
+    its own environment.
+  * debian/patches/04_gnome_session_quit.patch: use gnome-session-save in
+    fallback if gnome-session-quit doesn't work, so gnome-shell keeps working
+    with older gnome-session versions.
+
+ -- Frederic Peters <fpeters@debian.org>  Sat, 12 Mar 2011 19:40:06 +0100
 
 gnome-shell (2.91.90-1) experimental; urgency=low
 
