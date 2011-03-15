@@ -17,6 +17,10 @@ gnome-shell (2.91.91-1) UNRELEASED; urgency=low
     fallback if gnome-session-quit doesn't work, so gnome-shell keeps working
     with older gnome-session versions.
 
+  [ Emilio Pozuelo Monfort ]
+  * d/p/0001-altTab-fix-incorrect-positioning-with-multiple-monit.patch:
+    + Patch from upstream git, fix Alt+Tab with multiple monitors.
+
  -- Frederic Peters <fpeters@debian.org>  Sat, 12 Mar 2011 19:40:06 +0100
 
 gnome-shell (2.91.90-1) experimental; urgency=low
