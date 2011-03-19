@@ -1,3 +1,11 @@
+gnome-shell (2.91.91-2) experimental; urgency=low
+
+  * debian/patches/04_gnome_session_quit.patch: remove, replaced by:
+  * debian/patches/05_use_dbus_for_shutdown_and_logout.patch: use Session
+    D-Bus interface for shutdown and logout. (from git) (closes: #618870)
+
+ -- Frederic Peters <fpeters@debian.org>  Sat, 19 Mar 2011 13:10:02 +0100
+
 gnome-shell (2.91.91-1) experimental; urgency=low
 
   * New upstream release.
