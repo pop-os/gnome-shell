@@ -1,3 +1,16 @@
+gnome-shell (2.91.92-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * debian/patches/, remove patches from upstream git:
+    + 0001-altTab-fix-incorrect-positioning-with-multiple-monit.patch
+    + 05_use_dbus_for_shutdown_and_logout.patch
+  * debian/control.in:
+    + add build-dep on libtelepathy-logger-dev and gir1.2-telepathylogger-0.2
+    + bump build-dep on libxfixes-dev, it needs the one from experimental, for
+      pointer barriers
+
+ -- Frederic Peters <fpeters@debian.org>  Wed, 23 Mar 2011 21:11:28 +0100
+
 gnome-shell (2.91.91-2) experimental; urgency=low
 
   * debian/patches/04_gnome_session_quit.patch: remove, replaced by:
