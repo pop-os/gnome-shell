@@ -7,7 +7,7 @@ Source: gnome-shell
 Section: gnome
 Priority: extra
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Frederic Peters <fpeters@debian.org>, Gustavo Noronha Silva <kov@debian.org>, Josselin Mouette <joss@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Frederic Peters <fpeters@debian.org>, Gustavo Noronha Silva <kov@debian.org>
 Build-Depends: cdbs,
                debhelper (>= 7),
                autotools-dev,
@@ -25,6 +25,7 @@ Build-Depends: cdbs,
                gir1.2-mutter-2.91,
                gir1.2-polkit-1.0,
                gir1.2-telepathyglib-0.12,
+               gir1.2-telepathylogger-0.2,
                libcroco3-dev (>= 0.6),
                libdbus-glib-1-dev,
                libgconf2-dev,
@@ -36,11 +37,11 @@ Build-Depends: cdbs,
                libgstreamer0.10-dev (>= 0.10.16),
                libgtk-3-dev (>= 3.0.0),
                libstartup-notification0-dev,
-               libmutter-dev (>= 2.91.91),
+               libmutter-dev (>= 2.91.92),
                librsvg2-dev,
                libwnck-dev,
                libclutter-1.0-dev (>= 1.5.15),
-               libxfixes-dev,
+               libxfixes-dev (>= 1:5.0),
                libxss-dev,
                libpulse-dev,
                libcanberra-dev,
@@ -48,6 +49,7 @@ Build-Depends: cdbs,
                libedataserver1.2-dev (>= 1.2.0),
                libedataserverui1.2-dev (>= 1.2.0),
                libtelepathy-glib-dev (>= 0.13.12),
+               libtelepathy-logger-dev (>= 0.2.4),
                libpolkit-agent-1-dev (>= 0.100)
 Standards-Version: 3.9.1
 Homepage: http://live.gnome.org/GnomeShell
@@ -57,19 +59,21 @@ Vcs-Browser: http://svn.debian.org/viewsvn/pkg-gnome/packages/unstable/gnome-she
 Package: gnome-shell
 Architecture: any
 Depends: ${gir:Depends},
-         gjs,
+         gjs (>= 0.7.11),
          ${shlibs:Depends},
          ${misc:Depends},
          libdconf0 | gsettings-backend,
          gnome-settings-daemon (>= 2.91.5.1),
          gnome-control-center (>= 2.91),
          gsettings-desktop-schemas (>= 0.1.7),
+         gnome-icon-theme-symbolic (>= 2.91),
          gir1.2-gconf-2.0,
          gir1.2-gkbd-3.0,
-         gir1.2-mutter-2.91 (>= 2.91.91),
+         gir1.2-mutter-2.91 (>= 2.91.92),
          gir1.2-polkit-1.0,
          gir1.2-upowerglib-1.0,
          gir1.2-telepathyglib-0.12,
+         gir1.2-telepathylogger-0.2,
          python,
          pkg-config,
          mesa-utils

@@ -54,14 +54,14 @@ Vcs-Browser: http://svn.debian.org/viewsvn/pkg-gnome/packages/unstable/gnome-she
 Package: gnome-shell
 Architecture: any
 Depends: ${gir:Depends},
-         gjs,
+         gjs (>= 0.7.11),
          ${shlibs:Depends},
          ${misc:Depends},
          libdconf0 | gsettings-backend,
          gnome-settings-daemon (>= 2.91.5.1),
          gnome-control-center (>= 2.91),
          gsettings-desktop-schemas (>= 0.1.7),
-         gnome-icon-themes-symbolic (>= 2.91),
+         gnome-icon-theme-symbolic (>= 2.91),
          gir1.2-gconf-2.0,
          gir1.2-gkbd-3.0,
          gir1.2-mutter-2.91 (>= 2.91.92),

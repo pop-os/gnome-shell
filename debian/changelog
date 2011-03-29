@@ -2,7 +2,7 @@ gnome-shell (2.91.92-2) UNRELEASED; urgency=low
 
   * NOT RELEASED YET
   * debian/control.in:
-    + added dependency on gnome-icon-themes-symbolic
+    + added dependency on gnome-icon-theme-symbolic
 
  -- Frederic Peters <fpeters@debian.org>  Thu, 24 Mar 2011 20:09:10 +0100
 
