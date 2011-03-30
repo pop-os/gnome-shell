@@ -1,10 +1,13 @@
-gnome-shell (2.91.92-2) UNRELEASED; urgency=low
+gnome-shell (2.91.93-1) UNRELEASED; urgency=low
 
-  * NOT RELEASED YET
+  * New upstream release.
   * debian/control.in:
-    + added dependency on gnome-icon-theme-symbolic
+    + added dependency on gnome-icon-theme-symbolic.
+    + bumped gnome-shell dependency.
+    + bumped gir1.2-freedesktop build-dep to 0.10.6, for a fix to
+      cairo-1.0.typelib
 
- -- Frederic Peters <fpeters@debian.org>  Thu, 24 Mar 2011 20:09:10 +0100
+ -- Frederic Peters <fpeters@debian.org>  Wed, 30 Mar 2011 10:11:45 +0530
 
 gnome-shell (2.91.92-1) experimental; urgency=low
 
