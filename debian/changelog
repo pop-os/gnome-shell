@@ -1,13 +1,20 @@
-gnome-shell (2.91.93-1) UNRELEASED; urgency=low
+gnome-shell (3.0.0.2-1) UNRELEASED; urgency=low
 
-  * New upstream release.
+  [ Frederic Peters ]
+  * New upstream release (2.91.93).
   * debian/control.in:
     + added dependency on gnome-icon-theme-symbolic.
     + bumped gnome-shell dependency.
     + bumped gir1.2-freedesktop build-dep to 0.10.6, for a fix to
       cairo-1.0.typelib
 
- -- Frederic Peters <fpeters@debian.org>  Wed, 30 Mar 2011 10:11:45 +0530
+  [ Raphaël Hertzog ]
+  * New upstream release (3.0.0.2).
+  * Put libgnome-bluetooth in Build-Conflicts since build fails when bluetooth
+    support is enabled. The libgnome-bluetooth-applet library is not found
+    even if gnome-bluetooth is installed.
+
+ -- Raphaël Hertzog <hertzog@debian.org>  Sun, 10 Apr 2011 20:27:56 +0000
 
 gnome-shell (2.91.92-1) experimental; urgency=low
 

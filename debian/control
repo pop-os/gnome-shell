@@ -51,6 +51,7 @@ Build-Depends: cdbs,
                libtelepathy-glib-dev (>= 0.13.12),
                libtelepathy-logger-dev (>= 0.2.4),
                libpolkit-agent-1-dev (>= 0.100)
+Build-Conflicts: libgnome-bluetooth-dev
 Standards-Version: 3.9.1
 Homepage: http://live.gnome.org/GnomeShell
 Vcs-Svn: svn://svn.debian.org/svn/pkg-gnome/packages/unstable/gnome-shell
