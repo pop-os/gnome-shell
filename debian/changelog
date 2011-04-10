@@ -14,7 +14,11 @@ gnome-shell (3.0.0.2-1) UNRELEASED; urgency=low
     support is enabled. The libgnome-bluetooth-applet library is not found
     even if gnome-bluetooth is installed.
 
- -- Raphaël Hertzog <hertzog@debian.org>  Sun, 10 Apr 2011 20:27:56 +0000
+  [ Laurent Bigonville ]
+  * debian/control.in: {Build-}Depends against gir1.2-mutter-3.0 instead of
+    gir1.2-mutter-2.91
+
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 11 Apr 2011 00:44:26 +0200
 
 gnome-shell (2.91.92-1) experimental; urgency=low
 
