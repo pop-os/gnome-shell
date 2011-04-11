@@ -1,4 +1,6 @@
-gnome-shell (3.0.0.2-1) UNRELEASED; urgency=low
+gnome-shell (3.0.0.2-1) experimental; urgency=low
+
+  * Team upload.
 
   [ Frederic Peters ]
   * New upstream release (2.91.93).
@@ -10,15 +12,24 @@ gnome-shell (3.0.0.2-1) UNRELEASED; urgency=low
 
   [ Raphaël Hertzog ]
   * New upstream release (3.0.0.2).
-  * Put libgnome-bluetooth in Build-Conflicts since build fails when bluetooth
-    support is enabled. The libgnome-bluetooth-applet library is not found
-    even if gnome-bluetooth is installed.
+  * New patch 02_rpath-bluetooth-applet.patch by Rico Tzschichholz to
+    add an RPATH so that the compilation doesn't fail when g-ir-scanner
+    tries to analyze libgnome-shell.so linked against
+    libgnome-bluetooth-applet.so.0 which is in a private directory.
+  * Add a lintian override for the RPATH that we can't avoid.
+  * Teach dpkg-shlibdeps how to find that private lib and add the
+    corresponding dependency in debian/slibs.local.
+  * Update and add a bunch of build-depends to match the latest configure
+    requirements.
+  * Add gir1.2-gnomebluetooth-1.0 and gir1.2-networkmanager-1.0 to Depends
+    because they are needed to benefit from the improved UI associated to the
+    respective status bar applet.
 
   [ Laurent Bigonville ]
   * debian/control.in: {Build-}Depends against gir1.2-mutter-3.0 instead of
     gir1.2-mutter-2.91
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 11 Apr 2011 00:44:26 +0200
+ -- Raphaël Hertzog <hertzog@debian.org>  Mon, 11 Apr 2011 21:03:31 +0000
 
 gnome-shell (2.91.92-1) experimental; urgency=low
 
