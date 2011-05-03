@@ -5,9 +5,9 @@
 
 Source: gnome-shell
 Section: gnome
-Priority: extra
+Priority: optional
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Frederic Peters <fpeters@debian.org>, Gustavo Noronha Silva <kov@debian.org>, Laurent Bigonville <bigon@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Laurent Bigonville <bigon@debian.org>
 Build-Depends: cdbs,
                debhelper (>= 7),
                autotools-dev,

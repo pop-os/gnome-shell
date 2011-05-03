@@ -1,6 +1,6 @@
 Source: gnome-shell
 Section: gnome
-Priority: extra
+Priority: optional
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
 Uploaders: @GNOME_TEAM@
 Build-Depends: cdbs,
