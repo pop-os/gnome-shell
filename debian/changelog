@@ -1,9 +1,13 @@
-gnome-shell (3.0.0.2-2) UNRELEASED; urgency=low
+gnome-shell (3.0.1-1) UNRELEASED; urgency=low
 
+  [ Laurent Bigonville ]
   * debian/control.in:
     - Bump priority to optional
 
- -- Laurent Bigonville <bigon@debian.org>  Tue, 03 May 2011 16:48:00 +0200
+  [ Sjoerd Simons ]
+  * New upstream release
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 14 May 2011 16:41:45 +0100
 
 gnome-shell (3.0.0.2-1) experimental; urgency=low
 
