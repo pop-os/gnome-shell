@@ -1,4 +1,4 @@
-gnome-shell (3.0.1-1) UNRELEASED; urgency=low
+gnome-shell (3.0.1-1) experimental; urgency=low
 
   [ Laurent Bigonville ]
   * debian/control.in:
@@ -7,7 +7,7 @@ gnome-shell (3.0.1-1) UNRELEASED; urgency=low
   [ Sjoerd Simons ]
   * New upstream release
 
- -- Sjoerd Simons <sjoerd@debian.org>  Sat, 14 May 2011 16:41:45 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 14 May 2011 17:58:12 +0100
 
 gnome-shell (3.0.0.2-1) experimental; urgency=low
 
