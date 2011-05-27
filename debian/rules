@@ -16,5 +16,3 @@ DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
 
 DEB_DH_MAKESHLIBS_ARGS_gnome-shell = -Xlibgnome-shell
 DEB_SHLIBDEPS_INCLUDE = /usr/lib/gnome-bluetooth
-
-DEB_INSTALL_CHANGELOGS_ALL = debian/upstream.gitlog

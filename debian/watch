@@ -1,2 +1,2 @@
 version=3
-http://download.gnome.org/sources/gnome-shell/([\d\.]+)/gnome-shell-(.*)\.tar\.gz
+http://download.gnome.org/sources/gnome-shell/([\d\.]+)/gnome-shell-(.*)\.tar\.bz2
