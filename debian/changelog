@@ -1,10 +1,16 @@
-gnome-shell (3.0.2-1) experimental; urgency=low
+gnome-shell (3.0.2-1) UNRELEASED; urgency=low
 
+  [ Rico Tzschichholz ]
   * New upstream release
   * debian/watch:
     - Look for bzip2 tarballs
   * debian/rules,debian/upstream.gitlog:
     - Drop upstream.gitlog which is outdated
+
+  [ Josselin Mouette ]
+  * Only recommend gnome-control-center.
+  * Break gnome-control-center < 3. This time add the missing epoch.
+    Closes: #628532.
 
  -- Rico Tzschichholz <ricotz@ubuntu.com>  Fri, 27 May 2011 14:33:49 +0200
 
