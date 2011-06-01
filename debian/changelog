@@ -1,4 +1,4 @@
-gnome-shell (3.0.2-1) UNRELEASED; urgency=low
+gnome-shell (3.0.2-1) experimental; urgency=low
 
   [ Rico Tzschichholz ]
   * New upstream release
@@ -15,7 +15,7 @@ gnome-shell (3.0.2-1) UNRELEASED; urgency=low
   [ Sjoerd Simons ]
   * debian/rules: Fix misspelling of Recommends
 
- -- Sjoerd Simons <sjoerd@debian.org>  Tue, 31 May 2011 19:08:00 -0700
+ -- Sjoerd Simons <sjoerd@debian.org>  Tue, 31 May 2011 19:31:47 -0700
 
 gnome-shell (3.0.1-1) experimental; urgency=low
 
