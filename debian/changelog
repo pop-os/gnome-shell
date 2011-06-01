@@ -12,7 +12,10 @@ gnome-shell (3.0.2-1) UNRELEASED; urgency=low
   * Break gnome-control-center < 3. This time add the missing epoch.
     Closes: #628532.
 
- -- Rico Tzschichholz <ricotz@ubuntu.com>  Fri, 27 May 2011 14:33:49 +0200
+  [ Sjoerd Simons ]
+  * debian/rules: Fix misspelling of Recommends
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Tue, 31 May 2011 19:08:00 -0700
 
 gnome-shell (3.0.1-1) experimental; urgency=low
 
