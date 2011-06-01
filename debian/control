@@ -82,7 +82,7 @@ Depends: ${gir:Depends},
          python,
          pkg-config,
          mesa-utils
-Recommend: gnome-control-center
+Recommends: gnome-control-center
 Breaks: gnome-control-center (<< 1:3.0)
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
