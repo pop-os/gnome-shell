@@ -7,6 +7,10 @@ include /usr/share/cdbs/1/class/gnome.mk
 include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
 -include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
+ifeq ($(shell dpkg-vendor --query vendor),Ubuntu)
+	DEB_DH_GENCONTROL_ARGS += -- -Vicon-theme:Depends=gnome-icon-theme-full
+endif
+
 $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
 	dh_girepository -p$(cdbs_curpkg) -l src -p /usr/lib/mutter \
 		/usr/lib/gnome-shell
