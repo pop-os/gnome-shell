@@ -2,6 +2,9 @@ gnome-shell (3.0.2-2) UNRELEASED; urgency=low
 
   * debian/control.in, debian/rules: When building on Ubuntu, add a dependency
     to gnome-icon-theme-full.
+  * debian/control.in: Change gir1.2-json-glib-1.0 build-dep to 
+    gir1.2-json-1.0 to reflect the binary rename in json-glib 
+    0.13.4-2. Thanks Micah Gersten!
 
  -- Martin Pitt <mpitt@debian.org>  Wed, 15 Jun 2011 12:45:30 +0200
 
