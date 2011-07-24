@@ -7,9 +7,9 @@ Source: gnome-shell
 Section: gnome
 Priority: optional
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Frederic Peters <fpeters@debian.org>, Sjoerd Simons <sjoerd@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Laurent Bigonville <bigon@debian.org>, Sjoerd Simons <sjoerd@debian.org>
 Build-Depends: cdbs,
-               debhelper (>= 7),
+               debhelper (>= 8.1.3~),
                autotools-dev,
                gnome-pkg-tools (>= 0.11),
                intltool,
@@ -66,7 +66,6 @@ Depends: ${gir:Depends},
          gjs (>= 0.7.11),
          ${shlibs:Depends},
          ${misc:Depends},
-         libdconf0 | gsettings-backend,
          gnome-settings-daemon (>= 2.91.5.1),
          gsettings-desktop-schemas (>= 0.1.7),
          gnome-icon-theme-symbolic (>= 2.91),
