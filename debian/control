@@ -7,7 +7,7 @@ Source: gnome-shell
 Section: gnome
 Priority: optional
 Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
-Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Laurent Bigonville <bigon@debian.org>, Sjoerd Simons <sjoerd@debian.org>
+Uploaders: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Emilio Pozuelo Monfort <pochu@debian.org>, Frederic Peters <fpeters@debian.org>, Laurent Bigonville <bigon@debian.org>, Sjoerd Simons <sjoerd@debian.org>
 Build-Depends: cdbs,
                debhelper (>= 8.1.3~),
                autotools-dev,
@@ -82,7 +82,7 @@ Depends: ${gir:Depends},
          python,
          pkg-config,
          mesa-utils
-Recommends: gnome-control-center
+Recommends: gnome-control-center, gnome-themes-standard
 Breaks: gnome-control-center (<< 1:3.0)
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
