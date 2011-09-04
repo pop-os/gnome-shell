@@ -14,6 +14,11 @@ gnome-shell (3.0.2-2) UNRELEASED; urgency=low
     - Make gnome-shell Recommends gnome-themes-standard (for Adwaita)
   * debian/compat: Bump debhelper compatibility to 8
 
+  [ Josselin Mouette ]
+  * 03_hidden_applications.patch: do not show NoDisplay=true submenus 
+    and applications. This will avoid showing the Debian menu while 
+    asked not to. Closes: #557997.
+
  -- Laurent Bigonville <bigon@debian.org>  Thu, 25 Aug 2011 12:15:25 +0200
 
 gnome-shell (3.0.2-1) experimental; urgency=low
