@@ -18,8 +18,12 @@ gnome-shell (3.0.2-2) UNRELEASED; urgency=low
   * 03_hidden_applications.patch: do not show NoDisplay=true submenus 
     and applications. This will avoid showing the Debian menu while 
     asked not to. Closes: #557997.
+  * 01_favorite_apps.patch: dropped, replaced by override file.
+  * Add libreoffice and yelp to favorite applications.
+  * Drop useless build-dependency on libwnck.
+  * Massive cleanup in build-dependencies.
 
- -- Laurent Bigonville <bigon@debian.org>  Thu, 25 Aug 2011 12:15:25 +0200
+ -- Josselin Mouette <joss@debian.org>  Wed, 14 Sep 2011 05:09:38 +0200
 
 gnome-shell (3.0.2-1) experimental; urgency=low
 

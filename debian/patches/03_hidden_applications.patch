@@ -1,3 +1,6 @@
+This patch will no longer be necessary in 3.2
+See GNOME #658176
+
 Index: gnome-shell-3.0.2/src/shell-app-system.c
 ===================================================================
 --- gnome-shell-3.0.2.orig/src/shell-app-system.c	2011-09-04 14:57:31.574689356 +0200
