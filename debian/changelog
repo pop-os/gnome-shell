@@ -1,4 +1,4 @@
-gnome-shell (3.0.2-2) UNRELEASED; urgency=low
+gnome-shell (3.0.2-2) experimental; urgency=low
 
   [ Martin Pitt ]
   * debian/control.in, debian/rules: When building on Ubuntu, add a dependency
@@ -23,7 +23,7 @@ gnome-shell (3.0.2-2) UNRELEASED; urgency=low
   * Drop useless build-dependency on libwnck.
   * Massive cleanup in build-dependencies.
 
- -- Josselin Mouette <joss@debian.org>  Wed, 14 Sep 2011 05:09:38 +0200
+ -- Josselin Mouette <joss@debian.org>  Mon, 19 Sep 2011 16:36:48 +0200
 
 gnome-shell (3.0.2-1) experimental; urgency=low
 
