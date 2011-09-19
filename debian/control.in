@@ -36,7 +36,8 @@ Build-Depends: cdbs,
                libgnome-desktop-3-dev (>= 2.90.0),
                libpulse-dev,
                gsettings-desktop-schemas-dev (>= 0.1.7),
-               libgnome-bluetooth-dev (>= 2.90.0)
+               libgnome-bluetooth-dev (>= 2.90.0),
+               gnome-bluetooth (>= 2.90.0)
 Standards-Version: 3.9.1
 Homepage: http://live.gnome.org/GnomeShell
 Vcs-Svn: svn://svn.debian.org/svn/pkg-gnome/packages/unstable/gnome-shell

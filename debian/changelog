@@ -1,3 +1,9 @@
+gnome-shell (3.0.2-3) experimental; urgency=low
+
+  * Re-add gnome-bluetooth dependency.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 19 Sep 2011 18:53:24 +0200
+
 gnome-shell (3.0.2-2) experimental; urgency=low
 
   [ Martin Pitt ]
