@@ -1,6 +1,6 @@
 gnome-shell (3.0.2-4) UNRELEASED; urgency=low
 
-  * Break gnome-session-bin < 3.
+  * Break gnome-session < 3.
 
  -- Josselin Mouette <joss@debian.org>  Mon, 26 Sep 2011 12:33:53 +0200
 
