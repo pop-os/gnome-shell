@@ -8,6 +8,7 @@ gnome-shell (3.0.2-4) UNRELEASED; urgency=low
 
   [ Michael Biebl ]
   * Upload to unstable.
+  * debian/watch: Switch to .xz tarballs.
 
  -- Michael Biebl <biebl@debian.org>  Thu, 13 Oct 2011 00:01:11 +0200
 
