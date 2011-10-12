@@ -1,7 +1,7 @@
 Source: gnome-shell
 Section: gnome
 Priority: optional
-Maintainer: Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>
+Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: @GNOME_TEAM@
 Build-Depends: cdbs,
                debhelper (>= 8.1.3~),
