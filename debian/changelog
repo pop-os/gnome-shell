@@ -6,7 +6,10 @@ gnome-shell (3.0.2-4) UNRELEASED; urgency=low
   [ Rico Tzschichholz ]
   * Add 04_remove-glx-dependency-on-armel.patch to fix FTBFS on arm
 
- -- Rico Tzschichholz <ricotz@ubuntu.com>  Thu, 06 Oct 2011 08:42:54 +0200
+  [ Michael Biebl ]
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 13 Oct 2011 00:01:11 +0200
 
 gnome-shell (3.0.2-3) experimental; urgency=low
 
