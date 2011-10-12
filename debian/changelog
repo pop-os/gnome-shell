@@ -11,6 +11,7 @@ gnome-shell (3.0.2-4) UNRELEASED; urgency=low
   * debian/watch: Switch to .xz tarballs.
   * debian/control.in:
     - Set pkg-gnome-maintainers@lists.alioth.debian.org as Maintainer.
+    - Bump Standards-Version to 3.9.2. No further changes.
 
  -- Michael Biebl <biebl@debian.org>  Thu, 13 Oct 2011 00:01:11 +0200
 
