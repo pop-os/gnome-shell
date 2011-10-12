@@ -1,3 +1,283 @@
+gnome-shell (3.0.2-4) UNRELEASED; urgency=low
+
+  [ Josselin Mouette ]
+  * Break gnome-session < 3.
+
+  [ Rico Tzschichholz ]
+  * Add 04_remove-glx-dependency-on-armel.patch to fix FTBFS on arm
+
+ -- Rico Tzschichholz <ricotz@ubuntu.com>  Thu, 06 Oct 2011 08:42:54 +0200
+
+gnome-shell (3.0.2-3) experimental; urgency=low
+
+  * Re-add gnome-bluetooth dependency.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 19 Sep 2011 18:53:24 +0200
+
+gnome-shell (3.0.2-2) experimental; urgency=low
+
+  [ Martin Pitt ]
+  * debian/control.in, debian/rules: When building on Ubuntu, add a dependency
+    to gnome-icon-theme-full.
+  * debian/control.in: Change gir1.2-json-glib-1.0 build-dep to 
+    gir1.2-json-1.0 to reflect the binary rename in json-glib 
+    0.13.4-2. Thanks Micah Gersten!
+
+  [ Laurent Bigonville ]
+  * debian/control.in:
+    - Drop dependency against libdconf0 and let dh_installgsettings set
+      the right dependencies.
+    - Make gnome-shell Recommends gnome-themes-standard (for Adwaita)
+  * debian/compat: Bump debhelper compatibility to 8
+
+  [ Josselin Mouette ]
+  * 03_hidden_applications.patch: do not show NoDisplay=true submenus 
+    and applications. This will avoid showing the Debian menu while 
+    asked not to. Closes: #557997.
+  * 01_favorite_apps.patch: dropped, replaced by override file.
+  * Add libreoffice and yelp to favorite applications.
+  * Drop useless build-dependency on libwnck.
+  * Massive cleanup in build-dependencies.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 19 Sep 2011 16:36:48 +0200
+
+gnome-shell (3.0.2-1) experimental; urgency=low
+
+  [ Rico Tzschichholz ]
+  * New upstream release
+  * debian/watch:
+    - Look for bzip2 tarballs
+  * debian/rules,debian/upstream.gitlog:
+    - Drop upstream.gitlog which is outdated
+
+  [ Josselin Mouette ]
+  * Only recommend gnome-control-center.
+  * Break gnome-control-center < 3. This time add the missing epoch.
+    Closes: #628532.
+
+  [ Sjoerd Simons ]
+  * debian/rules: Fix misspelling of Recommends
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Tue, 31 May 2011 19:31:47 -0700
+
+gnome-shell (3.0.1-1) experimental; urgency=low
+
+  [ Laurent Bigonville ]
+  * debian/control.in:
+    - Bump priority to optional
+
+  [ Sjoerd Simons ]
+  * New upstream release
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 14 May 2011 17:58:12 +0100
+
+gnome-shell (3.0.0.2-1) experimental; urgency=low
+
+  * Team upload.
+
+  [ Frederic Peters ]
+  * New upstream release (2.91.93).
+  * debian/control.in:
+    + added dependency on gnome-icon-theme-symbolic.
+    + bumped gnome-shell dependency.
+    + bumped gir1.2-freedesktop build-dep to 0.10.6, for a fix to
+      cairo-1.0.typelib
+
+  [ Raphaël Hertzog ]
+  * New upstream release (3.0.0.2).
+  * New patch 02_rpath-bluetooth-applet.patch by Rico Tzschichholz to
+    add an RPATH so that the compilation doesn't fail when g-ir-scanner
+    tries to analyze libgnome-shell.so linked against
+    libgnome-bluetooth-applet.so.0 which is in a private directory.
+  * Add a lintian override for the RPATH that we can't avoid.
+  * Teach dpkg-shlibdeps how to find that private lib and add the
+    corresponding dependency in debian/slibs.local.
+  * Update and add a bunch of build-depends to match the latest configure
+    requirements.
+  * Add gir1.2-gnomebluetooth-1.0 and gir1.2-networkmanager-1.0 to Depends
+    because they are needed to benefit from the improved UI associated to the
+    respective status bar applet.
+
+  [ Laurent Bigonville ]
+  * debian/control.in: {Build-}Depends against gir1.2-mutter-3.0 instead of
+    gir1.2-mutter-2.91
+
+ -- Raphaël Hertzog <hertzog@debian.org>  Mon, 11 Apr 2011 21:03:31 +0000
+
+gnome-shell (2.91.92-1) experimental; urgency=low
+
+  * New upstream release.
+  * debian/patches/, remove patches from upstream git:
+    + 0001-altTab-fix-incorrect-positioning-with-multiple-monit.patch
+    + 05_use_dbus_for_shutdown_and_logout.patch
+  * debian/control.in:
+    + add build-dep on libtelepathy-logger-dev and gir1.2-telepathylogger-0.2.
+    + bump build-dep on libxfixes-dev, it needs the one from experimental, for
+      pointer barriers.
+
+ -- Frederic Peters <fpeters@debian.org>  Thu, 24 Mar 2011 19:28:12 +0100
+
+gnome-shell (2.91.91-2) experimental; urgency=low
+
+  * debian/patches/04_gnome_session_quit.patch: remove, replaced by:
+  * debian/patches/05_use_dbus_for_shutdown_and_logout.patch: use Session
+    D-Bus interface for shutdown and logout. (from git) (closes: #618870)
+
+ -- Frederic Peters <fpeters@debian.org>  Sat, 19 Mar 2011 13:10:02 +0100
+
+gnome-shell (2.91.91-1) experimental; urgency=low
+
+  * New upstream release.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Depend on gsettings-desktop-schemas. Closes: #614945.
+    + Depend on gir1.2-mutter-2.91. Closes: #615588.
+
+  [ Frederic Peters ]
+  * debian/control.in:
+    + Don't depend on mutter, it now links against libmutter-wm0.
+  * debian/patches/03_fix_dconf_service_location.patch: remove, no longer
+    necessary now that gnome-shell is a real binary and doesn't try to arrange
+    its own environment.
+  * debian/patches/04_gnome_session_quit.patch: use gnome-session-save in
+    fallback if gnome-session-quit doesn't work, so gnome-shell keeps working
+    with older gnome-session versions.
+
+  [ Emilio Pozuelo Monfort ]
+  * d/p/0001-altTab-fix-incorrect-positioning-with-multiple-monit.patch:
+    + Patch from upstream git, fix Alt+Tab with multiple monitors.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 16 Mar 2011 21:47:27 +0000
+
+gnome-shell (2.91.90-1) experimental; urgency=low
+
+  * New upstream release.
+    + Build depend on libtelepathy-glib-dev for the updated Telepathy
+      integration.
+    + Build depend on libpolkit-agent-1-dev for the new authorization dialogs.
+    + Build depend, and depend, on appropriate gir packages (polkit,
+      telepathy, and upower).
+    + Update build dep on libmutter-dev.
+    + Update depends for new libgnomekbd gir package name.
+    + Remove Recommends on xserver-xephyr.
+
+ -- Frederic Peters <fpeters@debian.org>  Fri, 25 Feb 2011 12:23:23 +0100
+
+gnome-shell (2.91.6-1) experimental; urgency=low
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Depend on gnome-control-center for My Account / System settings.
+
+  [ Laurent Bigonville ]
+  * New upstream release.
+  * debian/control.in:
+    - Bump build-dependencies
+    - Add libecal1.2-dev, libedataserver1.2-dev and libedataserverui1.2-dev
+      build-dependencies
+    - Make mutter depends on libdconf0 | gsettings-backend instead of
+      libdconf0 only
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Update for the new gtk+ 3 package names.
+    + Add missing dependency on gir1.2-gnomekbd-3.0.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 19 Feb 2011 16:45:48 +0000
+
+gnome-shell (2.91.5-1) experimental; urgency=low
+
+  * New upstream release.
+    + debian/patches/02_fix_build_with_latest_gtk.patch:
+      - Removed, fixed upstream.
+    + debian/patches/01_favorite_apps.patch:
+      - Refreshed.
+    + debian/control.in:
+      - Updated build dependencies.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 12 Jan 2011 23:41:41 +0000
+
+gnome-shell (2.91.3-2) experimental; urgency=low
+
+  * debian/control.in:
+    - Build depend on libdconf0 for dconf-service. Closes: #595598.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 19 Dec 2010 16:36:11 +0000
+
+gnome-shell (2.91.3-1) experimental; urgency=low
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release (Closes: #605098, CVE-2010-4000).
+    - debian/control.in:
+      + Updated dependencies and build dependencies.
+    - debian/patches/02_undo_gtk3_transition.diff:
+      + Removed, let's use GTK+3 from now on.
+    - debian/patches/03_fix_dconf_service_location.diff:
+      + Updated.
+  * debian/control.in,
+    debian/rules:
+    - Remove hack to get the typelibs scanned. Pass the private
+      directory to dh_girepository instead. Update the minimum
+      build dependency on gobject-introspection accordingly.
+  * debian/control.in:
+    - Build depend on gir1.2 packages.
+    - Remove gir dependencies, they are autogenerated.
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Add Vcs-* fields
+  * debian/watch: Add watch file
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/patches/02_fix_build_with_latest_gtk.patch:
+    - Patch from upstream git, fix build with GTK+ 2.91.6.
+  * debian/control.in:
+    - Bump the libgtk3.0-dev accordingly.
+  * debian/patches/*.diff:
+    - Renamed to debian/patches/*.patch.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 19 Dec 2010 00:08:30 +0000
+
+gnome-shell (2.31.5-2) experimental; urgency=low
+
+  * debian/control:
+  - depend and build-depend on gir1.0-glib-2.0 (>= 0.6.15~git20100713)
+  - also depend on gjs, because the clock preferences uses gjs-console for
+    some reason
+
+ -- Gustavo Noronha Silva <kov@debian.org>  Wed, 28 Jul 2010 11:45:06 +0200
+
+gnome-shell (2.31.5-1) experimental; urgency=low
+
+  * New development release.
+  - depend on mutter 2.31.5
+  - refresh patches
+  - fixes requirements on mutter (Closes: #586124)
+  * debian/control.in:
+  - Build-depend on glib >= 2.25.11-1 because we use glib-compile-schemas
+  - Build-depend on gtk+ >= 2.21.1
+  - Build-depend on gobject-introspection >= 0.6.15~git20100713-1 because
+    we need newer glib bindings
+  - Build-depend on gir1.0-json-glib-1.0 (Closes: #584660), thanks to
+    Raphael Hertzog for pointing out the fix
+  - gnome-shell depends on gir1.0-gconf-2.0 >= 2.31.5 to run
+  * debian/patches/02_undo_gtk3_transition.diff:
+  - undo gtk2->gtk3 migration since we do not yet have gtk+ 3 on Debian
+  * debian/patches/03_fix_dconf_service_location.diff:
+  - fix the path used to start dconf-service
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Tue, 13 Jul 2010 14:36:34 -0300
+
+gnome-shell (2.31.2-1) experimental; urgency=low
+
+  * New upstream release
+  - depends on mutter 2.31
+  - includes debian/patches/02_gjs_build_fix.patch, so removing
+  * debian/rules:
+  - depends on clutter-1.0 >= 1.2.8
+
+ -- Gustavo Noronha Silva <gustavo.noronha@collabora.co.uk>  Mon, 31 May 2010 11:03:29 -0300
+
 gnome-shell (2.29.0-3) unstable; urgency=low
 
   [ Emilio Pozuelo Monfort ]

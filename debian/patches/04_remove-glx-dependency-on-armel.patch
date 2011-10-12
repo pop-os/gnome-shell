@@ -1,0 +1,52 @@
+From: Robert Bragg <robert@linux.intel.com>
+Date: Wed, 13 Jul 2011 12:20:43 +0100
+Subject: [PATCH] Remove GLX dependency
+
+Index: oneiric/src/gnome-shell-plugin.c
+===================================================================
+--- oneiric.orig/src/gnome-shell-plugin.c	2011-09-04 04:01:43.713265027 -0400
++++ oneiric/src/gnome-shell-plugin.c	2011-09-06 11:20:47.243195279 -0400
+@@ -30,8 +30,11 @@
+ 
+ #include <clutter/clutter.h>
+ #include <clutter/x11/clutter-x11.h>
++#if defined (__arm__)
++#else
+ #include <GL/glx.h>
+ #include <GL/glxext.h>
++#endif
+ #include <gjs/gjs.h>
+ #include <meta/display.h>
+ #include <meta/meta-plugin.h>
+@@ -146,14 +149,23 @@
+ gnome_shell_plugin_start (MetaPlugin *plugin)
+ {
+   GnomeShellPlugin *shell_plugin = GNOME_SHELL_PLUGIN (plugin);
++#if defined (__arm__)
++#else
+   MetaScreen *screen;
+   MetaDisplay *display;
+   Display *xdisplay;
++#endif
+   GError *error = NULL;
+   int status;
++#if defined (__arm__)
++#else
+   const char *glx_extensions;
++#endif
+   GjsContext *gjs_context;
+ 
++#if defined (__arm__)
++  shell_plugin->have_swap_event = 0;
++#else
+   screen = meta_plugin_get_screen (plugin);
+   display = meta_screen_get_display (screen);
+ 
+@@ -166,6 +178,7 @@
+   glx_extensions = glXQueryExtensionsString (xdisplay,
+                                              meta_screen_get_screen_number (screen));
+   shell_plugin->have_swap_event = strstr (glx_extensions, "GLX_INTEL_swap_event") != NULL;
++#endif
+ 
+   shell_perf_log_define_event (shell_perf_log_get_default (),
+                                "glx.swapComplete",
