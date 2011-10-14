@@ -1,9 +1,13 @@
 gnome-shell (3.0.2-5) UNRELEASED; urgency=low
 
+  [ Michael Biebl ]
   * debian/rules:
     - Make network-manager and gnome-bluetooth (build) dependencies linux-any.
 
- -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 13:41:45 +0200
+  [ Rico Tzschichholz ]
+  * Add 00git-ShellRecorder-Use-cogl_read_pixels.patch to fix FTBFS on arm
+
+ -- Rico Tzschichholz <ricotz@ubuntu.com>  Fri, 14 Oct 2011 17:03:23 +0200
 
 gnome-shell (3.0.2-4) unstable; urgency=low
 
