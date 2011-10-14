@@ -1,4 +1,4 @@
-gnome-shell (3.0.2-5) UNRELEASED; urgency=low
+gnome-shell (3.0.2-5) unstable; urgency=low
 
   [ Michael Biebl ]
   * debian/rules:
@@ -7,7 +7,7 @@ gnome-shell (3.0.2-5) UNRELEASED; urgency=low
   [ Rico Tzschichholz ]
   * Add 00git-ShellRecorder-Use-cogl_read_pixels.patch to fix FTBFS on arm
 
- -- Rico Tzschichholz <ricotz@ubuntu.com>  Fri, 14 Oct 2011 17:03:23 +0200
+ -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 17:22:55 +0200
 
 gnome-shell (3.0.2-4) unstable; urgency=low
 
