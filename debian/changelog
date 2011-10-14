@@ -1,4 +1,4 @@
-gnome-shell (3.0.2-4) UNRELEASED; urgency=low
+gnome-shell (3.0.2-4) unstable; urgency=low
 
   [ Josselin Mouette ]
   * Break gnome-session < 3.
@@ -13,7 +13,7 @@ gnome-shell (3.0.2-4) UNRELEASED; urgency=low
     - Set pkg-gnome-maintainers@lists.alioth.debian.org as Maintainer.
     - Bump Standards-Version to 3.9.2. No further changes.
 
- -- Michael Biebl <biebl@debian.org>  Thu, 13 Oct 2011 00:01:11 +0200
+ -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 12:56:37 +0200
 
 gnome-shell (3.0.2-3) experimental; urgency=low
 
