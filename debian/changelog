@@ -1,3 +1,10 @@
+gnome-shell (3.0.2-5) UNRELEASED; urgency=low
+
+  * debian/rules:
+    - Make network-manager and gnome-bluetooth (build) dependencies linux-any.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 13:41:45 +0200
+
 gnome-shell (3.0.2-4) unstable; urgency=low
 
   [ Josselin Mouette ]

@@ -36,13 +36,13 @@ Build-Depends: cdbs,
                libgconf2-dev,
                libstartup-notification0-dev,
                libcanberra-dev,
-               libnm-glib-dev (>= 0.8.999),
+               libnm-glib-dev (>= 0.8.999) [linux-any],
                libcroco3-dev (>= 0.6),
                libgnome-desktop-3-dev (>= 2.90.0),
                libpulse-dev,
                gsettings-desktop-schemas-dev (>= 0.1.7),
-               libgnome-bluetooth-dev (>= 2.90.0),
-               gnome-bluetooth (>= 2.90.0)
+               libgnome-bluetooth-dev (>= 2.90.0) [linux-any],
+               gnome-bluetooth (>= 2.90.0) [linux-any]
 Standards-Version: 3.9.2
 Homepage: http://live.gnome.org/GnomeShell
 Vcs-Svn: svn://svn.debian.org/svn/pkg-gnome/packages/unstable/gnome-shell
@@ -64,9 +64,9 @@ Depends: ${gir:Depends},
          gir1.2-gkbd-3.0,
          gir1.2-gtk-3.0,
          gir1.2-glib-2.0,
-         gir1.2-gnomebluetooth-1.0,
+         gir1.2-gnomebluetooth-1.0 [linux-any],
          gir1.2-mutter-3.0,
-         gir1.2-networkmanager-1.0,
+         gir1.2-networkmanager-1.0 [linux-any],
          gir1.2-pango-1.0,
          gir1.2-polkit-1.0,
          gir1.2-telepathyglib-0.12,
