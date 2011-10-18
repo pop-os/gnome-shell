@@ -1,4 +1,23 @@
-gnome-shell (3.0.2-4) UNRELEASED; urgency=low
+gnome-shell (3.0.2-6) UNRELEASED; urgency=low
+
+  * debian/patches/05_fix_glib_2.30_compat.patch:
+    + Added. Fix compatibility with glib 2.30, which broke some things due to
+      GI annotation changes. (From upstream git)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 17 Oct 2011 12:33:28 +0100
+
+gnome-shell (3.0.2-5) unstable; urgency=low
+
+  [ Michael Biebl ]
+  * debian/rules:
+    - Make network-manager and gnome-bluetooth (build) dependencies linux-any.
+
+  [ Rico Tzschichholz ]
+  * Add 00git-ShellRecorder-Use-cogl_read_pixels.patch to fix FTBFS on arm
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 17:22:55 +0200
+
+gnome-shell (3.0.2-4) unstable; urgency=low
 
   [ Josselin Mouette ]
   * Break gnome-session < 3.
@@ -6,7 +25,14 @@ gnome-shell (3.0.2-4) UNRELEASED; urgency=low
   [ Rico Tzschichholz ]
   * Add 04_remove-glx-dependency-on-armel.patch to fix FTBFS on arm
 
- -- Rico Tzschichholz <ricotz@ubuntu.com>  Thu, 06 Oct 2011 08:42:54 +0200
+  [ Michael Biebl ]
+  * Upload to unstable.
+  * debian/watch: Switch to .xz tarballs.
+  * debian/control.in:
+    - Set pkg-gnome-maintainers@lists.alioth.debian.org as Maintainer.
+    - Bump Standards-Version to 3.9.2. No further changes.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 14 Oct 2011 12:56:37 +0200
 
 gnome-shell (3.0.2-3) experimental; urgency=low
 

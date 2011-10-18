@@ -4,9 +4,11 @@ Author: Rico Tzschichholz <ricotz@ubuntu.com>
 Forwarded: no
 Last-Update: 2011-04-11
 
---- a/src/Makefile.am
-+++ b/src/Makefile.am
-@@ -254,7 +254,7 @@ shell-enum-types.c: shell-enum-types.c.i
+Index: gnome-shell-3.0.2/src/Makefile.am
+===================================================================
+--- gnome-shell-3.0.2.orig/src/Makefile.am	2011-05-25 19:56:07.000000000 +0200
++++ gnome-shell-3.0.2/src/Makefile.am	2011-10-13 00:07:26.983902570 +0200
+@@ -256,7 +256,7 @@
  	rm -f $(@F).tmp
  EXTRA_DIST += shell-enum-types.c.in
  
@@ -15,9 +17,11 @@ Last-Update: 2011-04-11
  libgnome_shell_la_LIBADD =		\
  	-lm			\
  	$(GNOME_SHELL_LIBS)	\
---- a/src/Makefile.in
-+++ b/src/Makefile.in
-@@ -900,7 +900,7 @@ run_js_test_LDFLAGS = -export-dynamic
+Index: gnome-shell-3.0.2/src/Makefile.in
+===================================================================
+--- gnome-shell-3.0.2.orig/src/Makefile.in	2011-05-25 21:28:20.000000000 +0200
++++ gnome-shell-3.0.2/src/Makefile.in	2011-10-13 00:07:26.991902470 +0200
+@@ -900,7 +900,7 @@
  run_js_test_SOURCES = \
  	run-js-test.c
  
