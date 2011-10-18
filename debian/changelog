@@ -1,10 +1,15 @@
-gnome-shell (3.0.2-6) UNRELEASED; urgency=low
+gnome-shell (3.2.1-1) UNRELEASED; urgency=low
 
-  * debian/patches/05_fix_glib_2.30_compat.patch:
-    + Added. Fix compatibility with glib 2.30, which broke some things due to
-      GI annotation changes. (From upstream git)
+  * New upstream release
+  * debian/patches/00git-ShellRecorder-Use-cogl_read_pixels.patch:
+    + Dropped, fixed upstream
+  * debian/patches/03_hidden_applications.patch
+    + Dropped, fixed upstream
+  * debian/control.in: Add libfolks-dev build-depends
+  * debian/control.in: Add depends on gir1.2-accountsservice-1.0 and
+    gir1.2-caribou-1.0,
 
- -- Sjoerd Simons <sjoerd@debian.org>  Mon, 17 Oct 2011 12:33:28 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Tue, 18 Oct 2011 06:59:30 +0100
 
 gnome-shell (3.0.2-5) unstable; urgency=low
 

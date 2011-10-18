@@ -1,5 +1,2 @@
-00git-ShellRecorder-Use-cogl_read_pixels.patch
 02_rpath-bluetooth-applet.patch
-03_hidden_applications.patch
 04_remove-glx-dependency-on-armel.patch
-05_fix_glib_2.30_compat.patch
