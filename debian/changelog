@@ -1,5 +1,6 @@
 gnome-shell (3.2.1-1) UNRELEASED; urgency=low
 
+  [ Sjoerd Simons ]
   * New upstream release
   * debian/patches/00git-ShellRecorder-Use-cogl_read_pixels.patch:
     + Dropped, fixed upstream
@@ -8,6 +9,12 @@ gnome-shell (3.2.1-1) UNRELEASED; urgency=low
   * debian/control.in: Add libfolks-dev build-depends
   * debian/control.in: Add depends on gir1.2-accountsservice-1.0 and
     gir1.2-caribou-1.0,
+
+  [ Jeremy Bicha ]
+  * debian/control.in:
+    - Recommend gnome-session-fallback
+    - Bump minimum gjs & gobject-introspection versions
+    - Add gir1.2-soup-2.4 dependency
 
  -- Sjoerd Simons <sjoerd@debian.org>  Tue, 18 Oct 2011 06:59:30 +0100
 
