@@ -1,4 +1,4 @@
-gnome-shell (3.2.1-1) UNRELEASED; urgency=low
+gnome-shell (3.2.1-1) experimental; urgency=low
 
   [ Sjoerd Simons ]
   * New upstream release
@@ -16,7 +16,7 @@ gnome-shell (3.2.1-1) UNRELEASED; urgency=low
     - Bump minimum gjs & gobject-introspection versions
     - Add gir1.2-soup-2.4 dependency
 
- -- Sjoerd Simons <sjoerd@debian.org>  Tue, 18 Oct 2011 06:59:30 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 28 Oct 2011 20:47:21 +0200
 
 gnome-shell (3.0.2-5) unstable; urgency=low
 
