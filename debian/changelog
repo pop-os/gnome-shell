@@ -16,7 +16,12 @@ gnome-shell (3.2.1-1) experimental; urgency=low
     - Bump minimum gjs & gobject-introspection versions
     - Add gir1.2-soup-2.4 dependency
 
- -- Sjoerd Simons <sjoerd@debian.org>  Fri, 28 Oct 2011 20:47:21 +0200
+  [ Sjoerd Simons ]
+  * debian/gnome-shell.lintian-overrides:
+    + Updated (from Ubuntu). gnome-shell needs an rpath to find the private
+      bluetooth lib
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 28 Oct 2011 22:20:04 +0200
 
 gnome-shell (3.0.2-5) unstable; urgency=low
 
