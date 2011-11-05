@@ -1,4 +1,4 @@
-gnome-shell (3.2.1-2) experimental; urgency=low
+gnome-shell (3.2.1-2) UNRELEASED; urgency=low
 
   * debian/control.in:
     - Tighten Depends on gir1.2-mutter-3.0. Closes: #646999
