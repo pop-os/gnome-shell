@@ -1,4 +1,4 @@
-gnome-shell (3.2.1-3) UNRELEASED; urgency=low
+gnome-shell (3.2.1-3) experimental; urgency=low
 
   [ Josselin Mouette ]
   * Break fglrx-driver (<< 1:11-10). Closes: #648280.
@@ -8,7 +8,7 @@ gnome-shell (3.2.1-3) UNRELEASED; urgency=low
   * debian/control.in: Update build-depends on the e-d-s libs to ensure we
     build against the same version as the libfolks e-d-s backend.
 
- -- Sjoerd Simons <sjoerd@debian.org>  Sun, 13 Nov 2011 16:29:50 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 13 Nov 2011 16:40:12 +0100
 
 gnome-shell (3.2.1-2) experimental; urgency=low
 
