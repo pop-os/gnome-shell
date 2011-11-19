@@ -1,3 +1,17 @@
+gnome-shell (3.2.1-4) UNRELEASED; urgency=low
+
+  * 05-NetworkMenu-don-t-query-DBus-properties-of-removed-o.patch:
+    + Added. Don't (potentially) ask NM over D-Bus about an access point that
+      was just removed. (From upstream git). As a side-effect this fixes
+      gnome-shell freezing a while after unblacking.
+  * 06-NetworkMenu-fix-regression-in-access-point-removed.patch
+    + Added. Fix a regression in above patch (from upstream git)
+  * 07-NetworkMenu-fix-logic-for-updating-wifi-icon.patch
+    + Added. Fix the logic for connecting to the current wifi strength,
+      prevents the network icon fro mbecoming stale (from upstream git)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 19 Nov 2011 14:47:15 +0000
+
 gnome-shell (3.2.1-3) experimental; urgency=low
 
   [ Josselin Mouette ]
