@@ -1,10 +1,10 @@
-gnome-shell (3.0.2-6) UNRELEASED; urgency=low
+gnome-shell (3.0.2-6) unstable; urgency=low
 
   * debian/patches/05_fix_glib_2.30_compat.patch:
     + Added. Fix compatibility with glib 2.30, which broke some things due to
       GI annotation changes. (From upstream git)
 
- -- Sjoerd Simons <sjoerd@debian.org>  Mon, 17 Oct 2011 12:33:28 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 19 Nov 2011 15:04:45 +0000
 
 gnome-shell (3.0.2-5) unstable; urgency=low
 
