@@ -1,0 +1,70 @@
+From b035f81809e0c925158dedb79c37f2b4698f5aa8 Mon Sep 17 00:00:00 2001
+From: Dan Winship <danw@gnome.org>
+Date: Tue, 30 Aug 2011 12:07:11 -0400
+Subject: [PATCH] Add some (element-type) annotations to appease g-i master
+
+Conflicts:
+
+	src/shell-app.c
+---
+ src/gvc/gvc-mixer-card.c   |    9 +++++++++
+ src/gvc/gvc-mixer-stream.c |    9 +++++++++
+ 2 files changed, 18 insertions(+), 0 deletions(-)
+
+diff --git a/src/gvc/gvc-mixer-card.c b/src/gvc/gvc-mixer-card.c
+index 56502e3..168bc79 100644
+--- a/src/gvc/gvc-mixer-card.c
++++ b/src/gvc/gvc-mixer-card.c
+@@ -263,6 +263,11 @@ gvc_mixer_card_change_profile (GvcMixerCard *card,
+         return TRUE;
+ }
+ 
++/**
++ * gvc_mixer_card_get_profiles:
++ *
++ * Return value: (transfer none) (element-type GvcMixerCardProfile):
++ */
+ const GList *
+ gvc_mixer_card_get_profiles (GvcMixerCard *card)
+ {
+@@ -281,6 +286,10 @@ sort_profiles (GvcMixerCardProfile *a,
+         return -1;
+ }
+ 
++/**
++ * gvc_mixer_card_set_profiles:
++ * @profiles: (transfer full) (element-type GvcMixerCardProfile):
++ */
+ gboolean
+ gvc_mixer_card_set_profiles (GvcMixerCard *card,
+                              GList        *profiles)
+diff --git a/src/gvc/gvc-mixer-stream.c b/src/gvc/gvc-mixer-stream.c
+index 78de6b3..f35954a 100644
+--- a/src/gvc/gvc-mixer-stream.c
++++ b/src/gvc/gvc-mixer-stream.c
+@@ -508,6 +508,11 @@ gvc_mixer_stream_change_port (GvcMixerStream *stream,
+         return GVC_MIXER_STREAM_GET_CLASS (stream)->change_port (stream, port);
+ }
+ 
++/**
++ * gvc_mixer_stream_get_ports:
++ *
++ * Return value: (transfer none) (element-type GvcMixerStreamPort):
++ */
+ const GList *
+ gvc_mixer_stream_get_ports (GvcMixerStream *stream)
+ {
+@@ -526,6 +531,10 @@ sort_ports (GvcMixerStreamPort *a,
+         return -1;
+ }
+ 
++/**
++ * gvc_mixer_stream_set_ports:
++ * @ports: (transfer full) (element-type GvcMixerStreamPort):
++ */
+ gboolean
+ gvc_mixer_stream_set_ports (GvcMixerStream *stream,
+                             GList          *ports)
+-- 
+1.7.7.3
+

@@ -4,8 +4,11 @@ gnome-shell (3.0.2-7) UNRELEASED; urgency=low
     + Added. When picking a user to authenticate with, try the current user
     first, then root and if all else fails the first user that is allowed to
     authenticate. (from upstream git)
+  * debian/patches/07-Add-some-element-type-annotations-to-appease-g-i-mas.patch:
+    + Added. Add annotation to prevent warnings from new g-i (from upstream
+      git)
 
- -- Sjoerd Simons <sjoerd@debian.org>  Sun, 20 Nov 2011 21:40:33 +0000
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 20 Nov 2011 21:53:07 +0000
 
 gnome-shell (3.0.2-6) unstable; urgency=low
 
