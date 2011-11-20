@@ -3,3 +3,4 @@
 03_hidden_applications.patch
 04_remove-glx-dependency-on-armel.patch
 05_fix_glib_2.30_compat.patch
+06-polkit-Find-the-best-user-to-authenticate-as.patch
