@@ -1,3 +1,12 @@
+gnome-shell (3.2.1-5) UNRELEASED; urgency=low
+
+  * debian/patches/06-polkit-Find-the-best-user-to-authenticate-as.patch:
+    + Added. When picking a user to authenticate with, try the current user
+      first, then root and if all else fails the first user that is allowed to
+      authenticate. (from upstream git)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 20 Nov 2011 22:20:46 +0000
+
 gnome-shell (3.2.1-4) experimental; urgency=low
 
   * 05-NetworkMenu-don-t-query-DBus-properties-of-removed-o.patch:
