@@ -1,4 +1,4 @@
-From b035f81809e0c925158dedb79c37f2b4698f5aa8 Mon Sep 17 00:00:00 2001
+From cfaca2c8dd24239c29e8edab763f1214179299a5 Mon Sep 17 00:00:00 2001
 From: Dan Winship <danw@gnome.org>
 Date: Tue, 30 Aug 2011 12:07:11 -0400
 Subject: [PATCH] Add some (element-type) annotations to appease g-i master
@@ -9,7 +9,8 @@ Conflicts:
 ---
  src/gvc/gvc-mixer-card.c   |    9 +++++++++
  src/gvc/gvc-mixer-stream.c |    9 +++++++++
- 2 files changed, 18 insertions(+), 0 deletions(-)
+ src/shell-app-system.c     |    2 +-
+ 3 files changed, 19 insertions(+), 1 deletions(-)
 
 diff --git a/src/gvc/gvc-mixer-card.c b/src/gvc/gvc-mixer-card.c
 index 56502e3..168bc79 100644
@@ -65,6 +66,19 @@ index 78de6b3..f35954a 100644
  gboolean
  gvc_mixer_stream_set_ports (GvcMixerStream *stream,
                              GList          *ports)
+diff --git a/src/shell-app-system.c b/src/shell-app-system.c
+index b52625a..a578e69 100644
+--- a/src/shell-app-system.c
++++ b/src/shell-app-system.c
+@@ -1399,7 +1399,7 @@ _gather_pid_callback (GDesktopAppInfo   *gapp,
+ /**
+  * shell_app_info_launch_full:
+  * @timestamp: Event timestamp, or 0 for current event timestamp
+- * @uris: List of uris to pass to application
++ * @uris: (element-type utf8): List of uris to pass to application
+  * @workspace: Start on this workspace, or -1 for default
+  * @startup_id: (out): Returned startup notification ID, or %NULL if none
+  * @error: A #GError
 -- 
 1.7.7.3
 
