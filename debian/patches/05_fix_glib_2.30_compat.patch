@@ -10,10 +10,10 @@ Date:   Wed May 11 14:19:24 2011 -0400
     https://bugzilla.gnome.org/show_bug.cgi?id=649981
 
 diff --git a/js/ui/placeDisplay.js b/js/ui/placeDisplay.js
-index 59ca4a6..9354247 100644
+index c50c281..8592ee1 100644
 --- a/js/ui/placeDisplay.js
 +++ b/js/ui/placeDisplay.js
-@@ -268,10 +268,7 @@ PlacesManager.prototype = {
+@@ -270,10 +270,7 @@ PlacesManager.prototype = {
          if (!GLib.file_test(this._bookmarksPath, GLib.FileTest.EXISTS))
              return;
  
@@ -26,10 +26,18 @@ index 59ca4a6..9354247 100644
          let bookmarks = bookmarksContent.split('\n');
  
 diff --git a/js/ui/windowManager.js b/js/ui/windowManager.js
-index b113a1a..52a00da 100644
+index b113a1a..a3e2918 100644
 --- a/js/ui/windowManager.js
 +++ b/js/ui/windowManager.js
-@@ -22,8 +22,7 @@ function getDimShader() {
+@@ -6,6 +6,7 @@ const Gio = imports.gi.Gio;
+ const Lang = imports.lang;
+ const Meta = imports.gi.Meta;
+ const St = imports.gi.St;
++const Shell = imports.gi.Shell;
+ 
+ const AltTab = imports.ui.altTab;
+ const WorkspaceSwitcherPopup = imports.ui.workspaceSwitcherPopup;
+@@ -22,8 +23,7 @@ function getDimShader() {
      if (dimShader === null)
          return null;
      if (!dimShader) {
