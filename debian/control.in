@@ -79,7 +79,8 @@ Recommends: gnome-control-center,
             gnome-contacts
 Breaks: gnome-control-center (<< 1:3.0),
         gnome-session (<< 3.0),
-        fglrx-driver (<< 1:11-10)
+        fglrx-driver (<< 1:11-10),
+        gnome-tweak-tool (<< 3.2)
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
  In particular, it offers new paradigms for launching applications,
