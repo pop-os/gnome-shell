@@ -51,6 +51,7 @@ Depends: ${gir:Depends},
          gjs (>= 1.29.18),
          ${shlibs:Depends},
          ${misc:Depends},
+         gnome-shell-common (= ${source:Version}),
          gnome-settings-daemon (>= 2.91.5.1),
          gsettings-desktop-schemas (>= 0.1.7),
          gnome-icon-theme-symbolic (>= 2.91),
@@ -91,3 +92,12 @@ Description: graphical shell for the GNOME desktop
  by the GNOME Panel and by the window manager in previous versions of
  GNOME. The GNOME Shell has rich visual effects enabled by new
  graphical technologies.
+
+Package: gnome-shell-common
+Architecture: all
+Depends: ${misc:Depends}
+Replaces: gnome-shell (<< 3.2.1-5)
+Breaks: gnome-shell (<< 3.2.1-5),
+        gnome-tweak-tool (<< 3.2)
+Description: common files for the GNOME graphical shell
+ This package contains translations and data files for the GNOME shell.

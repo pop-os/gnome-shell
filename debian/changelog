@@ -1,7 +1,12 @@
 gnome-shell (3.2.1-5) UNRELEASED; urgency=low
 
+  [ Raphaël Hertzog ]
   * Add Breaks against gnome-tweak-tool (<< 3.2) to force its upgrade to a
     version that works with GNOME 3.2.
+
+  [ Josselin Mouette ]
+  * Split common files and translations in gnome-shell-common. Add 
+    appropriate Breaks/Replaces.
 
  -- Raphaël Hertzog <hertzog@debian.org>  Tue, 29 Nov 2011 11:32:54 +0100
 
