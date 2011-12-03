@@ -1,4 +1,4 @@
-gnome-shell (3.2.1-6) UNRELEASED; urgency=low
+gnome-shell (3.2.1-6) experimental; urgency=low
 
   [ Raphaël Hertzog ]
   * Add Breaks against gnome-tweak-tool (<< 3.2) to force its upgrade to a
@@ -15,7 +15,7 @@ gnome-shell (3.2.1-6) UNRELEASED; urgency=low
     - Respect NoDisplay semantics for applications menu. This avoids duplicate
       menu entries when menu-xdg is installed. Closes: #649559
 
- -- Michael Biebl <biebl@debian.org>  Sat, 03 Dec 2011 17:15:36 +0100
+ -- Michael Biebl <biebl@debian.org>  Sat, 03 Dec 2011 17:23:39 +0100
 
 gnome-shell (3.2.1-5) experimental; urgency=low
 
