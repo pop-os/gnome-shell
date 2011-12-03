@@ -11,6 +11,9 @@ gnome-shell (3.2.1-6) UNRELEASED; urgency=low
   [ Michael Biebl ]
   * debian/watch:
     - Track stable releases.
+  * debian/patches/09-respect-NoDisplay-semantics-for-app-menu.patch:
+    - Respect NoDisplay semantics for applications menu. This avoids duplicate
+      menu entries when menu-xdg is installed. Closes: #649559
 
  -- Michael Biebl <biebl@debian.org>  Sat, 03 Dec 2011 17:15:36 +0100
 

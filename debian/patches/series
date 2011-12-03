@@ -4,3 +4,4 @@
 06-NetworkMenu-fix-regression-in-access-point-removed.patch
 07-NetworkMenu-fix-logic-for-updating-wifi-icon.patch
 08-polkit-Find-the-best-user-to-authenticate-as.patch
+09-respect-NoDisplay-semantics-for-app-menu.patch
