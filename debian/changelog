@@ -1,4 +1,4 @@
-gnome-shell (3.2.1-5) UNRELEASED; urgency=low
+gnome-shell (3.2.1-6) UNRELEASED; urgency=low
 
   [ Raphaël Hertzog ]
   * Add Breaks against gnome-tweak-tool (<< 3.2) to force its upgrade to a
