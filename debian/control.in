@@ -96,8 +96,8 @@ Description: graphical shell for the GNOME desktop
 Package: gnome-shell-common
 Architecture: all
 Depends: ${misc:Depends}
-Replaces: gnome-shell (<< 3.2.1-5)
-Breaks: gnome-shell (<< 3.2.1-5),
+Replaces: gnome-shell (<< 3.2.1-6)
+Breaks: gnome-shell (<< 3.2.1-6),
         gnome-tweak-tool (<< 3.2)
 Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.

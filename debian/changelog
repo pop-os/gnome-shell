@@ -1,3 +1,9 @@
+gnome-shell (3.2.1-7) UNRELEASED; urgency=low
+
+  * Fix version in Breaks/Replaces. Closes: #650927
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 04 Dec 2011 21:16:31 +0100
+
 gnome-shell (3.2.1-6) experimental; urgency=low
 
   [ Raphaël Hertzog ]
