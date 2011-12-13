@@ -1,4 +1,4 @@
-debian/tmp/etc/gconf
-debian/tmp/usr/share/glib-2.0
-debian/tmp/usr/share/gnome-shell
-debian/tmp/usr/share/locale
+etc/gconf
+usr/share/glib-2.0
+usr/share/gnome-shell
+usr/share/locale
