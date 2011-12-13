@@ -1,7 +1,7 @@
 gnome-shell (3.2.1-8) UNRELEASED; urgency=low
 
-  * debian/control: Add Depends against telepathy-mission-control-5
-   (Closes: #651514)
+  * debian/control.in: Add Depends on telepathy-mission-control-5
+    (Closes: #651514)
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 09 Dec 2011 13:14:19 +0100
 
