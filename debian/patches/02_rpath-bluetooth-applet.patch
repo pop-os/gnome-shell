@@ -4,11 +4,11 @@ Author: Rico Tzschichholz <ricotz@ubuntu.com>
 Forwarded: no
 Last-Update: 2011-04-11
 
-Index: gnome-shell-3.0.2/src/Makefile.am
+Index: gnome-shell-3.2.1/src/Makefile.am
 ===================================================================
---- gnome-shell-3.0.2.orig/src/Makefile.am	2011-05-25 19:56:07.000000000 +0200
-+++ gnome-shell-3.0.2/src/Makefile.am	2011-10-13 00:07:26.983902570 +0200
-@@ -256,7 +256,7 @@
+--- gnome-shell-3.2.1.orig/src/Makefile.am	2011-09-20 23:06:39.000000000 +0200
++++ gnome-shell-3.2.1/src/Makefile.am	2011-12-03 06:31:28.812401727 +0100
+@@ -259,7 +259,7 @@
  	rm -f $(@F).tmp
  EXTRA_DIST += shell-enum-types.c.in
  
@@ -17,11 +17,11 @@ Index: gnome-shell-3.0.2/src/Makefile.am
  libgnome_shell_la_LIBADD =		\
  	-lm			\
  	$(GNOME_SHELL_LIBS)	\
-Index: gnome-shell-3.0.2/src/Makefile.in
+Index: gnome-shell-3.2.1/src/Makefile.in
 ===================================================================
---- gnome-shell-3.0.2.orig/src/Makefile.in	2011-05-25 21:28:20.000000000 +0200
-+++ gnome-shell-3.0.2/src/Makefile.in	2011-10-13 00:07:26.991902470 +0200
-@@ -900,7 +900,7 @@
+--- gnome-shell-3.2.1.orig/src/Makefile.in	2011-10-18 06:24:10.000000000 +0200
++++ gnome-shell-3.2.1/src/Makefile.in	2011-12-03 06:31:28.816401727 +0100
+@@ -888,7 +888,7 @@
  run_js_test_SOURCES = \
  	run-js-test.c
  

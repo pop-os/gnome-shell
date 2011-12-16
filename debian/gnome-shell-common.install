@@ -1,0 +1,4 @@
+etc/gconf
+usr/share/glib-2.0
+usr/share/gnome-shell
+usr/share/locale
