@@ -1,9 +1,13 @@
 gnome-shell (3.2.1-8) UNRELEASED; urgency=low
 
+  [ Laurent Bigonville ]
   * debian/control.in: Add Depends on telepathy-mission-control-5
     (Closes: #651514)
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 09 Dec 2011 13:14:19 +0100
+  [ Michael Biebl ]
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 16 Dec 2011 18:36:25 +0100
 
 gnome-shell (3.2.1-7) experimental; urgency=low
 
