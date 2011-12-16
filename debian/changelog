@@ -99,6 +99,35 @@ gnome-shell (3.2.1-1) experimental; urgency=low
 
  -- Sjoerd Simons <sjoerd@debian.org>  Fri, 28 Oct 2011 22:20:04 +0200
 
+gnome-shell (3.0.2-8) unstable; urgency=low
+
+  * debian/patches/05_fix_glib_2.30_compat.patch:
+    + Updated. Small mistake in the patch causes gnome-shell to fail to load
+      the dim window shared, instead of which it just hangs. Fixed now..
+      (Closes: 649459)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 21 Nov 2011 15:19:48 +0000
+
+gnome-shell (3.0.2-7) unstable; urgency=low
+
+  * debian/patches/06-polkit-Find-the-best-user-to-authenticate-as.patch:
+    + Added. When picking a user to authenticate with, try the current user
+    first, then root and if all else fails the first user that is allowed to
+    authenticate. (from upstream git)
+  * debian/patches/07-Add-some-element-type-annotations-to-appease-g-i-mas.patch:
+    + Added. Add annotation to prevent warnings from new g-i (from upstream
+      git)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 20 Nov 2011 22:04:39 +0000
+
+gnome-shell (3.0.2-6) unstable; urgency=low
+
+  * debian/patches/05_fix_glib_2.30_compat.patch:
+    + Added. Fix compatibility with glib 2.30, which broke some things due to
+      GI annotation changes. (From upstream git)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 19 Nov 2011 15:04:45 +0000
+
 gnome-shell (3.0.2-5) unstable; urgency=low
 
   [ Michael Biebl ]
