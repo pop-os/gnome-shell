@@ -1,4 +1,4 @@
-gnome-shell (3.2.1-8) UNRELEASED; urgency=low
+gnome-shell (3.2.1-8) unstable; urgency=low
 
   [ Laurent Bigonville ]
   * debian/control.in: Add Depends on telepathy-mission-control-5
@@ -7,7 +7,7 @@ gnome-shell (3.2.1-8) UNRELEASED; urgency=low
   [ Michael Biebl ]
   * Upload to unstable.
 
- -- Michael Biebl <biebl@debian.org>  Fri, 16 Dec 2011 18:36:25 +0100
+ -- Michael Biebl <biebl@debian.org>  Sat, 17 Dec 2011 06:34:55 +0100
 
 gnome-shell (3.2.1-7) experimental; urgency=low
 
