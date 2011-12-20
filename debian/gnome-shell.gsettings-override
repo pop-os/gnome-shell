@@ -1,0 +1,3 @@
+[org.gnome.shell]
+favorite-apps=[ 'firefox.desktop', 'thunderbird.desktop', 'empathy.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'libreoffice-writer.desktop', 'nautilus.desktop', 'yelp.desktop' ]
+
