@@ -1,3 +1,16 @@
+gnome-shell (3.2.1-9) UNRELEASED; urgency=low
+
+  [ Michael Biebl ]
+  * debian/patches/10-make-NetworkManager-optional.patch: make NM
+    optional, to fix build on kFreeBSD architectures. Closes: #652482
+  * debian/patches/11-no-gettext.patch: remove gettext macros, otherwise
+    autoreconf fails due to incompatibilities with intltool.
+
+  [ Jordi Mallach ]
+  * Enable dh_autoreconf.
+
+ -- Jordi Mallach <jordi@debian.org>  Thu, 29 Dec 2011 11:03:22 +0100
+
 gnome-shell (3.2.1-8) unstable; urgency=low
 
   [ Laurent Bigonville ]

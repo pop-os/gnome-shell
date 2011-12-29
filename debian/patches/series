@@ -5,3 +5,5 @@
 07-NetworkMenu-fix-logic-for-updating-wifi-icon.patch
 08-polkit-Find-the-best-user-to-authenticate-as.patch
 09-respect-NoDisplay-semantics-for-app-menu.patch
+10-make-NetworkManager-optional.patch
+11-no-gettext.patch
