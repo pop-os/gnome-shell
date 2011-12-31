@@ -9,6 +9,9 @@ gnome-shell (3.2.1-9) UNRELEASED; urgency=low
   [ Jordi Mallach ]
   * Enable dh_autoreconf.
 
+  [ Josselin Mouette ]
+  * Update repository URL.
+
  -- Jordi Mallach <jordi@debian.org>  Thu, 29 Dec 2011 11:03:22 +0100
 
 gnome-shell (3.2.1-8) unstable; urgency=low
