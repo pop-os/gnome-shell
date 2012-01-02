@@ -8,6 +8,7 @@ gnome-shell (3.2.1-9) UNRELEASED; urgency=low
 
   [ Jordi Mallach ]
   * Enable dh_autoreconf.
+  * Update Vcs-* URLs.
 
   [ Josselin Mouette ]
   * Update repository URL.
