@@ -7,3 +7,4 @@
 09-respect-NoDisplay-semantics-for-app-menu.patch
 10-make-NetworkManager-optional.patch
 11-no-gettext.patch
+12-gnome-shell-extension-tool-Fix-error-after-creating-.patch
