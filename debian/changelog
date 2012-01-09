@@ -17,6 +17,8 @@ gnome-shell (3.2.1-9) UNRELEASED; urgency=low
   * d/p/12-gnome-shell-extension-tool-Fix-error-after-creating-.patch:
     Cherry-pick patch from upstream Git to fix a crash in
     gnome-shell-extension-tool. Closes: #649583
+  * debian/control.in: Bump dependency on python to (>= 2.6) since we require
+    JSON support. Closes: #580869
 
  -- Michael Biebl <biebl@debian.org>  Mon, 09 Jan 2012 06:43:04 +0100
 
