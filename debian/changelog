@@ -1,3 +1,25 @@
+gnome-shell (3.3.3-0ubuntu1~precise3) precise; urgency=low
+
+  * Rebuild for new cogl
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 18 Jan 2012 20:37:24 -0500
+
+gnome-shell (3.3.3-0ubuntu1~precise2) precise; urgency=low
+
+  * Rebuild against latest evolution-data-server
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 12 Jan 2012 11:11:40 -0500
+
+gnome-shell (3.3.3-0ubuntu1~precise1) precise; urgency=low
+
+  * New upstream release.
+  * debian/control.in
+    - Update build dependencies
+  * Drop all patches except 04_remove-glx-dependency-on-armel.patch
+    since they have been applied upstream
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 05 Jan 2012 17:37:44 -0500
+
 gnome-shell (3.2.1-8ubuntu1) precise; urgency=low
 
   * Sync with Debian (LP: #877135). Remaining changes:
