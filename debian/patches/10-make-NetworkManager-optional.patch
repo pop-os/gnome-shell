@@ -20,11 +20,11 @@ Subject: [PATCH] Make NM optional
  src/Makefile.am      |   18 +++++++++++++-----
  5 files changed, 70 insertions(+), 10 deletions(-)
 
-diff --git a/configure.ac b/configure.ac
-index d1bea62..b972127 100644
---- a/configure.ac
-+++ b/configure.ac
-@@ -95,8 +95,41 @@ PKG_CHECK_MODULES(GNOME_SHELL, gio-2.0 >= $GIO_MIN_VERSION
+Index: gnome-shell-3.2.2.1/configure.ac
+===================================================================
+--- gnome-shell-3.2.2.1.orig/configure.ac	2012-01-20 06:16:22.000000000 +0100
++++ gnome-shell-3.2.2.1/configure.ac	2012-01-25 10:59:36.528626985 +0100
+@@ -95,8 +95,41 @@
  			       libcanberra
                                 telepathy-glib >= $TELEPATHY_GLIB_MIN_VERSION
                                 telepathy-logger-0.2 >= $TELEPATHY_LOGGER_MIN_VERSION
@@ -68,7 +68,7 @@ index d1bea62..b972127 100644
  
  PKG_CHECK_MODULES(SHELL_PERF_HELPER, gtk+-3.0 gio-2.0)
  
-@@ -256,3 +289,15 @@ AC_CONFIG_FILES([
+@@ -250,3 +283,15 @@
    man/Makefile
  ])
  AC_OUTPUT
@@ -84,11 +84,11 @@ index d1bea62..b972127 100644
 +	Support for NetworkManager:             $have_networkmanager
 +	Support for GStreamer recording:        $build_recorder
 +"
-diff --git a/js/misc/config.js.in b/js/misc/config.js.in
-index a35fe28..4a09df6 100644
---- a/js/misc/config.js.in
-+++ b/js/misc/config.js.in
-@@ -8,5 +8,7 @@ const PACKAGE_VERSION = '@PACKAGE_VERSION@';
+Index: gnome-shell-3.2.2.1/js/misc/config.js.in
+===================================================================
+--- gnome-shell-3.2.2.1.orig/js/misc/config.js.in	2011-10-12 18:50:16.000000000 +0200
++++ gnome-shell-3.2.2.1/js/misc/config.js.in	2012-01-25 10:59:25.844627363 +0100
+@@ -8,5 +8,7 @@
  const GJS_VERSION = '@GJS_VERSION@';
  /* 1 if gnome-bluetooth is available, 0 otherwise */
  const HAVE_BLUETOOTH = @HAVE_BLUETOOTH@;
@@ -96,11 +96,11 @@ index a35fe28..4a09df6 100644
 +const HAVE_NETWORKMANAGER = @HAVE_NETWORKMANAGER@;
  /* The system TLS CA list */
  const SHELL_SYSTEM_CA_FILE = '@SHELL_SYSTEM_CA_FILE@';
-diff --git a/js/ui/main.js b/js/ui/main.js
-index 4c97440..828911b 100644
---- a/js/ui/main.js
-+++ b/js/ui/main.js
-@@ -14,6 +14,7 @@ const St = imports.gi.St;
+Index: gnome-shell-3.2.2.1/js/ui/main.js
+===================================================================
+--- gnome-shell-3.2.2.1.orig/js/ui/main.js	2012-01-20 06:16:22.000000000 +0100
++++ gnome-shell-3.2.2.1/js/ui/main.js	2012-01-25 10:59:25.848627363 +0100
+@@ -14,6 +14,7 @@
  
  const AutomountManager = imports.ui.automountManager;
  const AutorunManager = imports.ui.autorunManager;
@@ -108,7 +108,7 @@ index 4c97440..828911b 100644
  const CtrlAltTab = imports.ui.ctrlAltTab;
  const EndSessionDialog = imports.ui.endSessionDialog;
  const PolkitAuthenticationAgent = imports.ui.polkitAuthenticationAgent;
-@@ -27,7 +28,7 @@ const PlaceDisplay = imports.ui.placeDisplay;
+@@ -27,7 +28,7 @@
  const RunDialog = imports.ui.runDialog;
  const Layout = imports.ui.layout;
  const LookingGlass = imports.ui.lookingGlass;
@@ -117,7 +117,7 @@ index 4c97440..828911b 100644
  const NotificationDaemon = imports.ui.notificationDaemon;
  const WindowAttentionHandler = imports.ui.windowAttentionHandler;
  const Scripting = imports.ui.scripting;
-@@ -84,7 +85,10 @@ function _createUserSession() {
+@@ -84,7 +85,10 @@
      telepathyClient = new TelepathyClient.Client();
      automountManager = new AutomountManager.AutomountManager();
      autorunManager = new AutorunManager.AutorunManager();
@@ -129,11 +129,11 @@ index 4c97440..828911b 100644
  }
  
  function _createGDMSession() {
-diff --git a/js/ui/panel.js b/js/ui/panel.js
-index 2f78db9..63e472c 100644
---- a/js/ui/panel.js
-+++ b/js/ui/panel.js
-@@ -40,7 +40,8 @@ if (Config.HAVE_BLUETOOTH)
+Index: gnome-shell-3.2.2.1/js/ui/panel.js
+===================================================================
+--- gnome-shell-3.2.2.1.orig/js/ui/panel.js	2012-01-20 06:16:22.000000000 +0100
++++ gnome-shell-3.2.2.1/js/ui/panel.js	2012-01-25 10:59:25.848627363 +0100
+@@ -40,7 +40,8 @@
      STANDARD_STATUS_AREA_SHELL_IMPLEMENTATION['bluetooth'] = imports.ui.status.bluetooth.Indicator;
  
  try {
@@ -143,11 +143,11 @@ index 2f78db9..63e472c 100644
  } catch(e) {
      log('NMApplet is not supported. It is possible that your NetworkManager version is too old');
  }
-diff --git a/src/Makefile.am b/src/Makefile.am
-index 4f8a1da..ecf4d13 100644
---- a/src/Makefile.am
-+++ b/src/Makefile.am
-@@ -108,9 +108,7 @@ shell_public_headers_h =		\
+Index: gnome-shell-3.2.2.1/src/Makefile.am
+===================================================================
+--- gnome-shell-3.2.2.1.orig/src/Makefile.am	2012-01-25 10:59:25.708627368 +0100
++++ gnome-shell-3.2.2.1/src/Makefile.am	2012-01-25 10:59:25.848627363 +0100
+@@ -108,9 +108,7 @@
  	shell-generic-container.h	\
  	shell-gtk-embed.h		\
  	shell-global.h			\
@@ -157,7 +157,7 @@ index 4f8a1da..ecf4d13 100644
  	shell-perf-log.h		\
  	shell-slicer.h			\
  	shell-stack.h			\
-@@ -122,6 +120,11 @@ shell_public_headers_h =		\
+@@ -122,6 +120,11 @@
  	shell-wm.h			\
  	shell-xfixes-cursor.h
  
@@ -169,7 +169,7 @@ index 4f8a1da..ecf4d13 100644
  libgnome_shell_la_SOURCES =		\
  	$(shell_built_sources)		\
  	$(shell_public_headers_h)	\
-@@ -145,9 +148,7 @@ libgnome_shell_la_SOURCES =		\
+@@ -145,9 +148,7 @@
  	shell-generic-container.c	\
  	shell-gtk-embed.c		\
  	shell-global.c			\
@@ -179,7 +179,7 @@ index 4f8a1da..ecf4d13 100644
  	shell-perf-log.c		\
  	shell-polkit-authentication-agent.h	\
  	shell-polkit-authentication-agent.c	\
-@@ -161,6 +162,10 @@ libgnome_shell_la_SOURCES =		\
+@@ -161,6 +162,10 @@
  	shell-wm.c			\
  	shell-xfixes-cursor.c
  
@@ -190,7 +190,7 @@ index 4f8a1da..ecf4d13 100644
  libgnome_shell_la_gir_sources = \
  	$(filter-out %-private.h $(shell_recorder_non_gir_sources), $(shell_public_headers_h) $(libgnome_shell_la_SOURCES))
  
-@@ -272,7 +277,10 @@ libgnome_shell_la_LIBADD =		\
+@@ -272,7 +277,10 @@
  libgnome_shell_la_CPPFLAGS = $(gnome_shell_cflags)
  
  Shell-0.1.gir: libgnome-shell.la St-1.0.gir
@@ -202,6 +202,3 @@ index 4f8a1da..ecf4d13 100644
  Shell_0_1_gir_CFLAGS = $(libgnome_shell_la_CPPFLAGS) -I $(srcdir)
  Shell_0_1_gir_LIBS = libgnome-shell.la
  Shell_0_1_gir_FILES = $(libgnome_shell_la_gir_sources)
--- 
-1.7.8.3
-
