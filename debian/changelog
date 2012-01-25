@@ -1,4 +1,4 @@
-gnome-shell (3.2.2.1-1) UNRELEASED; urgency=low
+gnome-shell (3.2.2.1-1) unstable; urgency=low
 
   [ Michael Biebl ]
   * debian/patches/10-make-NetworkManager-optional.patch: make NM
@@ -22,7 +22,7 @@ gnome-shell (3.2.2.1-1) UNRELEASED; urgency=low
   * debian/control.in: Bump dependency on python to (>= 2.6) since we require
     JSON support. Closes: #580869
 
- -- Michael Biebl <biebl@debian.org>  Mon, 09 Jan 2012 06:43:04 +0100
+ -- Michael Biebl <biebl@debian.org>  Wed, 25 Jan 2012 11:06:41 +0100
 
 gnome-shell (3.2.1-8) unstable; urgency=low
 
