@@ -1,10 +1,10 @@
 02_rpath-bluetooth-applet.patch
 04_remove-glx-dependency-on-armel.patch
-05-NetworkMenu-don-t-query-DBus-properties-of-removed-o.patch
-06-NetworkMenu-fix-regression-in-access-point-removed.patch
+#05-NetworkMenu-don-t-query-DBus-properties-of-removed-o.patch
+#06-NetworkMenu-fix-regression-in-access-point-removed.patch
 07-NetworkMenu-fix-logic-for-updating-wifi-icon.patch
 08-polkit-Find-the-best-user-to-authenticate-as.patch
 09-respect-NoDisplay-semantics-for-app-menu.patch
 10-make-NetworkManager-optional.patch
 11-no-gettext.patch
-12-gnome-shell-extension-tool-Fix-error-after-creating-.patch
+#12-gnome-shell-extension-tool-Fix-error-after-creating-.patch

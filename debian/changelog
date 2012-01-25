@@ -1,4 +1,4 @@
-gnome-shell (3.2.1-9) UNRELEASED; urgency=low
+gnome-shell (3.2.2.1-1) UNRELEASED; urgency=low
 
   [ Michael Biebl ]
   * debian/patches/10-make-NetworkManager-optional.patch: make NM
@@ -14,9 +14,11 @@ gnome-shell (3.2.1-9) UNRELEASED; urgency=low
   * Update repository URL.
 
   [ Michael Biebl ]
-  * d/p/12-gnome-shell-extension-tool-Fix-error-after-creating-.patch:
-    Cherry-pick patch from upstream Git to fix a crash in
-    gnome-shell-extension-tool. Closes: #649583
+  * New upstream release:
+    - Fix a crash in gnome-shell-extension-tool. Closes: #649583
+    - Remove 05-NetworkMenu-don-t-query-DBus-properties-of-removed-o.patch.
+    - Remove 06-NetworkMenu-fix-regression-in-access-point-removed.patch.
+    - Refresh 07-NetworkMenu-fix-logic-for-updating-wifi-icon.patch.
   * debian/control.in: Bump dependency on python to (>= 2.6) since we require
     JSON support. Closes: #580869
 

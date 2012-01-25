@@ -13,11 +13,11 @@ https://bugzilla.gnome.org/show_bug.cgi?id=650007
  js/ui/status/network.js |   12 +++++++-----
  1 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/js/ui/status/network.js b/js/ui/status/network.js
-index aa9b277..d40f7a6 100644
---- a/js/ui/status/network.js
-+++ b/js/ui/status/network.js
-@@ -2061,10 +2061,11 @@ NMApplet.prototype = {
+Index: gnome-shell-3.2.2/js/ui/status/network.js
+===================================================================
+--- gnome-shell-3.2.2.orig/js/ui/status/network.js	2012-01-18 16:21:37.000000000 +0100
++++ gnome-shell-3.2.2/js/ui/status/network.js	2012-01-18 17:25:26.810778212 +0100
+@@ -2065,10 +2065,11 @@
                          }
                          this.setIcon('network-wireless-connected');
                      } else {
@@ -32,7 +32,7 @@ index aa9b277..d40f7a6 100644
                                  this.setIcon('network-wireless-signal-' + signalToIcon(ap.strength));
                              }));
                          }
-@@ -2091,8 +2092,9 @@ NMApplet.prototype = {
+@@ -2095,8 +2096,9 @@
                      break;
                  }
  
@@ -44,6 +44,3 @@ index aa9b277..d40f7a6 100644
                      this._mobileUpdateDevice = dev.mobileDevice;
                      this._mobileUpdateId = dev.mobileDevice.connect('notify::signal-quality', Lang.bind(this, function() {
                          this.setIcon('network-cellular-signal-' + signalToIcon(dev.mobileDevice.signal_quality));
--- 
-1.7.7.3
-
