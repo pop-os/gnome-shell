@@ -1,3 +1,17 @@
+gnome-shell (3.3.5-0ubuntu1~precise1) precise; urgency=low
+
+  * New upstream release.
+  * debian/control.in: Bump minimum mutter to 3.3.5
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 12 Feb 2012 21:02:06 -0500
+
+gnome-shell (3.3.4-0ubuntu1~precise2) precise; urgency=low
+
+  * New upstream release.
+  * debian/control.in: Bump minimum GTK to 3.3.9
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 21 Jan 2012 11:14:31 -0500
+
 gnome-shell (3.3.3-0ubuntu1~precise3) precise; urgency=low
 
   * Rebuild for new cogl
