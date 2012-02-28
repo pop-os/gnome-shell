@@ -1,0 +1,29 @@
+From b62f5ef07d87db7835fa753fe1774a5ed32d871d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Mon, 24 Oct 2011 15:52:13 +0200
+Subject: [PATCH] telepathy-client: Replace shell_util_new_from_string
+
+The function has been removed in commit 786cfbd3976, but one user
+was overlooked when replacing it.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=661231
+---
+ js/ui/telepathyClient.js |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/js/ui/telepathyClient.js b/js/ui/telepathyClient.js
+index 695a12b..3c14eda 100644
+--- a/js/ui/telepathyClient.js
++++ b/js/ui/telepathyClient.js
+@@ -1297,7 +1297,7 @@ MultiNotificationSource.prototype = {
+     },
+ 
+     createNotificationIcon: function() {
+-        return new St.Icon({ gicon: Shell.util_icon_from_string(this._icon),
++        return new St.Icon({ gicon: Gio.icon_new_for_string(this._icon),
+                              icon_type: St.IconType.FULLCOLOR,
+                              icon_size: this.ICON_SIZE });
+     }
+-- 
+1.7.9.1
+

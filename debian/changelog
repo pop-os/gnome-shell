@@ -1,3 +1,15 @@
+gnome-shell (3.2.2.1-2) UNRELEASED; urgency=low
+
+  * debian/patches/12_Replace-shell_util_icon_from_string.patch
+    + Added. Remove the neglected user of the removed
+      Shell.util_icon_from_string function. This caused subscription request
+      to not pop up (From upstream git)
+  * debian/patches/13_bluetooth_fix_undefined_variable.patch
+    + Added. Fixes bluetooth device status slider so it reflects reality again
+    (From upstream git)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Tue, 28 Feb 2012 11:12:03 +0100
+
 gnome-shell (3.2.2.1-1) unstable; urgency=low
 
   [ Michael Biebl ]
