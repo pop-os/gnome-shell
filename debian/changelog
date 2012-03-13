@@ -1,3 +1,22 @@
+gnome-shell (3.3.90-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * debian/control.in: 
+    - Add debug package
+    - Update dependencies
+    - Recommend gnome-user-guide
+    - Break gnome-tweak-tool (<< 3.3)
+    - Bump Standards-Version to 3.9.3
+  * debian/gnome-shell-common.install:
+    - No more gconf schemas to install
+    - Install gtk-docs
+  * Drop patches that have been applied upstream. Remaining patches:
+    - 04_remove-glx-dependency-on-armel.patch
+    - 10-make-NetworkManager-optional.patch (Refreshed)
+    - 11-no-gettext.patch
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 12 Mar 2012 19:36:07 -0400
+
 gnome-shell (3.2.2.1-2) unstable; urgency=low
 
   * debian/patches/12_Replace-shell_util_icon_from_string.patch
