@@ -1,3 +1,15 @@
+gnome-shell (3.3.92-0ubuntu1) precise; urgency=low
+
+  * New upstream release.
+    - No longer affects the number of workspaces in Unity 2D (LP: #826089)
+  * debian/control.in: Bump minimum mutter to 3.3.92
+
+  [ Rico Tzschichholz ]
+  * debian/patches/20_revert_gcr_depend.patch:
+    - Revert dependency on gcr 3.3 since we're sticking with 3.2 for 12.04
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 22 Mar 2012 01:47:24 -0400
+
 gnome-shell (3.3.90-0ubuntu1) precise; urgency=low
 
   * Sync with Debian experimental svn packaging (LP: #941755, #937709).
