@@ -7,3 +7,4 @@
 11-no-gettext.patch
 12_Replace-shell_util_icon_from_string.patch
 13_bluetooth_fix_undefined_variable.patch
+14_require_gl_directly.patch
