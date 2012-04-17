@@ -1,4 +1,7 @@
-04_remove-glx-dependency-on-armel.patch
 #10-make-NetworkManager-optional.patch
 11-no-gettext.patch
 20_revert_gcr_depend.patch
+30_use-glx-if-cogl-supports.patch
+31_don-t-link-directly-to-libGL.patch
+32_remove-shell-screen-grabber.patch
+33_remove_glx_headers.patch

@@ -1,3 +1,36 @@
+gnome-shell (3.4.0-0ubuntu3) precise-proposed; urgency=low
+
+  * debian/patches: enable support for GLES compatible builds (LP: #935124)
+    - 30_use-glx-if-cogl-supports.patch: replace
+      04_remove-glx-dependency-on-armel.patch with a better solution from
+      upstream, that is to check the glx support with cogl
+    - 31_don-t-link-directly-to-libGL.patch: don't link directly to libGL, as
+      it's not needed anymore and breaks GLES support
+    - 32_remove-shell-screen-grabber.patch: remove shell-screen-grabber as
+      it's not needed anymore and breaks GLES support
+    - 33_remove_glx_headers.patch: don't generically include the GL headers
+  * debian/rules:
+    - Request it to run autoconf to update with the new options provided by
+      the additional patches
+  * debian/control.in:
+    - Adding autoconf at build-deps, requirement from above patches
+
+ -- Ricardo Salveti de Araujo <ricardo.salveti@linaro.org>  Thu, 12 Apr 2012 22:14:23 -0300
+
+gnome-shell (3.4.0-0ubuntu2) precise-proposed; urgency=low
+
+  * Rebuild to depend on mutter 3.4, not 3.3 (LP: #9662770)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 27 Mar 2012 11:23:31 -0400
+
+gnome-shell (3.4.0-0ubuntu1) precise-proposed; urgency=low
+
+  * New upstream release.
+    - Don't crash when taking screenshots
+    - Fix dialog-resizing problem
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 26 Mar 2012 20:56:08 -0400
+
 gnome-shell (3.3.92-0ubuntu1) precise; urgency=low
 
   * New upstream release.
