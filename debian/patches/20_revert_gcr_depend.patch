@@ -2,11 +2,11 @@ From: Rico Tzschichholz <ricotz@ubuntu.com>
 Subject: Revert upstream dependency on GCR 3.3.x
 Last-Update: 2012-03-21
 
-Index: gnome-shell-3.3.92/configure.ac
+Index: gnome-shell-3.4.1/configure.ac
 ===================================================================
---- gnome-shell-3.3.92.orig/configure.ac
-+++ gnome-shell-3.3.92/configure.ac
-@@ -74,7 +74,6 @@
+--- gnome-shell-3.4.1.orig/configure.ac	2012-04-17 18:44:29.000000000 -0400
++++ gnome-shell-3.4.1/configure.ac	2012-04-17 18:48:52.194868225 -0400
+@@ -71,7 +71,6 @@
  TELEPATHY_LOGGER_MIN_VERSION=0.2.4
  POLKIT_MIN_VERSION=0.100
  STARTUP_NOTIFICATION_MIN_VERSION=0.11
@@ -14,20 +14,20 @@ Index: gnome-shell-3.3.92/configure.ac
  
  # Collect more than 20 libraries for a prize!
  PKG_CHECK_MODULES(GNOME_SHELL, gio-unix-2.0 >= $GIO_MIN_VERSION
-@@ -94,8 +93,7 @@
+@@ -91,8 +90,7 @@
                                 telepathy-glib >= $TELEPATHY_GLIB_MIN_VERSION
                                 telepathy-logger-0.2 >= $TELEPATHY_LOGGER_MIN_VERSION
                                 polkit-agent-1 >= $POLKIT_MIN_VERSION xfixes
--                               libnm-glib libnm-util gnome-keyring-1
+-                               gnome-keyring-1
 -                               gcr-3 >= $GCR_MIN_VERSION)
-+                               libnm-glib libnm-util gnome-keyring-1)
++                               gnome-keyring-1)
  
- PKG_CHECK_MODULES(SHELL_PERF_HELPER, gtk+-3.0 gio-2.0)
- 
-Index: gnome-shell-3.3.92/data/theme/gnome-shell.css
+ ##########################
+ # Check for NetworkManager
+Index: gnome-shell-3.4.1/data/theme/gnome-shell.css
 ===================================================================
---- gnome-shell-3.3.92.orig/data/theme/gnome-shell.css
-+++ gnome-shell-3.3.92/data/theme/gnome-shell.css
+--- gnome-shell-3.4.1.orig/data/theme/gnome-shell.css	2012-03-13 12:06:02.000000000 -0400
++++ gnome-shell-3.4.1/data/theme/gnome-shell.css	2012-04-17 18:47:27.794449713 -0400
 @@ -1979,10 +1979,6 @@
      spacing-rows: 15px;
  }
@@ -39,10 +39,10 @@ Index: gnome-shell-3.3.92/data/theme/gnome-shell.css
  /* Magnifier */
  
  .magnifier-zoom-region {
-Index: gnome-shell-3.3.92/js/Makefile.am
+Index: gnome-shell-3.4.1/js/Makefile.am
 ===================================================================
---- gnome-shell-3.3.92.orig/js/Makefile.am
-+++ gnome-shell-3.3.92/js/Makefile.am
+--- gnome-shell-3.4.1.orig/js/Makefile.am	2012-03-01 11:19:56.000000000 -0500
++++ gnome-shell-3.4.1/js/Makefile.am	2012-04-17 18:47:27.794449713 -0400
 @@ -56,7 +56,6 @@
  	ui/flashspot.js		\
  	ui/iconGrid.js		\
@@ -51,10 +51,10 @@ Index: gnome-shell-3.3.92/js/Makefile.am
  	ui/layout.js		\
  	ui/lightbox.js		\
  	ui/link.js		\
-Index: gnome-shell-3.3.92/js/ui/keyringPrompt.js
+Index: gnome-shell-3.4.1/js/ui/keyringPrompt.js
 ===================================================================
---- gnome-shell-3.3.92.orig/js/ui/keyringPrompt.js
-+++ /dev/null
+--- gnome-shell-3.4.1.orig/js/ui/keyringPrompt.js	2012-03-01 11:19:56.000000000 -0500
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,207 +0,0 @@
 -// -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 -
@@ -263,11 +263,11 @@ Index: gnome-shell-3.3.92/js/ui/keyringPrompt.js
 -    Gio.bus_own_name_on_connection (connection, 'org.gnome.keyring.SystemPrompter',
 -                                    Gio.BusNameOwnerFlags.REPLACE, null, null);
 -}
-Index: gnome-shell-3.3.92/js/ui/main.js
+Index: gnome-shell-3.4.1/js/ui/main.js
 ===================================================================
---- gnome-shell-3.3.92.orig/js/ui/main.js
-+++ gnome-shell-3.3.92/js/ui/main.js
-@@ -15,7 +15,6 @@
+--- gnome-shell-3.4.1.orig/js/ui/main.js	2012-04-17 18:44:19.313515083 -0400
++++ gnome-shell-3.4.1/js/ui/main.js	2012-04-17 18:47:27.794449713 -0400
+@@ -16,7 +16,6 @@
  const CtrlAltTab = imports.ui.ctrlAltTab;
  const EndSessionDialog = imports.ui.endSessionDialog;
  const PolkitAuthenticationAgent = imports.ui.polkitAuthenticationAgent;
@@ -275,7 +275,7 @@ Index: gnome-shell-3.3.92/js/ui/main.js
  const Environment = imports.ui.environment;
  const ExtensionSystem = imports.ui.extensionSystem;
  const Keyboard = imports.ui.keyboard;
-@@ -237,9 +236,6 @@
+@@ -248,9 +247,6 @@
      // Attempt to become a PolicyKit authentication agent
      PolkitAuthenticationAgent.init()
  
@@ -285,20 +285,19 @@ Index: gnome-shell-3.3.92/js/ui/main.js
      _startDate = new Date();
  
      global.stage.connect('captured-event', _globalKeyPressHandler);
-Index: gnome-shell-3.3.92/src/Makefile.am
+Index: gnome-shell-3.4.1/src/Makefile.am
 ===================================================================
---- gnome-shell-3.3.92.orig/src/Makefile.am
-+++ gnome-shell-3.3.92/src/Makefile.am
-@@ -157,8 +157,6 @@
+--- gnome-shell-3.4.1.orig/src/Makefile.am	2012-04-17 18:44:19.000000000 -0400
++++ gnome-shell-3.4.1/src/Makefile.am	2012-04-17 18:49:35.895084939 -0400
+@@ -159,16 +159,12 @@
  	shell-gtk-embed.c		\
  	shell-global.c			\
  	shell-idle-monitor.c		\
 -	shell-keyring-prompt.h		\
 -	shell-keyring-prompt.c		\
- 	shell-mobile-providers.c	\
  	shell-mount-operation.c		\
- 	shell-network-agent.c		\
-@@ -167,8 +165,6 @@
+ 	shell-perf-log.c		\
+ 	shell-polkit-authentication-agent.h	\
  	shell-polkit-authentication-agent.c	\
  	shell-screenshot.c		\
  	shell-screen-grabber.c		\
@@ -307,10 +306,10 @@ Index: gnome-shell-3.3.92/src/Makefile.am
  	shell-slicer.c			\
  	shell-stack.c			\
  	shell-tp-client.c			\
-Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
+Index: gnome-shell-3.4.1/src/shell-keyring-prompt.c
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-keyring-prompt.c
-+++ /dev/null
+--- gnome-shell-3.4.1.orig/src/shell-keyring-prompt.c	2012-04-10 14:14:57.000000000 -0400
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,760 +0,0 @@
 -/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 -/*
@@ -636,7 +635,7 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
 -  g_object_class_override_property (gobject_class, PROP_CANCEL_LABEL, "cancel-label");
 -
 -  /**
--   * ShellKeyringPrompt:password-visible
+-   * ShellKeyringPrompt:password-visible:
 -   *
 -   * Whether the password entry is visible or not.
 -   */
@@ -645,7 +644,7 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
 -                                   FALSE, G_PARAM_READABLE));
 -
 -  /**
--    * ShellKeyringPrompt:confirm-visible
+-    * ShellKeyringPrompt:confirm-visible:
 -    *
 -    * Whether the password confirm entry is visible or not.
 -    */
@@ -654,7 +653,7 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
 -                                   FALSE, G_PARAM_READABLE));
 -
 -  /**
--   * ShellKeyringPrompt:warning-visible
+-   * ShellKeyringPrompt:warning-visible:
 -   *
 -   * Whether the warning label is visible or not.
 -   */
@@ -663,7 +662,7 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
 -                                   FALSE, G_PARAM_READABLE));
 -
 -  /**
--   * ShellKeyringPrompt:choice-visible
+-   * ShellKeyringPrompt:choice-visible:
 -   *
 -   * Whether the choice check box is visible or not.
 -   */
@@ -672,7 +671,7 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
 -                                   FALSE, G_PARAM_READABLE));
 -
 -  /**
--   * ShellKeyringPrompt:password-actor
+-   * ShellKeyringPrompt:password-actor:
 -   *
 -   * Text field for password
 -   */
@@ -681,7 +680,7 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
 -                                   CLUTTER_TYPE_TEXT, G_PARAM_READWRITE));
 -
 -  /**
--   * ShellKeyringPrompt:confirm-actor
+-   * ShellKeyringPrompt:confirm-actor:
 -   *
 -   * Text field for confirmation password
 -   */
@@ -1072,10 +1071,10 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.c
 -  g_simple_async_result_complete (res);
 -  g_object_unref (res);
 -}
-Index: gnome-shell-3.3.92/src/shell-keyring-prompt.h
+Index: gnome-shell-3.4.1/src/shell-keyring-prompt.h
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-keyring-prompt.h
-+++ /dev/null
+--- gnome-shell-3.4.1.orig/src/shell-keyring-prompt.h	2012-03-01 11:19:56.000000000 -0500
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,59 +0,0 @@
 -/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 -/* shell-keyring-prompt.c - prompt handler for gnome-keyring-daemon
@@ -1136,10 +1135,10 @@ Index: gnome-shell-3.3.92/src/shell-keyring-prompt.h
 -G_END_DECLS
 -
 -#endif /* __SHELL_KEYRING_PROMPT_H__ */
-Index: gnome-shell-3.3.92/src/shell-secure-text-buffer.c
+Index: gnome-shell-3.4.1/src/shell-secure-text-buffer.c
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-secure-text-buffer.c
-+++ /dev/null
+--- gnome-shell-3.4.1.orig/src/shell-secure-text-buffer.c	2012-03-01 11:19:56.000000000 -0500
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,199 +0,0 @@
 -/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*- */
 -/* shell-secure-text-buffer.c - secure memory clutter text buffer
@@ -1340,10 +1339,10 @@ Index: gnome-shell-3.3.92/src/shell-secure-text-buffer.c
 -{
 -  return g_object_new (SHELL_TYPE_SECURE_TEXT_BUFFER, NULL);
 -}
-Index: gnome-shell-3.3.92/src/shell-secure-text-buffer.h
+Index: gnome-shell-3.4.1/src/shell-secure-text-buffer.h
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-secure-text-buffer.h
-+++ /dev/null
+--- gnome-shell-3.4.1.orig/src/shell-secure-text-buffer.h	2012-03-01 11:19:56.000000000 -0500
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,42 +0,0 @@
 -/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*- */
 -/* shell-secure-text-buffer.h - secure memory clutter text buffer
@@ -1387,3 +1386,4 @@ Index: gnome-shell-3.3.92/src/shell-secure-text-buffer.h
 -G_END_DECLS
 -
 -#endif /* __SHELL_SECURE_TEXT_BUFFER_H__ */
+

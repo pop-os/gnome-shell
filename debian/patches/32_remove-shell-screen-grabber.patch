@@ -20,10 +20,10 @@ Origin: http://git.gnome.org/browse/gnome-shell/commit/?h=wip/wayland&id=beada1c
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/935124
 Forwarded: not-needed
 
-Index: gnome-shell-3.3.92/src/shell-recorder.c
+Index: gnome-shell-3.4.1/src/shell-recorder.c
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-recorder.c	2012-03-01 13:19:56.000000000 -0300
-+++ gnome-shell-3.3.92/src/shell-recorder.c	2012-03-23 18:02:06.568161680 -0300
+--- gnome-shell-3.4.1.orig/src/shell-recorder.c	2012-03-01 11:19:56.000000000 -0500
++++ gnome-shell-3.4.1/src/shell-recorder.c	2012-04-17 18:56:27.481125875 -0400
 @@ -12,7 +12,6 @@
  
  #include "shell-recorder-src.h"
@@ -75,9 +75,9 @@ Index: gnome-shell-3.3.92/src/shell-recorder.c
  
    buffer = gst_buffer_new();
    GST_BUFFER_SIZE(buffer) = size;
-Index: gnome-shell-3.3.92/src/shell-screen-grabber.c
+Index: gnome-shell-3.4.1/src/shell-screen-grabber.c
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-screen-grabber.c	2012-03-02 09:28:41.000000000 -0300
+--- gnome-shell-3.4.1.orig/src/shell-screen-grabber.c	2012-03-02 07:28:41.000000000 -0500
 +++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,210 +0,0 @@
 -/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
@@ -290,9 +290,9 @@ Index: gnome-shell-3.3.92/src/shell-screen-grabber.c
 -
 -  return data;
 -}
-Index: gnome-shell-3.3.92/src/shell-screen-grabber.h
+Index: gnome-shell-3.4.1/src/shell-screen-grabber.h
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-screen-grabber.h	2012-01-31 12:47:19.000000000 -0300
+--- gnome-shell-3.4.1.orig/src/shell-screen-grabber.h	2012-01-31 10:47:19.000000000 -0500
 +++ /dev/null	1970-01-01 00:00:00.000000000 +0000
 @@ -1,44 +0,0 @@
 -/* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
@@ -339,10 +339,10 @@ Index: gnome-shell-3.3.92/src/shell-screen-grabber.h
 -G_END_DECLS
 -
 -#endif /* __SHELL_SCREEN_GRABBER_H__ */
-Index: gnome-shell-3.3.92/src/shell-screenshot.c
+Index: gnome-shell-3.4.1/src/shell-screenshot.c
 ===================================================================
---- gnome-shell-3.3.92.orig/src/shell-screenshot.c	2012-02-16 14:17:56.000000000 -0300
-+++ gnome-shell-3.3.92/src/shell-screenshot.c	2012-03-23 18:02:06.568161680 -0300
+--- gnome-shell-3.4.1.orig/src/shell-screenshot.c	2012-04-10 14:14:57.000000000 -0400
++++ gnome-shell-3.4.1/src/shell-screenshot.c	2012-04-17 18:56:27.481125875 -0400
 @@ -1,5 +1,8 @@
  /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
  
@@ -360,7 +360,7 @@ Index: gnome-shell-3.3.92/src/shell-screenshot.c
  #include "shell-screenshot.h"
  
  struct _ShellScreenshotClass
-@@ -97,18 +99,33 @@
+@@ -90,18 +92,33 @@
                      int               width,
                      int               height)
  {
@@ -404,12 +404,12 @@ Index: gnome-shell-3.3.92/src/shell-screenshot.c
  }
  
  static void
-Index: gnome-shell-3.3.92/src/Makefile.am
+Index: gnome-shell-3.4.1/src/Makefile.am
 ===================================================================
---- gnome-shell-3.3.92.orig/src/Makefile.am	2012-03-23 18:02:06.100159361 -0300
-+++ gnome-shell-3.3.92/src/Makefile.am	2012-03-23 18:03:21.352532519 -0300
-@@ -115,7 +115,6 @@
- 	shell-network-agent.h		\
+--- gnome-shell-3.4.1.orig/src/Makefile.am	2012-04-17 18:56:25.509116093 -0400
++++ gnome-shell-3.4.1/src/Makefile.am	2012-04-17 18:56:27.481125875 -0400
+@@ -113,7 +113,6 @@
+ 	shell-mount-operation.h		\
  	shell-perf-log.h		\
  	shell-screenshot.h		\
 -	shell-screen-grabber.h		\
@@ -424,7 +424,7 @@ Index: gnome-shell-3.3.92/src/Makefile.am
  	shell-slicer.c			\
  	shell-stack.c			\
  	shell-tp-client.c			\
-@@ -230,8 +228,6 @@
+@@ -233,8 +231,6 @@
  
  test_recorder_SOURCES =     \
  	$(shell_recorder_sources) $(shell_recorder_private_sources) \

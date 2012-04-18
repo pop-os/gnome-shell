@@ -1,3 +1,36 @@
+gnome-shell (3.4.1-0ubuntu1) precise-proposed; urgency=low
+
+  * New upstream release.
+    - Fix crash that occurred when an icon theme change caused unexpected
+      reentrancy in the icon loading code, aka crash in magazine_
+      chain_pop_head() or _clutter_actor_finish_queue_redraw() (LP: #955845,
+      LP: #962298)
+    - Make gnome-shell-calendar-server initialize GTK+ so it can display
+      password prompts if needed
+    - Adapt to Mutter API change for keybinding addition
+    - Fix crash when an extension was installed as both a user extension
+      and a system extension
+    - Fix bug where chat entry could end up partially offscreen
+    - Fix problem where icons weren't updating when theme was changed
+    - Look for Evolution calendar settings in GSettings, not GConf
+    - Add Super+F10 keyboard shortcut to show the new application menu
+    - Fix %Id format characters to work in translations
+    - Fix error when NetworkManager restarts
+    - Improve efficiency of overview redraws by working around Clutter issue
+    - Other misc bug fixes
+  * debian/control.in:
+    - Bump minimum mutter to 3.4.1
+    - Depend on gir1.2-gjsdbus-1.0 instead of gir1.2-gjs-1.0
+  * Refreshed patches:
+    - 10-make-NetworkManager-optional.patch
+    - 20_revert_gcr_depend.patch
+    - 32_remove-shell-screen-grabber.patch
+  * debian/patches/21_revert_evolution_gsettings.patch:
+    - Revert support for Evolution 3.4 since we're sticking with
+      Evolution 3.2 for precise
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 17 Apr 2012 21:40:32 -0400
+
 gnome-shell (3.4.0-0ubuntu3) precise-proposed; urgency=low
 
   * debian/patches: enable support for GLES compatible builds (LP: #935124)

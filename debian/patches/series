@@ -1,6 +1,7 @@
-#10-make-NetworkManager-optional.patch
+10-make-NetworkManager-optional.patch
 11-no-gettext.patch
 20_revert_gcr_depend.patch
+21_revert_evolution_gsettings.patch
 30_use-glx-if-cogl-supports.patch
 31_don-t-link-directly-to-libGL.patch
 32_remove-shell-screen-grabber.patch
