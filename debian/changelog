@@ -1,4 +1,4 @@
-gnome-shell (3.3.90-1) UNRELEASED; urgency=low
+gnome-shell (3.4.1-1) UNRELEASED; urgency=low
 
   * New upstream release.
   * debian/control.in: 
