@@ -1,0 +1,64 @@
+Index: gnome-shell-3.2.2.1/configure.ac
+===================================================================
+--- gnome-shell-3.2.2.1.orig/configure.ac	2012-04-30 19:15:03.722083062 +0200
++++ gnome-shell-3.2.2.1/configure.ac	2012-04-30 19:16:18.270080422 +0200
+@@ -94,6 +94,14 @@
+                                telepathy-logger-0.2 >= $TELEPATHY_LOGGER_MIN_VERSION
+                                polkit-agent-1 >= $POLKIT_MIN_VERSION xfixes)
+ 
++PKG_CHECK_MODULES(GLX, [gl], [have_glx=yes], [have_glx=no])
++if test "x$have_glx" = "xyes"; then
++   GNOME_SHELL_CFLAGS="$GNOME_SHELL_CFLAGS $GLX_CFLAGS"
++   GNOME_SHELL_LIBS="$GNOME_SHELL_LIBS $GLX_LIBS"
++   AC_DEFINE(HAVE_GLX, [1], [Define if we have GLX])
++   AC_SUBST([HAVE_GLX], [1])
++fi
++
+ ##########################
+ # Check for NetworkManager
+ ##########################
+Index: gnome-shell-3.2.2.1/src/gnome-shell-plugin.c
+===================================================================
+--- gnome-shell-3.2.2.1.orig/src/gnome-shell-plugin.c	2012-01-20 06:16:22.000000000 +0100
++++ gnome-shell-3.2.2.1/src/gnome-shell-plugin.c	2012-04-30 19:23:02.322066133 +0200
+@@ -30,8 +30,10 @@
+ 
+ #include <clutter/clutter.h>
+ #include <clutter/x11/clutter-x11.h>
++#ifdef HAVE_GLX
+ #include <GL/glx.h>
+ #include <GL/glxext.h>
++#endif
+ #include <gjs/gjs.h>
+ #include <meta/display.h>
+ #include <meta/meta-plugin.h>
+@@ -146,14 +148,19 @@
+ gnome_shell_plugin_start (MetaPlugin *plugin)
+ {
+   GnomeShellPlugin *shell_plugin = GNOME_SHELL_PLUGIN (plugin);
++#ifdef HAVE_GLX
+   MetaScreen *screen;
+   MetaDisplay *display;
+   Display *xdisplay;
++#endif
+   GError *error = NULL;
+   int status;
++#ifdef HAVE_GLX
+   const char *glx_extensions;
++#endif
+   GjsContext *gjs_context;
+ 
++#ifdef HAVE_GLX
+   screen = meta_plugin_get_screen (plugin);
+   display = meta_screen_get_display (screen);
+ 
+@@ -166,6 +173,9 @@
+   glx_extensions = glXQueryExtensionsString (xdisplay,
+                                              meta_screen_get_screen_number (screen));
+   shell_plugin->have_swap_event = strstr (glx_extensions, "GLX_INTEL_swap_event") != NULL;
++#else
++  shell_plugin->have_swap_event = 0;
++#endif
+ 
+   shell_perf_log_define_event (shell_perf_log_get_default (),
+                                "glx.swapComplete",
