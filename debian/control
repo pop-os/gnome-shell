@@ -46,7 +46,8 @@ Build-Depends: autotools-dev,
                libx11-dev,
                libxfixes-dev,
                libxml2-dev,
-               python (>= 2.6)
+               python (>= 2.6),
+               libgcr-3-dev (> 3.3.90)
 Standards-Version: 3.9.3
 Homepage: http://live.gnome.org/GnomeShell
 Vcs-Svn: svn://anonscm.debian.org/svn/pkg-gnome/desktop/unstable/gnome-shell
@@ -64,7 +65,6 @@ Depends: ${gir:Depends},
          gir1.2-clutter-1.0,
          gir1.2-freedesktop,
          gir1.2-gconf-2.0,
-         gir1.2-gjs-1.0,
          gir1.2-gkbd-3.0,
          gir1.2-glib-2.0 (>= 1.31),
          gir1.2-gnomebluetooth-1.0 [linux-any],
