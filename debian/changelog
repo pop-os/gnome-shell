@@ -1,4 +1,4 @@
-gnome-shell (3.4.1-1) UNRELEASED; urgency=low
+gnome-shell (3.4.1-1) experimental; urgency=low
 
   [ Jeremy Bicha ]
   * New upstream release.
@@ -26,7 +26,7 @@ gnome-shell (3.4.1-1) UNRELEASED; urgency=low
     gsettings in the calendar server for now as long as evolution 3.4 is not
     ready yet.
 
- -- Sjoerd Simons <sjoerd@debian.org>  Sat, 19 May 2012 00:30:19 +0200
+ -- Michael Biebl <biebl@debian.org>  Sun, 20 May 2012 00:16:54 +0200
 
 gnome-shell (3.2.2.1-4) unstable; urgency=low
 
