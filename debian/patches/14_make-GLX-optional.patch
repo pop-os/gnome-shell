@@ -1,8 +1,8 @@
 Index: gnome-shell-3.4.1/configure.ac
 ===================================================================
---- gnome-shell-3.4.1.orig/configure.ac	2012-05-19 04:06:00.000000000 +0200
-+++ gnome-shell-3.4.1/configure.ac	2012-05-19 04:07:47.286341139 +0200
-@@ -100,6 +100,14 @@
+--- gnome-shell-3.4.1.orig/configure.ac	2012-05-19 09:44:28.863666178 +0200
++++ gnome-shell-3.4.1/configure.ac	2012-05-19 09:44:30.099666166 +0200
+@@ -133,6 +133,14 @@
  
  PKG_CHECK_MODULES(BROWSER_PLUGIN, gio-2.0 >= $GIO_MIN_VERSION json-glib-1.0 >= 0.13.2)
  
@@ -19,8 +19,8 @@ Index: gnome-shell-3.4.1/configure.ac
  AC_SUBST([GJS_VERSION], ["$GJS_VERSION"])
 Index: gnome-shell-3.4.1/src/gnome-shell-plugin.c
 ===================================================================
---- gnome-shell-3.4.1.orig/src/gnome-shell-plugin.c	2012-05-19 04:05:27.000000000 +0200
-+++ gnome-shell-3.4.1/src/gnome-shell-plugin.c	2012-05-19 04:06:13.126344472 +0200
+--- gnome-shell-3.4.1.orig/src/gnome-shell-plugin.c	2012-05-19 09:44:06.747666394 +0200
++++ gnome-shell-3.4.1/src/gnome-shell-plugin.c	2012-05-19 09:44:30.099666166 +0200
 @@ -30,8 +30,10 @@
  
  #include <clutter/clutter.h>
