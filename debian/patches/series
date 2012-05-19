@@ -2,3 +2,4 @@
 10-make-NetworkManager-optional.patch
 11-no-gettext.patch
 14_make-GLX-optional.patch
+21_revert_evolution_gsettings.patch

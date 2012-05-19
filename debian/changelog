@@ -22,6 +22,9 @@ gnome-shell (3.4.1-1) UNRELEASED; urgency=low
   [ Michael Biebl ]
   * debian/patches/10-make-NetworkManager-optional.patch: Updated.
   * debian/gnome-shell-common.install: Install GConf conversion script.
+  * debian/patches/21_revert_evolution_gsettings.patch: Revert the switch to
+    gsettings in the calendar server for now as long as evolution 3.4 is not
+    ready yet.
 
  -- Sjoerd Simons <sjoerd@debian.org>  Sat, 19 May 2012 00:30:19 +0200
 
