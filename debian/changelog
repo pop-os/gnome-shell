@@ -14,7 +14,7 @@ gnome-shell (3.4.1-1) UNRELEASED; urgency=low
   * Drop patches that have been applied upstream.
 
   [ Sjoerd Simons ]
-  * debian/control.in: Add build-depend on libgcr-3-dev (> 3.3.90)
+  * debian/control.in: Add build-depends on libgcr-3-dev (>= 3.3.90)
   * debian/control.in: Drop dependency on gir1.2-gjs-1.0 as it has been folded
     into libgjs
   * debian/control.in: Add depends on gir1.2-gcr-3
