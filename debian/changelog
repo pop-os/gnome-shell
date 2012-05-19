@@ -19,6 +19,9 @@ gnome-shell (3.4.1-1) UNRELEASED; urgency=low
     into libgjs
   * debian/control.in: Add depends on gir1.2-gcr-3
 
+  [ Michael Biebl ]
+  * debian/patches/10-make-NetworkManager-optional.patch: Updated.
+
  -- Sjoerd Simons <sjoerd@debian.org>  Sat, 19 May 2012 00:30:19 +0200
 
 gnome-shell (3.2.2.1-4) unstable; urgency=low
