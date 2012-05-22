@@ -1,3 +1,11 @@
+gnome-shell (3.4.1-2) UNRELEASED; urgency=low
+
+  * debian/patches/22-remove-online-accounts-from-user-menu.patch: Remove
+    "Online Accounts" from user menu. It can be easily accessed via
+    "System Settings" so there is no need to clutter up the user menu.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 22 May 2012 08:34:06 +0200
+
 gnome-shell (3.4.1-1) experimental; urgency=low
 
   [ Jeremy Bicha ]
