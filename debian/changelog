@@ -1,96 +1,20 @@
-gnome-shell (3.4.1-0ubuntu1) precise-proposed; urgency=low
+gnome-shell (3.4.1-1ubuntu1) UNRELEASED; urgency=low
 
+  * Re-synchronize with Debian. Remaining changes:
+    - 09-respect-NoDisplay-semantics-for-app-menu.patch:
+      + Disabled, as upstream says it breaks app tracking for NoDisplay apps
+    - 21_revert_evolution_gsettings.patch: Dropped, we have Evolution 3.4 now
+  * Drop favorites defaults substitution (Epiphany/Firefox, Evolution/
+    Thunderbird)
+  * Try Debian's ARM patches instead of our own
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 25 May 2012 11:18:31 -0400
+
+gnome-shell (3.4.1-1) experimental; urgency=low
+
+  [ Jeremy Bicha ]
   * New upstream release.
-    - Fix crash that occurred when an icon theme change caused unexpected
-      reentrancy in the icon loading code, aka crash in magazine_
-      chain_pop_head() or _clutter_actor_finish_queue_redraw() (LP: #955845,
-      LP: #962298)
-    - Make gnome-shell-calendar-server initialize GTK+ so it can display
-      password prompts if needed
-    - Adapt to Mutter API change for keybinding addition
-    - Fix crash when an extension was installed as both a user extension
-      and a system extension
-    - Fix bug where chat entry could end up partially offscreen
-    - Fix problem where icons weren't updating when theme was changed
-    - Look for Evolution calendar settings in GSettings, not GConf
-    - Add Super+F10 keyboard shortcut to show the new application menu
-    - Fix %Id format characters to work in translations
-    - Fix error when NetworkManager restarts
-    - Improve efficiency of overview redraws by working around Clutter issue
-    - Other misc bug fixes
-  * debian/control.in:
-    - Bump minimum mutter to 3.4.1
-    - Depend on gir1.2-gjsdbus-1.0 instead of gir1.2-gjs-1.0
-  * Refreshed patches:
-    - 10-make-NetworkManager-optional.patch
-    - 20_revert_gcr_depend.patch
-    - 32_remove-shell-screen-grabber.patch
-  * debian/patches/21_revert_evolution_gsettings.patch:
-    - Revert support for Evolution 3.4 since we're sticking with
-      Evolution 3.2 for precise
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 17 Apr 2012 21:40:32 -0400
-
-gnome-shell (3.4.0-0ubuntu3) precise-proposed; urgency=low
-
-  * debian/patches: enable support for GLES compatible builds (LP: #935124)
-    - 30_use-glx-if-cogl-supports.patch: replace
-      04_remove-glx-dependency-on-armel.patch with a better solution from
-      upstream, that is to check the glx support with cogl
-    - 31_don-t-link-directly-to-libGL.patch: don't link directly to libGL, as
-      it's not needed anymore and breaks GLES support
-    - 32_remove-shell-screen-grabber.patch: remove shell-screen-grabber as
-      it's not needed anymore and breaks GLES support
-    - 33_remove_glx_headers.patch: don't generically include the GL headers
-  * debian/rules:
-    - Request it to run autoconf to update with the new options provided by
-      the additional patches
-  * debian/control.in:
-    - Adding autoconf at build-deps, requirement from above patches
-
- -- Ricardo Salveti de Araujo <ricardo.salveti@linaro.org>  Thu, 12 Apr 2012 22:14:23 -0300
-
-gnome-shell (3.4.0-0ubuntu2) precise-proposed; urgency=low
-
-  * Rebuild to depend on mutter 3.4, not 3.3 (LP: #9662770)
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 27 Mar 2012 11:23:31 -0400
-
-gnome-shell (3.4.0-0ubuntu1) precise-proposed; urgency=low
-
-  * New upstream release.
-    - Don't crash when taking screenshots
-    - Fix dialog-resizing problem
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 26 Mar 2012 20:56:08 -0400
-
-gnome-shell (3.3.92-0ubuntu1) precise; urgency=low
-
-  * New upstream release.
-    - No longer affects the number of workspaces in Unity 2D (LP: #826089)
-  * debian/control.in: Bump minimum mutter to 3.3.92
-
-  [ Rico Tzschichholz ]
-  * debian/patches/20_revert_gcr_depend.patch:
-    - Revert dependency on gcr 3.3 since we're sticking with 3.2 for 12.04
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 22 Mar 2012 01:47:24 -0400
-
-gnome-shell (3.3.90-0ubuntu1) precise; urgency=low
-
-  * Sync with Debian experimental svn packaging (LP: #941755, #937709).
-    Remaining changes:
-    - debian/gnome-shell.gsettings-override: Update for Ubuntu defaults
-    - debian/control.in: Recommend cups-pk-helper
-    - debian/patches/10-make-NetworkManager-optional.patch: Disabled
-    - Don't run dh-autoreconf
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 14 Mar 2012 13:47:20 -0400
-
-gnome-shell (3.3.90-1) UNRELEASED; urgency=low
-
-  * New upstream release.
-  * debian/control.in:
+  * debian/control.in: 
     - Add debug package
     - Update dependencies
     - Recommend gnome-user-guide
@@ -99,12 +23,41 @@ gnome-shell (3.3.90-1) UNRELEASED; urgency=low
   * debian/gnome-shell-common.install:
     - No more gconf schemas to install
     - Install gtk-docs
-  * Drop patches that have been applied upstream. Remaining patches:
-    - 04_remove-glx-dependency-on-armel.patch
-    - 10-make-NetworkManager-optional.patch (Refreshed)
-    - 11-no-gettext.patch
+  * Drop patches that have been applied upstream.
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 12 Mar 2012 19:36:07 -0400
+  [ Sjoerd Simons ]
+  * debian/control.in: Add build-depends on libgcr-3-dev (>= 3.3.90)
+  * debian/control.in: Drop dependency on gir1.2-gjs-1.0 as it has been folded
+    into libgjs
+  * debian/control.in: Add depends on gir1.2-gcr-3
+
+  [ Michael Biebl ]
+  * debian/patches/10-make-NetworkManager-optional.patch: Updated.
+  * debian/gnome-shell-common.install: Install GConf conversion script.
+  * debian/patches/21_revert_evolution_gsettings.patch: Revert the switch to
+    gsettings in the calendar server for now as long as evolution 3.4 is not
+    ready yet.
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 20 May 2012 00:16:54 +0200
+
+gnome-shell (3.2.2.1-4) unstable; urgency=low
+
+  * Fold 04_remove-glx-dependency-on-armel.patch and
+    14_require_gl_directly.patch into a new patch named
+    14_make-GLX-optional.patch. Use pkg-config to check if gl.pc is available
+    and build the GLX/GL bits conditionally. This fixes a build failure on
+    arm{el,hf} where clutter/cogl uses GLES. Closes: #670850
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 30 Apr 2012 20:37:44 +0200
+
+gnome-shell (3.2.2.1-3) unstable; urgency=low
+
+  * d/p/14_require_gl_directly.patch
+    + Added. gnome-shell uses glXQuery* API so it needs a direct link against
+      libGL. Causes build failure with upcoming clutter/cogl as they don't
+      expose a directly link to libGL anymore
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 01 Apr 2012 16:07:26 +0200
 
 gnome-shell (3.2.2.1-2) unstable; urgency=low
 
