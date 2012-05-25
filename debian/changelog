@@ -1,14 +1,17 @@
-gnome-shell (3.4.1-1ubuntu1) UNRELEASED; urgency=low
+gnome-shell (3.4.1-1ubuntu1) quantal; urgency=low
 
   * Re-synchronize with Debian. Remaining changes:
     - 09-respect-NoDisplay-semantics-for-app-menu.patch:
       + Disabled, as upstream says it breaks app tracking for NoDisplay apps
+        and it's a Debian-specific problem anyway
     - 21_revert_evolution_gsettings.patch: Dropped, we have Evolution 3.4 now
   * Drop favorites defaults substitution (Epiphany/Firefox, Evolution/
     Thunderbird)
-  * Try Debian's ARM patches instead of our own
+  * Dropped patches:
+    - 20_revert_gcr_depend.patch: We have gcr 3.4 now
+    - Try Debian's ARM patch instead of our own patches
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 25 May 2012 11:18:31 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 25 May 2012 11:44:15 -0400
 
 gnome-shell (3.4.1-1) experimental; urgency=low
 
