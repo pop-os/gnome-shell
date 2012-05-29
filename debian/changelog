@@ -14,6 +14,9 @@ gnome-shell (3.4.1-2) UNRELEASED; urgency=low
   * debian/patches/14_make-GLX-optional.patch: The above three patches make
     this one obsolete, so remove it.
   * Tighten Depends on gir1.2-clutter-1.0. Closes: #673929
+  * Change Recommends: gnome-themes-standard to Depends. Adwaita is the
+    prefererred window manager theme and without a theme installed gnome-shell
+    refuses to start. Closes: #590340
 
  -- Michael Biebl <biebl@debian.org>  Tue, 22 May 2012 08:34:06 +0200
 
