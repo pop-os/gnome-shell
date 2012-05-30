@@ -1,4 +1,4 @@
-gnome-shell (3.4.1-5) UNRELEASED; urgency=low
+gnome-shell (3.4.1-5) unstable; urgency=low
 
   * Disabling the screen recorder on arm{el,hf} was not sufficient to make it
     build everywhere since the screen grabber is also used for making
@@ -7,7 +7,7 @@ gnome-shell (3.4.1-5) UNRELEASED; urgency=low
     This means we can re-enable the screen recorder on arm{el,hf} as it will
     use the slow, cogl-based path there.
 
- -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 14:45:58 +0200
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 20:56:52 +0200
 
 gnome-shell (3.4.1-4) unstable; urgency=low
 
