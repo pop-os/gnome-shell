@@ -12,6 +12,9 @@ gnome-shell (3.4.1-2) UNRELEASED; urgency=low
     no longer update properly. Closes: #674429
   * Don't build the screen recorder on arm{el,hf} as the screen grabber uses
     GL/GLX and on those archs cogl uses GLES.
+  * debian/patches/25-close-the-recorder-instead-of-pausing-it.patch: Close
+    the screen recorder instead of pausing. Otherwise we continue to write to
+    the same output file. Patch cherry-picked from upstream Git.
 
  -- Michael Biebl <biebl@debian.org>  Tue, 22 May 2012 08:34:06 +0200
 
