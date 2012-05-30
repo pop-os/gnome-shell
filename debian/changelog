@@ -7,6 +7,9 @@ gnome-shell (3.4.1-2) UNRELEASED; urgency=low
   * Change Recommends: gnome-themes-standard to Depends. Adwaita is the
     prefererred window manager theme and without a theme installed gnome-shell
     refuses to start. Closes: #590340
+  * Bump Depends on gnome-settings-daemon to (>= 3.4.0). There was an
+    incompatible change in the Power D-Bus API which caused the power icon to
+    no longer update properly. Closes: #674429
 
  -- Michael Biebl <biebl@debian.org>  Tue, 22 May 2012 08:34:06 +0200
 
