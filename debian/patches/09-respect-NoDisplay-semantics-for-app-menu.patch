@@ -8,11 +8,11 @@ https://bugzilla.gnome.org/show_bug.cgi?id=658176
  src/shell-app-system.c |    6 +-----
  1 files changed, 1 insertions(+), 5 deletions(-)
 
-Index: gnome-shell-3.2.1/src/shell-app-system.c
+Index: gnome-shell-3.4.1/src/shell-app-system.c
 ===================================================================
---- gnome-shell-3.2.1.orig/src/shell-app-system.c	2011-10-17 17:24:49.000000000 +0200
-+++ gnome-shell-3.2.1/src/shell-app-system.c	2011-12-03 06:31:39.572401347 +0100
-@@ -102,11 +102,7 @@
+--- gnome-shell-3.4.1.orig/src/shell-app-system.c	2012-04-10 20:14:57.000000000 +0200
++++ gnome-shell-3.4.1/src/shell-app-system.c	2012-05-19 09:44:13.135666332 +0200
+@@ -101,11 +101,7 @@
                                                     NULL,
                                                     (GDestroyNotify)g_object_unref);
  

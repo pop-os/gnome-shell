@@ -1,4 +1,4 @@
-From df21e761fc02cf1269a7bbee073b8a129cba1dcd Mon Sep 17 00:00:00 2001
+From 411d751935c9bdc485b113678284edf0cc9e545e Mon Sep 17 00:00:00 2001
 From: Michael Biebl <biebl@debian.org>
 Date: Thu, 22 Dec 2011 22:04:12 +0100
 Subject: [PATCH] Make NM optional
@@ -13,25 +13,26 @@ Subject: [PATCH] Make NM optional
     BIKESHED SHOULD BE BLUE, also because the upstream package name is
     NetworkManager, not Network_Manager. ]
 ---
- configure.ac         |   49 +++++++++++++++++++++++++++++++++++++++++++++++--
+ configure.ac         |   47 ++++++++++++++++++++++++++++++++++++++++++++++-
+ js/Makefile.am       |    1 +
  js/misc/config.js.in |    2 ++
  js/ui/main.js        |    8 ++++++--
  js/ui/panel.js       |    3 ++-
- src/Makefile.am      |   18 +++++++++++++-----
- 5 files changed, 70 insertions(+), 10 deletions(-)
+ src/Makefile.am      |   17 ++++++++++++-----
+ 6 files changed, 69 insertions(+), 9 deletions(-)
 
-Index: gnome-shell-3.2.2.1/configure.ac
+Index: gnome-shell-3.4.1/configure.ac
 ===================================================================
---- gnome-shell-3.2.2.1.orig/configure.ac	2012-01-20 06:16:22.000000000 +0100
-+++ gnome-shell-3.2.2.1/configure.ac	2012-01-25 10:59:36.528626985 +0100
-@@ -95,8 +95,41 @@
- 			       libcanberra
+--- gnome-shell-3.4.1.orig/configure.ac	2012-05-19 09:44:06.875666393 +0200
++++ gnome-shell-3.4.1/configure.ac	2012-05-19 09:44:18.047666283 +0200
+@@ -94,9 +94,42 @@
                                 telepathy-glib >= $TELEPATHY_GLIB_MIN_VERSION
                                 telepathy-logger-0.2 >= $TELEPATHY_LOGGER_MIN_VERSION
--                               polkit-agent-1 >= $POLKIT_MIN_VERSION xfixes
--                               libnm-glib libnm-util gnome-keyring-1)
-+                               polkit-agent-1 >= $POLKIT_MIN_VERSION xfixes)
-+
+                                polkit-agent-1 >= $POLKIT_MIN_VERSION xfixes
+-                               libnm-glib libnm-util gnome-keyring-1
++                               gnome-keyring-1
+                                gcr-3 >= $GCR_MIN_VERSION)
+ 
 +##########################
 +# Check for NetworkManager
 +##########################
@@ -65,10 +66,10 @@ Index: gnome-shell-3.2.2.1/configure.ac
 +
 +AM_CONDITIONAL(HAVE_NETWORKMANAGER, test "$have_networkmanager" = "yes")
 +
- 
  PKG_CHECK_MODULES(SHELL_PERF_HELPER, gtk+-3.0 gio-2.0)
  
-@@ -250,3 +283,15 @@
+ PKG_CHECK_MODULES(SHELL_HOTPLUG_SNIFFER, gio-2.0 gdk-pixbuf-2.0)
+@@ -284,3 +317,15 @@
    man/Makefile
  ])
  AC_OUTPUT
@@ -84,11 +85,23 @@ Index: gnome-shell-3.2.2.1/configure.ac
 +	Support for NetworkManager:             $have_networkmanager
 +	Support for GStreamer recording:        $build_recorder
 +"
-Index: gnome-shell-3.2.2.1/js/misc/config.js.in
+Index: gnome-shell-3.4.1/js/Makefile.am
 ===================================================================
---- gnome-shell-3.2.2.1.orig/js/misc/config.js.in	2011-10-12 18:50:16.000000000 +0200
-+++ gnome-shell-3.2.2.1/js/misc/config.js.in	2012-01-25 10:59:25.844627363 +0100
-@@ -8,5 +8,7 @@
+--- gnome-shell-3.4.1.orig/js/Makefile.am	2012-03-01 17:19:56.000000000 +0100
++++ gnome-shell-3.4.1/js/Makefile.am	2012-05-19 09:44:18.047666283 +0200
+@@ -8,6 +8,7 @@
+ 	    -e "s|[@]PACKAGE_VERSION@|$(PACKAGE_VERSION)|g" \
+ 	    -e "s|[@]GJS_VERSION@|$(GJS_VERSION)|g" \
+ 	    -e "s|[@]HAVE_BLUETOOTH@|$(HAVE_BLUETOOTH)|g" \
++	    -e "s|[@]HAVE_NETWORKMANAGER@|$(HAVE_NETWORKMANAGER)|g" \
+ 	    -e "s|[@]SHELL_SYSTEM_CA_FILE@|$(SHELL_SYSTEM_CA_FILE)|g" \
+ 	    -e "s|[@]GETTEXT_PACKAGE@|$(GETTEXT_PACKAGE)|g" \
+ 	    -e "s|[@]datadir@|$(datadir)|g" \
+Index: gnome-shell-3.4.1/js/misc/config.js.in
+===================================================================
+--- gnome-shell-3.4.1.orig/js/misc/config.js.in	2012-05-19 04:09:20.958337829 +0200
++++ gnome-shell-3.4.1/js/misc/config.js.in	2012-05-19 09:44:18.047666283 +0200
+@@ -8,6 +8,8 @@
  const GJS_VERSION = '@GJS_VERSION@';
  /* 1 if gnome-bluetooth is available, 0 otherwise */
  const HAVE_BLUETOOTH = @HAVE_BLUETOOTH@;
@@ -96,11 +109,12 @@ Index: gnome-shell-3.2.2.1/js/misc/config.js.in
 +const HAVE_NETWORKMANAGER = @HAVE_NETWORKMANAGER@;
  /* The system TLS CA list */
  const SHELL_SYSTEM_CA_FILE = '@SHELL_SYSTEM_CA_FILE@';
-Index: gnome-shell-3.2.2.1/js/ui/main.js
+ /* gettext package */
+Index: gnome-shell-3.4.1/js/ui/main.js
 ===================================================================
---- gnome-shell-3.2.2.1.orig/js/ui/main.js	2012-01-20 06:16:22.000000000 +0100
-+++ gnome-shell-3.2.2.1/js/ui/main.js	2012-01-25 10:59:25.848627363 +0100
-@@ -14,6 +14,7 @@
+--- gnome-shell-3.4.1.orig/js/ui/main.js	2012-05-19 04:09:20.958337829 +0200
++++ gnome-shell-3.4.1/js/ui/main.js	2012-05-19 09:44:18.047666283 +0200
+@@ -12,6 +12,7 @@
  
  const AutomountManager = imports.ui.automountManager;
  const AutorunManager = imports.ui.autorunManager;
@@ -108,7 +122,7 @@ Index: gnome-shell-3.2.2.1/js/ui/main.js
  const CtrlAltTab = imports.ui.ctrlAltTab;
  const EndSessionDialog = imports.ui.endSessionDialog;
  const PolkitAuthenticationAgent = imports.ui.polkitAuthenticationAgent;
-@@ -27,7 +28,7 @@
+@@ -26,7 +27,7 @@
  const RunDialog = imports.ui.runDialog;
  const Layout = imports.ui.layout;
  const LookingGlass = imports.ui.lookingGlass;
@@ -117,7 +131,7 @@ Index: gnome-shell-3.2.2.1/js/ui/main.js
  const NotificationDaemon = imports.ui.notificationDaemon;
  const WindowAttentionHandler = imports.ui.windowAttentionHandler;
  const Scripting = imports.ui.scripting;
-@@ -84,7 +85,10 @@
+@@ -85,7 +86,10 @@
      telepathyClient = new TelepathyClient.Client();
      automountManager = new AutomountManager.AutomountManager();
      autorunManager = new AutorunManager.AutorunManager();
@@ -129,11 +143,11 @@ Index: gnome-shell-3.2.2.1/js/ui/main.js
  }
  
  function _createGDMSession() {
-Index: gnome-shell-3.2.2.1/js/ui/panel.js
+Index: gnome-shell-3.4.1/js/ui/panel.js
 ===================================================================
---- gnome-shell-3.2.2.1.orig/js/ui/panel.js	2012-01-20 06:16:22.000000000 +0100
-+++ gnome-shell-3.2.2.1/js/ui/panel.js	2012-01-25 10:59:25.848627363 +0100
-@@ -40,7 +40,8 @@
+--- gnome-shell-3.4.1.orig/js/ui/panel.js	2012-05-19 04:09:20.958337829 +0200
++++ gnome-shell-3.4.1/js/ui/panel.js	2012-05-19 09:44:18.047666283 +0200
+@@ -45,7 +45,8 @@
      STANDARD_STATUS_AREA_SHELL_IMPLEMENTATION['bluetooth'] = imports.ui.status.bluetooth.Indicator;
  
  try {
@@ -143,54 +157,53 @@ Index: gnome-shell-3.2.2.1/js/ui/panel.js
  } catch(e) {
      log('NMApplet is not supported. It is possible that your NetworkManager version is too old');
  }
-Index: gnome-shell-3.2.2.1/src/Makefile.am
+Index: gnome-shell-3.4.1/src/Makefile.am
 ===================================================================
---- gnome-shell-3.2.2.1.orig/src/Makefile.am	2012-01-25 10:59:25.708627368 +0100
-+++ gnome-shell-3.2.2.1/src/Makefile.am	2012-01-25 10:59:25.848627363 +0100
-@@ -108,9 +108,7 @@
- 	shell-generic-container.h	\
+--- gnome-shell-3.4.1.orig/src/Makefile.am	2012-05-19 04:09:20.958337829 +0200
++++ gnome-shell-3.4.1/src/Makefile.am	2012-05-19 09:44:18.051666283 +0200
+@@ -110,9 +110,7 @@
  	shell-gtk-embed.h		\
  	shell-global.h			\
+ 	shell-idle-monitor.h		\
 -	shell-mobile-providers.h	\
  	shell-mount-operation.h		\
 -	shell-network-agent.h		\
  	shell-perf-log.h		\
- 	shell-slicer.h			\
- 	shell-stack.h			\
-@@ -122,6 +120,11 @@
- 	shell-wm.h			\
- 	shell-xfixes-cursor.h
+ 	shell-screenshot.h		\
+ 	shell-screen-grabber.h		\
+@@ -134,6 +132,10 @@
+ 	gactionobserver.h		\
+ 	gactionobserver.c
  
 +if HAVE_NETWORKMANAGER
 +shell_public_headers_h += shell-mobile-providers.h shell-network-agent.h
 +endif
 +
-+
  libgnome_shell_la_SOURCES =		\
  	$(shell_built_sources)		\
  	$(shell_public_headers_h)	\
-@@ -145,9 +148,7 @@
- 	shell-generic-container.c	\
- 	shell-gtk-embed.c		\
- 	shell-global.c			\
+@@ -159,9 +161,7 @@
+ 	shell-idle-monitor.c		\
+ 	shell-keyring-prompt.h		\
+ 	shell-keyring-prompt.c		\
 -	shell-mobile-providers.c	\
  	shell-mount-operation.c		\
 -	shell-network-agent.c		\
  	shell-perf-log.c		\
  	shell-polkit-authentication-agent.h	\
  	shell-polkit-authentication-agent.c	\
-@@ -161,6 +162,10 @@
- 	shell-wm.c			\
- 	shell-xfixes-cursor.c
+@@ -181,6 +181,10 @@
+ 	$(NULL)
+ 
  
 +if HAVE_NETWORKMANAGER
 +libgnome_shell_la_SOURCES += shell-mobile-providers.c shell-network-agent.c
 +endif
 +
  libgnome_shell_la_gir_sources = \
- 	$(filter-out %-private.h $(shell_recorder_non_gir_sources), $(shell_public_headers_h) $(libgnome_shell_la_SOURCES))
+ 	$(filter-out %-private.h $(shell_private_sources), $(shell_public_headers_h) $(libgnome_shell_la_SOURCES))
  
-@@ -272,7 +277,10 @@
+@@ -296,7 +300,10 @@
  libgnome_shell_la_CPPFLAGS = $(gnome_shell_cflags)
  
  Shell-0.1.gir: libgnome-shell.la St-1.0.gir

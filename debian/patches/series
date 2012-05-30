@@ -1,9 +1,7 @@
-02_rpath-bluetooth-applet.patch
-07-NetworkMenu-fix-logic-for-updating-wifi-icon.patch
-08-polkit-Find-the-best-user-to-authenticate-as.patch
 09-respect-NoDisplay-semantics-for-app-menu.patch
 10-make-NetworkManager-optional.patch
 11-no-gettext.patch
-12_Replace-shell_util_icon_from_string.patch
-13_bluetooth_fix_undefined_variable.patch
 14_make-GLX-optional.patch
+21_revert_evolution_gsettings.patch
+22-remove-online-accounts-from-user-menu.patch
+25-close-the-recorder-instead-of-pausing-it.patch

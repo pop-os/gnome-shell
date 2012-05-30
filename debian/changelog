@@ -1,3 +1,53 @@
+gnome-shell (3.4.1-2) experimental; urgency=low
+
+  * debian/patches/22-remove-online-accounts-from-user-menu.patch: Remove
+    "Online Accounts" from user menu. It can be easily accessed via
+    "System Settings" so there is no need to clutter up the user menu.
+  * Tighten Depends on gir1.2-clutter-1.0. Closes: #673929
+  * Change Recommends: gnome-themes-standard to Depends. Adwaita is the
+    prefererred window manager theme and without a theme installed gnome-shell
+    refuses to start. Closes: #590340
+  * Bump Depends on gnome-settings-daemon to (>= 3.4.0). There was an
+    incompatible change in the Power D-Bus API which caused the power icon to
+    no longer update properly. Closes: #674429
+  * Don't build the screen recorder on arm{el,hf} as the screen grabber uses
+    GL/GLX and on those archs cogl uses GLES.
+  * debian/patches/25-close-the-recorder-instead-of-pausing-it.patch: Close
+    the screen recorder instead of pausing. Otherwise we continue to write to
+    the same output file. Patch cherry-picked from upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 12:17:13 +0200
+
+gnome-shell (3.4.1-1) experimental; urgency=low
+
+  [ Jeremy Bicha ]
+  * New upstream release.
+  * debian/control.in: 
+    - Add debug package
+    - Update dependencies
+    - Recommend gnome-user-guide
+    - Break gnome-tweak-tool (<< 3.3)
+    - Bump Standards-Version to 3.9.3
+  * debian/gnome-shell-common.install:
+    - No more gconf schemas to install
+    - Install gtk-docs
+  * Drop patches that have been applied upstream.
+
+  [ Sjoerd Simons ]
+  * debian/control.in: Add build-depends on libgcr-3-dev (>= 3.3.90)
+  * debian/control.in: Drop dependency on gir1.2-gjs-1.0 as it has been folded
+    into libgjs
+  * debian/control.in: Add depends on gir1.2-gcr-3
+
+  [ Michael Biebl ]
+  * debian/patches/10-make-NetworkManager-optional.patch: Updated.
+  * debian/gnome-shell-common.install: Install GConf conversion script.
+  * debian/patches/21_revert_evolution_gsettings.patch: Revert the switch to
+    gsettings in the calendar server for now as long as evolution 3.4 is not
+    ready yet.
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 20 May 2012 00:16:54 +0200
+
 gnome-shell (3.2.2.1-4) unstable; urgency=low
 
   * Fold 04_remove-glx-dependency-on-armel.patch and
