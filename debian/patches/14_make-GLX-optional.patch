@@ -1,8 +1,20 @@
+Description: Enable GL/GLX bits conditionally
+ This avoids a build failure on arm{el,hf} where cogl uses GLES
+Author: Michael Biebl <biebl@debian.org>
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=670850
 Index: gnome-shell-3.4.1/configure.ac
 ===================================================================
---- gnome-shell-3.4.1.orig/configure.ac	2012-05-19 09:44:28.863666178 +0200
-+++ gnome-shell-3.4.1/configure.ac	2012-05-19 09:44:30.099666166 +0200
-@@ -133,6 +133,14 @@
+--- gnome-shell-3.4.1.orig/configure.ac	2012-05-30 14:28:01.846358885 +0200
++++ gnome-shell-3.4.1/configure.ac	2012-05-30 14:28:31.070357778 +0200
+@@ -82,7 +82,6 @@
+                                gjs-internals-1.0 >= $GJS_MIN_VERSION
+ 			       libgnome-menu-3.0 $recorder_modules
+                                gdk-x11-3.0 libsoup-2.4
+-                               gl
+ 			       clutter-x11-1.0 >= $CLUTTER_MIN_VERSION
+ 			       clutter-glx-1.0 >= $CLUTTER_MIN_VERSION
+                                libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_MIN_VERSION
+@@ -133,6 +132,14 @@
  
  PKG_CHECK_MODULES(BROWSER_PLUGIN, gio-2.0 >= $GIO_MIN_VERSION json-glib-1.0 >= 0.13.2)
  
@@ -19,8 +31,8 @@ Index: gnome-shell-3.4.1/configure.ac
  AC_SUBST([GJS_VERSION], ["$GJS_VERSION"])
 Index: gnome-shell-3.4.1/src/gnome-shell-plugin.c
 ===================================================================
---- gnome-shell-3.4.1.orig/src/gnome-shell-plugin.c	2012-05-19 09:44:06.747666394 +0200
-+++ gnome-shell-3.4.1/src/gnome-shell-plugin.c	2012-05-19 09:44:30.099666166 +0200
+--- gnome-shell-3.4.1.orig/src/gnome-shell-plugin.c	2012-05-30 14:27:55.946359089 +0200
++++ gnome-shell-3.4.1/src/gnome-shell-plugin.c	2012-05-30 14:28:12.710358506 +0200
 @@ -30,8 +30,10 @@
  
  #include <clutter/clutter.h>

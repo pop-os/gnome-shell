@@ -1,3 +1,11 @@
+gnome-shell (3.4.1-4) UNRELEASED; urgency=low
+
+  * debian/patches/14_make-GLX-optional.patch:
+    - Add DEP-3 patch header.
+    - Remove unconditional pkg-config check for the "gl" module.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 13:25:49 +0200
+
 gnome-shell (3.4.1-3) unstable; urgency=low
 
   * Upload to unstable.
