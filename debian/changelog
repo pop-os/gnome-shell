@@ -1,4 +1,4 @@
-gnome-shell (3.4.1-2) UNRELEASED; urgency=low
+gnome-shell (3.4.1-2) experimental; urgency=low
 
   * debian/patches/22-remove-online-accounts-from-user-menu.patch: Remove
     "Online Accounts" from user menu. It can be easily accessed via
@@ -16,7 +16,7 @@ gnome-shell (3.4.1-2) UNRELEASED; urgency=low
     the screen recorder instead of pausing. Otherwise we continue to write to
     the same output file. Patch cherry-picked from upstream Git.
 
- -- Michael Biebl <biebl@debian.org>  Tue, 22 May 2012 08:34:06 +0200
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 12:17:13 +0200
 
 gnome-shell (3.4.1-1) experimental; urgency=low
 
