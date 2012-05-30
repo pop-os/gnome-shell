@@ -3,16 +3,6 @@ gnome-shell (3.4.1-2) UNRELEASED; urgency=low
   * debian/patches/22-remove-online-accounts-from-user-menu.patch: Remove
     "Online Accounts" from user menu. It can be easily accessed via
     "System Settings" so there is no need to clutter up the user menu.
-  * Pull patches from upstream wip/wayland branch which make it possible to
-    build gnome-shell on arm{el,hf} where we use GLES instead of GL.
-  * debian/patches/30-remove-shell-screen-grabber.patch: The screen grabber
-    was a workaround for a slow path in Mesa which has been fixed with 8.0.
-  * debian/patches/31-don-t-try-to-use-GLX-if-Cogl-isn-t-using-that-Winsys.patch:
-    Use Cogl to query for available GLX extensions.
-  * debian/patches/32-don-t-link-directly-to-libGL.patch: Don't link directly
-    to libGL since nothing in gnome-shell uses any symbols from libGL anymore.
-  * debian/patches/14_make-GLX-optional.patch: The above three patches make
-    this one obsolete, so remove it.
   * Tighten Depends on gir1.2-clutter-1.0. Closes: #673929
   * Change Recommends: gnome-themes-standard to Depends. Adwaita is the
     prefererred window manager theme and without a theme installed gnome-shell
