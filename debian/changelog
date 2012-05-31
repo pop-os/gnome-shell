@@ -1,17 +1,61 @@
-gnome-shell (3.4.1-1ubuntu1) quantal; urgency=low
+gnome-shell (3.4.1-5ubuntu1) UNRELEASED; urgency=low
 
   * Re-synchronize with Debian. Remaining changes:
     - 09-respect-NoDisplay-semantics-for-app-menu.patch:
       + Disabled, as upstream says it breaks app tracking for NoDisplay apps
         and it's a Debian-specific problem anyway
-    - 21_revert_evolution_gsettings.patch: Dropped, we have Evolution 3.4 now
-  * Drop favorites defaults substitution (Epiphany/Firefox, Evolution/
-    Thunderbird)
+    - 21_revert_evolution_gsettings.patch: Disabled, we have Evolution 3.4 now
+  * Fixes gnome-shell recorder not starting new recording every time screen
+    recorder stops and starts (LP: #975360)
   * Dropped patches:
-    - 20_revert_gcr_depend.patch: We have gcr 3.4 now
-    - Try Debian's ARM patch instead of our own patches
+    - Ubuntu's ARM patches because the Debian one should work better.
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 25 May 2012 11:44:15 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 30 May 2012 21:36:15 -0400
+
+gnome-shell (3.4.1-5) unstable; urgency=low
+
+  * Disabling the screen recorder on arm{el,hf} was not sufficient to make it
+    build everywhere since the screen grabber is also used for making
+    screenshots. Update debian/patches/14_make-GLX-optional.patch instead and
+    only use pixel buffers in the screen grabber if we have GL/GLX support.
+    This means we can re-enable the screen recorder on arm{el,hf} as it will
+    use the slow, cogl-based path there.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 20:56:52 +0200
+
+gnome-shell (3.4.1-4) unstable; urgency=low
+
+  * debian/patches/14_make-GLX-optional.patch:
+    - Add DEP-3 patch header.
+    - Remove unconditional pkg-config check for the "gl" module.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 14:37:44 +0200
+
+gnome-shell (3.4.1-3) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 13:19:38 +0200
+
+gnome-shell (3.4.1-2) experimental; urgency=low
+
+  * debian/patches/22-remove-online-accounts-from-user-menu.patch: Remove
+    "Online Accounts" from user menu. It can be easily accessed via
+    "System Settings" so there is no need to clutter up the user menu.
+  * Tighten Depends on gir1.2-clutter-1.0. Closes: #673929
+  * Change Recommends: gnome-themes-standard to Depends. Adwaita is the
+    prefererred window manager theme and without a theme installed gnome-shell
+    refuses to start. Closes: #590340
+  * Bump Depends on gnome-settings-daemon to (>= 3.4.0). There was an
+    incompatible change in the Power D-Bus API which caused the power icon to
+    no longer update properly. Closes: #674429
+  * Don't build the screen recorder on arm{el,hf} as the screen grabber uses
+    GL/GLX and on those archs cogl uses GLES.
+  * debian/patches/25-close-the-recorder-instead-of-pausing-it.patch: Close
+    the screen recorder instead of pausing. Otherwise we continue to write to
+    the same output file. Patch cherry-picked from upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 12:17:13 +0200
 
 gnome-shell (3.4.1-1) experimental; urgency=low
 
