@@ -5,3 +5,4 @@
 21_revert_evolution_gsettings.patch
 22-remove-online-accounts-from-user-menu.patch
 25-close-the-recorder-instead-of-pausing-it.patch
+26-fix-multiple-popup-regression.patch
