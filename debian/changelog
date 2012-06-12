@@ -1,4 +1,4 @@
-gnome-shell (3.4.1-6) UNRELEASED; urgency=low
+gnome-shell (3.4.1-6) unstable; urgency=low
 
   [ Laurent Bigonville ]
   * d/p/26-fix-empathy-popup-regression.patch: Fix Empathy popup regression
@@ -14,7 +14,7 @@ gnome-shell (3.4.1-6) UNRELEASED; urgency=low
     when showing them to the user because we don't want to show them to the
     user. Patch backported from upstream Git.
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 01 Jun 2012 11:39:55 +0200
+ -- Michael Biebl <biebl@debian.org>  Tue, 12 Jun 2012 17:09:34 +0200
 
 gnome-shell (3.4.1-5) unstable; urgency=low
 
