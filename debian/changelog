@@ -8,6 +8,11 @@ gnome-shell (3.4.1-6) UNRELEASED; urgency=low
   * debian/patches/09-respect-NoDisplay-semantics-for-app-menu.patch: Drop
     this patch as it breaks application tracking for all applications marked
     as NoDisplay. Closes: #676425
+  * debian/patches/27-don-t-show-apps-in-NoDisplay-categories.patch:
+    Explicitly include NoDisplay applications in the ShellAppSystem because we
+    want application tracking for them, but filter NoDisplay applications out
+    when showing them to the user because we don't want to show them to the
+    user. Patch backported from upstream Git.
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 01 Jun 2012 11:39:55 +0200
 

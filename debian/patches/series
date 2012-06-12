@@ -5,3 +5,4 @@
 22-remove-online-accounts-from-user-menu.patch
 25-close-the-recorder-instead-of-pausing-it.patch
 26-fix-empathy-popup-regression.patch
+27-don-t-show-apps-in-NoDisplay-categories.patch
