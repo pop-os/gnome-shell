@@ -1,7 +1,13 @@
 gnome-shell (3.4.1-6) UNRELEASED; urgency=low
 
+  [ Laurent Bigonville ]
   * d/p/26-fix-empathy-popup-regression.patch: Fix Empathy popup regression
     (taken from upstream)
+
+  [ Michael Biebl ]
+  * debian/patches/09-respect-NoDisplay-semantics-for-app-menu.patch: Drop
+    this patch as it breaks application tracking for all applications marked
+    as NoDisplay. Closes: #676425
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 01 Jun 2012 11:39:55 +0200
 
