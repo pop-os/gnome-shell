@@ -2,6 +2,7 @@
 11-no-gettext.patch
 14_make-GLX-optional.patch
 22-remove-online-accounts-from-user-menu.patch
+24-mirror-evolution-calendar-settings.patch
 25-close-the-recorder-instead-of-pausing-it.patch
 26-fix-empathy-popup-regression.patch
 27-don-t-show-apps-in-NoDisplay-categories.patch

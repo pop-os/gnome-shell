@@ -2,6 +2,10 @@ gnome-shell (3.4.1-8) UNRELEASED; urgency=low
 
   * debian/patches/21_revert_evolution_gsettings.patch: Drop this patch now
     that we have evolution 3.4.
+  * debian/patches/24-mirror-evolution-calendar-settings.patch: Mirror
+    Evolution calendar settings into our own schema to avoid a hard dependency
+    on evolution for the gsettings schema file. Patch cherry-picked from
+    upstream Git.
 
  -- Michael Biebl <biebl@debian.org>  Wed, 20 Jun 2012 06:22:58 +0200
 
