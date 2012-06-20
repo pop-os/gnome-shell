@@ -1,4 +1,4 @@
-gnome-shell (3.4.1-8) UNRELEASED; urgency=low
+gnome-shell (3.4.1-7) unstable; urgency=low
 
   * debian/patches/21_revert_evolution_gsettings.patch: Drop this patch now
     that we have evolution 3.4.
@@ -7,7 +7,7 @@ gnome-shell (3.4.1-8) UNRELEASED; urgency=low
     on evolution for the gsettings schema file. Patch cherry-picked from
     upstream Git.
 
- -- Michael Biebl <biebl@debian.org>  Wed, 20 Jun 2012 06:22:58 +0200
+ -- Michael Biebl <biebl@debian.org>  Wed, 20 Jun 2012 06:31:49 +0200
 
 gnome-shell (3.4.1-6) unstable; urgency=low
 
