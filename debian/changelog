@@ -1,3 +1,15 @@
+gnome-shell (3.4.1-8) unstable; urgency=low
+
+  * 27-don-t-show-apps-in-NoDisplay-categories.patch: drop this patch as 
+    it is not completely functional.
+  * 01_slist_cleanup.patch, 02_filter_nodisplay_parents.patch, 
+    03_fix_nodisplay.patch: correctly filter out applications in a 
+    NoDisplay directory, including parent directories. This should 
+    finally fix for good handling of the Debian menu.
+  * Bump the build-dependency on gnome-menus accordingly.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 23 Jun 2012 20:49:32 +0200
+
 gnome-shell (3.4.1-7) unstable; urgency=low
 
   * debian/patches/21_revert_evolution_gsettings.patch: Drop this patch now

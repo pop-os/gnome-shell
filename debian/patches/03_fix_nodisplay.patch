@@ -1,0 +1,25 @@
+From 0c4692ae5836fffdab4dcd0fc7220f825162746b Mon Sep 17 00:00:00 2001
+From: Jasper St. Pierre <jstpierre@mecheye.net>
+Date: Tue, 19 Jun 2012 17:02:38 +0000
+Subject: appDisplay: Fix recursive directory NoDisplay testing
+
+We were accidentally testing NoDisplay on the wrong directory.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=658176
+---
+Index: gnome-shell-3.4.1/js/ui/appDisplay.js
+===================================================================
+--- gnome-shell-3.4.1.orig/js/ui/appDisplay.js	2012-03-19 16:56:49.000000000 +0100
++++ gnome-shell-3.4.1/js/ui/appDisplay.js	2012-06-23 20:46:52.795294653 +0200
+@@ -207,8 +207,9 @@ const ViewByCategories = new Lang.Class(
+                 if (!entry.get_app_info().get_nodisplay())
+                     appList.push(app);
+             } else if (nextType == GMenu.TreeItemType.DIRECTORY) {
+-                if (!dir.get_is_nodisplay())
+-                    this._loadCategory(iter.get_directory(), appList);
++                var itemDir = iter.get_directory();
++                if (!itemDir.get_is_nodisplay())
++                    this._loadCategory(itemDir, appList);
+             }
+         }
+     },

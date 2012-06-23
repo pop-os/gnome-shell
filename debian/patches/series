@@ -1,3 +1,6 @@
+01_slist_cleanup.patch
+02_filter_nodisplay_parents.patch
+03_fix_nodisplay.patch
 10-make-NetworkManager-optional.patch
 11-no-gettext.patch
 14_make-GLX-optional.patch
@@ -5,4 +8,3 @@
 24-mirror-evolution-calendar-settings.patch
 25-close-the-recorder-instead-of-pausing-it.patch
 26-fix-empathy-popup-regression.patch
-27-don-t-show-apps-in-NoDisplay-categories.patch
