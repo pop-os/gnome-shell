@@ -7,13 +7,13 @@ We were accidentally testing NoDisplay on the wrong directory.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=658176
 ---
-Index: gnome-shell-3.4.1/js/ui/appDisplay.js
-===================================================================
---- gnome-shell-3.4.1.orig/js/ui/appDisplay.js	2012-03-19 16:56:49.000000000 +0100
-+++ gnome-shell-3.4.1/js/ui/appDisplay.js	2012-06-23 20:46:52.795294653 +0200
-@@ -207,8 +207,9 @@ const ViewByCategories = new Lang.Class(
-                 if (!entry.get_app_info().get_nodisplay())
+diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
+index ad7b70d..b0ff291 100644
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -208,8 +208,9 @@ const ViewByCategories = new Lang.Class({
                      appList.push(app);
+                 }
              } else if (nextType == GMenu.TreeItemType.DIRECTORY) {
 -                if (!dir.get_is_nodisplay())
 -                    this._loadCategory(iter.get_directory(), appList);
@@ -23,3 +23,5 @@ Index: gnome-shell-3.4.1/js/ui/appDisplay.js
              }
          }
      },
+--
+cgit v0.9.0.2
