@@ -1,4 +1,4 @@
-gnome-shell (3.4.1-5ubuntu1) UNRELEASED; urgency=low
+gnome-shell (3.4.1-5ubuntu1) quantal; urgency=low
 
   * Re-synchronize with Debian. Remaining changes:
     - 09-respect-NoDisplay-semantics-for-app-menu.patch:
@@ -7,10 +7,10 @@ gnome-shell (3.4.1-5ubuntu1) UNRELEASED; urgency=low
     - 21_revert_evolution_gsettings.patch: Disabled, we have Evolution 3.4 now
   * Fixes gnome-shell recorder not starting new recording every time screen
     recorder stops and starts (LP: #975360)
-  * Dropped patches:
-    - Ubuntu's ARM patches because the Debian one should work better.
+  * Dropped Ubuntu's ARM patches because the Debian one works better. For
+    instance the screen recorder is much faster on non-ARM platforms now.
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 30 May 2012 21:36:15 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 30 May 2012 22:02:18 -0400
 
 gnome-shell (3.4.1-5) unstable; urgency=low
 
