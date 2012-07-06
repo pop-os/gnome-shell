@@ -1,5 +1,6 @@
 gnome-shell (3.4.1-9) UNRELEASED; urgency=low
 
+  [ Laurent Bigonville ]
   * debian/patches:
     - 27-notificationDaemon-Fix-copy-paste-typo.patch: Fix typo in hints
       category (Taken from upstream)
@@ -9,6 +10,10 @@ gnome-shell (3.4.1-9) UNRELEASED; urgency=low
     - 30-popupMenu-bypass-changeSignal-callback-if.patch,
       31-popupMenu-do-not-overflow-the-currentItems.patch: Fix shell freeze
       when using empathy from GIT (Taken from upstream)
+
+  [ Josselin Mouette ]
+  * Change epiphany desktop file name to match the change in the 
+    epiphany package.
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 06 Jul 2012 12:17:20 +0200
 
