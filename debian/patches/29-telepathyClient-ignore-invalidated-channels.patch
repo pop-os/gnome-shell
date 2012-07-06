@@ -1,0 +1,79 @@
+From 7e73a52505a4859a8146d7940e77659b874a2f45 Mon Sep 17 00:00:00 2001
+From: Guillaume Desmottes <guillaume.desmottes@collabora.co.uk>
+Date: Tue, 05 Jun 2012 10:39:30 +0000
+Subject: telepathyClient: ignore invalidated channels
+
+There is a race if a channel is invalidated during its preparation: the
+'invalidated' signal is already emitted so the Shell will never notice.
+We fix this by simply checking if the channel is already invalidated when
+receiving it from telepathy-glib.
+
+In the approving case, we reject the full ChannelDispatchOperation as we only
+support approving one channel at the time.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=677457
+---
+diff --git a/js/ui/telepathyClient.js b/js/ui/telepathyClient.js
+index 45638c6..231c52c 100644
+--- a/js/ui/telepathyClient.js
++++ b/js/ui/telepathyClient.js
+@@ -132,6 +132,9 @@ const Client = new Lang.Class({
+             let channel = channels[i];
+             let [targetHandle, targetHandleType] = channel.get_handle();
+ 
++            if (Shell.is_channel_invalidated(channel))
++              continue;
++
+             /* Only observe contact text channels */
+             if ((!(channel instanceof Tp.TextChannel)) ||
+                targetHandleType != Tp.HandleType.CONTACT)
+@@ -181,6 +184,9 @@ const Client = new Lang.Class({
+                 continue;
+             }
+ 
++            if (Shell.is_channel_invalidated(channel))
++              continue;
++
+             // 'notify' will be true when coming from an actual HandleChannels
+             // call, and not when from a successful Claim call. The point is
+             // we don't want to notify for a channel we just claimed which
+@@ -231,6 +237,11 @@ const Client = new Lang.Class({
+         let channel = channels[0];
+         let chanType = channel.get_channel_type();
+ 
++        if (Shell.is_channel_invalidated(channel)) {
++            Shell.decline_dispatch_op(context, 'Channel is invalidated');
++            return;
++        }
++
+         if (chanType == Tp.IFACE_CHANNEL_TYPE_TEXT)
+             this._approveTextChannel(account, conn, channel, dispatchOp, context);
+         else if (chanType == Tp.IFACE_CHANNEL_TYPE_CALL)
+diff --git a/src/shell-tp-client.c b/src/shell-tp-client.c
+index d64129e..8a20e68 100644
+--- a/src/shell-tp-client.c
++++ b/src/shell-tp-client.c
+@@ -369,3 +369,9 @@ shell_decline_dispatch_op (TpAddDispatchOperationContext *context,
+   tp_add_dispatch_operation_context_fail (context, error);
+   g_error_free (error);
+ }
++
++/* gjs doesn't cope with tp_proxy_get_invalidated() returning a GError */
++gboolean shell_is_channel_invalidated (TpChannel *channel)
++{
++  return tp_proxy_get_invalidated (channel) != NULL;
++}
+diff --git a/src/shell-tp-client.h b/src/shell-tp-client.h
+index 82094a0..e2045f3 100644
+--- a/src/shell-tp-client.h
++++ b/src/shell-tp-client.h
+@@ -112,5 +112,7 @@ void shell_get_contact_events (TplLogManager *log_manager,
+ void shell_decline_dispatch_op (TpAddDispatchOperationContext *context,
+                                 const gchar *message);
+ 
++gboolean shell_is_channel_invalidated (TpChannel *channel);
++
+ G_END_DECLS
+ #endif /* __SHELL_TP_CLIENT_H__ */
+--
+cgit v0.9.0.2

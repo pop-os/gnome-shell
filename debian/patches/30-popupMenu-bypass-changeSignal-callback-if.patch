@@ -1,0 +1,25 @@
+From 66fa24c340682e0579392a1fcda841d3498f6ac8 Mon Sep 17 00:00:00 2001
+From: Alban Browaeys <prahal@yahoo.com>
+Date: Sun, 20 May 2012 21:37:22 +0000
+Subject: popupMenu: bypass changeSignal callback if action is already handled
+
+https://bugzilla.gnome.org/show_bug.cgi?id=676447
+---
+diff --git a/js/ui/popupMenu.js b/js/ui/popupMenu.js
+index ace32e0..ad1c71a 100644
+--- a/js/ui/popupMenu.js
++++ b/js/ui/popupMenu.js
+@@ -1958,8 +1958,9 @@ const RemoteMenu = new Lang.Class({
+                     k++;
+                 }
+             } else if (changeSignal) {
+-                let signalId = this.actionGroup.connect(changeSignal, Lang.bind(this, function() {
+-                    this.actionGroup.disconnect(signalId);
++                let signalId = this.actionGroup.connect(changeSignal, Lang.bind(this, function(actionGroup, actionName) {
++                    actionGroup.disconnect(signalId);
++                    if (this._actions[actionName]) return;
+ 
+                     // force a full update
+                     this._modelChanged(model, 0, -1, model.get_n_items(), target);
+--
+cgit v0.9.0.2

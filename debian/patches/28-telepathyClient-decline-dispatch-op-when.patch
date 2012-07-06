@@ -1,0 +1,24 @@
+From 42366ab02590d7a572b7366407a18386e7b8f7a0 Mon Sep 17 00:00:00 2001
+From: Guillaume Desmottes <guillaume.desmottes@collabora.co.uk>
+Date: Tue, 05 Jun 2012 10:37:06 +0000
+Subject: telepathyClient: decline dispatch op when approving unsupported channel type
+
+It shouldn't happen in theory but best to be safe than sorry.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=677457
+---
+diff --git a/js/ui/telepathyClient.js b/js/ui/telepathyClient.js
+index b705c7a..45638c6 100644
+--- a/js/ui/telepathyClient.js
++++ b/js/ui/telepathyClient.js
+@@ -237,6 +237,8 @@ const Client = new Lang.Class({
+             this._approveCall(account, conn, channel, dispatchOp, context);
+         else if (chanType == Tp.IFACE_CHANNEL_TYPE_FILE_TRANSFER)
+             this._approveFileTransfer(account, conn, channel, dispatchOp, context);
++        else
++            Shell.decline_dispatch_op(context, 'Unsupported channel type');
+     },
+ 
+     _approveTextChannel: function(account, conn, channel, dispatchOp, context) {
+--
+cgit v0.9.0.2
