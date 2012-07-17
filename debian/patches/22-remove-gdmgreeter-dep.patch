@@ -1,0 +1,34 @@
+From: Rico Tzschichholz <ricotz@ubuntu.com>
+Description: Remove hard-dep on GdmGreeter introspection.
+Forwarded: no
+
+diff --git a/js/ui/userMenu.js b/js/ui/userMenu.js
+index bc21fdf..1204c1e 100644
+--- a/js/ui/userMenu.js
++++ b/js/ui/userMenu.js
+@@ -1,7 +1,6 @@
+ // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+ 
+ const AccountsService = imports.gi.AccountsService;
+-const GdmGreeter = imports.gi.GdmGreeter;
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
+ const Lang = imports.lang;
+@@ -551,7 +550,7 @@ const UserMenuButton = new Lang.Class({
+     _updateSwitchUser: function() {
+         let allowSwitch = !this._lockdownSettings.get_boolean(DISABLE_USER_SWITCH_KEY);
+         let multiUser = this._userManager.can_switch() && this._userManager.has_multiple_users;
+-        let multiSession = GdmGreeter.get_session_ids().length > 1;
++        let multiSession = true;
+ 
+         this._loginScreenItem.label.set_text(multiUser ? _("Switch User")
+                                                        : _("Switch Session"));
+@@ -561,7 +560,7 @@ const UserMenuButton = new Lang.Class({
+     _updateLogout: function() {
+         let allowLogout = !this._lockdownSettings.get_boolean(DISABLE_LOG_OUT_KEY);
+         let multiUser = this._userManager.has_multiple_users;
+-        let multiSession = GdmGreeter.get_session_ids().length > 1;
++        let multiSession = true;
+ 
+         this._logoutItem.actor.visible = allowLogout && (multiUser || multiSession);
+     },

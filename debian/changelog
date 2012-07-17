@@ -1,3 +1,52 @@
+gnome-shell (3.5.3-0ubuntu4) quantal-proposed; urgency=low
+
+  * debian/control.in: Bump minimum evolution-data-server version
+  * 20-revert-evolution35.patch: Dropped
+  * 90-fix-missing-date.patch: Restore date to calendar
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 05 Jul 2012 00:08:43 -0400
+
+gnome-shell (3.5.3-0ubuntu3) quantal-proposed; urgency=low
+
+  * debian/control.in: Bump minimum gnome-menus version
+  * 21-revert-gnome-menus35.patch: Dropped
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 27 Jun 2012 09:34:25 -0400
+
+gnome-shell (3.5.3-0ubuntu2) quantal-proposed; urgency=low
+
+  [ Jeremy Bicha ]
+  * debian/control.in:
+    - Build-depend on libnm-glib-vpn-dev
+
+  [ Rico Tzschichholz ]
+  * debian/control.in:
+    - Bump minimum gsettings-desktop-schemas version
+  * 22-remove-gdmgreeter-dep.patch:
+    - Revert the hard dependency on GDM 3.4
+
+ -- Rico Tzschichholz <ricotz@ubuntu.com>  Tue, 26 Jun 2012 12:47:16 -0400
+
+gnome-shell (3.5.3-0ubuntu1) quantal-proposed; urgency=low
+
+  * New upstream release.
+  * debian/control.in:
+    - Bump minimum versions of gjs, gnome-desktop3 and mutter
+    - Build-depend on libatk-bridge2.0-dev
+    - Depend on gir1.2-gnomedesktop-3.0
+  * debian/watch: Watch for unstable releases
+  * 10-make-NetworkManager-optional.patch: Disabled, it doesn't apply
+    cleanly and it's not worth fixing at this point
+  * 21_revert_evolution_gsettings.patch: Dropped, not needed
+  * 22-remove-online-accounts-from-user-menu.patch: Dropped, upstream
+  * 25-close-the-recorder-instead-of-pausing-it.patch: Dropped, upstream
+  * 20-revert-evolution35.patch:
+    - New patch to temporarily revert the Evolution 3.5 transition
+  * 21-revert-gnome-menus35.patch:
+    - New patch to temporarily revert the gnome-menus 3.5 transition
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 26 Jun 2012 00:08:54 -0400
+
 gnome-shell (3.4.1-5ubuntu1) quantal; urgency=low
 
   * Re-synchronize with Debian. Remaining changes:
