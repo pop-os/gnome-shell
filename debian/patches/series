@@ -14,3 +14,4 @@
 29-telepathyClient-ignore-invalidated-channels.patch
 30-popupMenu-bypass-changeSignal-callback-if.patch
 31-popupMenu-do-not-overflow-the-currentItems.patch
+32-enable-the-screen-reader-menu-item.patch

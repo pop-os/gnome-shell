@@ -15,6 +15,11 @@ gnome-shell (3.4.1-9) UNRELEASED; urgency=low
   * Change epiphany desktop file name to match the change in the 
     epiphany package.
 
+  [ Jordi Mallach ]
+  * debian/patches:
+    - 32-enable-the-screen-reader-menu-item.patch: Add Orca to the a11y
+      menu, to improve accessibility of the Shell-based GDM greeter.
+
  -- Laurent Bigonville <bigon@debian.org>  Fri, 06 Jul 2012 12:17:20 +0200
 
 gnome-shell (3.4.1-8) unstable; urgency=low
