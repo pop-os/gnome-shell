@@ -6,12 +6,7 @@
 11-no-gettext.patch
 14_make-GLX-optional.patch
 22-remove-online-accounts-from-user-menu.patch
-24-mirror-evolution-calendar-settings.patch
 25-close-the-recorder-instead-of-pausing-it.patch
-26-fix-empathy-popup-regression.patch
-27-notificationDaemon-Fix-copy-paste-typo.patch
-28-telepathyClient-decline-dispatch-op-when.patch
-29-telepathyClient-ignore-invalidated-channels.patch
-30-popupMenu-bypass-changeSignal-callback-if.patch
-31-popupMenu-do-not-overflow-the-currentItems.patch
+26-networkAgent-use-absolute-path-if-configured.patch
+27-nm-libexec-path.patch
 32-enable-the-screen-reader-menu-item.patch
