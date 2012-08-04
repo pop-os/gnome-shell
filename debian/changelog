@@ -1,4 +1,4 @@
-gnome-shell (3.4.2-1) UNRELEASED; urgency=low
+gnome-shell (3.4.2-1) unstable; urgency=low
 
   [ Laurent Bigonville ]
   * New upstream release.
@@ -19,7 +19,7 @@ gnome-shell (3.4.2-1) UNRELEASED; urgency=low
     - 33-screen-reader-l10n.patch: Steal translations for new string
       "Screen Reader" from GNOME Control Center.
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 28 Jul 2012 00:44:19 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 04 Aug 2012 13:18:50 +0200
 
 gnome-shell (3.4.1-8) unstable; urgency=low
 
