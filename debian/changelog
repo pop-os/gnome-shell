@@ -16,6 +16,8 @@ gnome-shell (3.4.2-1) UNRELEASED; urgency=low
   * debian/patches:
     - 32-enable-the-screen-reader-menu-item.patch: Add Orca to the a11y
       menu, to improve accessibility of the Shell-based GDM greeter.
+    - 33-screen-reader-l10n.patch: Steal translations for new string
+      "Screen Reader" from GNOME Control Center.
 
  -- Laurent Bigonville <bigon@debian.org>  Sat, 28 Jul 2012 00:44:19 +0200
 

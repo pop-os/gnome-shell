@@ -1,0 +1,728 @@
+Index: gnome-shell-3.4.1/po/af.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/af.po	2011-09-26 18:09:21.000000000 +0200
++++ gnome-shell-3.4.1/po/af.po	2012-08-04 14:02:37.503879665 +0200
+@@ -1490,3 +1490,6 @@
+ 
+ #~ msgid "Screen Reader"
+ #~ msgstr "Skermleser"
++
++msgid "Screen Reader"
++msgstr "Skermleser"
+Index: gnome-shell-3.4.1/po/ar.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ar.po	2012-04-16 18:41:48.000000000 +0200
++++ gnome-shell-3.4.1/po/ar.po	2012-08-04 14:02:37.631879659 +0200
+@@ -1948,3 +1948,6 @@
+ 
+ #~ msgid "Browse"
+ #~ msgstr "استعرض"
++
++msgid "Screen Reader"
++msgstr "قارئ الشاشة"
+Index: gnome-shell-3.4.1/po/as.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/as.po	2012-03-19 16:56:49.000000000 +0100
++++ gnome-shell-3.4.1/po/as.po	2012-08-04 14:02:37.695879655 +0200
+@@ -1770,3 +1770,6 @@
+ 
+ #~ msgid "Home Folder"
+ #~ msgstr "ঘৰ ফোল্ডাৰ"
++
++msgid "Screen Reader"
++msgstr "পৰ্দা ৰিডাৰ"
+Index: gnome-shell-3.4.1/po/ast.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ast.po	2011-10-12 18:50:17.000000000 +0200
++++ gnome-shell-3.4.1/po/ast.po	2012-08-04 14:02:37.763879651 +0200
+@@ -1628,3 +1628,6 @@
+ #, c-format
+ #~ msgid "%s has finished starting"
+ #~ msgstr "%s finó'l so llanzamientu"
++
++msgid "Screen Reader"
++msgstr "Llector de pantalla"
+Index: gnome-shell-3.4.1/po/be.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/be.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/be.po	2012-08-04 14:02:37.947879643 +0200
+@@ -1793,3 +1793,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Чытач з экрана"
+Index: gnome-shell-3.4.1/po/bg.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/bg.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/bg.po	2012-08-04 14:02:38.015879637 +0200
+@@ -1785,3 +1785,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Екранен четец"
+Index: gnome-shell-3.4.1/po/bn.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/bn.po	2011-04-04 14:23:37.000000000 +0200
++++ gnome-shell-3.4.1/po/bn.po	2012-08-04 14:02:38.143879631 +0200
+@@ -1200,3 +1200,6 @@
+ 
+ #~ msgid "Confirm"
+ #~ msgstr "নিশ্চিত"
++
++msgid "Screen Reader"
++msgstr "স্ক্রীণ রিডার"
+Index: gnome-shell-3.4.1/po/ca.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ca.po	2012-04-12 20:32:36.000000000 +0200
++++ gnome-shell-3.4.1/po/ca.po	2012-08-04 14:02:38.323879622 +0200
+@@ -2034,3 +2034,6 @@
+ 
+ #~ msgid "Can't remove the first workspace."
+ #~ msgstr "No es pot suprimir el primer espai de treball."
++
++msgid "Screen Reader"
++msgstr "Lector de pantalla"
+Index: gnome-shell-3.4.1/po/ca@valencia.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ca@valencia.po	2012-04-12 20:32:36.000000000 +0200
++++ gnome-shell-3.4.1/po/ca@valencia.po	2012-08-04 14:02:38.387879619 +0200
+@@ -2033,3 +2033,6 @@
+ 
+ #~ msgid "Can't remove the first workspace."
+ #~ msgstr "No es pot suprimir el primer espai de treball."
++
++msgid "Screen Reader"
++msgstr "Lector de pantalla"
+Index: gnome-shell-3.4.1/po/crh.po
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-shell-3.4.1/po/crh.po	2012-08-04 14:02:38.447879616 +0200
+@@ -0,0 +1,3 @@
++
++msgid "Screen Reader"
++msgstr "Ekran Oquyıcı"
+Index: gnome-shell-3.4.1/po/cs.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/cs.po	2012-04-16 18:41:48.000000000 +0200
++++ gnome-shell-3.4.1/po/cs.po	2012-08-04 14:02:38.511879612 +0200
+@@ -1796,3 +1796,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Čtení obrazovky"
+Index: gnome-shell-3.4.1/po/da.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/da.po	2012-03-22 21:46:26.000000000 +0100
++++ gnome-shell-3.4.1/po/da.po	2012-08-04 14:02:38.639879606 +0200
+@@ -1913,3 +1913,6 @@
+ 
+ #~ msgid "The user manager object this user is controlled by."
+ #~ msgstr "Brugerhåndteringsobjektet, denne bruger er styret af."
++
++msgid "Screen Reader"
++msgstr "Skærmoplæser"
+Index: gnome-shell-3.4.1/po/de.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/de.po	2012-04-16 18:41:48.000000000 +0200
++++ gnome-shell-3.4.1/po/de.po	2012-08-04 14:02:38.703879603 +0200
+@@ -1838,3 +1838,6 @@
+ 
+ #~ msgid "calendar:week_start:0"
+ #~ msgstr "calendar:week_start:0"
++
++msgid "Screen Reader"
++msgstr "Bildschirmleser"
+Index: gnome-shell-3.4.1/po/el.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/el.po	2012-01-21 02:29:34.000000000 +0100
++++ gnome-shell-3.4.1/po/el.po	2012-08-04 14:02:38.831879597 +0200
+@@ -1844,3 +1844,6 @@
+ 
+ #~ msgid "Can't remove the first workspace."
+ #~ msgstr "Δεν είναι δυνατή η αφαίρεση του πρώτου χώρου εργασίας."
++
++msgid "Screen Reader"
++msgstr "Αναγνώστης οθόνης"
+Index: gnome-shell-3.4.1/po/en.po
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-shell-3.4.1/po/en.po	2012-08-04 14:02:39.019879587 +0200
+@@ -0,0 +1,3 @@
++
++msgid "Screen Reader"
++msgstr ""
+Index: gnome-shell-3.4.1/po/en_GB.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/en_GB.po	2012-04-16 18:41:48.000000000 +0200
++++ gnome-shell-3.4.1/po/en_GB.po	2012-08-04 14:02:38.959879591 +0200
+@@ -1988,3 +1988,6 @@
+ 
+ #~ msgid "Can't logout: %s"
+ #~ msgstr "Can't logout: %s"
++
++msgid "Screen Reader"
++msgstr "Screen Reader"
+Index: gnome-shell-3.4.1/po/eo.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/eo.po	2012-03-09 22:42:49.000000000 +0100
++++ gnome-shell-3.4.1/po/eo.po	2012-08-04 14:02:39.143879581 +0200
+@@ -1758,3 +1758,6 @@
+ 
+ #~ msgid "%s has finished starting"
+ #~ msgstr "Starto de %s finiĝis"
++
++msgid "Screen Reader"
++msgstr "Ekranlegilo"
+Index: gnome-shell-3.4.1/po/es.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/es.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/es.po	2012-08-04 14:02:39.207879578 +0200
+@@ -2181,3 +2181,6 @@
+ 
+ #~ msgid "The user manager object this user is controlled by."
+ #~ msgstr "El objeto de gestión de usuarios que controla a este usuario."
++
++msgid "Screen Reader"
++msgstr "Lector de pantalla"
+Index: gnome-shell-3.4.1/po/et.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/et.po	2012-03-22 21:46:26.000000000 +0100
++++ gnome-shell-3.4.1/po/et.po	2012-08-04 14:02:39.275879573 +0200
+@@ -1405,3 +1405,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Ekraanilugeja"
+Index: gnome-shell-3.4.1/po/eu.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/eu.po	2012-03-05 17:52:07.000000000 +0100
++++ gnome-shell-3.4.1/po/eu.po	2012-08-04 14:02:39.339879570 +0200
+@@ -1830,3 +1830,6 @@
+ #~ msgid_plural "%d weeks ago"
+ #~ msgstr[0] "duela aste %d"
+ #~ msgstr[1] "duela %d aste"
++
++msgid "Screen Reader"
++msgstr "Pantaila irakurlea"
+Index: gnome-shell-3.4.1/po/fa.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/fa.po	2012-03-31 00:19:00.000000000 +0200
++++ gnome-shell-3.4.1/po/fa.po	2012-08-04 14:02:39.407879567 +0200
+@@ -1751,3 +1751,6 @@
+ 
+ #~ msgid "%s has finished starting"
+ #~ msgstr "راه‌اندازی %s پایان یافته است"
++
++msgid "Screen Reader"
++msgstr "صفحه‌نمایش‌خوان"
+Index: gnome-shell-3.4.1/po/fi.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/fi.po	2012-03-22 21:46:26.000000000 +0100
++++ gnome-shell-3.4.1/po/fi.po	2012-08-04 14:02:39.475879564 +0200
+@@ -1783,3 +1783,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Näytönlukija"
+Index: gnome-shell-3.4.1/po/fr.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/fr.po	2012-04-12 20:32:36.000000000 +0200
++++ gnome-shell-3.4.1/po/fr.po	2012-08-04 14:02:39.539879561 +0200
+@@ -1835,3 +1835,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s : %2$s"
++
++msgid "Screen Reader"
++msgstr "Lecteur d'écran"
+Index: gnome-shell-3.4.1/po/ga.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ga.po	2012-01-26 20:29:19.000000000 +0100
++++ gnome-shell-3.4.1/po/ga.po	2012-08-04 14:02:39.607879556 +0200
+@@ -1700,3 +1700,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Léitheoir Scáileáin Linux"
+Index: gnome-shell-3.4.1/po/gl.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/gl.po	2012-03-31 00:19:07.000000000 +0200
++++ gnome-shell-3.4.1/po/gl.po	2012-08-04 14:02:39.675879553 +0200
+@@ -2143,3 +2143,6 @@
+ 
+ #~ msgid "OFF"
+ #~ msgstr "⚪"
++
++msgid "Screen Reader"
++msgstr "Lector de pantalla"
+Index: gnome-shell-3.4.1/po/gu.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/gu.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/gu.po	2012-08-04 14:02:39.739879550 +0200
+@@ -1769,3 +1769,6 @@
+ #~ msgid_plural "%d weeks ago"
+ #~ msgstr[0] "%d અઠવાડિયુ પહેલાં"
+ #~ msgstr[1] "%d અઠવાડિયાઓ પહેલાં"
++
++msgid "Screen Reader"
++msgstr "સ્ક્રીન વાંચક"
+Index: gnome-shell-3.4.1/po/he.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/he.po	2012-04-10 20:14:57.000000000 +0200
++++ gnome-shell-3.4.1/po/he.po	2012-08-04 14:02:39.803879548 +0200
+@@ -2109,3 +2109,6 @@
+ 
+ #~ msgid "Sidebar"
+ #~ msgstr "סרגל צד"
++
++msgid "Screen Reader"
++msgstr "מקריא מסך"
+Index: gnome-shell-3.4.1/po/hi.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/hi.po	2011-09-14 16:40:29.000000000 +0200
++++ gnome-shell-3.4.1/po/hi.po	2012-08-04 14:02:39.867879544 +0200
+@@ -1605,3 +1605,6 @@
+ #~ msgid_plural "%d days ago"
+ #~ msgstr[0] "%d दिन पहले"
+ #~ msgstr[1] "%d दिन पहले"
++
++msgid "Screen Reader"
++msgstr "स्क्रीन वाचक"
+Index: gnome-shell-3.4.1/po/hu.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/hu.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/hu.po	2012-08-04 14:02:39.995879537 +0200
+@@ -1793,3 +1793,6 @@
+ #~ msgid "%s has finished starting"
+ #~ msgstr "%s indítása befejeződött"
+ 
++
++msgid "Screen Reader"
++msgstr "Képernyőolvasó"
+Index: gnome-shell-3.4.1/po/hy.po
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ gnome-shell-3.4.1/po/hy.po	2012-08-04 14:02:40.055879535 +0200
+@@ -0,0 +1,3 @@
++
++msgid "Screen Reader"
++msgstr "Էկրանի ընթերցող սարք"
+Index: gnome-shell-3.4.1/po/id.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/id.po	2011-09-26 18:09:21.000000000 +0200
++++ gnome-shell-3.4.1/po/id.po	2012-08-04 14:02:40.123879530 +0200
+@@ -1571,3 +1571,6 @@
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
+ 
++
++msgid "Screen Reader"
++msgstr "Pembaca Layar"
+Index: gnome-shell-3.4.1/po/it.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/it.po	2012-02-21 18:52:03.000000000 +0100
++++ gnome-shell-3.4.1/po/it.po	2012-08-04 14:02:40.247879524 +0200
+@@ -1909,3 +1909,6 @@
+ 
+ #~ msgid "Shut Down..."
+ #~ msgstr "Arresta..."
++
++msgid "Screen Reader"
++msgstr "Lettore schermo"
+Index: gnome-shell-3.4.1/po/ja.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ja.po	2012-03-26 19:32:33.000000000 +0200
++++ gnome-shell-3.4.1/po/ja.po	2012-08-04 14:02:40.311879520 +0200
+@@ -1759,3 +1759,6 @@
+ 
+ #~ msgid "RECENT ITEMS"
+ #~ msgstr "最近使用した項目"
++
++msgid "Screen Reader"
++msgstr "スクリーンリーダー"
+Index: gnome-shell-3.4.1/po/kk.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/kk.po	2012-02-28 17:54:10.000000000 +0100
++++ gnome-shell-3.4.1/po/kk.po	2012-08-04 14:02:40.435879514 +0200
+@@ -1698,3 +1698,6 @@
+ 
+ #~ msgid "RECENT ITEMS"
+ #~ msgstr "Соңғы нәрселер"
++
++msgid "Screen Reader"
++msgstr ""
+Index: gnome-shell-3.4.1/po/kn.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/kn.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/kn.po	2012-08-04 14:02:40.503879511 +0200
+@@ -1884,3 +1884,6 @@
+ 
+ #~ msgid "Home Folder"
+ #~ msgstr "ನೆಲೆ ಕಡತಕೋಶ"
++
++msgid "Screen Reader"
++msgstr "ತೆರೆ ಓದುಗ"
+Index: gnome-shell-3.4.1/po/ko.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ko.po	2012-03-26 19:32:33.000000000 +0200
++++ gnome-shell-3.4.1/po/ko.po	2012-08-04 14:02:40.567879507 +0200
+@@ -1768,3 +1768,6 @@
+ 
+ #~ msgid "You're no longer connected to the network"
+ #~ msgstr "이제 네트워크에 연결되어 있지 않습니다"
++
++msgid "Screen Reader"
++msgstr "화면 읽기 프로그램"
+Index: gnome-shell-3.4.1/po/ku.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ku.po	2011-10-17 17:24:49.000000000 +0200
++++ gnome-shell-3.4.1/po/ku.po	2012-08-04 14:02:40.631879505 +0200
+@@ -1573,3 +1573,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "_Xwînerê dîmenderê"
+Index: gnome-shell-3.4.1/po/lt.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/lt.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/lt.po	2012-08-04 14:02:40.699879501 +0200
+@@ -1794,3 +1794,6 @@
+ 
+ #~ msgid "RECENT ITEMS"
+ #~ msgstr "PASKUTINIEJI ELEMENTAI"
++
++msgid "Screen Reader"
++msgstr "Ekrano skaityklė"
+Index: gnome-shell-3.4.1/po/lv.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/lv.po	2012-04-16 18:41:48.000000000 +0200
++++ gnome-shell-3.4.1/po/lv.po	2012-08-04 14:02:40.763879498 +0200
+@@ -1884,3 +1884,6 @@
+ 
+ #~ msgid "Confirm"
+ #~ msgstr "Apstiprināt"
++
++msgid "Screen Reader"
++msgstr "Ekrāna lasītājs"
+Index: gnome-shell-3.4.1/po/mk.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/mk.po	2012-01-21 02:29:34.000000000 +0100
++++ gnome-shell-3.4.1/po/mk.po	2012-08-04 14:02:40.947879489 +0200
+@@ -1637,3 +1637,6 @@
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
+ 
++
++msgid "Screen Reader"
++msgstr "Читач на екранот"
+Index: gnome-shell-3.4.1/po/ml.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ml.po	2012-03-19 16:56:49.000000000 +0100
++++ gnome-shell-3.4.1/po/ml.po	2012-08-04 14:02:41.011879485 +0200
+@@ -1858,3 +1858,6 @@
+ 
+ #~ msgid "Home Folder"
+ #~ msgstr "ആസ്ഥാന ഫോള്‍ഡര്‍"
++
++msgid "Screen Reader"
++msgstr "സ്ക്രീന്‍ വായനക്കാരന്‍"
+Index: gnome-shell-3.4.1/po/mr.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/mr.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/mr.po	2012-08-04 14:02:41.135879480 +0200
+@@ -1897,3 +1897,6 @@
+ 
+ #~ msgid "Home Folder"
+ #~ msgstr "होम फोल्डर"
++
++msgid "Screen Reader"
++msgstr "स्क्रीन रिडर"
+Index: gnome-shell-3.4.1/po/nb.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/nb.po	2012-04-12 20:32:36.000000000 +0200
++++ gnome-shell-3.4.1/po/nb.po	2012-08-04 14:02:41.323879469 +0200
+@@ -1762,3 +1762,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Skjermleser"
+Index: gnome-shell-3.4.1/po/nl.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/nl.po	2012-03-05 17:52:07.000000000 +0100
++++ gnome-shell-3.4.1/po/nl.po	2012-08-04 14:02:41.503879461 +0200
+@@ -1977,3 +1977,6 @@
+ 
+ #~ msgid "Recent Documents"
+ #~ msgstr "Recente documenten"
++
++msgid "Screen Reader"
++msgstr "Schermlezer"
+Index: gnome-shell-3.4.1/po/nn.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/nn.po	2012-01-04 19:50:39.000000000 +0100
++++ gnome-shell-3.4.1/po/nn.po	2012-08-04 14:02:41.571879456 +0200
+@@ -1762,3 +1762,6 @@
+ #~ msgid_plural "%d weeks ago"
+ #~ msgstr[0] "%d veke sidan"
+ #~ msgstr[1] "%d veker sidan"
++
++msgid "Screen Reader"
++msgstr "Skjermlesar"
+Index: gnome-shell-3.4.1/po/or.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/or.po	2011-09-12 20:38:36.000000000 +0200
++++ gnome-shell-3.4.1/po/or.po	2012-08-04 14:02:41.751879448 +0200
+@@ -1553,3 +1553,6 @@
+ msgid "calendar:week_start:0"
+ msgstr "calendar:week_start:0"
+ 
++
++msgid "Screen Reader"
++msgstr "ପରଦା ପାଠକ"
+Index: gnome-shell-3.4.1/po/pa.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/pa.po	2012-03-20 21:58:51.000000000 +0100
++++ gnome-shell-3.4.1/po/pa.po	2012-08-04 14:02:41.819879443 +0200
+@@ -2102,3 +2102,6 @@
+ 
+ #~ msgid "Browse"
+ #~ msgstr "ਝਲਕ"
++
++msgid "Screen Reader"
++msgstr "ਸਕਰੀਨ ਰੀਡਰ"
+Index: gnome-shell-3.4.1/po/pl.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/pl.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/pl.po	2012-08-04 14:02:41.883879440 +0200
+@@ -1795,3 +1795,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Czytnik ekranowy"
+Index: gnome-shell-3.4.1/po/pt.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/pt.po	2012-03-20 21:58:51.000000000 +0100
++++ gnome-shell-3.4.1/po/pt.po	2012-08-04 14:02:42.011879433 +0200
+@@ -1959,3 +1959,6 @@
+ 
+ #~ msgid "Can't remove the first workspace."
+ #~ msgstr "Incapaz de remover a primeira área de trabalho."
++
++msgid "Screen Reader"
++msgstr "Leitor de Ecrã"
+Index: gnome-shell-3.4.1/po/pt_BR.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/pt_BR.po	2012-03-22 21:46:26.000000000 +0100
++++ gnome-shell-3.4.1/po/pt_BR.po	2012-08-04 14:02:41.947879437 +0200
+@@ -1787,3 +1787,6 @@
+ 
+ #~ msgid "%s has finished starting"
+ #~ msgstr "%s terminou sua inicialização"
++
++msgid "Screen Reader"
++msgstr "Leitor de tela"
+Index: gnome-shell-3.4.1/po/ro.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ro.po	2012-01-21 02:29:34.000000000 +0100
++++ gnome-shell-3.4.1/po/ro.po	2012-08-04 14:02:42.079879431 +0200
+@@ -1695,3 +1695,6 @@
+ #, c-format
+ msgid "%1$s: %2$s"
+ msgstr "%1$s: %2$s"
++
++msgid "Screen Reader"
++msgstr "Cititor de ecran"
+Index: gnome-shell-3.4.1/po/ru.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ru.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/ru.po	2012-08-04 14:02:42.139879428 +0200
+@@ -1753,3 +1753,6 @@
+ 
+ #~ msgid "Home Folder"
+ #~ msgstr "Домашняя папка"
++
++msgid "Screen Reader"
++msgstr "Чтение с экрана"
+Index: gnome-shell-3.4.1/po/sk.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/sk.po	2011-09-26 18:09:21.000000000 +0200
++++ gnome-shell-3.4.1/po/sk.po	2012-08-04 14:02:42.331879417 +0200
+@@ -1707,3 +1707,6 @@
+ 
+ #~ msgid "Shut Down"
+ #~ msgstr "Vypnúť"
++
++msgid "Screen Reader"
++msgstr "Čítanie obrazovky"
+Index: gnome-shell-3.4.1/po/sl.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/sl.po	2012-03-31 00:19:00.000000000 +0200
++++ gnome-shell-3.4.1/po/sl.po	2012-08-04 14:02:42.395879415 +0200
+@@ -1762,3 +1762,6 @@
+ 
+ #~ msgid "Home Folder"
+ #~ msgstr "Domača mapa"
++
++msgid "Screen Reader"
++msgstr "Zaslonski bralnik"
+Index: gnome-shell-3.4.1/po/sr.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/sr.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/sr.po	2012-08-04 14:02:42.583879406 +0200
+@@ -1943,3 +1943,6 @@
+ 
+ #~ msgid "Clock Format"
+ #~ msgstr "Формат часовника"
++
++msgid "Screen Reader"
++msgstr "Читач екрана"
+Index: gnome-shell-3.4.1/po/sr@latin.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/sr@latin.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/sr@latin.po	2012-08-04 14:02:42.519879408 +0200
+@@ -1943,3 +1943,6 @@
+ 
+ #~ msgid "Clock Format"
+ #~ msgstr "Format časovnika"
++
++msgid "Screen Reader"
++msgstr "Čitač ekrana"
+Index: gnome-shell-3.4.1/po/sv.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/sv.po	2012-04-05 22:44:31.000000000 +0200
++++ gnome-shell-3.4.1/po/sv.po	2012-08-04 14:02:42.647879401 +0200
+@@ -1934,3 +1934,6 @@
+ 
+ #~ msgid "The user manager object this user is controlled by."
+ #~ msgstr "Användarhanteringsobjektet som denna användare styrs av."
++
++msgid "Screen Reader"
++msgstr "Skärmläsare"
+Index: gnome-shell-3.4.1/po/ta.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ta.po	2012-02-28 17:54:10.000000000 +0100
++++ gnome-shell-3.4.1/po/ta.po	2012-08-04 14:02:42.711879399 +0200
+@@ -2013,3 +2013,6 @@
+ 
+ #~ msgid "Can't remove the first workspace."
+ #~ msgstr "முதல் பணிக்களத்தை நீக்க முடியாது"
++
++msgid "Screen Reader"
++msgstr "திரைபடிப்பான்"
+Index: gnome-shell-3.4.1/po/te.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/te.po	2012-04-10 20:14:57.000000000 +0200
++++ gnome-shell-3.4.1/po/te.po	2012-08-04 14:02:42.775879394 +0200
+@@ -1825,3 +1825,6 @@
+ #~ msgid_plural "%d weeks ago"
+ #~ msgstr[0] "%d వారం క్రితం"
+ #~ msgstr[1] "%d వారాల క్రితం"
++
++msgid "Screen Reader"
++msgstr "తెర చదువరి"
+Index: gnome-shell-3.4.1/po/th.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/th.po	2011-04-25 22:43:10.000000000 +0200
++++ gnome-shell-3.4.1/po/th.po	2012-08-04 14:02:42.839879391 +0200
+@@ -1298,3 +1298,6 @@
+ 
+ #~ msgid "Can't remove the first workspace."
+ #~ msgstr "ไม่สามารถลบพื้นที่ทำงานแรกได้"
++
++msgid "Screen Reader"
++msgstr "การอ่านหน้าจอ"
+Index: gnome-shell-3.4.1/po/tr.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/tr.po	2012-01-21 02:29:34.000000000 +0100
++++ gnome-shell-3.4.1/po/tr.po	2012-08-04 14:02:42.903879389 +0200
+@@ -1748,3 +1748,6 @@
+ 
+ #~ msgid "Shut Down..."
+ #~ msgstr "Kapat..."
++
++msgid "Screen Reader"
++msgstr "Ekran Okuyucu"
+Index: gnome-shell-3.4.1/po/ug.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/ug.po	2011-05-06 20:24:32.000000000 +0200
++++ gnome-shell-3.4.1/po/ug.po	2012-08-04 14:02:42.967879385 +0200
+@@ -1406,3 +1406,6 @@
+ 
+ #~ msgid "Invisible"
+ #~ msgstr "يوشۇرۇن"
++
++msgid "Screen Reader"
++msgstr "ئېكران ئوقۇغۇچ"
+Index: gnome-shell-3.4.1/po/uk.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/uk.po	2012-03-26 19:32:33.000000000 +0200
++++ gnome-shell-3.4.1/po/uk.po	2012-08-04 14:02:43.031879382 +0200
+@@ -2011,3 +2011,6 @@
+ 
+ #~ msgid "Recent Documents"
+ #~ msgstr "Недавні документи"
++
++msgid "Screen Reader"
++msgstr "Зчитувач екрана"
+Index: gnome-shell-3.4.1/po/vi.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/vi.po	2012-03-22 21:46:26.000000000 +0100
++++ gnome-shell-3.4.1/po/vi.po	2012-08-04 14:02:43.215879373 +0200
+@@ -1927,3 +1927,6 @@
+ 
+ #~ msgid "Recent Documents"
+ #~ msgstr "Tài liệu gần đây"
++
++msgid "Screen Reader"
++msgstr "Bộ đọc màn hình"
+Index: gnome-shell-3.4.1/po/zh_CN.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/zh_CN.po	2012-04-16 18:41:48.000000000 +0200
++++ gnome-shell-3.4.1/po/zh_CN.po	2012-08-04 14:02:43.407879363 +0200
+@@ -2093,3 +2093,6 @@
+ 
+ #~ msgid "Sidebar"
+ #~ msgstr "侧边栏"
++
++msgid "Screen Reader"
++msgstr "屏幕阅读器"
+Index: gnome-shell-3.4.1/po/zh_HK.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/zh_HK.po	2012-03-26 19:32:33.000000000 +0200
++++ gnome-shell-3.4.1/po/zh_HK.po	2012-08-04 14:02:43.471879360 +0200
+@@ -1715,3 +1715,6 @@
+ 
+ #~ msgid "RECENT ITEMS"
+ #~ msgstr "最近使用項目"
++
++msgid "Screen Reader"
++msgstr "螢幕閱讀器"
+Index: gnome-shell-3.4.1/po/zh_TW.po
+===================================================================
+--- gnome-shell-3.4.1.orig/po/zh_TW.po	2012-03-26 19:32:33.000000000 +0200
++++ gnome-shell-3.4.1/po/zh_TW.po	2012-08-04 14:02:43.535879356 +0200
+@@ -1738,3 +1738,6 @@
+ 
+ #~ msgid "RECENT ITEMS"
+ #~ msgstr "最近使用項目"
++
++msgid "Screen Reader"
++msgstr "螢幕閱讀器"
