@@ -10,3 +10,4 @@
 26-networkAgent-use-absolute-path-if-configured.patch
 27-nm-libexec-path.patch
 32-enable-the-screen-reader-menu-item.patch
+33-screen-reader-l10n.patch
