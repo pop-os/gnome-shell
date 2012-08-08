@@ -3,4 +3,3 @@
 11-no-gettext.patch
 14_make-GLX-optional.patch
 22-remove-gdmgreeter-dep.patch
-90-fix-missing-date.patch

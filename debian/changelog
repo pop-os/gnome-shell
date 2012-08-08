@@ -1,3 +1,16 @@
+gnome-shell (3.5.4-0ubuntu1) quantal; urgency=low
+
+  * New upstream release.
+  * debian/control.in:
+    - Drop folks dependency
+    - Bump gstreamer dependency to 1.0
+    - Bump minimum gsettings-desktop-schemas version
+  * debian/patches/90-fix-missing-date.patch:
+    - Dropped, applied in new version
+  * Refreshed patches
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 17 Jul 2012 14:14:52 -0400
+
 gnome-shell (3.5.3-0ubuntu4) quantal-proposed; urgency=low
 
   * debian/control.in: Bump minimum evolution-data-server version
