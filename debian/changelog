@@ -1,3 +1,15 @@
+gnome-shell (3.5.90-0ubuntu1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * debian/control.in:
+    - Bump minimum clutter, gnome-bluetooth, gnome-desktop, & mutter versions
+    - Build-depend on ibus
+    - Depend on gdm
+  * 22-remove-gdmgreeter-dep.patch:
+    - Dropped, GDM 3.5 is in Ubuntu now
+
+ -- Rico Tzschichholz <ricotz@ubuntu.com>  Tue, 28 Aug 2012 14:15:33 -0400
+
 gnome-shell (3.5.4-0ubuntu1) quantal; urgency=low
 
   * New upstream release.
