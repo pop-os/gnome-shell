@@ -1,3 +1,100 @@
+gnome-shell (3.4.2-2) unstable; urgency=low
+
+  * Replace epiphany by iceweasel. Closes: #682481.
+  * Drop obsolete README.Debian. Closes: #684584.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 29 Sep 2012 10:20:25 +0200
+
+gnome-shell (3.4.2-1) unstable; urgency=low
+
+  [ Laurent Bigonville ]
+  * New upstream release.
+    - Drop patches 24-mirror-evolution-calendar-settings.patch and
+      26-fix-empathy-popup-regression.patch, applied upstream.
+  * Add d/p/26-networkAgent-use-absolute-path-if-configured.patch: Fix issue
+    finding VPN authentication binary, taken from upstream (Closes: #681737)
+  * d/p/27-nm-libexec-path.patch: Use Debian specific NM VPN helpers paths
+
+  [ Josselin Mouette ]
+  * Change epiphany desktop file name to match the change in the 
+    epiphany package.
+
+  [ Jordi Mallach ]
+  * debian/patches:
+    - 32-enable-the-screen-reader-menu-item.patch: Add Orca to the a11y
+      menu, to improve accessibility of the Shell-based GDM greeter.
+    - 33-screen-reader-l10n.patch: Steal translations for new string
+      "Screen Reader" from GNOME Control Center.
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 04 Aug 2012 13:18:50 +0200
+
+gnome-shell (3.4.1-8) unstable; urgency=low
+
+  * 27-don-t-show-apps-in-NoDisplay-categories.patch: renamed as 
+    03_don-t-show-apps-in-NoDisplay-categories.patch for reordering.
+  * 01_slist_cleanup.patch, 02_filter_nodisplay_parents.patch, 
+    04_fix_nodisplay.patch: correctly filter out applications in a 
+    NoDisplay directory, including parent directories. This should 
+    finally fix for good handling of the Debian menu, including in 
+    searches.  Closes: #677498.
+  * Bump the build-dependency on gnome-menus accordingly.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 23 Jun 2012 20:49:32 +0200
+
+gnome-shell (3.4.1-7) unstable; urgency=low
+
+  * debian/patches/21_revert_evolution_gsettings.patch: Drop this patch now
+    that we have evolution 3.4.
+  * debian/patches/24-mirror-evolution-calendar-settings.patch: Mirror
+    Evolution calendar settings into our own schema to avoid a hard dependency
+    on evolution for the gsettings schema file. Patch cherry-picked from
+    upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 20 Jun 2012 06:31:49 +0200
+
+gnome-shell (3.4.1-6) unstable; urgency=low
+
+  [ Laurent Bigonville ]
+  * d/p/26-fix-empathy-popup-regression.patch: Fix Empathy popup regression
+    (taken from upstream)
+
+  [ Michael Biebl ]
+  * debian/patches/09-respect-NoDisplay-semantics-for-app-menu.patch: Drop
+    this patch as it breaks application tracking for all applications marked
+    as NoDisplay. Closes: #676425
+  * debian/patches/27-don-t-show-apps-in-NoDisplay-categories.patch:
+    Explicitly include NoDisplay applications in the ShellAppSystem because we
+    want application tracking for them, but filter NoDisplay applications out
+    when showing them to the user because we don't want to show them to the
+    user. Patch backported from upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 12 Jun 2012 17:09:34 +0200
+
+gnome-shell (3.4.1-5) unstable; urgency=low
+
+  * Disabling the screen recorder on arm{el,hf} was not sufficient to make it
+    build everywhere since the screen grabber is also used for making
+    screenshots. Update debian/patches/14_make-GLX-optional.patch instead and
+    only use pixel buffers in the screen grabber if we have GL/GLX support.
+    This means we can re-enable the screen recorder on arm{el,hf} as it will
+    use the slow, cogl-based path there.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 20:56:52 +0200
+
+gnome-shell (3.4.1-4) unstable; urgency=low
+
+  * debian/patches/14_make-GLX-optional.patch:
+    - Add DEP-3 patch header.
+    - Remove unconditional pkg-config check for the "gl" module.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 14:37:44 +0200
+
+gnome-shell (3.4.1-3) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 May 2012 13:19:38 +0200
+
 gnome-shell (3.4.1-2) experimental; urgency=low
 
   * debian/patches/22-remove-online-accounts-from-user-menu.patch: Remove
