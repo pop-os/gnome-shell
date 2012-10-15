@@ -1,4 +1,4 @@
-gnome-shell (3.6.0-1) UNRELEASED; urgency=low
+gnome-shell (3.6.0-1) experimental; urgency=low
 
   * New upstream release
   * d/p/28-ShellUserVerifier-fix-typo-in-function-name-caught-o.patch:
@@ -27,7 +27,7 @@ gnome-shell (3.6.0-1) UNRELEASED; urgency=low
     + debian/control.in: Update build-depends
     + debian/source_gnome-shell.py: Add apport hook
 
- -- Sjoerd Simons <sjoerd@debian.org>  Mon, 15 Oct 2012 09:18:23 +0200
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 15 Oct 2012 09:34:33 +0200
 
 gnome-shell (3.4.2-2) unstable; urgency=low
 
