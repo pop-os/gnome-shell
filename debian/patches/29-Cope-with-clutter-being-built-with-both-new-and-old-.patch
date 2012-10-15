@@ -1,0 +1,70 @@
+From 154a0d15ec0d0d276c10b6f68fd737dd48b1e0ed Mon Sep 17 00:00:00 2001
+From: Sjoerd Simons <sjoerd@luon.net>
+Date: Mon, 15 Oct 2012 09:12:50 +0200
+Subject: [PATCH] Cope with clutter being built with both new and old g-i
+
+---
+ js/ui/magnifier.js |   18 +++++++++++++++---
+ js/ui/main.js      |   10 +++++++++-
+ 2 files changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
+index f4c46e7..7f2cfaa 100644
+--- a/js/ui/magnifier.js
++++ b/js/ui/magnifier.js
+@@ -300,8 +300,14 @@ const Magnifier = new Lang.Class({
+      */
+     setCrosshairsColor: function(color) {
+         if (this._crossHairs) {
+-            let [res, clutterColor] = Clutter.Color.from_string(color);
+-            this._crossHairs.setColor(clutterColor);
++            try {
++              let [res, clutterColor] = Clutter.Color.from_string(color);
++              this._crossHairs.setColor(clutterColor);
++            } catch (e) {
++              let clutterColor = new Clutter.Color()
++              clutterColor.from_string(color)
++              this._crossHairs.setColor(clutterColor);
++            }
+         }
+     },
+ 
+@@ -1467,7 +1473,13 @@ const Crosshairs = new Lang.Class({
+      * @color:  The color as a Clutter.Color.
+      */
+     getColor: function() {
+-        return this._horizLeftHair.get_color();
++        try {
++          return this._horizLeftHair.get_color();
++        } catch (e) {
++          let clutterColor = new Clutter.Color()
++          this._horizLeftHair.get_color(clutterColor);
++          return clutterColor;
++        }
+     },
+ 
+     /**
+diff --git a/js/ui/main.js b/js/ui/main.js
+index fcffbf7..41faa57 100644
+--- a/js/ui/main.js
++++ b/js/ui/main.js
+@@ -37,7 +37,15 @@ const XdndHandler = imports.ui.xdndHandler;
+ const Util = imports.misc.util;
+ 
+ const OVERRIDES_SCHEMA = 'org.gnome.shell.overrides';
+-const DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
++
++/* Cope with the clutter API changing depending on the g-i it hwas been built with */
++let DEFAULT_BACKGROUND_COLOR = null;
++try {
++  DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
++} catch (e) {
++  DEFAULT_BACKGROUND_COLOR = new Clutter.Color();
++  DEFAULT_BACKGROUND_COLOR.from_pixel(0x2e3436ff);
++}
+ 
+ let componentManager = null;
+ let panel = null;
+-- 
+1.7.10.4
+

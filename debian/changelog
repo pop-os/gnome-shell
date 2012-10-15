@@ -1,3 +1,34 @@
+gnome-shell (3.6.0-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * d/p/28-ShellUserVerifier-fix-typo-in-function-name-caught-o.patch:
+    - Added. Fix typo in function name called from auth error (From upstream
+      git)
+  * d/p/29-Cope-with-clutter-being-built-with-both-new-and-old-.patch:
+    - Added. The ClutterColor g-i API changes depending on which version of
+      gobject-introspection clutter is built with. Deal with both variants
+  * d/p/01_slist_cleanup.patch
+    d/p/02_filter_nodisplay_parents.patch
+    d/p/03_don-t-show-apps-in-NoDisplay-categories.patch
+    d/p/04_fix_nodisplay.patch
+    d/p/25-close-the-recorder-instead-of-pausing-it.patch
+    d/p/26-networkAgent-use-absolute-path-if-configured.patch
+    d/p/32-enable-the-screen-reader-menu-item.patch
+    d/p/33-screen-reader-l10n.patch
+    - Dropped, all fixed upstream
+  * d/p/14_make-GLX-optional.patch: Refreshed
+  * d/p/27-nm-libexec-path.patch: Refreshed
+  * d/p/10-make-NetworkManager-optional.patch: Temporarily disabled
+  * debian/gnome-shell.gsettings-override: Use epiphany instead of iceweasel
+    again
+  * debian/control.in: Conflict with gnome-screensaver (<< 3.6) as
+    both try to provide the screensaver in the full gnome session
+  * Sync with Ubuntu:
+    + debian/control.in: Update build-depends
+    + debian/source_gnome-shell.py: Add apport hook
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 15 Oct 2012 09:18:23 +0200
+
 gnome-shell (3.4.2-2) unstable; urgency=low
 
   * Replace epiphany by iceweasel. Closes: #682481.
