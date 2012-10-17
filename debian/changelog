@@ -1,10 +1,10 @@
-gnome-shell (3.6.1-1) UNRELEASED; urgency=low
+gnome-shell (3.6.1-1) experimental; urgency=low
 
   * New upstream release
   * d/p/28-ShellUserVerifier-fix-typo-in-function-name-caught-o.patch:
     - Removed, fixed upstream
 
- -- Sjoerd Simons <sjoerd@debian.org>  Wed, 17 Oct 2012 20:09:24 +0200
+ -- Sjoerd Simons <sjoerd@debian.org>  Wed, 17 Oct 2012 21:01:15 +0200
 
 gnome-shell (3.6.0-1) experimental; urgency=low
 
