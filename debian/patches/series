@@ -2,5 +2,4 @@
 11-no-gettext.patch
 14_make-GLX-optional.patch
 27-nm-libexec-path.patch
-28-ShellUserVerifier-fix-typo-in-function-name-caught-o.patch
 29-Cope-with-clutter-being-built-with-both-new-and-old-.patch
