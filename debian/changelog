@@ -7,8 +7,11 @@ gnome-shell (3.6.1-3) UNRELEASED; urgency=low
     annotation updates needed by gnome-shell
   * debian/rules: gir1.2-ibus-1.0 (> 1.4.99) needed for
     the ibus related functionality
+  * debian/patches/telepathyClient-Fix-auto-scroll-to-bottom.patch:
+    + Added. Fix auto-scroll down in the builtin telepathy message view (bgo:
+      #686571)
 
- -- Sjoerd Simons <sjoerd@debian.org>  Sun, 21 Oct 2012 14:36:00 +0200
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 21 Oct 2012 14:42:00 +0200
 
 gnome-shell (3.6.1-2) experimental; urgency=low
 
