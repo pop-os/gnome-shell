@@ -2,7 +2,7 @@ gnome-shell (3.6.1-4) UNRELEASED; urgency=low
 
   [ Simon McVittie ]
   * Increase libsoup dependency to 2.40, needed when installing extensions
-    from extensions.gnome.org
+    from extensions.gnome.org (Closes: #691324)
   * Recommend unzip, also for extensions.gnome.org (Closes: #680978)
 
   [ Josselin Mouette ]
