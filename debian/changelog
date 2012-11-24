@@ -1,3 +1,9 @@
+gnome-shell (3.6.2-2) UNRELEASED; urgency=low
+
+  * Recommend gkbd-capplet for gkbd-keyboard-display. Closes: #691731.
+
+ -- Josselin Mouette <joss@debian.org>  Sat, 24 Nov 2012 13:31:12 +0100
+
 gnome-shell (3.6.2-1) experimental; urgency=low
 
   [ Simon McVittie ]
