@@ -1,9 +1,9 @@
-gnome-shell (3.4.2-3) UNRELEASED; urgency=low
+gnome-shell (3.4.2-3) unstable; urgency=low
 
   * Recommend unzip. Closes: #680978.
   * Recommend gkbd-capplet for gkbd-keyboard-display. Closes: #691731.
 
- -- Josselin Mouette <joss@debian.org>  Fri, 26 Oct 2012 14:33:39 +0200
+ -- Josselin Mouette <joss@debian.org>  Mon, 26 Nov 2012 12:55:56 +0100
 
 gnome-shell (3.4.2-2) unstable; urgency=low
 
