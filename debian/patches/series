@@ -9,5 +9,6 @@
 25-close-the-recorder-instead-of-pausing-it.patch
 26-networkAgent-use-absolute-path-if-configured.patch
 27-nm-libexec-path.patch
+30_lockup_gc.patch
 32-enable-the-screen-reader-menu-item.patch
 33-screen-reader-l10n.patch

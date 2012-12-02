@@ -1,3 +1,10 @@
+gnome-shell (3.4.2-4) unstable; urgency=low
+
+  * 30_lockup_gc.patch: backported from 3.6. Remove a forced garbage 
+    collection which triggers deadlocks. Closes: #683880.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 02 Dec 2012 13:55:57 +0100
+
 gnome-shell (3.4.2-3) unstable; urgency=low
 
   * Recommend unzip. Closes: #680978.
