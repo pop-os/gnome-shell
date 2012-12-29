@@ -90,6 +90,7 @@ Breaks: fglrx-driver (<< 1:11-10),
         gnome-control-center (<< 1:3.0),
         gnome-session (<< 3.0),
         gnome-tweak-tool (<< 3.3)
+Conflicts: menu-xdg
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
  In particular, it offers new paradigms for launching applications,
