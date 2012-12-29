@@ -2,6 +2,8 @@ gnome-shell (3.6.2-2) UNRELEASED; urgency=low
 
   [ Josselin Mouette ]
   * Recommend gkbd-capplet for gkbd-keyboard-display. Closes: #691731.
+  * Conflict with menu-xdg because the maintainer refuses to fix bug
+    #696530.
 
   [ Jeremy Bicha ]
   * debian/control.in: Bump minimum mutter & eds depends

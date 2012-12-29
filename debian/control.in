@@ -101,6 +101,7 @@ Breaks: fglrx-driver (<< 1:11-10),
         gnome-tweak-tool (<< 3.5),
         gdm3 (<< 3.5.90)
 Conflicts: gnome-screensaver (<< 3.6)
+Conflicts: menu-xdg
 Description: graphical shell for the GNOME desktop
  The GNOME Shell redefines user interactions with the GNOME desktop.
  In particular, it offers new paradigms for launching applications,
