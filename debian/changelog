@@ -1,3 +1,13 @@
+gnome-shell (3.4.2-5) unstable; urgency=low
+
+  * 30_lockup_gc.patch: update patch. Instead of completely dropping 
+    explicit GC calls, only do them once every 10 minutes or so. This 
+    might still trigger deadlocks, but not at startup time where they 
+    are frequent, and otherwise will make them thousands of times less 
+    likely. Closes: #696040.
+
+ -- Josselin Mouette <joss@debian.org>  Thu, 03 Jan 2013 00:59:55 +0100
+
 gnome-shell (3.4.2-4) unstable; urgency=low
 
   * 30_lockup_gc.patch: backported from 3.6. Remove a forced garbage 

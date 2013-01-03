@@ -1,19 +1,38 @@
-From 6f605598de1eb4361ef912e85edb27a8b7b96b21 Mon Sep 17 00:00:00 2001
-From: Cosimo Cecchi <cosimoc@gnome.org>
-Date: Fri, 13 Jul 2012 00:01:51 +0000
-Subject: global: don't run a garbage collection on tweeners end
-
-This currently causes the shell to freeze very often in a thread
-deadlock, and the gjs garbage collector behavior is currently getting
-fixed at the right level in gjs itself.
-
-https://bugzilla.gnome.org/show_bug.cgi?id=679832
----
-diff --git a/src/shell-global.c b/src/shell-global.c
-index bb32a01..28127ab 100644
---- a/src/shell-global.c
-+++ b/src/shell-global.c
-@@ -1482,13 +1482,6 @@ run_leisure_functions (gpointer data)
+Index: gnome-shell-3.4.2/src/shell-global.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/shell-global.c	2012-07-20 19:38:25.000000000 +0200
++++ gnome-shell-3.4.2/src/shell-global.c	2013-01-03 00:58:06.396025821 +0100
+@@ -45,6 +45,7 @@ static ShellGlobal *the_object = NULL;
+ static void grab_notify (GtkWidget *widget, gboolean is_grab, gpointer user_data);
+ static void shell_global_on_gc (GjsContext   *context,
+                                 ShellGlobal  *global);
++static gboolean on_gc_timeout (gpointer data);
+ 
+ struct _ShellGlobal {
+   GObject parent;
+@@ -92,6 +93,7 @@ struct _ShellGlobal {
+   guint32 xdnd_timestamp;
+ 
+   gint64 last_gc_end_time;
++  guint gc_timer;
+ };
+ 
+ enum {
+@@ -277,8 +279,13 @@ shell_global_init (ShellGlobal *global)
+                                      "js-version", "1.8",
+                                      "gc-notifications", TRUE,
+                                      NULL);
++
+   g_signal_connect (global->js_context, "gc", G_CALLBACK (shell_global_on_gc), global);
+ 
++  /* Since the GC has a tendency to deadlock, only run it once every 10
++     minutes or so. */
++  global->gc_timer = g_timeout_add_seconds (600, on_gc_timeout, global);
++
+   g_strfreev (search_path);
+ }
+ 
+@@ -1605,13 +1612,6 @@ run_leisure_functions (gpointer data)
    if (global->work_count > 0)
      return FALSE;
  
@@ -27,5 +46,20 @@ index bb32a01..28127ab 100644
    /* No leisure closures, so we are done */
    if (global->leisure_closures == NULL)
      return FALSE;
---
-cgit v0.9.0.2
+@@ -1635,6 +1635,16 @@ run_leisure_functions (gpointer data)
+   return FALSE;
+ }
+ 
++static gboolean
++on_gc_timeout (gpointer data)
++{
++  ShellGlobal *global = data;
++  gjs_context_gc (global->js_context);
++
++  return TRUE;
++}
++
++
+ static void
+ schedule_leisure_functions (ShellGlobal *global)
+ {
