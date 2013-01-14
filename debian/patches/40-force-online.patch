@@ -1,0 +1,26 @@
+Description: Show wired connection icon if NM has an active unmanaged device
+ If NM has an active unmanaged device it will forcefully set the online
+ state to CONNECTED_GLOBAL. In that case show a wired connection icon
+ instead of an offline icon
+Author: Michael Biebl <biebl@debian.org>
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=691436
+Index: gnome-shell-3.4.2/js/ui/status/network.js
+===================================================================
+--- gnome-shell-3.4.2.orig/js/ui/status/network.js	2013-01-15 00:12:23.921878067 +0100
++++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-15 00:12:23.913877995 +0100
+@@ -2017,9 +2017,14 @@
+         let mc = this._mainConnection;
+         let hasApIcon = false;
+         let hasMobileIcon = false;
++        let state = this._client.get_state();
+ 
+         if (!mc) {
+-            this.setIcon('network-offline');
++            if (state == NetworkManager.State.CONNECTED_GLOBAL) {
++                this.setIcon('network-wired-connected');
++            } else {
++                this.setIcon('network-offline');
++            }
+         } else if (mc.state == NetworkManager.ActiveConnectionState.ACTIVATING) {
+             switch (mc._section) {
+             case NMConnectionCategory.WWAN:
