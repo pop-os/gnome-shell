@@ -1,0 +1,67 @@
+Index: gnome-shell-3.4.2/js/ui/status/network.js
+===================================================================
+--- gnome-shell-3.4.2.orig/js/ui/status/network.js	2012-07-20 19:38:25.000000000 +0200
++++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-14 16:16:07.806637098 +0100
+@@ -97,6 +97,11 @@ function ssidToLabel(ssid) {
+     return label;
+ }
+ 
++function default_to_private_connections(client) {
++    let perms = client.get_permission_result (NMClient.ClientPermission.SETTINGS_MODIFY_SYSTEM);
++    return (perms != NMClient.ClientPermissionResult.YES);
++}
++
+ const NMNetworkMenuItem = new Lang.Class({
+     Name: 'NMNetworkMenuItem',
+     Extends: PopupMenu.PopupBaseMenuItem,
+@@ -864,12 +869,14 @@ const NMDeviceBluetooth = new Lang.Class
+         let connection = new NetworkManager.Connection;
+         connection._uuid = NetworkManager.utils_uuid_generate();
+         connection.add_setting(new NetworkManager.SettingBluetooth);
+-        connection.add_setting(new NetworkManager.SettingConnection({
++        let setting_conn = new NetworkManager.SettingConnection({
+             uuid: connection._uuid,
+             id: this._autoConnectionName,
+             type: NetworkManager.SETTING_BLUETOOTH_SETTING_NAME,
+             autoconnect: false
+-        }));
++        });
++        setting_conn.add_permission('user', GLib.get_user_name(), null);
++        connection.add_setting(setting_conn);
+         return connection;
+     },
+ 
+@@ -950,6 +957,8 @@ const NMDeviceWireless = new Lang.Class(
+         this._overflowItem = null;
+         this._networks = [ ];
+ 
++        this._client = client;
++
+         // breaking the layers with this, but cannot call
+         // this.connectionValid until I have a device
+         this.device = device;
+@@ -1455,12 +1464,22 @@ const NMDeviceWireless = new Lang.Class(
+ 
+         let connection = new NetworkManager.Connection();
+         connection.add_setting(new NetworkManager.SettingWireless());
+-        connection.add_setting(new NetworkManager.SettingConnection({
++        let setting_conn = new NetworkManager.SettingConnection({
+             id: name,
+             autoconnect: true, // NetworkManager will know to ignore this if appropriate
+             uuid: NetworkManager.utils_uuid_generate(),
+             type: NetworkManager.SETTING_WIRELESS_SETTING_NAME
+-        }));
++        });
++        if (default_to_private_connections(this._client)) {
++            setting_conn.add_permission('user', GLib.get_user_name(), null);
++            if (apObj.security == NMAccessPointSecurity.WPA2_PSK ||
++                apObj.security == NMAccessPointSecurity.WPA_PSK) {
++                connection.add_setting(new NetworkManager.SettingWirelessSecurity({
++                    psk_flags: NetworkManager.SettingSecretFlags.AGENT_OWNED
++                }));
++            }
++        }
++        connection.add_setting(setting_conn);
+         return connection;
+     },
+ 

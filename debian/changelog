@@ -1,3 +1,19 @@
+gnome-shell (3.4.2-6) UNRELEASED; urgency=low
+
+  * 28_network_user_connections.patch: new patch. Set connections and 
+    passwords as user-owned, following matching changes in nm-applet and 
+    gnome-control-center. The logic is:
+    - Wired connections: always system-owned.
+    - Modem (GSM/UMTS) connections are created by the control center.
+    - Bluetooth PAN connections are now always user-owned.
+    - Wireless connections are system-owned if the user has permissions 
+      (in Debian this means group sudo or netdev). Otherwise, it is 
+      user-owned, with the password in the keyring only for WPA.
+    - 802.1x (wired or wireless) is always handled by the control 
+      center.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 14 Jan 2013 16:22:43 +0100
+
 gnome-shell (3.4.2-5) unstable; urgency=low
 
   * 30_lockup_gc.patch: update patch. Instead of completely dropping 
