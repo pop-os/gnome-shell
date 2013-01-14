@@ -12,6 +12,7 @@ gnome-shell (3.4.2-6) UNRELEASED; urgency=low
       user-owned, with the password in the keyring only for WPA.
     - 802.1x (wired or wireless) is always handled by the control 
       center.
+    Closes: #696257
 
   [ Michael Biebl ]
   * Refresh patches to apply without fuzz.
