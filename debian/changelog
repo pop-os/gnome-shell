@@ -15,6 +15,9 @@ gnome-shell (3.4.2-6) UNRELEASED; urgency=low
 
   [ Michael Biebl ]
   * Refresh patches to apply without fuzz.
+  * 05-NetworkMenu-fix-updating-connection-lists.patch: Properly update the
+    Network UI when connections change their name or id. Patch cherry-picked
+    from upstream Git.
 
  -- Josselin Mouette <joss@debian.org>  Mon, 14 Jan 2013 16:22:43 +0100
 
