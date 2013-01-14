@@ -1,5 +1,6 @@
 gnome-shell (3.4.2-6) UNRELEASED; urgency=low
 
+  [ Josselin Mouette ]
   * 28_network_user_connections.patch: new patch. Set connections and 
     passwords as user-owned, following matching changes in nm-applet and 
     gnome-control-center. The logic is:
@@ -11,6 +12,9 @@ gnome-shell (3.4.2-6) UNRELEASED; urgency=low
       user-owned, with the password in the keyring only for WPA.
     - 802.1x (wired or wireless) is always handled by the control 
       center.
+
+  [ Michael Biebl ]
+  * Refresh patches to apply without fuzz.
 
  -- Josselin Mouette <joss@debian.org>  Mon, 14 Jan 2013 16:22:43 +0100
 

@@ -21,11 +21,11 @@ https://bugzilla.gnome.org/show_bug.cgi?id=658176
  src/shell-app-system.h |    2 --
  4 files changed, 23 insertions(+), 51 deletions(-)
 
-diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
-index 5b2c75f..8634c00 100644
---- a/js/ui/appDisplay.js
-+++ b/js/ui/appDisplay.js
-@@ -22,6 +22,7 @@ const Search = imports.ui.search;
+Index: gnome-shell-3.4.2/js/ui/appDisplay.js
+===================================================================
+--- gnome-shell-3.4.2.orig/js/ui/appDisplay.js	2013-01-15 00:14:45.883155542 +0100
++++ gnome-shell-3.4.2/js/ui/appDisplay.js	2013-01-15 00:14:45.871155434 +0100
+@@ -22,6 +22,7 @@
  const Tweener = imports.ui.tweener;
  const Workspace = imports.ui.workspace;
  const Params = imports.misc.params;
@@ -33,7 +33,7 @@ index 5b2c75f..8634c00 100644
  
  const MAX_APPLICATION_WORK_MILLIS = 75;
  const MENU_POPUP_TIMEOUT = 600;
-@@ -36,6 +37,7 @@ const AlphabeticalView = new Lang.Class({
+@@ -36,6 +37,7 @@
  
          this._pendingAppLaterId = 0;
          this._appIcons = {}; // desktop file id
@@ -41,7 +41,7 @@ index 5b2c75f..8634c00 100644
  
          let box = new St.BoxLayout({ vertical: true });
          box.add(this._grid.actor, { y_align: St.Align.START, expand: true });
-@@ -60,16 +62,22 @@ const AlphabeticalView = new Lang.Class({
+@@ -60,16 +62,22 @@
              }));
      },
  
@@ -68,7 +68,7 @@ index 5b2c75f..8634c00 100644
          appIcon.actor.connect('key-focus-in', Lang.bind(this, this._ensureIconVisible));
  
          this._appIcons[id] = appIcon;
-@@ -120,14 +128,6 @@ const AlphabeticalView = new Lang.Class({
+@@ -120,14 +128,6 @@
                  icon.actor.visible = true;
              }
          }
@@ -83,7 +83,7 @@ index 5b2c75f..8634c00 100644
      }
  });
  
-@@ -147,7 +147,6 @@ const ViewByCategories = new Lang.Class({
+@@ -147,7 +147,6 @@
          // (used only before the actor is mapped the first time)
          this._currentCategory = -2;
          this._categories = [];
@@ -91,7 +91,7 @@ index 5b2c75f..8634c00 100644
  
          this._categoryBox = new St.BoxLayout({ vertical: true,
                                                 reactive: true,
-@@ -204,8 +203,10 @@ const ViewByCategories = new Lang.Class({
+@@ -204,8 +203,10 @@
              if (nextType == GMenu.TreeItemType.ENTRY) {
                  var entry = iter.get_entry();
                  var app = this._appSystem.lookup_app_by_tree_entry(entry);
@@ -103,7 +103,7 @@ index 5b2c75f..8634c00 100644
              } else if (nextType == GMenu.TreeItemType.DIRECTORY) {
                  if (!dir.get_is_nodisplay())
                      this._loadCategory(iter.get_directory(), appList);
-@@ -213,7 +214,7 @@ const ViewByCategories = new Lang.Class({
+@@ -213,7 +214,7 @@
          }
      },
  
@@ -112,7 +112,7 @@ index 5b2c75f..8634c00 100644
          let button = new St.Button({ label: GLib.markup_escape_text (name, -1),
                                       style_class: 'app-filter',
                                       x_align: St.Align.START,
-@@ -225,7 +226,6 @@ const ViewByCategories = new Lang.Class({
+@@ -225,7 +226,6 @@
  
          var apps;
          if (dir == null) {
@@ -120,7 +120,7 @@ index 5b2c75f..8634c00 100644
              this._allCategoryButton = button;
          } else {
              apps = [];
-@@ -239,6 +239,7 @@ const ViewByCategories = new Lang.Class({
+@@ -239,6 +239,7 @@
      },
  
      _removeAll: function() {
@@ -128,7 +128,7 @@ index 5b2c75f..8634c00 100644
          this._categories = [];
          this._categoryBox.destroy_all_children();
      },
-@@ -246,13 +247,8 @@ const ViewByCategories = new Lang.Class({
+@@ -246,13 +247,8 @@
      refresh: function() {
          this._removeAll();
  
@@ -143,7 +143,7 @@ index 5b2c75f..8634c00 100644
  
          var tree = this._appSystem.get_tree();
          var root = tree.get_root_directory();
-@@ -270,7 +266,6 @@ const ViewByCategories = new Lang.Class({
+@@ -270,7 +266,6 @@
              }
          }
  
@@ -151,11 +151,11 @@ index 5b2c75f..8634c00 100644
          this._selectCategory(-1);
  
          if (this._focusDummy) {
-diff --git a/js/ui/iconGrid.js b/js/ui/iconGrid.js
-index ef71bc7..e4c4258 100644
---- a/js/ui/iconGrid.js
-+++ b/js/ui/iconGrid.js
-@@ -311,8 +311,11 @@ const IconGrid = new Lang.Class({
+Index: gnome-shell-3.4.2/js/ui/iconGrid.js
+===================================================================
+--- gnome-shell-3.4.2.orig/js/ui/iconGrid.js	2013-01-15 00:14:45.883155542 +0100
++++ gnome-shell-3.4.2/js/ui/iconGrid.js	2013-01-15 00:14:45.875155470 +0100
+@@ -311,8 +311,11 @@
          }));
      },
  
@@ -169,11 +169,11 @@ index ef71bc7..e4c4258 100644
      },
  
      getItemAtIndex: function(index) {
-diff --git a/src/shell-app-system.c b/src/shell-app-system.c
-index 2528e9f..98a7644 100644
---- a/src/shell-app-system.c
-+++ b/src/shell-app-system.c
-@@ -608,30 +608,6 @@ shell_app_system_lookup_heuristic_basename (ShellAppSystem *system,
+Index: gnome-shell-3.4.2/src/shell-app-system.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/shell-app-system.c	2013-01-15 00:14:45.883155542 +0100
++++ gnome-shell-3.4.2/src/shell-app-system.c	2013-01-15 00:14:45.875155470 +0100
+@@ -613,30 +613,6 @@
    return NULL;
  }
  
@@ -204,11 +204,11 @@ index 2528e9f..98a7644 100644
  void
  _shell_app_system_notify_app_state_changed (ShellAppSystem *self,
                                              ShellApp       *app)
-diff --git a/src/shell-app-system.h b/src/shell-app-system.h
-index c26b728..3d36385 100644
---- a/src/shell-app-system.h
-+++ b/src/shell-app-system.h
-@@ -51,8 +51,6 @@ ShellApp       *shell_app_system_lookup_heuristic_basename    (ShellAppSystem  *
+Index: gnome-shell-3.4.2/src/shell-app-system.h
+===================================================================
+--- gnome-shell-3.4.2.orig/src/shell-app-system.h	2013-01-15 00:14:45.883155542 +0100
++++ gnome-shell-3.4.2/src/shell-app-system.h	2013-01-15 00:14:45.875155470 +0100
+@@ -51,8 +51,6 @@
                                                                 const char      *id);
  
  
@@ -217,6 +217,3 @@ index c26b728..3d36385 100644
  GSList         *shell_app_system_get_running               (ShellAppSystem  *self);
  
  GSList         *shell_app_system_initial_search            (ShellAppSystem  *system,
--- 
-1.7.10
-

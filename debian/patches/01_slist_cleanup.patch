@@ -5,11 +5,11 @@ Subject: app-system: Use g_slist_free_full
 
 https://bugzilla.gnome.org/show_bug.cgi?id=658176
 ---
-diff --git a/src/shell-app-system.c b/src/shell-app-system.c
-index 26718b3..6210220 100644
---- a/src/shell-app-system.c
-+++ b/src/shell-app-system.c
-@@ -123,8 +123,7 @@ shell_app_system_finalize (GObject *object)
+Index: gnome-shell-3.4.2/src/shell-app-system.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/shell-app-system.c	2013-01-15 00:14:38.335087898 +0100
++++ gnome-shell-3.4.2/src/shell-app-system.c	2013-01-15 00:14:38.331087862 +0100
+@@ -128,8 +128,7 @@
    g_hash_table_destroy (priv->id_to_app);
    g_hash_table_destroy (priv->setting_id_to_app);
  
@@ -19,7 +19,7 @@ index 26718b3..6210220 100644
    priv->known_vendor_prefixes = NULL;
  
    G_OBJECT_CLASS (shell_app_system_parent_class)->finalize (object);
-@@ -309,8 +308,7 @@ on_apps_tree_changed_cb (GMenuTree *tree,
+@@ -314,8 +313,7 @@
  
    g_assert (tree == self->priv->apps_tree);
  
@@ -29,7 +29,7 @@ index 26718b3..6210220 100644
    self->priv->known_vendor_prefixes = NULL;
  
    if (!gmenu_tree_load_sync (self->priv->apps_tree, &error))
-@@ -761,8 +759,7 @@ search_tree (ShellAppSystem *self,
+@@ -754,8 +752,7 @@
                             &prefix_results,
                             &substring_results);
      }
@@ -39,7 +39,7 @@ index 26718b3..6210220 100644
  
    return sort_and_concat_results (self, prefix_results, substring_results);
  
-@@ -815,8 +812,7 @@ shell_app_system_subsearch (ShellAppSystem   *system,
+@@ -808,8 +805,7 @@
                             &prefix_results,
                             &substring_results);
      }
@@ -49,5 +49,3 @@ index 26718b3..6210220 100644
  
    /* Note that a shorter term might have matched as a prefix, but
       when extended only as a substring, so we have to redo the
---
-cgit v0.9.0.2
