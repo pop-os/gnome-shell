@@ -1,8 +1,8 @@
 Index: gnome-shell-3.4.2/js/ui/status/network.js
 ===================================================================
---- gnome-shell-3.4.2.orig/js/ui/status/network.js	2013-01-15 00:12:14.109789321 +0100
-+++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-15 00:12:14.101789249 +0100
-@@ -97,6 +97,11 @@
+--- gnome-shell-3.4.2.orig/js/ui/status/network.js	2012-07-20 19:38:25.000000000 +0200
++++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-14 16:16:07.806637098 +0100
+@@ -97,6 +97,11 @@ function ssidToLabel(ssid) {
      return label;
  }
  
@@ -14,13 +14,13 @@ Index: gnome-shell-3.4.2/js/ui/status/network.js
  const NMNetworkMenuItem = new Lang.Class({
      Name: 'NMNetworkMenuItem',
      Extends: PopupMenu.PopupBaseMenuItem,
-@@ -863,12 +868,14 @@
+@@ -864,12 +869,14 @@ const NMDeviceBluetooth = new Lang.Class
          let connection = new NetworkManager.Connection;
-         let uuid = NetworkManager.utils_uuid_generate();
+         connection._uuid = NetworkManager.utils_uuid_generate();
          connection.add_setting(new NetworkManager.SettingBluetooth);
 -        connection.add_setting(new NetworkManager.SettingConnection({
 +        let setting_conn = new NetworkManager.SettingConnection({
-             uuid: uuid,
+             uuid: connection._uuid,
              id: this._autoConnectionName,
              type: NetworkManager.SETTING_BLUETOOTH_SETTING_NAME,
              autoconnect: false
@@ -31,7 +31,7 @@ Index: gnome-shell-3.4.2/js/ui/status/network.js
          return connection;
      },
  
-@@ -949,6 +956,8 @@
+@@ -950,6 +957,8 @@ const NMDeviceWireless = new Lang.Class(
          this._overflowItem = null;
          this._networks = [ ];
  
@@ -40,7 +40,7 @@ Index: gnome-shell-3.4.2/js/ui/status/network.js
          // breaking the layers with this, but cannot call
          // this.connectionValid until I have a device
          this.device = device;
-@@ -1452,12 +1461,22 @@
+@@ -1455,12 +1464,22 @@ const NMDeviceWireless = new Lang.Class(
  
          let connection = new NetworkManager.Connection();
          connection.add_setting(new NetworkManager.SettingWireless());

@@ -16,9 +16,6 @@ gnome-shell (3.4.2-6) UNRELEASED; urgency=low
 
   [ Michael Biebl ]
   * Refresh patches to apply without fuzz.
-  * 05-NetworkMenu-fix-updating-connection-lists.patch: Properly update the
-    Network UI when connections change their name or id. Patch cherry-picked
-    from upstream Git.
   * 40-force-online.patch: If NM has an active unmanaged device it will
     forcefully set the online state to CONNECTED_GLOBAL. In that case show a
     wired connection icon instead of an offline icon. Closes: #691436
