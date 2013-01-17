@@ -6,9 +6,9 @@ Author: Michael Biebl <biebl@debian.org>
 Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=691436
 Index: gnome-shell-3.4.2/js/ui/status/network.js
 ===================================================================
---- gnome-shell-3.4.2.orig/js/ui/status/network.js	2013-01-15 16:54:32.406324948 +0100
-+++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-15 16:54:32.398324715 +0100
-@@ -2023,9 +2023,14 @@
+--- gnome-shell-3.4.2.orig/js/ui/status/network.js	2013-01-16 11:38:16.741758023 +0100
++++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-16 11:38:16.733757953 +0100
+@@ -2028,9 +2028,14 @@ const NMApplet = new Lang.Class({
          let mc = this._mainConnection;
          let hasApIcon = false;
          let hasMobileIcon = false;
