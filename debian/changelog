@@ -1,4 +1,4 @@
-gnome-shell (3.4.2-6) UNRELEASED; urgency=low
+gnome-shell (3.4.2-6) unstable; urgency=low
 
   [ Josselin Mouette ]
   * 28_network_user_connections.patch: new patch. Set connections and 
@@ -22,7 +22,7 @@ gnome-shell (3.4.2-6) UNRELEASED; urgency=low
   * 28_network_user_connections.patch: Treat WEP keys like WPA-PSK secrets and
     store them in the keyring for user-owned connections.
 
- -- Josselin Mouette <joss@debian.org>  Mon, 14 Jan 2013 16:22:43 +0100
+ -- Michael Biebl <biebl@debian.org>  Thu, 17 Jan 2013 10:43:30 +0100
 
 gnome-shell (3.4.2-5) unstable; urgency=low
 
