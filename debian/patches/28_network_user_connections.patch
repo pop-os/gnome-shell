@@ -1,7 +1,7 @@
 Index: gnome-shell-3.4.2/js/ui/status/network.js
 ===================================================================
---- gnome-shell-3.4.2.orig/js/ui/status/network.js	2012-07-20 19:38:25.000000000 +0200
-+++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-14 16:16:07.806637098 +0100
+--- gnome-shell-3.4.2.orig/js/ui/status/network.js	2013-01-15 19:32:37.397724811 +0100
++++ gnome-shell-3.4.2/js/ui/status/network.js	2013-01-16 11:38:36.000000000 +0100
 @@ -97,6 +97,11 @@ function ssidToLabel(ssid) {
      return label;
  }
@@ -40,7 +40,7 @@ Index: gnome-shell-3.4.2/js/ui/status/network.js
          // breaking the layers with this, but cannot call
          // this.connectionValid until I have a device
          this.device = device;
-@@ -1455,12 +1464,22 @@ const NMDeviceWireless = new Lang.Class(
+@@ -1455,12 +1464,27 @@ const NMDeviceWireless = new Lang.Class(
  
          let connection = new NetworkManager.Connection();
          connection.add_setting(new NetworkManager.SettingWireless());
@@ -58,6 +58,11 @@ Index: gnome-shell-3.4.2/js/ui/status/network.js
 +                apObj.security == NMAccessPointSecurity.WPA_PSK) {
 +                connection.add_setting(new NetworkManager.SettingWirelessSecurity({
 +                    psk_flags: NetworkManager.SettingSecretFlags.AGENT_OWNED
++                }));
++            }
++            if (apObj.security == NMAccessPointSecurity.WEP) {
++                connection.add_setting(new NetworkManager.SettingWirelessSecurity({
++                    wep_key_flags: NetworkManager.SettingSecretFlags.AGENT_OWNED
 +                }));
 +            }
 +        }

@@ -19,6 +19,8 @@ gnome-shell (3.4.2-6) UNRELEASED; urgency=low
   * 40-force-online.patch: If NM has an active unmanaged device it will
     forcefully set the online state to CONNECTED_GLOBAL. In that case show a
     wired connection icon instead of an offline icon. Closes: #691436
+  * 28_network_user_connections.patch: Treat WEP keys like WPA-PSK secrets and
+    store them in the keyring for user-owned connections.
 
  -- Josselin Mouette <joss@debian.org>  Mon, 14 Jan 2013 16:22:43 +0100
 
