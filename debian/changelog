@@ -1,7 +1,13 @@
 gnome-shell (3.4.2-7) UNRELEASED; urgency=low
 
+  [ Michael Biebl ]
   * 40-force-online.patch: Use correct icon name "network-wired" when the
     global online state is set to connected.
+
+  [ Laurent Bigonville ]
+  * debian/patches/50-remove-folks-integration.patch: Remove folks integration,
+    it might cause some slow startup time and cause Dbus call to timeout
+    (Closes: #693155)
 
  -- Michael Biebl <biebl@debian.org>  Thu, 17 Jan 2013 10:55:10 +0100
 
