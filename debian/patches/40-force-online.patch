@@ -17,7 +17,7 @@ Index: gnome-shell-3.4.2/js/ui/status/network.js
          if (!mc) {
 -            this.setIcon('network-offline');
 +            if (state == NetworkManager.State.CONNECTED_GLOBAL) {
-+                this.setIcon('network-wired-connected');
++                this.setIcon('network-wired');
 +            } else {
 +                this.setIcon('network-offline');
 +            }
