@@ -1,4 +1,4 @@
-gnome-shell (3.4.2-7) UNRELEASED; urgency=low
+gnome-shell (3.4.2-7) unstable; urgency=low
 
   [ Michael Biebl ]
   * 40-force-online.patch: Use correct icon name "network-wired" when the
@@ -9,7 +9,7 @@ gnome-shell (3.4.2-7) UNRELEASED; urgency=low
     it might cause some slow startup time and cause Dbus call to timeout
     (Closes: #693155)
 
- -- Michael Biebl <biebl@debian.org>  Thu, 17 Jan 2013 10:55:10 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 09 Feb 2013 14:20:45 +0100
 
 gnome-shell (3.4.2-6) unstable; urgency=low
 
