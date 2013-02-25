@@ -1,44 +1,126 @@
-gnome-shell (3.6.2-2) experimental; urgency=low
+gnome-shell (3.7.90-1) UNRELEASED; urgency=low
 
-  [ Josselin Mouette ]
-  * Recommend gkbd-capplet for gkbd-keyboard-display. Closes: #691731.
+  * Sync from Ubuntu
+  * d/p/ubuntu-lightdm-user-switching.patch:
+    d/p/ubuntu_lock_on_suspend.patch:
+    + Dropped, Ubuntu specifc
+  * d/p/14_make-GLX-optional.patch: Fixed upstream
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 24 Feb 2013 15:09:57 +0100
+
+gnome-shell (3.7.90-0ubuntu1~raring1) raring; urgency=medium
 
   [ Jeremy Bicha ]
-  * debian/control.in: Bump minimum mutter & eds depends
+  * New upstream alpha release
+  * debian/control.in:
+    - Drop obsolete libedataserverui-dev dependency
+    - Depend on gir1.2-nmgtk-1.0
+    - Build-depend on caribou and gnome-desktop3
+  * debian/watch: Watch for unstable releases
+  * ubuntu-lightdm-user-switching.patch: Refreshed
+  * ubuntu_lock_on_suspend.patch: Disabled
+  * revert-suspend-break.patch:
+    - Sure, suspend is currently broken on Ubuntu with GNOME 3.8, but let's
+      not break it worse than necessary
+  * git_fix_too_short_apps_view.patch:
+    - Fix missing text on bottom row of apps view in the overview
 
-  [ Sjoerd Simons ]
-  * debian/control.in: Build-depend on recent telepathy-logger which contains
-    various fixes for gnome-shell usage
-  * d/p/40-shell-recorder-src-Set-frame-duration.patch:
-     + Added. Correctly set the duration on the frames to create a correct webm
-       file (from upstream git, bgo#688487))
-  * d/p/50-Block-cancellation-of-the-unlock-dialog-when-draggin.patch:
-    + Added. Pressing esc while the mouse is down should not make the curtain
-      fall, otherwise a gray screen results. (From upstream git, bgo#686800)
-  * d/p/60-MessageTray-fix-reentrancy-when-calling-out-to-the-g.patch
-    d/p/61-MessageTray-restore-opacity-when-expanding-a-notific.patch
-    d/p/62-MessageTray-remove-all-tweens-when-tweening-for-stat.patch:
-    + Added. Various patches to fix the curious case of the disappearing
-      message tray (From upstream git, bgo#683986)
+  [ Rico Tzschichholz ]
+  * debian/control.in:
+    - Bump minimum dependencies on gnome-desktop3, libcroco, libpulse,
+      clutter, gsettings-desktop-schemas, gjs and mutter
+    - Build-depend on libcanberra-gtk3-dev
+    - Drop build-depends on gconf and libgnome-desktop3-dev
+  * debian/rules:
+    - Add src/gvc to gir list
+  * Drop patches applied in new version:
+    - git-set-ally-wm-theme.patch
+    - git_messagetray_opacity_fix.patch
+    - git_messagetray_remove_tweens.patch
+    - git_messagetray_fix_expansion.patch
+    - telepathyClient-Fix-auto-scroll-to-bottom.patch
+    - ubuntu_screensaver_fallback.patch
+  * 10-make-NetworkManager-optional.patch:
+    - Dropped, this was Debian-specific and they intend to drop it too
+  * Refreshed patches:
+    - 14_make-GLX-optional.patch
+    - ubuntu_lock_on_suspend.patch
+  * ubuntu-lightdm-user-switching.patch: Disabled as it breaks the user menu
 
- -- Sjoerd Simons <sjoerd@debian.org>  Fri, 04 Jan 2013 22:12:45 +0100
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 23 Feb 2013 17:43:44 -0500
 
-gnome-shell (3.6.2-1) experimental; urgency=low
+gnome-shell (3.6.2-0ubuntu4) raring; urgency=low
+
+  * Upstream bugfix for disappearing notifications (LP: #1088759)
+    debian/patches/git_messagetray_fix_expansion.patch
+
+ -- Tim Lunn <tim@feathertop.org>  Mon, 17 Dec 2012 07:55:47 +1100
+
+gnome-shell (3.6.2-0ubuntu3) raring; urgency=low
+
+  * Upstream bugfix for disappearing message tray (LP: #1067265)
+      debian/patches/git_messagetray_remove_tweens.patch
+      debian/patches/git_messagetray_opacity_fix.patch
+
+ -- Tim Lunn <tim@feathertop.org>  Tue, 27 Nov 2012 08:27:57 +1100
+
+gnome-shell (3.6.2-0ubuntu2) raring; urgency=low
+
+  * debian/control.in:
+    - Don't recommend gnome-session-fallback; gnome-shell doesn't need
+      fallback mode now that we're using llvmpipe
+  * debian/git-set-ally-wm-theme.patch:
+    - Git patch to set/reset HighContrast window theme too
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 25 Nov 2012 12:51:35 -0500
+
+gnome-shell (3.6.2-0ubuntu1) raring; urgency=low
+
+  * New upstream release. (LP: #1078155)
+    - Fixes disable-user-list option (LP: #1072838)
+  * debian/control.in
+    - Bump minimum mutter
+    - Build-depend on gtk-doc-tools to generate updated man page
+  * debian/patches/telepathyClient-Fix-auto-scroll-to-bottom.patch
+    - Dropped, applied in new version
+  * debian/patches/ubuntu_screensaver_fallback.patch:
+    - Dropped, applied in new version
+  * debian/patches/ubuntu_lock_on_suspend.patch
+    - Refreshed
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 12 Nov 2012 23:11:33 -0500
+
+gnome-shell (3.6.1-3ubuntu2) raring; urgency=low
+
+  * Rebuild against new mutter
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 08 Nov 2012 10:47:35 -0500
+
+gnome-shell (3.6.1-3ubuntu1) raring; urgency=low
+
+  [ Jeremy Bicha ]
+  * Merge with Debian (LP: #1044408). Remaining changes:
+  * debian/control.in:
+    - Depend on gdm instead of gdm3
+    - Don't depend on ibus 1.4.99 yet as it's not in Ubuntu yet
+  * debian/source_gnome-shell.py:
+    - Include session logs and report which display manager is running
+  * 29-Cope-with-clutter-being-built-with-both-new-and-old-.patch:
+    - Dropped, not needed in Ubuntu
+  * debian/patches/ubuntu-lightdm-user-switching.patch:
+    - Fix user switching when running lightdm (LP: #1064269)
+  * debian/patches/ubuntu_lock_on_suspend.patch
+    - fix lock on suspend via user menu
+  * debian/patches/ubuntu_screensaver_fallback.patch:
+    - Explicitly start gnome-screensaver when screenshield loads
+      in fallback mode.
 
   [ Simon McVittie ]
   * Increase libsoup dependency to 2.40, needed when installing extensions
-    from extensions.gnome.org (Closes: #691324)
+    from extensions.gnome.org
   * Recommend unzip, also for extensions.gnome.org (Closes: #680978)
 
-  [ Josselin Mouette ]
-  * Remove gdm3 dependency. Break versions < 3.5 instead.
-
-  [ Sjoerd Simons ]
-  * New upstream release (3.6.2)
-  * d/p/telepathyClient-Fix-auto-scroll-to-bottom.patch:
-    + Removed. Fixed upstream
-
- -- Sjoerd Simons <sjoerd@debian.org>  Sat, 17 Nov 2012 13:44:33 +0100
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 08 Nov 2012 09:21:38 -0500
 
 gnome-shell (3.6.1-3) experimental; urgency=low
 

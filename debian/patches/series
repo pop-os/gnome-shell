@@ -1,11 +1,5 @@
-#10-make-NetworkManager-optional.patch
 11-no-gettext.patch
-14_make-GLX-optional.patch
 27-nm-libexec-path.patch
-29-Cope-with-clutter-being-built-with-both-new-and-old-.patch
 30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
-40-shell-recorder-src-Set-frame-duration.patch
-50-Block-cancellation-of-the-unlock-dialog-when-draggin.patch
-60-MessageTray-fix-reentrancy-when-calling-out-to-the-g.patch
-61-MessageTray-restore-opacity-when-expanding-a-notific.patch
-62-MessageTray-remove-all-tweens-when-tweening-for-stat.patch
+revert-suspend-break.patch
+git_fix_too_short_apps_view.patch
