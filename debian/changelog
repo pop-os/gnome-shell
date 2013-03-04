@@ -7,8 +7,10 @@ gnome-shell (3.7.90-1) UNRELEASED; urgency=low
   * d/p/14_make-GLX-optional.patch: Fixed upstream
   * debian/control.in: Depend on e-d-s >= 3.7.90 to fix build failures due to
     deprecated structures in headers.
+  * debian/patches/40_change-pam-name-to-match-gdm.patch
+    + Added. Change the pam service name to match the one used by gdm in debian
 
- -- Sjoerd Simons <sjoerd@debian.org>  Wed, 27 Feb 2013 22:16:21 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 04 Mar 2013 22:48:24 +0100
 
 gnome-shell (3.7.90-0ubuntu1~raring1) raring; urgency=medium
 
