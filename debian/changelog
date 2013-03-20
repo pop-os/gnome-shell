@@ -1,4 +1,4 @@
-gnome-shell (3.7.92-1) UNRELEASED; urgency=low
+gnome-shell (3.7.92-1) experimental; urgency=low
 
   [ Sjoerd Simons ]
   * Sync from Ubuntu
@@ -20,7 +20,7 @@ gnome-shell (3.7.92-1) UNRELEASED; urgency=low
     + debian/patches/git_fix_too_short_apps_view.patch:
       - Removed, included upstream.
 
- -- Sjoerd Simons <sjoerd@debian.org>  Mon, 04 Mar 2013 22:48:24 +0100
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 20 Mar 2013 22:40:26 +0100
 
 gnome-shell (3.7.90-0ubuntu1~raring1) raring; urgency=medium
 
