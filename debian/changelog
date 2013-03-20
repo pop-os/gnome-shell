@@ -13,6 +13,8 @@ gnome-shell (3.7.92-1) UNRELEASED; urgency=low
 
   [ Emilio Pozuelo Monfort ]
   * New upstream release.
+    + debian/control.in:
+      - Update build dependencies.
 
  -- Sjoerd Simons <sjoerd@debian.org>  Mon, 04 Mar 2013 22:48:24 +0100
 
