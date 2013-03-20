@@ -15,6 +15,8 @@ gnome-shell (3.7.92-1) UNRELEASED; urgency=low
   * New upstream release.
     + debian/control.in:
       - Update build dependencies.
+      - Temporarily add an explicit build-depend on network-manager-dev
+        until libnm-glib-dev gets a versioned dependency.
     + debian/patches/git_fix_too_short_apps_view.patch:
       - Removed, included upstream.
 

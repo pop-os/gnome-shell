@@ -35,6 +35,8 @@ Build-Depends: autotools-dev,
                libibus-1.0-dev,
                libmutter-dev (>= 3.7.92),
                libnm-glib-dev (>= 0.9.8) [linux-any],
+# temporary workaround until libnm-glib-dev is fixed
+ network-manager-dev (>= 0.9.8) [linux-any],
                libnm-glib-vpn-dev (>= 0.9.8) [linux-any],
                libnm-gtk-dev (>= 0.9.6),
                libnm-util-dev (>= 0.9) [linux-any],
