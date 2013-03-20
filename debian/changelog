@@ -1,5 +1,6 @@
-gnome-shell (3.7.90-1) UNRELEASED; urgency=low
+gnome-shell (3.7.92-1) UNRELEASED; urgency=low
 
+  [ Sjoerd Simons ]
   * Sync from Ubuntu
   * d/p/ubuntu-lightdm-user-switching.patch:
     d/p/ubuntu_lock_on_suspend.patch:
@@ -9,6 +10,9 @@ gnome-shell (3.7.90-1) UNRELEASED; urgency=low
     deprecated structures in headers.
   * debian/patches/40_change-pam-name-to-match-gdm.patch
     + Added. Change the pam service name to match the one used by gdm in debian
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
 
  -- Sjoerd Simons <sjoerd@debian.org>  Mon, 04 Mar 2013 22:48:24 +0100
 
