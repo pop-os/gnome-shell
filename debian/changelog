@@ -1,6 +1,10 @@
-gnome-shell (3.7.92-2) UNRELEASED; urgency=low
+gnome-shell (3.8.0-1) UNRELEASED; urgency=low
 
+  [ Sjoerd Simons ]
   * debian/control.in: Bump caribou run-time depend to >= 0.4.8
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
 
  -- Sjoerd Simons <sjoerd@debian.org>  Sun, 24 Mar 2013 19:28:45 +0100
 
