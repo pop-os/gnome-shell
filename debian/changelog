@@ -5,6 +5,8 @@ gnome-shell (3.8.0-1) UNRELEASED; urgency=low
 
   [ Emilio Pozuelo Monfort ]
   * New upstream release.
+    + debian/control.in:
+      - Bump mutter build and binary dependencies.
 
  -- Sjoerd Simons <sjoerd@debian.org>  Sun, 24 Mar 2013 19:28:45 +0100
 
