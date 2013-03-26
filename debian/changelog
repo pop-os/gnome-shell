@@ -9,6 +9,7 @@ gnome-shell (3.8.0-1) UNRELEASED; urgency=low
       - Bump mutter build and binary dependencies.
       - Remove build dependency on network-manager-dev now that
         libnm-glib-dev has been fixed.
+      - Restrict libnm-gtk-dev build dependency to linux-any.
 
  -- Sjoerd Simons <sjoerd@debian.org>  Sun, 24 Mar 2013 19:28:45 +0100
 
