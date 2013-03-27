@@ -1,8 +1,8 @@
-gnome-shell (3.8.0.1-1) UNRELEASED; urgency=low
+gnome-shell (3.8.0.1-1) experimental; urgency=low
 
   * New upstream release.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 27 Mar 2013 19:10:03 +0100
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 27 Mar 2013 19:12:49 +0100
 
 gnome-shell (3.8.0-1) experimental; urgency=low
 
