@@ -1,9 +1,9 @@
-gnome-shell (3.8.1-1) UNRELEASED; urgency=low
+gnome-shell (3.8.1-1) experimental; urgency=low
 
   * New upstream release
   * debian/control.in: Update mutter depends to 3.8.1
 
- -- Sjoerd Simons <sjoerd@debian.org>  Fri, 19 Apr 2013 19:34:59 +0200
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 19 Apr 2013 23:45:29 +0200
 
 gnome-shell (3.8.0.1-2) experimental; urgency=low
 
