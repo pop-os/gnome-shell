@@ -1,3 +1,14 @@
+gnome-shell (3.8.1-2) UNRELEASED; urgency=low
+
+  * Team upload
+  * Reinstate support for suspend via UPower using the user-menu, until
+    our logind is new enough to take over (Closes: #704272)
+  * Delay suspend for 1 second in the hope that that's long enough to lock
+    the screen (works around #645716, but only if you suspend via the
+    user-menu)
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 22 Apr 2013 11:15:08 +0100
+
 gnome-shell (3.8.1-1) experimental; urgency=low
 
   * New upstream release
