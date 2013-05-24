@@ -1,10 +1,10 @@
-gnome-shell (3.8.2-1) UNRELEASED; urgency=low
+gnome-shell (3.8.2-1) experimental; urgency=low
 
   * New upstream release.
     + debian/control.in:
       - Update mutter dependencies.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 24 May 2013 13:19:51 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 24 May 2013 17:34:32 +0200
 
 gnome-shell (3.8.1-2) experimental; urgency=low
 
