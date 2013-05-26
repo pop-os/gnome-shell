@@ -1,3 +1,11 @@
+gnome-shell (3.4.2-8) UNRELEASED; urgency=low
+
+  * debian/patches/0001-st-theme-node-drawing-Don-t-use-GL-types.patch:
+    + Patch from upstream git, don't use GL types as cogl doesn't expose
+      GL headers in newer releases. This will ease the cogl transition.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 26 May 2013 15:31:22 +0200
+
 gnome-shell (3.4.2-7) unstable; urgency=low
 
   [ Michael Biebl ]

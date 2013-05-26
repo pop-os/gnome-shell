@@ -1,0 +1,30 @@
+From 5d98e2bf04891f3d6144cceb1e26f58e72d1fc02 Mon Sep 17 00:00:00 2001
+From: Neil Roberts <neil@linux.intel.com>
+Date: Fri, 23 Mar 2012 19:14:29 +0000
+Subject: [PATCH] st-theme-node-drawing: Don't use GL types
+
+This swaps a use of GLfloat for a regular float. Cogl might stop
+including a GL header in its public headers soon so this would fix a
+compilation error.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=672711
+---
+ src/st/st-theme-node-drawing.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/st/st-theme-node-drawing.c b/src/st/st-theme-node-drawing.c
+index cab2542..1ac3e39 100644
+--- a/src/st/st-theme-node-drawing.c
++++ b/src/st/st-theme-node-drawing.c
+@@ -1782,7 +1782,7 @@ st_theme_node_paint_sliced_border_image (StThemeNode           *node,
+   cogl_set_source (material);
+ 
+   {
+-    GLfloat rectangles[] =
++    float rectangles[] =
+     {
+       /* top left corner */
+       0, 0, border_left, border_top,
+-- 
+1.8.3.rc3
+

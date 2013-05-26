@@ -15,3 +15,4 @@
 33-screen-reader-l10n.patch
 40-force-online.patch
 50-remove-folks-integration.patch
+0001-st-theme-node-drawing-Don-t-use-GL-types.patch
