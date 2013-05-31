@@ -91,7 +91,6 @@ Depends: ${gir:Depends},
          evolution-data-server (>= 3.7.90)
 Recommends: gnome-contacts,
             gnome-control-center,
-            gnome-session-fallback,
             gnome-user-guide,
             unzip
 Breaks: fglrx-driver (<< 1:11-10),
