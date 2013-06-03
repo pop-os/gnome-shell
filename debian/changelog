@@ -1,7 +1,13 @@
 gnome-shell (3.8.2-2) UNRELEASED; urgency=low
 
+  [ Jeremy Bicha ]
   * debian/control.in:
     - Don't recommend gnome-session-fallback
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Bump minimum gir1.2-gtk-3.0 dependency.
+      Thanks to Frederik Himpe <fhimpe@telenet.be>.
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 31 May 2013 11:55:07 -0400
 
