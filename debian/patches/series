@@ -1,5 +1,5 @@
 11-no-gettext.patch
 27-nm-libexec-path.patch
-30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
+#30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 40_change-pam-name-to-match-gdm.patch
 revert-suspend-break.patch
