@@ -92,6 +92,7 @@ Depends: ${gir:Depends},
 Recommends: gnome-contacts,
             gnome-control-center,
             gnome-user-guide,
+            gkbd-capplet,
             unzip
 Breaks: fglrx-driver (<< 1:11-10),
         gnome-control-center (<< 1:3.0),
