@@ -1,4 +1,4 @@
-gnome-shell (3.8.3-1) UNRELEASED; urgency=low
+gnome-shell (3.8.3-1) experimental; urgency=low
 
   [ Jeremy Bicha ]
   * debian/control.in:
@@ -16,7 +16,7 @@ gnome-shell (3.8.3-1) UNRELEASED; urgency=low
       it conflicts with changes in the new version and may not be necessary
       anymore.
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 31 May 2013 11:55:07 -0400
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 08 Jun 2013 19:05:08 +0200
 
 gnome-shell (3.8.2-1) experimental; urgency=low
 
