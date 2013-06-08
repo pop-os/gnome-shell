@@ -9,6 +9,8 @@ gnome-shell (3.8.3-1) UNRELEASED; urgency=low
     + Bump minimum gir1.2-gtk-3.0 dependency.
       Thanks to Frederik Himpe <fhimpe@telenet.be>.
   * New upstream release.
+  * debian/control.in:
+    + Bump build dependencies.
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 31 May 2013 11:55:07 -0400
 
