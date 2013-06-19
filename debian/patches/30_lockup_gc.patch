@@ -1,7 +1,7 @@
 Index: gnome-shell-3.4.2/src/shell-global.c
 ===================================================================
---- gnome-shell-3.4.2.orig/src/shell-global.c	2012-07-20 19:38:25.000000000 +0200
-+++ gnome-shell-3.4.2/src/shell-global.c	2013-01-03 00:58:06.396025821 +0100
+--- gnome-shell-3.4.2.orig/src/shell-global.c	2013-06-19 23:42:05.465262116 +0200
++++ gnome-shell-3.4.2/src/shell-global.c	2013-06-20 00:55:59.838940666 +0200
 @@ -45,6 +45,7 @@ static ShellGlobal *the_object = NULL;
  static void grab_notify (GtkWidget *widget, gboolean is_grab, gpointer user_data);
  static void shell_global_on_gc (GjsContext   *context,
@@ -10,15 +10,16 @@ Index: gnome-shell-3.4.2/src/shell-global.c
  
  struct _ShellGlobal {
    GObject parent;
-@@ -92,6 +93,7 @@ struct _ShellGlobal {
+@@ -92,6 +93,8 @@ struct _ShellGlobal {
    guint32 xdnd_timestamp;
  
    gint64 last_gc_end_time;
 +  guint gc_timer;
++  gboolean gc_timer_first;
  };
  
  enum {
-@@ -277,8 +279,13 @@ shell_global_init (ShellGlobal *global)
+@@ -277,8 +280,19 @@ shell_global_init (ShellGlobal *global)
                                       "js-version", "1.8",
                                       "gc-notifications", TRUE,
                                       NULL);
@@ -29,10 +30,16 @@ Index: gnome-shell-3.4.2/src/shell-global.c
 +     minutes or so. */
 +  global->gc_timer = g_timeout_add_seconds (600, on_gc_timeout, global);
 +
++  /* Since it can deadlock more easily the first time, run it once right
++     after startup, so that it locks up soon and not after 10 minutes worth
++     of work. */
++  global->gc_timer_first = TRUE;
++  g_timeout_add_seconds (15, on_gc_timeout, global);
++
    g_strfreev (search_path);
  }
  
-@@ -1605,13 +1612,6 @@ run_leisure_functions (gpointer data)
+@@ -1605,13 +1619,6 @@ run_leisure_functions (gpointer data)
    if (global->work_count > 0)
      return FALSE;
  
@@ -46,7 +53,7 @@ Index: gnome-shell-3.4.2/src/shell-global.c
    /* No leisure closures, so we are done */
    if (global->leisure_closures == NULL)
      return FALSE;
-@@ -1635,6 +1635,16 @@ run_leisure_functions (gpointer data)
+@@ -1635,6 +1642,21 @@ run_leisure_functions (gpointer data)
    return FALSE;
  }
  
@@ -56,6 +63,11 @@ Index: gnome-shell-3.4.2/src/shell-global.c
 +  ShellGlobal *global = data;
 +  gjs_context_gc (global->js_context);
 +
++  if (global->gc_timer_first) {
++    /* The first time, the timeout is much shorter; do it only once */
++    global->gc_timer_first = FALSE;
++    return FALSE;
++  }
 +  return TRUE;
 +}
 +
