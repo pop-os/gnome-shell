@@ -1,8 +1,11 @@
-gnome-shell (3.4.2-8) UNRELEASED; urgency=low
+gnome-shell (3.4.2-7+deb7u1) UNRELEASED; urgency=low
 
-  * Run the GC a first time after 15 seconds, and next every 10 minutes. 
-    This is to avoid running into a deadlock (which often happens the 
-    first time) and lose 10 minutes of work.
+  * 30_lockup_gc.patch:
+    + Run the GC a first time after 15 seconds, and next every 10 
+      minutes. This is to avoid running into a deadlock (which often 
+      happens the first time) and lose 10 minutes of work.
+    + Add a watchdog thread to suicide the process after 10 seconds if 
+      the GC locks up.
 
  -- Josselin Mouette <joss@debian.org>  Thu, 20 Jun 2013 00:56:14 +0200
 
