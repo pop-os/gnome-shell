@@ -1,7 +1,7 @@
 Index: gnome-shell-3.4.2/src/shell-global.c
 ===================================================================
 --- gnome-shell-3.4.2.orig/src/shell-global.c	2012-07-20 19:38:25.000000000 +0200
-+++ gnome-shell-3.4.2/src/shell-global.c	2013-06-20 10:21:51.056250269 +0200
++++ gnome-shell-3.4.2/src/shell-global.c	2013-06-20 10:40:00.980502700 +0200
 @@ -45,6 +45,8 @@
  static void grab_notify (GtkWidget *widget, gboolean is_grab, gpointer user_data);
  static void shell_global_on_gc (GjsContext   *context,
@@ -120,8 +120,8 @@ Index: gnome-shell-3.4.2/src/shell-global.c
  {
 Index: gnome-shell-3.4.2/configure.ac
 ===================================================================
---- gnome-shell-3.4.2.orig/configure.ac	2013-06-20 09:37:36.520501266 +0200
-+++ gnome-shell-3.4.2/configure.ac	2013-06-20 09:38:02.204252168 +0200
+--- gnome-shell-3.4.2.orig/configure.ac	2013-06-20 10:40:00.888502636 +0200
++++ gnome-shell-3.4.2/configure.ac	2013-06-20 10:40:00.980502700 +0200
 @@ -75,6 +75,7 @@
  
  # Collect more than 20 libraries for a prize!
@@ -132,8 +132,8 @@ Index: gnome-shell-3.4.2/configure.ac
                                 folks >= $FOLKS_MIN_VERSION
 Index: gnome-shell-3.4.2/src/main.c
 ===================================================================
---- gnome-shell-3.4.2.orig/src/main.c	2013-06-20 09:39:45.016501352 +0200
-+++ gnome-shell-3.4.2/src/main.c	2013-06-20 09:41:04.620250999 +0200
+--- gnome-shell-3.4.2.orig/src/main.c	2012-07-20 19:38:25.000000000 +0200
++++ gnome-shell-3.4.2/src/main.c	2013-06-20 10:40:00.980502700 +0200
 @@ -10,6 +10,7 @@
  
  #include <clutter/clutter.h>
