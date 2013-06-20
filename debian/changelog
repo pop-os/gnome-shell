@@ -1,7 +1,8 @@
 gnome-shell (3.4.2-9) UNRELEASED; urgency=low
 
   * debian/patches/60-gnome-bluetooth-3.8.patch:
-    + Adapt to gnome-bluetooth's 3.8 api change. Closes: #712861.
+    + Adapt to gnome-bluetooth's 3.8 api change. Thanks to Ben Armstrong
+      his help with testing. Closes: #712861.
   * debian/control.in:
     + Require gnome-bluetooth 3.8.
 
