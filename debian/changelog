@@ -1,12 +1,12 @@
-gnome-shell (3.4.2-9) UNRELEASED; urgency=low
+gnome-shell (3.4.2-9) unstable; urgency=low
 
   * debian/patches/60-gnome-bluetooth-3.8.patch:
     + Adapt to gnome-bluetooth's 3.8 api change. Thanks to Ben Armstrong
-      his help with testing. Closes: #712861.
+      for his help with testing. Closes: #712861.
   * debian/control.in:
     + Require gnome-bluetooth 3.8.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 20 Jun 2013 12:11:38 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 20 Jun 2013 15:58:39 +0200
 
 gnome-shell (3.4.2-8) unstable; urgency=low
 
