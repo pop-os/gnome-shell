@@ -1,7 +1,7 @@
-usr/share/glib-2.0
+debian/source_gnome-shell.py /usr/share/apport/package-hooks
 usr/share/GConf
+usr/share/glib-2.0
 usr/share/gnome-control-center
 usr/share/gnome-shell
 usr/share/gtk-doc
 usr/share/locale
-debian/source_gnome-shell.py /usr/share/apport/package-hooks
