@@ -1,10 +1,10 @@
-gnome-shell (3.4.2-10) UNRELEASED; urgency=low
+gnome-shell (3.4.2-10) unstable; urgency=low
 
   * debian/patches/14_make-GLX-optional.patch: Add an --enable-glx configure
     switch and explicitly disable GLX support on arm{el,hf}. This way we don't
     FTBFS if another package pulls the GL/GLX devel packages.
 
- -- Michael Biebl <biebl@debian.org>  Mon, 01 Jul 2013 11:51:31 +0200
+ -- Michael Biebl <biebl@debian.org>  Mon, 01 Jul 2013 11:52:24 +0200
 
 gnome-shell (3.4.2-9) unstable; urgency=low
 
