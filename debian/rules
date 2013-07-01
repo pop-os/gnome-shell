@@ -19,5 +19,9 @@ $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
 
 DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
 
+ifneq (,$(findstring $(DEB_BUILD_ARCH),armel armhf))
+DEB_CONFIGURE_EXTRA_FLAGS += --disable-glx
+endif
+
 DEB_DH_MAKESHLIBS_ARGS_gnome-shell = -Xlibgnome-shell
 DEB_SHLIBDEPS_INCLUDE = /usr/lib/gnome-bluetooth
