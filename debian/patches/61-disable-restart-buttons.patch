@@ -56,7 +56,7 @@ Last-Update: 2013-07-03
      _updateVisibility: function() {
 -        if (!this._haveSuspend && !this._haveShutdown && !this._haveRestart)
 +        if ((!this._haveSuspend && !this._haveShutdown && !this._haveRestart)
-+            || this_.hasDisableRestartButtons())
++            || this._hasDisableRestartButtons())
              this.actor.hide();
          else
              this.actor.show();
