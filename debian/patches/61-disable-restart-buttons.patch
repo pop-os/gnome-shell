@@ -2,6 +2,10 @@ Description: loginScreen: Add support for 'disable-restart-buttons'
  GDM's GSettings schema contains a 'disable-restart-buttons' key
  that currently is only supported by the fallback greeter.
  Implement support in the shell greeter as well.
+ .
+ Compared to the original upstream fix, this patch handles gracefully the case
+ where gdm's schema are not available, in order to prevent crashes if gdm3 is
+ not installed.
 Origin: backport, https://git.gnome.org/browse/gnome-shell/commit/?id=86c85a752eacf4f89d8d5ca5ef1000692385c1af
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=686247
 Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=714862
@@ -25,24 +29,34 @@ Last-Update: 2013-07-03
  const PowerMenuButton = new Lang.Class({
      Name: 'PowerMenuButton',
      Extends: PanelMenu.SystemStatusButton,
-@@ -40,6 +43,10 @@
+@@ -40,6 +43,12 @@
          else
              this._consoleKitManager = new ConsoleKit.ConsoleKitManager();
  
-+        this._settings = new Gio.Settings({ schema: _LOGIN_SCREEN_SCHEMA });
-+        this._settings.connect('changed::disable-restart-buttons',
-+                               Lang.bind(this, this._updateVisibility));
++        if (Gio.Settings.list_schemas().indexOf(_LOGIN_SCREEN_SCHEMA) != -1) {
++            this._settings = new Gio.Settings({ schema: _LOGIN_SCREEN_SCHEMA });
++            this._settings.connect('changed::disable-restart-buttons',
++                                   Lang.bind(this, this._updateVisibility));
++        }
 +
          this._createSubMenu();
  
          this._upClient.connect('notify::can-suspend',
-@@ -60,7 +67,8 @@
+@@ -59,8 +68,16 @@
+         this._updateHaveRestart();
      },
  
++    _hasDisableRestartButtons: function() {
++        if (this._settings)
++            return this._settings.get_boolean('disable-restart-buttons');
++        else
++            return false;
++    },
++
      _updateVisibility: function() {
 -        if (!this._haveSuspend && !this._haveShutdown && !this._haveRestart)
 +        if ((!this._haveSuspend && !this._haveShutdown && !this._haveRestart)
-+            || this._settings.get_boolean('disable-restart-buttons'))
++            || this_.hasDisableRestartButtons())
              this.actor.hide();
          else
              this.actor.show();
