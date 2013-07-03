@@ -1,3 +1,11 @@
+gnome-shell (3.4.2-11) UNRELEASED; urgency=low
+
+  * debian/patches/61-disable-restart-buttons.patch: new patch, backported from
+    upstream. Makes the 'disable-restart-buttons' option of gdm-shell work.
+    (Closes: #714862)
+
+ -- Sébastien Villemot <sebastien@debian.org>  Wed, 03 Jul 2013 20:56:16 +0200
+
 gnome-shell (3.4.2-10) unstable; urgency=low
 
   * debian/patches/14_make-GLX-optional.patch: Add an --enable-glx configure

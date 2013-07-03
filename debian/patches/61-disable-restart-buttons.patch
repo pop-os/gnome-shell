@@ -1,0 +1,48 @@
+Description: loginScreen: Add support for 'disable-restart-buttons'
+ GDM's GSettings schema contains a 'disable-restart-buttons' key
+ that currently is only supported by the fallback greeter.
+ Implement support in the shell greeter as well.
+Origin: backport, https://git.gnome.org/browse/gnome-shell/commit/?id=86c85a752eacf4f89d8d5ca5ef1000692385c1af
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=686247
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=714862
+Last-Update: 2013-07-03
+--- a/js/gdm/powerMenu.js
++++ b/js/gdm/powerMenu.js
+@@ -18,6 +18,7 @@
+  * 02111-1307, USA.
+  */
+ 
++const Gio = imports.gi.Gio;
+ const Lang = imports.lang;
+ const UPowerGlib = imports.gi.UPowerGlib;
+ 
+@@ -27,6 +28,8 @@
+ const PanelMenu = imports.ui.panelMenu;
+ const PopupMenu = imports.ui.popupMenu;
+ 
++const _LOGIN_SCREEN_SCHEMA = 'org.gnome.login-screen';
++
+ const PowerMenuButton = new Lang.Class({
+     Name: 'PowerMenuButton',
+     Extends: PanelMenu.SystemStatusButton,
+@@ -40,6 +43,10 @@
+         else
+             this._consoleKitManager = new ConsoleKit.ConsoleKitManager();
+ 
++        this._settings = new Gio.Settings({ schema: _LOGIN_SCREEN_SCHEMA });
++        this._settings.connect('changed::disable-restart-buttons',
++                               Lang.bind(this, this._updateVisibility));
++
+         this._createSubMenu();
+ 
+         this._upClient.connect('notify::can-suspend',
+@@ -60,7 +67,8 @@
+     },
+ 
+     _updateVisibility: function() {
+-        if (!this._haveSuspend && !this._haveShutdown && !this._haveRestart)
++        if ((!this._haveSuspend && !this._haveShutdown && !this._haveRestart)
++            || this._settings.get_boolean('disable-restart-buttons'))
+             this.actor.hide();
+         else
+             this.actor.show();
