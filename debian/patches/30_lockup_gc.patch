@@ -1,24 +1,30 @@
 Index: gnome-shell-3.4.2/src/shell-global.c
 ===================================================================
---- gnome-shell-3.4.2.orig/src/shell-global.c	2012-07-20 19:38:25.000000000 +0200
-+++ gnome-shell-3.4.2/src/shell-global.c	2013-01-03 00:58:06.396025821 +0100
-@@ -45,6 +45,7 @@ static ShellGlobal *the_object = NULL;
+--- gnome-shell-3.4.2.orig/src/shell-global.c	2013-06-20 20:19:51.447692008 +0200
++++ gnome-shell-3.4.2/src/shell-global.c	2013-06-20 20:20:28.683874046 +0200
+@@ -45,6 +45,8 @@ static ShellGlobal *the_object = NULL;
  static void grab_notify (GtkWidget *widget, gboolean is_grab, gpointer user_data);
  static void shell_global_on_gc (GjsContext   *context,
                                  ShellGlobal  *global);
 +static gboolean on_gc_timeout (gpointer data);
++static gpointer gc_watchdog_func (gpointer data);
  
  struct _ShellGlobal {
    GObject parent;
-@@ -92,6 +93,7 @@ struct _ShellGlobal {
+@@ -92,6 +94,12 @@ struct _ShellGlobal {
    guint32 xdnd_timestamp;
  
    gint64 last_gc_end_time;
 +  guint gc_timer;
++  gboolean gc_timer_first;
++  gboolean gc_is_running;
++  GThread *gc_watchdog;
++  GMutex gc_is_running_mutex;
++  GCond gc_watchdog_cond;
  };
  
  enum {
-@@ -277,8 +279,13 @@ shell_global_init (ShellGlobal *global)
+@@ -277,8 +285,19 @@ shell_global_init (ShellGlobal *global)
                                       "js-version", "1.8",
                                       "gc-notifications", TRUE,
                                       NULL);
@@ -29,10 +35,16 @@ Index: gnome-shell-3.4.2/src/shell-global.c
 +     minutes or so. */
 +  global->gc_timer = g_timeout_add_seconds (600, on_gc_timeout, global);
 +
++  /* Since it can deadlock more easily the first time, run it once right
++     after startup, so that it locks up soon and not after 10 minutes worth
++     of work. */
++  global->gc_timer_first = TRUE;
++  g_timeout_add_seconds (15, on_gc_timeout, global);
++
    g_strfreev (search_path);
  }
  
-@@ -1605,13 +1612,6 @@ run_leisure_functions (gpointer data)
+@@ -1605,13 +1624,6 @@ run_leisure_functions (gpointer data)
    if (global->work_count > 0)
      return FALSE;
  
@@ -46,7 +58,7 @@ Index: gnome-shell-3.4.2/src/shell-global.c
    /* No leisure closures, so we are done */
    if (global->leisure_closures == NULL)
      return FALSE;
-@@ -1635,6 +1635,16 @@ run_leisure_functions (gpointer data)
+@@ -1635,6 +1647,58 @@ run_leisure_functions (gpointer data)
    return FALSE;
  }
  
@@ -54,12 +66,86 @@ Index: gnome-shell-3.4.2/src/shell-global.c
 +on_gc_timeout (gpointer data)
 +{
 +  ShellGlobal *global = data;
++
++  /* Set up a watchdog thread to suicide the process if the GC is on deadlock */
++  if (global->gc_watchdog == NULL)
++    global->gc_watchdog = g_thread_new ("gc-watchdog", gc_watchdog_func, global);
++
++  g_mutex_lock (&global->gc_is_running_mutex);
++  global->gc_is_running = TRUE;
++  g_cond_signal (&global->gc_watchdog_cond);
++  g_mutex_unlock (&global->gc_is_running_mutex);
++
 +  gjs_context_gc (global->js_context);
 +
++  g_mutex_lock (&global->gc_is_running_mutex);
++  global->gc_is_running = FALSE;
++  g_cond_signal (&global->gc_watchdog_cond);
++  g_mutex_unlock (&global->gc_is_running_mutex);
++
++  if (global->gc_timer_first) {
++    /* The first time, the timeout is much shorter; cancel this timer only */
++    global->gc_timer_first = FALSE;
++    return FALSE;
++  }
 +  return TRUE;
 +}
 +
++static gpointer
++gc_watchdog_func (gpointer data)
++{
++  ShellGlobal *global = data;
++  gint64 end_time;
++  g_mutex_lock (&global->gc_is_running_mutex);
++  while (TRUE)
++  {
++    /* Wait for a GC to start */
++    while (!global->gc_is_running)
++      g_cond_wait (&global->gc_watchdog_cond, &global->gc_is_running_mutex);
++    /* Now watch for the GC for 10 seconds */
++    end_time = g_get_monotonic_time () + 10 * G_TIME_SPAN_SECOND;
++    while (global->gc_is_running)
++      if (!g_cond_wait_until (&global->gc_watchdog_cond, &global->gc_is_running_mutex, end_time))
++        {
++          /* Ka-BOOM */
++          g_error ("Garbage collector went into timeout after 10 seconds");
++          return NULL;
++        }
++  }
++}
 +
  static void
  schedule_leisure_functions (ShellGlobal *global)
  {
+Index: gnome-shell-3.4.2/configure.ac
+===================================================================
+--- gnome-shell-3.4.2.orig/configure.ac	2013-06-20 20:19:51.447692008 +0200
++++ gnome-shell-3.4.2/configure.ac	2013-06-20 20:19:51.435691949 +0200
+@@ -75,6 +75,7 @@ GCR_MIN_VERSION=3.3.90
+ 
+ # Collect more than 20 libraries for a prize!
+ PKG_CHECK_MODULES(GNOME_SHELL, gio-unix-2.0 >= $GIO_MIN_VERSION
++			       gthread-2.0
+ 			       libxml-2.0
+                                gtk+-3.0 >= $GTK_MIN_VERSION
+                                folks >= $FOLKS_MIN_VERSION
+Index: gnome-shell-3.4.2/src/main.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/main.c	2013-06-20 20:19:51.447692008 +0200
++++ gnome-shell-3.4.2/src/main.c	2013-06-20 20:19:51.439691969 +0200
+@@ -10,6 +10,7 @@
+ 
+ #include <clutter/clutter.h>
+ #include <clutter/x11/clutter-x11.h>
++#include <glib.h>
+ #include <gdk/gdk.h>
+ #include <gdk/gdkx.h>
+ #include <gtk/gtk.h>
+@@ -275,6 +276,7 @@ main (int argc, char **argv)
+   TpDebugSender *sender;
+ 
+   g_type_init ();
++  g_thread_init (NULL);
+ 
+   bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+   bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");

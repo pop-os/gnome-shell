@@ -1,10 +1,18 @@
-gnome-shell (3.4.2-11) UNRELEASED; urgency=low
+gnome-shell (3.4.2-11) unstable; urgency=low
 
+  [ Sébastien Villemot ]
   * debian/patches/61-disable-restart-buttons.patch: new patch, backported from
     upstream. Makes the 'disable-restart-buttons' option of gdm-shell work.
     (Closes: #714862)
+  [ Josselin Mouette ]
+  * 30_lockup_gc.patch:
+    + Run the GC a first time after 15 seconds, and next every 10 
+      minutes. This is to avoid running into a deadlock (which often 
+      happens the first time) and lose 10 minutes of work.
+    + Add a watchdog thread to suicide the process after 10 seconds if 
+      the GC locks up.
 
- -- Sébastien Villemot <sebastien@debian.org>  Wed, 03 Jul 2013 20:56:16 +0200
+ -- Josselin Mouette <joss@debian.org>  Wed, 03 Jul 2013 23:38:35 +0200
 
 gnome-shell (3.4.2-10) unstable; urgency=low
 
