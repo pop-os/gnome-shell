@@ -9,7 +9,9 @@ gnome-shell (3.8.3-2) UNRELEASED; urgency=low
   [ Jeremy Bicha ]
   * debian/patches/git_relock_screen_after_crash.patch:
     + Backport fix to ensure session is locked after crash
-  * Update homepage
+  * debian/control.in:
+    - Update homepage
+    - Drop obsolete gconf dependency
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 08 Jun 2013 19:45:09 +0200
 
