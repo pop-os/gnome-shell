@@ -1,4 +1,4 @@
-gnome-shell (3.4.2-12) unstable; urgency=low
+gnome-shell (3.4.2-12) UNRELEASED; urgency=low
 
   * debian/patches/62-remove-leftover-dbus-import.patch: Remove leftover DBus
     import. This isn't there in newer versions of gjs. (Closes: #718566)
