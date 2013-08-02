@@ -1,0 +1,20 @@
+commit e294abc567b50ce4358dcd6be1e2f147b81ebcf8
+Author: Jasper St. Pierre <jstpierre@mecheye.net>
+Date:   Wed Jan 2 13:59:33 2013 -0500
+
+    keyboard: Remove leftover DBus import
+    
+    This isn't there in newer versions of gjs.
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index e3a9a9b..07631db 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -2,7 +2,6 @@
+ 
+ const Caribou = imports.gi.Caribou;
+ const Clutter = imports.gi.Clutter;
+-const DBus = imports.dbus;
+ const Gdk = imports.gi.Gdk;
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
