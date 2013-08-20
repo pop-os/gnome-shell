@@ -16,7 +16,11 @@ gnome-shell (3.8.4-1) UNRELEASED; urgency=low
   [ Emilio Pozuelo Monfort ]
   * New upstream release.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 08 Jun 2013 19:45:09 +0200
+  [ Laurent Bigonville ]
+  * debian/control.in: Bump gir1.2-ibus-1.0 dependency to 1.5.2, this is
+    needed for the new ibus_bus_new_async() API.
+
+ -- Laurent Bigonville <bigon@debian.org>  Wed, 21 Aug 2013 00:44:56 +0200
 
 gnome-shell (3.8.3-1) experimental; urgency=low
 
