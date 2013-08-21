@@ -1,3 +1,12 @@
+gnome-shell (3.4.2-13) unstable; urgency=low
+
+  * debian/patches/disable-clutter-xinput.patch:
+    - disable xinput in clutter since mutter 3.4 does not yet support it.
+    (Closes: #720283)
+  Patch by Sébastien Villemot in collaboration with Sjoerd Simons, et.al.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Wed, 21 Aug 2013 11:17:07 +0200
+
 gnome-shell (3.4.2-12) unstable; urgency=low
 
   * debian/patches/62-remove-leftover-dbus-import.patch: Remove leftover DBus

@@ -1,0 +1,21 @@
+Index: gnome-shell-3.4.2/src/main.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/main.c	2013-08-21 11:04:17.000000000 +0200
++++ gnome-shell-3.4.2/src/main.c	2013-08-21 11:06:28.199750374 +0200
+@@ -275,6 +275,8 @@
+   int ecode;
+   TpDebugSender *sender;
+ 
++  g_setenv("CLUTTER_DISABLE_XINPUT", "yes", FALSE);
++
+   g_type_init ();
+   g_thread_init (NULL);
+ 
+@@ -300,6 +302,7 @@
+   meta_init ();
+   g_unsetenv ("NO_GAIL");
+   g_unsetenv ("NO_AT_BRIDGE");
++  g_unsetenv ("CLUTTER_DISABLE_XINPUT");
+ 
+   /* FIXME: Add gjs API to set this stuff and don't depend on the
+    * environment.  These propagate to child processes.
