@@ -1,0 +1,21 @@
+Description: Avoid using GLuint as it's not defined everywhere
+Author: Andreas Henriksson <andreas@fatal.se>
+
+See build failures on armel and armhf.
+
+The affected code has been removed in newer upstream releases.
+
+
+Forwarded: not-needed
+
+--- gnome-shell-3.4.2.orig/src/shell-screen-grabber.c
++++ gnome-shell-3.4.2/src/shell-screen-grabber.c
+@@ -35,7 +35,7 @@ struct _ShellScreenGrabber
+   int have_pixel_buffers;
+   int have_pack_invert;
+   int width, height;
+-  GLuint pixel_buffer;
++  guint pixel_buffer;
+ };
+ 
+ G_DEFINE_TYPE(ShellScreenGrabber, shell_screen_grabber, G_TYPE_OBJECT);

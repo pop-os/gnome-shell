@@ -1,3 +1,11 @@
+gnome-shell (3.4.2-14) unstable; urgency=low
+
+  * debian/patches/avoid-gluint.patch:
+    - using GLuint causes build failures on armel and armhf as it's
+      not defined. Use a regular guint instead.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Wed, 21 Aug 2013 13:50:52 +0200
+
 gnome-shell (3.4.2-13) unstable; urgency=low
 
   * debian/patches/disable-clutter-xinput.patch:

@@ -20,3 +20,4 @@
 0001-st-theme-node-drawing-Don-t-use-GL-types.patch
 62-remove-leftover-dbus-import.patch
 disable-clutter-xinput.patch
+avoid-gluint.patch
