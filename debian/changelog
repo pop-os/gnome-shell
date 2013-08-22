@@ -1,4 +1,4 @@
-gnome-shell (3.4.2-15) UNRELEASED; urgency=low
+gnome-shell (3.4.2-15) unstable; urgency=low
 
   * Add patches from upstream to replace custom shader (which is causing
     problems with recent clutter versions) with builtin ClutterEffects:
@@ -7,7 +7,7 @@ gnome-shell (3.4.2-15) UNRELEASED; urgency=low
     - 0003-windowManager-Replace-custom-shader-with-builtin-Clu.patch
     (First two patches are included only to make the third one apply)
 
- -- Andreas Henriksson <andreas@fatal.se>  Thu, 22 Aug 2013 13:38:15 +0200
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 22 Aug 2013 22:29:45 +0200
 
 gnome-shell (3.4.2-14) unstable; urgency=low
 
