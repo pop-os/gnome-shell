@@ -21,3 +21,6 @@
 62-remove-leftover-dbus-import.patch
 disable-clutter-xinput.patch
 avoid-gluint.patch
+0001-windowManager-Remove-unused-function.patch
+0002-windowManager-Remove-animate-parameter-from-un-dimWi.patch
+0003-windowManager-Replace-custom-shader-with-builtin-Clu.patch

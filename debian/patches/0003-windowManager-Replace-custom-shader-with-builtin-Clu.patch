@@ -1,0 +1,248 @@
+From 861028f69a91dd23f16f1940b8e6ea99b266761e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Fri, 13 Jul 2012 19:57:36 +0200
+Subject: [PATCH 3/3] windowManager: Replace custom shader with builtin
+ ClutterEffects
+
+While modal dialogs were attached to the parent's titlebar, it
+made sense to leave the top of the parent window at full color.
+With the new position of modal dialogs, it makes more sense to dim
+the entire parent window, so we can use a combination of Clutter's
+BrightnessContrast- and DesaturateEffect instead of our own custom
+shader.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=674499
+---
+ data/Makefile.am             |  6 ----
+ data/shaders/dim-window.glsl | 27 ----------------
+ js/ui/windowManager.js       | 73 +++++++++++++++++++-------------------------
+ src/shell-util.c             | 28 -----------------
+ src/shell-util.h             |  4 ---
+ 5 files changed, 31 insertions(+), 107 deletions(-)
+ delete mode 100644 data/shaders/dim-window.glsl
+
+diff --git a/data/Makefile.am b/data/Makefile.am
+index e4ac9bb..56e2602 100644
+--- a/data/Makefile.am
++++ b/data/Makefile.am
+@@ -68,17 +68,11 @@ all-local: gschemas.compiled
+ convertdir = $(datadir)/GConf/gsettings
+ convert_DATA = gnome-shell-overrides.convert
+ 
+-shadersdir = $(pkgdatadir)/shaders
+-shaders_DATA = \
+-	shaders/dim-window.glsl
+-
+-
+ EXTRA_DIST =						\
+ 	gnome-shell.desktop.in.in			\
+ 	gnome-shell-extension-prefs.desktop.in.in	\
+ 	$(introspection_DATA)				\
+ 	$(menu_DATA)					\
+-	$(shaders_DATA)					\
+ 	$(convert_DATA)					\
+ 	org.gnome.shell.evolution.calendar.gschema.xml.in	\
+ 	org.gnome.shell.gschema.xml.in
+diff --git a/data/shaders/dim-window.glsl b/data/shaders/dim-window.glsl
+deleted file mode 100644
+index c7c8c1b..0000000
+--- a/data/shaders/dim-window.glsl
++++ /dev/null
+@@ -1,27 +0,0 @@
+-#version 110
+-uniform sampler2D tex;
+-uniform float fraction;
+-uniform float height;
+-const float c = -0.2;
+-const float border_max_height = 60.0;
+-
+-mat4 contrast = mat4 (1.0 + c, 0.0, 0.0, 0.0,
+-                      0.0, 1.0 + c, 0.0, 0.0,
+-                      0.0, 0.0, 1.0 + c, 0.0,
+-                      0.0, 0.0, 0.0, 1.0);
+-vec4 off = vec4(0.633, 0.633, 0.633, 0);
+-void main()
+-{
+-  vec4 color = texture2D(tex, cogl_tex_coord_in[0].xy);
+-  float y = height * cogl_tex_coord_in[0].y;
+-
+-  // To reduce contrast, blend with a mid gray
+-  cogl_color_out = color * contrast - off * c * color.a;
+-
+-  // We only fully dim at a distance of BORDER_MAX_HEIGHT from the top and
+-  // when the fraction is 1.0. For other locations and fractions we linearly
+-  // interpolate back to the original undimmed color, so the top of the window
+-  // is at full color.
+-  cogl_color_out = color + (cogl_color_out - color) * max(min(y / border_max_height, 1.0), 0.0);
+-  cogl_color_out = color + (cogl_color_out - color) * fraction;
+-}
+diff --git a/js/ui/windowManager.js b/js/ui/windowManager.js
+index 499f951..55cf075 100644
+--- a/js/ui/windowManager.js
++++ b/js/ui/windowManager.js
+@@ -15,59 +15,38 @@ const Tweener = imports.ui.tweener;
+ 
+ const SHELL_KEYBINDINGS_SCHEMA = 'org.gnome.shell.keybindings';
+ const WINDOW_ANIMATION_TIME = 0.25;
++const DIM_DESATURATION = 0.6;
++const DIM_BRIGHTNESS = -0.1;
+ const DIM_TIME = 0.500;
+ const UNDIM_TIME = 0.250;
+ 
+-var dimShader = undefined;
+-
+-function getDimShaderSource() {
+-    if (!dimShader)
+-        dimShader = Shell.get_file_contents_utf8_sync(global.datadir + '/shaders/dim-window.glsl');
+-    return dimShader;
+-}
+ 
+ const WindowDimmer = new Lang.Class({
+     Name: 'WindowDimmer',
+ 
+     _init: function(actor) {
+-        if (Clutter.feature_available(Clutter.FeatureFlags.SHADERS_GLSL)) {
+-            this._effect = new Clutter.ShaderEffect({ shader_type: Clutter.ShaderType.FRAGMENT_SHADER });
+-            this._effect.set_shader_source(getDimShaderSource());
+-        } else {
+-            this._effect = null;
+-        }
+-
++        this._desaturateEffect = new Clutter.DesaturateEffect();
++        this._brightnessEffect = new Clutter.BrightnessContrastEffect();
++        actor.add_effect(this._desaturateEffect);
++        actor.add_effect(this._brightnessEffect);
+         this.actor = actor;
++        this._dimFactor = 0.0;
+     },
+ 
+-    set dimFraction(fraction) {
+-        this._dimFraction = fraction;
+-
+-        if (this._effect == null)
+-            return;
+-
+-        if (!Meta.prefs_get_attach_modal_dialogs()) {
+-            this._effect.enabled = false;
+-            return;
+-        }
+-
+-        if (fraction > 0.01) {
+-            Shell.shader_effect_set_double_uniform(this._effect, 'height', this.actor.get_height());
+-            Shell.shader_effect_set_double_uniform(this._effect, 'fraction', fraction);
+-
+-            if (!this._effect.actor)
+-                this.actor.add_effect(this._effect);
+-        } else {
+-            if (this._effect.actor)
+-                this.actor.remove_effect(this._effect);
+-        }
++    setEnabled: function(enabled) {
++        this._desaturateEffect.enabled = enabled;
++        this._brightnessEffect.enabled = enabled;
+     },
+ 
+-    get dimFraction() {
+-        return this._dimFraction;
++    set dimFactor(factor) {
++        this._dimFactor = factor;
++        this._desaturateEffect.set_factor(factor * DIM_DESATURATION);
++        this._brightnessEffect.set_brightness(factor * DIM_BRIGHTNESS);
+     },
+ 
+-    _dimFraction: 0.0
++    get dimFactor() {
++        return this._dimFactor;
++    }
+ });
+ 
+ function getWindowDimmer(actor) {
+@@ -269,8 +248,13 @@ const WindowManager = new Lang.Class({
+         let actor = window.get_compositor_private();
+         if (!actor)
+             return;
+-        Tweener.addTween(getWindowDimmer(actor),
+-                         { dimFraction: 1.0,
++        let dimmer = getWindowDimmer(actor);
++        let enabled = Meta.prefs_get_attach_modal_dialogs();
++        dimmer.setEnabled(enabled);
++        if (!enabled)
++            return;
++        Tweener.addTween(dimmer,
++                         { dimFactor: 1.0,
+                            time: DIM_TIME,
+                            transition: 'linear'
+                          });
+@@ -280,8 +264,13 @@ const WindowManager = new Lang.Class({
+         let actor = window.get_compositor_private();
+         if (!actor)
+             return;
+-        Tweener.addTween(getWindowDimmer(actor),
+-                         { dimFraction: 0.0,
++        let dimmer = getWindowDimmer(actor);
++        let enabled = Meta.prefs_get_attach_modal_dialogs();
++        dimmer.setEnabled(enabled);
++        if (!enabled)
++            return;
++        Tweener.addTween(dimmer,
++                         { dimFactor: 0.0,
+                            time: UNDIM_TIME,
+                            transition: 'linear'
+                          });
+diff --git a/src/shell-util.c b/src/shell-util.c
+index 0a1baab..1c4808b 100644
+--- a/src/shell-util.c
++++ b/src/shell-util.c
+@@ -796,34 +796,6 @@ shell_parse_search_provider (const char    *data,
+ }
+ 
+ /**
+- * shell_shader_effect_set_double_uniform:
+- * @effect: The #ClutterShaderEffect
+- * @name: The name of the uniform
+- * @value: The value to set it to.
+- *
+- * Set a double uniform on a ClutterShaderEffect.
+- *
+- * The problem here is that JavaScript doesn't have more than
+- * one number type, and gjs tries to automatically guess what
+- * type we want to set a GValue to. If the number is "1.0" or
+- * something, it will use an integer, which will cause errors
+- * in GLSL.
+- */
+-void
+-shell_shader_effect_set_double_uniform (ClutterShaderEffect *effect,
+-                                        const gchar         *name,
+-                                        gdouble             value)
+-{
+-  GValue gvalue = G_VALUE_INIT;
+-  g_value_init (&gvalue, G_TYPE_DOUBLE);
+-  g_value_set_double (&gvalue, value);
+-
+-  clutter_shader_effect_set_uniform_value (effect,
+-                                           name,
+-                                           &gvalue);
+-}
+-
+-/**
+  * shell_session_is_active_for_systemd:
+  *
+  * Checks whether the session we are running in is currently active,
+diff --git a/src/shell-util.h b/src/shell-util.h
+index 9208099..e25e41b 100644
+--- a/src/shell-util.h
++++ b/src/shell-util.h
+@@ -43,10 +43,6 @@ gboolean shell_parse_search_provider           (const char       *data,
+                                                 char            **icon_data_uri,
+                                                 GError          **error);
+ 
+-void shell_shader_effect_set_double_uniform (ClutterShaderEffect *effect,
+-                                             const gchar         *name,
+-                                             gdouble             value);
+-
+ gboolean shell_session_is_active_for_systemd (void);
+ 
+ gboolean shell_util_wifexited                  (int               status,
+-- 
+1.8.4.rc3
+
