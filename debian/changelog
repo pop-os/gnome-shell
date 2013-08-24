@@ -1,4 +1,4 @@
-gnome-shell (3.8.4-1) UNRELEASED; urgency=low
+gnome-shell (3.8.4-1) experimental; urgency=low
 
   [ Emilio Pozuelo Monfort ]
   * debian/control.in:
@@ -22,7 +22,7 @@ gnome-shell (3.8.4-1) UNRELEASED; urgency=low
   * debian/control.in: Bump Standards-Version to 3.9.4 (no further changes)
   * debian/gnome-shell.lintian-overrides: Adjust override
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 24 Aug 2013 14:51:25 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 24 Aug 2013 14:52:18 +0200
 
 gnome-shell (3.8.3-1) experimental; urgency=low
 
