@@ -19,8 +19,10 @@ gnome-shell (3.8.4-1) UNRELEASED; urgency=low
   [ Laurent Bigonville ]
   * debian/control.in: Bump gir1.2-ibus-1.0 dependency to 1.5.2, this is
     needed for the new ibus_bus_new_async() API.
+  * debian/control.in: Bump Standards-Version to 3.9.4 (no further changes)
+  * debian/gnome-shell.lintian-overrides: Adjust override
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 21 Aug 2013 00:44:56 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 24 Aug 2013 14:51:25 +0200
 
 gnome-shell (3.8.3-1) experimental; urgency=low
 
