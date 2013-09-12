@@ -5,23 +5,72 @@ From: Laurent Bigonville <bigon@debian.org>
 Forwarded: not-needed
 Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=693155
 
---- a/js/ui/overview.js
-+++ b/js/ui/overview.js
-@@ -11,7 +11,7 @@ const Shell = imports.gi.Shell;
+Index: gnome-shell-3.4.2/js/ui/overview.js
+===================================================================
+--- gnome-shell-3.4.2.orig/js/ui/overview.js	2013-09-06 00:36:30.357205678 +0200
++++ gnome-shell-3.4.2/js/ui/overview.js	2013-09-06 00:36:58.621545482 +0200
+@@ -11,7 +11,6 @@
  const Gdk = imports.gi.Gdk;
  
  const AppDisplay = imports.ui.appDisplay;
 -const ContactDisplay = imports.ui.contactDisplay;
-+//const ContactDisplay = imports.ui.contactDisplay;
  const Dash = imports.ui.dash;
  const DND = imports.ui.dnd;
  const Lightbox = imports.ui.lightbox;
-@@ -210,7 +210,7 @@ const Overview = new Lang.Class({
+@@ -210,7 +209,6 @@
          this.addSearchProvider(new AppDisplay.AppSearchProvider());
          this.addSearchProvider(new AppDisplay.SettingsSearchProvider());
          this.addSearchProvider(new PlaceDisplay.PlaceSearchProvider());
 -        this.addSearchProvider(new ContactDisplay.ContactSearchProvider());
-+        //this.addSearchProvider(new ContactDisplay.ContactSearchProvider());
  
          // Load remote search providers provided by applications
          RemoteSearch.loadRemoteSearchProviders(Lang.bind(this, this.addSearchProvider));
+Index: gnome-shell-3.4.2/configure.ac
+===================================================================
+--- gnome-shell-3.4.2.orig/configure.ac	2013-09-06 00:36:19.000000000 +0200
++++ gnome-shell-3.4.2/configure.ac	2013-09-06 00:37:15.509748533 +0200
+@@ -61,7 +61,6 @@
+ GOBJECT_INTROSPECTION_MIN_VERSION=0.10.1
+ GJS_MIN_VERSION=1.29.18
+ MUTTER_MIN_VERSION=3.4.1
+-FOLKS_MIN_VERSION=0.5.2
+ GTK_MIN_VERSION=3.3.9
+ GIO_MIN_VERSION=2.31.6
+ LIBECAL_MIN_VERSION=2.32.0
+@@ -78,7 +77,6 @@
+ 			       gthread-2.0
+ 			       libxml-2.0
+                                gtk+-3.0 >= $GTK_MIN_VERSION
+-                               folks >= $FOLKS_MIN_VERSION
+                                libmutter >= $MUTTER_MIN_VERSION
+                                gjs-internals-1.0 >= $GJS_MIN_VERSION
+ 			       libgnome-menu-3.0 $recorder_modules
+Index: gnome-shell-3.4.2/src/Makefile.am
+===================================================================
+--- gnome-shell-3.4.2.orig/src/Makefile.am	2013-09-06 00:36:15.000000000 +0200
++++ gnome-shell-3.4.2/src/Makefile.am	2013-09-06 00:37:59.990283382 +0200
+@@ -104,7 +104,6 @@
+ 	shell-app.h			\
+ 	shell-app-system.h		\
+ 	shell-app-usage.h		\
+-	shell-contact-system.h	\
+ 	shell-embedded-window.h		\
+ 	shell-generic-container.h	\
+ 	shell-gtk-embed.h		\
+@@ -153,7 +152,6 @@
+ 	shell-a11y.c			\
+ 	shell-app-system.c		\
+ 	shell-app-usage.c		\
+-	shell-contact-system.c	\
+ 	shell-embedded-window.c		\
+ 	shell-generic-container.c	\
+ 	shell-gtk-embed.c		\
+@@ -300,7 +298,7 @@
+ libgnome_shell_la_CPPFLAGS = $(gnome_shell_cflags)
+ 
+ Shell-0.1.gir: libgnome-shell.la St-1.0.gir
+-Shell_0_1_gir_INCLUDES = Clutter-1.0 ClutterX11-1.0 Meta-3.0 TelepathyGLib-0.12 TelepathyLogger-0.2 Soup-2.4 GMenu-3.0 Folks-0.6
++Shell_0_1_gir_INCLUDES = Clutter-1.0 ClutterX11-1.0 Meta-3.0 TelepathyGLib-0.12 TelepathyLogger-0.2 Soup-2.4 GMenu-3.0
+ if HAVE_NETWORKMANAGER
+ Shell_0_1_gir_INCLUDES += NetworkManager-1.0 NMClient-1.0
+ endif

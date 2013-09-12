@@ -1,3 +1,11 @@
+gnome-shell (3.4.2-16) UNRELEASED; urgency=low
+
+  * We already disable folks integration, so update
+    50-remove-folks-integration.patch to no longer build the code at all and
+    drop the Build-Depends on libfolks-dev accordingly.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 12 Sep 2013 03:50:49 +0200
+
 gnome-shell (3.4.2-15) unstable; urgency=low
 
   * Add patches from upstream to replace custom shader (which is causing
