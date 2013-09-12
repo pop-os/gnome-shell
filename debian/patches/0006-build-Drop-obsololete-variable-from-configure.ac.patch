@@ -1,0 +1,22 @@
+From fb90eee66a691a1197870346943eb2e02045979b Mon Sep 17 00:00:00 2001
+From: Rico Tzschichholz <ricotz@t-online.de>
+Date: Wed, 16 Jan 2013 23:13:20 +0100
+Subject: [PATCH 6/6] build: Drop obsololete variable from configure.ac
+
+LIBEDATASERVERUI_MIN_VERSION is not used
+---
+ configure.ac | 1 -
+ 1 file changed, 1 deletion(-)
+
+Index: gnome-shell-3.4.2/configure.ac
+===================================================================
+--- gnome-shell-3.4.2.orig/configure.ac	2013-09-06 00:38:12.322431682 +0200
++++ gnome-shell-3.4.2/configure.ac	2013-09-06 00:38:12.322431682 +0200
+@@ -65,7 +65,6 @@
+ GIO_MIN_VERSION=2.31.6
+ LIBECAL_MIN_VERSION=3.5.3
+ LIBEDATASERVER_MIN_VERSION=3.5.3
+-LIBEDATASERVERUI_MIN_VERSION=3.5.3
+ TELEPATHY_GLIB_MIN_VERSION=0.17.5
+ TELEPATHY_LOGGER_MIN_VERSION=0.2.4
+ POLKIT_MIN_VERSION=0.100

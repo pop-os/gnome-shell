@@ -1,0 +1,1004 @@
+From 36e91097a0ec9fdd74071a8d036047118f7095d5 Mon Sep 17 00:00:00 2001
+From: Matthew Barnes <mbarnes@redhat.com>
+Date: Thu, 26 Apr 2012 09:08:27 -0400
+Subject: [PATCH 4/6] calendar: Adapt to Evolution-Data-Server API changes.
+
+Adapt the calendar-server to some major API changes in E-D-S 3.5.3.
+
+More details about the breakage:
+http://mbarnes.livejournal.com/4631.html
+
+https://bugzilla.gnome.org/show_bug.cgi?id=677402
+---
+ configure.ac                                       |   6 +-
+ data/Makefile.am                                   |   3 +-
+ ...g.gnome.shell.evolution.calendar.gschema.xml.in |  21 -
+ src/calendar-server/calendar-sources.c             | 520 +++++++++------------
+ src/calendar-server/calendar-sources.h             |   4 +-
+ src/calendar-server/gnome-shell-calendar-server.c  | 101 ++--
+ 6 files changed, 295 insertions(+), 360 deletions(-)
+ delete mode 100644 data/org.gnome.shell.evolution.calendar.gschema.xml.in
+
+Index: gnome-shell-3.4.2/configure.ac
+===================================================================
+--- gnome-shell-3.4.2.orig/configure.ac	2013-09-06 00:39:49.043594992 +0200
++++ gnome-shell-3.4.2/configure.ac	2013-09-06 00:39:53.000000000 +0200
+@@ -63,9 +63,9 @@
+ MUTTER_MIN_VERSION=3.4.1
+ GTK_MIN_VERSION=3.3.9
+ GIO_MIN_VERSION=2.31.6
+-LIBECAL_MIN_VERSION=2.32.0
+-LIBEDATASERVER_MIN_VERSION=1.2.0
+-LIBEDATASERVERUI_MIN_VERSION=2.91.6
++LIBECAL_MIN_VERSION=3.5.3
++LIBEDATASERVER_MIN_VERSION=3.5.3
++LIBEDATASERVERUI_MIN_VERSION=3.5.3
+ TELEPATHY_GLIB_MIN_VERSION=0.17.5
+ TELEPATHY_LOGGER_MIN_VERSION=0.2.4
+ POLKIT_MIN_VERSION=0.100
+Index: gnome-shell-3.4.2/data/Makefile.am
+===================================================================
+--- gnome-shell-3.4.2.orig/data/Makefile.am	2013-09-06 00:39:49.043594992 +0200
++++ gnome-shell-3.4.2/data/Makefile.am	2013-09-06 00:39:49.039594943 +0200
+@@ -53,7 +53,7 @@
+ 	theme/ws-switch-arrow-up.svg		\
+ 	theme/ws-switch-arrow-down.svg
+ 
+-gsettings_SCHEMAS = org.gnome.shell.gschema.xml org.gnome.shell.evolution.calendar.gschema.xml
++gsettings_SCHEMAS = org.gnome.shell.gschema.xml
+ 
+ @INTLTOOL_XML_NOMERGE_RULE@
+ @GSETTINGS_RULES@
+@@ -74,7 +74,6 @@
+ 	$(introspection_DATA)				\
+ 	$(menu_DATA)					\
+ 	$(convert_DATA)					\
+-	org.gnome.shell.evolution.calendar.gschema.xml.in	\
+ 	org.gnome.shell.gschema.xml.in
+ 
+ CLEANFILES =						\
+Index: gnome-shell-3.4.2/data/org.gnome.shell.evolution.calendar.gschema.xml.in
+===================================================================
+--- gnome-shell-3.4.2.orig/data/org.gnome.shell.evolution.calendar.gschema.xml.in	2013-09-06 00:39:49.043594992 +0200
++++ /dev/null	1970-01-01 00:00:00.000000000 +0000
+@@ -1,21 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!-- NOTE: This schema is a GNOME 3.4 workaround - it uses the same path
+-     as org.gnome.evolution.calendar, but avoids us requiring Evolution
+-     be installed. In GNOME 3.6 the selected state will become a flag
+-     on the calendar. Because the translations are in Evolution,
+-     this is untranslated and in POTFILES.skip.
+-  -->
+-<schemalist>
+-  <schema path="/org/gnome/evolution/calendar/" id="org.gnome.shell.evolution.calendar" gettext-domain="evolution">
+-    <key type="as" name="selected-calendars">
+-      <default>[]</default>
+-      <summary>List of selected calendars</summary>
+-      <description>List of calendars to load</description>
+-    </key>
+-    <key type="as" name="selected-tasks">
+-      <default>[]</default>
+-      <summary>List of selected task lists</summary>
+-      <description>List of task lists to load</description>
+-    </key>
+-  </schema>
+-</schemalist>
+Index: gnome-shell-3.4.2/src/calendar-server/calendar-sources.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/calendar-server/calendar-sources.c	2013-09-06 00:39:49.043594992 +0200
++++ gnome-shell-3.4.2/src/calendar-server/calendar-sources.c	2013-09-06 00:39:53.000000000 +0200
+@@ -31,9 +31,8 @@
+ #include <string.h>
+ #include <gconf/gconf-client.h>
+ #define HANDLE_LIBICAL_MEMORY
+-#include <libecal/e-cal-client.h>
+-#include <libedataserver/e-source-list.h>
+-#include <libedataserverui/e-client-utils.h>
++#include <libecal/libecal.h>
++#include <libedataserverui/libedataserverui.h>
+ 
+ #undef CALENDAR_ENABLE_DEBUG
+ #include "calendar-debug.h"
+@@ -48,30 +47,23 @@
+ 
+ #define CALENDAR_SOURCES_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), CALENDAR_TYPE_SOURCES, CalendarSourcesPrivate))
+ 
+-#define CALENDAR_SOURCES_EVO_DIR                          "/apps/evolution"
+-#define CALENDAR_SOURCES_APPOINTMENT_SOURCES_KEY          CALENDAR_SOURCES_EVO_DIR "/calendar/sources"
+-#define CALENDAR_SOURCES_TASK_SOURCES_KEY                 CALENDAR_SOURCES_EVO_DIR "/tasks/sources"
+-
+-/* org.gnome.shell.evolution.calendar has the same data behind it
+- * as org.gnome.evolution.calendar, but is a small schema we install
+- * ourselves */
+-#define CALENDAR_SELECTED_SOURCES_SCHEMA                  "org.gnome.shell.evolution.calendar"
+-#define CALENDAR_SOURCES_SELECTED_APPOINTMENT_SOURCES_KEY "selected-calendars"
+-#define CALENDAR_SOURCES_SELECTED_TASK_SOURCES_KEY        "selected-tasks"
+-
++typedef struct _ClientData ClientData;
+ typedef struct _CalendarSourceData CalendarSourceData;
+ 
++struct _ClientData
++{
++  ECalClient *client;
++  gulong backend_died_id;
++};
++
+ struct _CalendarSourceData
+ {
+   ECalClientSourceType source_type;
+   CalendarSources *sources;
+   guint            changed_signal;
+ 
+-  GSList          *clients;
+-  char           **selected_sources;
+-  ESourceList     *esource_list;
+-
+-  guint            selected_sources_handler_id;
++  /* ESource -> EClient */
++  GHashTable      *clients;
+ 
+   guint            timeout_id;
+ 
+@@ -80,11 +72,13 @@
+ 
+ struct _CalendarSourcesPrivate
+ {
++  ESourceRegistry    *registry;
++  gulong              source_added_id;
++  gulong              source_changed_id;
++  gulong              source_removed_id;
++
+   CalendarSourceData  appointment_sources;
+   CalendarSourceData  task_sources;
+-
+-  GConfClient        *gconf_client;
+-  GSettings          *settings;
+ };
+ 
+ static void calendar_sources_class_init (CalendarSourcesClass *klass);
+@@ -92,8 +86,12 @@
+ static void calendar_sources_finalize   (GObject             *object);
+ 
+ static void backend_died_cb (EClient *client, CalendarSourceData *source_data);
+-static void calendar_sources_esource_list_changed (ESourceList        *source_list,
+-                                                   CalendarSourceData *source_data);
++static void calendar_sources_registry_source_changed_cb (ESourceRegistry *registry,
++                                                         ESource         *source,
++                                                         CalendarSources *sources);
++static void calendar_sources_registry_source_removed_cb (ESourceRegistry *registry,
++                                                         ESource         *source,
++                                                         CalendarSources *sources);
+ 
+ enum
+ {
+@@ -106,6 +104,14 @@
+ static GObjectClass    *parent_class = NULL;
+ static CalendarSources *calendar_sources_singleton = NULL;
+ 
++static void
++client_data_free (ClientData *data)
++{
++  g_signal_handler_disconnect (data->client, data->backend_died_id);
++  g_object_unref (data->client);
++  g_slice_free (ClientData, data);
++}
++
+ GType
+ calendar_sources_get_type (void)
+ {
+@@ -173,20 +179,49 @@
+ static void
+ calendar_sources_init (CalendarSources *sources)
+ {
++  GError *error = NULL;
++
+   sources->priv = CALENDAR_SOURCES_GET_PRIVATE (sources);
+ 
++  /* XXX Not sure what to do if this fails.
++   *     Should this class implement GInitable or pass the
++   *     registry in as a G_PARAM_CONSTRUCT_ONLY property? */
++  sources->priv->registry = e_source_registry_new_sync (NULL, &error);
++  if (error != NULL)
++    {
++      g_error ("%s: %s", G_STRFUNC, error->message);
++    }
++
++  sources->priv->source_added_id   = g_signal_connect (sources->priv->registry,
++                                                       "source-added",
++                                                       G_CALLBACK (calendar_sources_registry_source_changed_cb),
++                                                       sources);
++  sources->priv->source_changed_id = g_signal_connect (sources->priv->registry,
++                                                       "source-changed",
++                                                       G_CALLBACK (calendar_sources_registry_source_changed_cb),
++                                                       sources);
++  sources->priv->source_removed_id = g_signal_connect (sources->priv->registry,
++                                                       "source-removed",
++                                                       G_CALLBACK (calendar_sources_registry_source_removed_cb),
++                                                       sources);
++
+   sources->priv->appointment_sources.source_type    = E_CAL_CLIENT_SOURCE_TYPE_EVENTS;
+   sources->priv->appointment_sources.sources        = sources;
+   sources->priv->appointment_sources.changed_signal = signals [APPOINTMENT_SOURCES_CHANGED];
++  sources->priv->appointment_sources.clients        = g_hash_table_new_full ((GHashFunc) e_source_hash,
++                                                                             (GEqualFunc) e_source_equal,
++                                                                             (GDestroyNotify) g_object_unref,
++                                                                             (GDestroyNotify) client_data_free);
+   sources->priv->appointment_sources.timeout_id     = 0;
+ 
+   sources->priv->task_sources.source_type    = E_CAL_CLIENT_SOURCE_TYPE_TASKS;
+   sources->priv->task_sources.sources        = sources;
+   sources->priv->task_sources.changed_signal = signals [TASK_SOURCES_CHANGED];
++  sources->priv->task_sources.clients        = g_hash_table_new_full ((GHashFunc) e_source_hash,
++                                                                      (GEqualFunc) e_source_equal,
++                                                                      (GDestroyNotify) g_object_unref,
++                                                                      (GDestroyNotify) client_data_free);
+   sources->priv->task_sources.timeout_id     = 0;
+-
+-  sources->priv->gconf_client = gconf_client_get_default ();
+-  sources->priv->settings = g_settings_new (CALENDAR_SELECTED_SOURCES_SCHEMA);
+ }
+ 
+ static void
+@@ -195,37 +230,9 @@
+ {
+   if (source_data->loaded)
+     {
+-      GSList *l;
+-
+-      if (source_data->selected_sources_handler_id)
+-	{
+-          g_signal_handler_disconnect (sources->priv->settings,
+-                                       source_data->selected_sources_handler_id);
+-	  source_data->selected_sources_handler_id = 0;
+-	}
+-
+-      for (l = source_data->clients; l; l = l->next)
+-        {
+-          g_signal_handlers_disconnect_by_func (G_OBJECT (l->data),
+-                                                G_CALLBACK (backend_died_cb),
+-                                                source_data);
+-          g_object_unref (l->data);
+-        }
+-      g_slist_free (source_data->clients);
++      g_hash_table_destroy (source_data->clients);
+       source_data->clients = NULL;
+ 
+-      if (source_data->esource_list)
+-        {
+-          g_signal_handlers_disconnect_by_func (source_data->esource_list,
+-                                                G_CALLBACK (calendar_sources_esource_list_changed),
+-                                                source_data);
+-          g_object_unref (source_data->esource_list);
+-	}
+-      source_data->esource_list = NULL;
+-
+-      g_strfreev (source_data->selected_sources);
+-      source_data->selected_sources = NULL;
+-
+       if (source_data->timeout_id != 0)
+         {
+           g_source_remove (source_data->timeout_id);
+@@ -241,17 +248,21 @@
+ {
+   CalendarSources *sources = CALENDAR_SOURCES (object);
+ 
++  if (sources->priv->registry)
++    {
++      g_signal_handler_disconnect (sources->priv->registry,
++                                   sources->priv->source_added_id);
++      g_signal_handler_disconnect (sources->priv->registry,
++                                   sources->priv->source_changed_id);
++      g_signal_handler_disconnect (sources->priv->registry,
++                                   sources->priv->source_removed_id);
++      g_object_unref (sources->priv->registry);
++    }
++  sources->priv->registry = NULL;
++
+   calendar_sources_finalize_source_data (sources, &sources->priv->appointment_sources);
+   calendar_sources_finalize_source_data (sources, &sources->priv->task_sources);
+ 
+-  if (sources->priv->gconf_client)
+-    g_object_unref (sources->priv->gconf_client);
+-  sources->priv->gconf_client = NULL;
+-
+-  if (sources->priv->settings)
+-    g_object_unref (sources->priv->settings);
+-  sources->priv->settings = NULL;
+-
+   if (G_OBJECT_CLASS (parent_class)->finalize)
+     G_OBJECT_CLASS (parent_class)->finalize (object);
+ }
+@@ -271,133 +282,72 @@
+   return calendar_sources_singleton;
+ }
+ 
+-static gboolean
+-is_source_selected (ESource *esource,
+-                    char  **selected_sources)
+-{
+-  const char *uid;
+-  char      **source;
+-
+-  uid = e_source_peek_uid (esource);
+-
+-  for (source = selected_sources; *source; source++)
+-    {
+-      if (!strcmp (*source, uid))
+-	return TRUE;
+-    }
+-
+-  return FALSE;
+-}
+-
+ /* The clients are just created here but not loaded */
+-static ECalClient *
+-get_ecal_from_source (ESource              *esource,
+-		      ECalClientSourceType  source_type,
+-		      GSList               *existing_clients)
++static void
++create_client_for_source (ESource              *source,
++		          ECalClientSourceType  source_type,
++		          CalendarSourceData   *source_data)
+ {
+-  ECalClient *retval;
++  ClientData *data;
++  ECalClient *client;
+   GError *error = NULL;
+ 
+-  if (existing_clients)
+-    {
+-      GSList *l;
+-
+-      for (l = existing_clients; l; l = l->next)
+-	{
+-	  EClient *client = E_CLIENT (l->data);
+-
+-	  if (e_source_equal (esource, e_client_get_source (client)))
+-	    {
+-	      dprintf ("        load_esource: found existing source ... returning that\n");
++  client = g_hash_table_lookup (source_data->clients, source);
++  g_return_if_fail (client == NULL);
+ 
+-	      return g_object_ref (client);
+-	    }
+-	}
+-    }
+-
+-  retval = e_cal_client_new (esource, source_type, &error);
+-  if (!retval)
++  client = e_cal_client_new (source, source_type, &error);
++  if (!client)
+     {
+-      g_warning ("Could not load source '%s' from '%s': %s",
+-		 e_source_peek_name (esource),
+-		 e_source_peek_relative_uri (esource),
++      g_warning ("Could not load source '%s': %s",
++		 e_source_get_uid (source),
+ 		 error->message);
+       g_clear_error(&error);
+-      return NULL;
+-    }
+-
+-  g_signal_connect (retval, "authenticate",
+-		    G_CALLBACK (e_client_utils_authenticate_handler), NULL);
+-
+-  return retval;
+-}
+-
+-/* - Order doesn't matter
+- * - Can just compare object pointers since we
+- *   re-use client connections
+- */
+-static gboolean
+-compare_ecal_lists (GSList *a,
+-		    GSList *b)
+-{
+-  GSList *l;
+-
+-  if (g_slist_length (a) != g_slist_length (b))
+-    return FALSE;
+-
+-  for (l = a; l; l = l->next)
+-    {
+-      if (!g_slist_find (b, l->data))
+-	return FALSE;
++      return;
+     }
+ 
+-  return TRUE;
+-}
+-
+-static inline void
+-debug_dump_selected_sources (char **selected_sources)
+-{
+-#ifdef CALENDAR_ENABLE_DEBUG
+-  char **source;
++  data = g_slice_new0 (ClientData);
++  data->client = client;  /* takes ownership */
++  data->backend_died_id = g_signal_connect (client,
++                                            "backend-died",
++                                            G_CALLBACK (backend_died_cb),
++                                            source_data);
+ 
+-  dprintf ("Selected sources:\n");
+-  for (source = selected_sources; *source; source++)
+-    {
+-      dprintf ("  %s\n", *source);
+-    }
+-  dprintf ("\n");
+-#endif
++  g_hash_table_insert (source_data->clients, g_object_ref (source), data);
+ }
+ 
+ static inline void
+-debug_dump_ecal_list (GSList *ecal_list)
++debug_dump_ecal_list (GHashTable *clients)
+ {
+ #ifdef CALENDAR_ENABLE_DEBUG
+-  GSList *l;
++  GList *list, *link;
+ 
+   dprintf ("Loaded clients:\n");
+-  for (l = ecal_list; l; l = l->next)
++  list = g_hash_table_get_keys (clients);
++  for (link = list; link != NULL; link = g_list_next (link))
+     {
+-      EClient *client = l->data;
+-      ESource *source = e_client_get_source (client);
++      ESource *source = E_SOURCE (link->data);
+ 
+-      dprintf ("  %s %s %s\n",
+-	       e_source_peek_uid (source),
+-	       e_source_peek_name (source),
+-	       e_client_get_uri (client));
++      dprintf ("  %s %s\n",
++	       e_source_get_uid (source),
++	       e_source_get_display_name (source));
+     }
++  g_list_free (list);
+ #endif
+ }
+ 
+ static void
+-calendar_sources_load_esource_list (CalendarSourceData *source_data);
++calendar_sources_load_esource_list (ESourceRegistry *registry,
++                                    CalendarSourceData *source_data);
+ 
+ static gboolean
+ backend_restart (gpointer data)
+ {
+   CalendarSourceData *source_data = data;
++  ESourceRegistry *registry;
+ 
+-  calendar_sources_load_esource_list (source_data);
++  registry = source_data->sources->priv->registry;
++  calendar_sources_load_esource_list (registry, source_data);
++  g_signal_emit (source_data->sources, source_data->changed_signal, 0);
+ 
+   source_data->timeout_id = 0;
+     
+@@ -407,16 +357,13 @@
+ static void
+ backend_died_cb (EClient *client, CalendarSourceData *source_data)
+ {
+-  const char *uristr;
++  ESource *source;
++  const char *display_name;
+ 
+-  source_data->clients = g_slist_remove (source_data->clients, client);
+-  if (g_slist_length (source_data->clients) < 1) 
+-    {
+-      g_slist_free (source_data->clients);
+-      source_data->clients = NULL;
+-    }
+-  uristr = e_client_get_uri (client);
+-  g_warning ("The calendar backend for %s has crashed.", uristr);
++  source = e_client_get_source (client);
++  display_name = e_source_get_display_name (source);
++  g_warning ("The calendar backend for '%s' has crashed.", display_name);
++  g_hash_table_remove (source_data->clients, source);
+ 
+   if (source_data->timeout_id != 0)
+     {
+@@ -429,169 +376,162 @@
+ }
+ 
+ static void
+-calendar_sources_load_esource_list (CalendarSourceData *source_data)
++calendar_sources_load_esource_list (ESourceRegistry *registry,
++                                    CalendarSourceData *source_data)
+ {
+-  GSList  *clients = NULL;
+-  GSList  *groups, *l;
+-  gboolean emit_signal = FALSE;
+-
+-  g_return_if_fail (source_data->esource_list != NULL);
++  GList   *list, *link;
++  const gchar *extension_name;
+ 
+-  debug_dump_selected_sources (source_data->selected_sources);
+-
+-  dprintf ("Source groups:\n");
+-  groups = e_source_list_peek_groups (source_data->esource_list);
+-  for (l = groups; l; l = l->next)
++  switch (source_data->source_type)
+     {
+-      GSList *esources, *s;
+-
+-      dprintf ("  %s\n", e_source_group_peek_uid (l->data));
+-      dprintf ("    sources:\n");
+-
+-      esources = e_source_group_peek_sources (l->data);
+-      for (s = esources; s; s = s->next)
+-	{
+-	  ESource    *esource = E_SOURCE (s->data);
+-	  ECalClient *client;
+-
+-	  dprintf ("      type = '%s' uid = '%s', name = '%s', relative uri = '%s': \n",
+-                   source_data->source_type == E_CAL_CLIENT_SOURCE_TYPE_EVENTS ? "appointment" : "task",
+-		   e_source_peek_uid (esource),
+-		   e_source_peek_name (esource),
+-		   e_source_peek_relative_uri (esource));
+-
+-	  if (is_source_selected (esource, source_data->selected_sources) &&
+-	      (client = get_ecal_from_source (esource, source_data->source_type, source_data->clients)))
+-	    {
+-	      clients = g_slist_prepend (clients, client);
+-	    }
+-	}
++      case E_CAL_CLIENT_SOURCE_TYPE_EVENTS:
++        extension_name = E_SOURCE_EXTENSION_CALENDAR;
++        break;
++      case E_CAL_CLIENT_SOURCE_TYPE_TASKS:
++        extension_name = E_SOURCE_EXTENSION_TASK_LIST;
++        break;
++      default:
++        g_return_if_reached ();
+     }
+-  dprintf ("\n");
+ 
+-  if (source_data->loaded && 
+-      !compare_ecal_lists (source_data->clients, clients))
+-    emit_signal = TRUE;
++  list = e_source_registry_list_sources (registry, extension_name);
+ 
+-  for (l = source_data->clients; l; l = l->next)
++  for (link = list; link != NULL; link = g_list_next (link))
+     {
+-      g_signal_handlers_disconnect_by_func (G_OBJECT (l->data),
+-                                            G_CALLBACK (backend_died_cb),
+-                                            source_data);
++      ESource *source = E_SOURCE (link->data);
++      ESourceSelectable *extension;
++      gboolean show_source;
+ 
+-      g_object_unref (l->data);
+-    }
+-  g_slist_free (source_data->clients);
+-  source_data->clients = g_slist_reverse (clients);
++      extension = e_source_get_extension (source, extension_name);
++      show_source = e_source_get_enabled (source) && e_source_selectable_get_selected (extension);
+ 
+-  /* connect to backend_died after we disconnected the previous signal
+-   * handlers. If we do it before, we'll lose some handlers (for clients that
+-   * were already there before) */
+-  for (l = source_data->clients; l; l = l->next)
+-    {
+-      g_signal_connect (G_OBJECT (l->data), "backend-died",
+-                        G_CALLBACK (backend_died_cb), source_data);
+-    }
+-
+-  if (emit_signal) 
+-    {
+-      dprintf ("Emitting %s-sources-changed signal\n",
+-	       source_data->source_type == E_CAL_CLIENT_SOURCE_TYPE_EVENTS ? "appointment" : "task");
+-      g_signal_emit (source_data->sources, source_data->changed_signal, 0);
++      if (show_source)
++        create_client_for_source (source, source_data->source_type, source_data);
+     }
+ 
+   debug_dump_ecal_list (source_data->clients);
+-}
+ 
+-static void
+-calendar_sources_esource_list_changed (ESourceList        *source_list,
+-				       CalendarSourceData *source_data)
+-				       
+-{
+-  dprintf ("ESourceList changed, reloading\n");
+-
+-  calendar_sources_load_esource_list (source_data);
++  g_list_free_full (list, g_object_unref);
+ }
+ 
+ static void
+-calendar_sources_selected_sources_notify (GSettings          *settings,
+-                                          const gchar        *key,
+-					  CalendarSourceData *source_data)
+-{
+-  dprintf ("Selected sources key (%s) changed, reloading\n", key);
++calendar_sources_registry_source_changed_cb (ESourceRegistry *registry,
++                                             ESource         *source,
++                                             CalendarSources *sources)
++{
++  if (e_source_has_extension (source, E_SOURCE_EXTENSION_CALENDAR))
++    {
++      CalendarSourceData *source_data;
++      ESourceSelectable *extension;
++      gboolean have_client;
++      gboolean show_source;
++
++      source_data = &sources->priv->appointment_sources;
++      extension = e_source_get_extension (source, E_SOURCE_EXTENSION_CALENDAR);
++      have_client = (g_hash_table_lookup (source_data->clients, source) != NULL);
++      show_source = e_source_get_enabled (source) && e_source_selectable_get_selected (extension);
++
++      if (!show_source && have_client)
++        {
++          g_hash_table_remove (source_data->clients, source);
++          g_signal_emit (sources, source_data->changed_signal, 0);
++        }
++      if (show_source && !have_client)
++        {
++          create_client_for_source (source, source_data->source_type, source_data);
++          g_signal_emit (sources, source_data->changed_signal, 0);
++        }
++    }
+ 
+-  g_strfreev (source_data->selected_sources);
+-  source_data->selected_sources = g_settings_get_strv (settings, key);
++  if (e_source_has_extension (source, E_SOURCE_EXTENSION_TASK_LIST))
++    {
++      CalendarSourceData *source_data;
++      ESourceSelectable *extension;
++      gboolean have_client;
++      gboolean show_source;
++
++      source_data = &sources->priv->task_sources;
++      extension = e_source_get_extension (source, E_SOURCE_EXTENSION_TASK_LIST);
++      have_client = (g_hash_table_lookup (source_data->clients, source) != NULL);
++      show_source = e_source_get_enabled (source) && e_source_selectable_get_selected (extension);
+ 
+-  calendar_sources_load_esource_list (source_data);
++      if (!show_source && have_client)
++        {
++          g_hash_table_remove (source_data->clients, source);
++          g_signal_emit (sources, source_data->changed_signal, 0);
++        }
++      if (show_source && !have_client)
++        {
++          create_client_for_source (source, source_data->source_type, source_data);
++          g_signal_emit (sources, source_data->changed_signal, 0);
++        }
++    }
+ }
+ 
+ static void
+-calendar_sources_load_sources (CalendarSources    *sources,
+-			       CalendarSourceData *source_data,
+-			       const char         *sources_key,
+-			       const char         *selected_sources_key)
++calendar_sources_registry_source_removed_cb (ESourceRegistry *registry,
++                                             ESource         *source,
++                                             CalendarSources *sources)
+ {
+-  GConfClient *gconf_client;
+-  GSettings   *settings;
+-  char        *signal_name;
+-
+-  dprintf ("---------------------------\n");
+-  dprintf ("Loading sources:\n");
+-  dprintf ("  sources_key: %s\n", sources_key);
+-  dprintf ("  selected_sources_key: %s\n", selected_sources_key);
+-
+-  gconf_client = sources->priv->gconf_client;
+-  settings = sources->priv->settings;
+-
+-  source_data->selected_sources = g_settings_get_strv (settings, selected_sources_key);
+-
+-  signal_name = g_strconcat ("changed::", selected_sources_key, NULL);
+-  source_data->selected_sources_handler_id =
+-    g_signal_connect (settings, signal_name,
+-                      G_CALLBACK (calendar_sources_selected_sources_notify), source_data);
+-  g_free (signal_name);
+-
+-  source_data->esource_list = e_source_list_new_for_gconf (gconf_client, sources_key);
+-  g_signal_connect (source_data->esource_list, "changed",
+-		    G_CALLBACK (calendar_sources_esource_list_changed),
+-		    source_data);
++  if (e_source_has_extension (source, E_SOURCE_EXTENSION_CALENDAR))
++    {
++      CalendarSourceData *source_data;
+ 
+-  calendar_sources_load_esource_list (source_data);
++      source_data = &sources->priv->appointment_sources;
++      g_hash_table_remove (source_data->clients, source);
++      g_signal_emit (sources, source_data->changed_signal, 0);
++    }
+ 
+-  source_data->loaded = TRUE;
++  if (e_source_has_extension (source, E_SOURCE_EXTENSION_TASK_LIST))
++    {
++      CalendarSourceData *source_data;
+ 
+-  dprintf ("---------------------------\n");
++      source_data = &sources->priv->task_sources;
++      g_hash_table_remove (source_data->clients, source);
++      g_signal_emit (sources, source_data->changed_signal, 0);
++    }
+ }
+ 
+-GSList *
+-calendar_sources_get_appointment_sources (CalendarSources *sources)
++GList *
++calendar_sources_get_appointment_clients (CalendarSources *sources)
+ {
++  GList *list, *link;
++
+   g_return_val_if_fail (CALENDAR_IS_SOURCES (sources), NULL);
+ 
+   if (!sources->priv->appointment_sources.loaded)
+     {
+-      calendar_sources_load_sources (sources,
+-				     &sources->priv->appointment_sources,
+-				     CALENDAR_SOURCES_APPOINTMENT_SOURCES_KEY,
+-				     CALENDAR_SOURCES_SELECTED_APPOINTMENT_SOURCES_KEY);
++      calendar_sources_load_esource_list (sources->priv->registry,
++                                          &sources->priv->appointment_sources);
++      sources->priv->appointment_sources.loaded = TRUE;
+     }
+-  
+-  return sources->priv->appointment_sources.clients;
++
++  list = g_hash_table_get_values (sources->priv->appointment_sources.clients);
++
++  for (link = list; link != NULL; link = g_list_next (link))
++    link->data = ((ClientData *) link->data)->client;
++
++  return list;
+ }
+ 
+-GSList *
+-calendar_sources_get_task_sources (CalendarSources *sources)
++GList *
++calendar_sources_get_task_clients (CalendarSources *sources)
+ {
++  GList *list, *link;
++
+   g_return_val_if_fail (CALENDAR_IS_SOURCES (sources), NULL);
+ 
+   if (!sources->priv->task_sources.loaded)
+     {
+-      calendar_sources_load_sources (sources,
+-				     &sources->priv->task_sources,
+-				     CALENDAR_SOURCES_TASK_SOURCES_KEY,
+-				     CALENDAR_SOURCES_SELECTED_TASK_SOURCES_KEY);
++      calendar_sources_load_esource_list (sources->priv->registry,
++                                          &sources->priv->task_sources);
++      sources->priv->task_sources.loaded = TRUE;
+     }
+ 
+-  return sources->priv->task_sources.clients;
++  list = g_hash_table_get_values (sources->priv->task_sources.clients);
++
++  for (link = list; link != NULL; link = g_list_next (link))
++    link->data = ((ClientData *) link->data)->client;
++
++  return list;
+ }
+Index: gnome-shell-3.4.2/src/calendar-server/calendar-sources.h
+===================================================================
+--- gnome-shell-3.4.2.orig/src/calendar-server/calendar-sources.h	2013-09-06 00:39:49.043594992 +0200
++++ gnome-shell-3.4.2/src/calendar-server/calendar-sources.h	2013-09-06 00:39:49.043594992 +0200
+@@ -58,8 +58,8 @@
+ 
+ GType            calendar_sources_get_type                (void) G_GNUC_CONST;
+ CalendarSources *calendar_sources_get                     (void);
+-GSList          *calendar_sources_get_appointment_sources (CalendarSources *sources);
+-GSList          *calendar_sources_get_task_sources        (CalendarSources *sources);
++GList           *calendar_sources_get_appointment_clients (CalendarSources *sources);
++GList           *calendar_sources_get_task_clients        (CalendarSources *sources);
+ 
+ G_END_DECLS
+ 
+Index: gnome-shell-3.4.2/src/calendar-server/gnome-shell-calendar-server.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/calendar-server/gnome-shell-calendar-server.c	2013-09-06 00:39:49.043594992 +0200
++++ gnome-shell-3.4.2/src/calendar-server/gnome-shell-calendar-server.c	2013-09-06 00:39:53.000000000 +0200
+@@ -37,13 +37,7 @@
+ #include <gtk/gtk.h>
+ 
+ #define HANDLE_LIBICAL_MEMORY
+-#include <libecal/e-cal-client.h>
+-#include <libecal/e-cal-time-util.h>
+-#include <libecal/e-cal-recur.h>
+-#include <libecal/e-cal-system-timezone.h>
+-
+-#define CALENDAR_CONFIG_PREFIX   "/apps/evolution/calendar"
+-#define CALENDAR_CONFIG_TIMEZONE CALENDAR_CONFIG_PREFIX "/display/timezone"
++#include <libecal/libecal.h>
+ 
+ #include "calendar-sources.h"
+ 
+@@ -90,7 +84,7 @@
+ {
+   char   *uid;
+   char   *rid;
+-  char   *uri;
++  char   *backend_name;
+   char   *summary;
+   char   *description;
+   char   *color_string;
+@@ -253,37 +247,60 @@
+ get_source_color (ECalClient *esource)
+ {
+   ESource *source;
++  ECalClientSourceType source_type;
++  ESourceSelectable *extension;
++  const gchar *extension_name;
+ 
+   g_return_val_if_fail (E_IS_CAL_CLIENT (esource), NULL);
+ 
+   source = e_client_get_source (E_CLIENT (esource));
++  source_type = e_cal_client_get_source_type (esource);
++
++  switch (source_type)
++    {
++      case E_CAL_CLIENT_SOURCE_TYPE_EVENTS:
++        extension_name = E_SOURCE_EXTENSION_CALENDAR;
++        break;
++      case E_CAL_CLIENT_SOURCE_TYPE_TASKS:
++        extension_name = E_SOURCE_EXTENSION_TASK_LIST;
++        break;
++      default:
++        g_return_val_if_reached (NULL);
++    }
++
++  extension = e_source_get_extension (source, extension_name);
+ 
+-  return g_strdup (e_source_peek_color_spec (source));
++  return e_source_selectable_dup_color (extension);
+ }
+ 
+ static gchar *
+-get_source_uri (ECalClient *esource)
++get_source_backend_name (ECalClient *esource)
+ {
+-    ESource *source;
+-    gchar   *string;
+-    gchar  **list;
+-
+-    g_return_val_if_fail (E_IS_CAL_CLIENT (esource), NULL);
+-
+-    source = e_client_get_source (E_CLIENT (esource));
+-    string = g_strdup (e_source_get_uri (source));
+-    if (string) {
+-        list = g_strsplit (string, ":", 2);
+-        g_free (string);
+-
+-        if (list[0]) {
+-            string = g_strdup (list[0]);
+-            g_strfreev (list);
+-            return string;
+-        }
+-        g_strfreev (list);
++  ESource *source;
++  ECalClientSourceType source_type;
++  ESourceBackend *extension;
++  const gchar *extension_name;
++
++  g_return_val_if_fail (E_IS_CAL_CLIENT (esource), NULL);
++
++  source = e_client_get_source (E_CLIENT (esource));
++  source_type = e_cal_client_get_source_type (esource);
++
++  switch (source_type)
++    {
++      case E_CAL_CLIENT_SOURCE_TYPE_EVENTS:
++        extension_name = E_SOURCE_EXTENSION_CALENDAR;
++        break;
++      case E_CAL_CLIENT_SOURCE_TYPE_TASKS:
++        extension_name = E_SOURCE_EXTENSION_TASK_LIST;
++        break;
++      default:
++        g_return_val_if_reached (NULL);
+     }
+-    return NULL;
++
++  extension = e_source_get_extension (source, extension_name);
++
++  return e_source_backend_dup_backend_name (extension);
+ }
+ 
+ static inline int
+@@ -314,7 +331,7 @@
+ 
+   return
+     null_safe_strcmp (a->uid,          b->uid)          == 0 &&
+-    null_safe_strcmp (a->uri,          b->uri)          == 0 &&
++    null_safe_strcmp (a->backend_name, b->backend_name) == 0 &&
+     null_safe_strcmp (a->summary,      b->summary)      == 0 &&
+     null_safe_strcmp (a->description,  b->description)  == 0 &&
+     null_safe_strcmp (a->color_string, b->color_string) == 0 &&
+@@ -339,8 +356,8 @@
+   g_free (appointment->rid);
+   appointment->rid = NULL;
+ 
+-  g_free (appointment->uri);
+-  appointment->uri = NULL;
++  g_free (appointment->backend_name);
++  appointment->backend_name = NULL;
+ 
+   g_free (appointment->summary);
+   appointment->summary = NULL;
+@@ -363,7 +380,7 @@
+ {
+   appointment->uid          = get_ical_uid (ical);
+   appointment->rid          = get_ical_rid (ical);
+-  appointment->uri          = get_source_uri (cal);
++  appointment->backend_name = get_source_backend_name (cal);
+   appointment->summary      = get_ical_summary (ical);
+   appointment->description  = get_ical_description (ical);
+   appointment->color_string = get_source_color (cal);
+@@ -467,9 +484,6 @@
+   CalendarSources *sources;
+   gulong sources_signal_id;
+ 
+-  guint                zone_listener;
+-  GConfClient         *gconf_client;
+-
+   /* hash from uid to CalendarAppointment objects */
+   GHashTable *appointments;
+ 
+@@ -585,8 +599,8 @@
+ static void
+ app_load_events (App *app)
+ {
+-  GSList *sources;
+-  GSList *l;
++  GList *clients;
++  GList *l;
+   GList *ll;
+   gchar *since_iso8601;
+   gchar *until_iso8601;
+@@ -616,8 +630,8 @@
+                since_iso8601,
+                until_iso8601);
+ 
+-  sources = calendar_sources_get_appointment_sources (app->sources);
+-  for (l = sources; l != NULL; l = l->next)
++  clients = calendar_sources_get_appointment_clients (app->sources);
++  for (l = clients; l != NULL; l = l->next)
+     {
+       ECalClient *cal = E_CAL_CLIENT (l->data);
+       GError *error;
+@@ -630,8 +644,9 @@
+       error = NULL;
+       if (!e_client_open_sync (E_CLIENT (cal), TRUE, NULL, &error))
+         {
++          ESource *source = e_client_get_source (E_CLIENT (cal));
+           g_warning ("Error opening calendar %s: %s\n",
+-		     e_client_get_uri (E_CLIENT (cal)), error->message);
++		     e_source_get_uid (source), error->message);
+           g_error_free (error);
+           continue;
+         }
+@@ -648,8 +663,9 @@
+ 					      NULL, /* cancellable */
+ 					      &error))
+         {
++          ESource *source = e_client_get_source (E_CLIENT (cal));
+           g_warning ("Error querying calendar %s: %s\n",
+-		     e_client_get_uri (E_CLIENT (cal)), error->message);
++		     e_source_get_uid (source), error->message);
+           g_error_free (error);
+           g_free (query);
+           continue;
+@@ -705,6 +721,7 @@
+ 
+       g_free (query);
+     }
++  g_list_free (clients);
+   g_free (since_iso8601);
+   g_free (until_iso8601);
+   app->cache_invalid = FALSE;

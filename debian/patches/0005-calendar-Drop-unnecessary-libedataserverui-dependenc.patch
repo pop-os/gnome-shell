@@ -1,0 +1,137 @@
+From d9506a3400b42e45d6260b5e9103a2d8281cb9d0 Mon Sep 17 00:00:00 2001
+From: Matthew Barnes <mbarnes@redhat.com>
+Date: Tue, 30 Oct 2012 13:42:43 -0400
+Subject: [PATCH 5/6] calendar: Drop unnecessary libedataserverui dependency
+
+The libedataserverui dependency is a relic of the old E-D-S API.
+As of 3.6.0, E-D-S now centralizes authentication prompts so clients
+don't have to display their own.  This also allows trading the GTK+
+main loop for a plain GMainLoop in gnome-shell-calendar-server.c.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=687189
+---
+ configure.ac                                      |  2 +-
+ src/calendar-server/calendar-sources.c            |  1 -
+ src/calendar-server/gnome-shell-calendar-server.c | 34 ++++++++++++++---------
+ 3 files changed, 22 insertions(+), 15 deletions(-)
+
+Index: gnome-shell-3.4.2/configure.ac
+===================================================================
+--- gnome-shell-3.4.2.orig/configure.ac	2013-09-06 00:40:03.583769902 +0200
++++ gnome-shell-3.4.2/configure.ac	2013-09-06 00:40:07.000000000 +0200
+@@ -191,7 +191,7 @@
+ 	 AC_SUBST([HAVE_BLUETOOTH],[0])
+ 	 AC_MSG_RESULT([no])])
+ 
+-PKG_CHECK_MODULES(CALENDAR_SERVER, libecal-1.2 >= $LIBECAL_MIN_VERSION libedataserver-1.2 >= $LIBEDATASERVER_MIN_VERSION libedataserverui-3.0 >= $LIBEDATASERVERUI_MIN_VERSION gio-2.0 gconf-2.0)
++PKG_CHECK_MODULES(CALENDAR_SERVER, libecal-1.2 >= $LIBECAL_MIN_VERSION libedataserver-1.2 >= $LIBEDATASERVER_MIN_VERSION gio-2.0 gconf-2.0)
+ AC_SUBST(CALENDAR_SERVER_CFLAGS)
+ AC_SUBST(CALENDAR_SERVER_LIBS)
+ 
+Index: gnome-shell-3.4.2/src/calendar-server/calendar-sources.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/calendar-server/calendar-sources.c	2013-09-06 00:40:03.583769902 +0200
++++ gnome-shell-3.4.2/src/calendar-server/calendar-sources.c	2013-09-06 00:40:03.579769854 +0200
+@@ -32,7 +32,6 @@
+ #include <gconf/gconf-client.h>
+ #define HANDLE_LIBICAL_MEMORY
+ #include <libecal/libecal.h>
+-#include <libedataserverui/libedataserverui.h>
+ 
+ #undef CALENDAR_ENABLE_DEBUG
+ #include "calendar-debug.h"
+Index: gnome-shell-3.4.2/src/calendar-server/gnome-shell-calendar-server.c
+===================================================================
+--- gnome-shell-3.4.2.orig/src/calendar-server/gnome-shell-calendar-server.c	2013-09-06 00:40:03.583769902 +0200
++++ gnome-shell-3.4.2/src/calendar-server/gnome-shell-calendar-server.c	2013-09-06 00:40:03.579769854 +0200
+@@ -34,7 +34,6 @@
+ #include <unistd.h>
+ 
+ #include <gio/gio.h>
+-#include <gtk/gtk.h>
+ 
+ #define HANDLE_LIBICAL_MEMORY
+ #include <libecal/libecal.h>
+@@ -985,9 +984,11 @@
+               const gchar     *name,
+               gpointer         user_data)
+ {
++  GMainLoop *main_loop = user_data;
++
+   g_print ("gnome-shell-calendar-server[%d]: Lost (or failed to acquire) the name " BUS_NAME " - exiting\n",
+            (gint) getpid ());
+-  gtk_main_quit ();
++  g_main_loop_quit (main_loop);
+ }
+ 
+ static void
+@@ -1003,11 +1004,13 @@
+                        GIOCondition condition,
+                        gpointer data)
+ {
++  GMainLoop *main_loop = data;
++
+   if (condition & G_IO_HUP)
+     {
+       g_debug ("gnome-shell-calendar-server[%d]: Got HUP on stdin - exiting\n",
+                (gint) getpid ());
+-      gtk_main_quit ();
++      g_main_loop_quit (main_loop);
+     }
+   else
+     {
+@@ -1022,6 +1025,7 @@
+ {
+   GError *error;
+   GOptionContext *opt_context;
++  GMainLoop *main_loop;
+   gint ret;
+   guint name_owner_id;
+   GIOChannel *stdin_channel;
+@@ -1031,9 +1035,7 @@
+   name_owner_id = 0;
+   stdin_channel = NULL;
+ 
+-  /* We need to initialize GTK+ since evolution-data-server may decide to use
+-   * GTK+ to pop up a dialog box */
+-  gtk_init (&argc, &argv);
++  g_type_init ();
+ 
+   introspection_data = g_dbus_node_info_new_for_xml (introspection_xml, NULL);
+   g_assert (introspection_data != NULL);
+@@ -1048,11 +1050,15 @@
+       goto out;
+     }
+ 
++  main_loop = g_main_loop_new (NULL, FALSE);
++
+   stdin_channel = g_io_channel_unix_new (STDIN_FILENO);
+-  g_io_add_watch (stdin_channel,
+-                  G_IO_HUP,
+-                  stdin_channel_io_func,
+-                  NULL);
++  g_io_add_watch_full (stdin_channel,
++                       G_PRIORITY_DEFAULT,
++                       G_IO_HUP,
++                       stdin_channel_io_func,
++                       g_main_loop_ref (main_loop),
++                       (GDestroyNotify) g_main_loop_unref);
+ 
+   name_owner_id = g_bus_own_name (G_BUS_TYPE_SESSION,
+                                   BUS_NAME,
+@@ -1061,10 +1067,12 @@
+                                   on_bus_acquired,
+                                   on_name_acquired,
+                                   on_name_lost,
+-                                  NULL,
+-                                  NULL);
++                                  g_main_loop_ref (main_loop),
++                                  (GDestroyNotify) g_main_loop_unref);
++
++  g_main_loop_run (main_loop);
+ 
+-  gtk_main ();
++  g_main_loop_unref (main_loop);
+ 
+   ret = 0;
+ 

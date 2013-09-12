@@ -24,3 +24,6 @@ avoid-gluint.patch
 0001-windowManager-Remove-unused-function.patch
 0002-windowManager-Remove-animate-parameter-from-un-dimWi.patch
 0003-windowManager-Replace-custom-shader-with-builtin-Clu.patch
+0004-calendar-Adapt-to-Evolution-Data-Server-API-changes.patch
+0005-calendar-Drop-unnecessary-libedataserverui-dependenc.patch
+0006-build-Drop-obsololete-variable-from-configure.ac.patch
