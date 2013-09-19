@@ -1,4 +1,4 @@
-gnome-shell (3.4.2-16) UNRELEASED; urgency=low
+gnome-shell (3.4.2-16) unstable; urgency=low
 
   * We already disable folks integration, so update
     50-remove-folks-integration.patch to no longer build the code at all and
@@ -6,7 +6,7 @@ gnome-shell (3.4.2-16) UNRELEASED; urgency=low
   * Backport patches from upstream to update the code for the API changes in
     evolution-data-server 3.5.3. Update Build-Depends accordingly.
 
- -- Michael Biebl <biebl@debian.org>  Thu, 12 Sep 2013 03:50:49 +0200
+ -- Michael Biebl <biebl@debian.org>  Thu, 19 Sep 2013 17:43:49 +0200
 
 gnome-shell (3.4.2-15) unstable; urgency=low
 
