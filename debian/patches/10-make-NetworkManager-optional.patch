@@ -136,7 +136,7 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
                                 libsecret-unstable gcr-base-3 >= $GCR_MIN_VERSION)
  
  PKG_CHECK_MODULES(GNOME_SHELL_JS, gio-2.0 gjs-internals-1.0 >= $GJS_MIN_VERSION)
-@@ -154,6 +152,38 @@
+@@ -154,6 +152,37 @@
              [Define if _NL_TIME_FIRST_WEEKDAY is available])
  fi
  
@@ -149,8 +149,7 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
 +   PKG_CHECK_MODULES(NETWORKMANAGER,
 +                     [libnm-glib 
 +                     libnm-util >= $NETWORKMANAGER_MIN_VERSION
-+                     libnm-gtk >= $NETWORKMANAGER_MIN_VERSION 
-+                     gnome-keyring-1],
++                     libnm-gtk >= $NETWORKMANAGER_MIN_VERSION],
 +                     [have_networkmanager=yes],
 +                     [have_networkmanager=no])
 +
@@ -175,7 +174,7 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
  # Sets GLIB_GENMARSHAL and GLIB_MKENUMS
  AM_PATH_GLIB_2_0()
  
-@@ -199,3 +229,15 @@
+@@ -199,3 +228,15 @@
    man/Makefile
  ])
  AC_OUTPUT
