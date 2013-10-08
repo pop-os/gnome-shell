@@ -1,3 +1,10 @@
+gnome-shell (3.8.4-3) UNRELEASED; urgency=low
+
+  * debian/rules:
+    + Explicitly enable NetworkManager support on linux. Closes: #725760.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 08 Oct 2013 17:42:06 +0200
+
 gnome-shell (3.8.4-2) experimental; urgency=low
 
   * debian/patches/10-make-NetworkManager-optional.patch:
