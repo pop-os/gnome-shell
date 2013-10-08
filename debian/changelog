@@ -1,11 +1,11 @@
-gnome-shell (3.8.4-3) UNRELEASED; urgency=low
+gnome-shell (3.8.4-3) experimental; urgency=low
 
   * debian/rules:
     + Explicitly enable NetworkManager support on linux. Closes: #725760.
   * debian/patches/10-make-NetworkManager-optional.patch:
     + Drop gnome-keyring-1 check, leftover from the 3.4 patch.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 08 Oct 2013 17:42:06 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 08 Oct 2013 17:53:24 +0200
 
 gnome-shell (3.8.4-2) experimental; urgency=low
 
