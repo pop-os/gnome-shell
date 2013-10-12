@@ -2,9 +2,9 @@ Description: Use Debian specific NM VPN helpers paths
 Author: Laurent Bigonville <bigon@debian.org>
 Forwarded: not-needed
 
---- a/js/ui/networkAgent.js
-+++ b/js/ui/networkAgent.js
-@@ -685,7 +685,7 @@ const NetworkAgent = new Lang.Class({
+--- a/js/ui/components/networkAgent.js
++++ b/js/ui/components/networkAgent.js
+@@ -673,7 +673,7 @@
                      } catch(e) { } // ignore errors if key does not exist
                      let path = binary;
                      if (!GLib.path_is_absolute(path)) {

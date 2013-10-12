@@ -1,153 +1,324 @@
-gnome-shell (3.4.2-16) unstable; urgency=low
+gnome-shell (3.8.4-4) UNRELEASED; urgency=low
 
-  * We already disable folks integration, so update
-    50-remove-folks-integration.patch to no longer build the code at all and
-    drop the Build-Depends on libfolks-dev accordingly.
-  * Backport patches from upstream to update the code for the API changes in
-    evolution-data-server 3.5.3. Update Build-Depends accordingly.
+  [ Petr Salinger ]
+  * Restrict dependency on gir1.2-nmgtk-1.0 to linux-any (Closes: #726099)
 
- -- Michael Biebl <biebl@debian.org>  Thu, 19 Sep 2013 17:43:49 +0200
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 12 Oct 2013 16:45:50 +0200
 
-gnome-shell (3.4.2-15) unstable; urgency=low
+gnome-shell (3.8.4-3) experimental; urgency=low
 
-  * Add patches from upstream to replace custom shader (which is causing
-    problems with recent clutter versions) with builtin ClutterEffects:
-    - 0001-windowManager-Remove-unused-function.patch
-    - 0002-windowManager-Remove-animate-parameter-from-un-dimWi.patch
-    - 0003-windowManager-Replace-custom-shader-with-builtin-Clu.patch
-    (First two patches are included only to make the third one apply)
+  * debian/rules:
+    + Explicitly enable NetworkManager support on linux. Closes: #725760.
+  * debian/patches/10-make-NetworkManager-optional.patch:
+    + Drop gnome-keyring-1 check, leftover from the 3.4 patch.
 
- -- Andreas Henriksson <andreas@fatal.se>  Thu, 22 Aug 2013 22:29:45 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 08 Oct 2013 17:53:24 +0200
 
-gnome-shell (3.4.2-14) unstable; urgency=low
+gnome-shell (3.8.4-2) experimental; urgency=low
 
-  * debian/patches/avoid-gluint.patch:
-    - using GLuint causes build failures on armel and armhf as it's
-      not defined. Use a regular guint instead.
+  * debian/patches/10-make-NetworkManager-optional.patch:
+    + Updated from gentoo package for the new version, apply the patch
+      again to fix the build on !linux. Closes: #692049.
 
- -- Andreas Henriksson <andreas@fatal.se>  Wed, 21 Aug 2013 13:50:52 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 06 Oct 2013 11:38:30 +0200
 
-gnome-shell (3.4.2-13) unstable; urgency=low
+gnome-shell (3.8.4-1) experimental; urgency=low
 
-  * debian/patches/disable-clutter-xinput.patch:
-    - disable xinput in clutter since mutter 3.4 does not yet support it.
-    (Closes: #720283)
-  Patch by Sébastien Villemot in collaboration with Sjoerd Simons, et.al.
-
- -- Andreas Henriksson <andreas@fatal.se>  Wed, 21 Aug 2013 11:17:07 +0200
-
-gnome-shell (3.4.2-12) unstable; urgency=low
-
-  * debian/patches/62-remove-leftover-dbus-import.patch: Remove leftover DBus
-    import. This isn't there in newer versions of gjs. (Closes: #718566)
-  * Fix lintian override for the RPATH issue.
-
- -- Michael Biebl <biebl@debian.org>  Fri, 02 Aug 2013 18:20:58 +0200
-
-gnome-shell (3.4.2-11) unstable; urgency=low
-
-  [ Sébastien Villemot ]
-  * debian/patches/61-disable-restart-buttons.patch: new patch, backported from
-    upstream. Makes the 'disable-restart-buttons' option of gdm-shell work.
-    (Closes: #714862)
-  [ Josselin Mouette ]
-  * 30_lockup_gc.patch:
-    + Run the GC a first time after 15 seconds, and next every 10 
-      minutes. This is to avoid running into a deadlock (which often 
-      happens the first time) and lose 10 minutes of work.
-    + Add a watchdog thread to suicide the process after 10 seconds if 
-      the GC locks up.
-
- -- Josselin Mouette <joss@debian.org>  Wed, 03 Jul 2013 23:38:35 +0200
-
-gnome-shell (3.4.2-10) unstable; urgency=low
-
-  * debian/patches/14_make-GLX-optional.patch: Add an --enable-glx configure
-    switch and explicitly disable GLX support on arm{el,hf}. This way we don't
-    FTBFS if another package pulls the GL/GLX devel packages.
-
- -- Michael Biebl <biebl@debian.org>  Mon, 01 Jul 2013 11:52:24 +0200
-
-gnome-shell (3.4.2-9) unstable; urgency=low
-
-  * debian/patches/60-gnome-bluetooth-3.8.patch:
-    + Adapt to gnome-bluetooth's 3.8 api change. Thanks to Ben Armstrong
-      for his help with testing. Closes: #712861.
+  [ Emilio Pozuelo Monfort ]
   * debian/control.in:
-    + Require gnome-bluetooth 3.8.
+    + Add gkbd-capplet back to gnome-shell's recommends. It was dropped
+      in 3.7.92-1 but the shell's keyboard layout switcher uses it to
+      display the layout in a window.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 20 Jun 2013 15:58:39 +0200
+  [ Jeremy Bicha ]
+  * debian/patches/git_relock_screen_after_crash.patch:
+    + Backport fix to ensure session is locked after crash
+  * debian/control.in:
+    - Update homepage
+    - Drop obsolete gconf dependency
 
-gnome-shell (3.4.2-8) unstable; urgency=low
-
-  * debian/patches/0001-st-theme-node-drawing-Don-t-use-GL-types.patch:
-    + Patch from upstream git, don't use GL types as cogl doesn't expose
-      GL headers in newer releases. This will ease the cogl transition.
-
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 26 May 2013 17:55:08 +0200
-
-gnome-shell (3.4.2-7) unstable; urgency=low
-
-  [ Michael Biebl ]
-  * 40-force-online.patch: Use correct icon name "network-wired" when the
-    global online state is set to connected.
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
 
   [ Laurent Bigonville ]
-  * debian/patches/50-remove-folks-integration.patch: Remove folks integration,
-    it might cause some slow startup time and cause Dbus call to timeout
-    (Closes: #693155)
+  * debian/control.in: Bump gir1.2-ibus-1.0 dependency to 1.5.2, this is
+    needed for the new ibus_bus_new_async() API.
+  * debian/control.in: Bump Standards-Version to 3.9.4 (no further changes)
+  * debian/gnome-shell.lintian-overrides: Adjust override
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 09 Feb 2013 14:20:45 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 24 Aug 2013 14:52:18 +0200
 
-gnome-shell (3.4.2-6) unstable; urgency=low
+gnome-shell (3.8.3-1) experimental; urgency=low
 
-  [ Josselin Mouette ]
-  * 28_network_user_connections.patch: new patch. Set connections and 
-    passwords as user-owned, following matching changes in nm-applet and 
-    gnome-control-center. The logic is:
-    - Wired connections: always system-owned.
-    - Modem (GSM/UMTS) connections are created by the control center.
-    - Bluetooth PAN connections are now always user-owned.
-    - Wireless connections are system-owned if the user has permissions 
-      (in Debian this means group sudo or netdev). Otherwise, it is 
-      user-owned, with the password in the keyring only for WPA.
-    - 802.1x (wired or wireless) is always handled by the control 
-      center.
-    Closes: #696257
+  [ Jeremy Bicha ]
+  * debian/control.in:
+    - Don't recommend gnome-session-fallback
 
-  [ Michael Biebl ]
-  * Refresh patches to apply without fuzz.
-  * 40-force-online.patch: If NM has an active unmanaged device it will
-    forcefully set the online state to CONNECTED_GLOBAL. In that case show a
-    wired connection icon instead of an offline icon. Closes: #691436
-  * 28_network_user_connections.patch: Treat WEP keys like WPA-PSK secrets and
-    store them in the keyring for user-owned connections.
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Bump minimum gir1.2-gtk-3.0 dependency.
+      Thanks to Frederik Himpe <fhimpe@telenet.be>.
+  * New upstream release.
+  * debian/control.in:
+    + Bump build dependencies.
+  * debian/patches/series:
+    + Disable 30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch,
+      it conflicts with changes in the new version and may not be necessary
+      anymore.
 
- -- Michael Biebl <biebl@debian.org>  Thu, 17 Jan 2013 10:43:30 +0100
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sat, 08 Jun 2013 19:05:08 +0200
 
-gnome-shell (3.4.2-5) unstable; urgency=low
+gnome-shell (3.8.2-1) experimental; urgency=low
 
-  * 30_lockup_gc.patch: update patch. Instead of completely dropping 
-    explicit GC calls, only do them once every 10 minutes or so. This 
-    might still trigger deadlocks, but not at startup time where they 
-    are frequent, and otherwise will make them thousands of times less 
-    likely. Closes: #696040.
+  * New upstream release.
+    + debian/control.in:
+      - Update mutter dependencies.
 
- -- Josselin Mouette <joss@debian.org>  Thu, 03 Jan 2013 00:59:55 +0100
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 24 May 2013 17:34:32 +0200
 
-gnome-shell (3.4.2-4) unstable; urgency=low
+gnome-shell (3.8.1-2) experimental; urgency=low
 
-  * 30_lockup_gc.patch: backported from 3.6. Remove a forced garbage 
-    collection which triggers deadlocks. Closes: #683880.
+  * Team upload
+  * Reinstate support for suspend via UPower using the user-menu, until
+    our logind is new enough to take over (Closes: #704272)
+  * Delay suspend for 1 second in the hope that that's long enough to lock
+    the screen (works around #645716, but only if you suspend via the
+    user-menu)
 
- -- Josselin Mouette <joss@debian.org>  Sun, 02 Dec 2012 13:55:57 +0100
+ -- Simon McVittie <smcv@debian.org>  Mon, 22 Apr 2013 11:17:11 +0100
 
-gnome-shell (3.4.2-3) unstable; urgency=low
+gnome-shell (3.8.1-1) experimental; urgency=low
 
-  * Recommend unzip. Closes: #680978.
-  * Recommend gkbd-capplet for gkbd-keyboard-display. Closes: #691731.
+  * New upstream release
+  * debian/control.in: Update mutter depends to 3.8.1
 
- -- Josselin Mouette <joss@debian.org>  Mon, 26 Nov 2012 12:55:56 +0100
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 19 Apr 2013 23:45:29 +0200
+
+gnome-shell (3.8.0.1-2) experimental; urgency=low
+
+  * debian/control.in: Add gir1.2-telepathylogger-0.2 runtime depend
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 31 Mar 2013 22:36:06 +0200
+
+gnome-shell (3.8.0.1-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 27 Mar 2013 19:12:49 +0100
+
+gnome-shell (3.8.0-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * debian/control.in: Bump caribou run-time depend to >= 0.4.8
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
+    + debian/control.in:
+      - Bump mutter build and binary dependencies.
+      - Remove build dependency on network-manager-dev now that
+        libnm-glib-dev has been fixed.
+      - Restrict libnm-gtk-dev build dependency to linux-any.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 27 Mar 2013 00:28:32 +0100
+
+gnome-shell (3.7.92-1) experimental; urgency=low
+
+  [ Sjoerd Simons ]
+  * Sync from Ubuntu
+  * d/p/ubuntu-lightdm-user-switching.patch:
+    d/p/ubuntu_lock_on_suspend.patch:
+    + Dropped, Ubuntu specifc
+  * d/p/14_make-GLX-optional.patch: Fixed upstream
+  * debian/control.in: Depend on e-d-s >= 3.7.90 to fix build failures due to
+    deprecated structures in headers.
+  * debian/patches/40_change-pam-name-to-match-gdm.patch
+    + Added. Change the pam service name to match the one used by gdm in debian
+
+  [ Emilio Pozuelo Monfort ]
+  * New upstream release.
+    + debian/control.in:
+      - Update build dependencies.
+      - Temporarily add an explicit build-depend on network-manager-dev
+        until libnm-glib-dev gets a versioned dependency.
+    + debian/patches/git_fix_too_short_apps_view.patch:
+      - Removed, included upstream.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 20 Mar 2013 22:40:26 +0100
+
+gnome-shell (3.7.90-0ubuntu1~raring1) raring; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream alpha release
+  * debian/control.in:
+    - Drop obsolete libedataserverui-dev dependency
+    - Depend on gir1.2-nmgtk-1.0
+    - Build-depend on caribou and gnome-desktop3
+  * debian/watch: Watch for unstable releases
+  * ubuntu-lightdm-user-switching.patch: Refreshed
+  * ubuntu_lock_on_suspend.patch: Disabled
+  * revert-suspend-break.patch:
+    - Sure, suspend is currently broken on Ubuntu with GNOME 3.8, but let's
+      not break it worse than necessary
+  * git_fix_too_short_apps_view.patch:
+    - Fix missing text on bottom row of apps view in the overview
+
+  [ Rico Tzschichholz ]
+  * debian/control.in:
+    - Bump minimum dependencies on gnome-desktop3, libcroco, libpulse,
+      clutter, gsettings-desktop-schemas, gjs and mutter
+    - Build-depend on libcanberra-gtk3-dev
+    - Drop build-depends on gconf and libgnome-desktop3-dev
+  * debian/rules:
+    - Add src/gvc to gir list
+  * Drop patches applied in new version:
+    - git-set-ally-wm-theme.patch
+    - git_messagetray_opacity_fix.patch
+    - git_messagetray_remove_tweens.patch
+    - git_messagetray_fix_expansion.patch
+    - telepathyClient-Fix-auto-scroll-to-bottom.patch
+    - ubuntu_screensaver_fallback.patch
+  * 10-make-NetworkManager-optional.patch:
+    - Dropped, this was Debian-specific and they intend to drop it too
+  * Refreshed patches:
+    - 14_make-GLX-optional.patch
+    - ubuntu_lock_on_suspend.patch
+  * ubuntu-lightdm-user-switching.patch: Disabled as it breaks the user menu
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 23 Feb 2013 17:43:44 -0500
+
+gnome-shell (3.6.2-0ubuntu4) raring; urgency=low
+
+  * Upstream bugfix for disappearing notifications (LP: #1088759)
+    debian/patches/git_messagetray_fix_expansion.patch
+
+ -- Tim Lunn <tim@feathertop.org>  Mon, 17 Dec 2012 07:55:47 +1100
+
+gnome-shell (3.6.2-0ubuntu3) raring; urgency=low
+
+  * Upstream bugfix for disappearing message tray (LP: #1067265)
+      debian/patches/git_messagetray_remove_tweens.patch
+      debian/patches/git_messagetray_opacity_fix.patch
+
+ -- Tim Lunn <tim@feathertop.org>  Tue, 27 Nov 2012 08:27:57 +1100
+
+gnome-shell (3.6.2-0ubuntu2) raring; urgency=low
+
+  * debian/control.in:
+    - Don't recommend gnome-session-fallback; gnome-shell doesn't need
+      fallback mode now that we're using llvmpipe
+  * debian/git-set-ally-wm-theme.patch:
+    - Git patch to set/reset HighContrast window theme too
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 25 Nov 2012 12:51:35 -0500
+
+gnome-shell (3.6.2-0ubuntu1) raring; urgency=low
+
+  * New upstream release. (LP: #1078155)
+    - Fixes disable-user-list option (LP: #1072838)
+  * debian/control.in
+    - Bump minimum mutter
+    - Build-depend on gtk-doc-tools to generate updated man page
+  * debian/patches/telepathyClient-Fix-auto-scroll-to-bottom.patch
+    - Dropped, applied in new version
+  * debian/patches/ubuntu_screensaver_fallback.patch:
+    - Dropped, applied in new version
+  * debian/patches/ubuntu_lock_on_suspend.patch
+    - Refreshed
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 12 Nov 2012 23:11:33 -0500
+
+gnome-shell (3.6.1-3ubuntu2) raring; urgency=low
+
+  * Rebuild against new mutter
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 08 Nov 2012 10:47:35 -0500
+
+gnome-shell (3.6.1-3ubuntu1) raring; urgency=low
+
+  [ Jeremy Bicha ]
+  * Merge with Debian (LP: #1044408). Remaining changes:
+  * debian/control.in:
+    - Depend on gdm instead of gdm3
+    - Don't depend on ibus 1.4.99 yet as it's not in Ubuntu yet
+  * debian/source_gnome-shell.py:
+    - Include session logs and report which display manager is running
+  * 29-Cope-with-clutter-being-built-with-both-new-and-old-.patch:
+    - Dropped, not needed in Ubuntu
+  * debian/patches/ubuntu-lightdm-user-switching.patch:
+    - Fix user switching when running lightdm (LP: #1064269)
+  * debian/patches/ubuntu_lock_on_suspend.patch
+    - fix lock on suspend via user menu
+  * debian/patches/ubuntu_screensaver_fallback.patch:
+    - Explicitly start gnome-screensaver when screenshield loads
+      in fallback mode.
+
+  [ Simon McVittie ]
+  * Increase libsoup dependency to 2.40, needed when installing extensions
+    from extensions.gnome.org
+  * Recommend unzip, also for extensions.gnome.org (Closes: #680978)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 08 Nov 2012 09:21:38 -0500
+
+gnome-shell (3.6.1-3) experimental; urgency=low
+
+  * debian/rules: Depends on 3.6 versions of gir1.2-gnomebluetooth-1.0 and
+    gir1.2-gnomedesktop-3.0 
+  * debian/rules: Add dependency on evolution-data-server (Closes: #690554)
+  * debian/rules: Depend on gir1.2-telepathylogger-0.2 >= 0.4.0-2 to get the
+    annotation updates needed by gnome-shell
+  * debian/rules: gir1.2-ibus-1.0 (> 1.4.99) needed for
+    the ibus related functionality
+  * debian/patches/telepathyClient-Fix-auto-scroll-to-bottom.patch:
+    + Added. Fix auto-scroll down in the builtin telepathy message view (bgo:
+      #686571)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sun, 21 Oct 2012 14:50:16 +0200
+
+gnome-shell (3.6.1-2) experimental; urgency=low
+
+  * d/p/30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch:
+    - Added, prevent gnome-shell from become unresponsive (bgo: #686502)
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 20 Oct 2012 01:17:07 +0200
+
+gnome-shell (3.6.1-1) experimental; urgency=low
+
+  * New upstream release
+  * d/p/28-ShellUserVerifier-fix-typo-in-function-name-caught-o.patch:
+    - Removed, fixed upstream
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Wed, 17 Oct 2012 21:01:15 +0200
+
+gnome-shell (3.6.0-1) experimental; urgency=low
+
+  * New upstream release
+  * d/p/28-ShellUserVerifier-fix-typo-in-function-name-caught-o.patch:
+    - Added. Fix typo in function name called from auth error (From upstream
+      git)
+  * d/p/29-Cope-with-clutter-being-built-with-both-new-and-old-.patch:
+    - Added. The ClutterColor g-i API changes depending on which version of
+      gobject-introspection clutter is built with. Deal with both variants
+  * d/p/01_slist_cleanup.patch
+    d/p/02_filter_nodisplay_parents.patch
+    d/p/03_don-t-show-apps-in-NoDisplay-categories.patch
+    d/p/04_fix_nodisplay.patch
+    d/p/25-close-the-recorder-instead-of-pausing-it.patch
+    d/p/26-networkAgent-use-absolute-path-if-configured.patch
+    d/p/32-enable-the-screen-reader-menu-item.patch
+    d/p/33-screen-reader-l10n.patch
+    - Dropped, all fixed upstream
+  * d/p/14_make-GLX-optional.patch: Refreshed
+  * d/p/27-nm-libexec-path.patch: Refreshed
+  * d/p/10-make-NetworkManager-optional.patch: Temporarily disabled
+  * debian/gnome-shell.gsettings-override: Use epiphany instead of iceweasel
+    again
+  * debian/control.in: Conflict with gnome-screensaver (<< 3.6) as
+    both try to provide the screensaver in the full gnome session
+  * Sync with Ubuntu:
+    + debian/control.in: Update build-depends
+    + debian/source_gnome-shell.py: Add apport hook
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 15 Oct 2012 09:34:33 +0200
 
 gnome-shell (3.4.2-2) unstable; urgency=low
 
