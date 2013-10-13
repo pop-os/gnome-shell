@@ -31,25 +31,17 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
  /* locale dir */
 --- a/js/ui/panel.js
 +++ b/js/ui/panel.js
-@@ -933,11 +933,13 @@
-     PANEL_ITEM_IMPLEMENTATIONS['bluetooth'] =
-         imports.ui.status.bluetooth.Indicator;
+@@ -811,7 +811,9 @@
+         this._indicators = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
+         this.actor.add_child(this._indicators);
  
--try {
--    PANEL_ITEM_IMPLEMENTATIONS['network'] =
--        imports.ui.status.network.NMApplet;
--} catch(e) {
--    log('NMApplet is not supported. It is possible that your NetworkManager version is too old');
-+if (Config.HAVE_NETWORKMANAGER) {
-+    try {
-+        PANEL_ITEM_IMPLEMENTATIONS['network'] =
-+            imports.ui.status.network.NMApplet;
-+    } catch(e) {
-+        log('NMApplet is not supported. It is possible that your NetworkManager version is too old');
-+    }
- }
- 
- const Panel = new Lang.Class({
+-        this._network = new imports.ui.status.network.NMApplet();
++        if (Congi.HAVE_NETWORKMANAGER) {
++          this._network = new imports.ui.status.network.NMApplet();
++        }
+         if (Config.HAVE_BLUETOOTH) {
+             this._bluetooth = new imports.ui.status.bluetooth.Indicator();
+         } else {
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
 @@ -10,6 +10,8 @@
@@ -61,21 +53,21 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
  const DEFAULT_MODE = 'restrictive';
  
  const _modes = {
-@@ -102,7 +104,10 @@
+@@ -92,7 +94,10 @@
          isLocked: false,
          isPrimary: true,
          unlockDialog: imports.ui.unlockDialog.UnlockDialog,
 -        components: ['networkAgent', 'polkitAgent', 'telepathyClient',
 +        components: Config.HAVE_NETWORKMANAGER ?
-+                    ['networkAgent', 'polkitAgent', 'telepathyClient',
-+                     'keyring', 'recorder', 'autorunManager', 'automountManager'] :
-+                    ['polkitAgent', 'telepathyClient',
-                      'keyring', 'recorder', 'autorunManager', 'automountManager'],
++          ['networkAgent', 'polkitAgent', 'telepathyClient',
++                     'keyring', 'autorunManager', 'automountManager'] :
++          ['polkitAgent', 'telepathyClient',
+                      'keyring', 'autorunManager', 'automountManager'],
          panel: {
              left: ['activities', 'appMenu'],
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -116,7 +116,6 @@
+@@ -103,7 +103,6 @@
  	shell-invert-lightness-effect.h	\
  	shell-keybinding-modes.h	\
  	shell-mount-operation.h		\
@@ -83,60 +75,49 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
  	shell-perf-log.h		\
  	shell-screenshot.h		\
  	shell-slicer.h			\
-@@ -129,6 +128,10 @@
- 	shell-wm.h			\
- 	shell-xfixes-cursor.h
- 
-+if HAVE_NETWORKMANAGER
-+shell_public_headers_h +=  shell-network-agent.h
-+endif
-+
- shell_private_sources = \
- 	gactionmuxer.h			\
- 	gactionmuxer.c			\
-@@ -159,7 +162,6 @@
- 	shell-keyring-prompt.h		\
- 	shell-keyring-prompt.c		\
+@@ -140,7 +139,6 @@
+ 	shell-menu-tracker.c		\
+ 	shell-menu-tracker.h		\
  	shell-mount-operation.c		\
 -	shell-network-agent.c		\
  	shell-perf-log.c		\
  	shell-polkit-authentication-agent.h	\
  	shell-polkit-authentication-agent.c	\
-@@ -177,6 +179,10 @@
- 	shell-xfixes-cursor.c		\
- 	$(NULL)
+@@ -175,6 +173,10 @@
+ 
+ libgnome_shell_la_SOURCES = $(libgnome_shell_sources)
  
 +if HAVE_NETWORKMANAGER
 +libgnome_shell_la_SOURCES +=  shell-network-agent.c
 +endif
 +
  libgnome_shell_la_gir_sources = \
- 	$(filter-out %-private.h $(shell_private_sources), $(shell_public_headers_h) $(libgnome_shell_la_SOURCES))
+ 	$(filter-out %-private.h $(shell_private_sources), $(shell_public_headers_h) $(libgnome_shell_base_la_SOURCES) $(libgnome_shell_sources))
  
-@@ -287,7 +293,10 @@
- libgnome_shell_la_CPPFLAGS = $(gnome_shell_cflags)
+@@ -331,7 +333,10 @@
+ CLEANFILES += ShellMenu-0.1.gir
  
- Shell-0.1.gir: libgnome-shell.la St-1.0.gir
+ Shell-0.1.gir: gnome-shell St-1.0.gir ShellMenu-0.1.gir
 -Shell_0_1_gir_INCLUDES = Clutter-1.0 ClutterX11-1.0 Meta-3.0 TelepathyGLib-0.12 Soup-2.4 GMenu-3.0 NetworkManager-1.0 NMClient-1.0
 +Shell_0_1_gir_INCLUDES = Clutter-1.0 ClutterX11-1.0 Meta-3.0 TelepathyGLib-0.12 Soup-2.4 GMenu-3.0
 +if HAVE_NETWORKMANAGER
 +Shell_0_1_gir_INCLUDES += NetworkManager-1.0 NMClient-1.0
 +endif
  Shell_0_1_gir_CFLAGS = $(libgnome_shell_la_CPPFLAGS) -I $(srcdir)
- Shell_0_1_gir_LIBS = libgnome-shell.la
- Shell_0_1_gir_FILES = $(libgnome_shell_la_gir_sources)
+ # Hack! we use PROGRAM instead of LIBS so that the soname is not included
+ # in the typelib. This way the symbols will be resolved with the libgnome-shell
 --- a/configure.ac
 +++ b/configure.ac
-@@ -94,8 +94,6 @@
- 			       libcanberra libcanberra-gtk3
-                                telepathy-glib >= $TELEPATHY_GLIB_MIN_VERSION
-                                polkit-agent-1 >= $POLKIT_MIN_VERSION xfixes
--                               libnm-glib libnm-util >= $NETWORKMANAGER_MIN_VERSION
--                               libnm-gtk >= $NETWORKMANAGER_MIN_VERSION
-                                libsecret-unstable gcr-base-3 >= $GCR_MIN_VERSION)
+@@ -91,8 +91,6 @@
+             libcanberra libcanberra-gtk3
+             telepathy-glib >= $TELEPATHY_GLIB_MIN_VERSION
+             polkit-agent-1 >= $POLKIT_MIN_VERSION
+-            libnm-glib libnm-util >= $NETWORKMANAGER_MIN_VERSION
+-            libnm-gtk >= $NETWORKMANAGER_MIN_VERSION
+             libsecret-unstable gcr-base-3 >= $GCR_MIN_VERSION"
  
- PKG_CHECK_MODULES(GNOME_SHELL_JS, gio-2.0 gjs-internals-1.0 >= $GJS_MIN_VERSION)
-@@ -154,6 +152,37 @@
+ PKG_CHECK_MODULES(GNOME_SHELL, $SHARED_PCS)
+@@ -162,6 +160,37 @@
              [Define if _NL_TIME_FIRST_WEEKDAY is available])
  fi
  
@@ -174,7 +155,7 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
  # Sets GLIB_GENMARSHAL and GLIB_MKENUMS
  AM_PATH_GLIB_2_0()
  
-@@ -199,3 +228,15 @@
+@@ -203,3 +232,15 @@
    man/Makefile
  ])
  AC_OUTPUT
