@@ -1,9 +1,12 @@
-gnome-shell (3.8.4-4) UNRELEASED; urgency=low
+gnome-shell (3.8.4-4) unstable; urgency=low
 
   [ Petr Salinger ]
   * Restrict dependency on gir1.2-nmgtk-1.0 to linux-any (Closes: #726099)
 
- -- Andreas Henriksson <andreas@fatal.se>  Sat, 12 Oct 2013 16:45:50 +0200
+  [ Emilio Pozuelo Monfort ]
+  * Upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 13 Oct 2013 17:47:35 +0200
 
 gnome-shell (3.8.4-3) experimental; urgency=low
 
