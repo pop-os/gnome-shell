@@ -14,7 +14,10 @@ gnome-shell (3.10.0.1-1) UNRELEASED; urgency=low
   * debian/control.in: Sync b-depends and debians from Ubuntus gnome3-teams
     packaging
 
- -- Sjoerd Simons <sjoerd@debian.org>  Sun, 13 Oct 2013 22:29:20 +0200
+  * debian/patches/10-make-NetworkManager-optional.patch
+    + Temporarily disabled as it breaks gnome-shell currently
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Mon, 21 Oct 2013 00:08:09 +0200
 
 gnome-shell (3.8.4-4) unstable; urgency=low
 
