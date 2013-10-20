@@ -36,7 +36,7 @@ From: http://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-x86/gnome-base/gnome-s
          this.actor.add_child(this._indicators);
  
 -        this._network = new imports.ui.status.network.NMApplet();
-+        if (Congi.HAVE_NETWORKMANAGER) {
++        if (Config.HAVE_NETWORKMANAGER) {
 +          this._network = new imports.ui.status.network.NMApplet();
 +        }
          if (Config.HAVE_BLUETOOTH) {
