@@ -1,5 +1,6 @@
 gnome-shell (3.10.1-1) UNRELEASED; urgency=low
 
+  [ Sjoerd Simons ]
   * New upstream release
   * debian/patches/11-no-gettext.patch
     + Removed, fixed upstream
@@ -13,9 +14,14 @@ gnome-shell (3.10.1-1) UNRELEASED; urgency=low
     + Refreshed
   * debian/control.in: Sync b-depends and debians from Ubuntus gnome3-teams
     packaging
-
   * debian/patches/10-make-NetworkManager-optional.patch
     + Temporarily disabled as it breaks gnome-shell currently
+
+  [ Laurent Bigonville ]
+  * debian/control.in:
+    - Demote gdm3 Depends to Recommends, if gdm is not installed gnome-shell
+      will not be able to lock the screen (Closes: #727558)
+    - Add Depends against gir1.2-gdm3
 
  -- Sjoerd Simons <sjoerd@debian.org>  Mon, 21 Oct 2013 10:23:29 +0200
 
