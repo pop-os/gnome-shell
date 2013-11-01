@@ -1,4 +1,4 @@
-gnome-shell (3.10.1-1) UNRELEASED; urgency=low
+gnome-shell (3.10.1-1) experimental; urgency=low
 
   [ Sjoerd Simons ]
   * New upstream release
@@ -23,7 +23,11 @@ gnome-shell (3.10.1-1) UNRELEASED; urgency=low
       will not be able to lock the screen (Closes: #727558)
     - Add Depends against gir1.2-gdm3
 
- -- Sjoerd Simons <sjoerd@debian.org>  Mon, 21 Oct 2013 10:23:29 +0200
+  [ Sjoerd Simons ]
+  * debian/gnome-shell-common.dirs: Create an empty
+    /usr/share/gnome-shell/modes to work around bgo#709313
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Fri, 01 Nov 2013 23:03:15 +0100
 
 gnome-shell (3.8.4-4) unstable; urgency=low
 
