@@ -1,3 +1,12 @@
+gnome-shell (3.8.4-5) unstable; urgency=low
+
+  * debian/patches/41-handle-logind-fail.patch:
+    + Gracefully handle logind not creating our session by falling back
+      to ConsoleKit. This can happen when running on a kernel without
+      cgroups support. Closes: #729877.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Mon, 18 Nov 2013 21:00:59 +0100
+
 gnome-shell (3.8.4-4) unstable; urgency=low
 
   [ Petr Salinger ]
