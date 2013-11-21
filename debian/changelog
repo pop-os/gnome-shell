@@ -1,3 +1,11 @@
+gnome-shell (3.10.1-2) UNRELEASED; urgency=low
+
+  * Drop debian/patches/40_change-pam-name-to-match-gdm.patch and adjust
+    Breaks against gdm3 package, pam modules in gdm3 package have been renamed
+    back to upstream's names
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 21 Nov 2013 08:02:10 +0100
+
 gnome-shell (3.10.1-1) experimental; urgency=low
 
   [ Sjoerd Simons ]
