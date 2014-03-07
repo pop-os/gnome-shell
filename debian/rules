@@ -15,7 +15,7 @@ endif
 DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-	DEB_CONFIGURE_EXTRA_FLAGS += --enable-networkmanager
+	DEB_CONFIGURE_EXTRA_FLAGS += --enable-networkmanager --enable-systemd
 endif
 
 DEB_DH_MAKESHLIBS_ARGS_gnome-shell = -Xlibgnome-shell
