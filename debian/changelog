@@ -23,6 +23,8 @@ gnome-shell (3.11.91-1) UNRELEASED; urgency=low
     - needs new key at runtime
   * Bump gir1.2-clutter-1.0 dependency to 1.17
     - needs Clutter.GestureTriggerEdge
+  * Bump gir1.2-glib-1.0 dependency to 1.39.90-4~
+    - needs Gio.DesktopAppInfo.search
 
  -- Andreas Henriksson <andreas@fatal.se>  Thu, 06 Mar 2014 00:07:01 +0100
 
