@@ -1,0 +1,30 @@
+From: Simon McVittie <simon.mcvittie@collabora.co.uk>
+Date: Tue, 25 Mar 2014 17:02:02 +0000
+Subject: [PATCH] Specifically ask for Telepathy 0.x
+
+Telepathy 1.0 will not be compatible, and will probably require
+source changes. telepathy-glib 0.12 and telepathy-logger 0.2 are
+the 0.x ABIs (they were the first stable-branches to have g-i).
+
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=721704
+Reviewed-by: Giovanni Campagna
+Applied-upstream: 3.8.5, commit:226032d
+Applied-upstream: 3.10.5, commit:c95432f
+Applied-upstream: 3.12.1, commit:e09e1bc
+---
+ js/ui/environment.js | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index aa7a4bd..4d78c2b 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -5,6 +5,8 @@ imports.gi.versions.Gio = '2.0';
+ imports.gi.versions.Gdk = '3.0';
+ imports.gi.versions.GdkPixbuf = '2.0';
+ imports.gi.versions.Gtk = '3.0';
++imports.gi.versions.TelepathyGLib = '0.12';
++imports.gi.versions.TelepathyLogger = '0.2';
+ 
+ const Clutter = imports.gi.Clutter;;
+ const Gettext = imports.gettext;
