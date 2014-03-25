@@ -1,3 +1,11 @@
+gnome-shell (3.8.4-6) UNRELEASED; urgency=medium
+
+  * debian/patches/42-Specifically-ask-for-Telepathy-0.x.patch:
+    + Don't attempt to use the parallel-installable Telepathy 1.0 when
+      that gets uploaded, if it happens to be installed.
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 25 Mar 2014 13:25:27 +0000
+
 gnome-shell (3.8.4-5) unstable; urgency=low
 
   * debian/patches/41-handle-logind-fail.patch:
