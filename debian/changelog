@@ -1,10 +1,10 @@
-gnome-shell (3.8.4-8) UNRELEASED; urgency=medium
+gnome-shell (3.8.4-8) unstable; urgency=medium
 
   * debian/patches/45-fix-gi-annotations.patch:
     + Fix FTBFS with gobject-introspection 1.40 which got a tiny bit
       stricter.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 04 Apr 2014 00:44:44 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 04 Apr 2014 01:09:46 +0200
 
 gnome-shell (3.8.4-7) unstable; urgency=medium
 
