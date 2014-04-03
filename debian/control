@@ -80,7 +80,7 @@ Depends: ${gir:Depends},
          gir1.2-gnomedesktop-3.0 (>= 3.7.90),
          gir1.2-gtk-3.0 (>= 3.8),
          gir1.2-ibus-1.0 (>= 1.5.2),
-         gir1.2-mutter-3.0 (>= 3.10.0),
+         gir1.2-mutter-3.0 (>= 3.12.0),
          gir1.2-networkmanager-1.0 [linux-any],
          gir1.2-nmgtk-1.0 (>= 0.9.8) [linux-any],
          gir1.2-pango-1.0,
@@ -110,15 +110,12 @@ Breaks: fglrx-driver (<< 1:11-10),
         gnome-tweak-tool (<< 3.5)
 Conflicts: gnome-screensaver (<< 3.6)
 Description: graphical shell for the GNOME desktop
- The GNOME Shell redefines user interactions with the GNOME desktop.
- In particular, it offers new paradigms for launching applications,
- accessing documents, and organizing open windows in GNOME. Later, it
- will introduce a new applets eco-system and offer new solutions for
- other desktop features, such as notifications and contacts
- management. The GNOME Shell is intended to replace functions handled
- by the GNOME Panel and by the window manager in previous versions of
- GNOME. The GNOME Shell has rich visual effects enabled by new
- graphical technologies.
+ The GNOME Shell provides core interface functions like switching
+ windows, launching applications or see your notifications. It takes
+ advantage of the capabilities of modern graphics hardware and
+ introduces innovative user interface concepts to provide a
+ delightful and easy to use experience. GNOME Shell is the defining
+ technology of the GNOME 3 user experience.
 
 Package: gnome-shell-common
 Architecture: all
@@ -137,14 +134,11 @@ Depends: ${misc:Depends},
          gnome-shell (= ${binary:Version})
 Recommends: mutter-dbg
 Description: Debugging symbols for GNOME Shell
- The GNOME Shell redefines user interactions with the GNOME desktop.
- In particular, it offers new paradigms for launching applications,
- accessing documents, and organizing open windows in GNOME. Later, it
- will introduce a new applets eco-system and offer new solutions for
- other desktop features, such as notifications and contacts
- management. The GNOME Shell is intended to replace functions handled
- by the GNOME Panel and by the window manager in previous versions of
- GNOME. The GNOME Shell has rich visual effects enabled by new
- graphical technologies.
+ The GNOME Shell provides core interface functions like switching
+ windows, launching applications or see your notifications. It takes
+ advantage of the capabilities of modern graphics hardware and
+ introduces innovative user interface concepts to provide a
+ delightful and easy to use experience. GNOME Shell is the defining
+ technology of the GNOME 3 user experience.
  .
  This package contains detached debugging symbols.

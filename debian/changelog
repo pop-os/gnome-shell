@@ -31,6 +31,10 @@ gnome-shell (3.11.91-1) UNRELEASED; urgency=low
     + Don't attempt to use the parallel-installable Telepathy 1.0 when
       that gets uploaded, if it happens to be installed.
 
+  [ Emilio Pozuelo Monfort ]
+  * debian/control.in:
+    + Bump gir1.2-mutter-3.0 dependency to >= 3.12.
+
  -- Andreas Henriksson <andreas@fatal.se>  Thu, 06 Mar 2014 00:07:01 +0100
 
 gnome-shell (3.10.1-1) experimental; urgency=low
