@@ -35,6 +35,9 @@ gnome-shell (3.11.91-1) UNRELEASED; urgency=low
   * debian/control.in:
     + Bump gir1.2-mutter-3.0 dependency to >= 3.12.
 
+  [ Pedro Beja ]
+  * Update package description
+
  -- Andreas Henriksson <andreas@fatal.se>  Thu, 06 Mar 2014 00:07:01 +0100
 
 gnome-shell (3.10.1-1) experimental; urgency=low
