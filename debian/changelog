@@ -1,4 +1,4 @@
-gnome-shell (3.12.0-1) UNRELEASED; urgency=low
+gnome-shell (3.12.0-1) experimental; urgency=low
 
   [ Laurent Bigonville ]
   * Drop debian/patches/40_change-pam-name-to-match-gdm.patch and adjust
@@ -44,7 +44,7 @@ gnome-shell (3.12.0-1) UNRELEASED; urgency=low
   * Update package description (Closes: #689183)
 
 
- -- Andreas Henriksson <andreas@fatal.se>  Thu, 03 Apr 2014 19:22:10 +0200
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 04 Apr 2014 21:38:35 +0200
 
 gnome-shell (3.10.1-1) experimental; urgency=low
 
