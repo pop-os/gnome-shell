@@ -1,3 +1,9 @@
+gnome-shell (3.12.1-2) experimental; urgency=medium
+
+  * Bump mutter build-dependency
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 26 Apr 2014 19:43:34 +0200
+
 gnome-shell (3.12.1-1) experimental; urgency=medium
 
   [ Laurent Bigonville ]
