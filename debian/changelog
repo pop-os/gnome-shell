@@ -1,9 +1,13 @@
 gnome-shell (3.12.0-2) UNRELEASED; urgency=medium
 
+  [ Laurent Bigonville ]
   * debian/control.in: Add dependency against gir1.2-gdesktopenums-3.0 (>=
     3.12) (Closes: #744030)
 
- -- Laurent Bigonville <bigon@debian.org>  Wed, 09 Apr 2014 18:03:22 +0200
+  [ Sjoerd Simons ]
+  * Depend on new version of the upower gir
+
+ -- Sjoerd Simons <sjoerd@debian.org>  Sat, 26 Apr 2014 10:29:58 +0200
 
 gnome-shell (3.12.0-1) experimental; urgency=low
 
