@@ -46,15 +46,15 @@ Build-Depends: autotools-dev,
                libpulse-dev (>= 2.0),
                libsecret-1-dev,
                libstartup-notification0-dev (>= 0.11),
-               libsystemd-login-dev,
-               libsystemd-daemon-dev,
+               libsystemd-login-dev [linux-any],
+               libsystemd-daemon-dev [linux-any],
                libsystemd-journal-dev [linux-any],
                libtelepathy-glib-dev (>= 0.17.5),
                libx11-dev,
                libxfixes-dev,
                libxml2-dev,
                python (>= 2.6)
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: http://live.gnome.org/GnomeShell
 Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-shell
 Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-shell/
