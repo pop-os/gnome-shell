@@ -1,8 +1,13 @@
 gnome-shell (3.12.1-4) UNRELEASED; urgency=medium
 
+  [ Laurent Bigonville ]
   * debian/control.in:
     - Bump Standards-Version to 3.9.5 (no further changes)
     - Build-depends against systemd libraries on linux architectures only
+
+  [ Robert Millan ]
+  * Remove kfreebsd-any and hurd-any from Architecture. (Closes:
+    #733122, #735023)
 
  -- Laurent Bigonville <bigon@debian.org>  Mon, 05 May 2014 22:06:57 +0200
 

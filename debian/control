@@ -60,7 +60,7 @@ Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-shell
 Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-shell/
 
 Package: gnome-shell
-Architecture: any
+Architecture: linux-any
 Depends: ${gir:Depends},
          ${icon-theme:Depends},
          ${misc:Depends},
@@ -127,7 +127,7 @@ Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
 
 Package: gnome-shell-dbg
-Architecture: any
+Architecture: linux-any
 Section: debug
 Priority: extra
 Depends: ${misc:Depends},
