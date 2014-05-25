@@ -8,6 +8,13 @@ include /usr/share/cdbs/1/class/gnome.mk
 include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
 include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 
+DEB_DH_AUTORECONF_ARGS = --as-needed
+
+# Ensure at build time that the library has no dependencies on undefined
+# symbols, and speed up loading.
+DEB_LDFLAGS_MAINT_APPEND=-Wl,-z,defs -Wl,-O1 -Wl,--as-needed
+include /usr/share/dpkg/default.mk
+
 ifeq ($(shell dpkg-vendor --query vendor),Ubuntu)
 	DEB_DH_GENCONTROL_ARGS += -- -Vicon-theme:Depends=gnome-icon-theme-full
 endif
