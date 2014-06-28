@@ -2,3 +2,4 @@
 27-nm-libexec-path.patch
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch
+42-atspi-on-demand.patch
