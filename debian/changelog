@@ -1,9 +1,9 @@
-gnome-shell (3.12.2-2) UNRELEASED; urgency=medium
+gnome-shell (3.12.2-2) experimental; urgency=medium
 
   * Add debian/patches/42-atspi-on-demand.patch: Only call atspi.init if
     needed, this is working around a performance issue with GtkTreeView
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 28 Jun 2014 12:31:13 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 28 Jun 2014 13:05:14 +0200
 
 gnome-shell (3.12.2-1) experimental; urgency=medium
 
