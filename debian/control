@@ -7,53 +7,55 @@ Source: gnome-shell
 Section: gnome
 Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>, Laurent Bigonville <bigon@debian.org>
+Uploaders: Andreas Henriksson <andreas@fatal.se>, Emilio Pozuelo Monfort <pochu@debian.org>, Laurent Bigonville <bigon@debian.org>, Sjoerd Simons <sjoerd@debian.org>
 Build-Depends: autotools-dev,
                cdbs,
                debhelper (>= 8.1.3~),
                dh-autoreconf,
-               gnome-bluetooth (>= 2.90.0) [linux-any],
                gnome-control-center-dev (>= 3.4),
                gnome-pkg-tools (>= 0.11),
                gobject-introspection (>= 1.29.15),
-               gsettings-desktop-schemas-dev (>= 3.7.4),
+               gsettings-desktop-schemas-dev (>= 3.11),
                gtk-doc-tools,
                intltool (>= 0.26),
                libatk-bridge2.0-dev,
                libcanberra-dev,
                libcanberra-gtk3-dev,
                libcaribou-dev (>= 0.4.8),
-               libclutter-1.0-dev (>= 1.13.4),
+               libclutter-1.0-dev (>= 1.15.90),
                libcroco3-dev (>= 0.6.8),
                libdbus-glib-1-dev,
                libecal1.2-dev (>= 3.7.90),
                libedataserver1.2-dev (>= 3.7.90),
                libgcr-3-dev (>= 3.7.5),
                libgirepository1.0-dev (>= 1.29.15),
-               libgjs-dev (>= 1.35.4),
-               libglib2.0-dev (>= 2.31.6),
-               libgnome-bluetooth-dev (>= 3.5.5) [linux-any],
+               libgjs-dev (>= 1.39.0),
+               libglib2.0-dev (>= 2.39.90),
+               libgnome-bluetooth-dev (>= 3.9.0) [linux-any],
                libgnome-desktop-3-dev (>= 3.7.90),
-               libgnome-menu-3-dev (>= 3.5.3),
+               libgnome-menu-3-dev,
                libgstreamer1.0-dev (>= 0.11.92),
                libgtk-3-dev (>= 3.7.9),
                libibus-1.0-dev,
-               libmutter-dev (>= 3.8.3),
+               libmutter-dev (>= 3.12.1+thereal),
                libnm-glib-dev (>= 0.9.8) [linux-any],
                libnm-glib-vpn-dev (>= 0.9.8) [linux-any],
-               libnm-gtk-dev (>= 0.9.6) [linux-any],
-               libnm-util-dev (>= 0.9) [linux-any],
+               libnm-gtk-dev (>= 0.9.8) [linux-any],
+               libnm-util-dev (>= 0.9.8) [linux-any],
                libpolkit-agent-1-dev (>= 0.100),
                libpulse-dev (>= 2.0),
                libsecret-1-dev,
                libstartup-notification0-dev (>= 0.11),
+               libsystemd-login-dev [linux-any],
+               libsystemd-daemon-dev [linux-any],
+               libsystemd-journal-dev [linux-any],
                libtelepathy-glib-dev (>= 0.17.5),
                libx11-dev,
                libxfixes-dev,
                libxml2-dev,
                python (>= 2.6)
 Standards-Version: 3.9.5
-Homepage: https://wiki.gnome.org/GnomeShell
+Homepage: http://live.gnome.org/GnomeShell
 Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-shell
 Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-shell/
 
@@ -64,56 +66,56 @@ Depends: ${gir:Depends},
          ${misc:Depends},
          ${shlibs:Depends},
          evolution-data-server (>= 3.7.90),
-         gdm3 (>= 3.5.90),
+         gir1.2-gdm3 (>= 3.5.90),
          gir1.2-accountsservice-1.0,
+         gir1.2-atspi-2.0 (>= 2.9.91),
          gir1.2-caribou-1.0 (>= 0.4.8),
-         gir1.2-clutter-1.0 (>= 1.11.11),
+         gir1.2-clutter-1.0 (>= 1.17),
          gir1.2-freedesktop,
+         gir1.2-gdesktopenums-3.0 (>= 3.12),
          gir1.2-gcr-3 (>= 3.7.5),
          gir1.2-gkbd-3.0,
-         gir1.2-glib-2.0 (>= 1.31),
+         gir1.2-glib-2.0 (>= 1.39.90-4~),
          gir1.2-gnomebluetooth-1.0 (>= 3.6.0) [linux-any],
-         gir1.2-gnomedesktop-3.0 (>= 3.7.90),
+         gir1.2-gnomedesktop-3.0 (>= 3.12.0),
          gir1.2-gtk-3.0 (>= 3.8),
          gir1.2-ibus-1.0 (>= 1.5.2),
-         gir1.2-mutter-3.0 (>= 3.8.3),
+         gir1.2-mutter-3.0 (>= 3.12.0),
          gir1.2-networkmanager-1.0 [linux-any],
-         gir1.2-nmgtk-1.0 [linux-any],
+         gir1.2-nmgtk-1.0 (>= 0.9.8) [linux-any],
          gir1.2-pango-1.0,
          gir1.2-polkit-1.0,
          gir1.2-soup-2.4 (>= 2.40.1),
          gir1.2-telepathyglib-0.12,
          gir1.2-telepathylogger-0.2 (>= 0.8.0),
-         gir1.2-upowerglib-1.0,
-         gjs (>= 1.35.4),
+         gir1.2-upowerglib-1.0 (>= 0.99),
+         gjs (>= 1.39.0),
          gnome-icon-theme-symbolic (>= 2.91),
          gnome-settings-daemon (>= 3.4.0),
          gnome-shell-common (= ${source:Version}),
          gnome-themes-standard,
-         gsettings-desktop-schemas (>= 3.7.4),
+         gsettings-desktop-schemas (>= 3.11),
          python (>= 2.6),
          telepathy-mission-control-5,
 Recommends: gkbd-capplet,
             gnome-contacts,
             gnome-control-center,
             gnome-user-guide,
-            unzip
+            unzip,
+            gdm3 (>= 3.10.0.1-3~)
 Breaks: fglrx-driver (<< 1:11-10),
-        gdm3 (<< 3.5.90),
+        gdm3 (<< 3.10.0.1-3~),
         gnome-control-center (<< 1:3.0),
         gnome-session (<< 3.0),
         gnome-tweak-tool (<< 3.5)
 Conflicts: gnome-screensaver (<< 3.6)
 Description: graphical shell for the GNOME desktop
- The GNOME Shell redefines user interactions with the GNOME desktop.
- In particular, it offers new paradigms for launching applications,
- accessing documents, and organizing open windows in GNOME. Later, it
- will introduce a new applets eco-system and offer new solutions for
- other desktop features, such as notifications and contacts
- management. The GNOME Shell is intended to replace functions handled
- by the GNOME Panel and by the window manager in previous versions of
- GNOME. The GNOME Shell has rich visual effects enabled by new
- graphical technologies.
+ The GNOME Shell provides core interface functions like switching
+ windows, launching applications or see your notifications. It takes
+ advantage of the capabilities of modern graphics hardware and
+ introduces innovative user interface concepts to provide a
+ delightful and easy to use experience. GNOME Shell is the defining
+ technology of the GNOME 3 user experience.
 
 Package: gnome-shell-common
 Architecture: all
@@ -132,14 +134,11 @@ Depends: ${misc:Depends},
          gnome-shell (= ${binary:Version})
 Recommends: mutter-dbg
 Description: Debugging symbols for GNOME Shell
- The GNOME Shell redefines user interactions with the GNOME desktop.
- In particular, it offers new paradigms for launching applications,
- accessing documents, and organizing open windows in GNOME. Later, it
- will introduce a new applets eco-system and offer new solutions for
- other desktop features, such as notifications and contacts
- management. The GNOME Shell is intended to replace functions handled
- by the GNOME Panel and by the window manager in previous versions of
- GNOME. The GNOME Shell has rich visual effects enabled by new
- graphical technologies.
+ The GNOME Shell provides core interface functions like switching
+ windows, launching applications or see your notifications. It takes
+ advantage of the capabilities of modern graphics hardware and
+ introduces innovative user interface concepts to provide a
+ delightful and easy to use experience. GNOME Shell is the defining
+ technology of the GNOME 3 user experience.
  .
  This package contains detached debugging symbols.

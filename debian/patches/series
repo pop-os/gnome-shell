@@ -1,10 +1,5 @@
-10-make-NetworkManager-optional.patch
-11-no-gettext.patch
+#10-make-NetworkManager-optional.patch
 27-nm-libexec-path.patch
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
-40_change-pam-name-to-match-gdm.patch
 41-handle-logind-fail.patch
-42-Specifically-ask-for-Telepathy-0.x.patch
-45-fix-gi-annotations.patch
-revert-suspend-break.patch
-git_relock_screen_after_crash.patch
+42-atspi-on-demand.patch

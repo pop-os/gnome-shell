@@ -1,0 +1,63 @@
+From e021ca2135ff8b0897ee5f8d014f7ff16cd9243e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Alejandro=20Pi=C3=B1eiro?= <apinheiro@igalia.com>
+Date: Thu, 29 May 2014 14:12:16 +0200
+Subject: a11y: initialize atspi on demand
+
+Only call atspi.init if needed. This is also more
+coherent with the listener registration, that is
+only done when needed.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=730118
+
+diff --git a/js/ui/focusCaretTracker.js b/js/ui/focusCaretTracker.js
+index beaf2de..265fcce 100644
+--- a/js/ui/focusCaretTracker.js
++++ b/js/ui/focusCaretTracker.js
+@@ -32,11 +32,9 @@ const FocusCaretTracker = new Lang.Class({
+     Name: 'FocusCaretTracker',
+ 
+     _init: function() {
+-        Atspi.init();
+-        Atspi.set_timeout(250, 250);
+-
+         this._atspiListener = Atspi.EventListener.new(Lang.bind(this, this._onChanged));
+ 
++        this._atspiInited = false;
+         this._focusListenerRegistered = false;
+         this._caretListenerRegistered = false;
+     },
+@@ -48,12 +46,20 @@ const FocusCaretTracker = new Lang.Class({
+             this.emit('caret-moved', event);
+     },
+ 
++    _initAtspi: function() {
++        if (!this._atspiInited) {
++            Atspi.init();
++            Atspi.set_timeout(250, 250);
++            this._atspiInited = true;
++        }
++    },
++
+     registerFocusListener: function() {
+         if (this._focusListenerRegistered)
+             return;
+ 
+-        // Ignore the return value, we get an exception if they fail
+-        // And they should never fail
++        this._initAtspi();
++
+         this._atspiListener.register(STATECHANGED + ':focused');
+         this._atspiListener.register(STATECHANGED + ':selected');
+         this._focusListenerRegistered = true;
+@@ -63,6 +69,8 @@ const FocusCaretTracker = new Lang.Class({
+         if (this._caretListenerRegistered)
+             return;
+ 
++        this._initAtspi();
++
+         this._atspiListener.register(CARETMOVED);
+         this._caretListenerRegistered = true;
+     },
+-- 
+cgit v0.10.1
+
