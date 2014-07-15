@@ -1,3 +1,9 @@
+gnome-shell (3.12.2-3) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 14 Jul 2014 23:36:21 +0200
+
 gnome-shell (3.12.2-2) experimental; urgency=medium
 
   * Add debian/patches/42-atspi-on-demand.patch: Only call atspi.init if
