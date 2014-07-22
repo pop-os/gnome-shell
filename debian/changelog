@@ -1,3 +1,12 @@
+gnome-shell (3.12.2-4) UNRELEASED; urgency=medium
+
+  * debian/control.in:
+    + Bump gir1.2-gnomebluetooth-1.0 dependency to 3.12, as
+      gnome-bluetooth's API changed recently and gnome-shell
+      uses the new API.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 22 Jul 2014 23:37:07 +0200
+
 gnome-shell (3.12.2-3) unstable; urgency=medium
 
   * Upload to unstable.
