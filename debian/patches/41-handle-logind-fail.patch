@@ -19,4 +19,4 @@ http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=729877
 +        if (haveSystemd() && GLib.getenv('XDG_SESSION_ID'))
              _loginManager = new LoginManagerSystemd();
          else
-             _loginManager = new LoginManagerConsoleKit();
+             _loginManager = new LoginManagerDummy();

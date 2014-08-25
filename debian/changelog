@@ -1,11 +1,18 @@
-gnome-shell (3.12.2-4) UNRELEASED; urgency=medium
+gnome-shell (3.13.1-1) experimental; urgency=medium
 
+  [ Emilio Pozuelo Monfort ]
   * debian/control.in:
     + Bump gir1.2-gnomebluetooth-1.0 dependency to 3.12, as
       gnome-bluetooth's API changed recently and gnome-shell
       uses the new API.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 22 Jul 2014 23:37:07 +0200
+  [ Andreas Henriksson ]
+  * New upstream development release.
+  * Bump libmutter-1.0-dev (>= 3.13.1) according to configure.ac
+  * Fix debian/patches/41-handle-logind-fail.patch to apply again.
+    - ck support dropped upstream, see gnome-shell/commit/?id=a244c1e98
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 02 Aug 2014 17:05:48 +0200
 
 gnome-shell (3.12.2-3) unstable; urgency=medium
 
