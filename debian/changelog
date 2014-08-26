@@ -5,6 +5,8 @@ gnome-shell (3.13.90-1) UNRELEASED; urgency=medium
   * Bump gir1.2-mutter-1.0 dependency to >= 3.13.90
   * Drop backported patch from upstream:
     - debian/patches/42-atspi-on-demand.patch
+  * gnome-shell: depend on gnome-backgrounds (>= 3.13.90)
+    - now ships the default background instead of gnome-themes-standard
 
  -- Andreas Henriksson <andreas@fatal.se>  Sun, 24 Aug 2014 17:19:05 -0700
 
