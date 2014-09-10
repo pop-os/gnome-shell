@@ -1,3 +1,10 @@
+gnome-shell (3.13.91-2) experimental; urgency=medium
+
+  * Bump gobject-introspection build-dependency to >= 1.41.3
+    - this version understands the new nullable attribute.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Wed, 10 Sep 2014 23:11:19 +0200
+
 gnome-shell (3.13.91-1) experimental; urgency=medium
 
   * New upstream development release.
