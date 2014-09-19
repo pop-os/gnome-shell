@@ -1,3 +1,9 @@
+gnome-shell (3.13.91-3) unstable; urgency=medium
+
+  * Release to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 19 Sep 2014 21:37:47 +0200
+
 gnome-shell (3.13.91-2) experimental; urgency=medium
 
   * Bump gobject-introspection build-dependency to >= 1.41.3
