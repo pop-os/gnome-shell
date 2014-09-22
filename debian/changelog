@@ -7,6 +7,7 @@ gnome-shell (3.14.0-1) unstable; urgency=medium
   [ Andreas Henriksson ]
   * New upstream release.
   * Bump mutter build-dependency to >= 3.14.0
+  * Bump gir1.2-mutter-3.0 dependency to >= 3.14.0
 
  -- Andreas Henriksson <andreas@fatal.se>  Mon, 22 Sep 2014 22:22:01 +0200
 
