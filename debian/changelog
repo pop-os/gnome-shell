@@ -1,4 +1,4 @@
-gnome-shell (3.14.1-1) UNRELEASED; urgency=medium
+gnome-shell (3.14.1-1) unstable; urgency=medium
 
   * New upstream release.
     - This version contains a fix for CVE-2014-7300
@@ -6,7 +6,7 @@ gnome-shell (3.14.1-1) UNRELEASED; urgency=medium
     - Refresh debian/patches/27-nm-libexec-path.patch
   * debian/control.in: Bump Standards-Version to 3.9.6 (no further changes)
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 18 Oct 2014 02:21:37 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 18 Oct 2014 02:26:00 +0200
 
 gnome-shell (3.14.0-1) unstable; urgency=medium
 
