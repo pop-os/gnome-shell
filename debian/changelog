@@ -1,3 +1,12 @@
+gnome-shell (3.14.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Bump mutter dependencies to 3.14.1
+    - Refresh debian/patches/27-nm-libexec-path.patch
+  * debian/control.in: Bump Standards-Version to 3.9.6 (no further changes)
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 18 Oct 2014 02:15:53 +0200
+
 gnome-shell (3.14.0-1) unstable; urgency=medium
 
   [ Dmitry Shachnev ]
