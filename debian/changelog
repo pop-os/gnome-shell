@@ -1,12 +1,17 @@
-gnome-shell (3.14.1-2) UNRELEASED; urgency=medium
+gnome-shell (3.14.1-2) unstable; urgency=medium
 
+  [ Laurent Bigonville ]
   * debian/gnome-shell.gsettings-override: nautilus.desktop has been renamed
     to org.gnome.Nautilus.desktop
   * debian/gnome-shell.gsettings-override: Replace epiphany by iceweasel, the
     gnome metapackage is depending against iceweasel and we want new users to
     have a webbrowser.
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 07 Nov 2014 10:29:40 +0100
+  [ Jordi Mallach ]
+  * Add 50-compute-weeknumber-with-gdatetime.patch: Fix miscalculation of
+    week number in the calendar (closes: #769118).
+
+ -- Jordi Mallach <jordi@debian.org>  Wed, 26 Nov 2014 02:17:03 +0100
 
 gnome-shell (3.14.1-1) unstable; urgency=medium
 

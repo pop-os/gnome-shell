@@ -1,0 +1,53 @@
+From 29673deac7e1c34127b0ac1484d0e7766ecc9acc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 13 Nov 2014 15:14:56 +0000
+Subject: [PATCH] calendar: Stop computing week number ourselves
+
+Correctly computing the ISO week number is tricky and we already
+have code in the platform to do it, so just refer its computation
+to GDateTime rather than doing it ourselves.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=736722
+---
+ js/ui/calendar.js | 19 +------------------
+ 1 file changed, 1 insertion(+), 18 deletions(-)
+
+diff --git a/js/ui/calendar.js b/js/ui/calendar.js
+index bc51d20..6edf69f 100644
+--- a/js/ui/calendar.js
++++ b/js/ui/calendar.js
+@@ -88,23 +88,6 @@ function _formatEventTime(event, clockFormat, periodBegin, periodEnd) {
+     return ret;
+ }
+ 
+-function _getCalendarWeekForDate(date) {
+-    // Based on the algorithms found here:
+-    // http://en.wikipedia.org/wiki/Talk:ISO_week_date
+-    let midnightDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+-    // Need to get Monday to be 1 ... Sunday to be 7
+-    let dayOfWeek = 1 + ((midnightDate.getDay() + 6) % 7);
+-    let nearestThursday = new Date(midnightDate.getFullYear(), midnightDate.getMonth(),
+-                                   midnightDate.getDate() + (4 - dayOfWeek));
+-
+-    let jan1st = new Date(nearestThursday.getFullYear(), 0, 1);
+-    let diffDate = nearestThursday - jan1st;
+-    let dayNumber = Math.floor(Math.abs(diffDate) / MSECS_IN_DAY);
+-    let weekNumber = Math.floor(dayNumber / 7) + 1;
+-
+-    return weekNumber;
+-}
+-
+ function _getCalendarDayAbbreviation(dayNumber) {
+     let abbreviations = [
+         /* Translators: Calendar grid abbreviation for Sunday.
+@@ -672,7 +655,7 @@ const Calendar = new Lang.Class({
+             this._buttons.push(button);
+ 
+             if (this._useWeekdate && iter.getDay() == 4) {
+-                let label = new St.Label({ text: _getCalendarWeekForDate(iter).toString(),
++                let label = new St.Label({ text: iter.toLocaleFormat('%V'),
+                                            style_class: 'calendar-day-base calendar-week-number'});
+                 layout.attach(label, rtl ? 7 : 0, row, 1, 1);
+             }
+-- 
+2.1.0
