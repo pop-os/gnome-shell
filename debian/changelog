@@ -1,9 +1,16 @@
-gnome-shell (3.14.1-3) UNRELEASED; urgency=medium
+gnome-shell (3.14.2-1) unstable; urgency=medium
 
   * gnome-shell.gsettings-override: remove shotwell which is no longer 
     part of the default installation.
+  * New upstream bugfix release.
+    + Summarize notifications instead of queuing up.
+  * Bump (build-)dependencies on mutter.
+  * 01_network_list.patch: patch from upstream git. Fix an UI bug when 
+    removing network connections.
+  * 02_auth_prompt.patch: patch from upstream git. Fix the prompt with  
+    disable_user_list after canceling an attempt. Closes: #683338.
 
- -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 11:28:53 +0100
+ -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 13:52:46 +0100
 
 gnome-shell (3.14.1-2) unstable; urgency=medium
 

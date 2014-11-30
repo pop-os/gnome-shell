@@ -1,0 +1,32 @@
+From 86618ce1f963be53410ac5e68d99a8b7bb82e0c6 Mon Sep 17 00:00:00 2001
+From: Ryan Lortie <desrt@desrt.ca>
+Date: Sun, 16 Nov 2014 15:50:14 -0800
+Subject: network: properly remove connections from list
+
+Due to a typo we were always removing the first (index 0) connection
+from the global list of connections instead of the correct one.
+
+This resulted in some connections remaining in the shell's connection
+list long after they were removed.  In particular, this resulted in
+multiple copies of a bluetooth connection appearing after suspend/resume
+(when the device was readded and the cached connection list was
+rescanned).
+
+https://bugzilla.gnome.org/show_bug.cgi?id=740227
+
+diff --git a/js/ui/status/network.js b/js/ui/status/network.js
+index 049406d..4f02d78 100644
+--- a/js/ui/status/network.js
++++ b/js/ui/status/network.js
+@@ -1866,7 +1866,7 @@ const NMApplet = new Lang.Class({
+     _connectionRemoved: function(connection) {
+         let pos = this._connections.indexOf(connection);
+         if (pos != -1)
+-            this._connections.splice(connection, 1);
++            this._connections.splice(pos, 1);
+ 
+         let section = connection._section;
+ 
+-- 
+cgit v0.10.1
+
