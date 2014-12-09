@@ -1,0 +1,75 @@
+From 68d6389ee6b0b90fbc8a7532c98f758f1a2f2223 Mon Sep 17 00:00:00 2001
+From: Daiki Ueno <dueno@src.gnome.org>
+Date: Thu, 6 Nov 2014 16:40:34 +0900
+Subject: [PATCH] keyboard: Delay caribou daemon invocation until really needed
+
+Calling g_dbus_proxy_new without any flag means that the caribou
+daemon will be launched through D-Bus activation, when creating
+a proxy.  It smoked out some corner cases in caribou and at-spi2-core,
+but generally it would be good to avoid creating unused process.
+
+This patch delays the invocation until the "Run" method is called.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=739712
+---
+ js/ui/keyboard.js | 34 ++++++++++++++++++++--------------
+ 1 file changed, 20 insertions(+), 14 deletions(-)
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index 1855adc..8dc154b 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -187,14 +187,7 @@ const Keyboard = new Lang.Class({
+         this._watchNameId = Gio.bus_watch_name(Gio.BusType.SESSION, CURSOR_BUS_NAME, 0,
+                                                Lang.bind(this, this._sync),
+                                                Lang.bind(this, this._sync));
+-        this._daemonProxy = new CaribouDaemonProxy(Gio.DBus.session, CARIBOU_BUS_NAME,
+-                                                   CARIBOU_OBJECT_PATH,
+-                                                   Lang.bind(this, function(proxy, error) {
+-                                                       if (error) {
+-                                                           log(error.message);
+-                                                           return;
+-                                                       }
+-                                                   }));
++        this._daemonProxy = null;
+         this._cursorProxy = new CursorManagerProxy(Gio.DBus.session, CURSOR_BUS_NAME,
+                                                    CURSOR_OBJECT_PATH,
+                                                    Lang.bind(this, function(proxy, error) {
+@@ -256,15 +249,28 @@ const Keyboard = new Lang.Class({
+         this.actor = null;
+ 
+         this._destroySource();
+-        this._daemonProxy.QuitRemote(function (result, error) {
+-            if (error) {
+-                log(error.message);
+-                return;
+-            }
+-        });
++        if (this._daemonProxy) {
++            this._daemonProxy.QuitRemote(function (result, error) {
++                if (error) {
++                    log(error.message);
++                    return;
++                }
++            });
++            this._daemonProxy = null;
++        }
+     },
+ 
+     _setupKeyboard: function() {
++        if (!this._daemonProxy) {
++            this._daemonProxy = new CaribouDaemonProxy(Gio.DBus.session, CARIBOU_BUS_NAME,
++                                                       CARIBOU_OBJECT_PATH,
++                                                       Lang.bind(this, function(proxy, error) {
++                                                           if (error) {
++                                                               log(error.message);
++                                                               return;
++                                                           }
++                                                       }));
++        }
+         this._daemonProxy.RunRemote(function (result, error) {
+             if (error) {
+                 log(error.message);
+-- 
+2.1.3
+

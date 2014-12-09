@@ -5,3 +5,4 @@
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch
 50-compute-weeknumber-with-gdatetime.patch
+51-Delay-caribou-daemon-invocation.patch

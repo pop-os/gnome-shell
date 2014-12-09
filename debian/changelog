@@ -1,3 +1,11 @@
+gnome-shell (3.14.2-2) UNRELEASED; urgency=medium
+
+  * Add debian/patches/51-Delay-caribou-daemon-invocation.patch: Delay the
+    invocation of the caribou daemon until it's really needed, this should
+    workaround bugs like #769489.
+
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 09 Dec 2014 16:55:57 +0100
+
 gnome-shell (3.14.2-1) unstable; urgency=medium
 
   * gnome-shell.gsettings-override: remove shotwell which is no longer 
