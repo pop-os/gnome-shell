@@ -1,13 +1,14 @@
-From 336edc63685410e9058743b65152576317b08fed Mon Sep 17 00:00:00 2001
+From 07180bef4d7264789b389b3ac9c6426ce269436b Mon Sep 17 00:00:00 2001
 From: Josselin Mouette <joss@debian.org>
-Date: Fri, 12 Dec 2014 21:10:48 +0100
+Date: Fri, 12 Dec 2014 21:57:11 +0100
 Subject: [PATCH] background: fix a race condition when loading several
  animations
 
 When loading several animations at the same time, the last call
 overrides the result for all of them.
 
-This commit caches all animations separately based on filename.
+This commit caches all animations separately based on the source's
+schemas.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=741453
 ---
