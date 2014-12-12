@@ -1,8 +1,10 @@
 gnome-shell (3.14.2-3) UNRELEASED; urgency=medium
 
   * Add missing dependency on mutter. Closes: #764715.
+  * 10_background_race.patch: fix a race condition when loading two 
+    backgrounds made of different XML files.
 
- -- Josselin Mouette <joss@debian.org>  Wed, 10 Dec 2014 10:06:54 +0100
+ -- Josselin Mouette <joss@debian.org>  Fri, 12 Dec 2014 20:22:45 +0100
 
 gnome-shell (3.14.2-2) unstable; urgency=medium
 
