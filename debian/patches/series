@@ -1,9 +1,6 @@
-01_network_list.patch
-02_auth_prompt.patch
 #10-make-NetworkManager-optional.patch
 10_background_race.patch
 27-nm-libexec-path.patch
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch
-50-compute-weeknumber-with-gdatetime.patch
 51-Delay-caribou-daemon-invocation.patch

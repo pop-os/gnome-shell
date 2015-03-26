@@ -1,3 +1,15 @@
+gnome-shell (3.14.4-1) unstable; urgency=medium
+
+  * New upstream translation and bugfix release.
+    + Includes workaround for #768896 which is very annoying for users 
+      of the proprietary nvidia driver.
+  * 01_network_list.patch, 02_auth_prompt.patch, 
+    50-compute-weeknumber-with-gdatetime.patch: dropped, merged 
+    upstream.
+  * Bump (build-)dependencies on mutter as usual.
+
+ -- Josselin Mouette <joss@debian.org>  Thu, 26 Mar 2015 21:44:04 +0100
+
 gnome-shell (3.14.2-3) unstable; urgency=medium
 
   * Add missing dependency on mutter. Closes: #764715.
