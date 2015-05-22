@@ -1,6 +1,8 @@
 gnome-shell (3.16.2-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * debian/control.in:
+    + Update (build-)dependencies.
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 22 May 2015 19:21:16 +0200
 
