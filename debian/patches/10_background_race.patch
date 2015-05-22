@@ -1,0 +1,71 @@
+From 07180bef4d7264789b389b3ac9c6426ce269436b Mon Sep 17 00:00:00 2001
+From: Josselin Mouette <joss@debian.org>
+Date: Fri, 12 Dec 2014 21:57:11 +0100
+Subject: [PATCH] background: fix a race condition when loading several
+ animations
+
+When loading several animations at the same time, the last call
+overrides the result for all of them.
+
+This commit caches all animations separately based on the source's
+schemas.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=741453
+---
+ js/ui/background.js | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/js/ui/background.js b/js/ui/background.js
+index ad0cacc..ad75c65 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
+@@ -134,6 +134,7 @@ const BackgroundCache = new Lang.Class({
+         this._pendingFileLoads = [];
+         this._fileMonitors = {};
+         this._backgroundSources = {};
++        this._animations = {};
+     },
+ 
+     monitorFile: function(filename) {
+@@ -152,12 +153,13 @@ const BackgroundCache = new Lang.Class({
+ 
+     getAnimation: function(params) {
+         params = Params.parse(params, { filename: null,
++                                        settingsSchema: null,
+                                         onLoaded: null });
+ 
+-        if (this._animationFilename == params.filename) {
++        if (this._animations[params.settingsSchema] && this._animations[params.settingsSchema].filename == params.filename) {
+             if (params.onLoaded) {
+                 let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, Lang.bind(this, function() {
+-                    params.onLoaded(this._animation);
++                    params.onLoaded(this._animations[params.settingsSchema]);
+                     return GLib.SOURCE_REMOVE;
+                 }));
+                 GLib.Source.set_name_by_id(id, '[gnome-shell] params.onLoaded');
+@@ -168,12 +170,11 @@ const BackgroundCache = new Lang.Class({
+         let animation = new Animation({ filename: params.filename });
+ 
+         animation.load(Lang.bind(this, function() {
+-                           this._animationFilename = params.filename;
+-                           this._animation = animation;
++                           this._animations[params.settingsSchema] = animation;
+ 
+                            if (params.onLoaded) {
+                                let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, Lang.bind(this, function() {
+-                                   params.onLoaded(this._animation);
++                                   params.onLoaded(this._animations[params.settingsSchema]);
+                                    return GLib.SOURCE_REMOVE;
+                                }));
+                                GLib.Source.set_name_by_id(id, '[gnome-shell] params.onLoaded');
+@@ -392,6 +393,7 @@ const Background = new Lang.Class({
+ 
+     _loadAnimation: function(filename) {
+         this._cache.getAnimation({ filename: filename,
++                                   settingsSchema: this._settings.schema_id,
+                                              onLoaded: Lang.bind(this, function(animation) {
+                                                  this._animation = animation;
+ 
+-- 
+2.1.3
+

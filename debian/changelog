@@ -1,3 +1,89 @@
+gnome-shell (3.14.4-1) unstable; urgency=medium
+
+  * New upstream translation and bugfix release.
+    + Includes workaround for #768896 which is very annoying for users 
+      of the proprietary nvidia driver.
+  * 01_network_list.patch, 02_auth_prompt.patch, 
+    50-compute-weeknumber-with-gdatetime.patch: dropped, merged 
+    upstream.
+  * Bump (build-)dependencies on mutter as usual.
+
+ -- Josselin Mouette <joss@debian.org>  Thu, 26 Mar 2015 21:44:04 +0100
+
+gnome-shell (3.14.2-3) unstable; urgency=medium
+
+  * Add missing dependency on mutter. Closes: #764715.
+  * 10_background_race.patch: fix a race condition when loading two 
+    backgrounds made of different XML files.
+
+ -- Josselin Mouette <joss@debian.org>  Fri, 12 Dec 2014 22:32:31 +0100
+
+gnome-shell (3.14.2-2) unstable; urgency=medium
+
+  * Add debian/patches/51-Delay-caribou-daemon-invocation.patch: Delay the
+    invocation of the caribou daemon until it's really needed, this should
+    workaround bugs like #769489.
+
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 09 Dec 2014 17:05:28 +0100
+
+gnome-shell (3.14.2-1) unstable; urgency=medium
+
+  * gnome-shell.gsettings-override: remove shotwell which is no longer 
+    part of the default installation.
+  * New upstream bugfix release.
+    + Summarize notifications instead of queuing up.
+  * Bump (build-)dependencies on mutter.
+  * 01_network_list.patch: patch from upstream git. Fix an UI bug when 
+    removing network connections.
+  * 02_auth_prompt.patch: patch from upstream git. Fix the prompt with  
+    disable_user_list after canceling an attempt. Closes: #683338.
+
+ -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 13:52:46 +0100
+
+gnome-shell (3.14.1-2) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/gnome-shell.gsettings-override: nautilus.desktop has been renamed
+    to org.gnome.Nautilus.desktop
+  * debian/gnome-shell.gsettings-override: Replace epiphany by iceweasel, the
+    gnome metapackage is depending against iceweasel and we want new users to
+    have a webbrowser.
+
+  [ Jordi Mallach ]
+  * Add 50-compute-weeknumber-with-gdatetime.patch: Fix miscalculation of
+    week number in the calendar (closes: #769118).
+
+ -- Jordi Mallach <jordi@debian.org>  Wed, 26 Nov 2014 02:17:03 +0100
+
+gnome-shell (3.14.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - This version contains a fix for CVE-2014-7300
+    - Bump mutter dependencies to 3.14.1
+    - Refresh debian/patches/27-nm-libexec-path.patch
+  * debian/control.in: Bump Standards-Version to 3.9.6 (no further changes)
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 18 Oct 2014 02:26:00 +0200
+
+gnome-shell (3.14.0-1) unstable; urgency=medium
+
+  [ Dmitry Shachnev ]
+  * Bump libgtk-3-dev and libmutter-dev build-dependencies according to
+    configure.ac.
+
+  [ Andreas Henriksson ]
+  * New upstream release.
+  * Bump mutter build-dependency to >= 3.14.0
+  * Bump gir1.2-mutter-3.0 dependency to >= 3.14.0
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 22 Sep 2014 22:22:01 +0200
+
+gnome-shell (3.13.92-1) unstable; urgency=medium
+
+  * New upstream release candidate.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 19 Sep 2014 23:32:02 +0200
+
 gnome-shell (3.13.91-3) unstable; urgency=medium
 
   * Release to unstable.
