@@ -1,3 +1,9 @@
+gnome-shell (3.16.2-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 22 May 2015 19:21:16 +0200
+
 gnome-shell (3.14.4-1) unstable; urgency=medium
 
   * New upstream translation and bugfix release.
