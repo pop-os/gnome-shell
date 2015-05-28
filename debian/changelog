@@ -6,6 +6,8 @@ gnome-shell (3.16.2-1) UNRELEASED; urgency=medium
     + Let gnome-shell depend on gir1.2-gweather-3.0.
   * debian/patches/51-Delay-caribou-daemon-invocation.patch:
     + Dropped, included upstream.
+  * debian/patches/10_background_race.patch:
+    + Disabled for now, doesn't apply.
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 22 May 2015 19:21:16 +0200
 
