@@ -3,6 +3,7 @@ gnome-shell (3.16.2-1) UNRELEASED; urgency=medium
   * New upstream release.
   * debian/control.in:
     + Update (build-)dependencies.
+    + Let gnome-shell depend on gir1.2-gweather-3.0.
   * debian/patches/51-Delay-caribou-daemon-invocation.patch:
     + Dropped, included upstream.
 
