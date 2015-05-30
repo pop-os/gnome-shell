@@ -1,4 +1,4 @@
-gnome-shell (3.16.2-1) UNRELEASED; urgency=medium
+gnome-shell (3.16.2-1) experimental; urgency=medium
 
   * New upstream release.
   * debian/control.in:
@@ -8,8 +8,9 @@ gnome-shell (3.16.2-1) UNRELEASED; urgency=medium
     + Dropped, included upstream.
   * debian/patches/10_background_race.patch:
     + Disabled for now, doesn't apply.
+  * Upload to experimental.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Fri, 22 May 2015 19:21:16 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 31 May 2015 00:06:10 +0200
 
 gnome-shell (3.14.4-1) unstable; urgency=medium
 
