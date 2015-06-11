@@ -1,3 +1,10 @@
+gnome-shell (3.16.2-2) experimental; urgency=medium
+
+  * debian/control.in: Bump gnome-settings-daemon to 3.16.0, this seems
+    necessary for the media keys to work.
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 11 Jun 2015 15:00:29 +0200
+
 gnome-shell (3.16.2-1) experimental; urgency=medium
 
   * New upstream release.
