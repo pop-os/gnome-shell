@@ -1,3 +1,24 @@
+gnome-shell (3.16.2-2) experimental; urgency=medium
+
+  * debian/control.in: Bump gnome-settings-daemon to 3.16.0, this seems
+    necessary for the media keys to work.
+
+ -- Laurent Bigonville <bigon@debian.org>  Thu, 11 Jun 2015 15:00:29 +0200
+
+gnome-shell (3.16.2-1) experimental; urgency=medium
+
+  * New upstream release.
+  * debian/control.in:
+    + Update (build-)dependencies.
+    + Let gnome-shell depend on gir1.2-gweather-3.0.
+  * debian/patches/51-Delay-caribou-daemon-invocation.patch:
+    + Dropped, included upstream.
+  * debian/patches/10_background_race.patch:
+    + Disabled for now, doesn't apply.
+  * Upload to experimental.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 31 May 2015 00:06:10 +0200
+
 gnome-shell (3.14.4-1) unstable; urgency=medium
 
   * New upstream translation and bugfix release.
