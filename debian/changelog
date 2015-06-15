@@ -9,8 +9,9 @@ gnome-shell (3.16.2-4) UNRELEASED; urgency=medium
     of org.freedesktop.Notifications which other applications make use of.
     This dependency is typically expressed by depending on the
     notification-daemon package.
+  * Update Homepage: URL.
 
- -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 20:51:28 +0200
+ -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 21:03:07 +0200
 
 gnome-shell (3.16.2-3) unstable; urgency=medium
 
