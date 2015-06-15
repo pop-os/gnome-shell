@@ -1,3 +1,10 @@
+gnome-shell (3.16.2-4) UNRELEASED; urgency=medium
+
+  * Drop debian/patches/10-make-NetworkManager-optional.patch, merged
+    upstream. Refresh remaining patches.
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 20:51:28 +0200
+
 gnome-shell (3.16.2-3) unstable; urgency=medium
 
   * Upload to unstable.

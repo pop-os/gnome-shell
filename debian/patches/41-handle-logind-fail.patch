@@ -9,9 +9,11 @@ logind actually created our session. Otherwise, fall back to ConsoleKit.
 
 http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=729877
 
---- a/js/misc/loginManager.js
-+++ b/js/misc/loginManager.js
-@@ -117,7 +117,7 @@
+Index: gnome-shell-3.16.2/js/misc/loginManager.js
+===================================================================
+--- gnome-shell-3.16.2.orig/js/misc/loginManager.js	2015-06-15 20:46:24.805673265 +0200
++++ gnome-shell-3.16.2/js/misc/loginManager.js	2015-06-15 20:46:24.801673346 +0200
+@@ -90,7 +90,7 @@
   */
  function getLoginManager() {
      if (_loginManager == null) {
