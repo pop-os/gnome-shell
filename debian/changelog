@@ -1,4 +1,4 @@
-gnome-shell (3.16.2-4) UNRELEASED; urgency=medium
+gnome-shell (3.16.2-4) unstable; urgency=medium
 
   * Drop debian/patches/10-make-NetworkManager-optional.patch, merged
     upstream. Refresh remaining patches.
@@ -13,7 +13,7 @@ gnome-shell (3.16.2-4) UNRELEASED; urgency=medium
   * Drop obsolete Breaks/Replaces from pre-wheezy.
   * Build against libsystemd. Closes: #779743
 
- -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 21:03:07 +0200
+ -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 21:52:13 +0200
 
 gnome-shell (3.16.2-3) unstable; urgency=medium
 
