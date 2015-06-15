@@ -11,6 +11,7 @@ gnome-shell (3.16.2-4) UNRELEASED; urgency=medium
     notification-daemon package.
   * Update Homepage: URL.
   * Drop obsolete Breaks/Replaces from pre-wheezy.
+  * Build against libsystemd. Closes: #779743
 
  -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 21:03:07 +0200
 

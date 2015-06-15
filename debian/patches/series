@@ -3,3 +3,4 @@
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch
 50-ShellKeyringPrompt-Strip-out-mnemonics-indicators-fr.patch
+60-Update-configure.ac-to-check-for-libsystemd.patch
