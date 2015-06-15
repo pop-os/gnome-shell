@@ -5,6 +5,10 @@ gnome-shell (3.16.2-4) UNRELEASED; urgency=medium
   * Strip out mnemonics indicators from labels. Currently GNOME Shell doesn't
     support mnemonics and prompters may send labels with it. Patch
     cherry-picked from upstream Git.
+  * Add Provides: notification-daemon. GNOME Shell provides an implementation
+    of org.freedesktop.Notifications which other applications make use of.
+    This dependency is typically expressed by depending on the
+    notification-daemon package.
 
  -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 20:51:28 +0200
 
