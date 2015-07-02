@@ -1,6 +1,7 @@
 gnome-shell (3.16.3-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * Bump debhelper compatibility to 9.
 
  -- Michael Biebl <biebl@debian.org>  Thu, 02 Jul 2015 19:17:18 +0200
 
