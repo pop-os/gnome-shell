@@ -1,3 +1,18 @@
+gnome-shell (3.17.90-1) UNRELEASED; urgency=medium
+
+  * New upstream beta release.
+  * Update build-dependencies according to configure.ac changes:
+    - bump libedataserver1.2-dev to >= 3.17.2
+    - bump libglib2.0-dev to >= 2.45.3
+    - bump libmutter-dev to >= 3.17.90
+  * Drop patches now included in upstream release:
+    - 50-ShellKeyringPrompt-Strip-out-mnemonics-indicators-fr.patch
+    - 60-Update-configure.ac-to-check-for-libsystemd.patch
+  * Bump dependency on gir1.2-glib-2.0 to >= 1.45.3
+    - windowManager.js uses overrides.list_keys() introduced here.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 21 Aug 2015 15:29:39 +0200
+
 gnome-shell (3.16.3-1) unstable; urgency=medium
 
   * New upstream release.
