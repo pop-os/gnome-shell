@@ -26,7 +26,6 @@ ifeq ($(DEB_HOST_ARCH_OS),linux)
 endif
 
 DEB_DH_MAKESHLIBS_ARGS_gnome-shell = -Xlibgnome-shell
-DEB_SHLIBDEPS_INCLUDE = /usr/lib/gnome-bluetooth
 
 $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
 	dh_girepository -p$(cdbs_curpkg) -l src:src/gvc -p /usr/lib/mutter \

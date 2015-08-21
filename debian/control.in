@@ -5,7 +5,7 @@ Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.
 Uploaders: @GNOME_TEAM@
 Build-Depends: autotools-dev,
                cdbs,
-               debhelper (>= 8.1.3~),
+               debhelper (>= 9),
                dh-autoreconf,
                gnome-control-center-dev (>= 3.4),
                gnome-pkg-tools (>= 0.11),
@@ -40,16 +40,14 @@ Build-Depends: autotools-dev,
                libpulse-dev (>= 2.0),
                libsecret-1-dev,
                libstartup-notification0-dev (>= 0.11),
-               libsystemd-login-dev [linux-any],
-               libsystemd-daemon-dev [linux-any],
-               libsystemd-journal-dev [linux-any],
+               libsystemd-dev [linux-any],
                libtelepathy-glib-dev (>= 0.17.5),
                libx11-dev,
                libxfixes-dev,
                libxml2-dev,
                python3,
 Standards-Version: 3.9.6
-Homepage: http://live.gnome.org/GnomeShell
+Homepage: https://wiki.gnome.org/Projects/GnomeShell
 Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-shell
 Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-shell/
 
@@ -100,12 +98,10 @@ Recommends: gkbd-capplet,
             gnome-user-guide,
             unzip,
             gdm3 (>= 3.10.0.1-3~)
-Breaks: fglrx-driver (<< 1:11-10),
-        gdm3 (<< 3.10.0.1-3~),
-        gnome-control-center (<< 1:3.0),
-        gnome-session (<< 3.0),
+Breaks: gdm3 (<< 3.10.0.1-3~),
         gnome-tweak-tool (<< 3.5)
 Conflicts: gnome-screensaver (<< 3.6)
+Provides: notification-daemon
 Description: graphical shell for the GNOME desktop
  The GNOME Shell provides core interface functions like switching
  windows, launching applications or see your notifications. It takes
@@ -117,9 +113,6 @@ Description: graphical shell for the GNOME desktop
 Package: gnome-shell-common
 Architecture: all
 Depends: ${misc:Depends}
-Replaces: gnome-shell (<< 3.2.1-6)
-Breaks: gnome-shell (<< 3.2.1-6),
-        gnome-tweak-tool (<< 3.3)
 Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
 

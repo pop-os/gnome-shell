@@ -1,3 +1,35 @@
+gnome-shell (3.16.3-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump debhelper compatibility to 9.
+  * Stop looking for private package libraries in /usr/lib/gnome-bluetooth,
+    gnome-bluetooth dropped the private library in 3.12.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 02 Jul 2015 19:44:53 +0200
+
+gnome-shell (3.16.2-4) unstable; urgency=medium
+
+  * Drop debian/patches/10-make-NetworkManager-optional.patch, merged
+    upstream. Refresh remaining patches.
+  * Strip out mnemonics indicators from labels. Currently GNOME Shell doesn't
+    support mnemonics and prompters may send labels with it. Patch
+    cherry-picked from upstream Git.
+  * Add Provides: notification-daemon. GNOME Shell provides an implementation
+    of org.freedesktop.Notifications which other applications make use of.
+    This dependency is typically expressed by depending on the
+    notification-daemon package.
+  * Update Homepage: URL.
+  * Drop obsolete Breaks/Replaces from pre-wheezy.
+  * Build against libsystemd. Closes: #779743
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 15 Jun 2015 21:52:13 +0200
+
+gnome-shell (3.16.2-3) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Sun, 14 Jun 2015 13:44:20 +0200
+
 gnome-shell (3.16.2-2) experimental; urgency=medium
 
   * debian/control.in: Bump gnome-settings-daemon to 3.16.0, this seems
