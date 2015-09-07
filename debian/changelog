@@ -1,3 +1,11 @@
+gnome-shell (3.16.3-2) UNRELEASED; urgency=medium
+
+  * Update and re-enable debian/patches/10_background_race.patch to fix a race
+    condition when loading two backgrounds made of different XML files.
+    Closes: #789123
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 02 Jul 2015 19:49:52 +0200
+
 gnome-shell (3.16.3-1) unstable; urgency=medium
 
   * New upstream release.
