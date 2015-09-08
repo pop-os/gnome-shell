@@ -1,3 +1,10 @@
+gnome-shell (3.17.90-2) UNRELEASED; urgency=medium
+
+  * Change gnome-themes-standard dependency to gnome-themes-standard-data
+    recommendation, to avoid pulling in Gtk+ 2 library.
+
+ -- Dmitry Shachnev <mitya57@debian.org>  Tue, 08 Sep 2015 17:57:22 +0300
+
 gnome-shell (3.17.90-1) experimental; urgency=medium
 
   * New upstream beta release.
