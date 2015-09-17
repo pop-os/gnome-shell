@@ -1,9 +1,16 @@
-gnome-shell (3.17.90-2) UNRELEASED; urgency=medium
+gnome-shell (3.17.92-1) experimental; urgency=medium
 
+  [ Dmitry Shachnev ]
   * Change gnome-themes-standard dependency to gnome-themes-standard-data
     recommendation, to avoid pulling in Gtk+ 2 library.
 
- -- Dmitry Shachnev <mitya57@debian.org>  Tue, 08 Sep 2015 17:57:22 +0300
+  [ Andreas Henriksson ]
+  * New upstream release candidante.
+  * Update build-dependencies according to configure.ac changes:
+    - bump mutter >= 3.17.92
+    - bump gobject-introspection >= 1.45.4
+
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 17 Sep 2015 13:58:10 +0200
 
 gnome-shell (3.17.90-1) experimental; urgency=medium
 
