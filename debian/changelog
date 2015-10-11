@@ -1,4 +1,4 @@
-gnome-shell (3.18.0-1) experimental; urgency=medium
+gnome-shell (3.18.0-1) unstable; urgency=medium
 
   [ Andreas Henriksson ]
   * Fix typo in previous changelog entry.
