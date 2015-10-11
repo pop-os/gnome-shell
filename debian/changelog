@@ -1,10 +1,40 @@
-gnome-shell (3.16.3-2) unstable; urgency=medium
+gnome-shell (3.18.0-1) UNRELEASED; urgency=medium
 
-  * Update and re-enable debian/patches/10_background_race.patch to fix a race
-    condition when loading two backgrounds made of different XML files.
-    Closes: #789123
+  * Fix typo in previous changelog entry.
+  * gnome-shell: Recommend iio-sensor-proxy
+    - nowadays js calls net.hadess.SensorProxy DBus interface.
+  * New upstream release.
 
- -- Michael Biebl <biebl@debian.org>  Mon, 07 Sep 2015 06:42:55 +0200
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 08 Oct 2015 17:00:05 +0200
+
+gnome-shell (3.17.92-1) experimental; urgency=medium
+
+  [ Dmitry Shachnev ]
+  * Change gnome-themes-standard dependency to gnome-themes-standard-data
+    recommendation, to avoid pulling in Gtk+ 2 library.
+
+  [ Andreas Henriksson ]
+  * New upstream release candidate.
+  * Update build-dependencies according to configure.ac changes:
+    - bump mutter >= 3.17.92
+    - bump gobject-introspection >= 1.45.4
+
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 17 Sep 2015 13:58:10 +0200
+
+gnome-shell (3.17.90-1) experimental; urgency=medium
+
+  * New upstream beta release.
+  * Update build-dependencies according to configure.ac changes:
+    - bump libedataserver1.2-dev to >= 3.17.2
+    - bump libglib2.0-dev to >= 2.45.3
+    - bump libmutter-dev to >= 3.17.90
+  * Drop patches now included in upstream release:
+    - 50-ShellKeyringPrompt-Strip-out-mnemonics-indicators-fr.patch
+    - 60-Update-configure.ac-to-check-for-libsystemd.patch
+  * Bump dependency on gir1.2-glib-2.0 to >= 1.45.3
+    - windowManager.js uses overrides.list_keys() introduced here.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 29 Aug 2015 11:04:00 +0200
 
 gnome-shell (3.16.3-1) unstable; urgency=medium
 
