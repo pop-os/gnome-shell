@@ -1,4 +1,4 @@
-gnome-shell (3.18.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.18.0-1) experimental; urgency=medium
 
   [ Andreas Henriksson ]
   * Fix typo in previous changelog entry.
@@ -9,7 +9,7 @@ gnome-shell (3.18.0-1) UNRELEASED; urgency=medium
   [ Laurent Bigonville ]
   * Drop d/p/10_background_race.patch: Merged upstream
 
- -- Laurent Bigonville <bigon@debian.org>  Sun, 11 Oct 2015 14:49:39 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 11 Oct 2015 16:02:22 +0200
 
 gnome-shell (3.17.92-1) experimental; urgency=medium
 
