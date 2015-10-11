@@ -40,6 +40,14 @@ gnome-shell (3.17.90-1) experimental; urgency=medium
 
  -- Andreas Henriksson <andreas@fatal.se>  Sat, 29 Aug 2015 11:04:00 +0200
 
+gnome-shell (3.16.3-2) unstable; urgency=medium
+
+  * Update and re-enable debian/patches/10_background_race.patch to fix a race
+    condition when loading two backgrounds made of different XML files.
+    Closes: #789123
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 07 Sep 2015 06:42:55 +0200
+
 gnome-shell (3.16.3-1) unstable; urgency=medium
 
   * New upstream release.
