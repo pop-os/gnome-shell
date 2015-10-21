@@ -2,6 +2,7 @@ gnome-shell (3.18.1-1) UNRELEASED; urgency=medium
 
   * New upstream release.
   * Bump dependency on mutter to (>= 3.18.1) as per configure.ac.
+  * Bump dependency on evolution-data-server to (>= 3.17.2).
 
  -- Michael Biebl <biebl@debian.org>  Wed, 21 Oct 2015 18:51:57 +0200
 
