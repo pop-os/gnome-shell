@@ -1,6 +1,7 @@
 gnome-shell (3.18.1-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * Bump Build-Depends on libmutter-dev to (>= 3.18.1) as per configure.ac.
 
  -- Michael Biebl <biebl@debian.org>  Wed, 21 Oct 2015 18:51:57 +0200
 
