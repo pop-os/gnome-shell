@@ -1,0 +1,40 @@
+From 8ebccbf7247d8edbf9227a9b533f1a087035ff15 Mon Sep 17 00:00:00 2001
+From: Tim Lunn <tim@feathertop.org>
+Date: Mon, 16 Nov 2015 12:08:25 +1100
+Subject: [PATCH] Revert "browser-plugin: Set windowless mode and don't claim
+ to need XEmbed"
+
+This reverts commit 88c1fa8a3e9f34bda512999618c7fe54b182af36.
+---
+ browser-plugin/browser-plugin.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/browser-plugin/browser-plugin.c b/browser-plugin/browser-plugin.c
+index 290b224..e8b5cf6 100644
+--- a/browser-plugin/browser-plugin.c
++++ b/browser-plugin/browser-plugin.c
+@@ -218,9 +218,6 @@ NPP_New(NPMIMEType    mimetype,
+   data = g_slice_new (PluginData);
+   instance->pdata = data;
+ 
+-  /* set windowless mode */
+-  funcs.setvalue(instance, NPPVpluginWindowBool, NULL);
+-
+   data->proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
+                                                G_DBUS_PROXY_FLAGS_NONE,
+                                                NULL, /* interface info */
+@@ -1051,6 +1048,10 @@ NPP_GetValue(NPP          instance,
+     *(NPObject**)value = funcs.createobject (instance, &plugin_class);
+     break;
+ 
++  case NPPVpluginNeedsXEmbed:
++    *(bool *)value = TRUE;
++    break;
++
+   default:
+     ;
+   }
+-- 
+2.6.2
+
+
