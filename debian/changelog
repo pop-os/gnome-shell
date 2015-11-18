@@ -1,3 +1,9 @@
+gnome-shell (3.18.3-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 18 Nov 2015 01:29:14 +0100
+
 gnome-shell (3.18.2-1) unstable; urgency=medium
 
   * New upstream release.
