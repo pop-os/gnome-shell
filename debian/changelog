@@ -1,9 +1,9 @@
-gnome-shell (3.18.3-2) UNRELEASED; urgency=medium
+gnome-shell (3.18.3-2) unstable; urgency=medium
 
   * Update the dependency on gir1.2-gdm3 to gir1.2-gdm-1.0 for the changes in
     gdm3 3.18.2-1.
 
- -- Michael Biebl <biebl@debian.org>  Thu, 19 Nov 2015 12:58:50 +0100
+ -- Michael Biebl <biebl@debian.org>  Thu, 19 Nov 2015 13:01:16 +0100
 
 gnome-shell (3.18.3-1) unstable; urgency=medium
 
