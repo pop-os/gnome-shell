@@ -1,3 +1,11 @@
+gnome-shell (3.18.3-3) UNRELEASED; urgency=medium
+
+  * Fix double-unref in get_secrets_keyring_cb(). This fixes a crash in
+    NetworkAgent when trying to acquire secrets from gnome-keyring, like VPN
+    passwords. Patch cherry-picked from upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 31 Jan 2016 15:41:26 +0100
+
 gnome-shell (3.18.3-2) unstable; urgency=medium
 
   * Update the dependency on gir1.2-gdm3 to gir1.2-gdm-1.0 for the changes in
