@@ -120,20 +120,3 @@ Architecture: all
 Depends: ${misc:Depends}
 Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
-
-Package: gnome-shell-dbg
-Architecture: linux-any
-Section: debug
-Priority: extra
-Depends: ${misc:Depends},
-         gnome-shell (= ${binary:Version})
-Recommends: mutter-dbg
-Description: Debugging symbols for GNOME Shell
- The GNOME Shell provides core interface functions like switching
- windows, launching applications or see your notifications. It takes
- advantage of the capabilities of modern graphics hardware and
- introduces innovative user interface concepts to provide a
- delightful and easy to use experience. GNOME Shell is the defining
- technology of the GNOME 3 user experience.
- .
- This package contains detached debugging symbols.

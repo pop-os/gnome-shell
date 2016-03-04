@@ -1,6 +1,7 @@
 gnome-shell (3.18.4-1) UNRELEASED; urgency=medium
 
-  * new upstream release.
+  * New upstream release.
+  * Drop gnome-shell-dbg package now that we have automatic dbgsym packages.
 
  -- Michael Biebl <biebl@debian.org>  Fri, 04 Mar 2016 09:09:37 +0100
 
