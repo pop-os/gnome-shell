@@ -1,3 +1,9 @@
+gnome-shell (3.18.4-1) UNRELEASED; urgency=medium
+
+  * new upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 04 Mar 2016 09:09:37 +0100
+
 gnome-shell (3.18.3-3) unstable; urgency=medium
 
   * Fix double-unref in get_secrets_keyring_cb(). This fixes a crash in
