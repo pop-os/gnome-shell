@@ -1,10 +1,10 @@
-gnome-shell (3.18.4-1) UNRELEASED; urgency=medium
+gnome-shell (3.18.4-1) unstable; urgency=medium
 
   * New upstream release.
   * Drop gnome-shell-dbg package now that we have automatic dbgsym packages.
   * Bump Standards-Version to 3.9.7.
 
- -- Michael Biebl <biebl@debian.org>  Fri, 04 Mar 2016 09:09:37 +0100
+ -- Michael Biebl <biebl@debian.org>  Fri, 04 Mar 2016 09:17:35 +0100
 
 gnome-shell (3.18.3-3) unstable; urgency=medium
 
