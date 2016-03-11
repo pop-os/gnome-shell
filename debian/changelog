@@ -2,8 +2,10 @@ gnome-shell (3.18.4-2) UNRELEASED; urgency=medium
 
   * debian/gnome-shell.gsettings-override: Use firefox-esr.desktop shortcut
     instead of iceweasel.desktop
+  * debian/gnome-shell.gsettings-override: Add gnome-software to the default
+    shortcuts
 
- -- Laurent Bigonville <bigon@debian.org>  Fri, 11 Mar 2016 13:03:04 +0100
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 11 Mar 2016 16:37:44 +0100
 
 gnome-shell (3.18.4-1) unstable; urgency=medium
 
