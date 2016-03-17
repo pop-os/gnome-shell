@@ -1,4 +1,4 @@
-gnome-shell (3.19.92-1) UNRELEASED; urgency=medium
+gnome-shell (3.19.92-1) experimental; urgency=medium
 
   [ Laurent Bigonville ]
   * debian/gnome-shell.gsettings-override: Use firefox-esr.desktop shortcut
@@ -14,7 +14,7 @@ gnome-shell (3.19.92-1) UNRELEASED; urgency=medium
   * 01-NetworkAgent-Fix-double-unref-in-get_secrets_keyring.patch:
     - dropped, merged upstream.
 
- -- Andreas Henriksson <andreas@fatal.se>  Wed, 16 Mar 2016 20:37:12 +0100
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 17 Mar 2016 11:16:26 +0100
 
 gnome-shell (3.18.4-1) unstable; urgency=medium
 
