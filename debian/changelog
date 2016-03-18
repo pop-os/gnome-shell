@@ -1,3 +1,9 @@
+gnome-shell (3.19.92-2) experimental; urgency=medium
+
+  * Bump libmutter-dev build-dependency to ensure libmutter0h migration.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 18 Mar 2016 19:20:50 +0100
+
 gnome-shell (3.19.92-1) experimental; urgency=medium
 
   [ Laurent Bigonville ]
