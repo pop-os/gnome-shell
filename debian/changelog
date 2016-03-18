@@ -1,3 +1,10 @@
+gnome-shell (3.19.92-3) UNRELEASED; urgency=medium
+
+  * Add gnome-session (<< 3.19) to Breaks
+    - gnome-shell.desktop was renamed which breaks old gnome.session
+
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 18 Mar 2016 21:29:30 +0100
+
 gnome-shell (3.19.92-2) experimental; urgency=medium
 
   * Bump libmutter-dev build-dependency to ensure libmutter0h migration.

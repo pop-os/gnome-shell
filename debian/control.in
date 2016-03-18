@@ -100,6 +100,7 @@ Recommends: gkbd-capplet,
             iio-sensor-proxy,
             unzip
 Breaks: gdm3 (<< 3.10.0.1-3~),
+        gnome-session (<< 3.19),
         gnome-tweak-tool (<< 3.5)
 Conflicts: gnome-screensaver (<< 3.6)
 Provides: notification-daemon
