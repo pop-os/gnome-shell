@@ -1,12 +1,14 @@
-gnome-shell (3.20.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.20.0-1) experimental; urgency=medium
 
   * Add gnome-session (<< 3.19) to Breaks
     - gnome-shell.desktop was renamed which breaks old gnome.session
   * Bump Breaks on gdm to << 3.19.92
     - new interaction between gdm and gnome-shell for session start
   * New upstream release.
+  * Bump *mutter* (build-)dependencies to >= 3.20.0
+    - according to configure.ac changes.
 
- -- Andreas Henriksson <andreas@fatal.se>  Fri, 18 Mar 2016 21:29:30 +0100
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 25 Mar 2016 10:04:15 +0100
 
 gnome-shell (3.19.92-2) experimental; urgency=medium
 
