@@ -1,9 +1,14 @@
 gnome-shell (3.18.4-2) UNRELEASED; urgency=medium
 
+  [ Laurent Bigonville ]
   * debian/gnome-shell.gsettings-override: Use firefox-esr.desktop shortcut
     instead of iceweasel.desktop
   * debian/gnome-shell.gsettings-override: Add gnome-software to the default
     shortcuts
+
+  [ Michael Biebl ]
+  * debian/patches/50-renamed-app-favorites.patch: Add gnome-terminal to the
+    rename list. Patch cherry-picked from upstream Git.
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 11 Mar 2016 16:37:44 +0100
 

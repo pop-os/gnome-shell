@@ -1,0 +1,20 @@
+commit 78db025b101fcb3306a0702f27c20e1f53168979
+Author: Bastien Nocera <hadess@hadess.net>
+Date:   Wed Mar 4 18:31:05 2015 +0100
+
+    appFavorites: Add gnome-terminal to the rename list
+    
+    https://bugzilla.gnome.org/show_bug.cgi?id=745626
+
+diff --git a/js/ui/appFavorites.js b/js/ui/appFavorites.js
+index 9c42ae3..f7510c8 100644
+--- a/js/ui/appFavorites.js
++++ b/js/ui/appFavorites.js
+@@ -26,6 +26,7 @@ const RENAMED_DESKTOP_IDS = {
+     'gnome-photos.desktop': 'org.gnome.Photos.desktop',
+     'gnome-screenshot.desktop': 'org.gnome.Screenshot.desktop',
+     'gnome-software.desktop': 'org.gnome.Software.desktop',
++    'gnome-terminal.desktop': 'org.gnome.Terminal.desktop',
+     'gnome-weather.desktop': 'org.gnome.Weather.Application.desktop',
+     'gnomine.desktop': 'gnome-mines.desktop',
+     'gnotravex.desktop': 'gnome-tetravex.desktop',
