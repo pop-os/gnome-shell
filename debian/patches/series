@@ -1,5 +1,3 @@
-01-NetworkAgent-Fix-double-unref-in-get_secrets_keyring.patch
 27-nm-libexec-path.patch
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch
-50-renamed-app-favorites.patch

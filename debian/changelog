@@ -1,4 +1,22 @@
-gnome-shell (3.18.4-2) unstable; urgency=medium
+gnome-shell (3.20.0-1) experimental; urgency=medium
+
+  * Add gnome-session (<< 3.19) to Breaks
+    - gnome-shell.desktop was renamed which breaks old gnome.session
+  * Bump Breaks on gdm to << 3.19.92
+    - new interaction between gdm and gnome-shell for session start
+  * New upstream release.
+  * Bump *mutter* (build-)dependencies to >= 3.20.0
+    - according to configure.ac changes.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 25 Mar 2016 10:04:15 +0100
+
+gnome-shell (3.19.92-2) experimental; urgency=medium
+
+  * Bump libmutter-dev build-dependency to ensure libmutter0h migration.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 18 Mar 2016 19:20:50 +0100
+
+gnome-shell (3.19.92-1) experimental; urgency=medium
 
   [ Laurent Bigonville ]
   * debian/gnome-shell.gsettings-override: Use firefox-esr.desktop shortcut
@@ -6,11 +24,15 @@ gnome-shell (3.18.4-2) unstable; urgency=medium
   * debian/gnome-shell.gsettings-override: Add gnome-software to the default
     shortcuts
 
-  [ Michael Biebl ]
-  * debian/patches/50-renamed-app-favorites.patch: Add gnome-terminal to the
-    rename list. Patch cherry-picked from upstream Git.
+  [ Andreas Henriksson ]
+  * New upstream release.
+  * Bump (build-)dependencies according to configure.ac changes:
+    - mutter -> 3.19.92
+    - gsettings-desktop-schemas -> 3.19.2
+  * 01-NetworkAgent-Fix-double-unref-in-get_secrets_keyring.patch:
+    - dropped, merged upstream.
 
- -- Michael Biebl <biebl@debian.org>  Sun, 03 Apr 2016 15:04:30 +0200
+ -- Andreas Henriksson <andreas@fatal.se>  Thu, 17 Mar 2016 11:16:26 +0100
 
 gnome-shell (3.18.4-1) unstable; urgency=medium
 
