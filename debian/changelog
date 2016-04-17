@@ -1,6 +1,8 @@
 gnome-shell (3.20.1-2) UNRELEASED; urgency=medium
 
   * Drop Build-Depends on libdbus-glib-1-dev, no longer required.
+  * Fix versioned Build-Depends on gnome-control-center-dev which requires an
+    epoch.
 
  -- Michael Biebl <biebl@debian.org>  Sun, 17 Apr 2016 21:19:08 +0200
 
