@@ -5,6 +5,8 @@ gnome-shell (3.20.2-1) UNRELEASED; urgency=medium
   * Fix versioned Build-Depends on gnome-control-center-dev which requires an
     epoch.
   * Bump Standards-Version to 3.9.8.
+  * Drop debian/gnome-shell.lintian-overrides, no longer needed. With recent
+    versions binaries are allowed to use "/usr/lib/$srcpkg/" in RPATHs.
 
  -- Michael Biebl <biebl@debian.org>  Sun, 17 Apr 2016 21:19:08 +0200
 
