@@ -1,5 +1,6 @@
-gnome-shell (3.20.1-2) UNRELEASED; urgency=medium
+gnome-shell (3.20.2-1) UNRELEASED; urgency=medium
 
+  * New upstream release.
   * Drop Build-Depends on libdbus-glib-1-dev, no longer required.
   * Fix versioned Build-Depends on gnome-control-center-dev which requires an
     epoch.
