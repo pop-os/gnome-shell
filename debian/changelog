@@ -7,6 +7,7 @@ gnome-shell (3.20.2-1) UNRELEASED; urgency=medium
   * Bump Standards-Version to 3.9.8.
   * Drop debian/gnome-shell.lintian-overrides, no longer needed. With recent
     versions binaries are allowed to use "/usr/lib/$srcpkg/" in RPATHs.
+  * Bump mutter dependencies to >= 3.20.2 as per configure.ac.
 
  -- Michael Biebl <biebl@debian.org>  Sun, 17 Apr 2016 21:19:08 +0200
 
