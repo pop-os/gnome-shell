@@ -6,7 +6,7 @@ Source: gnome-shell
 Section: gnome
 Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Andreas Henriksson <andreas@fatal.se>, Michael Biebl <biebl@debian.org>
+Uploaders: Andreas Henriksson <andreas@fatal.se>, Laurent Bigonville <bigon@debian.org>, Michael Biebl <biebl@debian.org>
 Build-Depends: autotools-dev,
                cdbs,
                debhelper (>= 9),
@@ -86,7 +86,6 @@ Depends: ${gir:Depends},
          gir1.2-telepathylogger-0.2 (>= 0.8.0),
          gir1.2-upowerglib-1.0 (>= 0.99),
          gjs (>= 1.39.0),
-         gnome-icon-theme-symbolic (>= 2.91),
          gnome-settings-daemon (>= 3.16.0),
          gnome-shell-common (= ${source:Version}),
          gnome-backgrounds (>= 3.13.90),
