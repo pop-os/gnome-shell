@@ -7,6 +7,8 @@ gnome-shell (3.20.2-2) UNRELEASED; urgency=medium
 
   [ Jeremy Bicha ]
   * debian/rules: Add --dbgsym-migration rule (LP: #1588806)
+  * d/p/0001-st-Init-framebuffer-early-to-fix-gnome-shell-crash-o.patch:
+    git patch to fix crash with NVIDIA drivers (Closes: #823785)
 
  -- Laurent Bigonville <bigon@debian.org>  Fri, 20 May 2016 22:21:00 +0200
 
