@@ -101,7 +101,7 @@ Breaks: gdm3 (<< 3.19.92),
         gnome-session (<< 3.19),
         gnome-tweak-tool (<< 3.5)
 Conflicts: gnome-screensaver (<< 3.6)
-Provides: notification-daemon
+Provides: notification-daemon, polkit-1-auth-agent
 Description: graphical shell for the GNOME desktop
  The GNOME Shell provides core interface functions like switching
  windows, launching applications or see your notifications. It takes
