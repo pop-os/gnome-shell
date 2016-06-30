@@ -16,7 +16,7 @@ DEB_LDFLAGS_MAINT_APPEND=-Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 include /usr/share/dpkg/default.mk
 
 ifeq ($(shell dpkg-vendor --query vendor),Ubuntu)
-	DEB_DH_GENCONTROL_ARGS += -- -Vicon-theme:Depends=gnome-icon-theme-full
+	DEB_DH_GENCONTROL_ARGS += -- -Vicon-theme:Depends=adwaita-icon-theme-full
 endif
 
 DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
