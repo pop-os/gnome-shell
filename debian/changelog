@@ -5,6 +5,7 @@ gnome-shell (3.20.3-1) UNRELEASED; urgency=medium
 
   [ Michael Biebl ]
   * New upstream release.
+  * Refresh patches.
 
  -- Laurent Bigonville <bigon@debian.org>  Mon, 13 Jun 2016 15:33:36 +0200
 
