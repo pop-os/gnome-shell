@@ -28,7 +28,9 @@ endif
 DEB_DH_MAKESHLIBS_ARGS_gnome-shell = -Xlibgnome-shell
 
 $(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
-	dh_girepository -p$(cdbs_curpkg) -l src:src/gvc -p /usr/lib/mutter \
+	dh_girepository -p$(cdbs_curpkg) \
+		-l src:src/gvc \
+		-p /usr/lib/$(DEB_HOST_MULTIARCH)/mutter \
 		/usr/lib/gnome-shell
 	find debian/$(cdbs_curpkg) -name '*.la' -exec rm -f '{}' ';'
 

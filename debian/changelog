@@ -6,6 +6,8 @@ gnome-shell (3.20.3-1) UNRELEASED; urgency=medium
   [ Michael Biebl ]
   * New upstream release.
   * Refresh patches.
+  * Update dh_girepository to look for the mutter typelib file in multiarch
+    paths. Bump mutter dependencies accordingly.
 
   [ Jeremy Bicha ]
   * 0001-background-free-MetaBackground-explicitly.patch:
