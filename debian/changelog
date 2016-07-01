@@ -1,4 +1,4 @@
-gnome-shell (3.20.3-1) UNRELEASED; urgency=medium
+gnome-shell (3.20.3-1) unstable; urgency=medium
 
   [ Laurent Bigonville ]
   * debian/control.in: Drop gir1.2-gkbd-3.0 dependency, not needed anymore
@@ -18,7 +18,7 @@ gnome-shell (3.20.3-1) UNRELEASED; urgency=medium
   * Update Ubuntu's dependency on gnome-icon-theme-full to
     adwaita-icon-theme-full
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 13 Jun 2016 15:33:36 +0200
+ -- Michael Biebl <biebl@debian.org>  Fri, 01 Jul 2016 11:14:31 +0200
 
 gnome-shell (3.20.2-3) unstable; urgency=medium
 
