@@ -8,6 +8,7 @@ gnome-shell (3.20.3-1) UNRELEASED; urgency=medium
   * Refresh patches.
   * Update dh_girepository to look for the mutter typelib file in multiarch
     paths. Bump mutter dependencies accordingly.
+  * Convert from cdbs to dh.
 
   [ Jeremy Bicha ]
   * 0001-background-free-MetaBackground-explicitly.patch:
