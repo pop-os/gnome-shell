@@ -1,36 +1,47 @@
 #!/usr/bin/make -f
 
-include /usr/share/cdbs/1/rules/autoreconf.mk
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/autotools.mk
-include /usr/share/cdbs/1/rules/utils.mk
-include /usr/share/cdbs/1/class/gnome.mk
-include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
 include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
-
-DEB_DH_AUTORECONF_ARGS = --as-needed
 
 # Ensure at build time that the library has no dependencies on undefined
 # symbols, and speed up loading.
-DEB_LDFLAGS_MAINT_APPEND=-Wl,-z,defs -Wl,-O1 -Wl,--as-needed
-include /usr/share/dpkg/default.mk
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
-ifeq ($(shell dpkg-vendor --query vendor),Ubuntu)
-	DEB_DH_GENCONTROL_ARGS += -- -Vicon-theme:Depends=gnome-icon-theme-full
-endif
+%:
+	dh $@ --with autoreconf,gir,gnome
 
-DEB_CONFIGURE_EXTRA_FLAGS += --enable-compile-warnings=yes
+override_dh_autoreconf:
+	dh_autoreconf --as-needed
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-	DEB_CONFIGURE_EXTRA_FLAGS += --enable-networkmanager --enable-systemd
+CONFFLAGS = \
+	--enable-networkmanager \
+	--enable-systemd
 endif
 
-DEB_DH_MAKESHLIBS_ARGS_gnome-shell = -Xlibgnome-shell
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		--libdir=/usr/lib \
+		--libexecdir="\$${libdir}/gnome-shell" \
+		--enable-compile-warnings \
+		$(CONFFLAGS)
 
-$(patsubst %,binary-predeb/%,$(DEB_ALL_PACKAGES)) ::
-	dh_girepository -p$(cdbs_curpkg) -l src:src/gvc -p /usr/lib/mutter \
+override_dh_install:
+	find debian/tmp -name '*.la' -delete
+	dh_install --list-missing
+
+override_dh_makeshlibs:
+	dh_makeshlibs -Xlibgnome-shell
+
+override_dh_girepository:
+	dh_girepository \
+		-l src:src/gvc \
+		-p /usr/lib/$(DEB_HOST_MULTIARCH)/mutter \
 		/usr/lib/gnome-shell
-	find debian/$(cdbs_curpkg) -name '*.la' -exec rm -f '{}' ';'
 
-# List any files which are not installed
-common-binary-post-install-arch:: list-missing
+override_dh_strip:
+	dh_strip --dbgsym-migration='gnome-shell-dbg (<< 3.20.2-2~)'
+
+ifeq ($(shell dpkg-vendor --query vendor),Ubuntu)
+override_dh_gencontrol:
+	dh_gencontrol -- -Vicon-theme:Depends=adwaita-icon-theme-full
+endif

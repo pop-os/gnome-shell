@@ -1,0 +1,38 @@
+From 71c26cc7ce8da0c1aec7ff98604f479e7e9ef675 Mon Sep 17 00:00:00 2001
+From: Hyungwon Hwang <hyungwon.hwang7@gmail.com>
+Date: Fri, 10 Jun 2016 19:34:48 +0900
+Subject: [PATCH] background: free MetaBackground explicitly when its
+ MetaBackgroundActor is destroyed
+
+The memory which MetaBackground resides is freed automatically, when its
+wrapper object Background is freed by garbage collection. But because the
+memory for MetaBackground is huge, changing the background or changing the
+background mode repeatedly makes a lot of memory to be in use until garbage
+collection runs.
+
+This patch frees the MetaBackground object explicitly when its
+MetaBackgroundActor is destroyed which is the moment that the memory in the
+object is not used anymore.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=766353
+
+Signed-off-by: Hyungwon Hwang <hyungwon.hwang7@gmail.com>
+---
+ js/ui/background.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/background.js b/js/ui/background.js
+index 5db1e6c..762c76c 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
+@@ -696,6 +696,7 @@ const BackgroundManager = new Lang.Class({
+                            time: FADE_ANIMATION_TIME,
+                            transition: 'easeOutQuad',
+                            onComplete: function() {
++                               oldBackgroundActor.background.run_dispose();
+                                oldBackgroundActor.destroy();
+                            }
+                          });
+-- 
+2.8.1
+

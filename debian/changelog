@@ -1,3 +1,67 @@
+gnome-shell (3.20.3-1) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Drop gir1.2-gkbd-3.0 dependency, not needed anymore
+
+  [ Michael Biebl ]
+  * New upstream release.
+  * Refresh patches.
+  * Update dh_girepository to look for the mutter typelib file in multiarch
+    paths. Bump mutter dependencies accordingly.
+  * Convert from cdbs to dh.
+
+  [ Jeremy Bicha ]
+  * 0001-background-free-MetaBackground-explicitly.patch:
+    Patch from gnome-3-20 branch to fix memory leak when changing background
+  * Update apport hook to recognize gdm3 and to not try to attach
+    obsolete log files
+  * Update Ubuntu's dependency on gnome-icon-theme-full to
+    adwaita-icon-theme-full
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 01 Jul 2016 11:14:31 +0200
+
+gnome-shell (3.20.2-3) unstable; urgency=medium
+
+  * debian/control.in: Make gnome-shell provide polkit-1-auth-agent
+
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 05 Jun 2016 13:20:34 +0200
+
+gnome-shell (3.20.2-2) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Drop gnome-icon-theme-symbolic from the dependencies,
+    do not force an icon theme and rely on the one installed by the
+    metapackages
+  * debian/control.in: Bump debhelper dependency to support --dbgsym-migration
+    option
+
+  [ Jeremy Bicha ]
+  * debian/rules: Add --dbgsym-migration rule (LP: #1588806)
+  * d/p/0001-st-Init-framebuffer-early-to-fix-gnome-shell-crash-o.patch:
+    git patch to fix crash with NVIDIA drivers (Closes: #823785)
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 04 Jun 2016 23:04:03 +0200
+
+gnome-shell (3.20.2-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop Build-Depends on libdbus-glib-1-dev, no longer required.
+  * Fix versioned Build-Depends on gnome-control-center-dev which requires an
+    epoch.
+  * Bump Standards-Version to 3.9.8.
+  * Drop debian/gnome-shell.lintian-overrides, no longer needed. With recent
+    versions binaries are allowed to use "/usr/lib/$srcpkg/" in RPATHs.
+  * Bump mutter dependencies to >= 3.20.2 as per configure.ac.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 11 May 2016 15:09:18 +0200
+
+gnome-shell (3.20.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Upload to unstable.
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 17 Apr 2016 00:19:35 +0200
+
 gnome-shell (3.20.0-1) experimental; urgency=medium
 
   * Add gnome-session (<< 3.19) to Breaks
@@ -33,6 +97,20 @@ gnome-shell (3.19.92-1) experimental; urgency=medium
     - dropped, merged upstream.
 
  -- Andreas Henriksson <andreas@fatal.se>  Thu, 17 Mar 2016 11:16:26 +0100
+
+gnome-shell (3.18.4-2) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * debian/gnome-shell.gsettings-override: Use firefox-esr.desktop shortcut
+    instead of iceweasel.desktop
+  * debian/gnome-shell.gsettings-override: Add gnome-software to the default
+    shortcuts
+
+  [ Michael Biebl ]
+  * debian/patches/50-renamed-app-favorites.patch: Add gnome-terminal to the
+    rename list. Patch cherry-picked from upstream Git.
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 03 Apr 2016 15:04:30 +0200
 
 gnome-shell (3.18.4-1) unstable; urgency=medium
 
