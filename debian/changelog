@@ -13,6 +13,8 @@ gnome-shell (3.21.4-1) UNRELEASED; urgency=medium
     - originally from upstream git, now shipped in upstream release.
   * Refresh debian/patches/41-handle-logind-fail.patch to apply cleanly.
   * Add build-dependency on mesa-common-dev for GL/gl.h used by shell-util.c
+  * override dh_shlibdeps adding the directory where to find mutters private
+    clutter fork.
 
  -- Andreas Henriksson <andreas@fatal.se>  Wed, 10 Aug 2016 11:40:04 +0200
 
