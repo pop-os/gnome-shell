@@ -1,4 +1,4 @@
-gnome-shell (3.21.4-1) UNRELEASED; urgency=medium
+gnome-shell (3.21.4-1) experimental; urgency=medium
 
   * New upstream release.
   * Update build-dependencies according to configure.ac changes:
@@ -16,7 +16,7 @@ gnome-shell (3.21.4-1) UNRELEASED; urgency=medium
   * override dh_shlibdeps adding the directory where to find mutters private
     clutter fork.
 
- -- Andreas Henriksson <andreas@fatal.se>  Wed, 10 Aug 2016 11:40:04 +0200
+ -- Andreas Henriksson <andreas@fatal.se>  Fri, 12 Aug 2016 16:02:40 +0200
 
 gnome-shell (3.20.3-1) unstable; urgency=medium
 
