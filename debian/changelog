@@ -15,8 +15,9 @@ gnome-shell (3.21.4-1) experimental; urgency=medium
   * Add build-dependency on mesa-common-dev for GL/gl.h used by shell-util.c
   * override dh_shlibdeps adding the directory where to find mutters private
     clutter fork.
+  * Add lintian-overrides for gnome-shell RPATHs to avoid rejected upload.
 
- -- Andreas Henriksson <andreas@fatal.se>  Fri, 12 Aug 2016 16:02:40 +0200
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 15 Aug 2016 11:20:37 +0200
 
 gnome-shell (3.20.3-1) unstable; urgency=medium
 
