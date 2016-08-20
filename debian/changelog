@@ -1,3 +1,14 @@
+gnome-shell (3.21.90-1) experimental; urgency=medium
+
+  * New upstream beta release.
+  * Update build-dependencies according to configure.ac changes:
+    - drop intltool (>= 0.26)
+    - bump *mutter* to >= 3.21.90
+  * Drop d/p/git_calendar-server_add_back_missing_return_value.patch
+    - now included in upstream release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 20 Aug 2016 17:47:56 +0200
+
 gnome-shell (3.21.4-1) experimental; urgency=medium
 
   * New upstream release.
