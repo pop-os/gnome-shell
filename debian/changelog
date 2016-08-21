@@ -1,3 +1,9 @@
+gnome-shell (3.21.90.1-1) experimental; urgency=medium
+
+  * New upstream beta release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sun, 21 Aug 2016 05:36:58 +0200
+
 gnome-shell (3.21.90-1) experimental; urgency=medium
 
   * New upstream beta release.
