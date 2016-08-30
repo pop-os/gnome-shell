@@ -1,3 +1,9 @@
+gnome-shell (3.21.91-1) unstable; urgency=low
+
+  * New upstream beta release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 30 Aug 2016 19:41:00 +0200
+
 gnome-shell (3.21.90.1-1) experimental; urgency=medium
 
   * New upstream beta release.
