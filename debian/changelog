@@ -1,3 +1,47 @@
+gnome-shell (3.21.91-1) unstable; urgency=low
+
+  * New upstream beta release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Tue, 30 Aug 2016 19:41:00 +0200
+
+gnome-shell (3.21.90.1-1) experimental; urgency=medium
+
+  * New upstream beta release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sun, 21 Aug 2016 05:36:58 +0200
+
+gnome-shell (3.21.90-1) experimental; urgency=medium
+
+  * New upstream beta release.
+  * Update build-dependencies according to configure.ac changes:
+    - drop intltool (>= 0.26)
+    - bump *mutter* to >= 3.21.90
+  * Drop d/p/git_calendar-server_add_back_missing_return_value.patch
+    - now included in upstream release.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sat, 20 Aug 2016 17:47:56 +0200
+
+gnome-shell (3.21.4-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Update build-dependencies according to configure.ac changes:
+    - bump gobject-introspection to >= 1.49.1
+    - bump *mutter* to >= 3.21.4
+    - drop libclutter-1.0-dev (>= 1.22), clutter fork now shipped in mutter.
+    - drop gir1.2-clutter-1.0 (>= 1.22), forked typelib now in gir1.2-mutter.
+    - bump gsettings-desktop-schemas* to >= 3.21.3
+  * Add debian/patches/git_calendar-server_add_back_missing_return_value.patch
+    - from upstream git master.
+  * Drop 0001-background-free-MetaBackground-explicitly.patch
+    - originally from upstream git, now shipped in upstream release.
+  * Refresh debian/patches/41-handle-logind-fail.patch to apply cleanly.
+  * Add build-dependency on mesa-common-dev for GL/gl.h used by shell-util.c
+  * override dh_shlibdeps adding the directory where to find mutters private
+    clutter fork.
+  * Add lintian-overrides for gnome-shell RPATHs to avoid rejected upload.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 15 Aug 2016 11:20:37 +0200
+
 gnome-shell (3.20.3-1) unstable; urgency=medium
 
   [ Laurent Bigonville ]
