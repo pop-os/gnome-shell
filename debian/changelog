@@ -1,11 +1,11 @@
-gnome-shell (3.21.91-2) UNRELEASED; urgency=medium
+gnome-shell (3.21.91-2) unstable; urgency=medium
 
-  * Add Breaks against gnome-calendar (<< 3.21.4) to ensure we have recent
+  * Add Breaks against gnome-calendar (<< 3.21.4) to ensure we have a recent
     enough version which no longer uses the org.gnome.shell.calendar GSettings
-    schema. It was removed from gnome-shell in favour of
-    org.gnome.desktop.calendar provided by gsettings-desktop-schemas.
+    schema. It was removed from gnome-shell in favour of the
+    org.gnome.desktop.calendar schema provided by gsettings-desktop-schemas.
 
- -- Michael Biebl <biebl@debian.org>  Thu, 01 Sep 2016 02:21:11 +0200
+ -- Michael Biebl <biebl@debian.org>  Thu, 01 Sep 2016 02:27:10 +0200
 
 gnome-shell (3.21.91-1) unstable; urgency=low
 
