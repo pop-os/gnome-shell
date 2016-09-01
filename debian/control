@@ -99,7 +99,8 @@ Recommends: gkbd-capplet,
             unzip
 Breaks: gdm3 (<< 3.19.92),
         gnome-session (<< 3.19),
-        gnome-tweak-tool (<< 3.5)
+        gnome-tweak-tool (<< 3.5),
+        gnome-calendar (<< 3.21.4)
 Conflicts: gnome-screensaver (<< 3.6)
 Provides: notification-daemon, polkit-1-auth-agent
 Description: graphical shell for the GNOME desktop
