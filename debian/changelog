@@ -8,6 +8,7 @@ gnome-shell (3.21.92-1) UNRELEASED; urgency=medium
 
   [ Michael Biebl ]
   * New upstream development release.
+  * Bump mutter dependencies to >= 3.21.92 as per configure.ac.
 
  -- Andreas Henriksson <andreas@fatal.se>  Thu, 01 Sep 2016 20:59:18 +0200
 
