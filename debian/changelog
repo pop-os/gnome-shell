@@ -1,4 +1,4 @@
-gnome-shell (3.21.92-1) UNRELEASED; urgency=medium
+gnome-shell (3.21.92-1) unstable; urgency=medium
 
   [ Andreas Henriksson ]
   * Bump gnome-tweak-tool Breaks to << 3.21.91 for the
@@ -14,7 +14,7 @@ gnome-shell (3.21.92-1) UNRELEASED; urgency=medium
     which are required for autoreconf.
   * Add Depends on libglib2.0-bin for gapplication. (Closes: #835221)
 
- -- Andreas Henriksson <andreas@fatal.se>  Thu, 01 Sep 2016 20:59:18 +0200
+ -- Michael Biebl <biebl@debian.org>  Tue, 13 Sep 2016 18:34:18 +0200
 
 gnome-shell (3.21.91-2) unstable; urgency=medium
 
