@@ -1,7 +1,7 @@
 gnome-shell (3.21.92-1) UNRELEASED; urgency=medium
 
   [ Andreas Henriksson ]
-  * Bump gnome-tweak-tool Breaks to << 3.20.1-2~ for the
+  * Bump gnome-tweak-tool Breaks to << 3.21.91 for the
     org.gnome.shell.calendar -> org.gnome.desktop.calendar schema key move.
   * Move gnome-tweak-tool and gnome-calendar Breaks to gnome-shell-common
     which is the package containing the schemas.

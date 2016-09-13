@@ -114,7 +114,7 @@ Description: graphical shell for the GNOME desktop
 Package: gnome-shell-common
 Architecture: all
 Depends: ${misc:Depends}
-Breaks: gnome-tweak-tool (<< 3.20.1-2~),
+Breaks: gnome-tweak-tool (<< 3.21.91),
         gnome-calendar (<< 3.21.4)
 Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
