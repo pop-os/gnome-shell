@@ -7,7 +7,7 @@ include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
 %:
-	dh $@ --with autoreconf,gir,gnome
+	dh $@ --with gir,gnome
 
 override_dh_autoreconf:
 	dh_autoreconf --as-needed
