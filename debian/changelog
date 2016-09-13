@@ -13,6 +13,9 @@ gnome-shell (3.21.92-1) unstable; urgency=medium
   * Add explicit Build-Depends on gettext, pkg-config and autoconf-archive
     which are required for autoreconf.
   * Add Depends on libglib2.0-bin for gapplication. (Closes: #835221)
+  * Install gnome-shell.portal from /usr/share/xdg-desktop-portal/portals
+    which is required to provide the org.freedesktop.impl.portal.access
+    implementation.
 
  -- Michael Biebl <biebl@debian.org>  Tue, 13 Sep 2016 18:34:18 +0200
 
