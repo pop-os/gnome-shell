@@ -10,6 +10,8 @@ gnome-shell (3.21.92-1) UNRELEASED; urgency=medium
   * New upstream development release.
   * Bump mutter dependencies to >= 3.21.92 as per configure.ac.
   * Bump debhelper compat level to 10.
+  * Add explicit Build-Depends on gettext, pkg-config and autoconf-archive
+    which are required for autoreconf.
 
  -- Andreas Henriksson <andreas@fatal.se>  Thu, 01 Sep 2016 20:59:18 +0200
 
