@@ -1,3 +1,9 @@
+gnome-shell (3.22.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 20 Sep 2016 01:47:05 +0200
+
 gnome-shell (3.21.92-1) unstable; urgency=medium
 
   [ Andreas Henriksson ]
