@@ -1,6 +1,7 @@
 gnome-shell (3.22.1-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * Bump mutter dependencies to >= 3.22.1 as per configure.ac.
 
  -- Michael Biebl <biebl@debian.org>  Tue, 11 Oct 2016 17:35:26 +0200
 
