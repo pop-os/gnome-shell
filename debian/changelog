@@ -1,3 +1,9 @@
+gnome-shell (3.22.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 11 Oct 2016 17:35:26 +0200
+
 gnome-shell (3.22.0-2) unstable; urgency=medium
 
   * Bump libgtk-3-dev build-dependency to >= 3.21.6 (Closes: #838885)
