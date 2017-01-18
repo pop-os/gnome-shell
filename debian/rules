@@ -6,6 +6,8 @@ include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 # symbols, and speed up loading.
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 
+export LD_LIBRARY_PATH :=$(LD_LIBRARY_PATH):/usr/lib/$(DEB_HOST_MULTIARCH)/mutter
+
 %:
 	dh $@ --with gir,gnome
 
