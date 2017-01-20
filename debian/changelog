@@ -1,10 +1,11 @@
-gnome-shell (3.22.2-3) UNRELEASED; urgency=medium
+gnome-shell (3.22.2-3) unstable; urgency=medium
 
+  * Team upload.
   * Link private libraries with DT_RPATH, reverting a binutils behaviour
     change (#847298) that switched -rpath to producing DT_RUNPATH,
     which is not used for transitive dependencies. (Closes: #851925)
 
- -- Simon McVittie <smcv@debian.org>  Fri, 20 Jan 2017 01:27:58 +0000
+ -- Simon McVittie <smcv@debian.org>  Fri, 20 Jan 2017 09:48:04 +0000
 
 gnome-shell (3.22.2-2) unstable; urgency=medium
 
