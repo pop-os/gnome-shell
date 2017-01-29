@@ -1,5 +1,6 @@
-gnome-shell (3.22.2-4) UNRELEASED; urgency=medium
+gnome-shell (3.22.2-4) unstable; urgency=medium
 
+  * Team upload.
   * Work around upgrades not being done offline:
     - Ship a copy of the process-working spinner animation from Shell
       3.14.x, and install it where Shell 3.14.x would expect to find it.
@@ -12,7 +13,7 @@ gnome-shell (3.22.2-4) UNRELEASED; urgency=medium
       of the lock screen code against hitting a similar issue, and
       issue warnings to the system log if it happens.
 
- -- Simon McVittie <smcv@debian.org>  Sun, 29 Jan 2017 00:34:11 +0000
+ -- Simon McVittie <smcv@debian.org>  Sun, 29 Jan 2017 11:45:16 +0000
 
 gnome-shell (3.22.2-3) unstable; urgency=medium
 
