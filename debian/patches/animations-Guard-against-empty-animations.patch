@@ -1,0 +1,33 @@
+From 92630f67c61816be21b8e1fa618c11915dbbee51 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Mon, 21 Nov 2016 18:09:42 +0100
+Subject: [PATCH 1/2] animations: Guard against empty animations
+
+Our animation code not only relies on the animation being loaded
+(which we handle), but also on having at least one frame - otherwise
+the computation of the next frame index will turn up NaN through
+division by zero. Guard against this case by treating empty animations
+as not loaded.
+
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=774805
+Origin: upstream, 3.22.3, commit:92630f67c61816be21b8e1fa618c11915dbbee51
+---
+ js/ui/animation.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/animation.js b/js/ui/animation.js
+index 23ec934d8..1ae9ba0ea 100644
+--- a/js/ui/animation.js
++++ b/js/ui/animation.js
+@@ -67,7 +67,7 @@ const Animation = new Lang.Class({
+     },
+ 
+     _animationsLoaded: function() {
+-        this._isLoaded = true;
++        this._isLoaded = this._animations.get_n_children() > 0;
+ 
+         if (this._isPlaying)
+             this.play();
+-- 
+2.11.0
+

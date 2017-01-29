@@ -1,0 +1,61 @@
+From 516568a226ca908c6170f8b568d36ab5ec63d1e1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 22 Nov 2016 18:12:35 +0100
+Subject: [PATCH 2/2] texture-cache: Warn when loading sliced image fails
+
+Sliced images are loaded into a group actor with one child actor
+per slice. In case loading the image fails, we currently quietly
+return the empty group actor, which makes diagnosing problems
+unnecessarily hard - just be a bit more verbose on failure.
+
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=774805
+Origin: upstream, 3.22.3, commit:516568a226ca908c6170f8b568d36ab5ec63d1e1
+---
+ src/st/st-texture-cache.c | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/src/st/st-texture-cache.c b/src/st/st-texture-cache.c
+index 1c718acb9..281241ade 100644
+--- a/src/st/st-texture-cache.c
++++ b/src/st/st-texture-cache.c
+@@ -1088,6 +1088,7 @@ load_sliced_image (GTask        *result,
+   GdkPixbuf *pix;
+   gint width, height, y, x;
+   GdkPixbufLoader *loader;
++  GError *error = NULL;
+   gchar *buffer = NULL;
+   gsize length;
+ 
+@@ -1099,11 +1100,17 @@ load_sliced_image (GTask        *result,
+   loader = gdk_pixbuf_loader_new ();
+   g_signal_connect (loader, "size-prepared", G_CALLBACK (on_loader_size_prepared), data);
+ 
+-  if (!g_file_load_contents (data->gfile, NULL, &buffer, &length, NULL, NULL))
+-    goto out;
++  if (!g_file_load_contents (data->gfile, NULL, &buffer, &length, NULL, &error))
++    {
++      g_warning ("Failed to open sliced image: %s", error->message);
++      goto out;
++    }
+ 
+-  if (!gdk_pixbuf_loader_write (loader, (const guchar *) buffer, length, NULL))
+-    goto out;
++  if (!gdk_pixbuf_loader_write (loader, (const guchar *) buffer, length, &error))
++    {
++      g_warning ("Failed to load image: %s", error->message);
++      goto out;
++    }
+ 
+   if (!gdk_pixbuf_loader_close (loader, NULL))
+     goto out;
+@@ -1128,6 +1135,7 @@ load_sliced_image (GTask        *result,
+    * though the subpixbufs will hold a reference. */
+   g_object_unref (loader);
+   g_free (buffer);
++  g_clear_pointer (&error, g_error_free);
+   g_task_return_pointer (result, res, free_glist_unref_gobjects);
+ }
+ 
+-- 
+2.11.0
+
