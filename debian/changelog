@@ -1,3 +1,9 @@
+gnome-shell (3.22.3-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 18 Feb 2017 06:26:38 +0100
+
 gnome-shell (3.22.2-4) unstable; urgency=medium
 
   * Team upload.
