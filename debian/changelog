@@ -1,9 +1,9 @@
-gnome-shell (3.22.3-1) UNRELEASED; urgency=medium
+gnome-shell (3.22.3-1) unstable; urgency=medium
 
   * New upstream release.
   * Drop patches which have been merged upstream.
 
- -- Michael Biebl <biebl@debian.org>  Sat, 18 Feb 2017 06:26:38 +0100
+ -- Michael Biebl <biebl@debian.org>  Sat, 18 Feb 2017 06:44:37 +0100
 
 gnome-shell (3.22.2-4) unstable; urgency=medium
 
