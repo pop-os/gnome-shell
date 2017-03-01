@@ -2,7 +2,7 @@ gnome-shell (3.22.3-2) UNRELEASED; urgency=medium
 
   * d/control: Drop dependency on telepathy-mission-control-5. GNOME Shell
     has special integration for Telepathy if present, but does not depend
-    on it.
+    on it. (Closes: #853908)
   * d/gnome-shell.gsettings-override: Do not force Empathy to be considered
     a favourite app
 
