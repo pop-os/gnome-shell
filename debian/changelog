@@ -1,3 +1,116 @@
+gnome-shell (3.22.3-2) unstable; urgency=medium
+
+  * d/control: Drop dependency on telepathy-mission-control-5. GNOME Shell
+    has special integration for Telepathy if present, but does not depend
+    on it. (Closes: #853908)
+  * d/gnome-shell.gsettings-override: Do not force Empathy to be considered
+    a favourite app
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 01 Mar 2017 12:03:55 +0000
+
+gnome-shell (3.22.3-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop patches which have been merged upstream.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 18 Feb 2017 06:44:37 +0100
+
+gnome-shell (3.22.2-4) unstable; urgency=medium
+
+  * Team upload.
+  * Work around upgrades not being done offline:
+    - Ship a copy of the process-working spinner animation from Shell
+      3.14.x, and install it where Shell 3.14.x would expect to find it.
+      This avoids a code path where the lock screen would fail to unlock
+      because the animation code didn't cope with inability to load the
+      animation. (Closes: #853018)
+    - d/p/animations-Guard-against-empty-animations.patch,
+      d/p/texture-cache-Warn-when-loading-sliced-image-fails.patch:
+      Add two patches from upstream 3.22 branch to harden the same part
+      of the lock screen code against hitting a similar issue, and
+      issue warnings to the system log if it happens.
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 29 Jan 2017 11:45:16 +0000
+
+gnome-shell (3.22.2-3) unstable; urgency=medium
+
+  * Team upload.
+  * Link private libraries with DT_RPATH, reverting a binutils behaviour
+    change (#847298) that switched -rpath to producing DT_RUNPATH,
+    which is not used for transitive dependencies. (Closes: #851925)
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 20 Jan 2017 09:48:04 +0000
+
+gnome-shell (3.22.2-2) unstable; urgency=medium
+
+  [ Jeremy Bicha ]
+  * Add /usr/lib/$(DEB_HOST_MULTIARCH)/mutter to LD_LIBRARY_PATH
+    to fix FTBFS. Thanks Richard Ayotte for the hint! (Closes: #844796)
+
+  [ Emilio Pozuelo Monfort ]
+  * Upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 19 Jan 2017 19:09:00 +0100
+
+gnome-shell (3.22.2-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 10 Nov 2016 19:33:54 +0100
+
+gnome-shell (3.22.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump mutter dependencies to >= 3.22.1 as per configure.ac.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 11 Oct 2016 17:53:59 +0200
+
+gnome-shell (3.22.0-2) unstable; urgency=medium
+
+  * Bump libgtk-3-dev build-dependency to >= 3.21.6 (Closes: #838885)
+    (libgtk-3-0.symbols has Build-Depends-Package meta-header so this
+     should ensure we get a dependency >= 3.21.6)
+    Thanks to Michael Biebl for the analysis.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Sun, 09 Oct 2016 11:04:02 +0200
+
+gnome-shell (3.22.0-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump mutter dependencies to >= 3.22.0 as per configure.ac.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 20 Sep 2016 01:54:15 +0200
+
+gnome-shell (3.21.92-1) unstable; urgency=medium
+
+  [ Andreas Henriksson ]
+  * Bump gnome-tweak-tool Breaks to << 3.21.91 for the
+    org.gnome.shell.calendar -> org.gnome.desktop.calendar schema key move.
+  * Move gnome-tweak-tool and gnome-calendar Breaks to gnome-shell-common
+    which is the package containing the schemas.
+
+  [ Michael Biebl ]
+  * New upstream development release.
+  * Bump mutter dependencies to >= 3.21.92 as per configure.ac.
+  * Bump debhelper compat level to 10.
+  * Add explicit Build-Depends on gettext, pkg-config and autoconf-archive
+    which are required for autoreconf.
+  * Add Depends on libglib2.0-bin for gapplication. (Closes: #835221)
+  * Install gnome-shell.portal from /usr/share/xdg-desktop-portal/portals
+    which is required to provide the org.freedesktop.impl.portal.access
+    implementation.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 13 Sep 2016 18:34:18 +0200
+
+gnome-shell (3.21.91-2) unstable; urgency=medium
+
+  * Add Breaks against gnome-calendar (<< 3.21.4) to ensure we have a recent
+    enough version which no longer uses the org.gnome.shell.calendar GSettings
+    schema. It was removed from gnome-shell in favour of the
+    org.gnome.desktop.calendar schema provided by gsettings-desktop-schemas.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 01 Sep 2016 02:27:10 +0200
+
 gnome-shell (3.21.91-1) unstable; urgency=low
 
   * New upstream beta release.

@@ -6,12 +6,13 @@ Source: gnome-shell
 Section: gnome
 Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Andreas Henriksson <andreas@fatal.se>, Laurent Bigonville <bigon@debian.org>, Michael Biebl <biebl@debian.org>
-Build-Depends: autotools-dev,
-               debhelper (>= 9.20160114~),
-               dh-autoreconf,
+Uploaders: Andreas Henriksson <andreas@fatal.se>, Emilio Pozuelo Monfort <pochu@debian.org>, Michael Biebl <biebl@debian.org>
+Build-Depends: debhelper (>= 10),
                gnome-control-center-dev (>= 1:3.4),
                gnome-pkg-tools (>= 0.11),
+               gettext,
+               pkg-config (>= 0.22),
+               autoconf-archive,
                gobject-introspection (>= 1.49.1),
                gsettings-desktop-schemas-dev (>= 3.21.3),
                gtk-doc-tools,
@@ -29,9 +30,9 @@ Build-Depends: autotools-dev,
                libgnome-desktop-3-dev (>= 3.7.90),
                libgnome-menu-3-dev,
                libgstreamer1.0-dev (>= 0.11.92),
-               libgtk-3-dev (>= 3.16),
+               libgtk-3-dev (>= 3.21.6),
                libibus-1.0-dev,
-               libmutter-dev (>= 3.21.90),
+               libmutter-dev (>= 3.22.1),
                libnm-glib-dev (>= 0.9.8) [linux-any],
                libnm-glib-vpn-dev (>= 0.9.8) [linux-any],
                libnm-gtk-dev (>= 0.9.8) [linux-any],
@@ -72,7 +73,7 @@ Depends: ${gir:Depends},
          gir1.2-gtk-3.0 (>= 3.16),
          gir1.2-gweather-3.0,
          gir1.2-ibus-1.0 (>= 1.5.2),
-         gir1.2-mutter-3.0 (>= 3.21.90),
+         gir1.2-mutter-3.0 (>= 3.22.1),
          gir1.2-networkmanager-1.0 [linux-any],
          gir1.2-nmgtk-1.0 (>= 0.9.8) [linux-any],
          gir1.2-pango-1.0,
@@ -86,9 +87,9 @@ Depends: ${gir:Depends},
          gnome-shell-common (= ${source:Version}),
          gnome-backgrounds (>= 3.13.90),
          gsettings-desktop-schemas (>= 3.21.3),
-         mutter (>= 3.21.90),
+         mutter (>= 3.22.1),
          python3,
-         telepathy-mission-control-5,
+         libglib2.0-bin (>= 2.40.0-3),
 Recommends: gkbd-capplet,
             gnome-contacts,
             gnome-control-center,
@@ -98,8 +99,7 @@ Recommends: gkbd-capplet,
             iio-sensor-proxy,
             unzip
 Breaks: gdm3 (<< 3.19.92),
-        gnome-session (<< 3.19),
-        gnome-tweak-tool (<< 3.5)
+        gnome-session (<< 3.19)
 Conflicts: gnome-screensaver (<< 3.6)
 Provides: notification-daemon, polkit-1-auth-agent
 Description: graphical shell for the GNOME desktop
@@ -113,5 +113,7 @@ Description: graphical shell for the GNOME desktop
 Package: gnome-shell-common
 Architecture: all
 Depends: ${misc:Depends}
+Breaks: gnome-tweak-tool (<< 3.21.91),
+        gnome-calendar (<< 3.21.4)
 Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
