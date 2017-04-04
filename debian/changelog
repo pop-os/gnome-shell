@@ -1,3 +1,84 @@
+gnome-shell (3.24.0-1) UNRELEASED; urgency=medium
+
+  * Work in progress: needs a newer gjs, which in turn needs mozjs38
+
+  * Update Debian packaging from Ubuntu for GNOME 3.24.
+    Thanks to Jeremy Bicha
+    - d/control.in: Revert Ubuntu maintainer change
+    - d/patches: Remove Ubuntu-specific patches
+    - d/gnome-shell.gsettings-override: Go back to firefox-esr for Debian
+    - d/control.in: Do not circularly depend on gnome-session, Debian's
+      gnome-session packages are not structured the same as Ubuntu's
+    - d/control.in: Remove commented-out dependency on switcheroo-control
+    - d/control.in: Revert Recommends on xserver-xorg-legacy; if the
+      proprietary nVidia drivers need this then it should be fixed there
+  * Drop Telepathy g-i bindings from Depends to Suggests now that they
+    are runtime-optional upstream
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 04 Apr 2017 09:24:23 +0100
+
+gnome-shell (3.24.0-0ubuntu1) zesty; urgency=medium
+
+  * New upstream translations release.
+  * Bump minimum mutter to 3.24.0
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 20 Mar 2017 20:07:54 -0400
+
+gnome-shell (3.23.92-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release
+  * debian/control.in:
+    - Drop obsolete Build-Depends against telepathy-glib
+    - Bump minimum mutter to 3.23.92
+  * Drop git patches applied in new release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 14 Mar 2017 15:28:09 -0400
+
+gnome-shell (3.23.91-0ubuntu4) zesty; urgency=medium
+
+  * debian/control.in:
+    - Recommend chrome-gnome-shell
+    - Recommend xserver-xorg-legacy until all the proprietary NVIDIA
+      drivers depend on it (LP: #1559576)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 10 Mar 2017 20:08:00 -0500
+
+gnome-shell (3.23.91-0ubuntu3) zesty; urgency=medium
+
+  * debian/control.in:
+    - Depend on gir1.2-geoclue-2.0 (LP: #1671823)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 10 Mar 2017 09:19:54 -0500
+
+gnome-shell (3.23.91-0ubuntu2) zesty; urgency=medium
+
+  * Add patches to backport some commits from git:
+    - git_fix_typos.patch
+    - git_fix_telepathy_notifications.patch
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 02 Mar 2017 15:50:41 -0500
+
+gnome-shell (3.23.91-0ubuntu1) zesty; urgency=medium
+
+  * Merge with Debian unstable. Remaining changes:
+    - debian/control.in:
+      + Update mutter dependencies
+      + Depend on gir1.2-rsvg-2.0
+      + Bump minimum gjs to 1.47.90
+      + Depend on gnome-session which due to package
+        split now contains only the session files
+    - debian/patches/ubuntu-lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - debian/patches/ubuntu_lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - debian/gnome-shell.gsettings-override:
+      + Replace firefox-esr with firefox
+    - Don't install the 3.14 process-working file since
+      we already did the 3.14 upgrade for 16.04 LTS
+  * New upstream release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 01 Mar 2017 13:06:59 -0500
+
 gnome-shell (3.22.3-2) unstable; urgency=medium
 
   * d/control: Drop dependency on telepathy-mission-control-5. GNOME Shell
