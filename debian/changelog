@@ -8,6 +8,7 @@ gnome-shell (3.24.0-1) UNRELEASED; urgency=medium
     - Bump minimum mutter to 3.24.0, gjs to 1.47.90
     - Depend on gir1.2-geoclue-2.0 and gir1.2-rsvg-2.0
     - Recommend chrome-gnome-shell
+    - Recommend switcheroo-control for dual GPU support
   * Drop 3.14 upgrade hack, not needed after stretch
 
   [ Simon McVittie]
