@@ -93,8 +93,7 @@ Depends: ${gir:Depends},
          mutter (>= 3.23.91),
          python3,
          libglib2.0-bin (>= 2.40.0-3),
-Recommends: chrome-gnome-shell,
-            xserver-xorg-legacy,
+Recommends: xserver-xorg-legacy,
             gkbd-capplet,
             gnome-contacts,
             gnome-control-center,
@@ -104,6 +103,7 @@ Recommends: chrome-gnome-shell,
             iio-sensor-proxy,
             switcheroo-control,
             unzip
+Suggests: chrome-gnome-shell
 Breaks: gdm3 (<< 3.19.92),
         gnome-session (<< 3.19)
 Conflicts: gnome-screensaver (<< 3.6)
