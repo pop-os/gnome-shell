@@ -1,0 +1,58 @@
+From b043396a553e047178fd2bc5e3b69870963580fc Mon Sep 17 00:00:00 2001
+From: Tim Lunn <tim@feathertop.org>
+Date: Tue, 9 Oct 2012 20:18:28 +1100
+Subject: [PATCH] userMenu: allow user switching when using lightdm
+
+When running lightdm and gnome-shell, its currently not possible to
+switch users via the usermenu. This commit adds a dbus call to
+switch to the lightdm greeter.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=685794
+---
+ js/ui/status/system.js |   29 +++++++++++++++++++++++------
+ 1 file changed, 23 insertions(+), 6 deletions(-)
+
+--- a/js/ui/status/system.js
++++ b/js/ui/status/system.js
+@@ -382,13 +382,15 @@ const Indicator = new Lang.Class({
+     _onLoginScreenActivate: function() {
+         this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
+         Main.overview.hide();
+-        if (Main.screenShield)
++        if (Main.screenShield) {
+             Main.screenShield.lock(false);
+-
+-        Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
+-            Gdm.goto_login_session_sync(null);
+-            return false;
+-        });
++            Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
++                Gdm.goto_login_session_sync(null);
++                return false;
++            });
++        }
++        else
++            this._lightdmLoginSession();
+     },
+ 
+     _onQuitSessionActivate: function() {
+@@ -406,4 +408,19 @@ const Indicator = new Lang.Class({
+         this.menu.itemActivated();
+         this._loginManager.suspend();
+     },
++
++    _lightdmLoginSession: function() {
++        try {
++            let seat = GLib.getenv("XDG_SEAT_PATH");
++            let result = Gio.DBus.system.call_sync('org.freedesktop.DisplayManager',
++                                                   seat,
++                                                   'org.freedesktop.DisplayManager.Seat',
++                                                   'SwitchToGreeter', null, null,
++                                                   Gio.DBusCallFlags.NONE,
++                                                   -1, null);
++            return result;
++        } catch(e) {
++            return false;
++        }
++    }
+ });

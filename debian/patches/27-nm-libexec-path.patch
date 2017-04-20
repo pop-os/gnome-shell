@@ -1,0 +1,17 @@
+Description: Use Debian specific NM VPN helpers paths
+Author: Laurent Bigonville <bigon@debian.org>
+Forwarded: not-needed
+
+Index: gnome-shell-3.22.2/js/ui/components/networkAgent.js
+===================================================================
+--- gnome-shell-3.22.2.orig/js/ui/components/networkAgent.js	2016-11-10 19:27:53.855437771 +0100
++++ gnome-shell-3.22.2/js/ui/components/networkAgent.js	2016-11-10 19:27:53.851437706 +0100
+@@ -800,7 +800,7 @@
+ 
+                     let path = binary;
+                     if (!GLib.path_is_absolute(path)) {
+-                        path = GLib.build_filenamev([Config.LIBEXECDIR, path]);
++                        path = GLib.build_filenamev(['/usr/lib/NetworkManager', path]);
+                     }
+ 
+                     if (GLib.file_test(path, GLib.FileTest.IS_EXECUTABLE)) {

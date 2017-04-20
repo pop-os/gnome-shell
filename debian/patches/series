@@ -1,4 +1,5 @@
-#09-respect-NoDisplay-semantics-for-app-menu.patch
-#10-make-NetworkManager-optional.patch
-11-no-gettext.patch
-14_make-GLX-optional.patch
+27-nm-libexec-path.patch
+#30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
+41-handle-logind-fail.patch
+ubuntu-lightdm-user-switching.patch
+ubuntu_lock_on_suspend.patch
