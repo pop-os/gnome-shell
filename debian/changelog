@@ -1,3 +1,10 @@
+gnome-shell (3.24.0-0ubuntu3~gnome1) zesty; urgency=medium
+
+  * debian/control.in 
+    - Suggest chrome-gnome-shell instead of recommend
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Thu, 20 Apr 2017 10:33:37 -0400
+
 gnome-shell (3.24.0-0ubuntu2) zesty; urgency=medium
 
   * Recommend switcheroo-control for dual GPU support (LP: #1671828)
