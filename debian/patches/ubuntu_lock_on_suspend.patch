@@ -7,19 +7,17 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  js/ui/screenShield.js |    3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-Index: gnome-shell-3.16.2/js/ui/screenShield.js
-===================================================================
---- gnome-shell-3.16.2.orig/js/ui/screenShield.js
-+++ gnome-shell-3.16.2/js/ui/screenShield.js
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
 @@ -32,6 +32,7 @@ const Util = imports.misc.util;
  const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
  const LOCK_ENABLED_KEY = 'lock-enabled';
  const LOCK_DELAY_KEY = 'lock-delay';
 +const SUSPEND_LOCK_ENABLED_KEY = 'ubuntu-lock-on-suspend';
  
- const LOCKED_STATE_STR = 'screenShield.locked';
- // fraction of screen height the arrow must reach before completing
-@@ -696,7 +697,7 @@ const ScreenShield = new Lang.Class({
+ const LOCKDOWN_SCHEMA = 'org.gnome.desktop.lockdown';
+ const DISABLE_LOCK_KEY = 'disable-lock-screen';
+@@ -727,7 +728,7 @@ const ScreenShield = new Lang.Class({
  
      _prepareForSleep: function(loginManager, aboutToSuspend) {
          if (aboutToSuspend) {
