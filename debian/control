@@ -99,9 +99,9 @@ Recommends: xserver-xorg-legacy,
             gnome-user-guide,
             gdm3 (>= 3.10.0.1-3~),
             iio-sensor-proxy,
-            switcheroo-control,
             unzip
-Suggests: chrome-gnome-shell
+Suggests: chrome-gnome-shell,
+          switcheroo-control
 Breaks: gdm3 (<< 3.19.92),
         gnome-session (<< 3.19)
 Conflicts: gnome-screensaver (<< 3.6)

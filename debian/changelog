@@ -1,7 +1,7 @@
-gnome-shell (3.24.1-0ubuntu2~gnome1) UNRELEASED; urgency=medium
+gnome-shell (3.24.1-0ubuntu2~gnome2) zesty; urgency=medium
 
   * debian/control.in 
-    - Suggest chrome-gnome-shell instead of recommend
+    - Suggest switcheroo-control and chrome-gnome-shell instead of recommend
     - Dropped build dep for gir1.2-telepathylogger-0.2
     - Dropped gnome-contacts from recommends, lets use the seed to select apps
 
