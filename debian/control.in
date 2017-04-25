@@ -77,7 +77,6 @@ Depends: ${gir:Depends},
          gir1.2-polkit-1.0,
          gir1.2-rsvg-2.0,
          gir1.2-soup-2.4 (>= 2.40.1),
-         gir1.2-telepathyglib-0.12,
          gir1.2-upowerglib-1.0 (>= 0.99),
          gjs (>= 1.47.90),
          gnome-session,
@@ -96,7 +95,9 @@ Recommends: xserver-xorg-legacy,
             gdm3 (>= 3.10.0.1-3~),
             iio-sensor-proxy,
             unzip
-Suggests: chrome-gnome-shell,
+Suggests: gir1.2-telepathyglib-0.12,
+          gir1.2-telepathylogger-0.2 (>= 0.8.0),
+          chrome-gnome-shell,
           switcheroo-control
 Breaks: gdm3 (<< 3.19.92),
         gnome-session (<< 3.19)
