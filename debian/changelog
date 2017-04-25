@@ -1,13 +1,21 @@
 gnome-shell (3.24.1-0ubuntu2) UNRELEASED; urgency=medium
 
-  * debian/control.in 
+  [ Ken VanDine ]
+  * debian/control.in:
     - Suggest switcheroo-control and chrome-gnome-shell instead of recommend
-    - Dropped build dep for gir1.2-telepathylogger-0.2
     - Dropped gnome-contacts from recommends, lets use the seed to select apps
 
   [ Simon McVittie]
   * Drop Telepathy g-i bindings from Depends to Suggests now that they
     are runtime-optional upstream
+
+  [ Jeremy Bicha ]
+  * Lower more depends and recommends to suggests to smooth Main inclusion:
+    - iio-sensor-proxy
+    - adwaita-icon-theme-full
+    - gnome-themes-standard-data
+    - gnome-user-guide
+  * Replace gnome-backgrounds dependency with ubuntu-wallpapers
 
  -- Ken VanDine <ken.vandine@canonical.com>  Fri, 21 Apr 2017 10:39:18 -0400
 
