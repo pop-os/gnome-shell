@@ -1,3 +1,11 @@
+gnome-shell (3.22.3-3) UNRELEASED; urgency=medium
+
+  * debian/patches/50-extension-reload-fail.patch:
+    - Add patch to fix a bug where extensions could be left enabled in the
+      lock screen.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 25 Apr 2017 17:15:44 +0200
+
 gnome-shell (3.22.3-2) unstable; urgency=medium
 
   * d/control: Drop dependency on telepathy-mission-control-5. GNOME Shell
