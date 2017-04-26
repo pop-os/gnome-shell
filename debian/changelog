@@ -2,8 +2,9 @@ gnome-shell (3.24.1-0ubuntu2) UNRELEASED; urgency=medium
 
   [ Ken VanDine ]
   * debian/control.in:
-    - Suggest switcheroo-control and chrome-gnome-shell instead of recommend
-    - Dropped gnome-contacts from recommends, lets use the seed to select apps
+    - Suggest switcheroo-control & chrome-gnome-shell instead of recommend
+    - Dropped gnome-contacts from recommends, let's use the seed to select
+      apps
 
   [ Simon McVittie]
   * Drop Telepathy g-i bindings from Depends to Suggests now that they
@@ -11,13 +12,14 @@ gnome-shell (3.24.1-0ubuntu2) UNRELEASED; urgency=medium
 
   [ Jeremy Bicha ]
   * Lower more depends and recommends to suggests to smooth Main inclusion:
-    - iio-sensor-proxy
     - adwaita-icon-theme-full
     - gnome-themes-standard-data
     - gnome-user-guide
+    - iio-sensor-proxy
+    - lightdm
   * Replace gnome-backgrounds dependency with ubuntu-wallpapers
 
- -- Ken VanDine <ken.vandine@canonical.com>  Fri, 21 Apr 2017 10:39:18 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 25 Apr 2017 22:01:55 -0400
 
 gnome-shell (3.24.1-0ubuntu1) zesty; urgency=medium
 
