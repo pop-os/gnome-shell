@@ -1,5 +1,6 @@
 Description: Use Ubuntu font instead of Cantarell
 Author: Jeremy Bicha <jbicha@ubuntu.com>
+Bug: https://bugzilla.gnome.org/781858
 ---
  data/theme/gnome-shell-high-contrast.css |    2 +-
  data/theme/gnome-shell-sass/_common.scss |    2 +-
