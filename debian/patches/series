@@ -3,3 +3,4 @@
 41-handle-logind-fail.patch
 ubuntu-lightdm-user-switching.patch
 ubuntu_lock_on_suspend.patch
+ubuntu_font.patch

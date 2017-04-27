@@ -1,3 +1,12 @@
+gnome-shell (3.24.1-0ubuntu3) UNRELEASED; urgency=medium
+
+  * Add ubuntu_font.patch:
+    - Use Ubuntu font
+  * debian/rules, debian/control.in:
+    - Don't depend on adwaita-icon-theme-full
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 26 Apr 2017 08:17:35 -0400
+
 gnome-shell (3.24.1-0ubuntu2) artful; urgency=medium
 
   [ Ken VanDine ]
