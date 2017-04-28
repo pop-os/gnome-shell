@@ -93,6 +93,7 @@ Depends: ${gir:Depends},
 Recommends: xserver-xorg-legacy,
             gkbd-capplet,
             gnome-control-center,
+            iio-sensor-proxy,
             unzip
 Suggests: gir1.2-telepathyglib-0.12,
           gir1.2-telepathylogger-0.2 (>= 0.8.0),
