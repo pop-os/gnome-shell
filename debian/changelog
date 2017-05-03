@@ -2,6 +2,7 @@ gnome-shell (3.24.1-0ubuntu4) UNRELEASED; urgency=medium
 
   * debian/control.in:
     - Restore iio-sensor-proxy to Recommends since it was already in main
+    - Recommend gnome-user-guide again too
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 28 Apr 2017 13:29:39 -0400
 
