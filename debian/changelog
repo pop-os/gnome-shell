@@ -1,4 +1,4 @@
-gnome-shell (3.24.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.24.2-1) UNRELEASED; urgency=medium
 
   * Work in progress: needs a newer gjs, which in turn needs mozjs38
 
@@ -7,6 +7,7 @@ gnome-shell (3.24.0-1) UNRELEASED; urgency=medium
     - Drop obsolete Build-Depends against telepathy-glib
     - Bump minimum mutter to 3.24.0, gjs to 1.47.90
     - Depend on gir1.2-geoclue-2.0 and gir1.2-rsvg-2.0
+    - Depend on caribou (LP: #1589240)
     - Recommend chrome-gnome-shell
     - Recommend switcheroo-control for dual GPU support
   * Drop 3.14 upgrade hack, not needed after stretch
