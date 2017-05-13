@@ -1,4 +1,4 @@
-gnome-shell (3.24.2-0ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (3.24.2-0ubuntu2) artful; urgency=medium
 
   * Depend on caribou (LP: #1589240)
 
