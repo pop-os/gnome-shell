@@ -58,6 +58,7 @@ Architecture: linux-any
 Depends: ${gir:Depends},
          ${misc:Depends},
          ${shlibs:Depends},
+         caribou (>= 0.4.8),
          evolution-data-server (>= 3.17.2),
          gir1.2-gdm-1.0 (>= 3.18.2),
          gir1.2-accountsservice-1.0,
