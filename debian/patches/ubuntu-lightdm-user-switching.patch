@@ -9,12 +9,33 @@ switch to the lightdm greeter.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=685794
 ---
- js/ui/status/system.js |   29 +++++++++++++++++++++++------
- 1 file changed, 23 insertions(+), 6 deletions(-)
+ js/ui/status/system.js |   38 ++++++++++++++++++++++++++++++--------
+ 1 file changed, 30 insertions(+), 8 deletions(-)
 
 --- a/js/ui/status/system.js
 +++ b/js/ui/status/system.js
-@@ -382,13 +382,15 @@ const Indicator = new Lang.Class({
+@@ -310,7 +310,7 @@ const Indicator = new Lang.Class({
+     _updateLockScreen: function() {
+         let showLock = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
+         let allowLockScreen = !this._lockdownSettings.get_boolean(DISABLE_LOCK_SCREEN_KEY);
+-        this._lockScreenAction.visible = showLock && allowLockScreen && LoginManager.canLock();
++        this._lockScreenAction.visible = showLock && allowLockScreen;
+         this._updateActionsVisibility();
+     },
+ 
+@@ -440,19 +440,26 @@ const Indicator = new Lang.Class({
+     _onLockScreenClicked: function() {
+         this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
+         Main.overview.hide();
+-        Main.screenShield.lock(true);
++        if (Main.screenShield) {
++            Main.screenShield.lock(true);
++        }
++        else
++            this._lightdmLoginSession();
++
+     },
+ 
      _onLoginScreenActivate: function() {
          this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
          Main.overview.hide();
@@ -36,7 +57,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
      },
  
      _onQuitSessionActivate: function() {
-@@ -406,4 +408,19 @@ const Indicator = new Lang.Class({
+@@ -470,4 +477,19 @@ const Indicator = new Lang.Class({
          this.menu.itemActivated();
          this._loginManager.suspend();
      },

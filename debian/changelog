@@ -1,3 +1,10 @@
+gnome-shell (3.24.2-0ubuntu3) UNRELEASED; urgency=medium
+
+  * Extend ubuntu-lightdm-user-switching.patch to allow
+    locking screen using LightDM (LP: #1684205)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 14 May 2017 21:42:39 -0400
+
 gnome-shell (3.24.2-0ubuntu2) artful; urgency=medium
 
   * Depend on caribou (LP: #1589240)
