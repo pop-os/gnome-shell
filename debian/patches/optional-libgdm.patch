@@ -1,0 +1,70 @@
+Index: gnome-shell-3.24.2/js/gdm/loginDialog.js
+===================================================================
+--- gnome-shell-3.24.2.orig/js/gdm/loginDialog.js
++++ gnome-shell-3.24.2/js/gdm/loginDialog.js
+@@ -19,7 +19,11 @@
+ const AccountsService = imports.gi.AccountsService;
+ const Atk = imports.gi.Atk;
+ const Clutter = imports.gi.Clutter;
+-const Gdm = imports.gi.Gdm;
++try {
++    var Gdm = imports.gi.Gdm;
++} catch (e) {
++    var Gdm = null;
++}
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
+ const GObject = imports.gi.GObject;
+Index: gnome-shell-3.24.2/js/ui/status/system.js
+===================================================================
+--- gnome-shell-3.24.2.orig/js/ui/status/system.js
++++ gnome-shell-3.24.2/js/ui/status/system.js
+@@ -2,7 +2,11 @@
+ 
+ const AccountsService = imports.gi.AccountsService;
+ const Clutter = imports.gi.Clutter;
+-const Gdm = imports.gi.Gdm;
++try {
++    var Gdm = imports.gi.Gdm;
++} catch (e) {
++    var Gdm = null;
++}
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
+ const Lang = imports.lang;
+@@ -253,7 +257,7 @@ const Indicator = new Lang.Class({
+         let systemAccount = this._user.system_account;
+         let localAccount = this._user.local_account;
+         let multiUser = this._userManager.has_multiple_users;
+-        let multiSession = Gdm.get_session_ids().length > 1;
++        let multiSession = Gdm ? Gdm.get_session_ids().length > 1 : false;
+ 
+         let visible = allowLogout && (alwaysShow || multiUser || multiSession || systemAccount || !localAccount);
+         this._logoutItem.actor.visible = visible;
+@@ -454,7 +458,8 @@ const Indicator = new Lang.Class({
+         if (Main.screenShield) {
+             Main.screenShield.lock(false);
+             Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
+-                Gdm.goto_login_session_sync(null);
++                if (Gdm)
++                    Gdm.goto_login_session_sync(null);
+                 return false;
+             });
+         }
+Index: gnome-shell-3.24.2/js/ui/unlockDialog.js
+===================================================================
+--- gnome-shell-3.24.2.orig/js/ui/unlockDialog.js
++++ gnome-shell-3.24.2/js/ui/unlockDialog.js
+@@ -3,7 +3,11 @@
+ const AccountsService = imports.gi.AccountsService;
+ const Atk = imports.gi.Atk;
+ const Clutter = imports.gi.Clutter;
+-const Gdm  = imports.gi.Gdm;
++try {
++    var Gdm = imports.gi.Gdm;
++} catch (e) {
++    var Gdm = null;
++}
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
+ const GnomeDesktop = imports.gi.GnomeDesktop;

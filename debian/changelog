@@ -1,3 +1,22 @@
+gnome-shell (3.24.2-0ubuntu5) artful; urgency=medium
+
+  * debian/control:
+    - Make gir1.2-gdm-1.0 a suggests so it doesn't have to be in main
+  * debian/patches/optional-libgdm.patch:
+    - Handle libgdm not being installed
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 01 Jun 2017 21:23:51 +1200
+
+gnome-shell (3.24.2-0ubuntu4) artful; urgency=medium
+
+  * Have dh_auto_test run the unit tests
+  * depend/control.in:
+    - Build-depend on packages needed for the tests
+  * Add debian/patches/fix-markup-test.patch:
+    - Update one of the unit tests
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 18 May 2017 15:26:41 -0400
+
 gnome-shell (3.24.2-0ubuntu3) artful; urgency=medium
 
   * Extend ubuntu-lightdm-user-switching.patch to allow

@@ -4,3 +4,5 @@
 ubuntu-lightdm-user-switching.patch
 ubuntu_lock_on_suspend.patch
 ubuntu_font.patch
+fix-markup-test.patch
+optional-libgdm.patch
