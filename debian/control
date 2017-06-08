@@ -58,8 +58,7 @@ Build-Depends: debhelper (>= 10),
                xvfb <!nocheck>
 Standards-Version: 3.9.8
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
-Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-shell
-Vcs-Browser: https://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-shell/
+Vcs-Bzr: https://code.launchpad.net/~ubuntu-desktop/gnome-shell/ubuntu
 
 Package: gnome-shell
 Architecture: linux-any
