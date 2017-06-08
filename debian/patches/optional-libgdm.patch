@@ -32,7 +32,17 @@ Index: gnome-shell-3.24.2/js/ui/status/system.js
  const Gio = imports.gi.Gio;
  const GLib = imports.gi.GLib;
  const Lang = imports.lang;
-@@ -253,7 +257,7 @@ const Indicator = new Lang.Class({
+@@ -132,7 +136,8 @@ const Indicator = new Lang.Class({
+     _init: function() {
+         this.parent();
+ 
+-        this._loginScreenSettings = new Gio.Settings({ schema_id: LOGIN_SCREEN_SCHEMA });
++        if (Gdm)
++            this._loginScreenSettings = new Gio.Settings({ schema_id: LOGIN_SCREEN_SCHEMA });
+         this._lockdownSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
+         this._orientationSettings = new Gio.Settings({ schema_id: 'org.gnome.settings-daemon.peripherals.touchscreen' });
+ 
+@@ -253,7 +258,7 @@ const Indicator = new Lang.Class({
          let systemAccount = this._user.system_account;
          let localAccount = this._user.local_account;
          let multiUser = this._userManager.has_multiple_users;
@@ -41,7 +51,25 @@ Index: gnome-shell-3.24.2/js/ui/status/system.js
  
          let visible = allowLogout && (alwaysShow || multiUser || multiSession || systemAccount || !localAccount);
          this._logoutItem.actor.visible = visible;
-@@ -454,7 +458,8 @@ const Indicator = new Lang.Class({
+@@ -327,7 +332,7 @@ const Indicator = new Lang.Class({
+     _updatePowerOff: function() {
+         let disabled = Main.sessionMode.isLocked ||
+                        (Main.sessionMode.isGreeter &&
+-                        this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY));
++                        Gdm ? this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY) : false);
+         this._powerOffAction.visible = this._haveShutdown && !disabled;
+         this._updateActionsVisibility();
+     },
+@@ -345,7 +350,7 @@ const Indicator = new Lang.Class({
+         let disabled = (Main.sessionMode.isLocked &&
+                         this._suspendNeedsAuth) ||
+                        (Main.sessionMode.isGreeter &&
+-                        this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY));
++                        Gdm ? this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY) : false);
+         this._suspendAction.visible = this._haveSuspend && !disabled;
+         this._updateActionsVisibility();
+     },
+@@ -454,7 +459,8 @@ const Indicator = new Lang.Class({
          if (Main.screenShield) {
              Main.screenShield.lock(false);
              Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {

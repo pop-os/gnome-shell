@@ -1,3 +1,10 @@
+gnome-shell (3.24.2-0ubuntu6) artful; urgency=medium
+
+  * debian/patches/optional-libgdm.patch:
+    - Handle libgdm gsettings schema not being installed (LP: #1695212)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 06 Jun 2017 20:30:53 +1200
+
 gnome-shell (3.24.2-0ubuntu5) artful; urgency=medium
 
   * debian/control:
