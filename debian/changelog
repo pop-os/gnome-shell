@@ -7,7 +7,8 @@ gnome-shell (3.24.2-0ubuntu7) UNRELEASED; urgency=medium
   [ Didier Roche ]
   * debian/control*:
     - Recommends ubuntu-session | gnome-session to ensure people have one
-      session installed if they install the Shell.
+      session installed if they install the Shell rather than depends on
+      gnome-session.
 
  -- Didier Roche <didrocks@ubuntu.com>  Tue, 20 Jun 2017 11:59:13 +0200
 
