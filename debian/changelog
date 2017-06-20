@@ -1,9 +1,15 @@
 gnome-shell (3.24.2-0ubuntu7) UNRELEASED; urgency=medium
 
+  [ Robert Ancell ]
   * debian/control:
     - Set Vcs-Bzr
 
- -- Robert Ancell <robert.ancell@canonical.com>  Fri, 09 Jun 2017 09:09:50 +1200
+  [ Didier Roche ]
+  * debian/control*:
+    - Recommends ubuntu-session | gnome-session to ensure people have one
+      session installed if they install the Shell.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 20 Jun 2017 11:59:13 +0200
 
 gnome-shell (3.24.2-0ubuntu6) artful; urgency=medium
 
