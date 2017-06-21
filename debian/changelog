@@ -1,4 +1,4 @@
-gnome-shell (3.24.2-0ubuntu7) UNRELEASED; urgency=medium
+gnome-shell (3.24.2-0ubuntu7) artful; urgency=medium
 
   [ Robert Ancell ]
   * debian/control:
