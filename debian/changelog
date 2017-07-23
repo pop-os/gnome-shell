@@ -1,3 +1,10 @@
+gnome-shell (3.24.3-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream release
+  * Drop fix-markup-test.patch: Applied in new release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 23 Jul 2017 13:07:14 -0400
+
 gnome-shell (3.24.2-0ubuntu7) artful; urgency=medium
 
   [ Robert Ancell ]
