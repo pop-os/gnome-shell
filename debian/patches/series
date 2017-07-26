@@ -1,6 +1,7 @@
 27-nm-libexec-path.patch
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch
+70_allow_sound_above_100.patch
 ubuntu-lightdm-user-switching.patch
 ubuntu_lock_on_suspend.patch
 ubuntu_font.patch
