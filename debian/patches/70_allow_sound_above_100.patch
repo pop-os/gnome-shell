@@ -4,7 +4,7 @@ Description: Allow volume to bet set above 100%.
  (keyboard) and gnome-shell.
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
-Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=710424
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
 
 Index: gnome-shell-3.24.3/js/ui/status/volume.js
 ===================================================================
