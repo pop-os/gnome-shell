@@ -24,7 +24,7 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
          this._stream = null;
 +
 +        this._use_amplifiedvolume = false;
-+        let desktopEnv = GLib.getenv('XDG_SESSION_DESKTOP');
++        let desktopEnv = GLib.getenv('XDG_CURRENT_DESKTOP');
 +        if (desktopEnv && desktopEnv.indexOf("ubuntu") !== -1) {
 +            this._volumesettings = new Gio.Settings({ schema_id: 'com.ubuntu.sound' });
 +            this._volumesettings.connect('changed::allow-amplified-volume',
