@@ -6,7 +6,7 @@ gnome-shell (3.24.3-0ubuntu2) UNRELEASED; urgency=medium
     from the upstream one, like default font, no symbolic icon in the
     appmenu for coherence with other set of icons not having symbolic ones.
     We use regexp rules based on the source shell css, so that it's always
-    in sync with shell theming on any update.
+    in sync with shell theming on any update. (LP: #1698795)
   * Dropped debian/patches/ubuntu_font.patch, not needed anymore as we will
     have our own theme.
   * Bump Standard-Version to latest
