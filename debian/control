@@ -7,7 +7,7 @@ Section: gnome
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Andreas Henriksson <andreas@fatal.se>, Emilio Pozuelo Monfort <pochu@debian.org>, Michael Biebl <biebl@debian.org>
+Uploaders: Jeremy Bicha <jbicha@ubuntu.com>
 Build-Depends: debhelper (>= 10),
                gnome-control-center-dev (>= 1:3.4),
                gnome-pkg-tools (>= 0.11),
@@ -56,7 +56,7 @@ Build-Depends: debhelper (>= 10),
                gir1.2-rsvg-2.0 <!nocheck>,
                xauth <!nocheck>,
                xvfb <!nocheck>
-Standards-Version: 3.9.8
+Standards-Version: 4.0.0
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
 Vcs-Bzr: https://code.launchpad.net/~ubuntu-desktop/gnome-shell/ubuntu
 

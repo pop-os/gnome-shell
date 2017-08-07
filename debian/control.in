@@ -52,7 +52,7 @@ Build-Depends: debhelper (>= 10),
                gir1.2-rsvg-2.0 <!nocheck>,
                xauth <!nocheck>,
                xvfb <!nocheck>
-Standards-Version: 3.9.8
+Standards-Version: 4.0.0
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
 Vcs-Bzr: https://code.launchpad.net/~ubuntu-desktop/gnome-shell/ubuntu
 

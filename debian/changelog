@@ -9,6 +9,7 @@ gnome-shell (3.24.3-0ubuntu2) UNRELEASED; urgency=medium
     in sync with shell theming on any update.
   * Dropped debian/patches/ubuntu_font.patch, not needed anymore as we will
     have our own theme.
+  * Bump Standard-Version to latest
 
  -- Didier Roche <didrocks@ubuntu.com>  Mon, 07 Aug 2017 11:04:18 +0200
 
