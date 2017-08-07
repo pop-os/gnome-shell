@@ -29,6 +29,9 @@ override_dh_auto_configure:
 
 override_dh_install:
 	find debian/tmp -name '*.la' -delete
+	# create ubuntu shell theming file
+	mkdir debian/tmp/usr/share/gnome-shell/theme/
+	sed -f debian/ubuntu-session-mods/theme-script.regexp data/theme/gnome-shell.css > debian/tmp/usr/share/gnome-shell/theme/ubuntu.css
 	dh_install --list-missing
 
 override_dh_makeshlibs:
