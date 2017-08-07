@@ -7,8 +7,10 @@ gnome-shell (3.24.3-0ubuntu2) UNRELEASED; urgency=medium
     appmenu for coherence with other set of icons not having symbolic ones.
     We use regexp rules based on the source shell css, so that it's always
     in sync with shell theming on any update.
+  * Dropped debian/patches/ubuntu_font.patch, not needed anymore as we will
+    have our own theme.
 
- -- Didier Roche <didrocks@ubuntu.com>  Thu, 03 Aug 2017 16:59:16 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Mon, 07 Aug 2017 11:04:18 +0200
 
 gnome-shell (3.24.3-0ubuntu1) artful; urgency=medium
 
