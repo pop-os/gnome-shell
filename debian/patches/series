@@ -4,3 +4,4 @@
 ubuntu-lightdm-user-switching.patch
 ubuntu_lock_on_suspend.patch
 optional-libgdm.patch
+ubuntu_gdm.patch
