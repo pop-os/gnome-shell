@@ -13,6 +13,8 @@ gnome-shell (3.24.3-0ubuntu2) UNRELEASED; urgency=medium
     as gdm is system-wide and not session-wide, ensure gdm has an ubuntu
     styling by default, not impacting the gnome user session though.
   * Bump Standard-Version to latest
+  * Remove debian/gnome-shell.gsettings-override, as this is now in
+    ubuntu-settings, and we will have per-session overrides there.
 
  -- Didier Roche <didrocks@ubuntu.com>  Mon, 07 Aug 2017 11:04:18 +0200
 
