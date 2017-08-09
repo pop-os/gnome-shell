@@ -4,6 +4,8 @@ gnome-shell (3.24.3-0ubuntu2) UNRELEASED; urgency=medium
     - debian/patches/70_allow_sound_above_100.patch, which allows the volume
       slider in the aggregatemenu to reflect and set correct current volume
       position. (LP: #1706524)
+  * Add debian/patches/50_add_ubuntu_desktop_detect.patch to centralize
+    current desktop detection.
 
  -- Didier Roche <didrocks@ubuntu.com>  Wed, 26 Jul 2017 09:00:40 +0200
 

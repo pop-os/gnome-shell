@@ -10,22 +10,21 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
 ===================================================================
 --- gnome-shell-3.24.3.orig/js/ui/status/volume.js
 +++ gnome-shell-3.24.3/js/ui/status/volume.js
-@@ -3,6 +3,7 @@
- const Clutter = imports.gi.Clutter;
- const Lang = imports.lang;
- const Gio = imports.gi.Gio;
-+const GLib = imports.gi.GLib;
- const Gvc = imports.gi.Gvc;
+@@ -7,6 +7,7 @@ const Gvc = imports.gi.Gvc;
  const St = imports.gi.St;
  const Signals = imports.signals;
-@@ -49,6 +50,15 @@ const StreamSlider = new Lang.Class({
+ 
++const Desktop = imports.misc.desktop;
+ const PanelMenu = imports.ui.panelMenu;
+ const PopupMenu = imports.ui.popupMenu;
+ const Slider = imports.ui.slider;
+@@ -49,6 +50,14 @@ const StreamSlider = new Lang.Class({
          }));
  
          this._stream = null;
 +
 +        this._use_amplifiedvolume = false;
-+        let desktopEnv = GLib.getenv('XDG_CURRENT_DESKTOP');
-+        if (desktopEnv && desktopEnv.indexOf("ubuntu") !== -1) {
++        if (Desktop.is('ubuntu')) {
 +            this._volumesettings = new Gio.Settings({ schema_id: 'com.ubuntu.sound' });
 +            this._volumesettings.connect('changed::allow-amplified-volume',
 +                Lang.bind(this, this._updateAmplifiedVolume));
@@ -34,7 +33,7 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
      },
  
      get stream() {
-@@ -102,11 +112,24 @@ const StreamSlider = new Lang.Class({
+@@ -102,11 +111,24 @@ const StreamSlider = new Lang.Class({
          this._slider.setValue(value);
      },
  
@@ -60,7 +59,7 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
          let prevMuted = this._stream.is_muted;
          if (volume < 1) {
              this._stream.volume = 0;
-@@ -130,7 +153,7 @@ const StreamSlider = new Lang.Class({
+@@ -130,7 +152,7 @@ const StreamSlider = new Lang.Class({
  
      _updateVolume: function() {
          let muted = this._stream.is_muted;
@@ -69,7 +68,7 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
          this.emit('stream-updated');
      },
  
-@@ -142,7 +165,7 @@ const StreamSlider = new Lang.Class({
+@@ -142,7 +164,7 @@ const StreamSlider = new Lang.Class({
          if (this._stream.is_muted || volume <= 0) {
              return 'audio-volume-muted-symbolic';
          } else {
