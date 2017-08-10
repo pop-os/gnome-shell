@@ -5,3 +5,4 @@ usr/share/gnome-control-center
 usr/share/gnome-shell
 usr/share/gtk-doc
 usr/share/locale
+debian/ubuntu-session-mods/ubuntu.json usr/share/gnome-shell/modes/
