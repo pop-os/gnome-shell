@@ -18,14 +18,19 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
  const PanelMenu = imports.ui.panelMenu;
  const PopupMenu = imports.ui.popupMenu;
  const Slider = imports.ui.slider;
-@@ -49,6 +50,14 @@ const StreamSlider = new Lang.Class({
+@@ -49,6 +50,19 @@ const StreamSlider = new Lang.Class({
          }));
  
          this._stream = null;
 +
 +        this._use_amplifiedvolume = false;
 +        if (Desktop.is('ubuntu')) {
-+            this._volumesettings = new Gio.Settings({ schema_id: 'com.ubuntu.sound' });
++            let source = Gio.SettingsSchemaSource.get_default();
++            let schema = source.lookup('com.ubuntu.sound', true);
++            if (schema) {
++                this._volumesettings = new Gio.Settings({ settings_schema: schema });
++            }
++
 +            this._volumesettings.connect('changed::allow-amplified-volume',
 +                Lang.bind(this, this._updateAmplifiedVolume));
 +            this._updateAmplifiedVolume();
@@ -33,7 +38,7 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
      },
  
      get stream() {
-@@ -102,11 +111,24 @@ const StreamSlider = new Lang.Class({
+@@ -102,11 +116,24 @@ const StreamSlider = new Lang.Class({
          this._slider.setValue(value);
      },
  
@@ -59,7 +64,7 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
          let prevMuted = this._stream.is_muted;
          if (volume < 1) {
              this._stream.volume = 0;
-@@ -130,7 +152,7 @@ const StreamSlider = new Lang.Class({
+@@ -130,7 +157,7 @@ const StreamSlider = new Lang.Class({
  
      _updateVolume: function() {
          let muted = this._stream.is_muted;
@@ -68,7 +73,7 @@ Index: gnome-shell-3.24.3/js/ui/status/volume.js
          this.emit('stream-updated');
      },
  
-@@ -142,7 +164,7 @@ const StreamSlider = new Lang.Class({
+@@ -142,7 +169,7 @@ const StreamSlider = new Lang.Class({
          if (this._stream.is_muted || volume <= 0) {
              return 'audio-volume-muted-symbolic';
          } else {
