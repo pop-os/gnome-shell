@@ -1,4 +1,4 @@
-gnome-shell (3.24.3-0ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (3.24.3-0ubuntu2) artful; urgency=medium
 
   * Ship ubuntu GNOME Shell mode which will be a slightely modified
     mode compared to upstream vanilla GNOME Shell one:
@@ -16,7 +16,7 @@ gnome-shell (3.24.3-0ubuntu2) UNRELEASED; urgency=medium
   * Remove debian/gnome-shell.gsettings-override, as this is now in
     ubuntu-settings, and we will have per-session overrides there.
 
- -- Didier Roche <didrocks@ubuntu.com>  Mon, 07 Aug 2017 11:04:18 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Mon, 14 Aug 2017 09:03:41 +0200
 
 gnome-shell (3.24.3-0ubuntu1) artful; urgency=medium
 
