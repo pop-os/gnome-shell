@@ -1,3 +1,14 @@
+gnome-shell (3.24.3-0ubuntu3) UNRELEASED; urgency=medium
+
+  * Add patch to allow setting volume above 100%:
+    - debian/patches/70_allow_sound_above_100.patch, which allows the volume
+      slider in the aggregatemenu to reflect and set correct current volume
+      position. (LP: #1706524)
+  * Add debian/patches/50_add_ubuntu_desktop_detect.patch to centralize
+    current desktop detection.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 16 Aug 2017 08:28:53 +0200
+
 gnome-shell (3.24.3-0ubuntu2) artful; urgency=medium
 
   * Ship ubuntu GNOME Shell mode which will be a slightely modified
