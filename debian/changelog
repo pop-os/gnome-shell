@@ -1,6 +1,10 @@
 gnome-shell (3.24.3-0ubuntu4) UNRELEASED; urgency=medium
 
   * Enable ubuntu-dock in ubuntu mode.
+  * debian/patches/optional-hot-corner.patch:
+    - enable patch proposed by upstream developer already in package
+      (but not in series) to add a settings for optional hot corner
+      activation.
 
  -- Didier Roche <didrocks@ubuntu.com>  Thu, 17 Aug 2017 08:58:41 +0200
 

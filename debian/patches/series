@@ -3,6 +3,7 @@
 41-handle-logind-fail.patch
 50_add_ubuntu_desktop_detect.patch
 70_allow_sound_above_100.patch
+optional-hot-corner.patch
 ubuntu-lightdm-user-switching.patch
 ubuntu_lock_on_suspend.patch
 optional-libgdm.patch
