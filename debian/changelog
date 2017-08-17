@@ -1,3 +1,9 @@
+gnome-shell (3.24.3-0ubuntu4) UNRELEASED; urgency=medium
+
+  * Enable ubuntu-dock in ubuntu mode.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 17 Aug 2017 08:58:41 +0200
+
 gnome-shell (3.24.3-0ubuntu3) artful; urgency=medium
 
   * Add patch to allow setting volume above 100%:

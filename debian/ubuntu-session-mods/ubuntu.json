@@ -1,5 +1,5 @@
 {
     "parentMode": "user",
     "stylesheetName": "ubuntu.css",
-    "enabledExtensions": []
+    "enabledExtensions": ["ubuntu-dock@ubuntu.com"]
 }
