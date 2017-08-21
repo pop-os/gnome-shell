@@ -1,0 +1,3479 @@
+From 2582d16ca791891a5141b8d851d925797b4ff722 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 18 Jul 2017 19:41:25 +0200
+Subject: Define classes with 'var' instead of 'const'
+
+Any symbols (including class properties) that should be visible
+outside the module it's defined in need to be defined as global.
+For now gjs still allows the access for 'const', but get rid of
+the warnings spill now by changing it.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=785084
+---
+ js/extensionPrefs/main.js            |    6 +++---
+ js/gdm/authPrompt.js                 |    2 +-
+ js/gdm/batch.js                      |   10 +++++-----
+ js/gdm/loginDialog.js                |    8 ++++----
+ js/gdm/oVirt.js                      |    2 +-
+ js/gdm/realmd.js                     |    2 +-
+ js/gdm/util.js                       |    2 +-
+ js/misc/extensionUtils.js            |    2 +-
+ js/misc/history.js                   |    2 +-
+ js/misc/ibusManager.js               |    2 +-
+ js/misc/keyboardManager.js           |    2 +-
+ js/misc/loginManager.js              |    4 ++--
+ js/misc/modemManager.js              |    6 +++---
+ js/misc/objectManager.js             |    2 +-
+ js/misc/smartcardManager.js          |    2 +-
+ js/misc/util.js                      |    4 ++--
+ js/misc/weather.js                   |    2 +-
+ js/portalHelper/main.js              |    6 +++---
+ js/ui/accessDialog.js                |    4 ++--
+ js/ui/altTab.js                      |   22 +++++++++++-----------
+ js/ui/animation.js                   |    4 ++--
+ js/ui/appDisplay.js                  |   28 ++++++++++++++--------------
+ js/ui/appFavorites.js                |    2 +-
+ js/ui/audioDeviceSelection.js        |    4 ++--
+ js/ui/background.js                  |   12 ++++++------
+ js/ui/backgroundMenu.js              |    2 +-
+ js/ui/boxpointer.js                  |    2 +-
+ js/ui/calendar.js                    |   20 ++++++++++----------
+ js/ui/checkBox.js                    |    2 +-
+ js/ui/components/__init__.js         |    2 +-
+ js/ui/components/automountManager.js |    2 +-
+ js/ui/components/autorunManager.js   |   10 +++++-----
+ js/ui/components/keyring.js          |    6 +++---
+ js/ui/components/networkAgent.js     |    6 +++---
+ js/ui/components/polkitAgent.js      |    4 ++--
+ js/ui/components/telepathyClient.js  |   12 ++++++------
+ js/ui/ctrlAltTab.js                  |    6 +++---
+ js/ui/dash.js                        |   12 ++++++------
+ js/ui/dateMenu.js                    |   16 ++++++++--------
+ js/ui/dnd.js                         |    2 +-
+ js/ui/edgeDragAction.js              |    2 +-
+ js/ui/endSessionDialog.js            |    2 +-
+ js/ui/extensionDownloader.js         |    2 +-
+ js/ui/focusCaretTracker.js           |    2 +-
+ js/ui/grabHelper.js                  |    2 +-
+ js/ui/ibusCandidatePopup.js          |    4 ++--
+ js/ui/iconGrid.js                    |    6 +++---
+ js/ui/layout.js                      |   10 +++++-----
+ js/ui/legacyTray.js                  |    2 +-
+ js/ui/lightbox.js                    |    4 ++--
+ js/ui/lookingGlass.js                |   20 ++++++++++----------
+ js/ui/magnifier.js                   |    8 ++++----
+ js/ui/magnifierDBus.js               |    4 ++--
+ js/ui/main.js                        |    2 +-
+ js/ui/messageList.js                 |   10 +++++-----
+ js/ui/messageTray.js                 |   22 +++++++++++-----------
+ js/ui/modalDialog.js                 |    2 +-
+ js/ui/mpris.js                       |    6 +++---
+ js/ui/notificationDaemon.js          |   12 ++++++------
+ js/ui/osdMonitorLabeler.js           |    4 ++--
+ js/ui/osdWindow.js                   |    8 ++++----
+ js/ui/overview.js                    |    4 ++--
+ js/ui/overviewControls.js            |   14 +++++++-------
+ js/ui/padOsd.js                      |   14 +++++++-------
+ js/ui/panel.js                       |   12 ++++++------
+ js/ui/panelMenu.js                   |    6 +++---
+ js/ui/pointerWatcher.js              |    4 ++--
+ js/ui/popupMenu.js                   |   26 +++++++++++++-------------
+ js/ui/remoteMenu.js                  |   10 +++++-----
+ js/ui/remoteSearch.js                |    4 ++--
+ js/ui/runDialog.js                   |    2 +-
+ js/ui/screenShield.js                |    8 ++++----
+ js/ui/screencast.js                  |    2 +-
+ js/ui/screenshot.js                  |    6 +++---
+ js/ui/search.js                      |   16 ++++++++--------
+ js/ui/sessionMode.js                 |    2 +-
+ js/ui/shellDBus.js                   |    6 +++---
+ js/ui/shellEntry.js                  |    2 +-
+ js/ui/shellMountOperation.js         |   14 +++++++-------
+ js/ui/slider.js                      |    2 +-
+ js/ui/status/accessibility.js        |    4 ++--
+ js/ui/status/bluetooth.js            |    2 +-
+ js/ui/status/brightness.js           |    2 +-
+ js/ui/status/keyboard.js             |   18 +++++++++---------
+ js/ui/status/location.js             |    6 +++---
+ js/ui/status/network.js              |   26 +++++++++++++-------------
+ js/ui/status/nightLight.js           |    2 +-
+ js/ui/status/power.js                |    2 +-
+ js/ui/status/rfkill.js               |    4 ++--
+ js/ui/status/screencast.js           |    2 +-
+ js/ui/status/system.js               |    4 ++--
+ js/ui/status/volume.js               |   10 +++++-----
+ js/ui/switcherPopup.js               |    4 ++--
+ js/ui/tweener.js                     |    2 +-
+ js/ui/unlockDialog.js                |    2 +-
+ js/ui/userWidget.js                  |    6 +++---
+ js/ui/viewSelector.js                |    8 ++++----
+ js/ui/windowAttentionHandler.js      |    4 ++--
+ js/ui/windowManager.js               |   18 +++++++++---------
+ js/ui/windowMenu.js                  |    6 +++---
+ js/ui/workspace.js                   |   12 ++++++------
+ js/ui/workspaceSwitcherPopup.js      |    2 +-
+ js/ui/workspaceThumbnail.js          |    8 ++++----
+ js/ui/workspacesView.js              |   10 +++++-----
+ js/ui/xdndHandler.js                 |    2 +-
+ 105 files changed, 350 insertions(+), 350 deletions(-)
+
+--- a/js/extensionPrefs/main.js
++++ b/js/extensionPrefs/main.js
+@@ -32,7 +32,7 @@ function stripPrefix(string, prefix) {
+     return string;
+ }
+ 
+-const Application = new Lang.Class({
++var Application = new Lang.Class({
+     Name: 'Application',
+     _init: function() {
+         GLib.set_prgname('gnome-shell-extension-prefs');
+@@ -253,7 +253,7 @@ const Application = new Lang.Class({
+     }
+ });
+ 
+-const DescriptionLabel = new Lang.Class({
++var DescriptionLabel = new Lang.Class({
+     Name: 'DescriptionLabel',
+     Extends: Gtk.Label,
+ 
+@@ -265,7 +265,7 @@ const DescriptionLabel = new Lang.Class(
+     }
+ });
+ 
+-const ExtensionRow = new Lang.Class({
++var ExtensionRow = new Lang.Class({
+     Name: 'ExtensionRow',
+     Extends: Gtk.ListBoxRow,
+ 
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -38,7 +38,7 @@ const BeginRequestType = {
+     DONT_PROVIDE_USERNAME: 1
+ };
+ 
+-const AuthPrompt = new Lang.Class({
++var AuthPrompt = new Lang.Class({
+     Name: 'AuthPrompt',
+ 
+     _init: function(gdmClient, mode) {
+--- a/js/gdm/batch.js
++++ b/js/gdm/batch.js
+@@ -47,7 +47,7 @@
+ const Lang = imports.lang;
+ const Signals = imports.signals;
+ 
+-const Task = new Lang.Class({
++var Task = new Lang.Class({
+     Name: 'Task',
+ 
+     _init: function(scope, handler) {
+@@ -68,7 +68,7 @@ const Task = new Lang.Class({
+ });
+ Signals.addSignalMethods(Task.prototype);
+ 
+-const Hold = new Lang.Class({
++var Hold = new Lang.Class({
+     Name: 'Hold',
+     Extends: Task,
+ 
+@@ -110,7 +110,7 @@ const Hold = new Lang.Class({
+ });
+ Signals.addSignalMethods(Hold.prototype);
+ 
+-const Batch = new Lang.Class({
++var Batch = new Lang.Class({
+     Name: 'Batch',
+     Extends: Task,
+ 
+@@ -185,7 +185,7 @@ const Batch = new Lang.Class({
+ });
+ Signals.addSignalMethods(Batch.prototype);
+ 
+-const ConcurrentBatch = new Lang.Class({
++var ConcurrentBatch = new Lang.Class({
+     Name: 'ConcurrentBatch',
+     Extends: Batch,
+ 
+@@ -204,7 +204,7 @@ const ConcurrentBatch = new Lang.Class({
+ });
+ Signals.addSignalMethods(ConcurrentBatch.prototype);
+ 
+-const ConsecutiveBatch = new Lang.Class({
++var ConsecutiveBatch = new Lang.Class({
+     Name: 'ConsecutiveBatch',
+     Extends: Batch,
+ 
+--- a/js/gdm/loginDialog.js
++++ b/js/gdm/loginDialog.js
+@@ -55,7 +55,7 @@ const _TIMED_LOGIN_IDLE_THRESHOLD = 5.0;
+ const _LOGO_ICON_HEIGHT = 48;
+ const _MAX_BOTTOM_MENU_ITEMS = 5;
+ 
+-const UserListItem = new Lang.Class({
++var UserListItem = new Lang.Class({
+     Name: 'UserListItem',
+ 
+     _init: function(user) {
+@@ -130,7 +130,7 @@ const UserListItem = new Lang.Class({
+ });
+ Signals.addSignalMethods(UserListItem.prototype);
+ 
+-const UserList = new Lang.Class({
++var UserList = new Lang.Class({
+     Name: 'UserList',
+ 
+     _init: function() {
+@@ -277,7 +277,7 @@ const UserList = new Lang.Class({
+ });
+ Signals.addSignalMethods(UserList.prototype);
+ 
+-const SessionMenuButton = new Lang.Class({
++var SessionMenuButton = new Lang.Class({
+     Name: 'SessionMenuButton',
+ 
+     _init: function() {
+@@ -383,7 +383,7 @@ const SessionMenuButton = new Lang.Class
+ });
+ Signals.addSignalMethods(SessionMenuButton.prototype);
+ 
+-const LoginDialog = new Lang.Class({
++var LoginDialog = new Lang.Class({
+     Name: 'LoginDialog',
+ 
+     _init: function(parentActor) {
+--- a/js/gdm/oVirt.js
++++ b/js/gdm/oVirt.js
+@@ -27,7 +27,7 @@ function OVirtCredentials() {
+     return self;
+ }
+ 
+-const OVirtCredentialsManager = new Lang.Class({
++var OVirtCredentialsManager = new Lang.Class({
+     Name: 'OVirtCredentialsManager',
+     _init: function() {
+         this._token = null;
+--- a/js/gdm/realmd.js
++++ b/js/gdm/realmd.js
+@@ -59,7 +59,7 @@ const RealmIface = '<node> \
+ </node>';
+ const Realm = Gio.DBusProxy.makeProxyWrapper(RealmIface);
+ 
+-const Manager = new Lang.Class({
++var Manager = new Lang.Class({
+     Name: 'Manager',
+ 
+     _init: function(parentActor) {
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -119,7 +119,7 @@ function cloneAndFadeOutActor(actor) {
+     return hold;
+ }
+ 
+-const ShellUserVerifier = new Lang.Class({
++var ShellUserVerifier = new Lang.Class({
+     Name: 'ShellUserVerifier',
+ 
+     _init: function(client, params) {
+--- a/js/misc/extensionUtils.js
++++ b/js/misc/extensionUtils.js
+@@ -158,7 +158,7 @@ function installImporter(extension) {
+     imports.searchPath = oldSearchPath;
+ }
+ 
+-const ExtensionFinder = new Lang.Class({
++var ExtensionFinder = new Lang.Class({
+     Name: 'ExtensionFinder',
+ 
+     _loadExtension: function(extensionDir, info, perUserDir) {
+--- a/js/misc/history.js
++++ b/js/misc/history.js
+@@ -7,7 +7,7 @@ const Params = imports.misc.params;
+ 
+ const DEFAULT_LIMIT = 512;
+ 
+-const HistoryManager = new Lang.Class({
++var HistoryManager = new Lang.Class({
+     Name: 'HistoryManager',
+ 
+     _init: function(params) {
+--- a/js/misc/ibusManager.js
++++ b/js/misc/ibusManager.js
+@@ -36,7 +36,7 @@ function getIBusManager() {
+     return _ibusManager;
+ }
+ 
+-const IBusManager = new Lang.Class({
++var IBusManager = new Lang.Class({
+     Name: 'IBusManager',
+ 
+     // This is the longest we'll keep the keyboard frozen until an input
+--- a/js/misc/keyboardManager.js
++++ b/js/misc/keyboardManager.js
+@@ -38,7 +38,7 @@ function holdKeyboard() {
+     global.display.freeze_keyboard(global.get_current_time());
+ }
+ 
+-const KeyboardManager = new Lang.Class({
++var KeyboardManager = new Lang.Class({
+     Name: 'KeyboardManager',
+ 
+     // The XKB protocol doesn't allow for more that 4 layouts in a
+--- a/js/misc/loginManager.js
++++ b/js/misc/loginManager.js
+@@ -102,7 +102,7 @@ function getLoginManager() {
+     return _loginManager;
+ }
+ 
+-const LoginManagerSystemd = new Lang.Class({
++var LoginManagerSystemd = new Lang.Class({
+     Name: 'LoginManagerSystemd',
+ 
+     _init: function() {
+@@ -183,7 +183,7 @@ const LoginManagerSystemd = new Lang.Cla
+ });
+ Signals.addSignalMethods(LoginManagerSystemd.prototype);
+ 
+-const LoginManagerDummy = new Lang.Class({
++var LoginManagerDummy = new Lang.Class({
+     Name: 'LoginManagerDummy',
+ 
+     getCurrentSessionProxy: function(callback) {
+--- a/js/misc/modemManager.js
++++ b/js/misc/modemManager.js
+@@ -130,7 +130,7 @@ const ModemCdmaInterface = '<node> \
+ 
+ const ModemCdmaProxy = Gio.DBusProxy.makeProxyWrapper(ModemCdmaInterface);
+ 
+-const ModemGsm = new Lang.Class({
++var ModemGsm = new Lang.Class({
+     Name: 'ModemGsm',
+ 
+     _init: function(path) {
+@@ -172,7 +172,7 @@ const ModemGsm = new Lang.Class({
+ });
+ Signals.addSignalMethods(ModemGsm.prototype);
+ 
+-const ModemCdma = new Lang.Class({
++var ModemCdma = new Lang.Class({
+     Name: 'ModemCdma',
+ 
+     _init: function(path) {
+@@ -244,7 +244,7 @@ const BroadbandModemCdmaInterface = '<no
+ </node>';
+ const BroadbandModemCdmaProxy = Gio.DBusProxy.makeProxyWrapper(BroadbandModemCdmaInterface);
+ 
+-const BroadbandModem = new Lang.Class({
++var BroadbandModem = new Lang.Class({
+     Name: 'BroadbandModem',
+ 
+     _init: function(path, capabilities) {
+--- a/js/misc/objectManager.js
++++ b/js/misc/objectManager.js
+@@ -26,7 +26,7 @@ const ObjectManagerIface = '<node> \
+ 
+ const ObjectManagerInfo = Gio.DBusInterfaceInfo.new_for_xml(ObjectManagerIface);
+ 
+-const ObjectManager = new Lang.Class({
++var ObjectManager = new Lang.Class({
+     Name: 'ObjectManager',
+     _init: function(params) {
+         params = Params.parse(params, { connection: null,
+--- a/js/misc/smartcardManager.js
++++ b/js/misc/smartcardManager.js
+@@ -25,7 +25,7 @@ function getSmartcardManager() {
+     return _smartcardManager;
+ }
+ 
+-const SmartcardManager = new Lang.Class({
++var SmartcardManager = new Lang.Class({
+     Name: 'SmartcardManager',
+     _init: function() {
+         this._objectManager = new ObjectManager.ObjectManager({ connection: Gio.DBus.session,
+--- a/js/misc/util.js
++++ b/js/misc/util.js
+@@ -351,7 +351,7 @@ function insertSorted(array, val, cmp) {
+     return pos;
+ }
+ 
+-const CloseButton = new Lang.Class({
++var CloseButton = new Lang.Class({
+     Name: 'CloseButton',
+     Extends: St.Button,
+ 
+@@ -440,7 +440,7 @@ function ensureActorVisibleInScrollView(
+                        transition: 'easeOutQuad' });
+ }
+ 
+-const AppSettingsMonitor = new Lang.Class({
++var AppSettingsMonitor = new Lang.Class({
+     Name: 'AppSettingsMonitor',
+ 
+     _init: function(appId, schemaId) {
+--- a/js/misc/weather.js
++++ b/js/misc/weather.js
+@@ -13,7 +13,7 @@ const Util = imports.misc.util;
+ // Minimum time between updates to show loading indication
+ const UPDATE_THRESHOLD = 10 * GLib.TIME_SPAN_MINUTE;
+ 
+-const WeatherClient = new Lang.Class({
++var WeatherClient = new Lang.Class({
+     Name: 'WeatherClient',
+ 
+     _init: function() {
+--- a/js/portalHelper/main.js
++++ b/js/portalHelper/main.js
+@@ -50,7 +50,7 @@ const HelperDBusInterface = '<node> \
+ </interface> \
+ </node>';
+ 
+-const PortalHeaderBar = new Lang.Class({
++var PortalHeaderBar = new Lang.Class({
+     Name: 'PortalHeaderBar',
+     Extends: Gtk.HeaderBar,
+ 
+@@ -115,7 +115,7 @@ const PortalHeaderBar = new Lang.Class({
+     },
+ });
+ 
+-const PortalWindow = new Lang.Class({
++var PortalWindow = new Lang.Class({
+     Name: 'PortalWindow',
+     Extends: Gtk.ApplicationWindow,
+ 
+@@ -282,7 +282,7 @@ const PortalWindow = new Lang.Class({
+     },
+ });
+ 
+-const WebPortalHelper = new Lang.Class({
++var WebPortalHelper = new Lang.Class({
+     Name: 'WebPortalHelper',
+     Extends: Gtk.Application,
+ 
+--- a/js/ui/accessDialog.js
++++ b/js/ui/accessDialog.js
+@@ -37,7 +37,7 @@ const DialogResponse = {
+     CLOSED: 2
+ };
+ 
+-const AccessDialog = new Lang.Class({
++var AccessDialog = new Lang.Class({
+     Name: 'AccessDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -159,7 +159,7 @@ const AccessDialog = new Lang.Class({
+     }
+ });
+ 
+-const AccessDialogDBus = new Lang.Class({
++var AccessDialogDBus = new Lang.Class({
+     Name: 'AccessDialogDBus',
+ 
+     _init: function() {
+--- a/js/ui/altTab.js
++++ b/js/ui/altTab.js
+@@ -58,7 +58,7 @@ function getWindows(workspace) {
+     }).filter((w, i, a) => !w.skip_taskbar && a.indexOf(w) == i);
+ }
+ 
+-const AppSwitcherPopup = new Lang.Class({
++var AppSwitcherPopup = new Lang.Class({
+     Name: 'AppSwitcherPopup',
+     Extends: SwitcherPopup.SwitcherPopup,
+ 
+@@ -366,7 +366,7 @@ const AppSwitcherPopup = new Lang.Class(
+     }
+ });
+ 
+-const CyclerHighlight = new Lang.Class({
++var CyclerHighlight = new Lang.Class({
+     Name: 'CyclerHighlight',
+ 
+     _init: function() {
+@@ -427,7 +427,7 @@ const CyclerHighlight = new Lang.Class({
+     }
+ });
+ 
+-const CyclerPopup = new Lang.Class({
++var CyclerPopup = new Lang.Class({
+     Name: 'CyclerPopup',
+     Extends: SwitcherPopup.SwitcherPopup,
+     Abstract: true,
+@@ -488,7 +488,7 @@ const CyclerPopup = new Lang.Class({
+ });
+ 
+ 
+-const GroupCyclerPopup = new Lang.Class({
++var GroupCyclerPopup = new Lang.Class({
+     Name: 'GroupCyclerPopup',
+     Extends: CyclerPopup,
+ 
+@@ -509,7 +509,7 @@ const GroupCyclerPopup = new Lang.Class(
+     }
+ });
+ 
+-const WindowSwitcherPopup = new Lang.Class({
++var WindowSwitcherPopup = new Lang.Class({
+     Name: 'WindowSwitcherPopup',
+     Extends: SwitcherPopup.SwitcherPopup,
+ 
+@@ -556,7 +556,7 @@ const WindowSwitcherPopup = new Lang.Cla
+     }
+ });
+ 
+-const WindowCyclerPopup = new Lang.Class({
++var WindowCyclerPopup = new Lang.Class({
+     Name: 'WindowCyclerPopup',
+     Extends: CyclerPopup,
+ 
+@@ -582,7 +582,7 @@ const WindowCyclerPopup = new Lang.Class
+     }
+ });
+ 
+-const AppIcon = new Lang.Class({
++var AppIcon = new Lang.Class({
+     Name: 'AppIcon',
+ 
+     _init: function(app) {
+@@ -603,7 +603,7 @@ const AppIcon = new Lang.Class({
+     }
+ });
+ 
+-const AppSwitcher = new Lang.Class({
++var AppSwitcher = new Lang.Class({
+     Name: 'AppSwitcher',
+     Extends: SwitcherPopup.SwitcherList,
+ 
+@@ -777,7 +777,7 @@ const AppSwitcher = new Lang.Class({
+     }
+ });
+ 
+-const ThumbnailList = new Lang.Class({
++var ThumbnailList = new Lang.Class({
+     Name: 'ThumbnailList',
+     Extends: SwitcherPopup.SwitcherList,
+ 
+@@ -845,7 +845,7 @@ const ThumbnailList = new Lang.Class({
+     }
+ });
+ 
+-const WindowIcon = new Lang.Class({
++var WindowIcon = new Lang.Class({
+     Name: 'WindowIcon',
+ 
+     _init: function(window, mode) {
+@@ -902,7 +902,7 @@ const WindowIcon = new Lang.Class({
+     }
+ });
+ 
+-const WindowList = new Lang.Class({
++var WindowList = new Lang.Class({
+     Name: 'WindowList',
+     Extends: SwitcherPopup.SwitcherList,
+ 
+--- a/js/ui/animation.js
++++ b/js/ui/animation.js
+@@ -9,7 +9,7 @@ const Atk = imports.gi.Atk;
+ 
+ const ANIMATED_ICON_UPDATE_TIMEOUT = 16;
+ 
+-const Animation = new Lang.Class({
++var Animation = new Lang.Class({
+     Name: 'Animation',
+ 
+     _init: function(file, width, height, speed) {
+@@ -78,7 +78,7 @@ const Animation = new Lang.Class({
+     }
+ });
+ 
+-const AnimatedIcon = new Lang.Class({
++var AnimatedIcon = new Lang.Class({
+     Name: 'AnimatedIcon',
+     Extends: Animation,
+ 
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -108,7 +108,7 @@ function clamp(value, min, max) {
+     return Math.max(min, Math.min(max, value));
+ }
+ 
+-const BaseAppView = new Lang.Class({
++var BaseAppView = new Lang.Class({
+     Name: 'BaseAppView',
+     Abstract: true,
+ 
+@@ -256,7 +256,7 @@ const BaseAppView = new Lang.Class({
+ });
+ Signals.addSignalMethods(BaseAppView.prototype);
+ 
+-const PageIndicatorsActor = new Lang.Class({
++var PageIndicatorsActor = new Lang.Class({
+     Name:'PageIndicatorsActor',
+     Extends: St.BoxLayout,
+ 
+@@ -280,7 +280,7 @@ const PageIndicatorsActor = new Lang.Cla
+     }
+ });
+ 
+-const PageIndicators = new Lang.Class({
++var PageIndicators = new Lang.Class({
+     Name:'PageIndicators',
+ 
+     _init: function() {
+@@ -373,7 +373,7 @@ const PageIndicators = new Lang.Class({
+ });
+ Signals.addSignalMethods(PageIndicators.prototype);
+ 
+-const AllView = new Lang.Class({
++var AllView = new Lang.Class({
+     Name: 'AllView',
+     Extends: BaseAppView,
+ 
+@@ -792,7 +792,7 @@ const AllView = new Lang.Class({
+ });
+ Signals.addSignalMethods(AllView.prototype);
+ 
+-const FrequentView = new Lang.Class({
++var FrequentView = new Lang.Class({
+     Name: 'FrequentView',
+     Extends: BaseAppView,
+ 
+@@ -871,7 +871,7 @@ const Views = {
+     ALL: 1
+ };
+ 
+-const ControlsBoxLayout = Lang.Class({
++var ControlsBoxLayout = Lang.Class({
+     Name: 'ControlsBoxLayout',
+     Extends: Clutter.BoxLayout,
+ 
+@@ -896,7 +896,7 @@ const ControlsBoxLayout = Lang.Class({
+     }
+ });
+ 
+-const ViewStackLayout = new Lang.Class({
++var ViewStackLayout = new Lang.Class({
+     Name: 'ViewStackLayout',
+     Extends: Clutter.BinLayout,
+     Signals: { 'allocated-size-changed': { param_types: [GObject.TYPE_INT,
+@@ -912,7 +912,7 @@ const ViewStackLayout = new Lang.Class({
+     }
+ });
+ 
+-const AppDisplay = new Lang.Class({
++var AppDisplay = new Lang.Class({
+     Name: 'AppDisplay',
+ 
+     _init: function() {
+@@ -1077,7 +1077,7 @@ const AppDisplay = new Lang.Class({
+     }
+ })
+ 
+-const AppSearchProvider = new Lang.Class({
++var AppSearchProvider = new Lang.Class({
+     Name: 'AppSearchProvider',
+ 
+     _init: function() {
+@@ -1132,7 +1132,7 @@ const AppSearchProvider = new Lang.Class
+     }
+ });
+ 
+-const FolderView = new Lang.Class({
++var FolderView = new Lang.Class({
+     Name: 'FolderView',
+     Extends: BaseAppView,
+ 
+@@ -1248,7 +1248,7 @@ const FolderView = new Lang.Class({
+     }
+ });
+ 
+-const FolderIcon = new Lang.Class({
++var FolderIcon = new Lang.Class({
+     Name: 'FolderIcon',
+ 
+     _init: function(id, path, parentView) {
+@@ -1426,7 +1426,7 @@ const FolderIcon = new Lang.Class({
+ });
+ Signals.addSignalMethods(FolderIcon.prototype);
+ 
+-const AppFolderPopup = new Lang.Class({
++var AppFolderPopup = new Lang.Class({
+     Name: 'AppFolderPopup',
+ 
+     _init: function(source, side) {
+@@ -1587,7 +1587,7 @@ const AppFolderPopup = new Lang.Class({
+ });
+ Signals.addSignalMethods(AppFolderPopup.prototype);
+ 
+-const AppIcon = new Lang.Class({
++var AppIcon = new Lang.Class({
+     Name: 'AppIcon',
+ 
+     _init : function(app, iconParams) {
+@@ -1833,7 +1833,7 @@ const AppIcon = new Lang.Class({
+ });
+ Signals.addSignalMethods(AppIcon.prototype);
+ 
+-const AppIconMenu = new Lang.Class({
++var AppIconMenu = new Lang.Class({
+     Name: 'AppIconMenu',
+     Extends: PopupMenu.PopupMenu,
+ 
+--- a/js/ui/appFavorites.js
++++ b/js/ui/appFavorites.js
+@@ -41,7 +41,7 @@ const RENAMED_DESKTOP_IDS = {
+     'totem.desktop': 'org.gnome.Totem.desktop',
+ };
+ 
+-const AppFavorites = new Lang.Class({
++var AppFavorites = new Lang.Class({
+     Name: 'AppFavorites',
+ 
+     FAVORITE_APPS_KEY: 'favorite-apps',
+--- a/js/ui/audioDeviceSelection.js
++++ b/js/ui/audioDeviceSelection.js
+@@ -28,7 +28,7 @@ const AudioDeviceSelectionIface = '<node
+ </interface> \
+ </node>';
+ 
+-const AudioDeviceSelectionDialog = new Lang.Class({
++var AudioDeviceSelectionDialog = new Lang.Class({
+     Name: 'AudioDeviceSelectionDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -146,7 +146,7 @@ const AudioDeviceSelectionDialog = new L
+     }
+ });
+ 
+-const AudioDeviceSelectionDBus = new Lang.Class({
++var AudioDeviceSelectionDBus = new Lang.Class({
+     Name: 'AudioDeviceSelectionDBus',
+ 
+     _init: function() {
+--- a/js/ui/background.js
++++ b/js/ui/background.js
+@@ -138,7 +138,7 @@ function _fileEqual0(file1, file2) {
+     return file1.equal(file2);
+ }
+ 
+-const BackgroundCache = new Lang.Class({
++var BackgroundCache = new Lang.Class({
+     Name: 'BackgroundCache',
+ 
+     _init: function() {
+@@ -226,7 +226,7 @@ function getBackgroundCache() {
+     return _backgroundCache;
+ }
+ 
+-const Background = new Lang.Class({
++var Background = new Lang.Class({
+     Name: 'Background',
+ 
+     _init: function(params) {
+@@ -488,7 +488,7 @@ Signals.addSignalMethods(Background.prot
+ 
+ let _systemBackground;
+ 
+-const SystemBackground = new Lang.Class({
++var SystemBackground = new Lang.Class({
+     Name: 'SystemBackground',
+ 
+     _init: function() {
+@@ -525,7 +525,7 @@ const SystemBackground = new Lang.Class(
+ });
+ Signals.addSignalMethods(SystemBackground.prototype);
+ 
+-const BackgroundSource = new Lang.Class({
++var BackgroundSource = new Lang.Class({
+     Name: 'BackgroundSource',
+ 
+     _init: function(layoutManager, settingsSchema) {
+@@ -613,7 +613,7 @@ const BackgroundSource = new Lang.Class(
+     }
+ });
+ 
+-const Animation = new Lang.Class({
++var Animation = new Lang.Class({
+     Name: 'Animation',
+ 
+     _init: function(params) {
+@@ -661,7 +661,7 @@ const Animation = new Lang.Class({
+ });
+ Signals.addSignalMethods(Animation.prototype);
+ 
+-const BackgroundManager = new Lang.Class({
++var BackgroundManager = new Lang.Class({
+     Name: 'BackgroundManager',
+ 
+     _init: function(params) {
+--- a/js/ui/backgroundMenu.js
++++ b/js/ui/backgroundMenu.js
+@@ -9,7 +9,7 @@ const BoxPointer = imports.ui.boxpointer
+ const Main = imports.ui.main;
+ const PopupMenu = imports.ui.popupMenu;
+ 
+-const BackgroundMenu = new Lang.Class({
++var BackgroundMenu = new Lang.Class({
+     Name: 'BackgroundMenu',
+     Extends: PopupMenu.PopupMenu,
+ 
+--- a/js/ui/boxpointer.js
++++ b/js/ui/boxpointer.js
+@@ -32,7 +32,7 @@ const POPUP_ANIMATION_TIME = 0.15;
+  * totally inside the monitor if possible.
+  *
+  */
+-const BoxPointer = new Lang.Class({
++var BoxPointer = new Lang.Class({
+     Name: 'BoxPointer',
+ 
+     _init: function(arrowSide, binProperties) {
+--- a/js/ui/calendar.js
++++ b/js/ui/calendar.js
+@@ -92,7 +92,7 @@ function _getCalendarDayAbbreviation(day
+ 
+ // Abstraction for an appointment/event in a calendar
+ 
+-const CalendarEvent = new Lang.Class({
++var CalendarEvent = new Lang.Class({
+     Name: 'CalendarEvent',
+ 
+     _init: function(id, date, end, summary, allDay) {
+@@ -108,7 +108,7 @@ const CalendarEvent = new Lang.Class({
+ //
+ 
+ // First, an implementation with no events
+-const EmptyEventSource = new Lang.Class({
++var EmptyEventSource = new Lang.Class({
+     Name: 'EmptyEventSource',
+ 
+     _init: function() {
+@@ -179,7 +179,7 @@ function _dateIntervalsOverlap(a0, a1, b
+ }
+ 
+ // an implementation that reads data from a session bus service
+-const DBusEventSource = new Lang.Class({
++var DBusEventSource = new Lang.Class({
+     Name: 'DBusEventSource',
+ 
+     _init: function() {
+@@ -366,7 +366,7 @@ const DBusEventSource = new Lang.Class({
+ });
+ Signals.addSignalMethods(DBusEventSource.prototype);
+ 
+-const Calendar = new Lang.Class({
++var Calendar = new Lang.Class({
+     Name: 'Calendar',
+ 
+     _init: function() {
+@@ -697,7 +697,7 @@ const Calendar = new Lang.Class({
+ });
+ Signals.addSignalMethods(Calendar.prototype);
+ 
+-const EventMessage = new Lang.Class({
++var EventMessage = new Lang.Class({
+     Name: 'EventMessage',
+     Extends: MessageList.Message,
+ 
+@@ -754,7 +754,7 @@ const EventMessage = new Lang.Class({
+     }
+ });
+ 
+-const NotificationMessage = new Lang.Class({
++var NotificationMessage = new Lang.Class({
+     Name: 'NotificationMessage',
+     Extends: MessageList.Message,
+ 
+@@ -810,7 +810,7 @@ const NotificationMessage = new Lang.Cla
+     }
+ });
+ 
+-const EventsSection = new Lang.Class({
++var EventsSection = new Lang.Class({
+     Name: 'EventsSection',
+     Extends: MessageList.MessageListSection,
+ 
+@@ -941,7 +941,7 @@ const EventsSection = new Lang.Class({
+     }
+ });
+ 
+-const NotificationSection = new Lang.Class({
++var NotificationSection = new Lang.Class({
+     Name: 'NotificationSection',
+     Extends: MessageList.MessageListSection,
+ 
+@@ -1044,7 +1044,7 @@ const NotificationSection = new Lang.Cla
+     }
+ });
+ 
+-const Placeholder = new Lang.Class({
++var Placeholder = new Lang.Class({
+     Name: 'Placeholder',
+ 
+     _init: function() {
+@@ -1091,7 +1091,7 @@ const Placeholder = new Lang.Class({
+     }
+ });
+ 
+-const CalendarMessageList = new Lang.Class({
++var CalendarMessageList = new Lang.Class({
+     Name: 'CalendarMessageList',
+ 
+     _init: function() {
+--- a/js/ui/checkBox.js
++++ b/js/ui/checkBox.js
+@@ -4,7 +4,7 @@ const St = imports.gi.St;
+ 
+ const Lang = imports.lang;
+ 
+-const CheckBox = new Lang.Class({
++var CheckBox = new Lang.Class({
+     Name: 'CheckBox',
+ 
+     _init: function(label) {
+--- a/js/ui/components/__init__.js
++++ b/js/ui/components/__init__.js
+@@ -2,7 +2,7 @@
+ const Lang = imports.lang;
+ const Main = imports.ui.main;
+ 
+-const ComponentManager = new Lang.Class({
++var ComponentManager = new Lang.Class({
+     Name: 'ComponentManager',
+ 
+     _init: function() {
+--- a/js/ui/components/automountManager.js
++++ b/js/ui/components/automountManager.js
+@@ -19,7 +19,7 @@ const SETTING_ENABLE_AUTOMOUNT = 'automo
+ 
+ const AUTORUN_EXPIRE_TIMEOUT_SECS = 10;
+ 
+-const AutomountManager = new Lang.Class({
++var AutomountManager = new Lang.Class({
+     Name: 'AutomountManager',
+ 
+     _init: function() {
+--- a/js/ui/components/autorunManager.js
++++ b/js/ui/components/autorunManager.js
+@@ -92,7 +92,7 @@ function HotplugSniffer() {
+                                    '/org/gnome/Shell/HotplugSniffer');
+ }
+ 
+-const ContentTypeDiscoverer = new Lang.Class({
++var ContentTypeDiscoverer = new Lang.Class({
+     Name: 'ContentTypeDiscoverer',
+ 
+     _init: function(callback) {
+@@ -161,7 +161,7 @@ const ContentTypeDiscoverer = new Lang.C
+     }
+ });
+ 
+-const AutorunManager = new Lang.Class({
++var AutorunManager = new Lang.Class({
+     Name: 'AutorunManager',
+ 
+     _init: function() {
+@@ -198,7 +198,7 @@ const AutorunManager = new Lang.Class({
+     }
+ });
+ 
+-const AutorunDispatcher = new Lang.Class({
++var AutorunDispatcher = new Lang.Class({
+     Name: 'AutorunDispatcher',
+ 
+     _init: function(manager) {
+@@ -294,7 +294,7 @@ const AutorunDispatcher = new Lang.Class
+     }
+ });
+ 
+-const AutorunSource = new Lang.Class({
++var AutorunSource = new Lang.Class({
+     Name: 'AutorunSource',
+     Extends: MessageTray.Source,
+ 
+@@ -321,7 +321,7 @@ const AutorunSource = new Lang.Class({
+     }
+ });
+ 
+-const AutorunNotification = new Lang.Class({
++var AutorunNotification = new Lang.Class({
+     Name: 'AutorunNotification',
+     Extends: MessageTray.Notification,
+ 
+--- a/js/ui/components/keyring.js
++++ b/js/ui/components/keyring.js
+@@ -19,7 +19,7 @@ const WORK_SPINNER_ICON_SIZE = 16;
+ const WORK_SPINNER_ANIMATION_DELAY = 1.0;
+ const WORK_SPINNER_ANIMATION_TIME = 0.3;
+ 
+-const KeyringDialog = new Lang.Class({
++var KeyringDialog = new Lang.Class({
+     Name: 'KeyringDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -271,7 +271,7 @@ const KeyringDialog = new Lang.Class({
+     },
+ });
+ 
+-const KeyringDummyDialog = new Lang.Class({
++var KeyringDummyDialog = new Lang.Class({
+     Name: 'KeyringDummyDialog',
+ 
+     _init: function() {
+@@ -287,7 +287,7 @@ const KeyringDummyDialog = new Lang.Clas
+     }
+ });
+ 
+-const KeyringPrompter = new Lang.Class({
++var KeyringPrompter = new Lang.Class({
+     Name: 'KeyringPrompter',
+ 
+     _init: function() {
+--- a/js/ui/components/networkAgent.js
++++ b/js/ui/components/networkAgent.js
+@@ -20,7 +20,7 @@ const ShellEntry = imports.ui.shellEntry
+ 
+ const VPN_UI_GROUP = 'VPN Plugin UI';
+ 
+-const NetworkSecretDialog = new Lang.Class({
++var NetworkSecretDialog = new Lang.Class({
+     Name: 'NetworkSecretDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -357,7 +357,7 @@ const NetworkSecretDialog = new Lang.Cla
+     }
+ });
+ 
+-const VPNRequestHandler = new Lang.Class({
++var VPNRequestHandler = new Lang.Class({
+     Name: 'VPNRequestHandler',
+ 
+     _init: function(agent, requestId, authHelper, serviceType, connection, hints, flags) {
+@@ -603,7 +603,7 @@ const VPNRequestHandler = new Lang.Class
+     },
+ });
+ 
+-const NetworkAgent = new Lang.Class({
++var NetworkAgent = new Lang.Class({
+     Name: 'NetworkAgent',
+ 
+     _init: function() {
+--- a/js/ui/components/polkitAgent.js
++++ b/js/ui/components/polkitAgent.js
+@@ -26,7 +26,7 @@ const WORK_SPINNER_ICON_SIZE = 16;
+ const WORK_SPINNER_ANIMATION_DELAY = 1.0;
+ const WORK_SPINNER_ANIMATION_TIME = 0.3;
+ 
+-const AuthenticationDialog = new Lang.Class({
++var AuthenticationDialog = new Lang.Class({
+     Name: 'AuthenticationDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -370,7 +370,7 @@ const AuthenticationDialog = new Lang.Cl
+ });
+ Signals.addSignalMethods(AuthenticationDialog.prototype);
+ 
+-const AuthenticationAgent = new Lang.Class({
++var AuthenticationAgent = new Lang.Class({
+     Name: 'AuthenticationAgent',
+ 
+     _init: function() {
+--- a/js/ui/components/telepathyClient.js
++++ b/js/ui/components/telepathyClient.js
+@@ -79,7 +79,7 @@ function makeMessageFromTplEvent(event)
+     };
+ }
+ 
+-const TelepathyComponent = new Lang.Class({
++var TelepathyComponent = new Lang.Class({
+     Name: 'TelepathyComponent',
+ 
+     _init: function() {
+@@ -113,7 +113,7 @@ const TelepathyComponent = new Lang.Clas
+     }
+ });
+ 
+-const TelepathyClient = HAVE_TP ? new Lang.Class({
++var TelepathyClient = HAVE_TP ? new Lang.Class({
+     Name: 'TelepathyClient',
+     Extends: Tp.BaseClient,
+ 
+@@ -280,7 +280,7 @@ const TelepathyClient = HAVE_TP ? new La
+     },
+ }) : null;
+ 
+-const ChatSource = new Lang.Class({
++var ChatSource = new Lang.Class({
+     Name: 'ChatSource',
+     Extends: MessageTray.Source,
+ 
+@@ -647,7 +647,7 @@ const ChatSource = new Lang.Class({
+     }
+ });
+ 
+-const ChatNotification = new Lang.Class({
++var ChatNotification = new Lang.Class({
+     Name: 'ChatNotification',
+     Extends: MessageTray.Notification,
+ 
+@@ -806,7 +806,7 @@ const ChatNotification = new Lang.Class(
+     }
+ });
+ 
+-const ChatLineBox = new Lang.Class({
++var ChatLineBox = new Lang.Class({
+     Name: 'ChatLineBox',
+     Extends: St.BoxLayout,
+ 
+@@ -816,7 +816,7 @@ const ChatLineBox = new Lang.Class({
+     }
+ });
+ 
+-const ChatNotificationBanner = new Lang.Class({
++var ChatNotificationBanner = new Lang.Class({
+     Name: 'ChatNotificationBanner',
+     Extends: MessageTray.NotificationBanner,
+ 
+--- a/js/ui/ctrlAltTab.js
++++ b/js/ui/ctrlAltTab.js
+@@ -21,7 +21,7 @@ const SortGroup = {
+     BOTTOM: 2
+ };
+ 
+-const CtrlAltTabManager = new Lang.Class({
++var CtrlAltTabManager = new Lang.Class({
+     Name: 'CtrlAltTabManager',
+ 
+     _init: function() {
+@@ -136,7 +136,7 @@ const CtrlAltTabManager = new Lang.Class
+     }
+ });
+ 
+-const CtrlAltTabPopup = new Lang.Class({
++var CtrlAltTabPopup = new Lang.Class({
+     Name: 'CtrlAltTabPopup',
+     Extends: SwitcherPopup.SwitcherPopup,
+ 
+@@ -167,7 +167,7 @@ const CtrlAltTabPopup = new Lang.Class({
+     },
+ });
+ 
+-const CtrlAltTabSwitcher = new Lang.Class({
++var CtrlAltTabSwitcher = new Lang.Class({
+     Name: 'CtrlAltTabSwitcher',
+     Extends: SwitcherPopup.SwitcherList,
+ 
+--- a/js/ui/dash.js
++++ b/js/ui/dash.js
+@@ -33,7 +33,7 @@ function getAppFromSource(source) {
+ 
+ // A container like StBin, but taking the child's scale into account
+ // when requesting a size
+-const DashItemContainer = new Lang.Class({
++var DashItemContainer = new Lang.Class({
+     Name: 'DashItemContainer',
+     Extends: St.Widget,
+ 
+@@ -235,7 +235,7 @@ const DashItemContainer = new Lang.Class
+     }
+ });
+ 
+-const ShowAppsIcon = new Lang.Class({
++var ShowAppsIcon = new Lang.Class({
+     Name: 'ShowAppsIcon',
+     Extends: DashItemContainer,
+ 
+@@ -315,7 +315,7 @@ const ShowAppsIcon = new Lang.Class({
+     }
+ });
+ 
+-const DragPlaceholderItem = new Lang.Class({
++var DragPlaceholderItem = new Lang.Class({
+     Name: 'DragPlaceholderItem',
+     Extends: DashItemContainer,
+ 
+@@ -325,7 +325,7 @@ const DragPlaceholderItem = new Lang.Cla
+     }
+ });
+ 
+-const EmptyDropTargetItem = new Lang.Class({
++var EmptyDropTargetItem = new Lang.Class({
+     Name: 'EmptyDropTargetItem',
+     Extends: DashItemContainer,
+ 
+@@ -335,7 +335,7 @@ const EmptyDropTargetItem = new Lang.Cla
+     }
+ });
+ 
+-const DashActor = new Lang.Class({
++var DashActor = new Lang.Class({
+     Name: 'DashActor',
+     Extends: St.Widget,
+ 
+@@ -387,7 +387,7 @@ const DashActor = new Lang.Class({
+ 
+ const baseIconSizes = [ 16, 22, 24, 32, 48, 64 ];
+ 
+-const Dash = new Lang.Class({
++var Dash = new Lang.Class({
+     Name: 'Dash',
+ 
+     _init : function() {
+--- a/js/ui/dateMenu.js
++++ b/js/ui/dateMenu.js
+@@ -30,7 +30,7 @@ function _isToday(date) {
+            now.getDate() == date.getDate();
+ }
+ 
+-const TodayButton = new Lang.Class({
++var TodayButton = new Lang.Class({
+     Name: 'TodayButton',
+ 
+     _init: function(calendar) {
+@@ -84,7 +84,7 @@ const TodayButton = new Lang.Class({
+     }
+ });
+ 
+-const WorldClocksSection = new Lang.Class({
++var WorldClocksSection = new Lang.Class({
+     Name: 'WorldClocksSection',
+ 
+     _init: function() {
+@@ -194,7 +194,7 @@ const WorldClocksSection = new Lang.Clas
+     }
+ });
+ 
+-const WeatherSection = new Lang.Class({
++var WeatherSection = new Lang.Class({
+     Name: 'WeatherSection',
+ 
+     _init: function() {
+@@ -324,7 +324,7 @@ const WeatherSection = new Lang.Class({
+     }
+ });
+ 
+-const MessagesIndicator = new Lang.Class({
++var MessagesIndicator = new Lang.Class({
+     Name: 'MessagesIndicator',
+ 
+     _init: function() {
+@@ -364,7 +364,7 @@ const MessagesIndicator = new Lang.Class
+     }
+ });
+ 
+-const IndicatorPad = new Lang.Class({
++var IndicatorPad = new Lang.Class({
+     Name: 'IndicatorPad',
+     Extends: St.Widget,
+ 
+@@ -387,7 +387,7 @@ const IndicatorPad = new Lang.Class({
+     }
+ });
+ 
+-const FreezableBinLayout = new Lang.Class({
++var FreezableBinLayout = new Lang.Class({
+     Name: 'FreezableBinLayout',
+     Extends: Clutter.BinLayout,
+ 
+@@ -429,7 +429,7 @@ const FreezableBinLayout = new Lang.Clas
+     }
+ });
+ 
+-const CalendarColumnLayout = new Lang.Class({
++var CalendarColumnLayout = new Lang.Class({
+     Name: 'CalendarColumnLayout',
+     Extends: Clutter.BoxLayout,
+ 
+@@ -445,7 +445,7 @@ const CalendarColumnLayout = new Lang.Cl
+     }
+ });
+ 
+-const DateMenuButton = new Lang.Class({
++var DateMenuButton = new Lang.Class({
+     Name: 'DateMenuButton',
+     Extends: PanelMenu.Button,
+ 
+--- a/js/ui/dnd.js
++++ b/js/ui/dnd.js
+@@ -69,7 +69,7 @@ function removeDragMonitor(monitor) {
+         }
+ }
+ 
+-const _Draggable = new Lang.Class({
++var _Draggable = new Lang.Class({
+     Name: 'Draggable',
+ 
+     _init : function(actor, params) {
+--- a/js/ui/edgeDragAction.js
++++ b/js/ui/edgeDragAction.js
+@@ -11,7 +11,7 @@ const Main = imports.ui.main;
+ const EDGE_THRESHOLD = 20;
+ const DRAG_DISTANCE = 80;
+ 
+-const EdgeDragAction = new Lang.Class({
++var EdgeDragAction = new Lang.Class({
+     Name: 'EdgeDragAction',
+     Extends: Clutter.GestureAction,
+     Signals: { 'activated': {} },
+--- a/js/ui/endSessionDialog.js
++++ b/js/ui/endSessionDialog.js
+@@ -275,7 +275,7 @@ function init() {
+     _endSessionDialog = new EndSessionDialog();
+ }
+ 
+-const EndSessionDialog = new Lang.Class({
++var EndSessionDialog = new Lang.Class({
+     Name: 'EndSessionDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+--- a/js/ui/extensionDownloader.js
++++ b/js/ui/extensionDownloader.js
+@@ -181,7 +181,7 @@ function checkForUpdates() {
+     });
+ }
+ 
+-const InstallExtensionDialog = new Lang.Class({
++var InstallExtensionDialog = new Lang.Class({
+     Name: 'InstallExtensionDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+--- a/js/ui/focusCaretTracker.js
++++ b/js/ui/focusCaretTracker.js
+@@ -28,7 +28,7 @@ const Signals = imports.signals;
+ const CARETMOVED        = 'object:text-caret-moved';
+ const STATECHANGED      = 'object:state-changed';
+ 
+-const FocusCaretTracker = new Lang.Class({
++var FocusCaretTracker = new Lang.Class({
+     Name: 'FocusCaretTracker',
+ 
+     _init: function() {
+--- a/js/ui/grabHelper.js
++++ b/js/ui/grabHelper.js
+@@ -46,7 +46,7 @@ function _popGrabHelper(grabHelper) {
+ // your code just needs to deal with it; you shouldn't adjust behavior directly
+ // after you call ungrab(), but instead pass an 'onUngrab' callback when you
+ // call grab().
+-const GrabHelper = new Lang.Class({
++var GrabHelper = new Lang.Class({
+     Name: 'GrabHelper',
+ 
+     _init: function(owner, params) {
+--- a/js/ui/ibusCandidatePopup.js
++++ b/js/ui/ibusCandidatePopup.js
+@@ -14,7 +14,7 @@ const MAX_CANDIDATES_PER_PAGE = 16;
+ const DEFAULT_INDEX_LABELS = [ '1', '2', '3', '4', '5', '6', '7', '8',
+                                '9', '0', 'a', 'b', 'c', 'd', 'e', 'f' ];
+ 
+-const CandidateArea = new Lang.Class({
++var CandidateArea = new Lang.Class({
+     Name: 'CandidateArea',
+ 
+     _init: function() {
+@@ -128,7 +128,7 @@ const CandidateArea = new Lang.Class({
+ });
+ Signals.addSignalMethods(CandidateArea.prototype);
+ 
+-const CandidatePopup = new Lang.Class({
++var CandidatePopup = new Lang.Class({
+     Name: 'CandidatePopup',
+ 
+     _init: function() {
+--- a/js/ui/iconGrid.js
++++ b/js/ui/iconGrid.js
+@@ -34,7 +34,7 @@ const AnimationDirection = {
+ const APPICON_ANIMATION_OUT_SCALE = 3;
+ const APPICON_ANIMATION_OUT_TIME = 0.25;
+ 
+-const BaseIcon = new Lang.Class({
++var BaseIcon = new Lang.Class({
+     Name: 'BaseIcon',
+ 
+     _init : function(label, params) {
+@@ -240,7 +240,7 @@ function zoomOutActor(actor) {
+                     });
+ }
+ 
+-const IconGrid = new Lang.Class({
++var IconGrid = new Lang.Class({
+     Name: 'IconGrid',
+ 
+     _init: function(params) {
+@@ -790,7 +790,7 @@ const IconGrid = new Lang.Class({
+ });
+ Signals.addSignalMethods(IconGrid.prototype);
+ 
+-const PaginatedIconGrid = new Lang.Class({
++var PaginatedIconGrid = new Lang.Class({
+     Name: 'PaginatedIconGrid',
+     Extends: IconGrid,
+ 
+--- a/js/ui/layout.js
++++ b/js/ui/layout.js
+@@ -36,7 +36,7 @@ function isPopupMetaWindow(actor) {
+     }
+ }
+ 
+-const MonitorConstraint = new Lang.Class({
++var MonitorConstraint = new Lang.Class({
+     Name: 'MonitorConstraint',
+     Extends: Clutter.Constraint,
+     Properties: {'primary': GObject.ParamSpec.boolean('primary', 
+@@ -147,7 +147,7 @@ const MonitorConstraint = new Lang.Class
+     }
+ });
+ 
+-const Monitor = new Lang.Class({
++var Monitor = new Lang.Class({
+     Name: 'Monitor',
+ 
+     _init: function(index, geometry) {
+@@ -169,7 +169,7 @@ const defaultParams = {
+     affectsInputRegion: true
+ };
+ 
+-const LayoutManager = new Lang.Class({
++var LayoutManager = new Lang.Class({
+     Name: 'LayoutManager',
+ 
+     _init: function () {
+@@ -1047,7 +1047,7 @@ Signals.addSignalMethods(LayoutManager.p
+ //
+ // This class manages a "hot corner" that can toggle switching to
+ // overview.
+-const HotCorner = new Lang.Class({
++var HotCorner = new Lang.Class({
+     Name: 'HotCorner',
+ 
+     _init : function(layoutManager, monitor, x, y) {
+@@ -1241,7 +1241,7 @@ const HotCorner = new Lang.Class({
+     }
+ });
+ 
+-const PressureBarrier = new Lang.Class({
++var PressureBarrier = new Lang.Class({
+     Name: 'PressureBarrier',
+ 
+     _init: function(threshold, timeout, actionMode) {
+--- a/js/ui/legacyTray.js
++++ b/js/ui/legacyTray.js
+@@ -36,7 +36,7 @@ const TEMP_REVEAL_TIME = 2;
+ const BARRIER_THRESHOLD = 70;
+ const BARRIER_TIMEOUT = 1000;
+ 
+-const LegacyTray = new Lang.Class({
++var LegacyTray = new Lang.Class({
+     Name: 'LegacyTray',
+ 
+     _init: function() {
+--- a/js/ui/lightbox.js
++++ b/js/ui/lightbox.js
+@@ -27,7 +27,7 @@ t = clamp(t, 0.0, 1.0);\n\
+ float pixel_brightness = mix(1.0, 1.0 - vignette_sharpness, t);\n\
+ cogl_color_out.a = cogl_color_out.a * (1 - pixel_brightness * brightness);';
+ 
+-const RadialShaderQuad = new Lang.Class({
++var RadialShaderQuad = new Lang.Class({
+     Name: 'RadialShaderQuad',
+     Extends: Shell.GLSLQuad,
+ 
+@@ -91,7 +91,7 @@ const RadialShaderQuad = new Lang.Class(
+  * @container and will track any changes in its size. You can override
+  * this by passing an explicit width and height in @params.
+  */
+-const Lightbox = new Lang.Class({
++var Lightbox = new Lang.Class({
+     Name: 'Lightbox',
+ 
+     _init : function(container, params) {
+--- a/js/ui/lookingGlass.js
++++ b/js/ui/lookingGlass.js
+@@ -59,7 +59,7 @@ function _getAutoCompleteGlobalKeywords(
+     return keywords.concat(windowProperties).concat(headerProperties);
+ }
+ 
+-const AutoComplete = new Lang.Class({
++var AutoComplete = new Lang.Class({
+     Name: 'AutoComplete',
+ 
+     _init: function(entry) {
+@@ -125,7 +125,7 @@ const AutoComplete = new Lang.Class({
+ Signals.addSignalMethods(AutoComplete.prototype);
+ 
+ 
+-const Notebook = new Lang.Class({
++var Notebook = new Lang.Class({
+     Name: 'Notebook',
+ 
+     _init: function() {
+@@ -263,7 +263,7 @@ function objectToString(o) {
+     }
+ }
+ 
+-const ObjLink = new Lang.Class({
++var ObjLink = new Lang.Class({
+     Name: 'ObjLink',
+ 
+     _init: function(lookingGlass, o, title) {
+@@ -290,7 +290,7 @@ const ObjLink = new Lang.Class({
+     }
+ });
+ 
+-const Result = new Lang.Class({
++var Result = new Lang.Class({
+     Name: 'Result',
+ 
+     _init: function(lookingGlass, command, o, index) {
+@@ -313,7 +313,7 @@ const Result = new Lang.Class({
+     }
+ });
+ 
+-const WindowList = new Lang.Class({
++var WindowList = new Lang.Class({
+     Name: 'WindowList',
+ 
+     _init: function(lookingGlass) {
+@@ -361,7 +361,7 @@ const WindowList = new Lang.Class({
+ });
+ Signals.addSignalMethods(WindowList.prototype);
+ 
+-const ObjInspector = new Lang.Class({
++var ObjInspector = new Lang.Class({
+     Name: 'ObjInspector',
+ 
+     _init: function(lookingGlass) {
+@@ -471,7 +471,7 @@ const ObjInspector = new Lang.Class({
+     }
+ });
+ 
+-const RedBorderEffect = new Lang.Class({
++var RedBorderEffect = new Lang.Class({
+     Name: 'RedBorderEffect',
+     Extends: Clutter.Effect,
+ 
+@@ -497,7 +497,7 @@ const RedBorderEffect = new Lang.Class({
+     },
+ });
+ 
+-const Inspector = new Lang.Class({
++var Inspector = new Lang.Class({
+     Name: 'Inspector',
+ 
+     _init: function(lookingGlass) {
+@@ -631,7 +631,7 @@ const Inspector = new Lang.Class({
+ 
+ Signals.addSignalMethods(Inspector.prototype);
+ 
+-const Extensions = new Lang.Class({
++var Extensions = new Lang.Class({
+     Name: 'Extensions',
+ 
+     _init: function(lookingGlass) {
+@@ -774,7 +774,7 @@ const Extensions = new Lang.Class({
+     }
+ });
+ 
+-const LookingGlass = new Lang.Class({
++var LookingGlass = new Lang.Class({
+     Name: 'LookingGlass',
+ 
+     _init : function() {
+--- a/js/ui/magnifier.js
++++ b/js/ui/magnifier.js
+@@ -54,7 +54,7 @@ const CROSS_HAIRS_CLIP_KEY      = 'cross
+ 
+ let magDBusService = null;
+ 
+-const Magnifier = new Lang.Class({
++var Magnifier = new Lang.Class({
+     Name: 'Magnifier',
+ 
+     _init: function() {
+@@ -672,7 +672,7 @@ const Magnifier = new Lang.Class({
+ });
+ Signals.addSignalMethods(Magnifier.prototype);
+ 
+-const ZoomRegion = new Lang.Class({
++var ZoomRegion = new Lang.Class({
+     Name: 'ZoomRegion',
+ 
+     _init: function(magnifier, mouseSourceActor) {
+@@ -1536,7 +1536,7 @@ const ZoomRegion = new Lang.Class({
+     }
+ });
+ 
+-const Crosshairs = new Lang.Class({
++var Crosshairs = new Lang.Class({
+     Name: 'Crosshairs',
+ 
+     _init: function() {
+@@ -1781,7 +1781,7 @@ const Crosshairs = new Lang.Class({
+     }
+ });
+ 
+-const MagShaderEffects = new Lang.Class({
++var MagShaderEffects = new Lang.Class({
+     Name: 'MagShaderEffects',
+ 
+     _init: function(uiGroupClone) {
+--- a/js/ui/magnifierDBus.js
++++ b/js/ui/magnifierDBus.js
+@@ -98,7 +98,7 @@ const ZoomRegionIface = '<node> \
+ // '/org/gnome/Magnifier/ZoomRegion/zoomer1', etc.
+ let _zoomRegionInstanceCount = 0;
+ 
+-const ShellMagnifier = new Lang.Class({
++var ShellMagnifier = new Lang.Class({
+     Name: 'ShellMagnifier',
+ 
+     _init: function() {
+@@ -334,7 +334,7 @@ const ShellMagnifier = new Lang.Class({
+  * @zoomerObjectPath:   String that is the path to a DBus ZoomRegion.
+  * @zoomRegion:         The actual zoom region associated with the object path.
+  */
+-const ShellMagnifierZoomRegion = new Lang.Class({
++var ShellMagnifierZoomRegion = new Lang.Class({
+     Name: 'ShellMagnifierZoomRegion',
+ 
+     _init: function(zoomerObjectPath, zoomRegion) {
+--- a/js/ui/main.js
++++ b/js/ui/main.js
+@@ -669,7 +669,7 @@ function queueDeferredWork(workId) {
+     }
+ }
+ 
+-const RestartMessage = new Lang.Class({
++var RestartMessage = new Lang.Class({
+     Name: 'RestartMessage',
+     Extends: ModalDialog.ModalDialog,
+ 
+--- a/js/ui/messageList.js
++++ b/js/ui/messageList.js
+@@ -39,7 +39,7 @@ function _fixMarkup(text, allowMarkup) {
+     return GLib.markup_escape_text(text, -1);
+ }
+ 
+-const URLHighlighter = new Lang.Class({
++var URLHighlighter = new Lang.Class({
+     Name: 'URLHighlighter',
+ 
+     _init: function(text, lineWrap, allowMarkup) {
+@@ -161,7 +161,7 @@ const URLHighlighter = new Lang.Class({
+     }
+ });
+ 
+-const ScaleLayout = new Lang.Class({
++var ScaleLayout = new Lang.Class({
+     Name: 'ScaleLayout',
+     Extends: Clutter.BinLayout,
+ 
+@@ -208,7 +208,7 @@ const ScaleLayout = new Lang.Class({
+     }
+ });
+ 
+-const LabelExpanderLayout = new Lang.Class({
++var LabelExpanderLayout = new Lang.Class({
+     Name: 'LabelExpanderLayout',
+     Extends: Clutter.LayoutManager,
+     Properties: { 'expansion': GObject.ParamSpec.double('expansion',
+@@ -298,7 +298,7 @@ const LabelExpanderLayout = new Lang.Cla
+     }
+ });
+ 
+-const Message = new Lang.Class({
++var Message = new Lang.Class({
+     Name: 'Message',
+ 
+     _init: function(title, body) {
+@@ -524,7 +524,7 @@ const Message = new Lang.Class({
+ });
+ Signals.addSignalMethods(Message.prototype);
+ 
+-const MessageListSection = new Lang.Class({
++var MessageListSection = new Lang.Class({
+     Name: 'MessageListSection',
+ 
+     _init: function() {
+--- a/js/ui/messageTray.js
++++ b/js/ui/messageTray.js
+@@ -69,7 +69,7 @@ const Urgency = {
+     CRITICAL: 3
+ };
+ 
+-const FocusGrabber = new Lang.Class({
++var FocusGrabber = new Lang.Class({
+     Name: 'FocusGrabber',
+ 
+     _init: function(actor) {
+@@ -132,7 +132,7 @@ const FocusGrabber = new Lang.Class({
+ // source, such as whether to play sound or honour the critical bit.
+ //
+ // A notification without a policy object will inherit the default one.
+-const NotificationPolicy = new Lang.Class({
++var NotificationPolicy = new Lang.Class({
+     Name: 'NotificationPolicy',
+ 
+     _init: function(params) {
+@@ -153,7 +153,7 @@ const NotificationPolicy = new Lang.Clas
+ });
+ Signals.addSignalMethods(NotificationPolicy.prototype);
+ 
+-const NotificationGenericPolicy = new Lang.Class({
++var NotificationGenericPolicy = new Lang.Class({
+     Name: 'NotificationGenericPolicy',
+     Extends: NotificationPolicy,
+ 
+@@ -202,7 +202,7 @@ const NotificationGenericPolicy = new La
+     }
+ });
+ 
+-const NotificationApplicationPolicy = new Lang.Class({
++var NotificationApplicationPolicy = new Lang.Class({
+     Name: 'NotificationApplicationPolicy',
+     Extends: NotificationPolicy,
+ 
+@@ -328,7 +328,7 @@ const NotificationApplicationPolicy = ne
+ // If @params contains 'soundName' or 'soundFile', the corresponding
+ // event sound is played when the notification is shown (if the policy for
+ // @source allows playing sounds).
+-const Notification = new Lang.Class({
++var Notification = new Lang.Class({
+     Name: 'Notification',
+ 
+     _init: function(source, title, banner, params) {
+@@ -489,7 +489,7 @@ const Notification = new Lang.Class({
+ });
+ Signals.addSignalMethods(Notification.prototype);
+ 
+-const NotificationBanner = new Lang.Class({
++var NotificationBanner = new Lang.Class({
+     Name: 'NotificationBanner',
+     Extends: Calendar.NotificationMessage,
+ 
+@@ -585,7 +585,7 @@ const NotificationBanner = new Lang.Clas
+     }
+ });
+ 
+-const SourceActor = new Lang.Class({
++var SourceActor = new Lang.Class({
+     Name: 'SourceActor',
+ 
+     _init: function(source, size) {
+@@ -642,7 +642,7 @@ const SourceActor = new Lang.Class({
+     }
+ });
+ 
+-const SourceActorWithLabel = new Lang.Class({
++var SourceActorWithLabel = new Lang.Class({
+     Name: 'SourceActorWithLabel',
+     Extends: SourceActor,
+ 
+@@ -715,7 +715,7 @@ const SourceActorWithLabel = new Lang.Cl
+     }
+ });
+ 
+-const Source = new Lang.Class({
++var Source = new Lang.Class({
+     Name: 'MessageTraySource',
+ 
+     SOURCE_ICON_SIZE: 48,
+@@ -840,7 +840,7 @@ const Source = new Lang.Class({
+ });
+ Signals.addSignalMethods(Source.prototype);
+ 
+-const MessageTray = new Lang.Class({
++var MessageTray = new Lang.Class({
+     Name: 'MessageTray',
+ 
+     _init: function() {
+@@ -1485,7 +1485,7 @@ const MessageTray = new Lang.Class({
+ });
+ Signals.addSignalMethods(MessageTray.prototype);
+ 
+-const SystemNotificationSource = new Lang.Class({
++var SystemNotificationSource = new Lang.Class({
+     Name: 'SystemNotificationSource',
+     Extends: Source,
+ 
+--- a/js/ui/modalDialog.js
++++ b/js/ui/modalDialog.js
+@@ -30,7 +30,7 @@ const State = {
+     FADED_OUT: 4
+ };
+ 
+-const ModalDialog = new Lang.Class({
++var ModalDialog = new Lang.Class({
+     Name: 'ModalDialog',
+ 
+     _init: function(params) {
+--- a/js/ui/mpris.js
++++ b/js/ui/mpris.js
+@@ -47,7 +47,7 @@ const MprisPlayerProxy = Gio.DBusProxy.m
+ 
+ const MPRIS_PLAYER_PREFIX = 'org.mpris.MediaPlayer2.';
+ 
+-const MediaMessage = new Lang.Class({
++var MediaMessage = new Lang.Class({
+     Name: 'MediaMessage',
+     Extends: MessageList.Message,
+ 
+@@ -111,7 +111,7 @@ const MediaMessage = new Lang.Class({
+     }
+ });
+ 
+-const MprisPlayer = new Lang.Class({
++var MprisPlayer = new Lang.Class({
+     Name: 'MprisPlayer',
+ 
+     _init: function(busName) {
+@@ -226,7 +226,7 @@ const MprisPlayer = new Lang.Class({
+ });
+ Signals.addSignalMethods(MprisPlayer.prototype);
+ 
+-const MediaSection = new Lang.Class({
++var MediaSection = new Lang.Class({
+     Name: 'MediaSection',
+     Extends: MessageList.MessageListSection,
+ 
+--- a/js/ui/notificationDaemon.js
++++ b/js/ui/notificationDaemon.js
+@@ -91,7 +91,7 @@ const rewriteRules = {
+     ]
+ };
+ 
+-const FdoNotificationDaemon = new Lang.Class({
++var FdoNotificationDaemon = new Lang.Class({
+     Name: 'FdoNotificationDaemon',
+ 
+     _init: function() {
+@@ -459,7 +459,7 @@ const FdoNotificationDaemon = new Lang.C
+     }
+ });
+ 
+-const FdoNotificationDaemonSource = new Lang.Class({
++var FdoNotificationDaemonSource = new Lang.Class({
+     Name: 'FdoNotificationDaemonSource',
+     Extends: MessageTray.Source,
+ 
+@@ -586,7 +586,7 @@ const PRIORITY_URGENCY_MAP = {
+     urgent: MessageTray.Urgency.CRITICAL
+ };
+ 
+-const GtkNotificationDaemonNotification = new Lang.Class({
++var GtkNotificationDaemonNotification = new Lang.Class({
+     Name: 'GtkNotificationDaemonNotification',
+     Extends: MessageTray.Notification,
+ 
+@@ -680,7 +680,7 @@ function getPlatformData() {
+ 
+ function InvalidAppError() {}
+ 
+-const GtkNotificationDaemonAppSource = new Lang.Class({
++var GtkNotificationDaemonAppSource = new Lang.Class({
+     Name: 'GtkNotificationDaemonAppSource',
+     Extends: MessageTray.Source,
+ 
+@@ -787,7 +787,7 @@ const GtkNotificationsIface = '<node> \
+ </interface> \
+ </node>';
+ 
+-const GtkNotificationDaemon = new Lang.Class({
++var GtkNotificationDaemon = new Lang.Class({
+     Name: 'GtkNotificationDaemon',
+ 
+     _init: function() {
+@@ -885,7 +885,7 @@ const GtkNotificationDaemon = new Lang.C
+     },
+ });
+ 
+-const NotificationDaemon = new Lang.Class({
++var NotificationDaemon = new Lang.Class({
+     Name: 'NotificationDaemon',
+ 
+     _init: function() {
+--- a/js/ui/osdMonitorLabeler.js
++++ b/js/ui/osdMonitorLabeler.js
+@@ -11,7 +11,7 @@ const Meta = imports.gi.Meta;
+ 
+ const FADE_TIME = 0.1;
+ 
+-const OsdMonitorLabel = new Lang.Class({
++var OsdMonitorLabel = new Lang.Class({
+     Name: 'OsdMonitorLabel',
+ 
+     _init: function(monitor, label) {
+@@ -52,7 +52,7 @@ const OsdMonitorLabel = new Lang.Class({
+     }
+ });
+ 
+-const OsdMonitorLabeler = new Lang.Class({
++var OsdMonitorLabeler = new Lang.Class({
+     Name: 'OsdMonitorLabeler',
+ 
+     _init: function() {
+--- a/js/ui/osdWindow.js
++++ b/js/ui/osdWindow.js
+@@ -15,7 +15,7 @@ const HIDE_TIMEOUT = 1500;
+ const FADE_TIME = 0.1;
+ const LEVEL_ANIMATION_TIME = 0.1;
+ 
+-const LevelBar = new Lang.Class({
++var LevelBar = new Lang.Class({
+     Name: 'LevelBar',
+ 
+     _init: function() {
+@@ -45,7 +45,7 @@ const LevelBar = new Lang.Class({
+     }
+ });
+ 
+-const OsdWindowConstraint = new Lang.Class({
++var OsdWindowConstraint = new Lang.Class({
+     Name: 'OsdWindowConstraint',
+     Extends: Clutter.Constraint,
+ 
+@@ -77,7 +77,7 @@ const OsdWindowConstraint = new Lang.Cla
+     }
+ });
+ 
+-const OsdWindow = new Lang.Class({
++var OsdWindow = new Lang.Class({
+     Name: 'OsdWindow',
+ 
+     _init: function(monitorIndex) {
+@@ -209,7 +209,7 @@ const OsdWindow = new Lang.Class({
+     }
+ });
+ 
+-const OsdWindowManager = new Lang.Class({
++var OsdWindowManager = new Lang.Class({
+     Name: 'OsdWindowManager',
+ 
+     _init: function() {
+--- a/js/ui/overview.js
++++ b/js/ui/overview.js
+@@ -35,7 +35,7 @@ const DND_WINDOW_SWITCH_TIMEOUT = 750;
+ 
+ const OVERVIEW_ACTIVATION_TIMEOUT = 0.5;
+ 
+-const ShellInfo = new Lang.Class({
++var ShellInfo = new Lang.Class({
+     Name: 'ShellInfo',
+ 
+     _init: function() {
+@@ -87,7 +87,7 @@ const ShellInfo = new Lang.Class({
+     }
+ });
+ 
+-const Overview = new Lang.Class({
++var Overview = new Lang.Class({
+     Name: 'Overview',
+ 
+     _init: function() {
+--- a/js/ui/overviewControls.js
++++ b/js/ui/overviewControls.js
+@@ -30,7 +30,7 @@ const SlideDirection = {
+     RIGHT: 1
+ };
+ 
+-const SlideLayout = new Lang.Class({
++var SlideLayout = new Lang.Class({
+     Name: 'SlideLayout',
+     Extends: Clutter.FixedLayout,
+ 
+@@ -104,7 +104,7 @@ const SlideLayout = new Lang.Class({
+     },
+ });
+ 
+-const SlidingControl = new Lang.Class({
++var SlidingControl = new Lang.Class({
+     Name: 'SlidingControl',
+ 
+     _init: function(params) {
+@@ -238,7 +238,7 @@ const SlidingControl = new Lang.Class({
+     }
+ });
+ 
+-const ThumbnailsSlider = new Lang.Class({
++var ThumbnailsSlider = new Lang.Class({
+     Name: 'ThumbnailsSlider',
+     Extends: SlidingControl,
+ 
+@@ -314,7 +314,7 @@ const ThumbnailsSlider = new Lang.Class(
+     }
+ });
+ 
+-const DashSlider = new Lang.Class({
++var DashSlider = new Lang.Class({
+     Name: 'DashSlider',
+     Extends: SlidingControl,
+ 
+@@ -353,7 +353,7 @@ const DashSlider = new Lang.Class({
+     }
+ });
+ 
+-const DashSpacer = new Lang.Class({
++var DashSpacer = new Lang.Class({
+     Name: 'DashSpacer',
+     Extends: St.Widget,
+ 
+@@ -391,7 +391,7 @@ const DashSpacer = new Lang.Class({
+     }
+ });
+ 
+-const ControlsLayout = new Lang.Class({
++var ControlsLayout = new Lang.Class({
+     Name: 'ControlsLayout',
+     Extends: Clutter.BinLayout,
+     Signals: { 'allocation-changed': { flags: GObject.SignalFlags.RUN_LAST } },
+@@ -402,7 +402,7 @@ const ControlsLayout = new Lang.Class({
+     }
+ });
+ 
+-const ControlsManager = new Lang.Class({
++var ControlsManager = new Lang.Class({
+     Name: 'ControlsManager',
+ 
+     _init: function(searchEntry) {
+--- a/js/ui/padOsd.js
++++ b/js/ui/padOsd.js
+@@ -30,7 +30,7 @@ const CCW = 1;
+ const UP = 0;
+ const DOWN = 1;
+ 
+-const PadChooser = new Lang.Class({
++var PadChooser = new Lang.Class({
+     Name: 'PadChooser',
+ 
+     _init: function (device, groupDevices) {
+@@ -96,7 +96,7 @@ const PadChooser = new Lang.Class({
+ });
+ Signals.addSignalMethods(PadChooser.prototype);
+ 
+-const KeybindingEntry = new Lang.Class({
++var KeybindingEntry = new Lang.Class({
+     Name: 'KeybindingEntry',
+ 
+     _init: function () {
+@@ -120,7 +120,7 @@ const KeybindingEntry = new Lang.Class({
+ });
+ Signals.addSignalMethods(KeybindingEntry.prototype);
+ 
+-const ActionComboBox = new Lang.Class({
++var ActionComboBox = new Lang.Class({
+     Name: 'ActionComboBox',
+ 
+     _init: function () {
+@@ -200,7 +200,7 @@ const ActionComboBox = new Lang.Class({
+ });
+ Signals.addSignalMethods(ActionComboBox.prototype);
+ 
+-const ActionEditor = new Lang.Class({
++var ActionEditor = new Lang.Class({
+     Name: 'ActionEditor',
+ 
+     _init: function () {
+@@ -285,7 +285,7 @@ const ActionEditor = new Lang.Class({
+ });
+ Signals.addSignalMethods(ActionEditor.prototype);
+ 
+-const PadDiagram = new Lang.Class({
++var PadDiagram = new Lang.Class({
+     Name: 'PadDiagram',
+     Extends: St.DrawingArea,
+     Properties: { 'left-handed': GObject.ParamSpec.boolean('left-handed',
+@@ -619,7 +619,7 @@ const PadDiagram = new Lang.Class({
+     }
+ });
+ 
+-const PadOsd = new Lang.Class({
++var PadOsd = new Lang.Class({
+     Name: 'PadOsd',
+ 
+     _init: function (padDevice, settings, imagePath, editionMode, monitorIndex) {
+@@ -961,7 +961,7 @@ const PadOsdIface = '<node> \
+ </interface> \
+ </node>';
+ 
+-const PadOsdService = new Lang.Class({
++var PadOsdService = new Lang.Class({
+     Name: 'PadOsdService',
+ 
+     _init: function() {
+--- a/js/ui/panel.js
++++ b/js/ui/panel.js
+@@ -83,7 +83,7 @@ function _unpremultiply(color) {
+  * this menu also handles startup notification for it.  So when we
+  * have an active startup notification, we switch modes to display that.
+  */
+-const AppMenuButton = new Lang.Class({
++var AppMenuButton = new Lang.Class({
+     Name: 'AppMenuButton',
+     Extends: PanelMenu.Button,
+ 
+@@ -399,7 +399,7 @@ const AppMenuButton = new Lang.Class({
+ 
+ Signals.addSignalMethods(AppMenuButton.prototype);
+ 
+-const ActivitiesButton = new Lang.Class({
++var ActivitiesButton = new Lang.Class({
+     Name: 'ActivitiesButton',
+     Extends: PanelMenu.Button,
+ 
+@@ -487,7 +487,7 @@ const ActivitiesButton = new Lang.Class(
+     }
+ });
+ 
+-const PanelCorner = new Lang.Class({
++var PanelCorner = new Lang.Class({
+     Name: 'PanelCorner',
+ 
+     _init: function(side) {
+@@ -654,7 +654,7 @@ const PanelCorner = new Lang.Class({
+     }
+ });
+ 
+-const AggregateLayout = new Lang.Class({
++var AggregateLayout = new Lang.Class({
+     Name: 'AggregateLayout',
+     Extends: Clutter.BoxLayout,
+ 
+@@ -687,7 +687,7 @@ const AggregateLayout = new Lang.Class({
+     }
+ });
+ 
+-const AggregateMenu = new Lang.Class({
++var AggregateMenu = new Lang.Class({
+     Name: 'AggregateMenu',
+     Extends: PanelMenu.Button,
+ 
+@@ -767,7 +767,7 @@ const PANEL_ITEM_IMPLEMENTATIONS = {
+     'keyboard': imports.ui.status.keyboard.InputSourceIndicator,
+ };
+ 
+-const Panel = new Lang.Class({
++var Panel = new Lang.Class({
+     Name: 'Panel',
+ 
+     _init : function() {
+--- a/js/ui/panelMenu.js
++++ b/js/ui/panelMenu.js
+@@ -13,7 +13,7 @@ const Main = imports.ui.main;
+ const Params = imports.misc.params;
+ const PopupMenu = imports.ui.popupMenu;
+ 
+-const ButtonBox = new Lang.Class({
++var ButtonBox = new Lang.Class({
+     Name: 'ButtonBox',
+ 
+     _init: function(params) {
+@@ -89,7 +89,7 @@ const ButtonBox = new Lang.Class({
+     },
+ });
+ 
+-const Button = new Lang.Class({
++var Button = new Lang.Class({
+     Name: 'PanelMenuButton',
+     Extends: ButtonBox,
+ 
+@@ -203,7 +203,7 @@ Signals.addSignalMethods(Button.prototyp
+  * of an icon and a menu section, which will be composed into the
+  * aggregate menu.
+  */
+-const SystemIndicator = new Lang.Class({
++var SystemIndicator = new Lang.Class({
+     Name: 'SystemIndicator',
+ 
+     _init: function() {
+--- a/js/ui/pointerWatcher.js
++++ b/js/ui/pointerWatcher.js
+@@ -22,7 +22,7 @@ function getPointerWatcher() {
+     return _pointerWatcher;
+ }
+ 
+-const PointerWatch = new Lang.Class({
++var PointerWatch = new Lang.Class({
+     Name: 'PointerWatch',
+ 
+     _init: function(watcher, interval, callback) {
+@@ -39,7 +39,7 @@ const PointerWatch = new Lang.Class({
+     }
+ });
+ 
+-const PointerWatcher = new Lang.Class({
++var PointerWatcher = new Lang.Class({
+     Name: 'PointerWatcher',
+ 
+     _init: function() {
+--- a/js/ui/popupMenu.js
++++ b/js/ui/popupMenu.js
+@@ -56,7 +56,7 @@ function arrowIcon(side) {
+     return arrow;
+ }
+ 
+-const PopupBaseMenuItem = new Lang.Class({
++var PopupBaseMenuItem = new Lang.Class({
+     Name: 'PopupBaseMenuItem',
+ 
+     _init: function (params) {
+@@ -234,7 +234,7 @@ const PopupBaseMenuItem = new Lang.Class
+ });
+ Signals.addSignalMethods(PopupBaseMenuItem.prototype);
+ 
+-const PopupMenuItem = new Lang.Class({
++var PopupMenuItem = new Lang.Class({
+     Name: 'PopupMenuItem',
+     Extends: PopupBaseMenuItem,
+ 
+@@ -247,7 +247,7 @@ const PopupMenuItem = new Lang.Class({
+     }
+ });
+ 
+-const PopupSeparatorMenuItem = new Lang.Class({
++var PopupSeparatorMenuItem = new Lang.Class({
+     Name: 'PopupSeparatorMenuItem',
+     Extends: PopupBaseMenuItem,
+ 
+@@ -274,7 +274,7 @@ const PopupSeparatorMenuItem = new Lang.
+     }
+ });
+ 
+-const Switch = new Lang.Class({
++var Switch = new Lang.Class({
+     Name: 'Switch',
+ 
+     _init: function(state) {
+@@ -303,7 +303,7 @@ const Switch = new Lang.Class({
+     }
+ });
+ 
+-const PopupSwitchMenuItem = new Lang.Class({
++var PopupSwitchMenuItem = new Lang.Class({
+     Name: 'PopupSwitchMenuItem',
+     Extends: PopupBaseMenuItem,
+ 
+@@ -385,7 +385,7 @@ const PopupSwitchMenuItem = new Lang.Cla
+     }
+ });
+ 
+-const PopupImageMenuItem = new Lang.Class({
++var PopupImageMenuItem = new Lang.Class({
+     Name: 'PopupImageMenuItem',
+     Extends: PopupBaseMenuItem,
+ 
+@@ -406,7 +406,7 @@ const PopupImageMenuItem = new Lang.Clas
+     }
+ });
+ 
+-const PopupMenuBase = new Lang.Class({
++var PopupMenuBase = new Lang.Class({
+     Name: 'PopupMenuBase',
+     Abstract: true,
+ 
+@@ -746,7 +746,7 @@ const PopupMenuBase = new Lang.Class({
+ });
+ Signals.addSignalMethods(PopupMenuBase.prototype);
+ 
+-const PopupMenu = new Lang.Class({
++var PopupMenu = new Lang.Class({
+     Name: 'PopupMenu',
+     Extends: PopupMenuBase,
+ 
+@@ -882,7 +882,7 @@ const PopupMenu = new Lang.Class({
+     }
+ });
+ 
+-const PopupDummyMenu = new Lang.Class({
++var PopupDummyMenu = new Lang.Class({
+     Name: 'PopupDummyMenu',
+ 
+     _init: function(sourceActor) {
+@@ -904,7 +904,7 @@ const PopupDummyMenu = new Lang.Class({
+ });
+ Signals.addSignalMethods(PopupDummyMenu.prototype);
+ 
+-const PopupSubMenu = new Lang.Class({
++var PopupSubMenu = new Lang.Class({
+     Name: 'PopupSubMenu',
+     Extends: PopupMenuBase,
+ 
+@@ -1052,7 +1052,7 @@ const PopupSubMenu = new Lang.Class({
+  * can add it to another menu), but is completely transparent
+  * to the user
+  */
+-const PopupMenuSection = new Lang.Class({
++var PopupMenuSection = new Lang.Class({
+     Name: 'PopupMenuSection',
+     Extends: PopupMenuBase,
+ 
+@@ -1070,7 +1070,7 @@ const PopupMenuSection = new Lang.Class(
+     close: function() { this.emit('open-state-changed', false); },
+ });
+ 
+-const PopupSubMenuMenuItem = new Lang.Class({
++var PopupSubMenuMenuItem = new Lang.Class({
+     Name: 'PopupSubMenuMenuItem',
+     Extends: PopupBaseMenuItem,
+ 
+@@ -1195,7 +1195,7 @@ const PopupSubMenuMenuItem = new Lang.Cl
+ /* Basic implementation of a menu manager.
+  * Call addMenu to add menus
+  */
+-const PopupMenuManager = new Lang.Class({
++var PopupMenuManager = new Lang.Class({
+     Name: 'PopupMenuManager',
+ 
+     _init: function(owner, grabParams) {
+--- a/js/ui/remoteMenu.js
++++ b/js/ui/remoteMenu.js
+@@ -38,7 +38,7 @@ function _removeItem(menu, position) {
+     items[position].destroy();
+ }
+ 
+-const RemoteMenuSeparatorItemMapper = new Lang.Class({
++var RemoteMenuSeparatorItemMapper = new Lang.Class({
+     Name: 'RemoteMenuSeparatorItemMapper',
+ 
+     _init: function(trackerItem) {
+@@ -57,7 +57,7 @@ const RemoteMenuSeparatorItemMapper = ne
+     },
+ });
+ 
+-const RequestSubMenu = new Lang.Class({
++var RequestSubMenu = new Lang.Class({
+     Name: 'RequestSubMenu',
+     Extends: PopupMenu.PopupSubMenuMenuItem,
+ 
+@@ -76,7 +76,7 @@ const RequestSubMenu = new Lang.Class({
+     },
+ });
+ 
+-const RemoteMenuSubmenuItemMapper = new Lang.Class({
++var RemoteMenuSubmenuItemMapper = new Lang.Class({
+     Name: 'RemoteMenuSubmenuItemMapper',
+ 
+     _init: function(trackerItem) {
+@@ -112,7 +112,7 @@ const RemoteMenuSubmenuItemMapper = new
+     },
+ });
+ 
+-const RemoteMenuItemMapper = new Lang.Class({
++var RemoteMenuItemMapper = new Lang.Class({
+     Name: 'RemoteMenuItemMapper',
+ 
+     _init: function(trackerItem) {
+@@ -176,7 +176,7 @@ const RemoteMenuItemMapper = new Lang.Cl
+     },
+ });
+ 
+-const RemoteMenu = new Lang.Class({
++var RemoteMenu = new Lang.Class({
+     Name: 'RemoteMenu',
+     Extends: PopupMenu.PopupMenu,
+ 
+--- a/js/ui/remoteSearch.js
++++ b/js/ui/remoteSearch.js
+@@ -181,7 +181,7 @@ function loadRemoteSearchProviders(searc
+     callback(loadedProviders);
+ }
+ 
+-const RemoteSearchProvider = new Lang.Class({
++var RemoteSearchProvider = new Lang.Class({
+     Name: 'RemoteSearchProvider',
+ 
+     _init: function(appInfo, dbusName, dbusPath, proxyInfo) {
+@@ -303,7 +303,7 @@ const RemoteSearchProvider = new Lang.Cl
+     }
+ });
+ 
+-const RemoteSearchProvider2 = new Lang.Class({
++var RemoteSearchProvider2 = new Lang.Class({
+     Name: 'RemoteSearchProvider2',
+     Extends: RemoteSearchProvider,
+ 
+--- a/js/ui/runDialog.js
++++ b/js/ui/runDialog.js
+@@ -30,7 +30,7 @@ const EXEC_ARG_KEY = 'exec-arg';
+ 
+ const DIALOG_GROW_TIME = 0.1;
+ 
+-const RunDialog = new Lang.Class({
++var RunDialog = new Lang.Class({
+     Name: 'RunDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
+@@ -61,7 +61,7 @@ const MANUAL_FADE_TIME = 0.3;
+ const BACKGROUND_FADE_TIME = 1.0;
+ const CURTAIN_SLIDE_TIME = 0.3;
+ 
+-const Clock = new Lang.Class({
++var Clock = new Lang.Class({
+     Name: 'ScreenShieldClock',
+ 
+     _init: function() {
+@@ -96,7 +96,7 @@ const Clock = new Lang.Class({
+     }
+ });
+ 
+-const NotificationsBox = new Lang.Class({
++var NotificationsBox = new Lang.Class({
+     Name: 'NotificationsBox',
+ 
+     _init: function() {
+@@ -346,7 +346,7 @@ const NotificationsBox = new Lang.Class(
+ });
+ Signals.addSignalMethods(NotificationsBox.prototype);
+ 
+-const Arrow = new Lang.Class({
++var Arrow = new Lang.Class({
+     Name: 'Arrow',
+     Extends: St.Bin,
+ 
+@@ -432,7 +432,7 @@ function clamp(value, min, max) {
+  * This will ensure that the screen blanks at the right time when it fades out.
+  * https://bugzilla.gnome.org/show_bug.cgi?id=668703 explains the dependency.
+  */
+-const ScreenShield = new Lang.Class({
++var ScreenShield = new Lang.Class({
+     Name: 'ScreenShield',
+ 
+     _init: function() {
+--- a/js/ui/screencast.js
++++ b/js/ui/screencast.js
+@@ -32,7 +32,7 @@ const ScreencastIface = '<node> \
+ </interface> \
+ </node>';
+ 
+-const ScreencastService = new Lang.Class({
++var ScreencastService = new Lang.Class({
+     Name: 'ScreencastService',
+ 
+     _init: function() {
+--- a/js/ui/screenshot.js
++++ b/js/ui/screenshot.js
+@@ -58,7 +58,7 @@ const ScreenshotIface = '<node> \
+ </interface> \
+ </node>';
+ 
+-const ScreenshotService = new Lang.Class({
++var ScreenshotService = new Lang.Class({
+     Name: 'ScreenshotService',
+ 
+     _init: function() {
+@@ -213,7 +213,7 @@ const ScreenshotService = new Lang.Class
+     }
+ });
+ 
+-const SelectArea = new Lang.Class({
++var SelectArea = new Lang.Class({
+     Name: 'SelectArea',
+ 
+     _init: function() {
+@@ -340,7 +340,7 @@ Signals.addSignalMethods(SelectArea.prot
+ 
+ const FLASHSPOT_ANIMATION_OUT_TIME = 0.5; // seconds
+ 
+-const Flashspot = new Lang.Class({
++var Flashspot = new Lang.Class({
+     Name: 'Flashspot',
+     Extends: Lightbox.Lightbox,
+ 
+--- a/js/ui/search.js
++++ b/js/ui/search.js
+@@ -25,7 +25,7 @@ const SEARCH_PROVIDERS_SCHEMA = 'org.gno
+ const MAX_LIST_SEARCH_RESULTS_ROWS = 3;
+ const MAX_GRID_SEARCH_RESULTS_ROWS = 1;
+ 
+-const MaxWidthBin = new Lang.Class({
++var MaxWidthBin = new Lang.Class({
+     Name: 'MaxWidthBin',
+     Extends: St.Bin,
+ 
+@@ -45,7 +45,7 @@ const MaxWidthBin = new Lang.Class({
+     }
+ });
+ 
+-const SearchResult = new Lang.Class({
++var SearchResult = new Lang.Class({
+     Name: 'SearchResult',
+ 
+     _init: function(provider, metaInfo) {
+@@ -68,7 +68,7 @@ const SearchResult = new Lang.Class({
+ });
+ Signals.addSignalMethods(SearchResult.prototype);
+ 
+-const ListSearchResult = new Lang.Class({
++var ListSearchResult = new Lang.Class({
+     Name: 'ListSearchResult',
+     Extends: SearchResult,
+ 
+@@ -115,7 +115,7 @@ const ListSearchResult = new Lang.Class(
+     }
+ });
+ 
+-const GridSearchResult = new Lang.Class({
++var GridSearchResult = new Lang.Class({
+     Name: 'GridSearchResult',
+     Extends: SearchResult,
+ 
+@@ -132,7 +132,7 @@ const GridSearchResult = new Lang.Class(
+     }
+ });
+ 
+-const SearchResultsBase = new Lang.Class({
++var SearchResultsBase = new Lang.Class({
+     Name: 'SearchResultsBase',
+ 
+     _init: function(provider) {
+@@ -264,7 +264,7 @@ const SearchResultsBase = new Lang.Class
+     }
+ });
+ 
+-const ListSearchResults = new Lang.Class({
++var ListSearchResults = new Lang.Class({
+     Name: 'ListSearchResults',
+     Extends: SearchResultsBase,
+ 
+@@ -322,7 +322,7 @@ const ListSearchResults = new Lang.Class
+ });
+ Signals.addSignalMethods(ListSearchResults.prototype);
+ 
+-const GridSearchResults = new Lang.Class({
++var GridSearchResults = new Lang.Class({
+     Name: 'GridSearchResults',
+     Extends: SearchResultsBase,
+ 
+@@ -370,7 +370,7 @@ const GridSearchResults = new Lang.Class
+ });
+ Signals.addSignalMethods(GridSearchResults.prototype);
+ 
+-const SearchResults = new Lang.Class({
++var SearchResults = new Lang.Class({
+     Name: 'SearchResults',
+ 
+     _init: function() {
+--- a/js/ui/sessionMode.js
++++ b/js/ui/sessionMode.js
+@@ -151,7 +151,7 @@ function listModes() {
+     Mainloop.run('listModes');
+ }
+ 
+-const SessionMode = new Lang.Class({
++var SessionMode = new Lang.Class({
+     Name: 'SessionMode',
+ 
+     _init: function() {
+--- a/js/ui/shellDBus.js
++++ b/js/ui/shellDBus.js
+@@ -76,7 +76,7 @@ const ScreenSaverIface = '<node> \
+ </interface> \
+ </node>';
+ 
+-const GnomeShell = new Lang.Class({
++var GnomeShell = new Lang.Class({
+     Name: 'GnomeShellDBus',
+ 
+     _init: function() {
+@@ -317,7 +317,7 @@ const GnomeShellExtensionsIface = '<node
+ </interface> \
+ </node>';
+ 
+-const GnomeShellExtensions = new Lang.Class({
++var GnomeShellExtensions = new Lang.Class({
+     Name: 'GnomeShellExtensionsDBus',
+ 
+     _init: function() {
+@@ -423,7 +423,7 @@ const GnomeShellExtensions = new Lang.Cl
+     }
+ });
+ 
+-const ScreenSaverDBus = new Lang.Class({
++var ScreenSaverDBus = new Lang.Class({
+     Name: 'ScreenSaverDBus',
+ 
+     _init: function(screenShield) {
+--- a/js/ui/shellEntry.js
++++ b/js/ui/shellEntry.js
+@@ -10,7 +10,7 @@ const Main = imports.ui.main;
+ const Params = imports.misc.params;
+ const PopupMenu = imports.ui.popupMenu;
+ 
+-const EntryMenu = new Lang.Class({
++var EntryMenu = new Lang.Class({
+     Name: 'ShellEntryMenu',
+     Extends: PopupMenu.PopupMenu,
+ 
+--- a/js/ui/shellMountOperation.js
++++ b/js/ui/shellMountOperation.js
+@@ -61,7 +61,7 @@ function _createIcon(gicon) {
+ 
+ /* -------------------------------------------------------- */
+ 
+-const ListItem = new Lang.Class({
++var ListItem = new Lang.Class({
+     Name: 'ListItem',
+ 
+     _init: function(app) {
+@@ -98,7 +98,7 @@ const ListItem = new Lang.Class({
+ });
+ Signals.addSignalMethods(ListItem.prototype);
+ 
+-const ShellMountOperation = new Lang.Class({
++var ShellMountOperation = new Lang.Class({
+     Name: 'ShellMountOperation',
+ 
+     _init: function(source, params) {
+@@ -237,7 +237,7 @@ const ShellMountOperation = new Lang.Cla
+     }
+ });
+ 
+-const ShellUnmountNotifier = new Lang.Class({
++var ShellUnmountNotifier = new Lang.Class({
+     Name: 'ShellUnmountNotifier',
+     Extends: MessageTray.Source,
+ 
+@@ -277,7 +277,7 @@ const ShellUnmountNotifier = new Lang.Cl
+     }
+ });
+ 
+-const ShellMountQuestionDialog = new Lang.Class({
++var ShellMountQuestionDialog = new Lang.Class({
+     Name: 'ShellMountQuestionDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -323,7 +323,7 @@ const ShellMountQuestionDialog = new Lan
+ });
+ Signals.addSignalMethods(ShellMountQuestionDialog.prototype);
+ 
+-const ShellMountPasswordDialog = new Lang.Class({
++var ShellMountPasswordDialog = new Lang.Class({
+     Name: 'ShellMountPasswordDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -431,7 +431,7 @@ const ShellMountPasswordDialog = new Lan
+     }
+ });
+ 
+-const ShellProcessesDialog = new Lang.Class({
++var ShellProcessesDialog = new Lang.Class({
+     Name: 'ShellProcessesDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -561,7 +561,7 @@ const ShellMountOperationType = {
+     SHOW_PROCESSES: 3
+ };
+ 
+-const GnomeShellMountOpHandler = new Lang.Class({
++var GnomeShellMountOpHandler = new Lang.Class({
+     Name: 'GnomeShellMountOpHandler',
+ 
+     _init: function() {
+--- a/js/ui/slider.js
++++ b/js/ui/slider.js
+@@ -9,7 +9,7 @@ const Signals = imports.signals;
+ 
+ const SLIDER_SCROLL_STEP = 0.02; /* Slider scrolling step in % */
+ 
+-const Slider = new Lang.Class({
++var Slider = new Lang.Class({
+     Name: "Slider",
+ 
+     _init: function(value) {
+--- a/js/ui/status/accessibility.js
++++ b/js/ui/status/accessibility.js
+@@ -34,7 +34,7 @@ const KEY_TEXT_SCALING_FACTOR       = 't
+ 
+ const HIGH_CONTRAST_THEME           = 'HighContrast';
+ 
+-const ATIndicator = new Lang.Class({
++var ATIndicator = new Lang.Class({
+     Name: 'ATIndicator',
+     Extends: PanelMenu.Button,
+ 
+@@ -213,7 +213,7 @@ const ATIndicator = new Lang.Class({
+     }
+ });
+ 
+-const ATGreeterIndicator = new Lang.Class({
++var ATGreeterIndicator = new Lang.Class({
+     Name: 'ATGreeterIndicator',
+     Extends: ATIndicator,
+ 
+--- a/js/ui/status/bluetooth.js
++++ b/js/ui/status/bluetooth.js
+@@ -22,7 +22,7 @@ const RfkillManagerProxy = Gio.DBusProxy
+ 
+ const HAD_BLUETOOTH_DEVICES_SETUP = 'had-bluetooth-devices-setup';
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'BTIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/brightness.js
++++ b/js/ui/status/brightness.js
+@@ -19,7 +19,7 @@ const BrightnessInterface = '<node> \
+ 
+ const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(BrightnessInterface);
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'BrightnessIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/keyboard.js
++++ b/js/ui/status/keyboard.js
+@@ -22,7 +22,7 @@ const Util = imports.misc.util;
+ const INPUT_SOURCE_TYPE_XKB = 'xkb';
+ const INPUT_SOURCE_TYPE_IBUS = 'ibus';
+ 
+-const LayoutMenuItem = new Lang.Class({
++var LayoutMenuItem = new Lang.Class({
+     Name: 'LayoutMenuItem',
+     Extends: PopupMenu.PopupBaseMenuItem,
+ 
+@@ -37,7 +37,7 @@ const LayoutMenuItem = new Lang.Class({
+     }
+ });
+ 
+-const InputSource = new Lang.Class({
++var InputSource = new Lang.Class({
+     Name: 'InputSource',
+ 
+     _init: function(type, id, displayName, shortName, index) {
+@@ -78,7 +78,7 @@ const InputSource = new Lang.Class({
+ });
+ Signals.addSignalMethods(InputSource.prototype);
+ 
+-const InputSourcePopup = new Lang.Class({
++var InputSourcePopup = new Lang.Class({
+     Name: 'InputSourcePopup',
+     Extends: SwitcherPopup.SwitcherPopup,
+ 
+@@ -113,7 +113,7 @@ const InputSourcePopup = new Lang.Class(
+     },
+ });
+ 
+-const InputSourceSwitcher = new Lang.Class({
++var InputSourceSwitcher = new Lang.Class({
+     Name: 'InputSourceSwitcher',
+     Extends: SwitcherPopup.SwitcherList,
+ 
+@@ -139,7 +139,7 @@ const InputSourceSwitcher = new Lang.Cla
+     }
+ });
+ 
+-const InputSourceSettings = new Lang.Class({
++var InputSourceSettings = new Lang.Class({
+     Name: 'InputSourceSettings',
+     Abstract: true,
+ 
+@@ -177,7 +177,7 @@ const InputSourceSettings = new Lang.Cla
+ });
+ Signals.addSignalMethods(InputSourceSettings.prototype);
+ 
+-const InputSourceSystemSettings = new Lang.Class({
++var InputSourceSystemSettings = new Lang.Class({
+     Name: 'InputSourceSystemSettings',
+     Extends: InputSourceSettings,
+ 
+@@ -253,7 +253,7 @@ const InputSourceSystemSettings = new La
+     }
+ });
+ 
+-const InputSourceSessionSettings = new Lang.Class({
++var InputSourceSessionSettings = new Lang.Class({
+     Name: 'InputSourceSessionSettings',
+     Extends: InputSourceSettings,
+ 
+@@ -304,7 +304,7 @@ const InputSourceSessionSettings = new L
+     }
+ });
+ 
+-const InputSourceManager = new Lang.Class({
++var InputSourceManager = new Lang.Class({
+     Name: 'InputSourceManager',
+ 
+     _init: function() {
+@@ -774,7 +774,7 @@ function getInputSourceManager() {
+     return _inputSourceManager;
+ }
+ 
+-const InputSourceIndicator = new Lang.Class({
++var InputSourceIndicator = new Lang.Class({
+     Name: 'InputSourceIndicator',
+     Extends: PanelMenu.Button,
+ 
+--- a/js/ui/status/location.js
++++ b/js/ui/status/location.js
+@@ -63,7 +63,7 @@ var AgentIface = '<node> \
+   </interface> \
+ </node>';
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'LocationIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+@@ -251,7 +251,7 @@ function clamp(value, min, max) {
+     return Math.max(min, Math.min(max, value));
+ }
+ 
+-const AppAuthorizer = new Lang.Class({
++var AppAuthorizer = new Lang.Class({
+     Name: 'LocationAppAuthorizer',
+ 
+     _init: function(desktopId,
+@@ -373,7 +373,7 @@ const AppAuthorizer = new Lang.Class({
+     },
+ });
+ 
+-const GeolocationDialog = new Lang.Class({
++var GeolocationDialog = new Lang.Class({
+     Name: 'GeolocationDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+--- a/js/ui/status/network.js
++++ b/js/ui/status/network.js
+@@ -126,7 +126,7 @@ function createSettingsAction(label, dev
+     return item;
+ }
+ 
+-const NMConnectionItem = new Lang.Class({
++var NMConnectionItem = new Lang.Class({
+     Name: 'NMConnectionItem',
+ 
+     _init: function(section, connection) {
+@@ -220,7 +220,7 @@ const NMConnectionItem = new Lang.Class(
+ });
+ Signals.addSignalMethods(NMConnectionItem.prototype);
+ 
+-const NMConnectionSection = new Lang.Class({
++var NMConnectionSection = new Lang.Class({
+     Name: 'NMConnectionSection',
+     Abstract: true,
+ 
+@@ -352,7 +352,7 @@ const NMConnectionSection = new Lang.Cla
+ });
+ Signals.addSignalMethods(NMConnectionSection.prototype);
+ 
+-const NMConnectionDevice = new Lang.Class({
++var NMConnectionDevice = new Lang.Class({
+     Name: 'NMConnectionDevice',
+     Extends: NMConnectionSection,
+     Abstract: true,
+@@ -506,7 +506,7 @@ const NMConnectionDevice = new Lang.Clas
+     },
+ });
+ 
+-const NMDeviceWired = new Lang.Class({
++var NMDeviceWired = new Lang.Class({
+     Name: 'NMDeviceWired',
+     Extends: NMConnectionDevice,
+     category: NMConnectionCategory.WIRED,
+@@ -548,7 +548,7 @@ const NMDeviceWired = new Lang.Class({
+     }
+ });
+ 
+-const NMDeviceModem = new Lang.Class({
++var NMDeviceModem = new Lang.Class({
+     Name: 'NMDeviceModem',
+     Extends: NMConnectionDevice,
+     category: NMConnectionCategory.WWAN,
+@@ -627,7 +627,7 @@ const NMDeviceModem = new Lang.Class({
+     },
+ });
+ 
+-const NMDeviceBluetooth = new Lang.Class({
++var NMDeviceBluetooth = new Lang.Class({
+     Name: 'NMDeviceBluetooth',
+     Extends: NMConnectionDevice,
+     category: NMConnectionCategory.WWAN,
+@@ -661,7 +661,7 @@ const NMDeviceBluetooth = new Lang.Class
+     }
+ });
+ 
+-const NMWirelessDialogItem = new Lang.Class({
++var NMWirelessDialogItem = new Lang.Class({
+     Name: 'NMWirelessDialogItem',
+ 
+     _init: function(network) {
+@@ -726,7 +726,7 @@ const NMWirelessDialogItem = new Lang.Cl
+ });
+ Signals.addSignalMethods(NMWirelessDialogItem.prototype);
+ 
+-const NMWirelessDialog = new Lang.Class({
++var NMWirelessDialog = new Lang.Class({
+     Name: 'NMWirelessDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -1187,7 +1187,7 @@ const NMWirelessDialog = new Lang.Class(
+     },
+ });
+ 
+-const NMDeviceWireless = new Lang.Class({
++var NMDeviceWireless = new Lang.Class({
+     Name: 'NMDeviceWireless',
+     category: NMConnectionCategory.WIRELESS,
+ 
+@@ -1405,7 +1405,7 @@ const NMDeviceWireless = new Lang.Class(
+ });
+ Signals.addSignalMethods(NMDeviceWireless.prototype);
+ 
+-const NMVPNConnectionItem = new Lang.Class({
++var NMVPNConnectionItem = new Lang.Class({
+     Name: 'NMVPNConnectionItem',
+     Extends: NMConnectionItem,
+ 
+@@ -1494,7 +1494,7 @@ const NMVPNConnectionItem = new Lang.Cla
+     },
+ });
+ 
+-const NMVPNSection = new Lang.Class({
++var NMVPNSection = new Lang.Class({
+     Name: 'NMVPNSection',
+     Extends: NMConnectionSection,
+     category: NMConnectionCategory.VPN,
+@@ -1589,7 +1589,7 @@ const NMVPNSection = new Lang.Class({
+ });
+ Signals.addSignalMethods(NMVPNSection.prototype);
+ 
+-const DeviceCategory = new Lang.Class({
++var DeviceCategory = new Lang.Class({
+     Name: 'DeviceCategory',
+     Extends: PopupMenu.PopupMenuSection,
+ 
+@@ -1656,7 +1656,7 @@ const DeviceCategory = new Lang.Class({
+     }
+ });
+ 
+-const NMApplet = new Lang.Class({
++var NMApplet = new Lang.Class({
+     Name: 'NMApplet',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/nightLight.js
++++ b/js/ui/status/nightLight.js
+@@ -19,7 +19,7 @@ const ColorInterface = '<node> \
+ 
+ const ColorProxy = Gio.DBusProxy.makeProxyWrapper(ColorInterface);
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'NightLightIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/power.js
++++ b/js/ui/status/power.js
+@@ -29,7 +29,7 @@ const PowerManagerProxy = Gio.DBusProxy.
+ 
+ const SHOW_BATTERY_PERCENTAGE       = 'show-battery-percentage';
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'PowerIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/rfkill.js
++++ b/js/ui/status/rfkill.js
+@@ -21,7 +21,7 @@ const RfkillManagerInterface = '<node> \
+ 
+ const RfkillManagerProxy = Gio.DBusProxy.makeProxyWrapper(RfkillManagerInterface);
+ 
+-const RfkillManager = new Lang.Class({
++var RfkillManager = new Lang.Class({
+     Name: 'RfkillManager',
+ 
+     _init: function() {
+@@ -68,7 +68,7 @@ function getRfkillManager() {
+     return _manager;
+ }
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'RfkillIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/screencast.js
++++ b/js/ui/status/screencast.js
+@@ -5,7 +5,7 @@ const Lang = imports.lang;
+ const Main = imports.ui.main;
+ const PanelMenu = imports.ui.panelMenu;
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'ScreencastIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/system.js
++++ b/js/ui/status/system.js
+@@ -40,7 +40,7 @@ const SensorProxyInterface = '<node> \
+ 
+ const SensorProxy = Gio.DBusProxy.makeProxyWrapper(SensorProxyInterface);
+ 
+-const AltSwitcher = new Lang.Class({
++var AltSwitcher = new Lang.Class({
+     Name: 'AltSwitcher',
+ 
+     _init: function(standard, alternate) {
+@@ -135,7 +135,7 @@ const AltSwitcher = new Lang.Class({
+     }
+ });
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'SystemIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/status/volume.js
++++ b/js/ui/status/volume.js
+@@ -26,7 +26,7 @@ function getMixerControl() {
+     return _mixerControl;
+ }
+ 
+-const StreamSlider = new Lang.Class({
++var StreamSlider = new Lang.Class({
+     Name: 'StreamSlider',
+ 
+     _init: function(control) {
+@@ -153,7 +153,7 @@ const StreamSlider = new Lang.Class({
+ });
+ Signals.addSignalMethods(StreamSlider.prototype);
+ 
+-const OutputStreamSlider = new Lang.Class({
++var OutputStreamSlider = new Lang.Class({
+     Name: 'OutputStreamSlider',
+     Extends: StreamSlider,
+ 
+@@ -204,7 +204,7 @@ const OutputStreamSlider = new Lang.Clas
+     }
+ });
+ 
+-const InputStreamSlider = new Lang.Class({
++var InputStreamSlider = new Lang.Class({
+     Name: 'InputStreamSlider',
+     Extends: StreamSlider,
+ 
+@@ -247,7 +247,7 @@ const InputStreamSlider = new Lang.Class
+     }
+ });
+ 
+-const VolumeMenu = new Lang.Class({
++var VolumeMenu = new Lang.Class({
+     Name: 'VolumeMenu',
+     Extends: PopupMenu.PopupMenuSection,
+ 
+@@ -301,7 +301,7 @@ const VolumeMenu = new Lang.Class({
+     }
+ });
+ 
+-const Indicator = new Lang.Class({
++var Indicator = new Lang.Class({
+     Name: 'VolumeIndicator',
+     Extends: PanelMenu.SystemIndicator,
+ 
+--- a/js/ui/switcherPopup.js
++++ b/js/ui/switcherPopup.js
+@@ -36,7 +36,7 @@ function primaryModifier(mask) {
+     return primary;
+ }
+ 
+-const SwitcherPopup = new Lang.Class({
++var SwitcherPopup = new Lang.Class({
+     Name: 'SwitcherPopup',
+     Abstract: true,
+ 
+@@ -295,7 +295,7 @@ const SwitcherPopup = new Lang.Class({
+     }
+ });
+ 
+-const SwitcherList = new Lang.Class({
++var SwitcherList = new Lang.Class({
+     Name: 'SwitcherList',
+ 
+     _init : function(squareItems) {
+--- a/js/ui/tweener.js
++++ b/js/ui/tweener.js
+@@ -162,7 +162,7 @@ function registerSpecialPropertySplitter
+ // time updates; even better is to pay attention to the vertical
+ // vblank and sync to that when possible.)
+ //
+-const ClutterFrameTicker = new Lang.Class({
++var ClutterFrameTicker = new Lang.Class({
+     Name: 'ClutterFrameTicker',
+ 
+     FRAME_RATE : 60,
+--- a/js/ui/unlockDialog.js
++++ b/js/ui/unlockDialog.js
+@@ -32,7 +32,7 @@ const LoginDialog = imports.gdm.loginDia
+ // The timeout before going back automatically to the lock screen (in seconds)
+ const IDLE_TIMEOUT = 2 * 60;
+ 
+-const UnlockDialog = new Lang.Class({
++var UnlockDialog = new Lang.Class({
+     Name: 'UnlockDialog',
+ 
+     _init: function(parentActor) {
+--- a/js/ui/userWidget.js
++++ b/js/ui/userWidget.js
+@@ -19,7 +19,7 @@ const AVATAR_ICON_SIZE = 64;
+ // Copyright (C) 2004-2005 James M. Cape <jcape@ignore-your.tv>.
+ // Copyright (C) 2008,2009 Red Hat, Inc.
+ 
+-const Avatar = new Lang.Class({
++var Avatar = new Lang.Class({
+     Name: 'Avatar',
+ 
+     _init: function(user, params) {
+@@ -59,7 +59,7 @@ const Avatar = new Lang.Class({
+     }
+ });
+ 
+-const UserWidgetLabel = new Lang.Class({
++var UserWidgetLabel = new Lang.Class({
+     Name: 'UserWidgetLabel',
+     Extends: St.Widget,
+ 
+@@ -144,7 +144,7 @@ const UserWidgetLabel = new Lang.Class({
+     },
+ });
+ 
+-const UserWidget = new Lang.Class({
++var UserWidget = new Lang.Class({
+     Name: 'UserWidget',
+ 
+     _init: function(user) {
+--- a/js/ui/viewSelector.js
++++ b/js/ui/viewSelector.js
+@@ -32,7 +32,7 @@ const ViewPage = {
+     SEARCH: 3
+ };
+ 
+-const FocusTrap = new Lang.Class({
++var FocusTrap = new Lang.Class({
+     Name: 'FocusTrap',
+     Extends: St.Widget,
+ 
+@@ -53,7 +53,7 @@ function getTermsForSearchString(searchS
+     return terms;
+ }
+ 
+-const TouchpadShowOverviewAction = new Lang.Class({
++var TouchpadShowOverviewAction = new Lang.Class({
+     Name: 'TouchpadShowOverviewAction',
+ 
+     _init: function(actor) {
+@@ -75,7 +75,7 @@ const TouchpadShowOverviewAction = new L
+ });
+ Signals.addSignalMethods(TouchpadShowOverviewAction.prototype);
+ 
+-const ShowOverviewAction = new Lang.Class({
++var ShowOverviewAction = new Lang.Class({
+     Name: 'ShowOverviewAction',
+     Extends: Clutter.GestureAction,
+     Signals: { 'activated': { param_types: [GObject.TYPE_DOUBLE] } },
+@@ -138,7 +138,7 @@ const ShowOverviewAction = new Lang.Clas
+     }
+ });
+ 
+-const ViewSelector = new Lang.Class({
++var ViewSelector = new Lang.Class({
+     Name: 'ViewSelector',
+ 
+     _init : function(searchEntry, showAppsButton) {
+--- a/js/ui/windowAttentionHandler.js
++++ b/js/ui/windowAttentionHandler.js
+@@ -6,7 +6,7 @@ const Shell = imports.gi.Shell;
+ const Main = imports.ui.main;
+ const MessageTray = imports.ui.messageTray;
+ 
+-const WindowAttentionHandler = new Lang.Class({
++var WindowAttentionHandler = new Lang.Class({
+     Name: 'WindowAttentionHandler',
+ 
+     _init : function() {
+@@ -54,7 +54,7 @@ const WindowAttentionHandler = new Lang.
+     }
+ });
+ 
+-const Source = new Lang.Class({
++var Source = new Lang.Class({
+     Name: 'WindowAttentionSource',
+     Extends: MessageTray.Source,
+ 
+--- a/js/ui/windowManager.js
++++ b/js/ui/windowManager.js
+@@ -53,7 +53,7 @@ const GsdWacomIface = '<node name="/org/
+ 
+ const GsdWacomProxy = Gio.DBusProxy.makeProxyWrapper(GsdWacomIface);
+ 
+-const DisplayChangeDialog = new Lang.Class({
++var DisplayChangeDialog = new Lang.Class({
+     Name: 'DisplayChangeDialog',
+     Extends: ModalDialog.ModalDialog,
+ 
+@@ -151,7 +151,7 @@ const DisplayChangeDialog = new Lang.Cla
+     },
+ });
+ 
+-const WindowDimmer = new Lang.Class({
++var WindowDimmer = new Lang.Class({
+     Name: 'WindowDimmer',
+ 
+     _init: function(actor) {
+@@ -205,7 +205,7 @@ function getWindowDimmer(actor) {
+  */
+ const LAST_WINDOW_GRACE_TIME = 1000;
+ 
+-const WorkspaceTracker = new Lang.Class({
++var WorkspaceTracker = new Lang.Class({
+     Name: 'WorkspaceTracker',
+ 
+     _init: function(wm) {
+@@ -409,7 +409,7 @@ const WorkspaceTracker = new Lang.Class(
+     }
+ });
+ 
+-const TilePreview = new Lang.Class({
++var TilePreview = new Lang.Class({
+     Name: 'TilePreview',
+ 
+     _init: function() {
+@@ -496,7 +496,7 @@ const TilePreview = new Lang.Class({
+     }
+ });
+ 
+-const TouchpadWorkspaceSwitchAction = new Lang.Class({
++var TouchpadWorkspaceSwitchAction = new Lang.Class({
+     Name: 'TouchpadWorkspaceSwitchAction',
+ 
+     _init: function(actor) {
+@@ -552,7 +552,7 @@ const TouchpadWorkspaceSwitchAction = ne
+ });
+ Signals.addSignalMethods(TouchpadWorkspaceSwitchAction.prototype);
+ 
+-const WorkspaceSwitchAction = new Lang.Class({
++var WorkspaceSwitchAction = new Lang.Class({
+     Name: 'WorkspaceSwitchAction',
+     Extends: Clutter.SwipeAction,
+     Signals: { 'activated': { param_types: [Meta.MotionDirection.$gtype] } },
+@@ -594,7 +594,7 @@ const WorkspaceSwitchAction = new Lang.C
+     }
+ });
+ 
+-const AppSwitchAction = new Lang.Class({
++var AppSwitchAction = new Lang.Class({
+     Name: 'AppSwitchAction',
+     Extends: Clutter.GestureAction,
+     Signals: { 'activated': {} },
+@@ -660,7 +660,7 @@ const AppSwitchAction = new Lang.Class({
+     }
+ });
+ 
+-const ResizePopup = new Lang.Class({
++var ResizePopup = new Lang.Class({
+     Name: 'ResizePopup',
+ 
+     _init: function() {
+@@ -689,7 +689,7 @@ const ResizePopup = new Lang.Class({
+     },
+ });
+ 
+-const WindowManager = new Lang.Class({
++var WindowManager = new Lang.Class({
+     Name: 'WindowManager',
+ 
+     _init : function() {
+--- a/js/ui/windowMenu.js
++++ b/js/ui/windowMenu.js
+@@ -11,7 +11,7 @@ const Main = imports.ui.main;
+ const PopupMenu = imports.ui.popupMenu;
+ const RemoteMenu = imports.ui.remoteMenu;
+ 
+-const WindowMenu = new Lang.Class({
++var WindowMenu = new Lang.Class({
+     Name: 'WindowMenu',
+     Extends: PopupMenu.PopupMenu,
+ 
+@@ -165,7 +165,7 @@ const WindowMenu = new Lang.Class({
+     }
+ });
+ 
+-const AppMenu = new Lang.Class({
++var AppMenu = new Lang.Class({
+     Name: 'AppMenu',
+     Extends: RemoteMenu.RemoteMenu,
+ 
+@@ -184,7 +184,7 @@ const AppMenu = new Lang.Class({
+     }
+ });
+ 
+-const WindowMenuManager = new Lang.Class({
++var WindowMenuManager = new Lang.Class({
+     Name: 'WindowMenuManager',
+ 
+     _init: function() {
+--- a/js/ui/workspace.js
++++ b/js/ui/workspace.js
+@@ -40,7 +40,7 @@ function _interpolate(start, end, step)
+     return start + (end - start) * step;
+ }
+ 
+-const WindowCloneLayout = new Lang.Class({
++var WindowCloneLayout = new Lang.Class({
+     Name: 'WindowCloneLayout',
+     Extends: Clutter.LayoutManager,
+ 
+@@ -102,7 +102,7 @@ const WindowCloneLayout = new Lang.Class
+     }
+ });
+ 
+-const WindowClone = new Lang.Class({
++var WindowClone = new Lang.Class({
+     Name: 'WindowClone',
+ 
+     _init : function(realWindow, workspace) {
+@@ -423,7 +423,7 @@ Signals.addSignalMethods(WindowClone.pro
+  * @parentActor: The actor which will be the parent of all overlay items
+  *               such as app icon and window caption
+  */
+-const WindowOverlay = new Lang.Class({
++var WindowOverlay = new Lang.Class({
+     Name: 'WindowOverlay',
+ 
+     _init : function(windowClone, parentActor) {
+@@ -811,7 +811,7 @@ const WindowPositionFlags = {
+ // each window's "cell" area to be the same, but we shrink the thumbnail
+ // and center it horizontally, and align it to the bottom vertically.
+ 
+-const LayoutStrategy = new Lang.Class({
++var LayoutStrategy = new Lang.Class({
+     Name: 'LayoutStrategy',
+     Abstract: true,
+ 
+@@ -983,7 +983,7 @@ const LayoutStrategy = new Lang.Class({
+     }
+ });
+ 
+-const UnalignedLayoutStrategy = new Lang.Class({
++var UnalignedLayoutStrategy = new Lang.Class({
+     Name: 'UnalignedLayoutStrategy',
+     Extends: LayoutStrategy,
+ 
+@@ -1094,7 +1094,7 @@ function rectEqual(one, two) {
+ /**
+  * @metaWorkspace: a #Meta.Workspace, or null
+  */
+-const Workspace = new Lang.Class({
++var Workspace = new Lang.Class({
+     Name: 'Workspace',
+ 
+     _init : function(metaWorkspace, monitorIndex) {
+--- a/js/ui/workspaceSwitcherPopup.js
++++ b/js/ui/workspaceSwitcherPopup.js
+@@ -15,7 +15,7 @@ const Tweener = imports.ui.tweener;
+ const ANIMATION_TIME = 0.1;
+ const DISPLAY_TIMEOUT = 600;
+ 
+-const WorkspaceSwitcherPopup = new Lang.Class({
++var WorkspaceSwitcherPopup = new Lang.Class({
+     Name: 'WorkspaceSwitcherPopup',
+ 
+     _init : function() {
+--- a/js/ui/workspaceThumbnail.js
++++ b/js/ui/workspaceThumbnail.js
+@@ -35,7 +35,7 @@ const OVERRIDE_SCHEMA = 'org.gnome.shell
+ 
+ /* A layout manager that requests size only for primary_actor, but then allocates
+    all using a fixed layout */
+-const PrimaryActorLayout = new Lang.Class({
++var PrimaryActorLayout = new Lang.Class({
+     Name: 'PrimaryActorLayout',
+     Extends: Clutter.FixedLayout,
+ 
+@@ -54,7 +54,7 @@ const PrimaryActorLayout = new Lang.Clas
+     },
+ });
+ 
+-const WindowClone = new Lang.Class({
++var WindowClone = new Lang.Class({
+     Name: 'WindowClone',
+ 
+     _init : function(realWindow) {
+@@ -254,7 +254,7 @@ const ThumbnailState = {
+ /**
+  * @metaWorkspace: a #Meta.Workspace
+  */
+-const WorkspaceThumbnail = new Lang.Class({
++var WorkspaceThumbnail = new Lang.Class({
+     Name: 'WorkspaceThumbnail',
+ 
+     _init : function(metaWorkspace) {
+@@ -612,7 +612,7 @@ const WorkspaceThumbnail = new Lang.Clas
+ Signals.addSignalMethods(WorkspaceThumbnail.prototype);
+ 
+ 
+-const ThumbnailsBox = new Lang.Class({
++var ThumbnailsBox = new Lang.Class({
+     Name: 'ThumbnailsBox',
+ 
+     _init: function() {
+--- a/js/ui/workspacesView.js
++++ b/js/ui/workspacesView.js
+@@ -26,7 +26,7 @@ const AnimationType = {
+ 
+ const OVERRIDE_SCHEMA = 'org.gnome.shell.overrides';
+ 
+-const WorkspacesViewBase = new Lang.Class({
++var WorkspacesViewBase = new Lang.Class({
+     Name: 'WorkspacesViewBase',
+ 
+     _init: function(monitorIndex) {
+@@ -86,7 +86,7 @@ const WorkspacesViewBase = new Lang.Clas
+     },
+ });
+ 
+-const WorkspacesView = new Lang.Class({
++var WorkspacesView = new Lang.Class({
+     Name: 'WorkspacesView',
+     Extends: WorkspacesViewBase,
+ 
+@@ -352,7 +352,7 @@ const WorkspacesView = new Lang.Class({
+ });
+ Signals.addSignalMethods(WorkspacesView.prototype);
+ 
+-const ExtraWorkspaceView = new Lang.Class({
++var ExtraWorkspaceView = new Lang.Class({
+     Name: 'ExtraWorkspaceView',
+     Extends: WorkspacesViewBase,
+ 
+@@ -402,7 +402,7 @@ const ExtraWorkspaceView = new Lang.Clas
+     },
+ });
+ 
+-const DelegateFocusNavigator = new Lang.Class({
++var DelegateFocusNavigator = new Lang.Class({
+     Name: 'DelegateFocusNavigator',
+     Extends: St.Widget,
+ 
+@@ -411,7 +411,7 @@ const DelegateFocusNavigator = new Lang.
+     },
+ });
+ 
+-const WorkspacesDisplay = new Lang.Class({
++var WorkspacesDisplay = new Lang.Class({
+     Name: 'WorkspacesDisplay',
+ 
+     _init: function() {
+--- a/js/ui/xdndHandler.js
++++ b/js/ui/xdndHandler.js
+@@ -8,7 +8,7 @@ const Shell = imports.gi.Shell;
+ const Signals = imports.signals;
+ const DND = imports.ui.dnd;
+ 
+-const XdndHandler = new Lang.Class({
++var XdndHandler = new Lang.Class({
+     Name: 'XdndHandler',
+ 
+     _init: function() {

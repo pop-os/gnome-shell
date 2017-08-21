@@ -8,3 +8,8 @@ ubuntu-lightdm-user-switching.patch
 ubuntu_lock_on_suspend.patch
 optional-libgdm.patch
 ubuntu_gdm.patch
+git_define-classes-with-var.patch
+git_define-constant-before-using.patch
+git_define-properties-with-var.patch
+git_messageTray-use-spread-syntax.patch
+git_workspace-use-haspointer.patch

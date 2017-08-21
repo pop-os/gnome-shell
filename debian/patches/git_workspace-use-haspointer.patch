@@ -1,0 +1,42 @@
+From 6878ee99d913e314129f5d3c7212fe42be1a688d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 19 Jul 2017 02:43:25 +0200
+Subject: workspace: Use has_pointer() method instead of property
+
+ClutterActor has both a has_pointer() method and a :has-pointer
+property (that we represent as 'has_pointer'). So far gjs was
+able to deal with the name overlap, but now trying to use the
+property will instead test for the availability of the method.
+Just avoid the conflict by switching to the method, which is
+unambiguous.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=785090
+---
+ js/ui/workspace.js | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/js/ui/workspace.js b/js/ui/workspace.js
+index 035a6b5..ff2618a 100644
+--- a/js/ui/workspace.js
++++ b/js/ui/workspace.js
+@@ -500,7 +500,7 @@ var WindowOverlay = new Lang.Class({
+         this._hidden = false;
+ 
+         this.title.show();
+-        if (this._windowClone.actor.has_pointer)
++        if (this._windowClone.actor['has-pointer'])
+             this._animateVisible();
+     },
+ 
+@@ -699,8 +699,8 @@ var WindowOverlay = new Lang.Class({
+     _idleToggleCloseButton: function() {
+         this._idleToggleCloseId = 0;
+ 
+-        if (!this._windowClone.actor.has_pointer &&
+-            !this.closeButton.has_pointer)
++        if (!this._windowClone.actor['has-pointer'] &&
++            !this.closeButton['has-pointer'])
+             this._animateInvisible();
+ 
+         return GLib.SOURCE_REMOVE;
+

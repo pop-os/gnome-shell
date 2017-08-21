@@ -1,3 +1,16 @@
+gnome-shell (3.24.3-0ubuntu5) UNRELEASED; urgency=medium
+
+  * Rebuild against gjs 1.49 / mozjs52
+  * Backport patches from GNOME 3.26 to fix errors with new gjs/mozjs
+    - git_define-constant-before-using.patch
+    - git_define-properties-with-var.patch
+    - git_messageTray-use-spread-syntax.patch
+    - git_workspace-use-haspointer.patch
+  * Backport patch to fix some warnings with new gjs/mozjs
+    - git_define-classes-with-var.patch
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 21 Aug 2017 09:50:16 -0400
+
 gnome-shell (3.24.3-0ubuntu4) artful; urgency=medium
 
   * Enable ubuntu-dock in ubuntu mode.

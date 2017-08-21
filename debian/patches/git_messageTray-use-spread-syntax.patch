@@ -1,0 +1,24 @@
+From a593e4587b30c9e8d9b01e4604bc6de437d713f5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 18 Jul 2017 19:20:42 +0200
+Subject: messageTray: Use spread syntax to get map keys
+
+It wasn't supported when the code was originally written, now the
+fill-in code isn't accepted anymore ...
+
+https://bugzilla.gnome.org/show_bug.cgi?id=785084
+---
+ js/ui/messageTray.js |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/js/ui/messageTray.js
++++ b/js/ui/messageTray.js
+@@ -1042,7 +1042,7 @@ var MessageTray = new Lang.Class({
+     },
+ 
+     getSources: function() {
+-        return [k for (k of this._sources.keys())];
++        return [...this._sources.keys()];
+     },
+ 
+     _onSourceEnableChanged: function(policy, source) {
