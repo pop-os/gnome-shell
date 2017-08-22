@@ -1,3 +1,9 @@
+gnome-shell (3.24.3-0ubuntu6) artful; urgency=medium
+
+  * debian/rules: Ignore unit test failures on armhf
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 21 Aug 2017 11:46:36 -0400
+
 gnome-shell (3.24.3-0ubuntu5) artful; urgency=medium
 
   * Rebuild against gjs 1.49 / mozjs52
