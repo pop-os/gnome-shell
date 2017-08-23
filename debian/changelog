@@ -2,7 +2,7 @@ gnome-shell (3.24.3-0ubuntu7) artful; urgency=medium
 
   * Add appindicator extension enabled by default in the ubuntu session
 
- -- Didier Roche <didrocks@ubuntu.com>  Wed, 23 Aug 2017 08:13:04 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 23 Aug 2017 08:13:25 +0200
 
 gnome-shell (3.24.3-0ubuntu6) artful; urgency=medium
 
