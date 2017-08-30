@@ -1,3 +1,32 @@
+gnome-shell (3.25.91-0ubuntu1) UNRELEASED; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release (LP: #1712800)
+  * Build with meson
+  * debian/control.in:
+    - Build-depend on libasound2-dev
+    - Bump minimum libglib2.0-dev to 2.53.0
+    - Update dependencies for mutter 3.25.90
+  * debian/rules:
+    - Drop disable-new-dtags flag, no longer needed
+    - Drop dh_girepository override, doesn't work with meson
+      and apparently not needed
+  * Refresh patches
+  * Drop git patches applied in new release
+  * Add run-unit-tests.patch: Run unit tests with meson
+
+  [ Tim Lunn ]
+  * New upstream release
+  * debian/control.in
+    - Update dependencies for mutter 3.25.91
+  * debian/patches:
+    - ubuntu_lock_on_suspend.patch: Rebased on changes introduced
+      in commit 9c3b3320f
+    - optional-libgdm.patch: disabled, this should not be required
+      since Ubuntu is using gdm
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 30 Aug 2017 12:36:38 -0400
+
 gnome-shell (3.24.3-0ubuntu7) artful; urgency=medium
 
   * Add appindicator extension enabled by default in the ubuntu session

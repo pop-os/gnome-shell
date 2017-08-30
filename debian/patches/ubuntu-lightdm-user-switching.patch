@@ -9,59 +9,15 @@ switch to the lightdm greeter.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=685794
 ---
- js/ui/status/system.js |   38 ++++++++++++++++++++++++++++++--------
+ js/misc/systemActions.js |   38 ++++++++++++++++++++++++++++++--------
  1 file changed, 30 insertions(+), 8 deletions(-)
 
---- a/js/ui/status/system.js
-+++ b/js/ui/status/system.js
-@@ -310,7 +310,7 @@ const Indicator = new Lang.Class({
-     _updateLockScreen: function() {
-         let showLock = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
-         let allowLockScreen = !this._lockdownSettings.get_boolean(DISABLE_LOCK_SCREEN_KEY);
--        this._lockScreenAction.visible = showLock && allowLockScreen && LoginManager.canLock();
-+        this._lockScreenAction.visible = showLock && allowLockScreen;
-         this._updateActionsVisibility();
+--- a/js/misc/systemActions.js
++++ b/js/misc/systemActions.js
+@@ -218,6 +218,21 @@ const SystemActions = new Lang.Class({
+         return this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName;
      },
  
-@@ -440,19 +440,26 @@ const Indicator = new Lang.Class({
-     _onLockScreenClicked: function() {
-         this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
-         Main.overview.hide();
--        Main.screenShield.lock(true);
-+        if (Main.screenShield) {
-+            Main.screenShield.lock(true);
-+        }
-+        else
-+            this._lightdmLoginSession();
-+
-     },
- 
-     _onLoginScreenActivate: function() {
-         this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
-         Main.overview.hide();
--        if (Main.screenShield)
-+        if (Main.screenShield) {
-             Main.screenShield.lock(false);
--
--        Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
--            Gdm.goto_login_session_sync(null);
--            return false;
--        });
-+            Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
-+                Gdm.goto_login_session_sync(null);
-+                return false;
-+            });
-+        }
-+        else
-+            this._lightdmLoginSession();
-     },
- 
-     _onQuitSessionActivate: function() {
-@@ -470,4 +477,19 @@ const Indicator = new Lang.Class({
-         this.menu.itemActivated();
-         this._loginManager.suspend();
-     },
-+
 +    _lightdmLoginSession: function() {
 +        try {
 +            let seat = GLib.getenv("XDG_SEAT_PATH");
@@ -75,5 +31,49 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
 +        } catch(e) {
 +            return false;
 +        }
-+    }
- });
++    },
++
+     _sensorProxyAppeared: function() {
+         this._sensorProxy = new SensorProxy(Gio.DBus.system, SENSOR_BUS_NAME, SENSOR_OBJECT_PATH,
+             (proxy, error)  => {
+@@ -313,7 +328,7 @@ const SystemActions = new Lang.Class({
+     _updateLockScreen() {
+         let showLock = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
+         let allowLockScreen = !this._lockdownSettings.get_boolean(DISABLE_LOCK_SCREEN_KEY);
+-        this._actions.get(LOCK_SCREEN_ACTION_ID).available = showLock && allowLockScreen && LoginManager.canLock();
++        this._actions.get(LOCK_SCREEN_ACTION_ID).available = showLock && allowLockScreen;
+         this.notify('can-lock-screen');
+     },
+ 
+@@ -400,20 +415,24 @@ const SystemActions = new Lang.Class({
+         if (!this._actions.get(LOCK_SCREEN_ACTION_ID).available)
+             throw new Error('The lock-screen action is not available!');
+ 
+-        Main.screenShield.lock(true);
++        if (Main.screenShield)
++            Main.screenShield.lock(true);
++        else
++            this._lightdmLoginSession();
+     },
+ 
+     activateSwitchUser: function() {
+         if (!this._actions.get(SWITCH_USER_ACTION_ID).available)
+             throw new Error('The switch-user action is not available!');
+ 
+-        if (Main.screenShield)
++        if (Main.screenShield) {
+             Main.screenShield.lock(false);
+-
+-        Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
+-            Gdm.goto_login_session_sync(null);
+-            return false;
+-        });
++            Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
++                Gdm.goto_login_session_sync(null);
++                return false;
++            });
++        } else
++            this._lightdmLoginSession();
+     },
+ 
+     activateLogout: function() {
