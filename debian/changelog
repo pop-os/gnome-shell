@@ -1,4 +1,4 @@
-gnome-shell (3.25.91-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.25.91-0ubuntu1) artful; urgency=medium
 
   [ Jeremy Bicha ]
   * New upstream release (LP: #1712800)
@@ -25,7 +25,7 @@ gnome-shell (3.25.91-0ubuntu1) UNRELEASED; urgency=medium
     - optional-libgdm.patch: disabled, this should not be required
       since Ubuntu is using gdm
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 30 Aug 2017 12:36:38 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 30 Aug 2017 14:46:42 -0400
 
 gnome-shell (3.24.3-0ubuntu7) artful; urgency=medium
 
