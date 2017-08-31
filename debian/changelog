@@ -2,6 +2,7 @@ gnome-shell (3.25.91-1) UNRELEASED; urgency=medium
 
   [ Jeremy Bicha ]
   * New upstream release
+  * Build with meson
   * debian/control.in:
     - Drop obsolete Build-Depends against telepathy-glib
     - Bump minimum mutter to 3.24.0, gjs to 1.47.90
