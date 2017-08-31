@@ -5,7 +5,9 @@ gnome-shell (3.25.91-1) UNRELEASED; urgency=medium
   * Build with meson
   * debian/control.in:
     - Drop obsolete Build-Depends against telepathy-glib
-    - Bump minimum mutter to 3.24.0, gjs to 1.47.90
+    - Build-Depend on libasound2-dev
+    - Bump minimum mutter to 3.25.91, gjs to 1.47.90,
+      glib to 2.53.0
     - Depend on gir1.2-geoclue-2.0 and gir1.2-rsvg-2.0
     - Depend on caribou (LP: #1589240)
     - Recommend chrome-gnome-shell
