@@ -64,7 +64,6 @@ Vcs-Browser: https://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-
 Package: gnome-shell
 Architecture: linux-any
 Depends: ${gir:Depends},
-         ${icon-theme:Depends},
          ${misc:Depends},
          ${shlibs:Depends},
          caribou (>= 0.4.8),

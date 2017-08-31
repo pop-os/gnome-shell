@@ -10,6 +10,7 @@ gnome-shell (3.25.91-1) UNRELEASED; urgency=medium
     - Depend on caribou (LP: #1589240)
     - Recommend chrome-gnome-shell
     - Recommend switcheroo-control for dual GPU support
+  * Drop icon theme dependency hack no longer used by Ubuntu 
   * Add run-unit-tests.patch: Run unit tests with meson
   * Drop 3.14 upgrade hack, not needed after stretch
   * Drop 50-extension-reload-fail.patch: applied in new release
