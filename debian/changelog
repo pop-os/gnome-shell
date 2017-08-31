@@ -10,12 +10,21 @@ gnome-shell (3.25.91-1) UNRELEASED; urgency=medium
     - Recommend chrome-gnome-shell
     - Recommend switcheroo-control for dual GPU support
   * Drop 3.14 upgrade hack, not needed after stretch
+  * Drop 50-extension-reload-fail.patch: applied in new release
 
   [ Simon McVittie]
   * Drop Telepathy g-i bindings from Depends to Suggests now that they
     are runtime-optional upstream
 
  -- Simon McVittie <smcv@debian.org>  Tue, 04 Apr 2017 09:24:23 +0100
+
+gnome-shell (3.22.3-3) unstable; urgency=medium
+
+  * debian/patches/50-extension-reload-fail.patch:
+    - Add patch to fix a bug where extensions could be left enabled in the
+      lock screen.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 26 Apr 2017 18:47:56 +0200
 
 gnome-shell (3.22.3-2) unstable; urgency=medium
 
