@@ -1,3 +1,9 @@
+gnome-shell (3.25.91-3) UNRELEASED; urgency=medium
+
+  * Don't fail the build for test failures
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 31 Aug 2017 18:51:01 -0400
+
 gnome-shell (3.25.91-2) experimental; urgency=medium
 
   * Build-Depend on libgl1-mesa-dri for build tests since
