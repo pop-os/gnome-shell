@@ -51,6 +51,7 @@ Build-Depends: debhelper (>= 10.3~),
                gir1.2-geoclue-2.0 <!nocheck>,
                gir1.2-gweather-3.0 <!nocheck>,
                gir1.2-rsvg-2.0 <!nocheck>,
+               libgl1-mesa-dri <!nocheck>,
                xauth <!nocheck>,
                xvfb <!nocheck>
 Standards-Version: 4.1.0
