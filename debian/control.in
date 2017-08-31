@@ -44,6 +44,14 @@ Build-Depends: debhelper (>= 10.3~),
                mesa-common-dev,
                meson (>= 0.42),
                python3,
+               gir1.2-accountsservice-1.0 <!nocheck>,
+               gir1.2-caribou-1.0 (>= 0.4.8) <!nocheck>,
+               gir1.2-gdm-1.0 (>= 3.18.2) <!nocheck>,
+               gir1.2-geoclue-2.0 <!nocheck>,
+               gir1.2-gweather-3.0 <!nocheck>,
+               gir1.2-rsvg-2.0 <!nocheck>,
+               xauth <!nocheck>,
+               xvfb <!nocheck>
 Standards-Version: 3.9.8
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
 Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-shell

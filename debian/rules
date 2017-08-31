@@ -41,3 +41,6 @@ ifeq ($(shell dpkg-vendor --query vendor),Ubuntu)
 override_dh_gencontrol:
 	dh_gencontrol -- -Vicon-theme:Depends=adwaita-icon-theme-full
 endif
+
+override_dh_auto_test:
+	xvfb-run dh_auto_test
