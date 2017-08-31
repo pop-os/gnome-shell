@@ -22,12 +22,13 @@ gnome-shell (3.25.91-1) experimental; urgency=medium
   * Add run-unit-tests.patch: Run unit tests with meson
   * Drop 3.14 upgrade hack, not needed after stretch
   * Drop 50-extension-reload-fail.patch: applied in new release
+  * Bump Standards-Version to 4.1.0
 
   [ Simon McVittie]
   * Drop Telepathy g-i bindings from Depends to Suggests now that they
     are runtime-optional upstream
 
- -- Simon McVittie <smcv@debian.org>  Tue, 04 Apr 2017 09:24:23 +0100
+ -- Simon McVittie <smcv@debian.org>  Thu, 31 Aug 2017 12:24:23 +0100
 
 gnome-shell (3.22.3-3) unstable; urgency=medium
 
