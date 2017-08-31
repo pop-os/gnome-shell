@@ -1,8 +1,7 @@
-gnome-shell (3.24.2-1) UNRELEASED; urgency=medium
-
-  * Work in progress: needs a newer gjs, which in turn needs mozjs38
+gnome-shell (3.25.91-1) UNRELEASED; urgency=medium
 
   [ Jeremy Bicha ]
+  * New upstream release
   * debian/control.in:
     - Drop obsolete Build-Depends against telepathy-glib
     - Bump minimum mutter to 3.24.0, gjs to 1.47.90
