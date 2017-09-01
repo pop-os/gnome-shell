@@ -17,6 +17,8 @@ gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
       a wallpaper as it matches the boot sequence, and can't be easily changed
       by the user.
     - ensure lock screen matches gdm and shell theming.
+    Make the theme maintainable still overriding on purpose some properties
+    instead of changing them in context.
   * Theme new assets on build (close and toggle buttons)
   * Add upstream high contrast theme to ubuntu mode. This will default to
     adwaita with upstream colors for accessibility.
