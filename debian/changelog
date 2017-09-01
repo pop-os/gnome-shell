@@ -1,4 +1,4 @@
-gnome-shell (3.25.91-4) UNRELEASED; urgency=medium
+gnome-shell (3.25.91-4) experimental; urgency=medium
 
   * debian/control.in:
     - Don't recommend gnome-contacts or gnome-themes-standard-data
@@ -9,7 +9,7 @@ gnome-shell (3.25.91-4) UNRELEASED; urgency=medium
     - Make build tests mandatory on Ubuntu (unknown failure on Debian)
     - Add workaround for Ubuntu translations issue
 
- -- Jeremy Bicha <jbicha@debian.org>  Fri, 01 Sep 2017 10:57:42 -0400
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 01 Sep 2017 11:41:20 -0400
 
 gnome-shell (3.25.91-3) experimental; urgency=medium
 
