@@ -24,6 +24,11 @@ gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
     - add caching for desktop detection to avoid querying the current desktop
       env variable as iterate through the list each time. For the time of the
       Shell process, we can expect this env variable to stay stable.
+  * debian/patches/ubuntu_background_login.patch:
+    - Change default background color as we modified the default GDM color
+      for our ubuntu session. Change it as well here, still applying the
+      background noise loading.
+      This screen is appearing for a slip second when the Shell is loading.
 
  -- Didier Roche <didrocks@ubuntu.com>  Thu, 31 Aug 2017 13:26:28 +0200
 

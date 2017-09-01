@@ -1,0 +1,25 @@
+Description: Change default background color based on session.
+ We changed default GDM color for our ubuntu session. Change it as well here,
+ still applying the background noise loading.
+ This screen is appearing for a slip second when the Shell is loading.
+Forwarded: not-needed
+Author: Didier Roche <didrocks@ubuntu.com>
+Index: gnome-shell-3.25.91/js/ui/background.js
+===================================================================
+--- gnome-shell-3.25.91.orig/js/ui/background.js
++++ gnome-shell-3.25.91/js/ui/background.js
+@@ -102,12 +102,13 @@ const Lang = imports.lang;
+ const Meta = imports.gi.Meta;
+ const Signals = imports.signals;
+ 
++const Desktop = imports.misc.desktop;
+ const LoginManager = imports.misc.loginManager;
+ const Main = imports.ui.main;
+ const Params = imports.misc.params;
+ const Tweener = imports.ui.tweener;
+ 
+-var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
++var DEFAULT_BACKGROUND_COLOR = (Desktop.is("ubuntu")) ? Clutter.Color.from_pixel(0x2c001eff) : Clutter.Color.from_pixel(0x2e3436ff);
+ 
+ const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
+ const PRIMARY_COLOR_KEY = 'primary-color';
