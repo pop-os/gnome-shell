@@ -1387,13 +1387,13 @@ StScrollBar {
     spacing: 1px; }
   .notification-banner .notification-button {
     padding: 4px 4px 5px;
-    background-color: #dd4814; }
+    background-color: rgba(238, 238, 236, 0.1); }
     .notification-banner .notification-button:first-child {
       border-radius: 0 0 0 6px; }
     .notification-banner .notification-button:last-child {
       border-radius: 0 0 6px 0; }
     .notification-banner .notification-button:hover, .notification-banner .notification-buttonfocus {
-      background-color: #bb3e11; }
+      background-color: rgba(238, 238, 236, 0.2); }
 
 .summary-source-counter {
   font-size: 10pt;
@@ -1933,6 +1933,11 @@ stage {
 /* active buttons are highlighted */
 .message-list-clear-button.button:active {
   background-color: #dd4814
+}
+
+/* notification selected */
+.notification-banner .notification-button:active {
+  background-color: #dd4814;
 }
 
 /* window close ubuntu image */
