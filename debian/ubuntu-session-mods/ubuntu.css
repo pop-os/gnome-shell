@@ -206,12 +206,12 @@ StScrollBar {
 .toggle-switch-us {
   background-image: url("resource:///org/gnome/shell/theme/toggle-off-us.svg"); }
   .toggle-switch-us:checked {
-    background-image: url("resource:///org/gnome/shell/theme/toggle-on-us.svg"); }
+    background-image: url("ubuntu-toggle-on-us.svg"); }
 
 .toggle-switch-intl {
   background-image: url("resource:///org/gnome/shell/theme/toggle-off-intl.svg"); }
   .toggle-switch-intl:checked {
-    background-image: url("resource:///org/gnome/shell/theme/toggle-on-intl.svg"); }
+    background-image: url("ubuntu-toggle-on-intl.svg"); }
 
 /* links */
 .shell-link {
@@ -1042,7 +1042,7 @@ StScrollBar {
   icon-size: 1.09em; }
 
 .window-close {
-  background-image: url("resource:///org/gnome/shell/theme/close-window.svg");
+  background-image: url("ubuntu-close-window.svg");
   background-size: 32px;
   height: 32px;
   width: 32px; }

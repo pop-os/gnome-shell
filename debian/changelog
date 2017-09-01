@@ -17,6 +17,7 @@ gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
       a wallpaper as it matches the boot sequence, and can't be easily changed
       by the user.
     - ensure lock screen matches gdm and shell theming.
+  * Theme new assets on build (close and toggle buttons)
 
  -- Didier Roche <didrocks@ubuntu.com>  Thu, 31 Aug 2017 13:26:28 +0200
 

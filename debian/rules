@@ -23,6 +23,11 @@ override_dh_auto_configure:
 
 override_dh_install:
 	find debian/tmp -name '*.la' -delete
+	# add more assets
+	mkdir -p debian/tmp/usr/share/gnome-shell/theme/
+	sed -e 's/#2975c4/#dd4814/' -e 's/#4a90d9/#e95420/' data/theme/close-window.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-close-window.svg
+	sed -e 's/#182f4c/#bb3e11/' -e 's/#205b9a/#e9542/' data/theme/toggle-on-us.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-toggle-on-us.svg
+	sed -e 's/#182f4c/#bb3e11/' -e 's/#205b9a/#e9542/' data/theme/toggle-on-intl.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-toggle-on-intl.svg
 	dh_install --fail-missing
 
 override_dh_makeshlibs:
