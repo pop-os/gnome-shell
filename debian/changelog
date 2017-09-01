@@ -1,5 +1,8 @@
 gnome-shell (3.25.91-4) UNRELEASED; urgency=medium
 
+  * debian/control.in:
+    - Don't recommend gnome-contacts or gnome-themes-standard-data
+    - Recommend gnome-user-docs instead of transitional package
   * debian/rules:
     - Don't use variable when passing libexecdir for meson build
     - Change --list-missing to --fail-missing to catch this kind of problem
