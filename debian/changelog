@@ -4,6 +4,8 @@ gnome-shell (3.25.91-4) UNRELEASED; urgency=medium
     - Don't use variable when passing libexecdir for meson build
     - Change --list-missing to --fail-missing to catch this kind of problem
     - Switch to dh_missing
+    - Make build tests mandatory on Ubuntu (unknown failure on Debian)
+    - Add workaround for Ubuntu translations issue
 
  -- Jeremy Bicha <jbicha@debian.org>  Fri, 01 Sep 2017 10:57:42 -0400
 
