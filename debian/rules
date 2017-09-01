@@ -18,7 +18,7 @@ endif
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		--libdir=/usr/lib \
-		--libexecdir="\$${libdir}/gnome-shell" \
+		--libexecdir=/usr/lib/gnome-shell \
 		$(CONFFLAGS)
 
 override_dh_install:
@@ -26,7 +26,7 @@ override_dh_install:
 	# create ubuntu shell theming file
 	mkdir debian/tmp/usr/share/gnome-shell/theme/
 	sed -f debian/ubuntu-session-mods/theme-script.regexp data/theme/gnome-shell.css > debian/tmp/usr/share/gnome-shell/theme/ubuntu.css
-	dh_install --list-missing
+	dh_install --fail-missing
 
 override_dh_makeshlibs:
 	dh_makeshlibs -Xlibgnome-shell
