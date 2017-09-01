@@ -1,10 +1,10 @@
-gnome-shell (3.25.91-0ubuntu2~1) UNRELEASED; urgency=medium
+gnome-shell (3.25.91-0ubuntu2) artful; urgency=medium
 
   * debian/rules:
     - Don't use variable when passing libexecdir for meson build
     - Change --list-missing to --fail-missing to catch this kind of problem
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 01 Sep 2017 10:28:11 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 01 Sep 2017 10:38:12 -0400
 
 gnome-shell (3.25.91-0ubuntu1) artful; urgency=medium
 
