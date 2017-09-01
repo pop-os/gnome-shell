@@ -20,6 +20,10 @@ gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
   * Theme new assets on build (close and toggle buttons)
   * Add upstream high contrast theme to ubuntu mode. This will default to
     adwaita with upstream colors for accessibility.
+  * debian/patches/50_add_ubuntu_desktop_detect.patch:
+    - add caching for desktop detection to avoid querying the current desktop
+      env variable as iterate through the list each time. For the time of the
+      Shell process, we can expect this env variable to stay stable.
 
  -- Didier Roche <didrocks@ubuntu.com>  Thu, 31 Aug 2017 13:26:28 +0200
 
