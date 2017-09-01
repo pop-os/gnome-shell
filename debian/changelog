@@ -31,6 +31,8 @@ gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
       for our ubuntu session. Change it as well here, still applying the
       background noise loading.
       This screen is appearing for a slip second when the Shell is loading.
+  * debian/rules:
+    - Use ninja to generate translations. Thanks Jeremy.
 
  -- Didier Roche <didrocks@ubuntu.com>  Thu, 31 Aug 2017 13:26:28 +0200
 
