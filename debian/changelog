@@ -1,3 +1,25 @@
+gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
+
+  * Ship new ubuntu css theme enabled in the ubuntu session.
+    We don't generate is from a regexp list or patch as it has complex
+    data structure (removal of some parts of stenzas, same source color
+    mapping to different destination colors depending as corresponding
+    to different elements).
+    Right now, we prefer to do a 3-way merge of the theme and look working
+    upstream for better theming support.
+    Some summary of the changes are:
+    - use ubuntu colors for panel, and most graphical elements (dialog box,
+      sliders, menu items, buttons hilights).
+    - remove rounded corners as they don't play well with nautilus showing up
+      desktop and non black panel theme.
+    - change blue grey scheme by orange grey
+    - change gdm assets and background. Theme it aubergine instead of
+      a wallpaper as it matches the boot sequence, and can't be easily changed
+      by the user.
+    - ensure lock screen matches gdm and shell theming.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 31 Aug 2017 13:26:28 +0200
+
 gnome-shell (3.25.91-0ubuntu2) artful; urgency=medium
 
   * debian/rules:

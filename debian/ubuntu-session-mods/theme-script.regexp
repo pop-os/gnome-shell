@@ -1,2 +1,0 @@
-s#  font-family: \(.*\)#  font-family: Ubuntu, \1#
-s#-st-icon-style: symbolic;#/*-st-icon-style: symbolic;*/#
