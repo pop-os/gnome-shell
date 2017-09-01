@@ -1,3 +1,12 @@
+gnome-shell (3.25.91-4) UNRELEASED; urgency=medium
+
+  * debian/rules:
+    - Don't use variable when passing libexecdir for meson build
+    - Change --list-missing to --fail-missing to catch this kind of problem
+    - Switch to dh_missing
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 01 Sep 2017 10:57:42 -0400
+
 gnome-shell (3.25.91-3) experimental; urgency=medium
 
   * Don't fail the build for test failures
