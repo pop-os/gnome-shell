@@ -12,7 +12,7 @@ gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
       sliders, menu items, buttons highlights).
     - remove rounded corners as they don't play well with nautilus showing up
       desktop and non black panel theme.
-    - change blue grey scheme by orange grey
+    - change blue grey scheme by orange grey (LP: #1690966)
     - change gdm assets and background. Theme it aubergine instead of
       a wallpaper as it matches the boot sequence, and can't be easily changed
       by the user.
