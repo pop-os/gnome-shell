@@ -1,4 +1,4 @@
-gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
+gnome-shell (3.25.91-0ubuntu3) artful; urgency=medium
 
   * Ship new ubuntu css theme enabled in the ubuntu session.
     We don't generate is from a regexp list or patch as it has complex
@@ -34,7 +34,7 @@ gnome-shell (3.25.91-0ubuntu3) UNRELEASED; urgency=medium
   * debian/rules:
     - Use ninja to generate translations. Thanks Jeremy.
 
- -- Didier Roche <didrocks@ubuntu.com>  Thu, 31 Aug 2017 13:26:28 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Mon, 04 Sep 2017 09:24:21 +0200
 
 gnome-shell (3.25.91-0ubuntu2) artful; urgency=medium
 
