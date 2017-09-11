@@ -1,7 +1,12 @@
 gnome-shell (3.25.91-0ubuntu4) UNRELEASED; urgency=medium
 
+  [ Jeremy Soller ]
   * Change path of gdm3 stylesheet
   * Add alternatives for gdm3 stylesheet, setting ubuntu.css as the default
+
+  [ Didier Roche ]
+  * debian/gnome-shell-common.install:
+    Install upstream theme for gdm if vanilla gnome theme is selected.
 
  -- Jeremy Soller <jeremy@system76.com>  Fri, 08 Sep 2017 10:12:58 -0600
 

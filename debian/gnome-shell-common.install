@@ -7,3 +7,5 @@ usr/share/gnome-shell
 usr/share/locale
 debian/ubuntu-session-mods/ubuntu.json usr/share/gnome-shell/modes/
 debian/ubuntu-session-mods/ubuntu.css usr/share/gnome-shell/theme/
+# install upstream theme for gdm if vanilla gnome theme is selected
+data/theme/gnome-shell.css usr/share/gnome-shell/theme/
