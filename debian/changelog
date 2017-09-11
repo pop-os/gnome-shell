@@ -1,4 +1,4 @@
-gnome-shell (3.25.91-0ubuntu4) UNRELEASED; urgency=medium
+gnome-shell (3.25.91-0ubuntu4) artful; urgency=medium
 
   [ Jeremy Soller ]
   * Change path of gdm3 stylesheet (LP: #1715722)
