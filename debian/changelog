@@ -1,3 +1,10 @@
+gnome-shell (3.25.91-0ubuntu4) UNRELEASED; urgency=medium
+
+  * Change path of gdm3 stylesheet
+  * Add alternatives for gdm3 stylesheet, setting ubuntu.css as the default
+
+ -- Jeremy Soller <jeremy@system76.com>  Fri, 08 Sep 2017 10:12:58 -0600
+
 gnome-shell (3.25.91-0ubuntu3) artful; urgency=medium
 
   * Ship new ubuntu css theme enabled in the ubuntu session.

@@ -10,3 +10,4 @@ ubuntu_lock_on_suspend.patch
 ubuntu_gdm.patch
 ubuntu_background_login.patch
 run-unit-tests.patch
+ubuntu_gdm_alternatives.patch
