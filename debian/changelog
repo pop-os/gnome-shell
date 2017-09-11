@@ -1,7 +1,7 @@
 gnome-shell (3.25.91-0ubuntu4) UNRELEASED; urgency=medium
 
   [ Jeremy Soller ]
-  * Change path of gdm3 stylesheet
+  * Change path of gdm3 stylesheet (LP: #1715722)
   * Add alternatives for gdm3 stylesheet, setting ubuntu.css as the default
 
   [ Didier Roche ]
