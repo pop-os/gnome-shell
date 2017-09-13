@@ -1,3 +1,18 @@
+gnome-shell (3.25.91-0ubuntu5) UNRELEASED; urgency=medium
+
+  Changes for ubuntu session:
+  * 71_smarter_alt_tab.patch
+    - quick alt-tab (without showing up the switcher) switch only between
+      the last window of the last 2 applications to be focused instead of
+      raising all windows of those apps. (LP: #1716921)
+  * 72_consistent_alt_key_above_tab_behavior.patch:
+    - ensure alt + key above tab, when the switcher is opened, focus the first
+      window and not directly the second one of an application. This is
+      relevant as the select window part of the switcher is only raising the
+      selected window, not the whole application. (LP: #1716872)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 12 Sep 2017 09:40:45 +0200
+
 gnome-shell (3.25.91-0ubuntu4) artful; urgency=medium
 
   [ Jeremy Soller ]

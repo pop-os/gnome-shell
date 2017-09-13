@@ -1,0 +1,63 @@
+Description: Build a smarter alt-tab in the ubuntu session
+ In case of a quick alt-tab (before the switcher UI shows up), we want to cover
+ the power user use-case, which is to switch quickly between 2 windows.
+ The issue with current behavior is say:
+ - you have an application with one instance, maximized
+ - you have another application with multiple instances, like multiple
+   terminals, not maximized.
+ If you press alt-tab, even quickly, the whole second application would be
+ raised (as no window has been selected). The consequence is that you have
+ all terminal in front of, for instance, your browser or documentation viewer
+ you are using.
+ The behavior we implement enables this. However, as soon as the switcher ui
+ is displayed to the user, not selecting a particular window instance will
+ raise the whole applications. Consequently only "quick alt-tab" flow is
+ impacted.
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1716921
+Forwaded: https://bugzilla.gnome.org/show_bug.cgi?id=787627
+
+Index: gnome-shell-3.25.91/js/ui/altTab.js
+===================================================================
+--- gnome-shell-3.25.91.orig/js/ui/altTab.js
++++ gnome-shell-3.25.91/js/ui/altTab.js
+@@ -13,6 +13,7 @@ const Atk = imports.gi.Atk;
+ const Main = imports.ui.main;
+ const SwitcherPopup = imports.ui.switcherPopup;
+ const Tweener = imports.ui.tweener;
++const Desktop = imports.misc.desktop;
+ 
+ var APP_ICON_HOVER_TIMEOUT = 200; // milliseconds
+ 
+@@ -247,6 +248,15 @@ var AppSwitcherPopup = new Lang.Class({
+ 
+     _finish : function(timestamp) {
+         let appIcon = this._items[this._selectedIndex];
++
++        // Only activate the first window of next app in case of fast alt-tab
++        // (popup switcher not displayed yet)
++        if (this._initialDelayTimeoutId !== 0 &&
++            this._selectedIndex === 1 &&
++            Desktop.is("ubuntu")) {
++            this._currentWindow = 0;
++        }
++
+         if (this._currentWindow < 0)
+             appIcon.app.activate_window(appIcon.cachedWindows[0], timestamp);
+         else
+Index: gnome-shell-3.25.91/js/ui/switcherPopup.js
+===================================================================
+--- gnome-shell-3.25.91.orig/js/ui/switcherPopup.js
++++ gnome-shell-3.25.91/js/ui/switcherPopup.js
+@@ -12,8 +12,10 @@ const St = imports.gi.St;
+ 
+ const Main = imports.ui.main;
+ const Tweener = imports.ui.tweener;
++const Desktop = imports.misc.desktop;
+ 
+-var POPUP_DELAY_TIMEOUT = 150; // milliseconds
++// we increase the timeout for ubuntu as we want smart alt-tab quick switch.
++var POPUP_DELAY_TIMEOUT = (Desktop.is("ubuntu")) ? 250 : 150 // milliseconds
+ 
+ var POPUP_SCROLL_TIME = 0.10; // seconds
+ var POPUP_FADE_OUT_TIME = 0.1; // seconds
