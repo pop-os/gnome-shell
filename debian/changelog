@@ -1,5 +1,6 @@
-gnome-shell (3.26.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.26.0-1) experimental; urgency=medium
 
+  * Team upload
   * New upstream stable release
     - Bump Mutter dependency to match
   * d/patches/00*: Add post-release bug fixes from upstream git
@@ -8,7 +9,7 @@ gnome-shell (3.26.0-1) UNRELEASED; urgency=medium
   * d/control.in: Bump GWeather dependency to 3.25.91 as mentioned on
     https://bugzilla.gnome.org/show_bug.cgi?id=787423
 
- -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 09:04:37 +0100
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 09:43:11 +0100
 
 gnome-shell (3.25.91-4) experimental; urgency=medium
 
