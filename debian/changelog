@@ -2,6 +2,8 @@ gnome-shell (3.25.91-5) UNRELEASED; urgency=medium
 
   * d/control.in: Bump recommendation on gnome-control-center to 3.25.2
     since we no longer provide the API used by older versions
+  * d/control.in: Bump GWeather dependency to 3.25.91 as mentioned on
+    https://bugzilla.gnome.org/show_bug.cgi?id=787423
 
  -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 09:04:37 +0100
 
