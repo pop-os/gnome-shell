@@ -3,6 +3,7 @@
 0003-dateMenu-Use-icon-for-message-indicator.patch
 0004-StEntry-fix-crash-when-hint-actor-is-NULL.patch
 0005-Update-Greek-translation.patch
+0006-gtk-embed-stop-watching-for-new-windows-when-icon-is.patch
 27-nm-libexec-path.patch
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch

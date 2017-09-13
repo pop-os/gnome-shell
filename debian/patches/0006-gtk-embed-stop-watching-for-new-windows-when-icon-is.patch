@@ -1,0 +1,69 @@
+From f9080821137358d37598a261ab9e1bedeeb9557e Mon Sep 17 00:00:00 2001
+From: Ray Strode <rstrode@redhat.com>
+Date: Tue, 12 Sep 2017 13:28:38 -0400
+Subject: [PATCH] gtk-embed: stop watching for new windows when icon is
+ unmapped
+
+Right now an icon could map itself, unmap itself, then remap itself,
+and we'd end up leaking a signal handler to watch for new windows.
+
+Later if the icon gets destroyed the handler will get called with
+freed memory.
+
+This commit fixes that by connecting to "unmap" instead of "destroy"
+
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=787361
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=875609
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1714745
+Applied-upstream: no
+---
+ src/shell-gtk-embed.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/src/shell-gtk-embed.c b/src/shell-gtk-embed.c
+index 176b41320..8b9c7235c 100644
+--- a/src/shell-gtk-embed.c
++++ b/src/shell-gtk-embed.c
+@@ -33,8 +33,8 @@ static void shell_gtk_embed_set_window (ShellGtkEmbed       *embed,
+                                         ShellEmbeddedWindow *window);
+ 
+ static void
+-shell_gtk_embed_on_window_destroy (GtkWidget     *object,
+-                                   ShellGtkEmbed *embed)
++shell_gtk_embed_on_window_unmapped (GtkWidget     *object,
++                                    ShellGtkEmbed *embed)
+ {
+   shell_gtk_embed_set_window (embed, NULL);
+ }
+@@ -124,6 +124,8 @@ shell_gtk_embed_on_window_mapped (GtkWidget     *object,
+   ShellGtkEmbedPrivate *priv = shell_gtk_embed_get_instance_private (embed);
+   MetaDisplay *display = shell_global_get_display (shell_global_get ());
+ 
++  g_warn_if_fail (priv->window_created_handler == 0);
++
+   /* Listen for new windows so we can detect when Mutter has
+      created a MutterWindow for this window */
+   priv->window_created_handler =
+@@ -156,7 +158,7 @@ shell_gtk_embed_set_window (ShellGtkEmbed       *embed,
+       g_object_unref (priv->window);
+ 
+       g_signal_handlers_disconnect_by_func (priv->window,
+-                                            (gpointer)shell_gtk_embed_on_window_destroy,
++                                            (gpointer)shell_gtk_embed_on_window_unmapped,
+                                             embed);
+ 
+       g_signal_handlers_disconnect_by_func (priv->window,
+@@ -172,8 +174,8 @@ shell_gtk_embed_set_window (ShellGtkEmbed       *embed,
+ 
+       _shell_embedded_window_set_actor (priv->window, embed);
+ 
+-      g_signal_connect (priv->window, "destroy",
+-                        G_CALLBACK (shell_gtk_embed_on_window_destroy), embed);
++      g_signal_connect (priv->window, "unmap",
++                        G_CALLBACK (shell_gtk_embed_on_window_unmapped), embed);
+ 
+       g_signal_connect (priv->window, "map",
+                         G_CALLBACK (shell_gtk_embed_on_window_mapped), embed);
+-- 
+2.14.1
+
