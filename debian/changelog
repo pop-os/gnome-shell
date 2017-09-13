@@ -2,6 +2,7 @@ gnome-shell (3.26.0-1) UNRELEASED; urgency=medium
 
   * New upstream stable release
     - Bump Mutter dependency to match
+  * d/patches/00*: Add post-release bug fixes from upstream git
   * d/control.in: Bump recommendation on gnome-control-center to 3.25.2
     since we no longer provide the API used by older versions
   * d/control.in: Bump GWeather dependency to 3.25.91 as mentioned on
