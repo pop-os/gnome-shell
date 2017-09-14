@@ -1,4 +1,4 @@
-gnome-shell (3.25.91-0ubuntu5) UNRELEASED; urgency=medium
+gnome-shell (3.25.91-0ubuntu5) artful; urgency=medium
 
   Changes for ubuntu session:
   * 71_smarter_alt_tab.patch
