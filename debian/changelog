@@ -1,3 +1,10 @@
+gnome-shell (3.26.0-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream release
+  * Dep on newer mutter.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Fri, 15 Sep 2017 07:51:41 +0200
+
 gnome-shell (3.25.91-0ubuntu5) artful; urgency=medium
 
   Changes for ubuntu session:
