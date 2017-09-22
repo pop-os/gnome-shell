@@ -1950,7 +1950,7 @@ stage {
 $ meld <gnome-shell-3.24.3>/data/theme/gnome-shell.css data/theme/gnome-shell.css debian/ubuntu-session-mods/ubuntu.css
 New changes are visible between the 2 first columns */
 dummy {
-  /* background color for most of UI elemnents like background of dialogs, shell, OSD, also, main button color */
+  /* background color for most of UI elements like background of dialogs, shell, OSD, also, main button color */
   background-color: #3f3e39;
   /* submenu background on main color */
   background-color: #3a3a34;

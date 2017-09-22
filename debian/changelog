@@ -1,3 +1,9 @@
+gnome-shell (3.26.0-0ubuntu2) UNRELEASED; urgency=medium
+
+  * fix typo in comment for ubuntu.css
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 20 Sep 2017 11:57:56 +0200
+
 gnome-shell (3.26.0-0ubuntu1) artful; urgency=medium
 
   * New upstream release
