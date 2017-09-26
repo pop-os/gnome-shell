@@ -160,13 +160,13 @@ StScrollBar {
   background-image: url("resource:///org/gnome/shell/theme/checkbox-off.svg"); }
 
 .check-box:focus StBin {
-  background-image: url("resource:///org/gnome/shell/theme/checkbox-off-focused.svg"); }
+  background-image: url("ubuntu-checkbox-off-focused.svg"); }
 
 .check-box:checked StBin {
   background-image: url("resource:///org/gnome/shell/theme/checkbox.svg"); }
 
 .check-box:focus:checked StBin {
-  background-image: url("resource:///org/gnome/shell/theme/checkbox-focused.svg"); }
+  background-image: url("ubuntu-checkbox-focused.svg"); }
 
 /* Switches */
 .toggle-switch {
