@@ -1,4 +1,4 @@
-gnome-shell (3.26.0-0ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (3.26.0-0ubuntu2) artful; urgency=medium
 
   * fix typo in comment for ubuntu.css
   * Make St checkbox orange instead of blue, as other icons in our theme.
