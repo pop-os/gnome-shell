@@ -1,8 +1,9 @@
-gnome-shell (3.26.0-0ubuntu3) UNRELEASED; urgency=medium
+gnome-shell (3.26.1-0ubuntu1) UNRELEASED; urgency=medium
 
   * debian/ubuntu-session-mods/ubuntu.css: workaround font blurryness
     under wayland by providing a slight stroke around the font matching
     windows title bar. (LP: #1714459)
+  * Remove 72_consistent_alt_key_above_tab_behavior.patch: upstreamed
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 29 Sep 2017 12:35:21 -0400
 
