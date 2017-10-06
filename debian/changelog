@@ -1,5 +1,6 @@
-gnome-shell (3.26.1-1) UNRELEASED; urgency=medium
+gnome-shell (3.26.1-1) experimental; urgency=medium
 
+  * Team upload
   * New upstream release
     - d/p/000[1-5]*.patch: Drop patches that came from upstream
     - d/p/0006-gtk-embed-stop-watching-for-new-windows-when-icon-is.patch:
@@ -11,7 +12,7 @@ gnome-shell (3.26.1-1) UNRELEASED; urgency=medium
     Drop patch for GNOME #686502, fixed differently upstream
     (and was no longer applied anyway)
 
- -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:20:59 +0100
+ -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:35:46 +0100
 
 gnome-shell (3.26.0-2) experimental; urgency=medium
 
