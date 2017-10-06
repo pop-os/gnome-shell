@@ -1,4 +1,4 @@
-gnome-shell (3.26.1-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.26.1-0ubuntu1) artful; urgency=medium
 
   * New upstream release
   * debian/ubuntu-session-mods/ubuntu.css: workaround font blurryness
