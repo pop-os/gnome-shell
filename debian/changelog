@@ -7,6 +7,7 @@ gnome-shell (3.26.1-1) UNRELEASED; urgency=medium
   * 30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch:
     Drop patch for GNOME #686502, fixed differently upstream
     (and was no longer applied anyway)
+  * d/p/run-unit-tests.patch: Drop patch, applied upstream
 
  -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:20:59 +0100
 
