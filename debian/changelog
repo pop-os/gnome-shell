@@ -2,6 +2,7 @@ gnome-shell (3.26.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
     - Drop patches that came from upstream
+  * Drop patch for #875609, fixed differently upstream
 
  -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:20:59 +0100
 
