@@ -12,3 +12,4 @@ ubuntu_gdm.patch
 ubuntu_background_login.patch
 ubuntu_gdm_alternatives.patch
 workaround_crasher_fractional_scaling.patch
+fix_reset_initial_focus.patch

@@ -1,0 +1,29 @@
+From d361e5fc66e7ceb005732089e2335ed54f38cd6b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 5 Oct 2017 10:06:10 +0200
+Subject: [PATCH] dialog: Reset initial focus on clear
+
+Since 0b02f757f862 we track the button that should have key focus
+when the dialog is opened. However when the dialog is reused, the
+button may get removed - clear the initial focus in that case to
+allow setButton() to set a new one.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=788542
+---
+ js/ui/dialog.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/dialog.js b/js/ui/dialog.js
+index 781fe0a97..273b1717d 100644
+--- a/js/ui/dialog.js
++++ b/js/ui/dialog.js
+@@ -135,6 +135,7 @@ var Dialog = new Lang.Class({
+     clearButtons: function () {
+         this.buttonLayout.destroy_all_children();
+         this._buttonKeys = {};
++        this._initialKeyFocus = null;
+     },
+ });
+ 
+-- 
+2.13.5

@@ -6,6 +6,11 @@ gnome-shell (3.26.1-0ubuntu2) UNRELEASED; urgency=medium
     Andrea is working on a proper fix/debug (LP: #1714542)
 
 
+  [ Didier Roche ]
+  * debian/patches/fix_reset_initial_focus.patch:
+    - cherry-pick fixed proposed by upstream to avoid regression when keyboard
+      is used the second time a modal dialog is drawn.
+
  -- Didier Roche <didrocks@ubuntu.com>  Mon, 09 Oct 2017 16:06:16 +0200
 
 gnome-shell (3.26.1-0ubuntu1) artful; urgency=medium
