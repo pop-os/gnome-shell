@@ -11,3 +11,4 @@ ubuntu_lock_on_suspend.patch
 ubuntu_gdm.patch
 ubuntu_background_login.patch
 ubuntu_gdm_alternatives.patch
+workaround_crasher_fractional_scaling.patch
