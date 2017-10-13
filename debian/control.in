@@ -54,7 +54,7 @@ Build-Depends: debhelper (>= 10.3~),
                libgl1-mesa-dri <!nocheck>,
                xauth <!nocheck>,
                xvfb <!nocheck>
-Standards-Version: 4.1.0
+Standards-Version: 4.1.1
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
 Vcs-Svn: svn://anonscm.debian.org/pkg-gnome/desktop/unstable/gnome-shell
 Vcs-Browser: https://anonscm.debian.org/viewvc/pkg-gnome/desktop/unstable/gnome-shell/

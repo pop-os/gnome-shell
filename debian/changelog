@@ -1,6 +1,7 @@
 gnome-shell (3.26.1-2) UNRELEASED; urgency=medium
 
   [ Jeremy Bicha ]
+  * Bump Standards-Version to 4.1.1
   * Cherry-pick git_layout-unset-when-headless.patch from gnome-3-26
     branch to fix crash bug (LP: #1717170)
 
