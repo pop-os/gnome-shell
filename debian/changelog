@@ -1,3 +1,98 @@
+gnome-shell (3.26.1-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - d/p/000[1-5]*.patch: Drop patches that came from upstream
+    - d/p/0006-gtk-embed-stop-watching-for-new-windows-when-icon-is.patch:
+      Drop patch for #875609, fixed differently upstream
+    - debian/patches/41-handle-logind-fail.patch:
+      Drop patch for #729877, fixed differently upstream
+    - d/p/run-unit-tests.patch: Drop patch, applied upstream
+  * d/p/30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch:
+    Drop patch for GNOME #686502, fixed differently upstream
+    (and was no longer applied anyway)
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:35:46 +0100
+
+gnome-shell (3.26.0-2) experimental; urgency=medium
+
+  * Team upload
+  * Add proposed patch fixing a crash in embedding
+    (Closes: #875609, LP: #1714745)
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 11:12:50 +0100
+
+gnome-shell (3.26.0-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream stable release
+    - Bump Mutter dependency to match
+  * d/patches/00*: Add post-release bug fixes from upstream git
+  * d/control.in: Bump recommendation on gnome-control-center to 3.25.2
+    since we no longer provide the API used by older versions
+  * d/control.in: Bump GWeather dependency to 3.25.91 as mentioned on
+    https://bugzilla.gnome.org/show_bug.cgi?id=787423
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 09:43:11 +0100
+
+gnome-shell (3.25.91-4) experimental; urgency=medium
+
+  * debian/control.in:
+    - Don't recommend gnome-contacts or gnome-themes-standard-data
+    - Recommend gnome-user-docs instead of transitional package
+  * debian/rules:
+    - Don't use variable when passing libexecdir for meson build
+    - Change --list-missing to --fail-missing to catch this kind of problem
+    - Make build tests mandatory on Ubuntu (unknown failure on Debian)
+    - Add workaround for Ubuntu translations issue
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 01 Sep 2017 11:41:20 -0400
+
+gnome-shell (3.25.91-3) experimental; urgency=medium
+
+  * Don't fail the build for test failures
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 31 Aug 2017 18:51:45 -0400
+
+gnome-shell (3.25.91-2) experimental; urgency=medium
+
+  * Build-Depend on libgl1-mesa-dri for build tests since
+    Debian's mesa packages currently only recommends it
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 31 Aug 2017 12:43:54 -0400
+
+gnome-shell (3.25.91-1) experimental; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release
+  * Build with meson
+  * debian/control.in:
+    - Drop obsolete Build-Depends against telepathy-glib
+    - Build-Depend on libasound2-dev
+    - Bump minimum mutter to 3.25.91, gjs to 1.47.90,
+      glib to 2.53.0
+    - Depend on gir1.2-geoclue-2.0 and gir1.2-rsvg-2.0
+    - Depend on caribou (LP: #1589240)
+    - Recommend chrome-gnome-shell
+    - Recommend switcheroo-control for dual GPU support
+  * debian/rules:
+    - Drop disable-new-dtags flag, no longer needed
+    - Drop dh_girepository override, doesn't work with meson
+      and apparently not needed
+  * debian/gnome-shell-common.install:
+    - Don't try to install gtk-doc documentation
+  * Drop icon theme dependency hack no longer used by Ubuntu 
+  * Add run-unit-tests.patch: Run unit tests with meson
+  * Drop 3.14 upgrade hack, not needed after stretch
+  * Drop 50-extension-reload-fail.patch: applied in new release
+  * Bump Standards-Version to 4.1.0
+
+  [ Simon McVittie]
+  * Drop Telepathy g-i bindings from Depends to Suggests now that they
+    are runtime-optional upstream
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 31 Aug 2017 12:24:23 +0100
+
 gnome-shell (3.22.3-3) unstable; urgency=medium
 
   * debian/patches/50-extension-reload-fail.patch:
