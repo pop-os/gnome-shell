@@ -1,3 +1,10 @@
+gnome-shell (3.26.1-0ubuntu3) UNRELEASED; urgency=medium
+
+  * Cherry-pick git_layout-unset-when-headless.patch from gnome-3-26
+    branch to fix crash bug (LP: #1717170)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 Oct 2017 16:10:59 -0400
+
 gnome-shell (3.26.1-0ubuntu2) artful; urgency=medium
 
   [ Andrea Azzarone ]

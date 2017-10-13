@@ -1,0 +1,38 @@
+1717170From 5f8a5114833d7d31d4bd64affbd323bb7252c3d0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jonas=20=C3=85dahl?= <jadahl@gmail.com>
+Date: Fri, 6 Oct 2017 20:26:24 -0400
+Subject: layout: Unset primary and bottom monitor when headless
+
+We were handling being initially headless by only setting the primary
+and bottom monitor if there was any primary monitor, then checking the
+primary monitor reference before making calls assuming there was any
+monitors.
+
+What we didn't do was unset the primary and bottom monitor when going
+headless, meaning that temporarly disconnecting a monitor while having
+windows open caused an assert to be triggered due to various code paths
+taking the path assuming there are valid monitors.
+
+Unsetting both the primary and bottom monitor when going headless avoids
+the code paths in the same way as they were avoided when starting
+headless.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=788607
+---
+ js/ui/layout.js | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/js/ui/layout.js b/js/ui/layout.js
+index 304c2a1..2f18947 100644
+--- a/js/ui/layout.js
++++ b/js/ui/layout.js
+@@ -351,6 +351,9 @@ var LayoutManager = new Lang.Class({
+                 this._loadBackground();
+                 this._pendingLoadBackground = false;
+             }
++        } else {
++            this.primaryMonitor = null;
++            this.bottomMonitor = null;
+         }
+     },
+ 
