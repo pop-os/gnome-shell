@@ -1,3 +1,21 @@
+gnome-shell (3.26.1-2) UNRELEASED; urgency=medium
+
+  [ Jeremy Bicha ]
+  * Cherry-pick git_layout-unset-when-headless.patch from gnome-3-26
+    branch to fix crash bug (LP: #1717170)
+
+  [ Andrea Azzarone ]
+  * debian/patches/workaround_crasher_fractional_scaling.patch:
+    workaround a popular crash for now when fractional scaling is enabled.
+    Andrea is working on a proper fix/debug (LP: #1714542)
+
+  [ Didier Roche ]
+  * debian/patches/fix_reset_initial_focus.patch:
+    - cherry-pick fix proposed by upstream to avoid regression when keyboard
+      is used the second time a modal dialog is drawn.
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 13 Oct 2017 16:28:52 -0400
+
 gnome-shell (3.26.1-1) experimental; urgency=medium
 
   * Team upload

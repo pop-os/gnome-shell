@@ -1,1 +1,4 @@
 27-nm-libexec-path.patch
+workaround_crasher_fractional_scaling.patch
+fix_reset_initial_focus.patch
+git_layout-unset-when-headless.patch
