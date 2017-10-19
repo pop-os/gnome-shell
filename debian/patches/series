@@ -13,6 +13,4 @@ ubuntu_background_login.patch
 ubuntu_gdm_alternatives.patch
 workaround_crasher_fractional_scaling.patch
 fix_reset_initial_focus.patch
-#git_layout-unset-when-headless.patch
-revert_5c37facc083078564faaeec4aa58084857c56ee1.patch
-revert_023b50e7a7002226d6176bede22930d96da074a9.patch
+git_layout-unset-when-headless.patch

@@ -1,3 +1,10 @@
+gnome-shell (3.26.1-0ubuntu5) UNRELEASED; urgency=medium
+
+  * Reenable headless patches and cherry-pick now that the gdm fix
+    is in mutter.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 19 Oct 2017 08:38:31 +0200
+
 gnome-shell (3.26.1-0ubuntu4) artful; urgency=medium
 
   * revert_023b50e7a7002226d6176bede22930d96da074a9.patch,
@@ -25,7 +32,8 @@ gnome-shell (3.26.1-0ubuntu2) artful; urgency=medium
 
 
   [ Didier Roche ]
-  * debian/patches/fix_reset_initial_focus.patch:
+  * debian/patches/fix_reset_ithunderbird_didrocks/
+nitial_focus.patch:
     - cherry-pick fixed proposed by upstream to avoid regression when keyboard
       is used the second time a modal dialog is drawn.
 
