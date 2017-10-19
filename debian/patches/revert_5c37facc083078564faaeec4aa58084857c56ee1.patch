@@ -1,0 +1,214 @@
+reverted:
+Index: gnome-shell-3.26.1/js/ui/layout.js
+===================================================================
+--- gnome-shell-3.26.1.orig/js/ui/layout.js
++++ gnome-shell-3.26.1/js/ui/layout.js
+@@ -129,9 +129,6 @@ var MonitorConstraint = new Lang.Class({
+         if (!this._primary && this._index < 0)
+             return;
+ 
+-        if (!Main.layoutManager.primaryMonitor)
+-            return;
+-
+         let index;
+         if (this._primary)
+             index = Main.layoutManager.primaryIndex;
+@@ -192,7 +189,6 @@ var LayoutManager = new Lang.Class({
+         this._topActors = [];
+         this._isPopupWindowVisible = false;
+         this._startingUp = true;
+-        this._pendingLoadBackground = false;
+ 
+         // We don't want to paint the stage background color because either
+         // the SystemBackground we create or the MetaBackgroundActor inside
+@@ -330,9 +326,7 @@ var LayoutManager = new Lang.Class({
+         for (let i = 0; i < nMonitors; i++)
+             this.monitors.push(new Monitor(i, screen.get_monitor_geometry(i)));
+ 
+-        if (nMonitors == 0) {
+-            this.primaryIndex = this.bottomIndex = -1;
+-        } else if (nMonitors == 1) {
++        if (nMonitors == 1) {
+             this.primaryIndex = this.bottomIndex = 0;
+         } else {
+             // If there are monitors below the primary, then we need
+@@ -346,15 +340,8 @@ var LayoutManager = new Lang.Class({
+                 }
+             }
+         }
+-        if (this.primaryIndex != -1) {
+-            this.primaryMonitor = this.monitors[this.primaryIndex];
+-            this.bottomMonitor = this.monitors[this.bottomIndex];
+-
+-            if (this._pendingLoadBackground) {
+-                this._loadBackground();
+-                this._pendingLoadBackground = false;
+-            }
+-        }
++        this.primaryMonitor = this.monitors[this.primaryIndex];
++        this.bottomMonitor = this.monitors[this.bottomIndex];
+     },
+ 
+     _updateHotCorners: function() {
+@@ -479,9 +466,6 @@ var LayoutManager = new Lang.Class({
+         this.screenShieldGroup.set_position(0, 0);
+         this.screenShieldGroup.set_size(global.screen_width, global.screen_height);
+ 
+-        if (!this.primaryMonitor)
+-            return;
+-
+         this.panelBox.set_position(this.primaryMonitor.x, this.primaryMonitor.y);
+         this.panelBox.set_size(this.primaryMonitor.width, -1);
+ 
+@@ -504,9 +488,6 @@ var LayoutManager = new Lang.Class({
+             this._rightPanelBarrier = null;
+         }
+ 
+-        if (!this.primaryMonitor)
+-            return;
+-
+         if (this.panelBox.height) {
+             let primary = this.primaryMonitor;
+ 
+@@ -576,10 +557,6 @@ var LayoutManager = new Lang.Class({
+     },
+ 
+     _loadBackground: function() {
+-        if (!this.primaryMonitor) {
+-            this._pendingLoadBackground = true;
+-            return;
+-        }
+         this._systemBackground = new Background.SystemBackground();
+         this._systemBackground.actor.hide();
+ 
+Index: gnome-shell-3.26.1/js/ui/overview.js
+===================================================================
+--- gnome-shell-3.26.1.orig/js/ui/overview.js
++++ gnome-shell-3.26.1/js/ui/overview.js
+@@ -392,9 +392,6 @@ var Overview = new Lang.Class({
+         // when it is next shown.
+         this.hide();
+ 
+-        if (!Main.layoutManager.primaryMonitor)
+-            return;
+-
+         let workArea = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
+ 
+         this._coverPane.set_position(0, workArea.y);
+Index: gnome-shell-3.26.1/js/ui/panel.js
+===================================================================
+--- gnome-shell-3.26.1.orig/js/ui/panel.js
++++ gnome-shell-3.26.1/js/ui/panel.js
+@@ -839,14 +839,8 @@ var Panel = new Lang.Class({
+     },
+ 
+     _getPreferredWidth: function(actor, forHeight, alloc) {
+-        let primaryMonitor = Main.layoutManager.primaryMonitor;
+-
+         alloc.min_size = -1;
+-
+-        if (primaryMonitor)
+-            alloc.natural_size = primaryMonitor.width;
+-        else
+-            alloc.natural_size = -1;
++        alloc.natural_size = Main.layoutManager.primaryMonitor.width;
+     },
+ 
+     _getPreferredHeight: function(actor, forWidth, alloc) {
+@@ -865,16 +859,15 @@ var Panel = new Lang.Class({
+ 
+         let sideWidth, centerWidth;
+         centerWidth = centerNaturalWidth;
+-        sideWidth = Math.max(0, (allocWidth - centerWidth) / 2);
++        sideWidth = (allocWidth - centerWidth) / 2;
+ 
+         let childBox = new Clutter.ActorBox();
+ 
+         childBox.y1 = 0;
+         childBox.y2 = allocHeight;
+         if (this.actor.get_text_direction() == Clutter.TextDirection.RTL) {
+-            childBox.x1 = Math.max(allocWidth - Math.min(Math.floor(sideWidth),
+-                                                         leftNaturalWidth),
+-                                   0);
++            childBox.x1 = allocWidth - Math.min(Math.floor(sideWidth),
++                                                leftNaturalWidth);
+             childBox.x2 = allocWidth;
+         } else {
+             childBox.x1 = 0;
+@@ -896,9 +889,8 @@ var Panel = new Lang.Class({
+             childBox.x2 = Math.min(Math.floor(sideWidth),
+                                    rightNaturalWidth);
+         } else {
+-            childBox.x1 = Math.max(allocWidth - Math.min(Math.floor(sideWidth),
+-                                                         rightNaturalWidth),
+-                                   0);
++            childBox.x1 = allocWidth - Math.min(Math.floor(sideWidth),
++                                                rightNaturalWidth);
+             childBox.x2 = allocWidth;
+         }
+         this._rightBox.allocate(childBox, flags);
+@@ -1052,9 +1044,6 @@ var Panel = new Lang.Class({
+             return;
+         }
+ 
+-        if (!Main.layoutManager.primaryMonitor)
+-            return;
+-
+         /* Get all the windows in the active workspace that are in the primary monitor and visible */
+         let activeWorkspace = global.screen.get_active_workspace();
+         let windows = activeWorkspace.list_windows().filter(function(metaWindow) {
+Index: gnome-shell-3.26.1/js/ui/workspaceThumbnail.js
+===================================================================
+--- gnome-shell-3.26.1.orig/js/ui/workspaceThumbnail.js
++++ gnome-shell-3.26.1/js/ui/workspaceThumbnail.js
+@@ -937,8 +937,7 @@ var ThumbnailsBox = new Lang.Class({
+     },
+ 
+     addThumbnails: function(start, count) {
+-        if (!this._ensurePorthole())
+-            return;
++        this._ensurePorthole();
+         for (let k = start; k < start + count; k++) {
+             let metaWorkspace = global.screen.get_workspace_by_index(k);
+             let thumbnail = new WorkspaceThumbnail(metaWorkspace);
+@@ -1126,12 +1125,7 @@ var ThumbnailsBox = new Lang.Class({
+         // the size request to our children because we know how big they are and know
+         // that the actors aren't depending on the virtual functions being called.
+ 
+-        if (!this._ensurePorthole()) {
+-            alloc.min_size = -1;
+-            alloc.natural_size = -1;
+-            return;
+-        }
+-
++        this._ensurePorthole();
+         let themeNode = this.actor.get_theme_node();
+ 
+         let spacing = themeNode.get_length('spacing');
+@@ -1143,11 +1137,7 @@ var ThumbnailsBox = new Lang.Class({
+     },
+ 
+     _getPreferredWidth: function(actor, forHeight, alloc) {
+-        if (!this._ensurePorthole()) {
+-            alloc.min_size = -1;
+-            alloc.natural_size = -1;
+-            return;
+-        }
++        this._ensurePorthole();
+ 
+         let themeNode = this.actor.get_theme_node();
+ 
+@@ -1168,13 +1158,8 @@ var ThumbnailsBox = new Lang.Class({
+     // The "porthole" is the portion of the screen that we show in the
+     // workspaces
+     _ensurePorthole: function() {
+-        if (!Main.layoutManager.primaryMonitor)
+-            return false;
+-
+         if (!this._porthole)
+             this._porthole = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
+-
+-        return true;
+     },
+ 
+     _allocate: function(actor, box, flags) {

@@ -1,3 +1,14 @@
+gnome-shell (3.26.1-0ubuntu4) UNRELEASED; urgency=medium
+
+  * revert_023b50e7a7002226d6176bede22930d96da074a9.patch,
+    revert_5c37facc083078564faaeec4aa58084857c56ee1.patch,
+    and comment git_layout-unset-when-headless.patch:
+    - Revert 2 upstream commits and cherry-pick to remove headless mode
+      which shadows Shell crashing and thus fallback to Xorg, resulting in
+      some user configs not having any UI on startup. (LP: #1723577)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 18 Oct 2017 15:05:32 +0200
+
 gnome-shell (3.26.1-0ubuntu3) artful; urgency=medium
 
   * Cherry-pick git_layout-unset-when-headless.patch from gnome-3-26
