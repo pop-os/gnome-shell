@@ -1,4 +1,4 @@
-gnome-shell (3.26.1-0ubuntu5) UNRELEASED; urgency=medium
+gnome-shell (3.26.1-0ubuntu5) artful; urgency=medium
 
   * Reenable headless patches and cherry-pick now that the gdm fix
     is in mutter. (LP: #1725163)
