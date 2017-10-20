@@ -1,9 +1,13 @@
 gnome-shell (3.26.1-0ubuntu5) artful; urgency=medium
 
+  [ Didier Roche ]
   * Reenable headless patches and cherry-pick now that the gdm fix
     is in mutter. (LP: #1725163)
   * Add dep on latest mutter to ensure people don't end up in a non working
     UI state again.
+
+  [ Jeremy Bicha ]
+  * Restore dependency on gir1.2-gdm-1.0 (LP: #1725288)
 
  -- Didier Roche <didrocks@ubuntu.com>  Thu, 19 Oct 2017 08:38:31 +0200
 
