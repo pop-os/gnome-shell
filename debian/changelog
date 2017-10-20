@@ -1,7 +1,7 @@
 gnome-shell (3.26.1-0ubuntu5) UNRELEASED; urgency=medium
 
   * Reenable headless patches and cherry-pick now that the gdm fix
-    is in mutter.
+    is in mutter. (LP: #1725163)
   * Add dep on latest mutter to ensure people don't end up in a non working
     UI state again.
 
