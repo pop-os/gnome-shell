@@ -2,3 +2,5 @@
 workaround_crasher_fractional_scaling.patch
 fix_reset_initial_focus.patch
 git_layout-unset-when-headless.patch
+git_popupmenu-icon-via-string.patch
+git_spawn-wifi-panel-wpa-enterprise.patch

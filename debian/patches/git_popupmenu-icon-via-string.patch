@@ -1,0 +1,29 @@
+From f4237a4ae78fa93df19655a4fa276690083a7b76 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Mon, 16 Oct 2017 00:09:52 +0200
+Subject: popupMenu: Fix setting ImageMenuItem's icons via strings
+
+Commit 28ca96064bcb added support for setting PopupImageMenuItem's icons
+via GIcons as well as via strings. However as the check whether an object
+implements the GIcon interface only works on GObjects, specifying an icon
+name was broken. Fix that to actually allow both strings and GIcons.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=789018
+---
+ js/ui/popupMenu.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/popupMenu.js b/js/ui/popupMenu.js
+index d00132f..cb975f5 100644
+--- a/js/ui/popupMenu.js
++++ b/js/ui/popupMenu.js
+@@ -405,7 +405,7 @@ var PopupImageMenuItem = new Lang.Class({
+ 
+     setIcon: function(icon) {
+         // The 'icon' parameter can be either a Gio.Icon or a string.
+-        if (GObject.type_is_a(icon, Gio.Icon))
++        if (icon instanceof GObject.Object && GObject.type_is_a(icon, Gio.Icon))
+             this._icon.gicon = icon;
+         else
+             this._icon.icon_name = icon;
+
