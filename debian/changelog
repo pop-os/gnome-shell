@@ -1,3 +1,11 @@
+gnome-shell (3.26.1-0ubuntu7) UNRELEASED; urgency=medium
+
+  * debian/patches/70_allow_sound_above_100.patch:
+    - Fix a crasher when people log into the ubuntu session without installing
+      gsettings-ubuntu-schemas (LP: #1712798)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 26 Oct 2017 16:59:22 +0200
+
 gnome-shell (3.26.1-0ubuntu6) bionic; urgency=medium
 
   * Upstream-proposed fix for lid close crash with wayland and virtualbox.
