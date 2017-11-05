@@ -3,6 +3,8 @@ gnome-shell (3.26.2-1) UNRELEASED; urgency=medium
   * New upstream release
   * Rebase patches
   * Switch to dh_missing
+  * Update list of binaries in gnome-shell.lintian-overrides using an RPATH
+    for mutter. Don't hard-code the path to be x86_64-linux-gnu specific.
 
  -- Michael Biebl <biebl@debian.org>  Sun, 05 Nov 2017 19:15:39 +0100
 
