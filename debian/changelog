@@ -2,6 +2,7 @@ gnome-shell (3.26.2-1) UNRELEASED; urgency=medium
 
   * New upstream release
   * Rebase patches
+  * Switch to dh_missing
 
  -- Michael Biebl <biebl@debian.org>  Sun, 05 Nov 2017 19:15:39 +0100
 
