@@ -29,7 +29,7 @@ override_dh_missing:
 	dh_missing --fail-missing
 
 override_dh_makeshlibs:
-	dh_makeshlibs -Xlibgnome-shell
+	dh_makeshlibs -X/usr/lib/gnome-shell/
 
 override_dh_shlibdeps:
 	# gnome-shell uses mutters private mutter-clutter-1.0.so etc.

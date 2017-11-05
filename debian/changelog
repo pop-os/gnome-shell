@@ -7,6 +7,8 @@ gnome-shell (3.26.2-1) UNRELEASED; urgency=medium
     for mutter. Don't hard-code the path to be x86_64-linux-gnu specific.
   * Honour DEB_BUILD_OPTIONS=nocheck so we don't try to run the test suite if
     xvfb is not installed
+  * Exclude /usr/lib/gnome-shell/ from dh_makeshlibs to avoid an unnecessary
+    ldconfig trigger
 
  -- Michael Biebl <biebl@debian.org>  Sun, 05 Nov 2017 19:15:39 +0100
 
