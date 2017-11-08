@@ -1,4 +1,4 @@
-gnome-shell (3.26.2-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.26.2-0ubuntu1) bionic; urgency=medium
 
   [ Jeremy Bicha ]
   * New upstream release (LP: #1731053)
