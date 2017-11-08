@@ -1,10 +1,19 @@
-gnome-shell (3.26.1-0ubuntu7) UNRELEASED; urgency=medium
+gnome-shell (3.26.2-0ubuntu1) UNRELEASED; urgency=medium
 
-  * debian/patches/70_allow_sound_above_100.patch:
+  [ Jeremy Bicha ]
+  * New upstream release (LP: #1731053)
+  * debian/control.in:
+    - Drop redundant Suggests on gir1.2-gdm-1.0
+  * Drop patches applied in new release:
+    - fix_reset_initial_focus.patch
+    - git_layout-unset-when-headless.patch
+
+  [ Didier Roche ]
+  * Modify debian/patches/70_allow_sound_above_100.patch:
     - Fix a crasher when people log into the ubuntu session without installing
       gsettings-ubuntu-schemas (LP: #1712798)
 
- -- Didier Roche <didrocks@ubuntu.com>  Thu, 26 Oct 2017 16:59:22 +0200
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 08 Nov 2017 16:19:02 -0500
 
 gnome-shell (3.26.1-0ubuntu6) bionic; urgency=medium
 
