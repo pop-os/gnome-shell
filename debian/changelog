@@ -1,3 +1,9 @@
+gnome-shell (3.26.2-0ubuntu2) bionic; urgency=medium
+
+  * No-change rebuild for libical soname change.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sat, 09 Dec 2017 11:41:33 +0000
+
 gnome-shell (3.26.2-0ubuntu1) bionic; urgency=medium
 
   [ Jeremy Bicha ]
