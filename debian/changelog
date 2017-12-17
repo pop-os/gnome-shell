@@ -1,3 +1,11 @@
+gnome-shell (3.26.2-2) UNRELEASED; urgency=medium
+
+  * Update Vcs fields for conversion to git
+  * Add debian/gbp.conf
+  * Bump Standards-Version to 4.1.2
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 17 Dec 2017 18:18:36 -0500
+
 gnome-shell (3.26.2-1) unstable; urgency=medium
 
   * New upstream release
