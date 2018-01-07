@@ -1,3 +1,9 @@
+gnome-shell (3.26.2-3) UNRELEASED; urgency=medium
+
+  * Convert patch metadata to `git format-patch` style for gbp pq
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 07 Jan 2018 17:32:25 +0000
+
 gnome-shell (3.26.2-2) unstable; urgency=medium
 
   * Update Vcs fields for conversion to git
