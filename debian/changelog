@@ -10,6 +10,14 @@ gnome-shell (3.26.2-3) UNRELEASED; urgency=medium
     - Don't shadow ClutterActor's destroy() (GNOME #791233)
     - Guard against malformed world-clocks settings (GNOME #791148)
     - Don't leak fds when background changes (GNOME #791655)
+  * Depend on gjs (>= 1.50.2-3~) so that using an object after it's
+    destroyed doesn't crash the Shell. Critical warnings will be logged
+    instead, usually to the systemd journal. Please report these as new
+    bugs if seen: we can't tell from the crash backtraces whether the
+    bug was in the Shell itself or an extension, which makes the existing
+    bug reports unclear, but the critical warnings should make it clearer
+    where the bug is. (Closes: #881301, #880663; LP: #1714989,
+    LP: #1721321, LP: #1722986, LP: #1725015)
 
  -- Simon McVittie <smcv@debian.org>  Sun, 07 Jan 2018 17:32:25 +0000
 
