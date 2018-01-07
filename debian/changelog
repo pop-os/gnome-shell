@@ -1,6 +1,15 @@
 gnome-shell (3.26.2-3) UNRELEASED; urgency=medium
 
   * Convert patch metadata to `git format-patch` style for gbp pq
+  * Add patches from upstream gnome-3-26 branch:
+    - Update translations: af, ar, cs, is, nb
+    - Improve robustness of ::drag-end handlers (GNOME #784545)
+    - Reset menuItems and Label objects on change (GNOME #788931)
+      - This is one possible source of the crashes in #881301, #880663.
+    - Make sure dash item labels are only destroyed once (GNOME #791233)
+    - Don't shadow ClutterActor's destroy() (GNOME #791233)
+    - Guard against malformed world-clocks settings (GNOME #791148)
+    - Don't leak fds when background changes (GNOME #791655)
 
  -- Simon McVittie <smcv@debian.org>  Sun, 07 Jan 2018 17:32:25 +0000
 

@@ -1,2 +1,14 @@
+Update-Arabic-translation.patch
+Updated-Norwegian-bokm-l-translation.patch
+overview-Protect-drag-end-handlers.patch
+Update-Czech-translation.patch
+status-keyboard-Reset-menuItems-and-Label-objects-on-chan.patch
+dash-Make-sure-item-labels-are-only-destroyed-once.patch
+dash-Do-not-shadow-ClutterActor-s-destroy.patch
+dateMenu-Ignore-malformed-world-clocks-settings.patch
+dateMenu-Fix-possible-crash-with-unknown-locations.patch
+Update-Icelandic-translation.patch
+background-don-t-leak-wall-clock-when-background-changes.patch
+Update-Afrikaans-translation.patch
 27-nm-libexec-path.patch
 workaround_crasher_fractional_scaling.patch
