@@ -1,3 +1,11 @@
+gnome-shell (3.26.2-0ubuntu3) UNRELEASED; urgency=medium
+
+  * debian/patches/ubuntu_panel_center_date_workarea.patch:
+    Align date entry relative to workarea. That way, title bars are
+    centered relative to date entry. (LP: #1716432)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 09 Jan 2018 11:15:11 +0100
+
 gnome-shell (3.26.2-0ubuntu2) bionic; urgency=medium
 
   * No-change rebuild for libical soname change.

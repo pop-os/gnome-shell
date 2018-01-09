@@ -1,0 +1,63 @@
+Description: panel: center date entry with workarea
+Align and center the date entry with the workspace's workarea.
+This way, maximized applications have their window aligned with the top date
+entry.
+This doesn't change anything for desktops with no docks or when left/right
+workareas are aligned with the monitor.
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1716432
+Forwaded: https://bugzilla.gnome.org/show_bug.cgi?id=792354
+
+---
+ js/ui/panel.js | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+Index: gnome-shell-3.26.2/js/ui/panel.js
+===================================================================
+--- gnome-shell-3.26.2.orig/js/ui/panel.js
++++ gnome-shell-3.26.2/js/ui/panel.js
+@@ -17,6 +17,7 @@ const Atk = imports.gi.Atk;
+ const Animation = imports.ui.animation;
+ const Config = imports.misc.config;
+ const CtrlAltTab = imports.ui.ctrlAltTab;
++const Desktop = imports.misc.desktop;
+ const DND = imports.ui.dnd;
+ const Overview = imports.ui.overview;
+ const PopupMenu = imports.ui.popupMenu;
+@@ -819,6 +820,15 @@ var Panel = new Lang.Class({
+         global.window_group.connect('actor-removed', Lang.bind(this, this._onWindowActorRemoved));
+         global.window_manager.connect('switch-workspace', Lang.bind(this, this._updateSolidStyle));
+ 
++        if (Desktop.is("ubuntu")) {
++            global.screen.connect('workareas-changed', Lang.bind(this, function() {
++                Mainloop.idle_add(Lang.bind(this, function() {
++                    this._updatePanel();
++                    return GLib.SOURCE_REMOVE;
++                }))
++            }));
++        }
++
+         this._updatePanel();
+     },
+ 
+@@ -865,7 +875,19 @@ var Panel = new Lang.Class({
+ 
+         let sideWidth, centerWidth;
+         centerWidth = centerNaturalWidth;
+-        sideWidth = Math.max(0, (allocWidth - centerWidth) / 2);
++
++        let centerOffset = 0;
++        if (Desktop.is("ubuntu")) {
++            // get workspace area and center date entry relative to it
++            let monitor = Main.layoutManager.findMonitorForActor(actor);
++            let workArea = Main.layoutManager.getWorkAreaForMonitor(monitor);
++
++            /* leftOffset - rightOffset (simplified)
++             * (workArea.x - monitor.x) - (monitor.width - ((workArea.x - monitor.x) + workArea.width))
++             */
++            centerOffset = 2 * (workArea.x - monitor.x) + workArea.width - monitor.width;
++        }
++        sideWidth = Math.max(0, (allocWidth - centerWidth + centerOffset) / 2);
+ 
+         let childBox = new Clutter.ActorBox();
+ 
