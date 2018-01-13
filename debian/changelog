@@ -18,6 +18,7 @@ gnome-shell (3.26.2-3) UNRELEASED; urgency=medium
     bug reports unclear, but the critical warnings should make it clearer
     where the bug is. (Closes: #881301, #880663; LP: #1714989,
     LP: #1721321, LP: #1722986, LP: #1725015)
+  * Change Vcs-* to point to salsa.debian.org
 
  -- Simon McVittie <smcv@debian.org>  Sun, 07 Jan 2018 17:32:25 +0000
 

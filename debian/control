@@ -60,8 +60,8 @@ Build-Depends: debhelper (>= 11),
                xvfb <!nocheck>
 Standards-Version: 4.1.2
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
-Vcs-Git: https://anonscm.debian.org/git/pkg-gnome/gnome-shell.git
-Vcs-Browser: https://anonscm.debian.org/git/pkg-gnome/gnome-shell.git
+Vcs-Git: https://salsa.debian.org/gnome-team/gnome-shell.git
+Vcs-Browser: https://salsa.debian.org/gnome-team/gnome-shell
 
 Package: gnome-shell
 Architecture: linux-any
