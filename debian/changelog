@@ -20,6 +20,7 @@ gnome-shell (3.26.2-3) UNRELEASED; urgency=medium
     LP: #1721321, LP: #1722986, LP: #1725015)
   * Change Vcs-* to point to salsa.debian.org
   * Bump Standards-Version to 4.1.3 (no changes required)
+  * Set Rules-Requires-Root to no
 
  -- Simon McVittie <smcv@debian.org>  Sun, 07 Jan 2018 17:32:25 +0000
 
