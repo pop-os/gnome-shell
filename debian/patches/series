@@ -12,3 +12,8 @@ background-don-t-leak-wall-clock-when-background-changes.patch
 Update-Afrikaans-translation.patch
 27-nm-libexec-path.patch
 workaround_crasher_fractional_scaling.patch
+network-port-to-libnm.patch
+network-remove-the-vpn-request-when-it-s-serviced.patch
+network-unregister-the-agent-when-it-s-disabled.patch
+networkAgent-Update-VPN-config-path.patch
+networkAgent-Pick-up-VPN-service-dir-from-pkg-config.patch

@@ -1,0 +1,93 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Mon, 11 Dec 2017 18:37:45 +0100
+Subject: networkAgent: Update VPN config path
+
+The location moved a while ago, so update the path to point to
+the non-deprecated location.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=791487
+(cherry picked from commit 3f3e514ff2da1c061e3ab265b78bcf44727908fa)
+---
+ js/misc/config.js.in             | 2 +-
+ js/misc/meson.build              | 2 +-
+ js/ui/components/networkAgent.js | 2 +-
+ meson.build                      | 8 +++++++-
+ src/meson.build                  | 1 -
+ 5 files changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/js/misc/config.js.in b/js/misc/config.js.in
+index e8ad9d9..f296275 100644
+--- a/js/misc/config.js.in
++++ b/js/misc/config.js.in
+@@ -14,6 +14,6 @@ var GETTEXT_PACKAGE = '@GETTEXT_PACKAGE@';
+ var LOCALEDIR = '@datadir@/locale';
+ /* other standard directories */
+ var LIBEXECDIR = '@libexecdir@';
+-var SYSCONFDIR = '@sysconfdir@';
++var NMPREFIXDIR = '@nmprefixdir@';
+ /* g-i package versions */
+ var LIBMUTTER_API_VERSION = '@LIBMUTTER_API_VERSION@'
+diff --git a/js/misc/meson.build b/js/misc/meson.build
+index 2048949..bbdc041 100644
+--- a/js/misc/meson.build
++++ b/js/misc/meson.build
+@@ -7,7 +7,7 @@ jsconf.set10('HAVE_BLUETOOTH', bt_dep.found())
+ jsconf.set10('HAVE_NETWORKMANAGER', have_networkmanager)
+ jsconf.set('datadir', datadir)
+ jsconf.set('libexecdir', libexecdir)
+-jsconf.set('sysconfdir', sysconfdir)
++jsconf.set('nmprefixdir', nm_prefix)
+ 
+ config_js = configure_file(
+   input: 'config.js.in',
+diff --git a/js/ui/components/networkAgent.js b/js/ui/components/networkAgent.js
+index 5acb39a..9c3449f 100644
+--- a/js/ui/components/networkAgent.js
++++ b/js/ui/components/networkAgent.js
+@@ -594,7 +594,7 @@ var NetworkAgent = new Lang.Class({
+         this._vpnRequests = { };
+         this._notifications = { };
+ 
+-        this._pluginDir = Gio.file_new_for_path(GLib.build_filenamev([Config.SYSCONFDIR, 'NetworkManager/VPN']));
++        this._pluginDir = Gio.file_new_for_path(GLib.build_filenamev([Config.NMPREFIXDIR, 'lib/NetworkManager/VPN']));
+         try {
+             let monitor = this._pluginDir.monitor(Gio.FileMonitorFlags.NONE, null);
+             monitor.connect('changed', () => { this._vpnCacheBuilt = false; });
+diff --git a/meson.build b/meson.build
+index caaae53..f8dc155 100644
+--- a/meson.build
++++ b/meson.build
+@@ -43,7 +43,6 @@ datadir = join_paths(prefix, get_option('datadir'))
+ libdir = join_paths(prefix, get_option('libdir'))
+ libexecdir = join_paths(prefix, get_option('libexecdir'))
+ mandir = join_paths(prefix, get_option('mandir'))
+-sysconfdir = join_paths(prefix, get_option('sysconfdir'))
+ 
+ pkgdatadir = join_paths(datadir, meson.project_name())
+ pkglibdir = join_paths(libdir, meson.project_name())
+@@ -125,6 +124,13 @@ else
+   have_networkmanager = false
+ endif
+ 
++networkmanager_dep = dependency('NetworkManager', required: false)
++if (networkmanager_dep.found())
++  nm_prefix = networkmanager_dep.get_pkgconfig_variable('prefix')
++else
++  nm_prefix = prefix
++endif
++
+ enable_systemd = get_option('enable-systemd')
+ if enable_systemd != 'no'
+   want_systemd = enable_systemd == 'yes'
+diff --git a/src/meson.build b/src/meson.build
+index f309552..1d655f4 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -13,7 +13,6 @@ script_data.set('libdir', libdir)
+ script_data.set('libexecdir', libexecdir)
+ script_data.set('pkgdatadir', pkgdatadir)
+ script_data.set('pkglibdir', pkglibdir)
+-script_data.set('sysconfdir', sysconfdir)
+ script_data.set('PYTHON', python.path())
+ script_data.set('VERSION', meson.project_version())
+ 

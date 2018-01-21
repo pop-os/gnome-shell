@@ -1,0 +1,73 @@
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Wed, 6 Dec 2017 16:55:20 +0100
+Subject: network: unregister the agent when it's disabled
+
+When the agent doesn't work (e.g. when the screen is locked), it shouldn't be
+registered with NM. Otherwise it will keep cancelling the requests that
+could happily be serviced with system secrets.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=789811
+(cherry picked from commit 16a1c35e28ce82a7aae9735e285bf6b4f615879a)
+---
+ js/ui/components/networkAgent.js | 24 ++++++++++++++----------
+ 1 file changed, 14 insertions(+), 10 deletions(-)
+
+diff --git a/js/ui/components/networkAgent.js b/js/ui/components/networkAgent.js
+index 9752930..5acb39a 100644
+--- a/js/ui/components/networkAgent.js
++++ b/js/ui/components/networkAgent.js
+@@ -586,7 +586,8 @@ var NetworkAgent = new Lang.Class({
+ 
+     _init: function() {
+         this._native = new Shell.NetworkAgent({ identifier: 'org.gnome.Shell.NetworkAgent',
+-                                                capabilities: NM.SecretAgentCapabilities.VPN_HINTS
++                                                capabilities: NM.SecretAgentCapabilities.VPN_HINTS,
++                                                auto_register: false
+                                               });
+ 
+         this._dialogs = { };
+@@ -609,12 +610,15 @@ var NetworkAgent = new Lang.Class({
+             this._native = null;
+             logError(e, 'error initializing the NetworkManager Agent');
+         }
+-
+-        this._enabled = false;
+     },
+ 
+     enable: function() {
+-        this._enabled = true;
++        if (!this._native)
++            return;
++
++        this._native.auto_register = true;
++        if (!this._native.registered)
++            this._native.register_async(null, null);
+     },
+ 
+     disable: function() {
+@@ -632,7 +636,12 @@ var NetworkAgent = new Lang.Class({
+             this._notifications[requestId].destroy();
+         this._notifications = { };
+ 
+-        this._enabled = false;
++        if (!this._native)
++            return;
++
++        this._native.auto_register = false;
++        if (this._native.registered)
++            this._native.unregister_async(null, null);
+     },
+ 
+     _showNotification: function(requestId, connection, settingName, hints, flags) {
+@@ -696,11 +705,6 @@ var NetworkAgent = new Lang.Class({
+     },
+ 
+     _newRequest:  function(agent, requestId, connection, settingName, hints, flags) {
+-        if (!this._enabled) {
+-            agent.respond(requestId, Shell.NetworkAgentResponse.USER_CANCELED);
+-            return;
+-        }
+-
+         if (!(flags & NM.SecretAgentGetSecretsFlags.USER_REQUESTED))
+             this._showNotification(requestId, connection, settingName, hints, flags);
+         else
