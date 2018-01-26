@@ -1,0 +1,100 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 7 Dec 2017 01:59:01 +0100
+Subject: workspaceThumbnail: Remove WindowClone's from _windows when
+ destroyed
+
+A WindowClone might be destroyed earlier than its MetaWindow counterpart
+as its WindowActor could be destroyed earlier, thus when happens it's safer
+to remove the clone from the windows list, without waiting for the workspace
+to request to do so.
+
+WindowClone now emits a 'destroy' signals earlier enough and this now
+triggers a _doRemoveWindow on WorkspaceThumbnail which will lead
+to the proper cleanup; keeping track of the signal connections, in
+order to avoid callback loops (not really harmful in this case, but
+good practice).
+
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=791233
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/1
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
+(cherry picked from commit 1881f9dfc34f7b8cd8a11a20d4dc5bd4c1c37420)
+---
+ js/ui/workspaceThumbnail.js | 20 ++++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/workspaceThumbnail.js b/js/ui/workspaceThumbnail.js
+index f33c1b0..dfebc77 100644
+--- a/js/ui/workspaceThumbnail.js
++++ b/js/ui/workspaceThumbnail.js
+@@ -137,6 +137,8 @@ var WindowClone = new Lang.Class({
+     },
+ 
+     destroy: function () {
++        this.emit('destroy');
++
+         // First destroy the clone and then destroy everything
+         // This will ensure that we never see it in the _disconnectSignals loop
+         this.metaWindow.disconnect(this.clone._updateId);
+@@ -285,6 +287,7 @@ var WorkspaceThumbnail = new Lang.Class({
+ 
+         // Create clones for windows that should be visible in the Overview
+         this._windows = [];
++        this._windowsDestroyedIds = [];
+         this._allWindows = [];
+         this._minimizedChangedIds = [];
+         for (let i = 0; i < windows.length; i++) {
+@@ -370,7 +373,7 @@ var WorkspaceThumbnail = new Lang.Class({
+         return this._collapseFraction;
+     },
+ 
+-    _doRemoveWindow : function(metaWin) {
++    _doRemoveWindow : function(metaWin, {cloneDestroy}={cloneDestroy: true}) {
+         let win = metaWin.get_compositor_private();
+ 
+         // find the position of the window in our list
+@@ -380,9 +383,13 @@ var WorkspaceThumbnail = new Lang.Class({
+             return;
+ 
+         let clone = this._windows[index];
++        clone.disconnect(this._windowsDestroyedIds[index]);
++
+         this._windows.splice(index, 1);
++        this._windowsDestroyedIds.splice(index, 1);
+ 
+-        clone.destroy();
++        if (cloneDestroy)
++            clone.destroy();
+     },
+ 
+     _doAddWindow : function(metaWin) {
+@@ -503,7 +510,11 @@ var WorkspaceThumbnail = new Lang.Class({
+           this._bgManager = null;
+         }
+ 
++        for (let index = 0; index < this._windows.length; ++index)
++            this._windows[index].disconnect(this._windowsDestroyedIds[index]);
++
+         this._windows = [];
++        this._windowsDestroyedIds = [];
+         this.actor = null;
+     },
+ 
+@@ -540,6 +551,10 @@ var WorkspaceThumbnail = new Lang.Class({
+                       Lang.bind(this, function() {
+                           Main.overview.endWindowDrag(clone.metaWindow);
+                       }));
++        let cloneDestroyedId = clone.connect('destroy', () => {
++            this._doRemoveWindow(clone.metaWindow, {cloneDestroy: false});
++        });
++
+         this._contents.add_actor(clone.actor);
+ 
+         if (this._windows.length == 0)
+@@ -548,6 +563,7 @@ var WorkspaceThumbnail = new Lang.Class({
+             clone.setStackAbove(this._windows[this._windows.length - 1].actor);
+ 
+         this._windows.push(clone);
++        this._windowsDestroyedIds.push(cloneDestroyedId);
+ 
+         return clone;
+     },

@@ -1,0 +1,47 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 7 Dec 2017 02:12:47 +0100
+Subject: workspace: Disconnect from window signals on destruction
+
+Avoid to try to destroy the window clone content more than once
+when a window is destroyed, and do it in proper order.
+
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=791233
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/1
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
+(cherry picked from commit 0c11a16c8c30992428bbbf78985e837c1de94260)
+---
+ js/ui/workspace.js | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/js/ui/workspace.js b/js/ui/workspace.js
+index a64cf7d..fc8249a 100644
+--- a/js/ui/workspace.js
++++ b/js/ui/workspace.js
+@@ -139,12 +139,8 @@ var WindowClone = new Lang.Class({
+ 
+         this._windowClone._updateId = this.metaWindow.connect('size-changed',
+             Lang.bind(this, this._onRealWindowSizeChanged));
+-        this._windowClone._destroyId = this.realWindow.connect('destroy', Lang.bind(this, function() {
+-            // First destroy the clone and then destroy everything
+-            // This will ensure that we never see it in the _disconnectSignals loop
+-            this._windowClone.destroy();
+-            this.destroy();
+-        }));
++        this._windowClone._destroyId = this.realWindow.connect('destroy',
++            this.destroy.bind(this));
+ 
+         this._updateAttachedDialogs();
+         this._computeBoundingBox();
+@@ -308,6 +304,12 @@ var WindowClone = new Lang.Class({
+     },
+ 
+     destroy: function () {
++        // First destroy the clone and then destroy everything
++        // This will ensure that we never see it in the _disconnectSignals loop
++        this.metaWindow.disconnect(this._windowClone._updateId);
++        this.realWindow.disconnect(this._windowClone._destroyId);
++        this._windowClone.destroy();
++
+         this.actor.destroy();
+     },
+ 

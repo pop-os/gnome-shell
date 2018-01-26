@@ -19,3 +19,9 @@ network-remove-the-vpn-request-when-it-s-serviced.patch
 network-unregister-the-agent-when-it-s-disabled.patch
 networkAgent-Update-VPN-config-path.patch
 networkAgent-Pick-up-VPN-service-dir-from-pkg-config.patch
+tweener-Save-extra-handlers-on-target-and-remove-them-on-.patch
+dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
+workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch
+workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch
+workspace-Disconnect-from-window-signals-on-destruction.patch
+workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch

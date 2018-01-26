@@ -2,6 +2,8 @@ gnome-shell (3.26.2-5) UNRELEASED; urgency=medium
 
   * Cherry-pick two more patches from upstream gnome-3-26 branch
     related to #881301 etc. (now at 3.26.2-14-g64c857e3f)
+  * Apply patches from upstream merge request !4 to address more uses
+    of destroyed objects (Closes: #887082, hopefully)
 
  -- Simon McVittie <smcv@debian.org>  Fri, 26 Jan 2018 10:55:20 +0000
 
