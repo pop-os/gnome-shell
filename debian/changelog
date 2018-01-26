@@ -1,11 +1,12 @@
-gnome-shell (3.26.2-5) UNRELEASED; urgency=medium
+gnome-shell (3.26.2-5) experimental; urgency=medium
 
+  * Team upload
   * Cherry-pick two more patches from upstream gnome-3-26 branch
     related to #881301 etc. (now at 3.26.2-14-g64c857e3f)
   * Apply patches from upstream merge request !4 to address more uses
     of destroyed objects (Closes: #887082, hopefully)
 
- -- Simon McVittie <smcv@debian.org>  Fri, 26 Jan 2018 10:55:20 +0000
+ -- Simon McVittie <smcv@debian.org>  Fri, 26 Jan 2018 17:10:10 +0000
 
 gnome-shell (3.26.2-4) unstable; urgency=medium
 
