@@ -10,6 +10,8 @@ dateMenu-Fix-possible-crash-with-unknown-locations.patch
 Update-Icelandic-translation.patch
 background-don-t-leak-wall-clock-when-background-changes.patch
 Update-Afrikaans-translation.patch
+appDisplay-don-t-try-to-close-the-popup-menu-that-is-alre.patch
+dnd-Declare-restore-location-variables.patch
 27-nm-libexec-path.patch
 workaround_crasher_fractional_scaling.patch
 network-port-to-libnm.patch

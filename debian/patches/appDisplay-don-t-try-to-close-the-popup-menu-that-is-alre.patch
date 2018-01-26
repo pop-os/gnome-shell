@@ -1,0 +1,36 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Wed, 6 Dec 2017 00:55:37 -0500
+Subject: appDisplay: don't try to close the popup menu that is already
+ destroyed
+
+This would lead to a JS error otherwise, as we might end up
+in deleting actors that have been already destructed.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=791233
+(cherry picked from commit 4d225bdeacf967c47a9e15c73f33c866b5f1137d)
+---
+ js/ui/appDisplay.js | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
+index 9b92311..c309471 100644
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -1872,11 +1872,14 @@ var AppIconMenu = new Lang.Class({
+         this.actor.add_style_class_name('app-well-menu');
+ 
+         // Chain our visibility and lifecycle to that of the source
+-        source.actor.connect('notify::mapped', Lang.bind(this, function () {
++        this._sourceMappedId = source.actor.connect('notify::mapped', () => {
+             if (!source.actor.mapped)
+                 this.close();
+-        }));
+-        source.actor.connect('destroy', Lang.bind(this, this.destroy));
++        });
++        source.actor.connect('destroy', () => {
++            source.actor.disconnect(this._sourceMappedId);
++            this.destroy();
++        });
+ 
+         Main.uiGroup.add_actor(this.actor);
+     },
