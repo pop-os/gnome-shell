@@ -31,7 +31,7 @@ Index: gnome-shell-3.26.2/js/ui/panel.js
 +        if (Desktop.is("ubuntu")) {
 +            global.screen.connect('workareas-changed', Lang.bind(this, function() {
 +                Mainloop.idle_add(Lang.bind(this, function() {
-+                    this._updatePanel();
++                    this.actor.queue_relayout();
 +                    return GLib.SOURCE_REMOVE;
 +                }))
 +            }));
@@ -40,7 +40,7 @@ Index: gnome-shell-3.26.2/js/ui/panel.js
          this._updatePanel();
      },
  
-@@ -865,7 +875,19 @@ var Panel = new Lang.Class({
+@@ -865,7 +875,17 @@ var Panel = new Lang.Class({
  
          let sideWidth, centerWidth;
          centerWidth = centerNaturalWidth;
@@ -50,12 +50,10 @@ Index: gnome-shell-3.26.2/js/ui/panel.js
 +        if (Desktop.is("ubuntu")) {
 +            // get workspace area and center date entry relative to it
 +            let monitor = Main.layoutManager.findMonitorForActor(actor);
-+            let workArea = Main.layoutManager.getWorkAreaForMonitor(monitor);
-+
-+            /* leftOffset - rightOffset (simplified)
-+             * (workArea.x - monitor.x) - (monitor.width - ((workArea.x - monitor.x) + workArea.width))
-+             */
-+            centerOffset = 2 * (workArea.x - monitor.x) + workArea.width - monitor.width;
++            if (monitor) {
++                let workArea = Main.layoutManager.getWorkAreaForMonitor(monitor.index);
++                centerOffset = 2 * (workArea.x - monitor.x) + workArea.width - monitor.width;
++            }
 +        }
 +        sideWidth = Math.max(0, (allocWidth - centerWidth + centerOffset) / 2);
  
