@@ -1,0 +1,110 @@
+Description: Don't allow ubuntu mode extension to update
+Ensure that no update is proposed or loaded if sideloaded (always
+prefer system version) on the ubuntu session.
+We want to ensure that the default code running is going through
+our QA and security team process than being loaded from a 3rd
+party website.
+Also, that will enable us to upload newer versions on GNOME
+extension website while still letting older ubuntu release versions
+running expected extension version.
+Note that the patch set is simplified with a hardcoded extension list
+until https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/1 is merged.
+The patch set is too large otherwise to keep it maintainable as a distro
+patch.
+Origin: ubuntu
+Forwaded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
+
+Index: gnome-shell-3.26.2/js/misc/desktop.js
+===================================================================
+--- gnome-shell-3.26.2.orig/js/misc/desktop.js
++++ gnome-shell-3.26.2/js/misc/desktop.js
+@@ -6,6 +6,8 @@ const GLib = imports.gi.GLib;
+ // the env variable. It's safe to cache matching result
+ let _currentDesktopsMatches = {};
+ 
++let ubuntuModeExtensions = ["ubuntu-dock@ubuntu.com", "ubuntu-appindicators@ubuntu.com"]
++
+ // is:
+ // @name: desktop string you want to assert if it matches the current desktop env
+ //
+@@ -37,3 +39,14 @@ function is(name) {
+     _currentDesktopsMatches[name] = false;
+     return false;
+ }
++
++// Until https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/1 is applied,
++// we can't now easily without having a dependency on
++// main.session from misc packages. This prevents g-s-d-prefs from loading.
++// Harcode the list for the ubuntu case until now.
++function isSystemPinnedExtension(uuid) {
++    if (!is("ubuntu"))
++        return false;
++
++    return ubuntuModeExtensions.indexOf(uuid) !== -1;
++}
+Index: gnome-shell-3.26.2/js/misc/extensionUtils.js
+===================================================================
+--- gnome-shell-3.26.2.orig/js/misc/extensionUtils.js
++++ gnome-shell-3.26.2/js/misc/extensionUtils.js
+@@ -9,6 +9,7 @@ const Signals = imports.signals;
+ const Gio = imports.gi.Gio;
+ 
+ const Config = imports.misc.config;
++const Desktop = imports.misc.desktop;
+ const FileUtils = imports.misc.fileUtils;
+ 
+ var ExtensionType = {
+@@ -175,6 +176,12 @@ var ExtensionFinder = new Lang.Class({
+         let extension;
+         let type = extensionDir.has_prefix(perUserDir) ? ExtensionType.PER_USER
+                                                        : ExtensionType.SYSTEM;
++
++        if (Desktop.isSystemPinnedExtension(uuid) && type === ExtensionType.PER_USER) {
++            log('Found user extension %s, but not loading from %s directory as part of session mode.'.format(uuid, extensionDir.get_path()));
++            return;
++        }
++
+         try {
+             extension = createExtensionObject(uuid, extensionDir, type);
+         } catch(e) {
+Index: gnome-shell-3.26.2/js/ui/extensionDownloader.js
+===================================================================
+--- gnome-shell-3.26.2.orig/js/ui/extensionDownloader.js
++++ gnome-shell-3.26.2/js/ui/extensionDownloader.js
+@@ -10,9 +10,11 @@ const St = imports.gi.St;
+ const Shell = imports.gi.Shell;
+ 
+ const Config = imports.misc.config;
++const Desktop = imports.misc.desktop;
+ const ExtensionUtils = imports.misc.extensionUtils;
+ const ExtensionSystem = imports.ui.extensionSystem;
+ const FileUtils = imports.misc.fileUtils;
++const Main = imports.ui.main;
+ const ModalDialog = imports.ui.modalDialog;
+ 
+ const _signals = ExtensionSystem._signals;
+@@ -28,6 +30,14 @@ function installExtension(uuid, invocati
+     let params = { uuid: uuid,
+                    shell_version: Config.PACKAGE_VERSION };
+ 
++    if (Desktop.isSystemPinnedExtension(uuid)) {
++        let title = _("Can't install “%s”:").format(uuid);
++        let msg = _("This is an extension enabled by your current mode, you can't install manually any update in that session.");
++        Main.notifyError(title, msg);
++        invocation.return_dbus_error('org.gnome.Shell.CantInstallError', msg);
++        return;
++    }
++
+     let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
+ 
+     _httpSession.queue_message(message, function(session, message) {
+@@ -160,6 +170,9 @@ function updateExtension(uuid) {
+ function checkForUpdates() {
+     let metadatas = {};
+     for (let uuid in ExtensionUtils.extensions) {
++        // don't updates out of repository mode extension
++        if (Desktop.isSystemPinnedExtension(uuid))
++            continue;
+         metadatas[uuid] = ExtensionUtils.extensions[uuid].metadata;
+     }
+ 

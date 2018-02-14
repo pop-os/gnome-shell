@@ -3,6 +3,21 @@ gnome-shell (3.26.2-0ubuntu3) UNRELEASED; urgency=medium
   * debian/patches/ubuntu_panel_center_date_workarea.patch:
     Align date entry relative to workarea. That way, title bars are
     centered relative to date entry. (LP: #1716432)
+  * :
+    Don't allow ubuntu mode extension to update
+    Ensure that no update is proposed or loaded if sideloaded (always
+    prefer system version) on the ubuntu session.
+    We want to ensure that the default code running is going through
+    our QA and security team process than being loaded from a 3rd
+    party website.
+    Also, that will enable us to upload newer versions on GNOME
+    extension website while still letting older ubuntu release versions
+    running expected extension version.
+    Note that the patch set is simplified with a hardcoded extension list
+    until https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/1 is merged.
+    The patch set is too large otherwise to keep it maintainable as a distro
+    patch.
+    See also https://bugzilla.gnome.org/show_bug.cgi?id=789852.
 
  -- Didier Roche <didrocks@ubuntu.com>  Tue, 09 Jan 2018 11:15:11 +0100
 
