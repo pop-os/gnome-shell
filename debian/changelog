@@ -1,4 +1,4 @@
-gnome-shell (3.26.2-0ubuntu3) UNRELEASED; urgency=medium
+gnome-shell (3.26.2-0ubuntu3) bionic; urgency=medium
 
   * debian/patches/ubuntu_panel_center_date_workarea.patch:
     Align date entry relative to workarea. That way, title bars are
@@ -19,7 +19,7 @@ gnome-shell (3.26.2-0ubuntu3) UNRELEASED; urgency=medium
     patch.
     See also https://bugzilla.gnome.org/show_bug.cgi?id=789852.
 
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 09 Jan 2018 11:15:11 +0100
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 15 Feb 2018 15:25:18 +0100
 
 gnome-shell (3.26.2-0ubuntu2) bionic; urgency=medium
 
