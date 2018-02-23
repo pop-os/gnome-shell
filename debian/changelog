@@ -1,6 +1,7 @@
 gnome-shell (3.27.91-1) UNRELEASED; urgency=medium
 
   * New upstream development release (LP: #1751070)
+  * Bump minimum mutter to 3.27.91
 
  -- Jeremy Bicha <jbicha@debian.org>  Fri, 23 Feb 2018 18:11:29 -0500
 
