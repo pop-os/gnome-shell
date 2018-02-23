@@ -5,6 +5,7 @@ gnome-shell (3.27.91-1) UNRELEASED; urgency=medium
   * Build-Depend on sassc
   * Drop caribou dependencies. GNOME Shell has a new built-in keyboard now.
   * Drop patches applied in new release
+  * Cherry-pick bump-api.patch
 
  -- Jeremy Bicha <jbicha@debian.org>  Fri, 23 Feb 2018 18:11:29 -0500
 

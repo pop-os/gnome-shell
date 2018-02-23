@@ -1,0 +1,23 @@
+From: Jonas Ådahl <jadahl@gmail.com>
+Date: Wed, 21 Feb 2018 23:43:18 +0800
+Subject: [PATCH] build: Bump mutter API version
+
+The API number was updated, let's keep up.
+---
+ meson.build | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+index 14b99bf..d24b9ad 100644
+--- a/meson.build
++++ b/meson.build
+@@ -6,7 +6,7 @@ project('gnome-shell', 'c',
+ 
+ # We depend on a specific version of the libmutter API. The mutter variants of
+ # the Cogl and Clutter libraries also use this API version.
+-mutter_api_version = '1'
++mutter_api_version = '2'
+ 
+ clutter_pc = 'mutter-clutter-' + mutter_api_version
+ cogl_pc = 'mutter-cogl-' + mutter_api_version
+
