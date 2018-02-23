@@ -136,7 +136,7 @@ function trySpawn(argv)
     // Dummy child watch; we don't want to double-fork internally
     // because then we lose the parent-child relationship, which
     // can break polkit.  See https://bugzilla.redhat.com//show_bug.cgi?id=819275
-    GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, function () {});
+    GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, () => {});
 }
 
 // trySpawnCommandLine:
@@ -291,12 +291,10 @@ function createTimeLabel(date, params) {
         _desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
 
     let label = new St.Label({ text: formatTime(date, params) });
-    let id = _desktopSettings.connect('changed::clock-format', function() {
+    let id = _desktopSettings.connect('changed::clock-format', () => {
         label.text = formatTime(date, params);
     });
-    label.connect('destroy', function() {
-        _desktopSettings.disconnect(id);
-    });
+    label.connect('destroy', () => { _desktopSettings.disconnect(id); });
     return label;
 }
 
@@ -316,7 +314,7 @@ function createTimeLabel(date, params) {
 
 function lowerBound(array, val, cmp) {
     let min, max, mid, v;
-    cmp = cmp || function(a, b) { return a - b; };
+    cmp = cmp || ((a, b) => a - b);
 
     if (array.length == 0)
         return 0;
@@ -354,7 +352,7 @@ var CloseButton = new Lang.Class({
     Name: 'CloseButton',
     Extends: St.Button,
 
-    _init: function(boxpointer) {
+    _init(boxpointer) {
         this.parent({ style_class: 'notification-close'});
 
         // This is a bit tricky. St.Bin has its own x-align/y-align properties
@@ -371,10 +369,10 @@ var CloseButton = new Lang.Class({
 
         this._boxPointer = boxpointer;
         if (boxpointer)
-            this._boxPointer.connect('arrow-side-changed', Lang.bind(this, this._sync));
+            this._boxPointer.connect('arrow-side-changed', this._sync.bind(this));
     },
 
-    _computeBoxPointerOffset: function() {
+    _computeBoxPointerOffset() {
         if (!this._boxPointer || !this._boxPointer.actor.get_stage())
             return 0;
 
@@ -385,7 +383,7 @@ var CloseButton = new Lang.Class({
             return 0;
     },
 
-    _sync: function() {
+    _sync() {
         let themeNode = this.get_theme_node();
 
         let offY = this._computeBoxPointerOffset();
@@ -393,7 +391,7 @@ var CloseButton = new Lang.Class({
         this.translation_y = themeNode.get_length('-shell-close-overlap-y') + offY;
     },
 
-    vfunc_style_changed: function() {
+    vfunc_style_changed() {
         this._sync();
         this.parent();
     },
@@ -442,7 +440,7 @@ function ensureActorVisibleInScrollView(scrollView, actor) {
 var AppSettingsMonitor = new Lang.Class({
     Name: 'AppSettingsMonitor',
 
-    _init: function(appId, schemaId) {
+    _init(appId, schemaId) {
         this._appId = appId;
         this._schemaId = schemaId;
 
@@ -454,7 +452,7 @@ var AppSettingsMonitor = new Lang.Class({
 
         this._appSystem = Shell.AppSystem.get_default();
         this._appSystem.connect('installed-changed',
-                                Lang.bind(this, this._onInstalledChanged));
+                                this._onInstalledChanged.bind(this));
         this._onInstalledChanged();
     },
 
@@ -462,19 +460,19 @@ var AppSettingsMonitor = new Lang.Class({
         return this._app != null && this._settings != null;
     },
 
-    activateApp: function() {
+    activateApp() {
         if (this._app)
             this._app.activate();
     },
 
-    watchSetting: function(key, callback) {
+    watchSetting(key, callback) {
         let handler = { id: 0, key: key, callback: callback };
         this._handlers.push(handler);
 
         this._connectHandler(handler);
     },
 
-    _connectHandler: function(handler) {
+    _connectHandler(handler) {
         if (!this._settings || handler.id > 0)
             return;
 
@@ -483,13 +481,13 @@ var AppSettingsMonitor = new Lang.Class({
         handler.callback(this._settings, handler.key);
     },
 
-    _disconnectHandler: function(handler) {
+    _disconnectHandler(handler) {
         if (this._settings && handler.id > 0)
             this._settings.disconnect(handler.id);
         handler.id = 0;
     },
 
-    _onInstalledChanged: function() {
+    _onInstalledChanged() {
         let hadApp = (this._app != null);
         this._app = this._appSystem.lookup_app(this._appId);
         let haveApp = (this._app != null);
@@ -503,7 +501,7 @@ var AppSettingsMonitor = new Lang.Class({
             this._setSettings(null);
     },
 
-    _setSettings: function(settings) {
+    _setSettings(settings) {
         this._handlers.forEach((handler) => { this._disconnectHandler(handler); });
 
         let hadSettings = (this._settings != null);
@@ -516,7 +514,7 @@ var AppSettingsMonitor = new Lang.Class({
             this.emit('available-changed');
     },
 
-    _checkSettings: function() {
+    _checkSettings() {
         let schema = this._schemaSource.lookup(this._schemaId, true);
         if (schema) {
             this._setSettings(new Gio.Settings({ settings_schema: schema }));

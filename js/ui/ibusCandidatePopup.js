@@ -17,7 +17,7 @@ var DEFAULT_INDEX_LABELS = [ '1', '2', '3', '4', '5', '6', '7', '8',
 var CandidateArea = new Lang.Class({
     Name: 'CandidateArea',
 
-    _init: function() {
+    _init() {
         this.actor = new St.BoxLayout({ vertical: true,
                                         reactive: true,
                                         visible: false });
@@ -34,13 +34,13 @@ var CandidateArea = new Lang.Class({
             this.actor.add(box);
 
             let j = i;
-            box.connect('button-release-event', Lang.bind(this, function(actor, event) {
+            box.connect('button-release-event', (actor, event) => {
                 this.emit('candidate-clicked', j, event.get_button(), event.get_state());
                 return Clutter.EVENT_PROPAGATE;
-            }));
+            });
         }
 
-        this.actor.connect('scroll-event', Lang.bind(this, function(actor, event) {
+        this.actor.connect('scroll-event', (actor, event) => {
             let direction = event.get_scroll_direction();
             switch(direction) {
             case Clutter.ScrollDirection.UP:
@@ -51,7 +51,7 @@ var CandidateArea = new Lang.Class({
                 break;
             };
             return Clutter.EVENT_PROPAGATE;
-        }));
+        });
 
         this._buttonBox = new St.BoxLayout({ style_class: 'candidate-page-button-box' });
 
@@ -65,18 +65,18 @@ var CandidateArea = new Lang.Class({
 
         this.actor.add(this._buttonBox);
 
-        this._previousButton.connect('clicked', Lang.bind(this, function() {
+        this._previousButton.connect('clicked', () => {
             this.emit('previous-page');
-        }));
-        this._nextButton.connect('clicked', Lang.bind(this, function() {
+        });
+        this._nextButton.connect('clicked', () => {
             this.emit('next-page');
-        }));
+        });
 
         this._orientation = -1;
         this._cursorPosition = 0;
     },
 
-    setOrientation: function(orientation) {
+    setOrientation(orientation) {
         if (this._orientation == orientation)
             return;
 
@@ -97,7 +97,7 @@ var CandidateArea = new Lang.Class({
         }
     },
 
-    setCandidates: function(indexes, candidates, cursorPosition, cursorVisible) {
+    setCandidates(indexes, candidates, cursorPosition, cursorVisible) {
         for (let i = 0; i < MAX_CANDIDATES_PER_PAGE; ++i) {
             let visible = i < candidates.length;
             let box = this._candidateBoxes[i];
@@ -116,7 +116,7 @@ var CandidateArea = new Lang.Class({
             this._candidateBoxes[cursorPosition].add_style_pseudo_class('selected');
     },
 
-    updateButtons: function(wrapsAround, page, nPages) {
+    updateButtons(wrapsAround, page, nPages) {
         if (nPages < 2) {
             this._buttonBox.hide();
             return;
@@ -131,7 +131,7 @@ Signals.addSignalMethods(CandidateArea.prototype);
 var CandidatePopup = new Lang.Class({
     Name: 'CandidatePopup',
 
-    _init: function() {
+    _init() {
         this._boxPointer = new BoxPointer.BoxPointer(St.Side.TOP);
         this._boxPointer.actor.visible = false;
         this._boxPointer.actor.style_class = 'candidate-popup-boxpointer';
@@ -152,144 +152,142 @@ var CandidatePopup = new Lang.Class({
         this._candidateArea = new CandidateArea();
         box.add(this._candidateArea.actor);
 
-        this._candidateArea.connect('previous-page', Lang.bind(this, function() {
+        this._candidateArea.connect('previous-page', () => {
             this._panelService.page_up();
-        }));
-        this._candidateArea.connect('next-page', Lang.bind(this, function() {
+        });
+        this._candidateArea.connect('next-page', () => {
             this._panelService.page_down();
-        }));
+        });
 
-        this._candidateArea.connect('cursor-up', Lang.bind(this, function() {
+        this._candidateArea.connect('cursor-up', () => {
             this._panelService.cursor_up();
-        }));
-        this._candidateArea.connect('cursor-down', Lang.bind(this, function() {
+        });
+        this._candidateArea.connect('cursor-down', () => {
             this._panelService.cursor_down();
-        }));
+        });
 
-        this._candidateArea.connect('candidate-clicked', Lang.bind(this, function(ca, index, button, state) {
+        this._candidateArea.connect('candidate-clicked', () => {
             this._panelService.candidate_clicked(index, button, state);
-        }));
+        });
 
         this._panelService = null;
     },
 
-    setPanelService: function(panelService) {
+    setPanelService(panelService) {
         this._panelService = panelService;
         if (!panelService)
             return;
 
-        panelService.connect('set-cursor-location',
-                             Lang.bind(this, function(ps, x, y, w, h) {
-                                 this._setDummyCursorGeometry(x, y, w, h);
-                             }));
+        panelService.connect('set-cursor-location', (ps, x, y, w, h) => {
+            this._setDummyCursorGeometry(x, y, w, h);
+        });
         try {
-            panelService.connect('set-cursor-location-relative',
-                                 Lang.bind(this, function(ps, x, y, w, h) {
-                                     if (!global.display.focus_window)
-                                         return;
-                                     let window = global.display.focus_window.get_compositor_private();
-                                     this._setDummyCursorGeometry(window.x + x, window.y + y, w, h);
-                                 }));
+            panelService.connect('set-cursor-location-relative', (ps, x, y, w, h) => {
+                if (!global.display.focus_window)
+                    return;
+                let window = global.display.focus_window.get_compositor_private();
+                this._setDummyCursorGeometry(window.x + x, window.y + y, w, h);
+            });
         } catch(e) {
             // Only recent IBus versions have support for this signal
             // which is used for wayland clients. In order to work
             // with older IBus versions we can silently ignore the
             // signal's absence.
         }
-        panelService.connect('update-preedit-text',
-                             Lang.bind(this, function(ps, text, cursorPosition, visible) {
-                                 this._preeditText.visible = visible;
-                                 this._updateVisibility();
+        panelService.connect('update-preedit-text', (ps, text, cursorPosition, visible) => {
+            this._preeditText.visible = visible;
+            this._updateVisibility();
 
-                                 this._preeditText.text = text.get_text();
+            this._preeditText.text = text.get_text();
 
-                                 let attrs = text.get_attributes();
-                                 if (attrs)
-                                     this._setTextAttributes(this._preeditText.clutter_text,
-                                                             attrs);
-                             }));
-        panelService.connect('show-preedit-text',
-                             Lang.bind(this, function(ps) {
-                                 this._preeditText.show();
-                                 this._updateVisibility();
-                             }));
-        panelService.connect('hide-preedit-text',
-                             Lang.bind(this, function(ps) {
-                                 this._preeditText.hide();
-                                 this._updateVisibility();
-                             }));
-        panelService.connect('update-auxiliary-text',
-                             Lang.bind(this, function(ps, text, visible) {
-                                 this._auxText.visible = visible;
-                                 this._updateVisibility();
+            let attrs = text.get_attributes();
+            if (attrs)
+                this._setTextAttributes(this._preeditText.clutter_text,
+                                        attrs);
+        });
+        panelService.connect('show-preedit-text', ps => {
+            this._preeditText.show();
+            this._updateVisibility();
+        });
+        panelService.connect('hide-preedit-text', ps => {
+            this._preeditText.hide();
+            this._updateVisibility();
+        });
+        panelService.connect('update-auxiliary-text', (ps, text, visible) => {
+            this._auxText.visible = visible;
+            this._updateVisibility();
 
-                                 this._auxText.text = text.get_text();
-                             }));
-        panelService.connect('show-auxiliary-text',
-                             Lang.bind(this, function(ps) {
-                                 this._auxText.show();
-                                 this._updateVisibility();
-                             }));
-        panelService.connect('hide-auxiliary-text',
-                             Lang.bind(this, function(ps) {
-                                 this._auxText.hide();
-                                 this._updateVisibility();
-                             }));
-        panelService.connect('update-lookup-table',
-                             Lang.bind(this, function(ps, lookupTable, visible) {
-                                 this._candidateArea.actor.visible = visible;
-                                 this._updateVisibility();
+            this._auxText.text = text.get_text();
+        });
+        panelService.connect('show-auxiliary-text', ps => {
+            this._auxText.show();
+            this._updateVisibility();
+        });
+        panelService.connect('hide-auxiliary-text', ps => {
+            this._auxText.hide();
+            this._updateVisibility();
+        });
+        panelService.connect('update-lookup-table', (ps, lookupTable, visible) => {
+            this._candidateArea.actor.visible = visible;
+            this._updateVisibility();
 
-                                 let nCandidates = lookupTable.get_number_of_candidates();
-                                 let cursorPos = lookupTable.get_cursor_pos();
-                                 let pageSize = lookupTable.get_page_size();
-                                 let nPages = Math.ceil(nCandidates / pageSize);
-                                 let page = ((cursorPos == 0) ? 0 : Math.floor(cursorPos / pageSize));
-                                 let startIndex = page * pageSize;
-                                 let endIndex = Math.min((page + 1) * pageSize, nCandidates);
+            let nCandidates = lookupTable.get_number_of_candidates();
+            let cursorPos = lookupTable.get_cursor_pos();
+            let pageSize = lookupTable.get_page_size();
+            let nPages = Math.ceil(nCandidates / pageSize);
+            let page = ((cursorPos == 0) ? 0 : Math.floor(cursorPos / pageSize));
+            let startIndex = page * pageSize;
+            let endIndex = Math.min((page + 1) * pageSize, nCandidates);
 
-                                 let indexes = [];
-                                 let indexLabel;
-                                 for (let i = 0; indexLabel = lookupTable.get_label(i); ++i)
-                                      indexes.push(indexLabel.get_text());
+            let indexes = [];
+            let indexLabel;
+            for (let i = 0; indexLabel = lookupTable.get_label(i); ++i)
+                 indexes.push(indexLabel.get_text());
 
-                                 let candidates = [];
-                                 for (let i = startIndex; i < endIndex; ++i)
-                                     candidates.push(lookupTable.get_candidate(i).get_text());
+            Main.keyboard.resetSuggestions();
 
-                                 this._candidateArea.setCandidates(indexes,
-                                                                   candidates,
-                                                                   cursorPos % pageSize,
-                                                                   lookupTable.is_cursor_visible());
-                                 this._candidateArea.setOrientation(lookupTable.get_orientation());
-                                 this._candidateArea.updateButtons(lookupTable.is_round(), page, nPages);
-                             }));
-        panelService.connect('show-lookup-table',
-                             Lang.bind(this, function(ps) {
-                                 this._candidateArea.actor.show();
-                                 this._updateVisibility();
-                             }));
-        panelService.connect('hide-lookup-table',
-                             Lang.bind(this, function(ps) {
-                                 this._candidateArea.actor.hide();
-                                 this._updateVisibility();
-                             }));
-        panelService.connect('focus-out',
-                             Lang.bind(this, function(ps) {
-                                 this._boxPointer.hide(BoxPointer.PopupAnimation.NONE);
-                             }));
+            let candidates = [];
+            for (let i = startIndex; i < endIndex; ++i) {
+                candidates.push(lookupTable.get_candidate(i).get_text());
+
+                Main.keyboard.addSuggestion(lookupTable.get_candidate(i).get_text(), () => {
+                    let index = i;
+                    this._panelService.candidate_clicked(index, 1, 0);
+                });
+            }
+
+            this._candidateArea.setCandidates(indexes,
+                                              candidates,
+                                              cursorPos % pageSize,
+                                              lookupTable.is_cursor_visible());
+            this._candidateArea.setOrientation(lookupTable.get_orientation());
+            this._candidateArea.updateButtons(lookupTable.is_round(), page, nPages);
+        });
+        panelService.connect('show-lookup-table', ps => {
+            this._candidateArea.actor.show();
+            this._updateVisibility();
+        });
+        panelService.connect('hide-lookup-table', ps => {
+            this._candidateArea.actor.hide();
+            this._updateVisibility();
+        });
+        panelService.connect('focus-out', ps => {
+            this._boxPointer.hide(BoxPointer.PopupAnimation.NONE);
+            Main.keyboard.resetSuggestions();
+        });
     },
 
-    _setDummyCursorGeometry: function(x, y, w, h) {
+    _setDummyCursorGeometry(x, y, w, h) {
         Main.layoutManager.setDummyCursorGeometry(x, y, w, h);
         if (this._boxPointer.actor.visible)
             this._boxPointer.setPosition(Main.layoutManager.dummyCursor, 0);
     },
 
-    _updateVisibility: function() {
-        let isVisible = (this._preeditText.visible ||
-                         this._auxText.visible ||
-                         this._candidateArea.actor.visible);
+    _updateVisibility() {
+        let isVisible = (!Main.keyboard.visible &&
+                         (this._preeditText.visible ||
+                          this._auxText.visible ||
+                          this._candidateArea.actor.visible));
 
         if (isVisible) {
             this._boxPointer.setPosition(Main.layoutManager.dummyCursor, 0);
@@ -300,7 +298,7 @@ var CandidatePopup = new Lang.Class({
         }
     },
 
-    _setTextAttributes: function(clutterText, ibusAttrList) {
+    _setTextAttributes(clutterText, ibusAttrList) {
         let attr;
         for (let i = 0; attr = ibusAttrList.get(i); ++i)
             if (attr.get_attr_type() == IBus.AttrType.BACKGROUND)

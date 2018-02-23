@@ -24,17 +24,17 @@ const RfkillManagerProxy = Gio.DBusProxy.makeProxyWrapper(RfkillManagerInterface
 var RfkillManager = new Lang.Class({
     Name: 'RfkillManager',
 
-    _init: function() {
+    _init() {
         this._proxy = new RfkillManagerProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH,
-                                             Lang.bind(this, function(proxy, error) {
+                                             (proxy, error) => {
                                                  if (error) {
                                                      log(error.message);
                                                      return;
                                                  }
                                                  this._proxy.connect('g-properties-changed',
-                                                                     Lang.bind(this, this._changed));
+                                                                     this._changed.bind(this));
                                                  this._changed();
-                                             }));
+                                             });
     },
 
     get airplaneMode() {
@@ -53,7 +53,7 @@ var RfkillManager = new Lang.Class({
         return this._proxy.ShouldShowAirplaneMode;
     },
 
-    _changed: function() {
+    _changed() {
         this.emit('airplane-mode-changed');
     }
 });
@@ -72,11 +72,11 @@ var Indicator = new Lang.Class({
     Name: 'RfkillIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._manager = getRfkillManager();
-        this._manager.connect('airplane-mode-changed', Lang.bind(this, this._sync));
+        this._manager.connect('airplane-mode-changed', this._sync.bind(this));
 
         this._indicator = this._addIndicator();
         this._indicator.icon_name = 'airplane-mode-symbolic';
@@ -87,22 +87,22 @@ var Indicator = new Lang.Class({
         // changing the menu contents.
         this._item = new PopupMenu.PopupSubMenuMenuItem(_("Airplane Mode On"), true);
         this._item.icon.icon_name = 'airplane-mode-symbolic';
-        this._offItem = this._item.menu.addAction(_("Turn Off"), Lang.bind(this, function() {
+        this._offItem = this._item.menu.addAction(_("Turn Off"), () => {
             this._manager.airplaneMode = false;
-        }));
+        });
         this._item.menu.addSettingsAction(_("Network Settings"), 'gnome-network-panel.desktop');
         this.menu.addMenuItem(this._item);
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
         this.menu.setSensitive(sensitive);
     },
 
-    _sync: function() {
+    _sync() {
         let airplaneMode = this._manager.airplaneMode;
         let hwAirplaneMode = this._manager.hwAirplaneMode;
         let showAirplaneMode = this._manager.shouldShowAirplaneMode;

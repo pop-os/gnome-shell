@@ -42,13 +42,13 @@ function _fixMarkup(text, allowMarkup) {
 var URLHighlighter = new Lang.Class({
     Name: 'URLHighlighter',
 
-    _init: function(text, lineWrap, allowMarkup) {
+    _init(text, lineWrap, allowMarkup) {
         if (!text)
             text = '';
         this.actor = new St.Label({ reactive: true, style_class: 'url-highlighter',
                                     x_expand: true, x_align: Clutter.ActorAlign.START });
         this._linkColor = '#ccccff';
-        this.actor.connect('style-changed', Lang.bind(this, function() {
+        this.actor.connect('style-changed', () => {
             let [hasColor, color] = this.actor.get_theme_node().lookup_color('link-color', false);
             if (hasColor) {
                 let linkColor = color.to_string().substr(0, 7);
@@ -57,12 +57,12 @@ var URLHighlighter = new Lang.Class({
                     this._highlightUrls();
                 }
             }
-        }));
+        });
         this.actor.clutter_text.line_wrap = lineWrap;
         this.actor.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
 
         this.setMarkup(text, allowMarkup);
-        this.actor.connect('button-press-event', Lang.bind(this, function(actor, event) {
+        this.actor.connect('button-press-event', (actor, event) => {
             // Don't try to URL highlight when invisible.
             // The MessageTray doesn't actually hide us, so
             // we need to check for paint opacities as well.
@@ -73,8 +73,8 @@ var URLHighlighter = new Lang.Class({
             // a pointer grab, which would block our button-release-event
             // handler, if an URL is clicked
             return this._findUrlAtPos(event) != -1;
-        }));
-        this.actor.connect('button-release-event', Lang.bind(this, function (actor, event) {
+        });
+        this.actor.connect('button-release-event', (actor, event) => {
             if (!actor.visible || actor.get_paint_opacity() == 0)
                 return Clutter.EVENT_PROPAGATE;
 
@@ -88,8 +88,8 @@ var URLHighlighter = new Lang.Class({
                 return Clutter.EVENT_STOP;
             }
             return Clutter.EVENT_PROPAGATE;
-        }));
-        this.actor.connect('motion-event', Lang.bind(this, function(actor, event) {
+        });
+        this.actor.connect('motion-event', (actor, event) => {
             if (!actor.visible || actor.get_paint_opacity() == 0)
                 return Clutter.EVENT_PROPAGATE;
 
@@ -102,8 +102,8 @@ var URLHighlighter = new Lang.Class({
                 this._cursorChanged = false;
             }
             return Clutter.EVENT_PROPAGATE;
-        }));
-        this.actor.connect('leave-event', Lang.bind(this, function() {
+        });
+        this.actor.connect('leave-event', () => {
             if (!this.actor.visible || this.actor.get_paint_opacity() == 0)
                 return Clutter.EVENT_PROPAGATE;
 
@@ -112,10 +112,10 @@ var URLHighlighter = new Lang.Class({
                 global.screen.set_cursor(Meta.Cursor.DEFAULT);
             }
             return Clutter.EVENT_PROPAGATE;
-        }));
+        });
     },
 
-    setMarkup: function(text, allowMarkup) {
+    setMarkup(text, allowMarkup) {
         text = text ? _fixMarkup(text, allowMarkup) : '';
         this._text = text;
 
@@ -125,7 +125,7 @@ var URLHighlighter = new Lang.Class({
         this._highlightUrls();
     },
 
-    _highlightUrls: function() {
+    _highlightUrls() {
         // text here contain markup
         let urls = Util.findUrls(this._text);
         let markup = '';
@@ -140,7 +140,7 @@ var URLHighlighter = new Lang.Class({
         this.actor.clutter_text.set_markup(markup);
     },
 
-    _findUrlAtPos: function(event) {
+    _findUrlAtPos(event) {
         let success;
         let [x, y] = event.get_coords();
         [success, x, y] = this.actor.transform_stage_point(x, y);
@@ -165,12 +165,12 @@ var ScaleLayout = new Lang.Class({
     Name: 'ScaleLayout',
     Extends: Clutter.BinLayout,
 
-    _init: function(params) {
+    _init(params) {
         this._container = null;
         this.parent(params);
     },
 
-    _connectContainer: function(container) {
+    _connectContainer(container) {
         if (this._container == container)
             return;
 
@@ -183,15 +183,14 @@ var ScaleLayout = new Lang.Class({
 
         if (this._container)
             for (let signal of ['notify::scale-x', 'notify::scale-y']) {
-                let id = this._container.connect(signal, Lang.bind(this,
-                    function() {
-                        this.layout_changed();
-                    }));
+                let id = this._container.connect(signal, () => {
+                    this.layout_changed();
+                });
                 this._signals.push(id);
             }
     },
 
-    vfunc_get_preferred_width: function(container, forHeight) {
+    vfunc_get_preferred_width(container, forHeight) {
         this._connectContainer(container);
 
         let [min, nat] = this.parent(container, forHeight);
@@ -199,7 +198,7 @@ var ScaleLayout = new Lang.Class({
                 Math.floor(nat * container.scale_x)];
     },
 
-    vfunc_get_preferred_height: function(container, forWidth) {
+    vfunc_get_preferred_height(container, forWidth) {
         this._connectContainer(container);
 
         let [min, nat] = this.parent(container, forWidth);
@@ -218,7 +217,7 @@ var LabelExpanderLayout = new Lang.Class({
                                                          GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
                                                          0, 1, 0)},
 
-    _init: function(params) {
+    _init(params) {
         this._expansion = 0;
         this._expandLines = DEFAULT_EXPAND_LINES;
 
@@ -250,11 +249,11 @@ var LabelExpanderLayout = new Lang.Class({
             this.layout_changed();
     },
 
-    vfunc_set_container: function(container) {
+    vfunc_set_container(container) {
         this._container = container;
     },
 
-    vfunc_get_preferred_width: function(container, forHeight) {
+    vfunc_get_preferred_width(container, forHeight) {
         let [min, nat] = [0, 0];
 
         for (let i = 0; i < container.get_n_children(); i++) {
@@ -269,7 +268,7 @@ var LabelExpanderLayout = new Lang.Class({
         return [min, nat];
     },
 
-    vfunc_get_preferred_height: function(container, forWidth) {
+    vfunc_get_preferred_height(container, forWidth) {
         let [min, nat] = [0, 0];
 
         let children = container.get_children();
@@ -287,7 +286,7 @@ var LabelExpanderLayout = new Lang.Class({
         return [min, nat];
     },
 
-    vfunc_allocate: function(container, box, flags) {
+    vfunc_allocate(container, box, flags) {
         for (let i = 0; i < container.get_n_children(); i++) {
             let child = container.get_child_at_index(i);
 
@@ -301,7 +300,7 @@ var LabelExpanderLayout = new Lang.Class({
 var Message = new Lang.Class({
     Name: 'Message',
 
-    _init: function(title, body) {
+    _init(title, body) {
         this.expanded = false;
 
         this._useBodyMarkup = false;
@@ -311,7 +310,7 @@ var Message = new Lang.Class({
                                      can_focus: true,
                                      x_expand: true, x_fill: true });
         this.actor.connect('key-press-event',
-                           Lang.bind(this, this._onKeyPressed));
+                           this._onKeyPressed.bind(this));
 
         let vbox = new St.BoxLayout({ vertical: true });
         this.actor.set_child(vbox);
@@ -362,32 +361,32 @@ var Message = new Lang.Class({
         this._bodyStack.add_actor(this.bodyLabel.actor);
         this.setBody(body);
 
-        this._closeButton.connect('clicked', Lang.bind(this, this.close));
-        this.actor.connect('notify::hover', Lang.bind(this, this._sync));
-        this.actor.connect('clicked', Lang.bind(this, this._onClicked));
-        this.actor.connect('destroy', Lang.bind(this, this._onDestroy));
+        this._closeButton.connect('clicked', this.close.bind(this));
+        this.actor.connect('notify::hover', this._sync.bind(this));
+        this.actor.connect('clicked', this._onClicked.bind(this));
+        this.actor.connect('destroy', this._onDestroy.bind(this));
         this._sync();
     },
 
-    close: function() {
+    close() {
         this.emit('close');
     },
 
-    setIcon: function(actor) {
+    setIcon(actor) {
         this._iconBin.child = actor;
         this._iconBin.visible = (actor != null);
     },
 
-    setSecondaryActor: function(actor) {
+    setSecondaryActor(actor) {
         this._secondaryBin.child = actor;
     },
 
-    setTitle: function(text) {
+    setTitle(text) {
         let title = text ? _fixMarkup(text.replace(/\n/g, ' '), false) : '';
         this.titleLabel.clutter_text.set_markup(title);
     },
 
-    setBody: function(text) {
+    setBody(text) {
         this._bodyText = text;
         this.bodyLabel.setMarkup(text ? text.replace(/\n/g, ' ') : '',
                                  this._useBodyMarkup);
@@ -395,7 +394,7 @@ var Message = new Lang.Class({
             this._expandedLabel.setMarkup(text, this._useBodyMarkup);
     },
 
-    setUseBodyMarkup: function(enable) {
+    setUseBodyMarkup(enable) {
         if (this._useBodyMarkup === enable)
             return;
         this._useBodyMarkup = enable;
@@ -403,7 +402,7 @@ var Message = new Lang.Class({
             this.setBody(this._bodyText);
     },
 
-    setActionArea: function(actor) {
+    setActionArea(actor) {
         if (actor == null) {
             if (this._actionBin.get_n_children() > 0)
                 this._actionBin.get_child_at_index(0).destroy();
@@ -417,7 +416,7 @@ var Message = new Lang.Class({
         this._actionBin.visible = this.expanded;
     },
 
-    addMediaControl: function(iconName, callback) {
+    addMediaControl(iconName, callback) {
         let icon = new St.Icon({ icon_name: iconName, icon_size: 16 });
         let button = new St.Button({ style_class: 'message-media-control',
                                      child: icon });
@@ -426,7 +425,7 @@ var Message = new Lang.Class({
         return button;
     },
 
-    setExpandedBody: function(actor) {
+    setExpandedBody(actor) {
         if (actor == null) {
             if (this._bodyStack.get_n_children() > 1)
                 this._bodyStack.get_child_at_index(1).destroy();
@@ -439,11 +438,11 @@ var Message = new Lang.Class({
         this._bodyStack.insert_child_at_index(actor, 1);
     },
 
-    setExpandedLines: function(nLines) {
+    setExpandedLines(nLines) {
         this._bodyStack.layout_manager.expandLines = nLines;
     },
 
-    expand: function(animate) {
+    expand(animate) {
         this.expanded = true;
 
         this._actionBin.visible = (this._actionBin.get_n_children() > 0);
@@ -472,7 +471,7 @@ var Message = new Lang.Class({
         this.emit('expanded');
     },
 
-    unexpand: function(animate) {
+    unexpand(animate) {
         if (animate) {
             Tweener.addTween(this._bodyStack.layout_manager,
                              { expansion: 0,
@@ -483,7 +482,7 @@ var Message = new Lang.Class({
                                time: MessageTray.ANIMATION_TIME,
                                transition: 'easeOutQuad',
                                onCompleteScope: this,
-                               onComplete: function() {
+                               onComplete() {
                                    this._actionBin.hide();
                                    this.expanded = false;
                                }});
@@ -496,22 +495,22 @@ var Message = new Lang.Class({
         this.emit('unexpanded');
     },
 
-    canClose: function() {
+    canClose() {
         return this._mediaControls.get_n_children() == 0;
     },
 
-    _sync: function() {
+    _sync() {
         let visible = this.actor.hover && this.canClose();
         this._closeButton.opacity = visible ? 255 : 0;
     },
 
-    _onClicked: function() {
+    _onClicked() {
     },
 
-    _onDestroy: function() {
+    _onDestroy() {
     },
 
-    _onKeyPressed: function(a, event) {
+    _onKeyPressed(a, event) {
         let keysym = event.get_key_symbol();
 
         if (keysym == Clutter.KEY_Delete ||
@@ -527,7 +526,7 @@ Signals.addSignalMethods(Message.prototype);
 var MessageListSection = new Lang.Class({
     Name: 'MessageListSection',
 
-    _init: function() {
+    _init() {
         this.actor = new St.BoxLayout({ style_class: 'message-list-section',
                                         clip_to_allocation: true,
                                         x_expand: true, vertical: true });
@@ -536,12 +535,12 @@ var MessageListSection = new Lang.Class({
                                         vertical: true });
         this.actor.add_actor(this._list);
 
-        this._list.connect('actor-added', Lang.bind(this, this._sync));
-        this._list.connect('actor-removed', Lang.bind(this, this._sync));
+        this._list.connect('actor-added', this._sync.bind(this));
+        this._list.connect('actor-removed', this._sync.bind(this));
 
         let id = Main.sessionMode.connect('updated',
-                                          Lang.bind(this, this._sync));
-        this.actor.connect('destroy', function() {
+                                          this._sync.bind(this));
+        this.actor.connect('destroy', () => {
             Main.sessionMode.disconnect(id);
         });
 
@@ -552,7 +551,7 @@ var MessageListSection = new Lang.Class({
         this._sync();
     },
 
-    _onKeyFocusIn: function(actor) {
+    _onKeyFocusIn(actor) {
         this.emit('key-focus-in', actor);
     },
 
@@ -560,18 +559,18 @@ var MessageListSection = new Lang.Class({
         return true;
     },
 
-    setDate: function(date) {
+    setDate(date) {
         if (Calendar.sameDay(date, this._date))
             return;
         this._date = date;
         this._sync();
     },
 
-    addMessage: function(message, animate) {
+    addMessage(message, animate) {
         this.addMessageAtIndex(message, -1, animate);
     },
 
-    addMessageAtIndex: function(message, index, animate) {
+    addMessageAtIndex(message, index, animate) {
         let obj = {
             container: null,
             destroyId: 0,
@@ -584,15 +583,13 @@ var MessageListSection = new Lang.Class({
                                         pivot_point: pivot,
                                         scale_x: scale, scale_y: scale });
         obj.keyFocusId = message.actor.connect('key-focus-in',
-            Lang.bind(this, this._onKeyFocusIn));
-        obj.destroyId = message.actor.connect('destroy',
-            Lang.bind(this, function() {
-                this.removeMessage(message, false);
-            }));
-        obj.closeId = message.connect('close',
-            Lang.bind(this, function() {
-                this.removeMessage(message, true);
-            }));
+            this._onKeyFocusIn.bind(this));
+        obj.destroyId = message.actor.connect('destroy', () => {
+            this.removeMessage(message, false);
+        });
+        obj.closeId = message.connect('close', () => {
+            this.removeMessage(message, true);
+        });
 
         this._messages.set(message, obj);
         obj.container.add_actor(message.actor);
@@ -606,7 +603,7 @@ var MessageListSection = new Lang.Class({
                                               transition: 'easeOutQuad' });
     },
 
-    moveMessage: function(message, index, animate) {
+    moveMessage(message, index, animate) {
         let obj = this._messages.get(message);
 
         if (!animate) {
@@ -614,13 +611,13 @@ var MessageListSection = new Lang.Class({
             return;
         }
 
-        let onComplete = Lang.bind(this, function() {
+        let onComplete = () => {
             this._list.set_child_at_index(obj.container, index);
             Tweener.addTween(obj.container, { scale_x: 1,
                                               scale_y: 1,
                                               time: MESSAGE_ANIMATION_TIME,
                                               transition: 'easeOutQuad' });
-        });
+        };
         Tweener.addTween(obj.container, { scale_x: 0,
                                           scale_y: 0,
                                           time: MESSAGE_ANIMATION_TIME,
@@ -628,7 +625,7 @@ var MessageListSection = new Lang.Class({
                                           onComplete: onComplete });
     },
 
-    removeMessage: function(message, animate) {
+    removeMessage(message, animate) {
         let obj = this._messages.get(message);
 
         message.actor.disconnect(obj.destroyId);
@@ -641,7 +638,7 @@ var MessageListSection = new Lang.Class({
             Tweener.addTween(obj.container, { scale_x: 0, scale_y: 0,
                                               time: MESSAGE_ANIMATION_TIME,
                                               transition: 'easeOutQuad',
-                                              onComplete: function() {
+                                              onComplete() {
                                                   obj.container.destroy();
                                                   global.sync_pointer();
                                               }});
@@ -651,14 +648,12 @@ var MessageListSection = new Lang.Class({
         }
     },
 
-    clear: function() {
-        let messages = [...this._messages.keys()].filter(function(message) {
-            return message.canClose();
-        });
+    clear() {
+        let messages = [...this._messages.keys()].filter(msg => msg.canClose());
 
         // If there are few messages, letting them all zoom out looks OK
         if (messages.length < 2) {
-            messages.forEach(function(message) {
+            messages.forEach(message => {
                 message.close();
             });
         } else {
@@ -674,25 +669,25 @@ var MessageListSection = new Lang.Class({
                                    time: MESSAGE_ANIMATION_TIME,
                                    delay: i * delay,
                                    transition: 'easeOutQuad',
-                                   onComplete: function() {
+                                   onComplete() {
                                        message.close();
                                    }});
             }
         }
     },
 
-    _canClear: function() {
+    _canClear() {
         for (let message of this._messages.keys())
             if (message.canClose())
                 return true;
         return false;
     },
 
-    _shouldShow: function() {
+    _shouldShow() {
         return !this.empty;
     },
 
-    _sync: function() {
+    _sync() {
         let empty = this._list.get_n_children() == 0;
         let changed = this.empty !== empty;
         this.empty = empty;

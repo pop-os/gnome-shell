@@ -31,22 +31,22 @@ const STATECHANGED      = 'object:state-changed';
 var FocusCaretTracker = new Lang.Class({
     Name: 'FocusCaretTracker',
 
-    _init: function() {
-        this._atspiListener = Atspi.EventListener.new(Lang.bind(this, this._onChanged));
+    _init() {
+        this._atspiListener = Atspi.EventListener.new(this._onChanged.bind(this));
 
         this._atspiInited = false;
         this._focusListenerRegistered = false;
         this._caretListenerRegistered = false;
     },
 
-    _onChanged: function(event) {
+    _onChanged(event) {
         if (event.type.indexOf(STATECHANGED) == 0)
             this.emit('focus-changed', event);
         else if (event.type == CARETMOVED)
             this.emit('caret-moved', event);
     },
 
-    _initAtspi: function() {
+    _initAtspi() {
         if (!this._atspiInited && Atspi.init() == 0) {
             Atspi.set_timeout(250, 250);
             this._atspiInited = true;
@@ -55,7 +55,7 @@ var FocusCaretTracker = new Lang.Class({
 	return this._atspiInited;
     },
 
-    registerFocusListener: function() {
+    registerFocusListener() {
         if (!this._initAtspi() || this._focusListenerRegistered)
             return;
 
@@ -64,7 +64,7 @@ var FocusCaretTracker = new Lang.Class({
         this._focusListenerRegistered = true;
     },
 
-    registerCaretListener: function() {
+    registerCaretListener() {
         if (!this._initAtspi() || this._caretListenerRegistered)
             return;
 
@@ -72,7 +72,7 @@ var FocusCaretTracker = new Lang.Class({
         this._caretListenerRegistered = true;
     },
 
-    deregisterFocusListener: function() {
+    deregisterFocusListener() {
         if (!this._focusListenerRegistered)
             return;
 
@@ -81,7 +81,7 @@ var FocusCaretTracker = new Lang.Class({
         this._focusListenerRegistered = false;
     },
 
-    deregisterCaretListener: function() {
+    deregisterCaretListener() {
         if (!this._caretListenerRegistered)
             return;
 

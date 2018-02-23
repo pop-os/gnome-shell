@@ -28,7 +28,7 @@ const ObjectManagerInfo = Gio.DBusInterfaceInfo.new_for_xml(ObjectManagerIface);
 
 var ObjectManager = new Lang.Class({
     Name: 'ObjectManager',
-    _init: function(params) {
+    _init(params) {
         params = Params.parse(params, { connection: null,
                                         name: null,
                                         objectPath: null,
@@ -61,10 +61,10 @@ var ObjectManager = new Lang.Class({
         this._numLoadInhibitors = 1;
         this._managerProxy.init_async(GLib.PRIORITY_DEFAULT,
                                       this._cancellable,
-                                      Lang.bind(this, this._onManagerProxyLoaded));
+                                      this._onManagerProxyLoaded.bind(this));
     },
 
-    _tryToCompleteLoad: function() {
+    _tryToCompleteLoad() {
         if (this._numLoadInhibitors == 0)
             return;
 
@@ -75,7 +75,7 @@ var ObjectManager = new Lang.Class({
         }
     },
 
-    _addInterface: function(objectPath, interfaceName, onFinished) {
+    _addInterface(objectPath, interfaceName, onFinished) {
         let info = this._interfaceInfos[interfaceName];
 
         if (!info) {
@@ -93,7 +93,7 @@ var ObjectManager = new Lang.Class({
 
         proxy.init_async(GLib.PRIORITY_DEFAULT,
                          this._cancellable,
-                         Lang.bind(this, function(initable, result) {
+                         (initable, result) => {
                let error = null;
                try {
                    initable.init_finish(result);
@@ -127,10 +127,10 @@ var ObjectManager = new Lang.Class({
 
                if (onFinished)
                    onFinished();
-        }));
+        });
     },
 
-    _removeInterface: function(objectPath, interfaceName) {
+    _removeInterface(objectPath, interfaceName) {
         if (!this._objects[objectPath])
             return;
 
@@ -156,7 +156,7 @@ var ObjectManager = new Lang.Class({
         }
     },
 
-    _onManagerProxyLoaded: function(initable, result) {
+    _onManagerProxyLoaded(initable, result) {
         let error = null;
         try {
             initable.init_finish(result);
@@ -168,35 +168,35 @@ var ObjectManager = new Lang.Class({
         }
 
         this._managerProxy.connectSignal('InterfacesAdded',
-                                         Lang.bind(this, function(objectManager, sender, [objectPath, interfaces]) {
+                                         (objectManager, sender, [objectPath, interfaces]) => {
                                              let interfaceNames = Object.keys(interfaces);
                                              for (let i = 0; i < interfaceNames.length; i++)
                                                  this._addInterface(objectPath, interfaceNames[i]);
-                                         }));
+                                         });
         this._managerProxy.connectSignal('InterfacesRemoved',
-                                         Lang.bind(this, function(objectManager, sender, [objectPath, interfaceNames]) {
+                                         (objectManager, sender, [objectPath, interfaceNames]) => {
                                              for (let i = 0; i < interfaceNames.length; i++)
                                                  this._removeInterface(objectPath, interfaceNames[i]);
-                                         }));
+                                         });
 
         if (Object.keys(this._interfaceInfos).length == 0) {
             this._tryToCompleteLoad();
             return;
         }
 
-        this._managerProxy.connect('notify::g-name-owner', Lang.bind(this, function() {
+        this._managerProxy.connect('notify::g-name-owner', () => {
             if (this._managerProxy.g_name_owner)
                 this._onNameAppeared();
             else
                 this._onNameVanished();
-        }));
+        });
 
         if (this._managerProxy.g_name_owner)
             this._onNameAppeared();
     },
 
-    _onNameAppeared: function() {
-        this._managerProxy.GetManagedObjectsRemote(Lang.bind(this, function(result, error) {
+    _onNameAppeared() {
+        this._managerProxy.GetManagedObjectsRemote((result, error) => {
             if (!result) {
                 if (error) {
                    logError(error, 'could not get remote objects for service ' + this._serviceName + ' path ' + this._managerPath);
@@ -226,14 +226,14 @@ var ObjectManager = new Lang.Class({
                     this._numLoadInhibitors++;
                     this._addInterface(objectPath,
                                        interfaceName,
-                                       Lang.bind(this, this._tryToCompleteLoad));
+                                       this._tryToCompleteLoad.bind(this));
                 }
             }
             this._tryToCompleteLoad();
-        }));
+        });
     },
 
-    _onNameVanished: function() {
+    _onNameVanished() {
         let objectPaths = Object.keys(this._objects);
         for (let i = 0; i < objectPaths.length; i++) {
             let object = this._objects[objectPaths];
@@ -248,14 +248,14 @@ var ObjectManager = new Lang.Class({
         }
     },
 
-    _registerInterfaces: function(interfaces) {
+    _registerInterfaces(interfaces) {
         for (let i = 0; i < interfaces.length; i++) {
             let info = Gio.DBusInterfaceInfo.new_for_xml(interfaces[i]);
             this._interfaceInfos[info.name] = info;
         }
     },
 
-    getProxy: function(objectPath, interfaceName) {
+    getProxy(objectPath, interfaceName) {
         let object = this._objects[objectPath];
 
         if (!object)
@@ -264,7 +264,7 @@ var ObjectManager = new Lang.Class({
         return object[interfaceName];
     },
 
-    getProxiesForInterface: function(interfaceName) {
+    getProxiesForInterface(interfaceName) {
         let proxyList = this._interfaces[interfaceName];
 
         if (!proxyList)
@@ -273,7 +273,7 @@ var ObjectManager = new Lang.Class({
         return proxyList;
     },
 
-    getAllProxies: function() {
+    getAllProxies() {
         let proxies = [];
 
         let objectPaths = Object.keys(this._objects);

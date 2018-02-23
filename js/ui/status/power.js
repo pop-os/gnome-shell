@@ -33,12 +33,12 @@ var Indicator = new Lang.Class({
     Name: 'PowerIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
         this._desktopSettings.connect('changed::' + SHOW_BATTERY_PERCENTAGE,
-                                      Lang.bind(this, this._sync));
+                                      this._sync.bind(this));
 
         this._indicator = this._addIndicator();
         this._percentageLabel = new St.Label({ y_expand: true,
@@ -47,30 +47,30 @@ var Indicator = new Lang.Class({
         this.indicators.add_style_class_name('power-status');
 
         this._proxy = new PowerManagerProxy(Gio.DBus.system, BUS_NAME, OBJECT_PATH,
-                                            Lang.bind(this, function(proxy, error) {
+                                            (proxy, error) => {
                                                 if (error) {
                                                     log(error.message);
                                                     return;
                                                 }
                                                 this._proxy.connect('g-properties-changed',
-                                                                    Lang.bind(this, this._sync));
+                                                                    this._sync.bind(this));
                                                 this._sync();
-                                            }));
+                                            });
 
         this._item = new PopupMenu.PopupSubMenuMenuItem("", true);
         this._item.menu.addSettingsAction(_("Power Settings"), 'gnome-power-panel.desktop');
         this.menu.addMenuItem(this._item);
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
         this.menu.setSensitive(sensitive);
     },
 
-    _getStatus: function() {
+    _getStatus() {
         let seconds = 0;
 
         if (this._proxy.State == UPower.DeviceState.FULLY_CHARGED)
@@ -106,7 +106,7 @@ var Indicator = new Lang.Class({
         return null;
     },
 
-    _sync: function() {
+    _sync() {
         // Do we have batteries or a UPS?
         let visible = this._proxy.IsPresent;
         if (visible) {

@@ -158,7 +158,7 @@ gvc_mixer_stream_get_channel_map (GvcMixerStream *stream)
  * gvc_mixer_stream_get_volume:
  * @stream:
  *
- * Returns: (type guint32) (transfer none):
+ * Returns: (type guint32):
  */
 pa_volume_t
 gvc_mixer_stream_get_volume (GvcMixerStream *stream)
@@ -486,7 +486,7 @@ gvc_mixer_stream_set_sysfs_path (GvcMixerStream *stream,
  * gvc_mixer_stream_get_base_volume:
  * @stream:
  *
- * Returns: (type guint32) (transfer none):
+ * Returns: (type guint32):
  */
 pa_volume_t
 gvc_mixer_stream_get_base_volume (GvcMixerStream *stream)

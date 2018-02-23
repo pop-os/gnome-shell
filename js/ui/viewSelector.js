@@ -36,7 +36,7 @@ var FocusTrap = new Lang.Class({
     Name: 'FocusTrap',
     Extends: St.Widget,
 
-    vfunc_navigate_focus: function(from, direction) {
+    vfunc_navigate_focus(from, direction) {
         if (direction == Gtk.DirectionType.TAB_FORWARD ||
             direction == Gtk.DirectionType.TAB_BACKWARD)
             return this.parent(from, direction);
@@ -56,11 +56,11 @@ function getTermsForSearchString(searchString) {
 var TouchpadShowOverviewAction = new Lang.Class({
     Name: 'TouchpadShowOverviewAction',
 
-    _init: function(actor) {
-        actor.connect('captured-event', Lang.bind(this, this._handleEvent));
+    _init(actor) {
+        actor.connect('captured-event', this._handleEvent.bind(this));
     },
 
-    _handleEvent: function(actor, event) {
+    _handleEvent(actor, event) {
         if (event.type() != Clutter.EventType.TOUCHPAD_PINCH)
             return Clutter.EVENT_PROPAGATE;
 
@@ -80,21 +80,21 @@ var ShowOverviewAction = new Lang.Class({
     Extends: Clutter.GestureAction,
     Signals: { 'activated': { param_types: [GObject.TYPE_DOUBLE] } },
 
-    _init : function() {
+    _init() {
         this.parent();
         this.set_n_touch_points(3);
 
-        global.display.connect('grab-op-begin', Lang.bind(this, function() {
+        global.display.connect('grab-op-begin', () => {
             this.cancel();
-        }));
+        });
     },
 
-    vfunc_gesture_prepare : function(action, actor) {
+    vfunc_gesture_prepare(action, actor) {
         return Main.actionMode == Shell.ActionMode.NORMAL &&
                this.get_n_current_points() == this.get_n_touch_points();
     },
 
-    _getBoundingRect : function(motion) {
+    _getBoundingRect(motion) {
         let minX, minY, maxX, maxY;
 
         for (let i = 0; i < this.get_n_current_points(); i++) {
@@ -123,12 +123,12 @@ var ShowOverviewAction = new Lang.Class({
                                     height: maxY - minY });
     },
 
-    vfunc_gesture_begin : function(action, actor) {
+    vfunc_gesture_begin(action, actor) {
         this._initialRect = this._getBoundingRect(false);
         return true;
     },
 
-    vfunc_gesture_end : function(action, actor) {
+    vfunc_gesture_end(action, actor) {
         let rect = this._getBoundingRect(true);
         let oldArea = this._initialRect.width * this._initialRect.height;
         let newArea = rect.width * rect.height;
@@ -141,11 +141,11 @@ var ShowOverviewAction = new Lang.Class({
 var ViewSelector = new Lang.Class({
     Name: 'ViewSelector',
 
-    _init : function(searchEntry, showAppsButton) {
+    _init(searchEntry, showAppsButton) {
         this.actor = new Shell.Stack({ name: 'viewSelector' });
 
         this._showAppsButton = showAppsButton;
-        this._showAppsButton.connect('notify::checked', Lang.bind(this, this._onShowAppsButtonToggled));
+        this._showAppsButton.connect('notify::checked', this._onShowAppsButtonToggled.bind(this));
 
         this._activePage = null;
 
@@ -155,14 +155,14 @@ var ViewSelector = new Lang.Class({
         ShellEntry.addContextMenu(this._entry);
 
         this._text = this._entry.clutter_text;
-        this._text.connect('text-changed', Lang.bind(this, this._onTextChanged));
-        this._text.connect('key-press-event', Lang.bind(this, this._onKeyPress));
-        this._text.connect('key-focus-in', Lang.bind(this, function() {
+        this._text.connect('text-changed', this._onTextChanged.bind(this));
+        this._text.connect('key-press-event', this._onKeyPress.bind(this));
+        this._text.connect('key-focus-in', () => {
             this._searchResults.highlightDefault(true);
-        }));
-        this._text.connect('key-focus-out', Lang.bind(this, function() {
+        });
+        this._text.connect('key-focus-out', () => {
             this._searchResults.highlightDefault(false);
-        }));
+        });
         this._entry.connect('popup-menu', () => {
             if (!this._searchActive)
                 return;
@@ -170,8 +170,8 @@ var ViewSelector = new Lang.Class({
             this._entry.menu.close();
             this._searchResults.popupMenuDefault();
         });
-        this._entry.connect('notify::mapped', Lang.bind(this, this._onMapped));
-        global.stage.connect('notify::key-focus', Lang.bind(this, this._onStageKeyFocusChanged));
+        this._entry.connect('notify::mapped', this._onMapped.bind(this));
+        global.stage.connect('notify::key-focus', this._onStageKeyFocusChanged.bind(this));
 
         this._entry.set_primary_icon(new St.Icon({ style_class: 'search-entry-icon',
                                                    icon_name: 'edit-find-symbolic' }));
@@ -198,52 +198,49 @@ var ViewSelector = new Lang.Class({
         // dummy widget as the last results container child so that we can
         // include the entry in the keynav tab path
         this._focusTrap = new FocusTrap({ can_focus: true });
-        this._focusTrap.connect('key-focus-in', Lang.bind(this, function() {
+        this._focusTrap.connect('key-focus-in', () => {
             this._entry.grab_key_focus();
-        }));
+        });
         this._searchResults.actor.add_actor(this._focusTrap);
 
         global.focus_manager.add_group(this._searchResults.actor);
 
         this._stageKeyPressId = 0;
-        Main.overview.connect('showing', Lang.bind(this,
-            function () {
-                this._stageKeyPressId = global.stage.connect('key-press-event',
-                                                             Lang.bind(this, this._onStageKeyPress));
-            }));
-        Main.overview.connect('hiding', Lang.bind(this,
-            function () {
-                if (this._stageKeyPressId != 0) {
-                    global.stage.disconnect(this._stageKeyPressId);
-                    this._stageKeyPressId = 0;
-                }
-            }));
-        Main.overview.connect('shown', Lang.bind(this,
-            function() {
-                // If we were animating from the desktop view to the
-                // apps page the workspace page was visible, allowing
-                // the windows to animate, but now we no longer want to
-                // show it given that we are now on the apps page or
-                // search page.
-                if (this._activePage != this._workspacesPage) {
-                    this._workspacesPage.opacity = 0;
-                    this._workspacesPage.hide();
-                }
-            }));
+        Main.overview.connect('showing', () => {
+            this._stageKeyPressId = global.stage.connect('key-press-event',
+                                                         this._onStageKeyPress.bind(this));
+        });
+        Main.overview.connect('hiding', () => {
+            if (this._stageKeyPressId != 0) {
+                global.stage.disconnect(this._stageKeyPressId);
+                this._stageKeyPressId = 0;
+            }
+        });
+        Main.overview.connect('shown', () => {
+            // If we were animating from the desktop view to the
+            // apps page the workspace page was visible, allowing
+            // the windows to animate, but now we no longer want to
+            // show it given that we are now on the apps page or
+            // search page.
+            if (this._activePage != this._workspacesPage) {
+                this._workspacesPage.opacity = 0;
+                this._workspacesPage.hide();
+            }
+        });
 
         Main.wm.addKeybinding('toggle-application-view',
                               new Gio.Settings({ schema_id: SHELL_KEYBINDINGS_SCHEMA }),
                               Meta.KeyBindingFlags.NONE,
                               Shell.ActionMode.NORMAL |
                               Shell.ActionMode.OVERVIEW,
-                              Lang.bind(this, this._toggleAppsPage));
+                              this._toggleAppsPage.bind(this));
 
         Main.wm.addKeybinding('toggle-overview',
                               new Gio.Settings({ schema_id: SHELL_KEYBINDINGS_SCHEMA }),
                               Meta.KeyBindingFlags.NONE,
                               Shell.ActionMode.NORMAL |
                               Shell.ActionMode.OVERVIEW,
-                              Lang.bind(Main.overview, Main.overview.toggle));
+                              Main.overview.toggle.bind(Main.overview));
 
         let side;
         if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL)
@@ -252,38 +249,38 @@ var ViewSelector = new Lang.Class({
             side = St.Side.LEFT;
         let gesture = new EdgeDragAction.EdgeDragAction(side,
                                                         Shell.ActionMode.NORMAL);
-        gesture.connect('activated', Lang.bind(this, function() {
+        gesture.connect('activated', () => {
             if (Main.overview.visible)
                 Main.overview.hide();
             else
                 this.showApps();
-        }));
+        });
         global.stage.add_action(gesture);
 
         gesture = new ShowOverviewAction();
-        gesture.connect('activated', Lang.bind(this, this._pinchGestureActivated));
+        gesture.connect('activated', this._pinchGestureActivated.bind(this));
         global.stage.add_action(gesture);
 
         gesture = new TouchpadShowOverviewAction(global.stage);
-        gesture.connect('activated', Lang.bind(this, this._pinchGestureActivated));
+        gesture.connect('activated', this._pinchGestureActivated.bind(this));
     },
 
-    _pinchGestureActivated: function(action, scale) {
+    _pinchGestureActivated(action, scale) {
         if (scale < PINCH_GESTURE_THRESHOLD)
             Main.overview.show();
     },
 
-    _toggleAppsPage: function() {
+    _toggleAppsPage() {
         this._showAppsButton.checked = !this._showAppsButton.checked;
         Main.overview.show();
     },
 
-    showApps: function() {
+    showApps() {
         this._showAppsButton.checked = true;
         Main.overview.show();
     },
 
-    show: function() {
+    show() {
         this.reset();
         this._workspacesDisplay.show(this._showAppsButton.checked);
         this._activePage = null;
@@ -296,7 +293,7 @@ var ViewSelector = new Lang.Class({
             Main.overview.fadeOutDesktop();
     },
 
-    animateFromOverview: function() {
+    animateFromOverview() {
         // Make sure workspace page is fully visible to allow
         // workspace.js do the animation of the windows
         this._workspacesPage.opacity = 255;
@@ -309,15 +306,15 @@ var ViewSelector = new Lang.Class({
             Main.overview.fadeInDesktop();
     },
 
-    setWorkspacesFullGeometry: function(geom) {
+    setWorkspacesFullGeometry(geom) {
         this._workspacesDisplay.setWorkspacesFullGeometry(geom);
     },
 
-    hide: function() {
+    hide() {
         this._workspacesDisplay.hide();
     },
 
-    _addPage: function(actor, name, a11yIcon, params) {
+    _addPage(actor, name, a11yIcon, params) {
         params = Params.parse(params, { a11yFocus: null });
 
         let page = new St.Bin({ child: actor,
@@ -330,17 +327,16 @@ var ViewSelector = new Lang.Class({
         else
             Main.ctrlAltTabManager.addGroup(actor, name, a11yIcon,
                                             { proxy: this.actor,
-                                              focusCallback: Lang.bind(this,
-                                                  function() {
-                                                      this._a11yFocusPage(page);
-                                                  })
+                                              focusCallback: () => {
+                                                  this._a11yFocusPage(page);
+                                              }
                                             });;
         page.hide();
         this.actor.add_actor(page);
         return page;
     },
 
-    _fadePageIn: function() {
+    _fadePageIn() {
         Tweener.addTween(this._activePage,
                          { opacity: 255,
                            time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
@@ -348,19 +344,19 @@ var ViewSelector = new Lang.Class({
                          });
     },
 
-    _fadePageOut: function(page) {
+    _fadePageOut(page) {
         let oldPage = page;
         Tweener.addTween(page,
                          { opacity: 0,
                            time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
                            transition: 'easeOutQuad',
-                           onComplete: Lang.bind(this, function() {
+                           onComplete: () => {
                                this._animateIn(oldPage);
-                           })
+                           }
                          });
     },
 
-    _animateIn: function(oldPage) {
+    _animateIn(oldPage) {
         if (oldPage)
             oldPage.hide();
 
@@ -377,21 +373,20 @@ var ViewSelector = new Lang.Class({
         }
     },
 
-    _animateOut: function(page) {
+    _animateOut(page) {
         let oldPage = page;
         if (page == this._appsPage &&
             this._activePage == this._workspacesPage &&
             !Main.overview.animationInProgress) {
-            this.appDisplay.animate(IconGrid.AnimationDirection.OUT, Lang.bind(this,
-                function() {
-                    this._animateIn(oldPage)
-                }));
+            this.appDisplay.animate(IconGrid.AnimationDirection.OUT, () => {
+                this._animateIn(oldPage)
+            });
         } else {
             this._fadePageOut(page);
         }
     },
 
-    _showPage: function(page) {
+    _showPage(page) {
         if (!Main.overview.visible)
             return;
 
@@ -408,17 +403,17 @@ var ViewSelector = new Lang.Class({
             this._animateIn();
     },
 
-    _a11yFocusPage: function(page) {
+    _a11yFocusPage(page) {
         this._showAppsButton.checked = page == this._appsPage;
         page.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false);
     },
 
-    _onShowAppsButtonToggled: function() {
+    _onShowAppsButtonToggled() {
         this._showPage(this._showAppsButton.checked ?
                        this._appsPage : this._workspacesPage);
     },
 
-    _onStageKeyPress: function(actor, event) {
+    _onStageKeyPress(actor, event) {
         // Ignore events while anything but the overview has
         // pushed a modal (system modals, looking glass, ...)
         if (Main.modalCount > 1)
@@ -449,7 +444,7 @@ var ViewSelector = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _searchCancelled: function() {
+    _searchCancelled() {
         this._showPage(this._showAppsButton.checked ? this._appsPage
                                                     : this._workspacesPage);
 
@@ -463,7 +458,7 @@ var ViewSelector = new Lang.Class({
             this.reset();
     },
 
-    reset: function () {
+    reset() {
         global.stage.set_key_focus(null);
 
         this._entry.text = '';
@@ -472,7 +467,7 @@ var ViewSelector = new Lang.Class({
         this._text.set_selection(0, 0);
     },
 
-    _onStageKeyFocusChanged: function() {
+    _onStageKeyFocusChanged() {
         let focus = global.stage.get_key_focus();
         let appearFocused = (this._entry.contains(focus) ||
                              this._searchResults.actor.contains(focus));
@@ -485,11 +480,11 @@ var ViewSelector = new Lang.Class({
             this._entry.remove_style_pseudo_class('focus');
     },
 
-    _onMapped: function() {
+    _onMapped() {
         if (this._entry.mapped) {
             // Enable 'find-as-you-type'
             this._capturedEventId = global.stage.connect('captured-event',
-                                 Lang.bind(this, this._onCapturedEvent));
+                                 this._onCapturedEvent.bind(this));
             this._text.set_cursor_visible(true);
             this._text.set_selection(0, 0);
         } else {
@@ -500,7 +495,7 @@ var ViewSelector = new Lang.Class({
         }
     },
 
-    _shouldTriggerSearch: function(symbol) {
+    _shouldTriggerSearch(symbol) {
         if (symbol == Clutter.Multi_key)
             return true;
 
@@ -517,7 +512,7 @@ var ViewSelector = new Lang.Class({
         return false;
     },
 
-    startSearch: function(event) {
+    startSearch(event) {
         global.stage.set_key_focus(this._text);
 
         let synthEvent = event.copy();
@@ -526,11 +521,11 @@ var ViewSelector = new Lang.Class({
     },
 
     // the entry does not show the hint
-    _isActivated: function() {
+    _isActivated() {
         return this._text.text == this._entry.get_text();
     },
 
-    _onTextChanged: function (se, prop) {
+    _onTextChanged(se, prop) {
         let terms = getTermsForSearchString(this._entry.get_text());
 
         this._searchActive = (terms.length > 0);
@@ -543,7 +538,7 @@ var ViewSelector = new Lang.Class({
 
             if (this._iconClickedId == 0)
                 this._iconClickedId = this._entry.connect('secondary-icon-clicked',
-                    Lang.bind(this, this.reset));
+                    this.reset.bind(this));
         } else {
             if (this._iconClickedId > 0) {
                 this._entry.disconnect(this._iconClickedId);
@@ -555,7 +550,7 @@ var ViewSelector = new Lang.Class({
         }
     },
 
-    _onKeyPress: function(entry, event) {
+    _onKeyPress(entry, event) {
         let symbol = event.get_key_symbol();
         if (symbol == Clutter.Escape) {
             if (this._isActivated()) {
@@ -594,7 +589,7 @@ var ViewSelector = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _onCapturedEvent: function(actor, event) {
+    _onCapturedEvent(actor, event) {
         if (event.type() == Clutter.EventType.BUTTON_PRESS) {
             let source = event.get_source();
             if (source != this._text &&
@@ -606,12 +601,21 @@ var ViewSelector = new Lang.Class({
                 // - cancel the search
                 this.reset();
             }
+        } else if (!(global.stage.get_key_focus() instanceof Clutter.Text) &&
+                   (event.type() == Clutter.EventType.KEY_PRESS ||
+                    event.type() == Clutter.EventType.KEY_RELEASE)) {
+            let unichar = event.get_key_unicode();
+
+            if (GLib.unichar_isprint(unichar)) {
+                this._text.grab_key_focus();
+                return this._text.event(event, false);
+            }
         }
 
         return Clutter.EVENT_PROPAGATE;
     },
 
-    getActivePage: function() {
+    getActivePage() {
         if (this._activePage == this._workspacesPage)
             return ViewPage.WINDOWS;
         else if (this._activePage == this._appsPage)
@@ -620,7 +624,7 @@ var ViewSelector = new Lang.Class({
             return ViewPage.SEARCH;
     },
 
-    fadeIn: function() {
+    fadeIn() {
         let actor = this._activePage;
         Tweener.addTween(actor, { opacity: 255,
                                   time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME / 2,
@@ -628,7 +632,7 @@ var ViewSelector = new Lang.Class({
                                 });
     },
 
-    fadeHalf: function() {
+    fadeHalf() {
         let actor = this._activePage;
         Tweener.addTween(actor, { opacity: 128,
                                   time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME / 2,

@@ -30,7 +30,7 @@ function installExtension(uuid, invocation) {
 
     let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
 
-    _httpSession.queue_message(message, function(session, message) {
+    _httpSession.queue_message(message, (session, message) => {
         if (message.status_code != Soup.KnownStatusCode.OK) {
             ExtensionSystem.logExtensionError(uuid, 'downloading info: ' + message.status_code);
             invocation.return_dbus_error('org.gnome.Shell.DownloadInfoError', message.status_code.toString());
@@ -96,7 +96,7 @@ function gotExtensionZipFile(session, message, uuid, dir, callback, errback) {
         return;
     }
 
-    GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, function(pid, status) {
+    GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, (pid, status) => {
         GLib.spawn_close_pid(pid);
 
         if (status != 0)
@@ -119,8 +119,8 @@ function updateExtension(uuid) {
     let url = REPOSITORY_URL_DOWNLOAD.format(uuid);
     let message = Soup.form_request_new_from_hash('GET', url, params);
 
-    _httpSession.queue_message(message, Lang.bind(this, function(session, message) {
-        gotExtensionZipFile(session, message, uuid, newExtensionTmpDir, function() {
+    _httpSession.queue_message(message, (session, message) => {
+        gotExtensionZipFile(session, message, uuid, newExtensionTmpDir, () => {
             let oldExtension = ExtensionUtils.extensions[uuid];
             let extensionDir = oldExtension.dir;
 
@@ -151,10 +151,10 @@ function updateExtension(uuid) {
             }
 
             FileUtils.recursivelyDeleteDir(oldExtensionTmpDir, true);
-        }, function(code, message) {
+        }, (code, message) => {
             log('Error while updating extension %s: %s (%s)'.format(uuid, code, message ? message : ''));
         });
-    }));
+    });
 }
 
 function checkForUpdates() {
@@ -168,7 +168,7 @@ function checkForUpdates() {
 
     let url = REPOSITORY_URL_UPDATE;
     let message = Soup.form_request_new_from_hash('GET', url, params);
-    _httpSession.queue_message(message, function(session, message) {
+    _httpSession.queue_message(message, (session, message) => {
         if (message.status_code != Soup.KnownStatusCode.OK)
             return;
 
@@ -187,7 +187,7 @@ var InstallExtensionDialog = new Lang.Class({
     Name: 'InstallExtensionDialog',
     Extends: ModalDialog.ModalDialog,
 
-    _init: function(uuid, info, invocation) {
+    _init(uuid, info, invocation) {
         this.parent({ styleClass: 'extension-dialog' });
 
         this._uuid = uuid;
@@ -195,11 +195,11 @@ var InstallExtensionDialog = new Lang.Class({
         this._invocation = invocation;
 
         this.setButtons([{ label: _("Cancel"),
-                           action: Lang.bind(this, this._onCancelButtonPressed),
+                           action: this._onCancelButtonPressed.bind(this),
                            key:    Clutter.Escape
                          },
                          { label:  _("Install"),
-                           action: Lang.bind(this, this._onInstallButtonPressed),
+                           action: this._onInstallButtonPressed.bind(this),
                            default: true
                          }]);
 
@@ -218,12 +218,12 @@ var InstallExtensionDialog = new Lang.Class({
         box.add(label);
     },
 
-    _onCancelButtonPressed: function(button, event) {
+    _onCancelButtonPressed(button, event) {
         this.close();
         this._invocation.return_value(GLib.Variant.new('(s)', ['cancelled']));
     },
 
-    _onInstallButtonPressed: function(button, event) {
+    _onInstallButtonPressed(button, event) {
         let params = { shell_version: Config.PACKAGE_VERSION };
 
         let url = REPOSITORY_URL_DOWNLOAD.format(this._uuid);
@@ -233,7 +233,9 @@ var InstallExtensionDialog = new Lang.Class({
         let dir = Gio.File.new_for_path(GLib.build_filenamev([global.userdatadir, 'extensions', uuid]));
         let invocation = this._invocation;
         function errback(code, message) {
-            invocation.return_dbus_error('org.gnome.Shell.' + code, message ? message.toString() : '');
+            let msg = message ? message.toString() : '';
+            log('Error while installing %s: %s (%s)'.format(uuid, code, msg));
+            invocation.return_dbus_error('org.gnome.Shell.' + code, msg);
         }
 
         function callback() {
@@ -256,9 +258,9 @@ var InstallExtensionDialog = new Lang.Class({
             invocation.return_value(GLib.Variant.new('(s)', ['successful']));
         }
 
-        _httpSession.queue_message(message, Lang.bind(this, function(session, message) {
+        _httpSession.queue_message(message, (session, message) => {
             gotExtensionZipFile(session, message, uuid, dir, callback, errback);
-        }));
+        });
 
         this.close();
     }

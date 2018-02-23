@@ -6,15 +6,11 @@ const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
-let IBusCandidatePopup;
-try {
-    var IBus = imports.gi.IBus;
-    _checkIBusVersion(1, 5, 2);
-    IBusCandidatePopup = imports.ui.ibusCandidatePopup;
-} catch (e) {
-    var IBus = null;
-    log(e);
-}
+const IBus = imports.gi.IBus;
+const IBusCandidatePopup = imports.ui.ibusCandidatePopup;
+
+// Ensure runtime version matches
+_checkIBusVersion(1, 5, 2);
 
 let _ibusManager = null;
 
@@ -44,10 +40,7 @@ var IBusManager = new Lang.Class({
     _MAX_INPUT_SOURCE_ACTIVATION_TIME: 4000, // ms
     _PRELOAD_ENGINES_DELAY_TIME: 30, // sec
 
-    _init: function() {
-        if (!IBus)
-            return;
-
+    _init() {
         IBus.init();
 
         this._candidatePopup = new IBusCandidatePopup.CandidatePopup();
@@ -60,16 +53,16 @@ var IBusManager = new Lang.Class({
         this._preloadEnginesId = 0;
 
         this._ibus = IBus.Bus.new_async();
-        this._ibus.connect('connected', Lang.bind(this, this._onConnected));
-        this._ibus.connect('disconnected', Lang.bind(this, this._clear));
+        this._ibus.connect('connected', this._onConnected.bind(this));
+        this._ibus.connect('disconnected', this._clear.bind(this));
         // Need to set this to get 'global-engine-changed' emitions
         this._ibus.set_watch_ibus_signal(true);
-        this._ibus.connect('global-engine-changed', Lang.bind(this, this._engineChanged));
+        this._ibus.connect('global-engine-changed', this._engineChanged.bind(this));
 
         this._spawn();
     },
 
-    _spawn: function() {
+    _spawn() {
         try {
             Gio.Subprocess.new(['ibus-daemon', '--xim', '--panel', 'disable'],
                                Gio.SubprocessFlags.NONE);
@@ -78,7 +71,7 @@ var IBusManager = new Lang.Class({
         }
     },
 
-    _clear: function() {
+    _clear() {
         if (this._panelService)
             this._panelService.destroy();
 
@@ -94,15 +87,15 @@ var IBusManager = new Lang.Class({
         this._spawn();
     },
 
-    _onConnected: function() {
-        this._ibus.list_engines_async(-1, null, Lang.bind(this, this._initEngines));
+    _onConnected() {
+        this._ibus.list_engines_async(-1, null, this._initEngines.bind(this));
         this._ibus.request_name_async(IBus.SERVICE_PANEL,
                                       IBus.BusNameFlag.REPLACE_EXISTING,
                                       -1, null,
-                                      Lang.bind(this, this._initPanelService));
+                                      this._initPanelService.bind(this));
     },
 
-    _initEngines: function(ibus, result) {
+    _initEngines(ibus, result) {
         let enginesList = this._ibus.list_engines_async_finish(result);
         if (enginesList) {
             for (let i = 0; i < enginesList.length; ++i) {
@@ -115,13 +108,13 @@ var IBusManager = new Lang.Class({
         }
     },
 
-    _initPanelService: function(ibus, result) {
+    _initPanelService(ibus, result) {
         let success = this._ibus.request_name_async_finish(result);
         if (success) {
             this._panelService = new IBus.PanelService({ connection: this._ibus.get_connection(),
                                                          object_path: IBus.PATH_PANEL });
             this._candidatePopup.setPanelService(this._panelService);
-            this._panelService.connect('update-property', Lang.bind(this, this._updateProperty));
+            this._panelService.connect('update-property', this._updateProperty.bind(this));
             try {
                 // IBus versions older than 1.5.10 have a bug which
                 // causes spurious set-content-type emissions when
@@ -129,11 +122,11 @@ var IBusManager = new Lang.Class({
                 // and hints defeating its intended semantics and
                 // confusing users. We thus don't use it in that case.
                 _checkIBusVersion(1, 5, 10);
-                this._panelService.connect('set-content-type', Lang.bind(this, this._setContentType));
+                this._panelService.connect('set-content-type', this._setContentType.bind(this));
             } catch (e) {
             }
             // If an engine is already active we need to get its properties
-            this._ibus.get_global_engine_async(-1, null, Lang.bind(this, function(i, result) {
+            this._ibus.get_global_engine_async(-1, null, (i, result) => {
                 let engine;
                 try {
                     engine = this._ibus.get_global_engine_async_finish(result);
@@ -143,20 +136,20 @@ var IBusManager = new Lang.Class({
                     return;
                 }
                 this._engineChanged(this._ibus, engine.get_name());
-            }));
+            });
             this._updateReadiness();
         } else {
             this._clear();
         }
     },
 
-    _updateReadiness: function() {
+    _updateReadiness() {
         this._ready = (Object.keys(this._engines).length > 0 &&
                        this._panelService != null);
         this.emit('ready', this._ready);
     },
 
-    _engineChanged: function(bus, engineName) {
+    _engineChanged(bus, engineName) {
         if (!this._ready)
             return;
 
@@ -166,7 +159,7 @@ var IBusManager = new Lang.Class({
             return;
 
         this._registerPropertiesId =
-            this._panelService.connect('register-properties', Lang.bind(this, function(p, props) {
+            this._panelService.connect('register-properties', (p, props) => {
                 if (!props.get(0))
                     return;
 
@@ -174,33 +167,33 @@ var IBusManager = new Lang.Class({
                 this._registerPropertiesId = 0;
 
                 this.emit('properties-registered', this._currentEngineName, props);
-            }));
+            });
     },
 
-    _updateProperty: function(panel, prop) {
+    _updateProperty(panel, prop) {
         this.emit('property-updated', this._currentEngineName, prop);
     },
 
-    _setContentType: function(panel, purpose, hints) {
+    _setContentType(panel, purpose, hints) {
         this.emit('set-content-type', purpose, hints);
     },
 
-    activateProperty: function(key, state) {
+    activateProperty(key, state) {
         this._panelService.property_activate(key, state);
     },
 
-    getEngineDesc: function(id) {
-        if (!IBus || !this._ready || !this._engines.hasOwnProperty(id))
+    getEngineDesc(id) {
+        if (!this._ready || !this._engines.hasOwnProperty(id))
             return null;
 
         return this._engines[id];
     },
 
-    setEngine: function(id, callback) {
+    setEngine(id, callback) {
         // Send id even if id == this._currentEngineName
         // because 'properties-registered' signal can be emitted
         // while this._ibusSources == null on a lock screen.
-        if (!IBus || !this._ready) {
+        if (!this._ready) {
             if (callback)
                 callback();
             return;
@@ -210,8 +203,8 @@ var IBusManager = new Lang.Class({
                                            null, callback);
     },
 
-    preloadEngines: function(ids) {
-        if (!IBus || !this._ibus || ids.length == 0)
+    preloadEngines(ids) {
+        if (!this._ibus || ids.length == 0)
             return;
 
         if (this._preloadEnginesId != 0) {
@@ -221,7 +214,7 @@ var IBusManager = new Lang.Class({
 
         this._preloadEnginesId =
             Mainloop.timeout_add_seconds(this._PRELOAD_ENGINES_DELAY_TIME,
-                                         Lang.bind(this, function() {
+                                         () => {
                                              this._ibus.preload_engines_async(
                                                  ids,
                                                  -1,
@@ -229,7 +222,7 @@ var IBusManager = new Lang.Class({
                                                  null);
                                              this._preloadEnginesId = 0;
                                              return GLib.SOURCE_REMOVE;
-                                         }));
+                                         });
     },
 });
 Signals.addSignalMethods(IBusManager.prototype);

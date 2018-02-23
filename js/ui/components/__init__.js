@@ -5,38 +5,38 @@ const Main = imports.ui.main;
 var ComponentManager = new Lang.Class({
     Name: 'ComponentManager',
 
-    _init: function() {
+    _init() {
         this._allComponents = {};
         this._enabledComponents = [];
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         let newEnabledComponents = Main.sessionMode.components;
 
-        newEnabledComponents.filter(Lang.bind(this, function(name) {
-            return this._enabledComponents.indexOf(name) == -1;
-        })).forEach(Lang.bind(this, function(name) {
+        newEnabledComponents.filter(
+            name => this._enabledComponents.indexOf(name) == -1
+        ).forEach(name => {
             this._enableComponent(name);
-        }));
+        });
 
-        this._enabledComponents.filter(Lang.bind(this, function(name) {
-            return newEnabledComponents.indexOf(name) == -1;
-        })).forEach(Lang.bind(this, function(name) {
+        this._enabledComponents.filter(
+            name => newEnabledComponents.indexOf(name) == -1
+        ).forEach(name => {
             this._disableComponent(name);
-        }));
+        });
 
         this._enabledComponents = newEnabledComponents;
     },
 
-    _importComponent: function(name) {
+    _importComponent(name) {
         let module = imports.ui.components[name];
         return module.Component;
     },
 
-    _ensureComponent: function(name) {
+    _ensureComponent(name) {
         let component = this._allComponents[name];
         if (component)
             return component;
@@ -50,13 +50,13 @@ var ComponentManager = new Lang.Class({
         return component;
     },
 
-    _enableComponent: function(name) {
+    _enableComponent(name) {
         let component = this._ensureComponent(name);
 	if (component)
             component.enable();
     },
 
-    _disableComponent: function(name) {
+    _disableComponent(name) {
         let component = this._allComponents[name];
         if (component == null)
             return;

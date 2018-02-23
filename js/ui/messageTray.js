@@ -72,20 +72,20 @@ var Urgency = {
 var FocusGrabber = new Lang.Class({
     Name: 'FocusGrabber',
 
-    _init: function(actor) {
+    _init(actor) {
         this._actor = actor;
         this._prevKeyFocusActor = null;
         this._focusActorChangedId = 0;
         this._focused = false;
     },
 
-    grabFocus: function() {
+    grabFocus() {
         if (this._focused)
             return;
 
         this._prevKeyFocusActor = global.stage.get_key_focus();
 
-        this._focusActorChangedId = global.stage.connect('notify::key-focus', Lang.bind(this, this._focusActorChanged));
+        this._focusActorChangedId = global.stage.connect('notify::key-focus', this._focusActorChanged.bind(this));
 
         if (!this._actor.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false))
             this._actor.grab_key_focus();
@@ -93,7 +93,7 @@ var FocusGrabber = new Lang.Class({
         this._focused = true;
     },
 
-    _focusUngrabbed: function() {
+    _focusUngrabbed() {
         if (!this._focused)
             return false;
 
@@ -106,13 +106,13 @@ var FocusGrabber = new Lang.Class({
         return true;
     },
 
-    _focusActorChanged: function() {
+    _focusActorChanged() {
         let focusedActor = global.stage.get_key_focus();
         if (!focusedActor || !this._actor.contains(focusedActor))
             this._focusUngrabbed();
     },
 
-    ungrabFocus: function() {
+    ungrabFocus() {
         if (!this._focusUngrabbed())
             return;
 
@@ -135,7 +135,7 @@ var FocusGrabber = new Lang.Class({
 var NotificationPolicy = new Lang.Class({
     Name: 'NotificationPolicy',
 
-    _init: function(params) {
+    _init(params) {
         params = Params.parse(params, { enable: true,
                                         enableSound: true,
                                         showBanners: true,
@@ -148,8 +148,8 @@ var NotificationPolicy = new Lang.Class({
 
     // Do nothing for the default policy. These methods are only useful for the
     // GSettings policy.
-    store: function() { },
-    destroy: function() { }
+    store() { },
+    destroy() { }
 });
 Signals.addSignalMethods(NotificationPolicy.prototype);
 
@@ -157,23 +157,23 @@ var NotificationGenericPolicy = new Lang.Class({
     Name: 'NotificationGenericPolicy',
     Extends: NotificationPolicy,
 
-    _init: function() {
+    _init() {
         // Don't chain to parent, it would try setting
         // our properties to the defaults
 
         this.id = 'generic';
 
         this._masterSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.notifications' });
-        this._masterSettings.connect('changed', Lang.bind(this, this._changed));
+        this._masterSettings.connect('changed', this._changed.bind(this));
     },
 
-    store: function() { },
+    store() { },
 
-    destroy: function() {
+    destroy() {
         this._masterSettings.run_dispose();
     },
 
-    _changed: function(settings, key) {
+    _changed(settings, key) {
         this.emit('policy-changed', key);
     },
 
@@ -206,7 +206,7 @@ var NotificationApplicationPolicy = new Lang.Class({
     Name: 'NotificationApplicationPolicy',
     Extends: NotificationPolicy,
 
-    _init: function(id) {
+    _init(id) {
         // Don't chain to parent, it would try setting
         // our properties to the defaults
 
@@ -217,11 +217,11 @@ var NotificationApplicationPolicy = new Lang.Class({
         this._settings = new Gio.Settings({ schema_id: 'org.gnome.desktop.notifications.application',
                                             path: '/org/gnome/desktop/notifications/application/' + this._canonicalId + '/' });
 
-        this._masterSettings.connect('changed', Lang.bind(this, this._changed));
-        this._settings.connect('changed', Lang.bind(this, this._changed));
+        this._masterSettings.connect('changed', this._changed.bind(this));
+        this._settings.connect('changed', this._changed.bind(this));
     },
 
-    store: function() {
+    store() {
         this._settings.set_string('application-id', this.id + '.desktop');
 
         let apps = this._masterSettings.get_strv('application-children');
@@ -231,18 +231,18 @@ var NotificationApplicationPolicy = new Lang.Class({
         }
     },
 
-    destroy: function() {
+    destroy() {
         this._masterSettings.run_dispose();
         this._settings.run_dispose();
     },
 
-    _changed: function(settings, key) {
+    _changed(settings, key) {
         this.emit('policy-changed', key);
         if (key == 'enable')
             this.emit('enable-changed');
     },
 
-    _canonicalizeId: function(id) {
+    _canonicalizeId(id) {
         // Keys are restricted to lowercase alphanumeric characters and dash,
         // and two dashes cannot be in succession
         return id.toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/--+/g, '-');
@@ -331,7 +331,7 @@ var NotificationApplicationPolicy = new Lang.Class({
 var Notification = new Lang.Class({
     Name: 'Notification',
 
-    _init: function(source, title, banner, params) {
+    _init(source, title, banner, params) {
         this.source = source;
         this.title = title;
         this.urgency = Urgency.NORMAL;
@@ -363,7 +363,7 @@ var Notification = new Lang.Class({
     // Updates the notification by regenerating its icon and updating
     // the title/banner. If @params.clear is %true, it will also
     // remove any additional actors/action buttons previously added.
-    update: function(title, banner, params) {
+    update(title, banner, params) {
         params = Params.parse(params, { gicon: null,
                                         secondaryGIcon: null,
                                         bannerMarkup: false,
@@ -403,7 +403,7 @@ var Notification = new Lang.Class({
     // addAction:
     // @label: the label for the action's button
     // @callback: the callback for the action
-    addAction: function(label, callback) {
+    addAction(label, callback) {
         this.actions.push({ label: label, callback: callback });
     },
 
@@ -418,23 +418,23 @@ var Notification = new Lang.Class({
         this.emit('acknowledged-changed');
     },
 
-    setUrgency: function(urgency) {
+    setUrgency(urgency) {
         this.urgency = urgency;
     },
 
-    setResident: function(resident) {
+    setResident(resident) {
         this.resident = resident;
     },
 
-    setTransient: function(isTransient) {
+    setTransient(isTransient) {
         this.isTransient = isTransient;
     },
 
-    setForFeedback: function(forFeedback) {
+    setForFeedback(forFeedback) {
         this.forFeedback = forFeedback;
     },
 
-    playSound: function() {
+    playSound() {
         if (this._soundPlayed)
             return;
 
@@ -471,17 +471,17 @@ var Notification = new Lang.Class({
     // the source (which will create a NotificationBanner),
     // so customization can be done by subclassing either
     // Notification or Source
-    createBanner: function() {
+    createBanner() {
         return this.source.createBanner(this);
     },
 
-    activate: function() {
+    activate() {
         this.emit('activated');
         if (!this.resident)
             this.destroy();
     },
 
-    destroy: function(reason) {
+    destroy(reason) {
         if (!reason)
             reason = NotificationDestroyedReason.DISMISSED;
         this.emit('destroy', reason);
@@ -493,7 +493,7 @@ var NotificationBanner = new Lang.Class({
     Name: 'NotificationBanner',
     Extends: Calendar.NotificationMessage,
 
-    _init: function(notification) {
+    _init(notification) {
         this.parent(notification);
 
         this.actor.can_focus = false;
@@ -504,22 +504,21 @@ var NotificationBanner = new Lang.Class({
         this._addActions();
         this._addSecondaryIcon();
 
-        this._activatedId = this.notification.connect('activated',
-            Lang.bind(this, function() {
-                // We hide all types of notifications once the user clicks on
-                // them because the common outcome of clicking should be the
-                // relevant window being brought forward and the user's
-                // attention switching to the window.
-                this.emit('done-displaying');
-            }));
+        this._activatedId = this.notification.connect('activated', () => {
+            // We hide all types of notifications once the user clicks on
+            // them because the common outcome of clicking should be the
+            // relevant window being brought forward and the user's
+            // attention switching to the window.
+            this.emit('done-displaying');
+        });
     },
 
-    _onDestroy: function() {
+    _onDestroy() {
         this.parent();
         this.notification.disconnect(this._activatedId);
     },
 
-    _onUpdated: function(n, clear) {
+    _onUpdated(n, clear) {
         this.parent(n, clear);
 
         if (clear) {
@@ -532,14 +531,13 @@ var NotificationBanner = new Lang.Class({
         this._addSecondaryIcon();
     },
 
-    _addActions: function() {
-        this.notification.actions.forEach(Lang.bind(this,
-            function(action) {
-                this.addAction(action.label, action.callback);
-            }));
+    _addActions() {
+        this.notification.actions.forEach(action => {
+            this.addAction(action.label, action.callback);
+        });
     },
 
-    _addSecondaryIcon: function() {
+    _addSecondaryIcon() {
         if (this.notification.secondaryGIcon) {
             let icon = new St.Icon({ gicon: this.notification.secondaryGIcon,
                                      x_align: Clutter.ActorAlign.END });
@@ -547,7 +545,7 @@ var NotificationBanner = new Lang.Class({
         }
     },
 
-    addButton: function(button, callback) {
+    addButton(button, callback) {
         if (!this._buttonBox) {
             this._buttonBox = new St.BoxLayout({ style_class: 'notification-actions',
                                                  x_expand: true });
@@ -559,7 +557,7 @@ var NotificationBanner = new Lang.Class({
             return null;
 
         this._buttonBox.add(button);
-        button.connect('clicked', Lang.bind(this, function() {
+        button.connect('clicked', () => {
             callback();
 
             if (!this.notification.resident) {
@@ -570,12 +568,12 @@ var NotificationBanner = new Lang.Class({
                 this.emit('done-displaying');
                 this.notification.destroy();
             }
-        }));
+        });
 
         return button;
     },
 
-    addAction: function(label, callback) {
+    addAction(label, callback) {
         let button = new St.Button({ style_class: 'notification-button',
                                      label: label,
                                      x_expand: true,
@@ -588,18 +586,18 @@ var NotificationBanner = new Lang.Class({
 var SourceActor = new Lang.Class({
     Name: 'SourceActor',
 
-    _init: function(source, size) {
+    _init(source, size) {
         this._source = source;
         this._size = size;
 
         this.actor = new Shell.GenericContainer();
-        this.actor.connect('get-preferred-width', Lang.bind(this, this._getPreferredWidth));
-        this.actor.connect('get-preferred-height', Lang.bind(this, this._getPreferredHeight));
-        this.actor.connect('allocate', Lang.bind(this, this._allocate));
-        this.actor.connect('destroy', Lang.bind(this, function() {
+        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
+        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
+        this.actor.connect('allocate', this._allocate.bind(this));
+        this.actor.connect('destroy', () => {
             this._source.disconnect(this._iconUpdatedId);
             this._actorDestroyed = true;
-        }));
+        });
         this._actorDestroyed = false;
 
         let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
@@ -609,31 +607,31 @@ var SourceActor = new Lang.Class({
 
         this.actor.add_actor(this._iconBin);
 
-        this._iconUpdatedId = this._source.connect('icon-updated', Lang.bind(this, this._updateIcon));
+        this._iconUpdatedId = this._source.connect('icon-updated', this._updateIcon.bind(this));
         this._updateIcon();
     },
 
-    setIcon: function(icon) {
+    setIcon(icon) {
         this._iconBin.child = icon;
         this._iconSet = true;
     },
 
-    _getPreferredWidth: function (actor, forHeight, alloc) {
+    _getPreferredWidth(actor, forHeight, alloc) {
         let [min, nat] = this._iconBin.get_preferred_width(forHeight);
         alloc.min_size = min; alloc.nat_size = nat;
     },
 
-    _getPreferredHeight: function (actor, forWidth, alloc) {
+    _getPreferredHeight(actor, forWidth, alloc) {
         let [min, nat] = this._iconBin.get_preferred_height(forWidth);
         alloc.min_size = min; alloc.nat_size = nat;
     },
 
-    _allocate: function(actor, box, flags) {
+    _allocate(actor, box, flags) {
         // the iconBin should fill our entire box
         this._iconBin.allocate(box, flags);
     },
 
-    _updateIcon: function() {
+    _updateIcon() {
         if (this._actorDestroyed)
             return;
 
@@ -646,7 +644,7 @@ var SourceActorWithLabel = new Lang.Class({
     Name: 'SourceActorWithLabel',
     Extends: SourceActor,
 
-    _init: function(source, size) {
+    _init(source, size) {
         this.parent(source, size);
 
         this._counterLabel = new St.Label({ x_align: Clutter.ActorAlign.CENTER,
@@ -659,23 +657,23 @@ var SourceActorWithLabel = new Lang.Class({
                                         layout_manager: new Clutter.BinLayout() });
         this._counterBin.hide();
 
-        this._counterBin.connect('style-changed', Lang.bind(this, function() {
+        this._counterBin.connect('style-changed', () => {
             let themeNode = this._counterBin.get_theme_node();
             this._counterBin.translation_x = themeNode.get_length('-shell-counter-overlap-x');
             this._counterBin.translation_y = themeNode.get_length('-shell-counter-overlap-y');
-        }));
+        });
 
         this.actor.add_actor(this._counterBin);
 
-        this._countUpdatedId = this._source.connect('count-updated', Lang.bind(this, this._updateCount));
+        this._countUpdatedId = this._source.connect('count-updated', this._updateCount.bind(this));
         this._updateCount();
 
-        this.actor.connect('destroy', function() {
+        this.actor.connect('destroy', () => {
             this._source.disconnect(this._countUpdatedId);
         });
     },
 
-    _allocate: function(actor, box, flags) {
+    _allocate(actor, box, flags) {
         this.parent(actor, box, flags);
 
         let childBox = new Clutter.ActorBox();
@@ -699,7 +697,7 @@ var SourceActorWithLabel = new Lang.Class({
         this._counterBin.allocate(childBox, flags);
     },
 
-    _updateCount: function() {
+    _updateCount() {
         if (this._actorDestroyed)
             return;
 
@@ -720,7 +718,7 @@ var Source = new Lang.Class({
 
     SOURCE_ICON_SIZE: 48,
 
-    _init: function(title, iconName) {
+    _init(title, iconName) {
         this.title = title;
         this.iconName = iconName;
 
@@ -736,43 +734,43 @@ var Source = new Lang.Class({
     },
 
     get unseenCount() {
-        return this.notifications.filter(function(n) { return !n.acknowledged; }).length;
+        return this.notifications.filter(n => !n.acknowledged).length;
     },
 
     get countVisible() {
         return this.count > 1;
     },
 
-    countUpdated: function() {
+    countUpdated() {
         this.emit('count-updated');
     },
 
-    _createPolicy: function() {
+    _createPolicy() {
         return new NotificationPolicy();
     },
 
-    setTitle: function(newTitle) {
+    setTitle(newTitle) {
         this.title = newTitle;
         this.emit('title-changed');
     },
 
-    createBanner: function(notification) {
+    createBanner(notification) {
         return new NotificationBanner(notification);
     },
 
     // Called to create a new icon actor.
     // Provides a sane default implementation, override if you need
     // something more fancy.
-    createIcon: function(size) {
+    createIcon(size) {
         return new St.Icon({ gicon: this.getIcon(),
                              icon_size: size });
     },
 
-    getIcon: function() {
+    getIcon() {
         return new Gio.ThemedIcon({ name: this.iconName });
     },
 
-    _onNotificationDestroy: function(notification) {
+    _onNotificationDestroy(notification) {
         let index = this.notifications.indexOf(notification);
         if (index < 0)
             return;
@@ -784,22 +782,22 @@ var Source = new Lang.Class({
         this.countUpdated();
     },
 
-    pushNotification: function(notification) {
+    pushNotification(notification) {
         if (this.notifications.indexOf(notification) >= 0)
             return;
 
         while (this.notifications.length >= MAX_NOTIFICATIONS_PER_SOURCE)
             this.notifications.shift().destroy(NotificationDestroyedReason.EXPIRED);
 
-        notification.connect('destroy', Lang.bind(this, this._onNotificationDestroy));
-        notification.connect('acknowledged-changed', Lang.bind(this, this.countUpdated));
+        notification.connect('destroy', this._onNotificationDestroy.bind(this));
+        notification.connect('acknowledged-changed', this.countUpdated.bind(this));
         this.notifications.push(notification);
         this.emit('notification-added', notification);
 
         this.countUpdated();
     },
 
-    notify: function(notification) {
+    notify(notification) {
         notification.acknowledged = false;
         this.pushNotification(notification);
 
@@ -810,7 +808,7 @@ var Source = new Lang.Class({
         }
     },
 
-    destroy: function(reason) {
+    destroy(reason) {
         this.policy.destroy();
 
         let notifications = this.notifications;
@@ -822,15 +820,15 @@ var Source = new Lang.Class({
         this.emit('destroy', reason);
     },
 
-    iconUpdated: function() {
+    iconUpdated() {
         this.emit('icon-updated');
     },
 
     // To be overridden by subclasses
-    open: function() {
+    open() {
     },
 
-    destroyNonResidentNotifications: function() {
+    destroyNonResidentNotifications() {
         for (let i = this.notifications.length - 1; i >= 0; i--)
             if (!this.notifications[i].resident)
                 this.notifications[i].destroy();
@@ -843,27 +841,26 @@ Signals.addSignalMethods(Source.prototype);
 var MessageTray = new Lang.Class({
     Name: 'MessageTray',
 
-    _init: function() {
-        this._presence = new GnomeSession.Presence(Lang.bind(this, function(proxy, error) {
+    _init() {
+        this._presence = new GnomeSession.Presence((proxy, error) => {
             this._onStatusChanged(proxy.status);
-        }));
+        });
         this._busy = false;
         this._bannerBlocked = false;
-        this._presence.connectSignal('StatusChanged', Lang.bind(this, function(proxy, senderName, [status]) {
+        this._presence.connectSignal('StatusChanged', (proxy, senderName, [status]) => {
             this._onStatusChanged(status);
-        }));
+        });
 
-        global.stage.connect('enter-event', Lang.bind(this,
-            function(a, ev) {
-                // HACK: St uses ClutterInputDevice for hover tracking, which
-                // misses relevant X11 events when untracked actors are
-                // involved (read: the notification banner in normal mode),
-                // so fix up Clutter's view of the pointer position in
-                // that case.
-                let related = ev.get_related();
-                if (!related || this.actor.contains(related))
-                    global.sync_pointer();
-            }));
+        global.stage.connect('enter-event', (a, ev) => {
+            // HACK: St uses ClutterInputDevice for hover tracking, which
+            // misses relevant X11 events when untracked actors are
+            // involved (read: the notification banner in normal mode),
+            // so fix up Clutter's view of the pointer position in
+            // that case.
+            let related = ev.get_related();
+            if (!related || this.actor.contains(related))
+                global.sync_pointer();
+        });
 
         this.actor = new St.Widget({ visible: false,
                                      clip_to_allocation: true,
@@ -883,9 +880,9 @@ var MessageTray = new Lang.Class({
                                           x_expand: true,
                                           layout_manager: new Clutter.BinLayout() });
         this._bannerBin.connect('key-release-event',
-                                Lang.bind(this, this._onNotificationKeyRelease));
+                                this._onNotificationKeyRelease.bind(this));
         this._bannerBin.connect('notify::hover',
-                                Lang.bind(this, this._onNotificationHoverChanged));
+                                this._onNotificationHoverChanged.bind(this));
         this.actor.add_actor(this._bannerBin);
 
         this._notificationFocusGrabber = new FocusGrabber(this._bannerBin);
@@ -918,50 +915,50 @@ var MessageTray = new Lang.Class({
         Main.layoutManager.addChrome(this.actor, { affectsInputRegion: false });
         Main.layoutManager.trackChrome(this._bannerBin, { affectsInputRegion: true });
 
-        global.screen.connect('in-fullscreen-changed', Lang.bind(this, this._updateState));
+        global.screen.connect('in-fullscreen-changed', this._updateState.bind(this));
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
 
         Main.overview.connect('window-drag-begin',
-                              Lang.bind(this, this._onDragBegin));
+                              this._onDragBegin.bind(this));
         Main.overview.connect('window-drag-cancelled',
-                              Lang.bind(this, this._onDragEnd));
+                              this._onDragEnd.bind(this));
         Main.overview.connect('window-drag-end',
-                              Lang.bind(this, this._onDragEnd));
+                              this._onDragEnd.bind(this));
 
         Main.overview.connect('item-drag-begin',
-                              Lang.bind(this, this._onDragBegin));
+                              this._onDragBegin.bind(this));
         Main.overview.connect('item-drag-cancelled',
-                              Lang.bind(this, this._onDragEnd));
+                              this._onDragEnd.bind(this));
         Main.overview.connect('item-drag-end',
-                              Lang.bind(this, this._onDragEnd));
+                              this._onDragEnd.bind(this));
 
         Main.xdndHandler.connect('drag-begin',
-                                 Lang.bind(this, this._onDragBegin));
+                                 this._onDragBegin.bind(this));
         Main.xdndHandler.connect('drag-end',
-                                 Lang.bind(this, this._onDragEnd));
+                                 this._onDragEnd.bind(this));
 
         Main.wm.addKeybinding('focus-active-notification',
                               new Gio.Settings({ schema_id: SHELL_KEYBINDINGS_SCHEMA }),
                               Meta.KeyBindingFlags.NONE,
                               Shell.ActionMode.NORMAL |
                               Shell.ActionMode.OVERVIEW,
-                              Lang.bind(this, this._expandActiveNotification));
+                              this._expandActiveNotification.bind(this));
 
         this._sources = new Map();
 
         this._sessionUpdated();
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         this._updateState();
     },
 
-    _onDragBegin: function() {
+    _onDragBegin() {
         Shell.util_set_hidden_from_pick(this.actor, true);
     },
 
-    _onDragEnd: function() {
+    _onDragEnd() {
         Shell.util_set_hidden_from_pick(this.actor, false);
     },
 
@@ -973,7 +970,7 @@ var MessageTray = new Lang.Class({
         this._bannerBin.set_x_align(align);
     },
 
-    _onNotificationKeyRelease: function(actor, event) {
+    _onNotificationKeyRelease(actor, event) {
         if (event.get_key_symbol() == Clutter.KEY_Escape && event.get_state() == 0) {
             this._expireNotification();
             return Clutter.EVENT_STOP;
@@ -982,7 +979,7 @@ var MessageTray = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _expireNotification: function() {
+    _expireNotification() {
         this._notificationExpired = true;
         this._updateState();
     },
@@ -998,11 +995,11 @@ var MessageTray = new Lang.Class({
         this._updateState();
     },
 
-    contains: function(source) {
+    contains(source) {
         return this._sources.has(source);
     },
 
-    add: function(source) {
+    add(source) {
         if (this.contains(source)) {
             log('Trying to re-add source ' + source.title);
             return;
@@ -1011,12 +1008,14 @@ var MessageTray = new Lang.Class({
         // Register that we got a notification for this source
         source.policy.store();
 
-        source.policy.connect('enable-changed', Lang.bind(this, this._onSourceEnableChanged, source));
-        source.policy.connect('policy-changed', Lang.bind(this, this._updateState));
+        source.policy.connect('enable-changed', () => {
+            this._onSourceEnableChanged(source.policy, source);
+        });
+        source.policy.connect('policy-changed', this._updateState.bind(this));
         this._onSourceEnableChanged(source.policy, source);
     },
 
-    _addSource: function(source) {
+    _addSource(source) {
         let obj = {
             source: source,
             notifyId: 0,
@@ -1025,13 +1024,13 @@ var MessageTray = new Lang.Class({
 
         this._sources.set(source, obj);
 
-        obj.notifyId = source.connect('notify', Lang.bind(this, this._onNotify));
-        obj.destroyId = source.connect('destroy', Lang.bind(this, this._onSourceDestroy));
+        obj.notifyId = source.connect('notify', this._onNotify.bind(this));
+        obj.destroyId = source.connect('destroy', this._onSourceDestroy.bind(this));
 
         this.emit('source-added', source);
     },
 
-    _removeSource: function(source) {
+    _removeSource(source) {
         let obj = this._sources.get(source);
         this._sources.delete(source);
 
@@ -1041,11 +1040,11 @@ var MessageTray = new Lang.Class({
         this.emit('source-removed', source);
     },
 
-    getSources: function() {
+    getSources() {
         return [...this._sources.keys()];
     },
 
-    _onSourceEnableChanged: function(policy, source) {
+    _onSourceEnableChanged(policy, source) {
         let wasEnabled = this.contains(source);
         let shouldBeEnabled = policy.enable;
 
@@ -1057,11 +1056,11 @@ var MessageTray = new Lang.Class({
         }
     },
 
-    _onSourceDestroy: function(source) {
+    _onSourceDestroy(source) {
         this._removeSource(source);
     },
 
-    _onNotificationDestroy: function(notification) {
+    _onNotificationDestroy(notification) {
         if (this._notification == notification && (this._notificationState == State.SHOWN || this._notificationState == State.SHOWING)) {
             this._updateNotificationTimeout(0);
             this._notificationRemoved = true;
@@ -1076,7 +1075,7 @@ var MessageTray = new Lang.Class({
         }
     },
 
-    _onNotify: function(source, notification) {
+    _onNotify(source, notification) {
         if (this._notification == notification) {
             // If a notification that is being shown is updated, we update
             // how it is shown and extend the time until it auto-hides.
@@ -1091,18 +1090,18 @@ var MessageTray = new Lang.Class({
             let full = (this.queueCount + bannerCount >= MAX_NOTIFICATIONS_IN_QUEUE);
             if (!full || notification.urgency == Urgency.CRITICAL) {
                 notification.connect('destroy',
-                                     Lang.bind(this, this._onNotificationDestroy));
+                                     this._onNotificationDestroy.bind(this));
                 this._notificationQueue.push(notification);
-                this._notificationQueue.sort(function(notification1, notification2) {
-                    return (notification2.urgency - notification1.urgency);
-                });
+                this._notificationQueue.sort(
+                    (n1, n2) => n2.urgency - n1.urgency
+                );
                 this.emit('queue-changed');
             }
         }
         this._updateState();
     },
 
-    _resetNotificationLeftTimeout: function() {
+    _resetNotificationLeftTimeout() {
         this._useLongerNotificationLeftTimeout = false;
         if (this._notificationLeftTimeoutId) {
             Mainloop.source_remove(this._notificationLeftTimeoutId);
@@ -1112,7 +1111,7 @@ var MessageTray = new Lang.Class({
         }
     },
 
-    _onNotificationHoverChanged: function() {
+    _onNotificationHoverChanged() {
         if (this._bannerBin.hover == this._notificationHovered)
             return;
 
@@ -1151,12 +1150,12 @@ var MessageTray = new Lang.Class({
             // We wait for a longer period if the notification popped up where the mouse pointer was already positioned.
             // That gives the user more time to mouse away from the notification and mouse back in in order to expand it.
             let timeout = this._useLongerNotificationLeftTimeout ? LONGER_HIDE_TIMEOUT * 1000 : HIDE_TIMEOUT * 1000;
-            this._notificationLeftTimeoutId = Mainloop.timeout_add(timeout, Lang.bind(this, this._onNotificationLeftTimeout));
+            this._notificationLeftTimeoutId = Mainloop.timeout_add(timeout, this._onNotificationLeftTimeout.bind(this));
             GLib.Source.set_name_by_id(this._notificationLeftTimeoutId, '[gnome-shell] this._onNotificationLeftTimeout');
         }
     },
 
-    _onStatusChanged: function(status) {
+    _onStatusChanged(status) {
         if (status == GnomeSession.PresenceStatus.BUSY) {
             // remove notification and allow the summary to be closed now
             this._updateNotificationTimeout(0);
@@ -1171,7 +1170,7 @@ var MessageTray = new Lang.Class({
         this._updateState();
     },
 
-    _onNotificationLeftTimeout: function() {
+    _onNotificationLeftTimeout() {
         let [x, y, mods] = global.get_pointer();
         // We extend the timeout once if the mouse moved no further than MOUSE_LEFT_ACTOR_THRESHOLD to either side.
         if (this._notificationLeftMouseX > -1 &&
@@ -1181,7 +1180,7 @@ var MessageTray = new Lang.Class({
             x > this._notificationLeftMouseX - MOUSE_LEFT_ACTOR_THRESHOLD) {
             this._notificationLeftMouseX = -1;
             this._notificationLeftTimeoutId = Mainloop.timeout_add(LONGER_HIDE_TIMEOUT * 1000,
-                                                             Lang.bind(this, this._onNotificationLeftTimeout));
+                                                             this._onNotificationLeftTimeout.bind(this));
             GLib.Source.set_name_by_id(this._notificationLeftTimeoutId, '[gnome-shell] this._onNotificationLeftTimeout');
         } else {
             this._notificationLeftTimeoutId = 0;
@@ -1193,7 +1192,7 @@ var MessageTray = new Lang.Class({
         return GLib.SOURCE_REMOVE;
     },
 
-    _escapeTray: function() {
+    _escapeTray() {
         this._pointerInNotification = false;
         this._updateNotificationTimeout(0);
         this._updateState();
@@ -1204,7 +1203,7 @@ var MessageTray = new Lang.Class({
     // 'this._pointerInNotification', 'this._traySummoned', etc, and
     // _updateState() figures out what (if anything) needs to be done
     // at the present time.
-    _updateState: function() {
+    _updateState() {
         let hasMonitor = Main.layoutManager.primaryMonitor != null;
         this.actor.visible = !this._bannerBlocked && hasMonitor && this._banner != null;
         if (this._bannerBlocked || !hasMonitor)
@@ -1219,7 +1218,7 @@ var MessageTray = new Lang.Class({
 
         // Filter out acknowledged notifications.
         let changed = false;
-        this._notificationQueue = this._notificationQueue.filter(function(n) {
+        this._notificationQueue = this._notificationQueue.filter(n => {
             changed = changed || n.acknowledged;
             return !n.acknowledged;
         });
@@ -1262,7 +1261,7 @@ var MessageTray = new Lang.Class({
         this._notificationExpired = false;
     },
 
-    _tween: function(actor, statevar, value, params) {
+    _tween(actor, statevar, value, params) {
         let onComplete = params.onComplete;
         let onCompleteScope = params.onCompleteScope;
         let onCompleteParams = params.onCompleteParams;
@@ -1279,24 +1278,24 @@ var MessageTray = new Lang.Class({
         this[statevar] = valuing;
     },
 
-    _tweenComplete: function(statevar, value, onComplete, onCompleteScope, onCompleteParams) {
+    _tweenComplete(statevar, value, onComplete, onCompleteScope, onCompleteParams) {
         this[statevar] = value;
         if (onComplete)
             onComplete.apply(onCompleteScope, onCompleteParams);
         this._updateState();
     },
 
-    _clampOpacity: function() {
+    _clampOpacity() {
         this._bannerBin.opacity = Math.max(0, Math.min(this._bannerBin._opacity, 255));
     },
 
-    _onIdleMonitorBecameActive: function() {
+    _onIdleMonitorBecameActive() {
         this._userActiveWhileNotificationShown = true;
         this._updateNotificationTimeout(2000);
         this._updateState();
     },
 
-    _showNotification: function() {
+    _showNotification() {
         this._notification = this._notificationQueue.shift();
         this.emit('queue-changed');
 
@@ -1304,15 +1303,15 @@ var MessageTray = new Lang.Class({
         if (!this._userActiveWhileNotificationShown) {
             // If the user isn't active, set up a watch to let us know
             // when the user becomes active.
-            this.idleMonitor.add_user_active_watch(Lang.bind(this, this._onIdleMonitorBecameActive));
+            this.idleMonitor.add_user_active_watch(this._onIdleMonitorBecameActive.bind(this));
         }
 
         this._banner = this._notification.createBanner();
         this._bannerClickedId = this._banner.connect('done-displaying',
-                                                     Lang.bind(this, this._escapeTray));
-        this._bannerUnfocusedId = this._banner.connect('unfocused', Lang.bind(this, function() {
+                                                     this._escapeTray.bind(this));
+        this._bannerUnfocusedId = this._banner.connect('unfocused', () => {
             this._updateState();
-        }));
+        });
 
         this._bannerBin.add_actor(this._banner.actor);
 
@@ -1340,7 +1339,7 @@ var MessageTray = new Lang.Class({
         this._resetNotificationLeftTimeout();
     },
 
-    _updateShowingNotification: function() {
+    _updateShowingNotification() {
         this._notification.acknowledged = true;
         this._notification.playSound();
 
@@ -1374,12 +1373,12 @@ var MessageTray = new Lang.Class({
         this._tween(this._bannerBin, '_notificationState', State.SHOWN, tweenParams);
    },
 
-    _showNotificationCompleted: function() {
+    _showNotificationCompleted() {
         if (this._notification.urgency != Urgency.CRITICAL)
             this._updateNotificationTimeout(NOTIFICATION_TIMEOUT * 1000);
     },
 
-    _updateNotificationTimeout: function(timeout) {
+    _updateNotificationTimeout(timeout) {
         if (this._notificationTimeoutId) {
             Mainloop.source_remove(this._notificationTimeoutId);
             this._notificationTimeoutId = 0;
@@ -1387,12 +1386,12 @@ var MessageTray = new Lang.Class({
         if (timeout > 0) {
             this._notificationTimeoutId =
                 Mainloop.timeout_add(timeout,
-                                     Lang.bind(this, this._notificationTimeout));
+                                     this._notificationTimeout.bind(this));
             GLib.Source.set_name_by_id(this._notificationTimeoutId, '[gnome-shell] this._notificationTimeout');
         }
     },
 
-    _notificationTimeout: function() {
+    _notificationTimeout() {
         let [x, y, mods] = global.get_pointer();
         if (y < this._lastSeenMouseY - 10 && !this._notificationHovered) {
             // The mouse is moving towards the notification, so don't
@@ -1416,7 +1415,7 @@ var MessageTray = new Lang.Class({
         return GLib.SOURCE_REMOVE;
     },
 
-    _hideNotification: function(animate) {
+    _hideNotification(animate) {
         this._notificationFocusGrabber.ungrabFocus();
 
         if (this._bannerClickedId) {
@@ -1450,7 +1449,7 @@ var MessageTray = new Lang.Class({
         }
     },
 
-    _hideNotificationCompleted: function() {
+    _hideNotificationCompleted() {
         let notification = this._notification;
         this._notification = null;
         if (notification.isTransient)
@@ -1464,14 +1463,14 @@ var MessageTray = new Lang.Class({
         this.actor.hide();
     },
 
-    _expandActiveNotification: function() {
+    _expandActiveNotification() {
         if (!this._banner)
             return;
 
         this._expandBanner(false);
     },
 
-    _expandBanner: function(autoExpanding) {
+    _expandBanner(autoExpanding) {
         // Don't animate changes in notifications that are auto-expanding.
         this._banner.expand(!autoExpanding);
 
@@ -1480,7 +1479,7 @@ var MessageTray = new Lang.Class({
             this._ensureBannerFocused();
     },
 
-    _ensureBannerFocused: function() {
+    _ensureBannerFocused() {
         this._notificationFocusGrabber.grabFocus();
     }
 });
@@ -1490,11 +1489,11 @@ var SystemNotificationSource = new Lang.Class({
     Name: 'SystemNotificationSource',
     Extends: Source,
 
-    _init: function() {
+    _init() {
         this.parent(_("System Information"), 'dialog-information-symbolic');
     },
 
-    open: function() {
+    open() {
         this.destroy();
     }
 });

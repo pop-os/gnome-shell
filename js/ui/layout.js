@@ -52,7 +52,7 @@ var MonitorConstraint = new Lang.Class({
                                                         GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
                                                         false)},
 
-    _init: function(props) {
+    _init(props) {
         this._primary = false;
         this._index = -1;
         this._workArea = false;
@@ -98,19 +98,21 @@ var MonitorConstraint = new Lang.Class({
         this.notify('work-area');
     },
 
-    vfunc_set_actor: function(actor) {
+    vfunc_set_actor(actor) {
         if (actor) {
             if (!this._monitorsChangedId) {
-                this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', Lang.bind(this, function() {
-                    this.actor.queue_relayout();
-                }));
+                this._monitorsChangedId =
+                    Main.layoutManager.connect('monitors-changed', () => {
+                        this.actor.queue_relayout();
+                    });
             }
 
             if (!this._workareasChangedId) {
-                this._workareasChangedId = global.screen.connect('workareas-changed', Lang.bind(this, function() {
-                    if (this._workArea)
-                        this.actor.queue_relayout();
-                }));
+                this._workareasChangedId =
+                    global.screen.connect('workareas-changed', () => {
+                        if (this._workArea)
+                            this.actor.queue_relayout();
+                    });
             }
         } else {
             if (this._monitorsChangedId)
@@ -125,7 +127,7 @@ var MonitorConstraint = new Lang.Class({
         this.parent(actor);
     },
 
-    vfunc_update_allocation: function(actor, actorBox) {
+    vfunc_update_allocation(actor, actorBox) {
         if (!this._primary && this._index < 0)
             return;
 
@@ -153,7 +155,7 @@ var MonitorConstraint = new Lang.Class({
 var Monitor = new Lang.Class({
     Name: 'Monitor',
 
-    _init: function(index, geometry) {
+    _init(index, geometry) {
         this.index = index;
         this.x = geometry.x;
         this.y = geometry.y;
@@ -175,7 +177,7 @@ const defaultParams = {
 var LayoutManager = new Lang.Class({
     Name: 'LayoutManager',
 
-    _init: function () {
+    _init() {
         this._rtl = (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL);
         this.monitors = [];
         this.primaryMonitor = null;
@@ -201,22 +203,19 @@ var LayoutManager = new Lang.Class({
 
         // Set up stage hierarchy to group all UI actors under one container.
         this.uiGroup = new Shell.GenericContainer({ name: 'uiGroup' });
-        this.uiGroup.connect('allocate',
-                        function (actor, box, flags) {
-                            let children = actor.get_children();
-                            for (let i = 0; i < children.length; i++)
-                                children[i].allocate_preferred_size(flags);
-                        });
-        this.uiGroup.connect('get-preferred-width',
-                        function(actor, forHeight, alloc) {
-                            let width = global.stage.width;
-                            [alloc.min_size, alloc.natural_size] = [width, width];
-                        });
-        this.uiGroup.connect('get-preferred-height',
-                        function(actor, forWidth, alloc) {
-                            let height = global.stage.height;
-                            [alloc.min_size, alloc.natural_size] = [height, height];
-                        });
+        this.uiGroup.connect('allocate', (actor, box, flags) => {
+            let children = actor.get_children();
+            for (let i = 0; i < children.length; i++)
+                children[i].allocate_preferred_size(flags);
+        });
+        this.uiGroup.connect('get-preferred-width', (actor, forHeight, alloc) => {
+            let width = global.stage.width;
+            [alloc.min_size, alloc.natural_size] = [width, width];
+        });
+        this.uiGroup.connect('get-preferred-height', (actor, forWidth, alloc) => {
+            let height = global.stage.height;
+            [alloc.min_size, alloc.natural_size] = [height, height];
+        });
 
         global.stage.remove_actor(global.window_group);
         this.uiGroup.add_actor(global.window_group);
@@ -240,7 +239,7 @@ var LayoutManager = new Lang.Class({
         this.addChrome(this.panelBox, { affectsStruts: true,
                                         trackFullscreen: true });
         this.panelBox.connect('allocation-changed',
-                              Lang.bind(this, this._panelBoxChanged));
+                              this._panelBoxChanged.bind(this));
 
         this.modalDialogGroup = new St.Widget({ name: 'modalDialogGroup',
                                                 layout_manager: new Clutter.BinLayout() });
@@ -271,13 +270,13 @@ var LayoutManager = new Lang.Class({
 
         // Need to update struts on new workspaces when they are added
         global.screen.connect('notify::n-workspaces',
-                              Lang.bind(this, this._queueUpdateRegions));
+                              this._queueUpdateRegions.bind(this));
         global.screen.connect('restacked',
-                              Lang.bind(this, this._windowsRestacked));
+                              this._windowsRestacked.bind(this));
         global.screen.connect('monitors-changed',
-                              Lang.bind(this, this._monitorsChanged));
+                              this._monitorsChanged.bind(this));
         global.screen.connect('in-fullscreen-changed',
-                              Lang.bind(this, this._updateFullscreen));
+                              this._updateFullscreen.bind(this));
         this._monitorsChanged();
 
         // NVIDIA drivers don't preserve FBO contents across
@@ -285,41 +284,41 @@ var LayoutManager = new Lang.Class({
         // https://bugzilla.gnome.org/show_bug.cgi?id=739178
         if (Shell.util_need_background_refresh()) {
             LoginManager.getLoginManager().connect('prepare-for-sleep',
-                                                   function(lm, suspending) {
-                                                       if (suspending)
-                                                           return;
-                                                       Meta.Background.refresh_all();
-                                                   });
+                (lm, suspending) => {
+                    if (suspending)
+                        return;
+                    Meta.Background.refresh_all();
+                });
         }
     },
 
     // This is called by Main after everything else is constructed
-    init: function() {
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+    init() {
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
 
         this._loadBackground();
     },
 
-    showOverview: function() {
+    showOverview() {
         this.overviewGroup.show();
 
         this._inOverview = true;
         this._updateVisibility();
     },
 
-    hideOverview: function() {
+    hideOverview() {
         this.overviewGroup.hide();
 
         this._inOverview = false;
         this._updateVisibility();
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         this._updateVisibility();
         this._queueUpdateRegions();
     },
 
-    _updateMonitors: function() {
+    _updateMonitors() {
         let screen = global.screen;
 
         this.monitors = [];
@@ -357,9 +356,9 @@ var LayoutManager = new Lang.Class({
         }
     },
 
-    _updateHotCorners: function() {
+    _updateHotCorners() {
         // destroy old hot corners
-        this.hotCorners.forEach(function(corner) {
+        this.hotCorners.forEach(corner => {
             if (corner)
                 corner.destroy();
         });
@@ -416,22 +415,22 @@ var LayoutManager = new Lang.Class({
         this.emit('hot-corners-changed');
     },
 
-    _addBackgroundMenu: function(bgManager) {
+    _addBackgroundMenu(bgManager) {
         BackgroundMenu.addBackgroundMenu(bgManager.backgroundActor, this);
     },
 
-    _createBackgroundManager: function(monitorIndex) {
+    _createBackgroundManager(monitorIndex) {
         let bgManager = new Background.BackgroundManager({ container: this._backgroundGroup,
                                                            layoutManager: this,
                                                            monitorIndex: monitorIndex });
 
-        bgManager.connect('changed', Lang.bind(this, this._addBackgroundMenu));
+        bgManager.connect('changed', this._addBackgroundMenu.bind(this));
         this._addBackgroundMenu(bgManager);
 
         return bgManager;
     },
 
-    _showSecondaryBackgrounds: function() {
+    _showSecondaryBackgrounds() {
         for (let i = 0; i < this.monitors.length; i++) {
             if (i != this.primaryIndex) {
                 let backgroundActor = this._bgManagers[i].backgroundActor;
@@ -445,7 +444,7 @@ var LayoutManager = new Lang.Class({
         }
     },
 
-    _updateBackgrounds: function() {
+    _updateBackgrounds() {
         let i;
         for (i = 0; i < this._bgManagers.length; i++)
             this._bgManagers[i].destroy();
@@ -464,13 +463,13 @@ var LayoutManager = new Lang.Class({
         }
     },
 
-    _updateKeyboardBox: function() {
+    _updateKeyboardBox() {
         this.keyboardBox.set_position(this.keyboardMonitor.x,
                                       this.keyboardMonitor.y + this.keyboardMonitor.height);
         this.keyboardBox.set_size(this.keyboardMonitor.width, -1);
     },
 
-    _updateBoxes: function() {
+    _updateBoxes() {
         this.screenShieldGroup.set_position(0, 0);
         this.screenShieldGroup.set_size(global.screen_width, global.screen_height);
 
@@ -483,17 +482,17 @@ var LayoutManager = new Lang.Class({
         this.keyboardIndex = this.primaryIndex;
     },
 
-    _panelBoxChanged: function() {
+    _panelBoxChanged() {
         this._updatePanelBarrier();
 
         let size = this.panelBox.height;
-        this.hotCorners.forEach(function(corner) {
+        this.hotCorners.forEach(corner => {
             if (corner)
                 corner.setBarrierSize(size);
         });
     },
 
-    _updatePanelBarrier: function() {
+    _updatePanelBarrier() {
         if (this._rightPanelBarrier) {
             this._rightPanelBarrier.destroy();
             this._rightPanelBarrier = null;
@@ -512,7 +511,7 @@ var LayoutManager = new Lang.Class({
         }
     },
 
-    _monitorsChanged: function() {
+    _monitorsChanged() {
         this._updateMonitors();
         this._updateBoxes();
         this._updateHotCorners();
@@ -524,7 +523,7 @@ var LayoutManager = new Lang.Class({
         this.emit('monitors-changed');
     },
 
-    _isAboveOrBelowPrimary: function(monitor) {
+    _isAboveOrBelowPrimary(monitor) {
         let primary = this.monitors[this.primaryIndex];
         let monitorLeft = monitor.x, monitorRight = monitor.x + monitor.width;
         let primaryLeft = primary.x, primaryRight = primary.x + primary.width;
@@ -570,7 +569,7 @@ var LayoutManager = new Lang.Class({
         return this._keyboardIndex;
     },
 
-    _loadBackground: function() {
+    _loadBackground() {
         if (!this.primaryMonitor) {
             this._pendingLoadBackground = true;
             return;
@@ -584,13 +583,13 @@ var LayoutManager = new Lang.Class({
                                                       coordinate: Clutter.BindCoordinate.ALL });
         this._systemBackground.actor.add_constraint(constraint);
 
-        let signalId = this._systemBackground.connect('loaded', Lang.bind(this, function() {
+        let signalId = this._systemBackground.connect('loaded', () => {
             this._systemBackground.disconnect(signalId);
             this._systemBackground.actor.show();
             global.stage.show();
 
             this._prepareStartupAnimation();
-        }));
+        });
     },
 
     // Startup Animations
@@ -608,7 +607,7 @@ var LayoutManager = new Lang.Class({
     // When starting a normal user session, we want to grow it out of the middle
     // of the screen.
 
-    _prepareStartupAnimation: function() {
+    _prepareStartupAnimation() {
         // During the initial transition, add a simple actor to block all events,
         // so they don't get delivered to X11 windows that have been transformed.
         this._coverPane = new Clutter.Actor({ opacity: 0,
@@ -652,14 +651,14 @@ var LayoutManager = new Lang.Class({
         // until the event loop is uncontended and idle.
         // This helps to prevent us from running the animation
         // when the system is bogged down
-        let id = GLib.idle_add(GLib.PRIORITY_LOW, Lang.bind(this, function() {
+        let id = GLib.idle_add(GLib.PRIORITY_LOW, () => {
             this._startupAnimation();
             return GLib.SOURCE_REMOVE;
-        }));
+        });
         GLib.Source.set_name_by_id(id, '[gnome-shell] this._startupAnimation');
     },
 
-    _startupAnimation: function() {
+    _startupAnimation() {
         if (Meta.is_restart())
             this._startupAnimationComplete();
         else if (Main.sessionMode.isGreeter)
@@ -668,7 +667,7 @@ var LayoutManager = new Lang.Class({
             this._startupAnimationSession();
     },
 
-    _startupAnimationGreeter: function() {
+    _startupAnimationGreeter() {
         Tweener.addTween(this.panelBox,
                          { translation_y: 0,
                            time: STARTUP_ANIMATION_TIME,
@@ -677,7 +676,7 @@ var LayoutManager = new Lang.Class({
                            onCompleteScope: this });
     },
 
-    _startupAnimationSession: function() {
+    _startupAnimationSession() {
         Tweener.addTween(this.uiGroup,
                          { scale_x: 1,
                            scale_y: 1,
@@ -688,7 +687,7 @@ var LayoutManager = new Lang.Class({
                            onCompleteScope: this });
     },
 
-    _startupAnimationComplete: function() {
+    _startupAnimationComplete() {
         this._coverPane.destroy();
         this._coverPane = null;
 
@@ -709,7 +708,7 @@ var LayoutManager = new Lang.Class({
         this.emit('startup-complete');
     },
 
-    showKeyboard: function () {
+    showKeyboard() {
         this.keyboardBox.show();
         Tweener.addTween(this.keyboardBox,
                          { anchor_y: this.keyboardBox.height,
@@ -722,17 +721,17 @@ var LayoutManager = new Lang.Class({
         this.emit('keyboard-visible-changed', true);
     },
 
-    _showKeyboardComplete: function() {
+    _showKeyboardComplete() {
         // Poke Chrome to update the input shape; it doesn't notice
         // anchor point changes
         this._updateRegions();
 
-        this._keyboardHeightNotifyId = this.keyboardBox.connect('notify::height', Lang.bind(this, function () {
+        this._keyboardHeightNotifyId = this.keyboardBox.connect('notify::height', () => {
             this.keyboardBox.anchor_y = this.keyboardBox.height;
-        }));
+        });
     },
 
-    hideKeyboard: function (immediate) {
+    hideKeyboard(immediate) {
         if (this._keyboardHeightNotifyId) {
             this.keyboardBox.disconnect(this._keyboardHeightNotifyId);
             this._keyboardHeightNotifyId = 0;
@@ -749,7 +748,7 @@ var LayoutManager = new Lang.Class({
         this.emit('keyboard-visible-changed', false);
     },
 
-    _hideKeyboardComplete: function() {
+    _hideKeyboardComplete() {
         this.keyboardBox.hide();
         this._updateRegions();
     },
@@ -764,7 +763,7 @@ var LayoutManager = new Lang.Class({
     // the actual mouse pointer as it moves, you need to call this
     // function before you show the menu to ensure it is at the right
     // position and has the right size.
-    setDummyCursorGeometry: function(x, y, w, h) {
+    setDummyCursorGeometry(x, y, w, h) {
         this.dummyCursor.set_position(Math.round(x), Math.round(y));
         this.dummyCursor.set_size(Math.round(w), Math.round(h));
     },
@@ -788,7 +787,7 @@ var LayoutManager = new Lang.Class({
     // will be bound to the presence of fullscreen windows on the same
     // monitor (it will be hidden whenever a fullscreen window is visible,
     // and shown otherwise)
-    addChrome: function(actor, params) {
+    addChrome(actor, params) {
         this.uiGroup.add_actor(actor);
         if (this.uiGroup.contains(global.top_window_group))
             this.uiGroup.set_child_below_sibling(actor, global.top_window_group);
@@ -805,7 +804,7 @@ var LayoutManager = new Lang.Class({
     // @params can have any of the same values as in addChrome(),
     // though some possibilities don't make sense. By default, @actor has
     // the same params as its chrome ancestor.
-    trackChrome: function(actor, params) {
+    trackChrome(actor, params) {
         let ancestor = actor.get_parent();
         let index = this._findActor(ancestor);
         while (ancestor && index == -1) {
@@ -831,7 +830,7 @@ var LayoutManager = new Lang.Class({
     // @actor: an actor previously tracked via trackChrome()
     //
     // Undoes the effect of trackChrome()
-    untrackChrome: function(actor) {
+    untrackChrome(actor) {
         this._untrackActor(actor);
     },
 
@@ -839,12 +838,12 @@ var LayoutManager = new Lang.Class({
     // @actor: a chrome actor
     //
     // Removes @actor from the chrome
-    removeChrome: function(actor) {
+    removeChrome(actor) {
         this.uiGroup.remove_actor(actor);
         this._untrackActor(actor);
     },
 
-    _findActor: function(actor) {
+    _findActor(actor) {
         for (let i = 0; i < this._trackedActors.length; i++) {
             let actorData = this._trackedActors[i];
             if (actorData.actor == actor)
@@ -853,18 +852,18 @@ var LayoutManager = new Lang.Class({
         return -1;
     },
 
-    _trackActor: function(actor, params) {
+    _trackActor(actor, params) {
         if (this._findActor(actor) != -1)
             throw new Error('trying to re-track existing chrome actor');
 
         let actorData = Params.parse(params, defaultParams);
         actorData.actor = actor;
         actorData.visibleId = actor.connect('notify::visible',
-                                            Lang.bind(this, this._queueUpdateRegions));
+                                            this._queueUpdateRegions.bind(this));
         actorData.allocationId = actor.connect('notify::allocation',
-                                               Lang.bind(this, this._queueUpdateRegions));
+                                               this._queueUpdateRegions.bind(this));
         actorData.destroyId = actor.connect('destroy',
-                                            Lang.bind(this, this._untrackActor));
+                                            this._untrackActor.bind(this));
         // Note that destroying actor will unset its parent, so we don't
         // need to connect to 'destroy' too.
 
@@ -873,7 +872,7 @@ var LayoutManager = new Lang.Class({
         this._queueUpdateRegions();
     },
 
-    _untrackActor: function(actor) {
+    _untrackActor(actor) {
         let i = this._findActor(actor);
 
         if (i == -1)
@@ -888,7 +887,7 @@ var LayoutManager = new Lang.Class({
         this._queueUpdateRegions();
     },
 
-    _updateActorVisibility: function(actorData) {
+    _updateActorVisibility(actorData) {
         if (!actorData.trackFullscreen)
             return;
 
@@ -898,16 +897,16 @@ var LayoutManager = new Lang.Class({
                                     monitor.inFullscreen);
     },
 
-    _updateVisibility: function() {
+    _updateVisibility() {
         let windowsVisible = Main.sessionMode.hasWindows && !this._inOverview;
 
         global.window_group.visible = windowsVisible;
         global.top_window_group.visible = windowsVisible;
 
-        this._trackedActors.forEach(Lang.bind(this, this._updateActorVisibility));
+        this._trackedActors.forEach(this._updateActorVisibility.bind(this));
     },
 
-    getWorkAreaForMonitor: function(monitorIndex) {
+    getWorkAreaForMonitor(monitorIndex) {
         // Assume that all workspaces will have the same
         // struts and pick the first one.
         let ws = global.screen.get_workspace_by_index(0);
@@ -916,42 +915,42 @@ var LayoutManager = new Lang.Class({
 
     // This call guarantees that we return some monitor to simplify usage of it
     // In practice all tracked actors should be visible on some monitor anyway
-    findIndexForActor: function(actor) {
+    findIndexForActor(actor) {
         let [x, y] = actor.get_transformed_position();
         let [w, h] = actor.get_transformed_size();
         let rect = new Meta.Rectangle({ x: x, y: y, width: w, height: h });
         return global.screen.get_monitor_index_for_rect(rect);
     },
 
-    findMonitorForActor: function(actor) {
+    findMonitorForActor(actor) {
         let index = this.findIndexForActor(actor);
         if (index >= 0 && index < this.monitors.length)
             return this.monitors[index];
         return null;
     },
 
-    _queueUpdateRegions: function() {
+    _queueUpdateRegions() {
         if (this._startingUp)
             return;
 
         if (!this._updateRegionIdle)
             this._updateRegionIdle = Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
-                                                    Lang.bind(this, this._updateRegions));
+                                                    this._updateRegions.bind(this));
     },
 
-    _getWindowActorsForWorkspace: function(workspace) {
-        return global.get_window_actors().filter(function (actor) {
+    _getWindowActorsForWorkspace(workspace) {
+        return global.get_window_actors().filter(actor => {
             let win = actor.meta_window;
             return win.located_on_workspace(workspace);
         });
     },
 
-    _updateFullscreen: function() {
+    _updateFullscreen() {
         this._updateVisibility();
         this._queueUpdateRegions();
     },
 
-    _windowsRestacked: function() {
+    _windowsRestacked() {
         let changed = false;
 
         if (this._isPopupWindowVisible != global.top_window_group.get_children().some(isPopupMetaWindow))
@@ -963,7 +962,7 @@ var LayoutManager = new Lang.Class({
         }
     },
 
-    _updateRegions: function() {
+    _updateRegions() {
         if (this._updateRegionIdle) {
             Meta.later_remove(this._updateRegionIdle);
             delete this._updateRegionIdle;
@@ -1062,7 +1061,7 @@ var LayoutManager = new Lang.Class({
         return GLib.SOURCE_REMOVE;
     },
 
-    modalEnded: function() {
+    modalEnded() {
         // We don't update the stage input region while in a modal,
         // so queue an update now.
         this._queueUpdateRegions();
@@ -1078,7 +1077,7 @@ Signals.addSignalMethods(LayoutManager.prototype);
 var HotCorner = new Lang.Class({
     Name: 'HotCorner',
 
-    _init : function(layoutManager, monitor, x, y) {
+    _init(layoutManager, monitor, x, y) {
         // We use this flag to mark the case where the user has entered the
         // hot corner and has not left both the hot corner and a surrounding
         // guard area (the "environs"). This avoids triggering the hot corner
@@ -1096,7 +1095,7 @@ var HotCorner = new Lang.Class({
                                                     HOT_CORNER_PRESSURE_TIMEOUT,
                                                     Shell.ActionMode.NORMAL |
                                                     Shell.ActionMode.OVERVIEW);
-        this._pressureBarrier.connect('trigger', Lang.bind(this, this._toggleOverview));
+        this._pressureBarrier.connect('trigger', this._toggleOverview.bind(this));
 
         // Cache the three ripples instead of dynamically creating and destroying them.
         this._ripple1 = new St.BoxLayout({ style_class: 'ripple-box', opacity: 0, visible: false });
@@ -1108,7 +1107,7 @@ var HotCorner = new Lang.Class({
         layoutManager.uiGroup.add_actor(this._ripple3);
     },
 
-    setBarrierSize: function(size) {
+    setBarrierSize(size) {
         if (this._verticalBarrier) {
             this._pressureBarrier.removeBarrier(this._verticalBarrier);
             this._verticalBarrier.destroy();
@@ -1143,7 +1142,7 @@ var HotCorner = new Lang.Class({
         }
     },
 
-    _setupFallbackCornerIfNeeded: function(layoutManager) {
+    _setupFallbackCornerIfNeeded(layoutManager) {
         if (!global.display.supports_extended_barriers()) {
             this.actor = new Clutter.Actor({ name: 'hot-corner-environs',
                                              x: this._x, y: this._y,
@@ -1169,16 +1168,16 @@ var HotCorner = new Lang.Class({
             }
 
             this.actor.connect('leave-event',
-                               Lang.bind(this, this._onEnvironsLeft));
+                               this._onEnvironsLeft.bind(this));
 
             this._corner.connect('enter-event',
-                                 Lang.bind(this, this._onCornerEntered));
+                                 this._onCornerEntered.bind(this));
             this._corner.connect('leave-event',
-                                 Lang.bind(this, this._onCornerLeft));
+                                 this._onCornerLeft.bind(this));
         }
     },
 
-    destroy: function() {
+    destroy() {
         this.setBarrierSize(0);
         this._pressureBarrier.destroy();
         this._pressureBarrier = null;
@@ -1187,7 +1186,7 @@ var HotCorner = new Lang.Class({
             this.actor.destroy();
     },
 
-    _animRipple : function(ripple, delay, time, startScale, startOpacity, finalScale) {
+    _animRipple(ripple, delay, time, startScale, startOpacity, finalScale) {
         // We draw a ripple by using a source image and animating it scaling
         // outwards and fading away. We want the ripples to move linearly
         // or it looks unrealistic, but if the opacity of the ripple goes
@@ -1213,11 +1212,11 @@ var HotCorner = new Lang.Class({
                                    delay: delay,
                                    time: time,
                                    transition: 'linear',
-                                   onUpdate: function() { ripple.opacity = 255 * Math.sqrt(ripple._opacity); },
-                                   onComplete: function() { ripple.visible = false; } });
+                                   onUpdate() { ripple.opacity = 255 * Math.sqrt(ripple._opacity); },
+                                   onComplete() { ripple.visible = false; } });
     },
 
-    _rippleAnimation: function() {
+    _rippleAnimation() {
         // Show three concentric ripples expanding outwards; the exact
         // parameters were found by trial and error, so don't look
         // for them to make perfect sense mathematically
@@ -1228,7 +1227,7 @@ var HotCorner = new Lang.Class({
         this._animRipple(this._ripple3, 0.35,  1.0,   0.0,   0.3,     1);
     },
 
-    _toggleOverview: function() {
+    _toggleOverview() {
         if (this._monitor.inFullscreen)
             return;
 
@@ -1238,7 +1237,7 @@ var HotCorner = new Lang.Class({
         }
     },
 
-    handleDragOver: function(source, actor, x, y, time) {
+    handleDragOver(source, actor, x, y, time) {
         if (source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
@@ -1247,7 +1246,7 @@ var HotCorner = new Lang.Class({
         return DND.DragMotionResult.CONTINUE;
     },
 
-    _onCornerEntered : function() {
+    _onCornerEntered() {
         if (!this._entered) {
             this._entered = true;
             this._toggleOverview();
@@ -1255,14 +1254,14 @@ var HotCorner = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _onCornerLeft : function(actor, event) {
+    _onCornerLeft(actor, event) {
         if (event.get_related() != this.actor)
             this._entered = false;
         // Consume event, otherwise this will confuse onEnvironsLeft
         return Clutter.EVENT_STOP;
     },
 
-    _onEnvironsLeft : function(actor, event) {
+    _onEnvironsLeft(actor, event) {
         if (event.get_related() != this._corner)
             this._entered = false;
         return Clutter.EVENT_PROPAGATE;
@@ -1272,7 +1271,7 @@ var HotCorner = new Lang.Class({
 var PressureBarrier = new Lang.Class({
     Name: 'PressureBarrier',
 
-    _init: function(threshold, timeout, actionMode) {
+    _init(threshold, timeout, actionMode) {
         this._threshold = threshold;
         this._timeout = timeout;
         this._actionMode = actionMode;
@@ -1283,57 +1282,57 @@ var PressureBarrier = new Lang.Class({
         this._reset();
     },
 
-    addBarrier: function(barrier) {
-        barrier._pressureHitId = barrier.connect('hit', Lang.bind(this, this._onBarrierHit));
-        barrier._pressureLeftId = barrier.connect('left', Lang.bind(this, this._onBarrierLeft));
+    addBarrier(barrier) {
+        barrier._pressureHitId = barrier.connect('hit', this._onBarrierHit.bind(this));
+        barrier._pressureLeftId = barrier.connect('left', this._onBarrierLeft.bind(this));
 
         this._barriers.push(barrier);
     },
 
-    _disconnectBarrier: function(barrier) {
+    _disconnectBarrier(barrier) {
         barrier.disconnect(barrier._pressureHitId);
         barrier.disconnect(barrier._pressureLeftId);
     },
 
-    removeBarrier: function(barrier) {
+    removeBarrier(barrier) {
         this._disconnectBarrier(barrier);
         this._barriers.splice(this._barriers.indexOf(barrier), 1);
     },
 
-    destroy: function() {
-        this._barriers.forEach(Lang.bind(this, this._disconnectBarrier));
+    destroy() {
+        this._barriers.forEach(this._disconnectBarrier.bind(this));
         this._barriers = [];
     },
 
-    setEventFilter: function(filter) {
+    setEventFilter(filter) {
         this._eventFilter = filter;
     },
 
-    _reset: function() {
+    _reset() {
         this._barrierEvents = [];
         this._currentPressure = 0;
         this._lastTime = 0;
     },
 
-    _isHorizontal: function(barrier) {
+    _isHorizontal(barrier) {
         return barrier.y1 == barrier.y2;
     },
 
-    _getDistanceAcrossBarrier: function(barrier, event) {
+    _getDistanceAcrossBarrier(barrier, event) {
         if (this._isHorizontal(barrier))
             return Math.abs(event.dy);
         else
             return Math.abs(event.dx);
     },
 
-    _getDistanceAlongBarrier: function(barrier, event) {
+    _getDistanceAlongBarrier(barrier, event) {
         if (this._isHorizontal(barrier))
             return Math.abs(event.dx);
         else
             return Math.abs(event.dy);
     },
 
-    _trimBarrierEvents: function() {
+    _trimBarrierEvents() {
         // Events are guaranteed to be sorted in time order from
         // oldest to newest, so just look for the first old event,
         // and then chop events after that off.
@@ -1357,21 +1356,21 @@ var PressureBarrier = new Lang.Class({
         this._barrierEvents = this._barrierEvents.slice(firstNewEvent);
     },
 
-    _onBarrierLeft: function(barrier, event) {
+    _onBarrierLeft(barrier, event) {
         barrier._isHit = false;
-        if (this._barriers.every(function(b) { return !b._isHit; })) {
+        if (this._barriers.every(b => !b._isHit)) {
             this._reset();
             this._isTriggered = false;
         }
     },
 
-    _trigger: function() {
+    _trigger() {
         this._isTriggered = true;
         this.emit('trigger');
         this._reset();
     },
 
-    _onBarrierHit: function(barrier, event) {
+    _onBarrierHit(barrier, event) {
         barrier._isHit = true;
 
         // If we've triggered the barrier, wait until the pointer has the

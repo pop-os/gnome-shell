@@ -23,7 +23,7 @@ var Indicator = new Lang.Class({
     Name: 'NightLightIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._indicator = this._addIndicator();
@@ -35,7 +35,7 @@ var Indicator = new Lang.Class({
                                              return;
                                          }
                                          this._proxy.connect('g-properties-changed',
-                                                             Lang.bind(this, this._sync));
+                                                             this._sync.bind(this));
                                          this._sync();
                                      });
 
@@ -51,17 +51,17 @@ var Indicator = new Lang.Class({
         this._item.menu.addSettingsAction(_("Display Settings"), 'gnome-display-panel.desktop');
         this.menu.addMenuItem(this._item);
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
         this._sync();
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
         this.menu.setSensitive(sensitive);
     },
 
-    _sync: function() {
+    _sync() {
         let visible = this._proxy.NightLightActive;
         let disabled = this._proxy.DisabledUntilTomorrow;
 

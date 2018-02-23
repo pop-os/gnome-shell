@@ -38,12 +38,12 @@ var OVERVIEW_ACTIVATION_TIMEOUT = 0.5;
 var ShellInfo = new Lang.Class({
     Name: 'ShellInfo',
 
-    _init: function() {
+    _init() {
         this._source = null;
         this._undoCallback = null;
     },
 
-    _onUndoClicked: function() {
+    _onUndoClicked() {
         if (this._undoCallback)
             this._undoCallback();
         this._undoCallback = null;
@@ -52,7 +52,7 @@ var ShellInfo = new Lang.Class({
             this._source.destroy();
     },
 
-    setMessage: function(text, options) {
+    setMessage(text, options) {
         options = Params.parse(options, { undoCallback: null,
                                           forFeedback: false
                                         });
@@ -62,10 +62,9 @@ var ShellInfo = new Lang.Class({
 
         if (this._source == null) {
             this._source = new MessageTray.SystemNotificationSource();
-            this._source.connect('destroy', Lang.bind(this,
-                function() {
-                    this._source = null;
-                }));
+            this._source.connect('destroy', () => {
+                this._source = null;
+            });
             Main.messageTray.add(this._source);
         }
 
@@ -81,7 +80,7 @@ var ShellInfo = new Lang.Class({
 
         this._undoCallback = undoCallback;
         if (undoCallback)
-            notification.addAction(_("Undo"), Lang.bind(this, this._onUndoClicked));
+            notification.addAction(_("Undo"), this._onUndoClicked.bind(this));
 
         this._source.notify(notification);
     }
@@ -90,15 +89,15 @@ var ShellInfo = new Lang.Class({
 var Overview = new Lang.Class({
     Name: 'Overview',
 
-    _init: function() {
+    _init() {
         this._overviewCreated = false;
         this._initCalled = false;
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
     },
 
-    _createOverview: function() {
+    _createOverview() {
         if (this._overviewCreated)
             return;
 
@@ -141,7 +140,7 @@ var Overview = new Lang.Class({
         this._coverPane = new Clutter.Actor({ opacity: 0,
                                               reactive: true });
         Main.layoutManager.overviewGroup.add_child(this._coverPane);
-        this._coverPane.connect('event', Lang.bind(this, function (actor, event) { return Clutter.EVENT_STOP; }));
+        this._coverPane.connect('event', () => Clutter.EVENT_STOP);
 
         Main.layoutManager.overviewGroup.add_child(this._overview);
 
@@ -149,16 +148,16 @@ var Overview = new Lang.Class({
 
         // XDND
         this._dragMonitor = {
-            dragMotion: Lang.bind(this, this._onDragMotion)
+            dragMotion: this._onDragMotion.bind(this)
         };
 
 
         Main.layoutManager.overviewGroup.connect('scroll-event',
-                                                 Lang.bind(this, this._onScrollEvent));
-        Main.xdndHandler.connect('drag-begin', Lang.bind(this, this._onDragBegin));
-        Main.xdndHandler.connect('drag-end', Lang.bind(this, this._onDragEnd));
+                                                 this._onScrollEvent.bind(this));
+        Main.xdndHandler.connect('drag-begin', this._onDragBegin.bind(this));
+        Main.xdndHandler.connect('drag-end', this._onDragEnd.bind(this));
 
-        global.screen.connect('restacked', Lang.bind(this, this._onRestacked));
+        global.screen.connect('restacked', this._onRestacked.bind(this));
 
         this._windowSwitchTimeoutId = 0;
         this._windowSwitchTimestamp = 0;
@@ -170,7 +169,7 @@ var Overview = new Lang.Class({
             this.init();
     },
 
-    _updateBackgrounds: function() {
+    _updateBackgrounds() {
         for (let i = 0; i < this._bgManagers.length; i++)
             this._bgManagers[i].destroy();
 
@@ -184,7 +183,7 @@ var Overview = new Lang.Class({
         }
     },
 
-    _unshadeBackgrounds: function() {
+    _unshadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
         for (let i = 0; i < backgrounds.length; i++) {
             Tweener.addTween(backgrounds[i],
@@ -196,7 +195,7 @@ var Overview = new Lang.Class({
         }
     },
 
-    _shadeBackgrounds: function() {
+    _shadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
         for (let i = 0; i < backgrounds.length; i++) {
             Tweener.addTween(backgrounds[i],
@@ -208,7 +207,7 @@ var Overview = new Lang.Class({
         }
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         this.isDummy = !Main.sessionMode.hasOverview;
         this._createOverview();
     },
@@ -217,7 +216,7 @@ var Overview = new Lang.Class({
     // want to access the overview as Main.overview to connect
     // signal handlers and so forth. So we create them after
     // construction in this init() method.
-    init: function() {
+    init() {
         this._initCalled = true;
 
         if (this.isDummy)
@@ -254,20 +253,19 @@ var Overview = new Lang.Class({
 
         // TODO - recalculate everything when desktop size changes
         this.dashIconSize = this._dash.iconSize;
-        this._dash.connect('icon-size-changed',
-                           Lang.bind(this, function() {
-                               this.dashIconSize = this._dash.iconSize;
-                           }));
+        this._dash.connect('icon-size-changed', () => {
+            this.dashIconSize = this._dash.iconSize;
+        });
 
-        Main.layoutManager.connect('monitors-changed', Lang.bind(this, this._relayout));
+        Main.layoutManager.connect('monitors-changed', this._relayout.bind(this));
         this._relayout();
     },
 
-    addSearchProvider: function(provider) {
+    addSearchProvider(provider) {
         this.viewSelector.addSearchProvider(provider);
     },
 
-    removeSearchProvider: function(provider) {
+    removeSearchProvider(provider) {
         this.viewSelector.removeSearchProvider(provider);
     },
 
@@ -276,14 +274,14 @@ var Overview = new Lang.Class({
     //  - undoCallback (function): the callback to be called if undo support is needed
     //  - forFeedback (boolean): whether the message is for direct feedback of a user action
     //
-    setMessage: function(text, options) {
+    setMessage(text, options) {
         if (this.isDummy)
             return;
 
         this._shellInfo.setMessage(text, options);
     },
 
-    _onDragBegin: function() {
+    _onDragBegin() {
         this._inXdndDrag = true;
 
         DND.addDragMonitor(this._dragMonitor);
@@ -291,7 +289,7 @@ var Overview = new Lang.Class({
         this._lastActiveWorkspaceIndex = global.screen.get_active_workspace_index();
     },
 
-    _onDragEnd: function(time) {
+    _onDragEnd(time) {
         this._inXdndDrag = false;
 
         // In case the drag was canceled while in the overview
@@ -307,7 +305,7 @@ var Overview = new Lang.Class({
         this.endItemDrag();
     },
 
-    _resetWindowSwitchTimeout: function() {
+    _resetWindowSwitchTimeout() {
         if (this._windowSwitchTimeoutId != 0) {
             Mainloop.source_remove(this._windowSwitchTimeoutId);
             this._windowSwitchTimeoutId = 0;
@@ -315,7 +313,7 @@ var Overview = new Lang.Class({
         }
     },
 
-    _fakePointerEvent: function() {
+    _fakePointerEvent() {
         let display = Gdk.Display.get_default();
         let deviceManager = display.get_device_manager();
         let pointer = deviceManager.get_client_pointer();
@@ -324,7 +322,7 @@ var Overview = new Lang.Class({
         pointer.warp(screen, pointerX, pointerY);
     },
 
-    _onDragMotion: function(dragEvent) {
+    _onDragMotion(dragEvent) {
         let targetIsWindow = dragEvent.targetActor &&
                              dragEvent.targetActor._delegate &&
                              dragEvent.targetActor._delegate.metaWindow &&
@@ -343,50 +341,50 @@ var Overview = new Lang.Class({
         if (targetIsWindow) {
             this._lastHoveredWindow = dragEvent.targetActor._delegate.metaWindow;
             this._windowSwitchTimeoutId = Mainloop.timeout_add(DND_WINDOW_SWITCH_TIMEOUT,
-                                            Lang.bind(this, function() {
-                                                this._windowSwitchTimeoutId = 0;
-                                                this._needsFakePointerEvent = true;
-                                                Main.activateWindow(dragEvent.targetActor._delegate.metaWindow,
-                                                                    this._windowSwitchTimestamp);
-                                                this.hide();
-                                                this._lastHoveredWindow = null;
-                                                return GLib.SOURCE_REMOVE;
-                                            }));
+                () => {
+                    this._windowSwitchTimeoutId = 0;
+                    this._needsFakePointerEvent = true;
+                    Main.activateWindow(dragEvent.targetActor._delegate.metaWindow,
+                                        this._windowSwitchTimestamp);
+                    this.hide();
+                    this._lastHoveredWindow = null;
+                    return GLib.SOURCE_REMOVE;
+                });
             GLib.Source.set_name_by_id(this._windowSwitchTimeoutId, '[gnome-shell] Main.activateWindow');
         }
 
         return DND.DragMotionResult.CONTINUE;
     },
 
-    _onScrollEvent: function(actor, event) {
+    _onScrollEvent(actor, event) {
         this.emit('scroll-event', event);
         return Clutter.EVENT_PROPAGATE;
     },
 
-    addAction: function(action) {
+    addAction(action) {
         if (this.isDummy)
             return;
 
         this._backgroundGroup.add_action(action);
     },
 
-    _getDesktopClone: function() {
-        let windows = global.get_window_actors().filter(function(w) {
-            return w.meta_window.get_window_type() == Meta.WindowType.DESKTOP;
-        });
+    _getDesktopClone() {
+        let windows = global.get_window_actors().filter(
+            w => w.meta_window.get_window_type() == Meta.WindowType.DESKTOP
+        );
         if (windows.length == 0)
             return null;
 
         let window = windows[0];
         let clone = new Clutter.Clone({ source: window,
                                         x: window.x, y: window.y });
-        clone.source.connect('destroy', Lang.bind(this, function() {
+        clone.source.connect('destroy', () => {
             clone.destroy();
-        }));
+        });
         return clone;
     },
 
-    _relayout: function () {
+    _relayout() {
         // To avoid updating the position and size of the workspaces
         // we just hide the overview. The positions will be updated
         // when it is next shown.
@@ -403,7 +401,7 @@ var Overview = new Lang.Class({
         this._updateBackgrounds();
     },
 
-    _onRestacked: function() {
+    _onRestacked() {
         let stack = global.get_window_actors();
         let stackIndices = {};
 
@@ -415,40 +413,44 @@ var Overview = new Lang.Class({
         this.emit('windows-restacked', stackIndices);
     },
 
-    beginItemDrag: function(source) {
+    beginItemDrag(source) {
         this.emit('item-drag-begin');
-        this._inDrag = true;
+        this._inItemDrag = true;
     },
 
-    cancelledItemDrag: function(source) {
+    cancelledItemDrag(source) {
         this.emit('item-drag-cancelled');
     },
 
-    endItemDrag: function(source) {
+    endItemDrag(source) {
+        if (!this._inItemDrag)
+            return;
         this.emit('item-drag-end');
-        this._inDrag = false;
+        this._inItemDrag = false;
     },
 
-    beginWindowDrag: function(window) {
+    beginWindowDrag(window) {
         this.emit('window-drag-begin', window);
-        this._inDrag = true;
+        this._inWindowDrag = true;
     },
 
-    cancelledWindowDrag: function(window) {
+    cancelledWindowDrag(window) {
         this.emit('window-drag-cancelled', window);
     },
 
-    endWindowDrag: function(window) {
+    endWindowDrag(window) {
+        if (!this._inWindowDrag)
+            return;
         this.emit('window-drag-end', window);
-        this._inDrag = false;
+        this._inWindowDrag = false;
     },
 
-    focusSearch: function() {
+    focusSearch() {
         this.show();
         this._searchEntry.grab_key_focus();
     },
 
-    fadeInDesktop: function() {
+    fadeInDesktop() {
             this._desktopFade.opacity = 0;
             this._desktopFade.show();
             Tweener.addTween(this._desktopFade,
@@ -457,7 +459,7 @@ var Overview = new Lang.Class({
                                transition: 'easeOutQuad' });
     },
 
-    fadeOutDesktop: function() {
+    fadeOutDesktop() {
         if (!this._desktopFade.get_n_children()) {
             let clone = this._getDesktopClone();
             if (!clone)
@@ -481,17 +483,17 @@ var Overview = new Lang.Class({
     // triggered will return false. This avoids opening and closing
     // the overview if the user both triggered the hot corner and
     // clicked the Activities button.
-    shouldToggleByCornerOrButton: function() {
+    shouldToggleByCornerOrButton() {
         if (this.animationInProgress)
             return false;
-        if (this._inDrag)
+        if (this._inItemDrag || this._inWindowDrag)
             return false;
         if (this._activationTime == 0 || Date.now() / 1000 - this._activationTime > OVERVIEW_ACTIVATION_TIMEOUT)
             return true;
         return false;
     },
 
-    _syncGrab: function() {
+    _syncGrab() {
         // We delay grab changes during animation so that when removing the
         // overview we don't have a problem with the release of a press/release
         // going to an application.
@@ -523,7 +525,7 @@ var Overview = new Lang.Class({
     // show:
     //
     // Animates the overview visible and grabs mouse and keyboard input
-    show: function() {
+    show() {
         if (this.isDummy)
             return;
         if (this._shown)
@@ -538,7 +540,7 @@ var Overview = new Lang.Class({
     },
 
 
-    _animateVisible: function() {
+    _animateVisible() {
         if (this.visible || this.animationInProgress)
             return;
 
@@ -565,7 +567,7 @@ var Overview = new Lang.Class({
         this.emit('showing');
     },
 
-    _showDone: function() {
+    _showDone() {
         this.animationInProgress = false;
         this._desktopFade.hide();
         this._coverPane.hide();
@@ -582,7 +584,7 @@ var Overview = new Lang.Class({
     // hide:
     //
     // Reverses the effect of show()
-    hide: function() {
+    hide() {
         if (this.isDummy)
             return;
 
@@ -606,7 +608,7 @@ var Overview = new Lang.Class({
     },
 
 
-    _animateNotVisible: function() {
+    _animateNotVisible() {
         if (!this.visible || this.animationInProgress)
             return;
 
@@ -630,7 +632,7 @@ var Overview = new Lang.Class({
         this.emit('hiding');
     },
 
-    _hideDone: function() {
+    _hideDone() {
         // Re-enable unredirection
         Meta.enable_unredirect_for_screen(global.screen);
 
@@ -657,7 +659,7 @@ var Overview = new Lang.Class({
         }
     },
 
-    toggle: function() {
+    toggle() {
         if (this.isDummy)
             return;
 
@@ -667,7 +669,7 @@ var Overview = new Lang.Class({
             this.show();
     },
 
-    getShowAppsButton: function() {
+    getShowAppsButton() {
         return this._dash.showAppsButton;
     }
 });

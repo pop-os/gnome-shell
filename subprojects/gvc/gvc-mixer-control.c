@@ -2412,7 +2412,7 @@ update_card (GvcMixerControl      *control,
         const char *key;
         void *state;
 
-        g_debug ("Udpating card %s (index: %u driver: %s):",
+        g_debug ("Updating card %s (index: %u driver: %s):",
                  info->name, info->index, info->driver);
 
         for (i = 0; i < info->n_profiles; i++) {

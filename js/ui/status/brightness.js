@@ -23,45 +23,45 @@ var Indicator = new Lang.Class({
     Name: 'BrightnessIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent('display-brightness-symbolic');
         this._proxy = new BrightnessProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH,
-                                          Lang.bind(this, function(proxy, error) {
+                                          (proxy, error) => {
                                               if (error) {
                                                   log(error.message);
                                                   return;
                                               }
 
-                                              this._proxy.connect('g-properties-changed', Lang.bind(this, this._sync));
+                                              this._proxy.connect('g-properties-changed', this._sync.bind(this));
                                               this._sync();
-                                          }));
+                                          });
 
         this._item = new PopupMenu.PopupBaseMenuItem({ activate: false });
         this.menu.addMenuItem(this._item);
 
         this._slider = new Slider.Slider(0);
-        this._slider.connect('value-changed', Lang.bind(this, this._sliderChanged));
+        this._slider.connect('value-changed', this._sliderChanged.bind(this));
         this._slider.actor.accessible_name = _("Brightness");
 
         let icon = new St.Icon({ icon_name: 'display-brightness-symbolic',
                                  style_class: 'popup-menu-icon' });
         this._item.actor.add(icon);
         this._item.actor.add(this._slider.actor, { expand: true });
-        this._item.actor.connect('button-press-event', Lang.bind(this, function(actor, event) {
+        this._item.actor.connect('button-press-event', (actor, event) => {
             return this._slider.startDragging(event);
-        }));
-        this._item.actor.connect('key-press-event', Lang.bind(this, function(actor, event) {
+        });
+        this._item.actor.connect('key-press-event', (actor, event) => {
             return this._slider.onKeyPressEvent(actor, event);
-        }));
+        });
 
     },
 
-    _sliderChanged: function(slider, value) {
+    _sliderChanged(slider, value) {
         let percent = value * 100;
         this._proxy.Brightness = percent;
     },
 
-    _sync: function() {
+    _sync() {
         let visible = this._proxy.Brightness >= 0;
         this._item.actor.visible = visible;
         if (visible)

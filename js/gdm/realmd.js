@@ -62,21 +62,21 @@ const Realm = Gio.DBusProxy.makeProxyWrapper(RealmIface);
 var Manager = new Lang.Class({
     Name: 'Manager',
 
-    _init: function(parentActor) {
+    _init(parentActor) {
         this._aggregateProvider = Provider(Gio.DBus.system,
                                            'org.freedesktop.realmd',
                                            '/org/freedesktop/realmd',
-                                           Lang.bind(this, this._reloadRealms))
+                                           this._reloadRealms.bind(this))
         this._realms = {};
 
         this._signalId = this._aggregateProvider.connect('g-properties-changed',
-                                        Lang.bind(this, function(proxy, properties) {
-                                            if ('Realms' in properties.deep_unpack())
-                                                this._reloadRealms();
-                                        }));
+            (proxy, properties) => {
+                if ('Realms' in properties.deep_unpack())
+                    this._reloadRealms();
+            });
     },
 
-    _reloadRealms: function() {
+    _reloadRealms() {
         let realmPaths = this._aggregateProvider.Realms;
 
         if (!realmPaths)
@@ -86,11 +86,11 @@ var Manager = new Lang.Class({
             let realm = Realm(Gio.DBus.system,
                               'org.freedesktop.realmd',
                               realmPaths[i],
-                              Lang.bind(this, this._onRealmLoaded));
+                              this._onRealmLoaded.bind(this));
         }
     },
 
-    _reloadRealm: function(realm) {
+    _reloadRealm(realm) {
         if (!realm.Configured) {
             if (this._realms[realm.get_object_path()])
                 delete this._realms[realm.get_object_path()];
@@ -103,20 +103,19 @@ var Manager = new Lang.Class({
         this._updateLoginFormat();
     },
 
-    _onRealmLoaded: function(realm, error) {
+    _onRealmLoaded(realm, error) {
         if (error)
             return;
 
         this._reloadRealm(realm);
 
-        realm.connect('g-properties-changed',
-                      Lang.bind(this, function(proxy, properties) {
-                                if ('Configured' in properties.deep_unpack())
-                                    this._reloadRealm(realm);
-                                }));
+        realm.connect('g-properties-changed', (proxy, properties) => {
+            if ('Configured' in properties.deep_unpack())
+                this._reloadRealm(realm);
+        });
     },
 
-    _updateLoginFormat: function() {
+    _updateLoginFormat() {
         let newLoginFormat;
 
         for (let realmPath in this._realms) {
@@ -142,13 +141,11 @@ var Manager = new Lang.Class({
         return this._loginFormat;
     },
 
-    release: function() {
+    release() {
         Service(Gio.DBus.system,
                 'org.freedesktop.realmd',
                 '/org/freedesktop/realmd',
-                function(service) {
-                    service.ReleaseRemote();
-                });
+                service => { service.ReleaseRemote(); });
         this._aggregateProvider.disconnect(this._signalId);
         this._realms = { };
         this._updateLoginFormat();

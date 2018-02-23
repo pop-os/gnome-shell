@@ -18,7 +18,7 @@ var DISPLAY_TIMEOUT = 600;
 var WorkspaceSwitcherPopup = new Lang.Class({
     Name: 'WorkspaceSwitcherPopup',
 
-    _init : function() {
+    _init() {
         this.actor = new St.Widget({ x: 0,
                                      y: 0,
                                      width: global.screen_width,
@@ -32,13 +32,13 @@ var WorkspaceSwitcherPopup = new Lang.Class({
         this._childHeight = 0;
         this._childWidth = 0;
         this._timeoutId = 0;
-        this._list.connect('style-changed', Lang.bind(this, function() {
-                                                        this._itemSpacing = this._list.get_theme_node().get_length('spacing');
-                                                     }));
+        this._list.connect('style-changed', () => {
+           this._itemSpacing = this._list.get_theme_node().get_length('spacing');
+        });
 
-        this._list.connect('get-preferred-width', Lang.bind(this, this._getPreferredWidth));
-        this._list.connect('get-preferred-height', Lang.bind(this, this._getPreferredHeight));
-        this._list.connect('allocate', Lang.bind(this, this._allocate));
+        this._list.connect('get-preferred-width', this._getPreferredWidth.bind(this));
+        this._list.connect('get-preferred-height', this._getPreferredHeight.bind(this));
+        this._list.connect('allocate', this._allocate.bind(this));
         this._container.add(this._list);
 
         this.actor.add_actor(this._container);
@@ -48,11 +48,11 @@ var WorkspaceSwitcherPopup = new Lang.Class({
         this.actor.hide();
 
         this._globalSignals = [];
-        this._globalSignals.push(global.screen.connect('workspace-added', Lang.bind(this, this._redisplay)));
-        this._globalSignals.push(global.screen.connect('workspace-removed', Lang.bind(this, this._redisplay)));
+        this._globalSignals.push(global.screen.connect('workspace-added', this._redisplay.bind(this)));
+        this._globalSignals.push(global.screen.connect('workspace-removed', this._redisplay.bind(this)));
     },
 
-    _getPreferredHeight : function (actor, forWidth, alloc) {
+    _getPreferredHeight(actor, forWidth, alloc) {
         let children = this._list.get_children();
         let workArea = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
 
@@ -78,7 +78,7 @@ var WorkspaceSwitcherPopup = new Lang.Class({
         alloc.natural_size = height;
     },
 
-    _getPreferredWidth : function (actor, forHeight, alloc) {
+    _getPreferredWidth(actor, forHeight, alloc) {
         let workArea = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
         this._childWidth = Math.round(this._childHeight * workArea.width / workArea.height);
 
@@ -86,7 +86,7 @@ var WorkspaceSwitcherPopup = new Lang.Class({
         alloc.natural_size = this._childWidth;
     },
 
-    _allocate : function (actor, box, flags) {
+    _allocate(actor, box, flags) {
         let children = this._list.get_children();
         let childBox = new Clutter.ActorBox();
 
@@ -103,7 +103,7 @@ var WorkspaceSwitcherPopup = new Lang.Class({
         }
     },
 
-    _redisplay: function() {
+    _redisplay() {
         this._list.destroy_all_children();
 
         for (let i = 0; i < global.screen.n_workspaces; i++) {
@@ -127,7 +127,7 @@ var WorkspaceSwitcherPopup = new Lang.Class({
         this._container.y = workArea.y + Math.floor((workArea.height - containerNatHeight) / 2);
     },
 
-    _show : function() {
+    _show() {
         Tweener.addTween(this._container, { opacity: 255,
                                             time: ANIMATION_TIME,
                                             transition: 'easeOutQuad'
@@ -135,31 +135,31 @@ var WorkspaceSwitcherPopup = new Lang.Class({
         this.actor.show();
     },
 
-    display : function(direction, activeWorkspaceIndex) {
+    display(direction, activeWorkspaceIndex) {
         this._direction = direction;
         this._activeWorkspaceIndex = activeWorkspaceIndex;
 
         this._redisplay();
         if (this._timeoutId != 0)
             Mainloop.source_remove(this._timeoutId);
-        this._timeoutId = Mainloop.timeout_add(DISPLAY_TIMEOUT, Lang.bind(this, this._onTimeout));
+        this._timeoutId = Mainloop.timeout_add(DISPLAY_TIMEOUT, this._onTimeout.bind(this));
         GLib.Source.set_name_by_id(this._timeoutId, '[gnome-shell] this._onTimeout');
         this._show();
     },
 
-    _onTimeout : function() {
+    _onTimeout() {
         Mainloop.source_remove(this._timeoutId);
         this._timeoutId = 0;
         Tweener.addTween(this._container, { opacity: 0.0,
                                             time: ANIMATION_TIME,
                                             transition: 'easeOutQuad',
-                                            onComplete: function() { this.destroy(); },
+                                            onComplete() { this.destroy(); },
                                             onCompleteScope: this
                                            });
         return GLib.SOURCE_REMOVE;
     },
 
-    destroy: function() {
+    destroy() {
         if (this._timeoutId)
             Mainloop.source_remove(this._timeoutId);
         this._timeoutId = 0;

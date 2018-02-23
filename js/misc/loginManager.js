@@ -105,15 +105,15 @@ function getLoginManager() {
 var LoginManagerSystemd = new Lang.Class({
     Name: 'LoginManagerSystemd',
 
-    _init: function() {
+    _init() {
         this._proxy = new SystemdLoginManager(Gio.DBus.system,
                                               'org.freedesktop.login1',
                                               '/org/freedesktop/login1');
         this._proxy.connectSignal('PrepareForSleep',
-                                  Lang.bind(this, this._prepareForSleep));
+                                  this._prepareForSleep.bind(this));
     },
 
-    getCurrentSessionProxy: function(callback) {
+    getCurrentSessionProxy(callback) {
         if (this._currentSession) {
             callback (this._currentSession);
             return;
@@ -125,21 +125,20 @@ var LoginManagerSystemd = new Lang.Class({
             return;
         }
 
-        this._proxy.GetSessionRemote(sessionId, Lang.bind(this,
-            function(result, error) {
-                if (error) {
-                    logError(error, 'Could not get a proxy for the current session');
-                } else {
-                    this._currentSession = new SystemdLoginSession(Gio.DBus.system,
-                                                                   'org.freedesktop.login1',
-                                                                   result[0]);
-                    callback(this._currentSession);
-                }
-            }));
+        this._proxy.GetSessionRemote(sessionId, (result, error) => {
+            if (error) {
+                logError(error, 'Could not get a proxy for the current session');
+            } else {
+                this._currentSession = new SystemdLoginSession(Gio.DBus.system,
+                                                               'org.freedesktop.login1',
+                                                               result[0]);
+                callback(this._currentSession);
+            }
+        });
     },
 
-    canSuspend: function(asyncCallback) {
-        this._proxy.CanSuspendRemote(function(result, error) {
+    canSuspend(asyncCallback) {
+        this._proxy.CanSuspendRemote((result, error) => {
             if (error) {
                 asyncCallback(false, false);
             } else {
@@ -150,8 +149,8 @@ var LoginManagerSystemd = new Lang.Class({
         });
     },
 
-    listSessions: function(asyncCallback) {
-        this._proxy.ListSessionsRemote(function(result, error) {
+    listSessions(asyncCallback) {
+        this._proxy.ListSessionsRemote((result, error) => {
             if (error)
                 asyncCallback([]);
             else
@@ -159,18 +158,18 @@ var LoginManagerSystemd = new Lang.Class({
         });
     },
 
-    suspend: function() {
+    suspend() {
         this._proxy.SuspendRemote(true);
     },
 
-    inhibit: function(reason, callback) {
+    inhibit(reason, callback) {
         let inVariant = GLib.Variant.new('(ssss)',
                                          ['sleep',
                                           'GNOME Shell',
                                           reason,
                                           'delay']);
         this._proxy.call_with_unix_fd_list('Inhibit', inVariant, 0, -1, null, null,
-            Lang.bind(this, function(proxy, result) {
+            (proxy, result) => {
                 let fd = -1;
                 try {
                     let [outVariant, fdList] = proxy.call_with_unix_fd_list_finish(result);
@@ -180,10 +179,10 @@ var LoginManagerSystemd = new Lang.Class({
                     logError(e, "Error getting systemd inhibitor");
                     callback(null);
                 }
-            }));
+            });
     },
 
-    _prepareForSleep: function(proxy, sender, [aboutToSuspend]) {
+    _prepareForSleep(proxy, sender, [aboutToSuspend]) {
         this.emit('prepare-for-sleep', aboutToSuspend);
     }
 });
@@ -192,26 +191,26 @@ Signals.addSignalMethods(LoginManagerSystemd.prototype);
 var LoginManagerDummy = new Lang.Class({
     Name: 'LoginManagerDummy',
 
-    getCurrentSessionProxy: function(callback) {
+    getCurrentSessionProxy(callback) {
         // we could return a DummySession object that fakes whatever callers
         // expect (at the time of writing: connect() and connectSignal()
         // methods), but just never calling the callback should be safer
     },
 
-    canSuspend: function(asyncCallback) {
+    canSuspend(asyncCallback) {
         asyncCallback(false, false);
     },
 
-    listSessions: function(asyncCallback) {
+    listSessions(asyncCallback) {
         asyncCallback([]);
     },
 
-    suspend: function() {
+    suspend() {
         this.emit('prepare-for-sleep', true);
         this.emit('prepare-for-sleep', false);
     },
 
-    inhibit: function(reason, callback) {
+    inhibit(reason, callback) {
         callback(null);
     }
 });

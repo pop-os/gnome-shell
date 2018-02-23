@@ -41,18 +41,18 @@ function _removeItem(menu, position) {
 var RemoteMenuSeparatorItemMapper = new Lang.Class({
     Name: 'RemoteMenuSeparatorItemMapper',
 
-    _init: function(trackerItem) {
+    _init(trackerItem) {
         this._trackerItem = trackerItem;
         this.menuItem = new PopupMenu.PopupSeparatorMenuItem();
-        this._trackerItem.connect('notify::label', Lang.bind(this, this._updateLabel));
+        this._trackerItem.connect('notify::label', this._updateLabel.bind(this));
         this._updateLabel();
 
-        this.menuItem.connect('destroy', function() {
+        this.menuItem.connect('destroy', () => {
             trackerItem.run_dispose();
         });
     },
 
-    _updateLabel: function() {
+    _updateLabel() {
         this.menuItem.label.text = stripMnemonics(this._trackerItem.label);
     },
 });
@@ -61,17 +61,17 @@ var RequestSubMenu = new Lang.Class({
     Name: 'RequestSubMenu',
     Extends: PopupMenu.PopupSubMenuMenuItem,
 
-    _init: function() {
+    _init() {
         this.parent('');
         this._requestOpen = false;
     },
 
-    _setOpenState: function(open) {
+    _setOpenState(open) {
         this.emit('request-open', open);
         this._requestOpen = open;
     },
 
-    _getOpenState: function() {
+    _getOpenState() {
         return this._requestOpen;
     },
 });
@@ -79,35 +79,35 @@ var RequestSubMenu = new Lang.Class({
 var RemoteMenuSubmenuItemMapper = new Lang.Class({
     Name: 'RemoteMenuSubmenuItemMapper',
 
-    _init: function(trackerItem) {
+    _init(trackerItem) {
         this._trackerItem = trackerItem;
         this.menuItem = new RequestSubMenu();
-        this._trackerItem.connect('notify::label', Lang.bind(this, this._updateLabel));
+        this._trackerItem.connect('notify::label', this._updateLabel.bind(this));
         this._updateLabel();
 
         this._tracker = Shell.MenuTracker.new_for_item_submenu(this._trackerItem,
                                                                _insertItem.bind(null, this.menuItem.menu),
                                                                _removeItem.bind(null, this.menuItem.menu));
 
-        this.menuItem.connect('request-open', Lang.bind(this, function(menu, open) {
+        this.menuItem.connect('request-open', (menu, open) => {
             this._trackerItem.request_submenu_shown(open);
-        }));
+        });
 
-        this._trackerItem.connect('notify::submenu-shown', Lang.bind(this, function() {
+        this._trackerItem.connect('notify::submenu-shown', () => {
             this.menuItem.setSubmenuShown(this._trackerItem.get_submenu_shown());
-        }));
+        });
 
-        this.menuItem.connect('destroy', function() {
+        this.menuItem.connect('destroy', () => {
             trackerItem.run_dispose();
         });
     },
 
-    destroy: function() {
+    destroy() {
         this._tracker.destroy();
         this.parent();
     },
 
-    _updateLabel: function() {
+    _updateLabel() {
         this.menuItem.label.text = stripMnemonics(this._trackerItem.label);
     },
 });
@@ -115,7 +115,7 @@ var RemoteMenuSubmenuItemMapper = new Lang.Class({
 var RemoteMenuItemMapper = new Lang.Class({
     Name: 'RemoteMenuItemMapper',
 
-    _init: function(trackerItem) {
+    _init(trackerItem) {
         this._trackerItem = trackerItem;
 
         this.menuItem = new PopupMenu.PopupBaseMenuItem();
@@ -123,35 +123,35 @@ var RemoteMenuItemMapper = new Lang.Class({
         this.menuItem.actor.add_child(this._label);
         this.menuItem.actor.label_actor = this._label;
 
-        this.menuItem.connect('activate', Lang.bind(this, function() {
+        this.menuItem.connect('activate', () => {
             this._trackerItem.activated();
-        }));
+        });
 
         this._trackerItem.bind_property('visible', this.menuItem.actor, 'visible', GObject.BindingFlags.SYNC_CREATE);
 
-        this._trackerItem.connect('notify::label', Lang.bind(this, this._updateLabel));
-        this._trackerItem.connect('notify::sensitive', Lang.bind(this, this._updateSensitivity));
-        this._trackerItem.connect('notify::role', Lang.bind(this, this._updateRole));
-        this._trackerItem.connect('notify::toggled', Lang.bind(this, this._updateDecoration));
+        this._trackerItem.connect('notify::label', this._updateLabel.bind(this));
+        this._trackerItem.connect('notify::sensitive', this._updateSensitivity.bind(this));
+        this._trackerItem.connect('notify::role', this._updateRole.bind(this));
+        this._trackerItem.connect('notify::toggled', this._updateDecoration.bind(this));
 
         this._updateLabel();
         this._updateSensitivity();
         this._updateRole();
 
-        this.menuItem.connect('destroy', function() {
+        this.menuItem.connect('destroy', () => {
             trackerItem.run_dispose();
         });
     },
 
-    _updateLabel: function() {
+    _updateLabel() {
         this._label.text = stripMnemonics(this._trackerItem.label);
     },
 
-    _updateSensitivity: function() {
+    _updateSensitivity() {
         this.menuItem.setSensitive(this._trackerItem.sensitive);
     },
 
-    _updateDecoration: function() {
+    _updateDecoration() {
         let ornamentForRole = {};
         ornamentForRole[ShellMenu.MenuTrackerItemRole.RADIO] = PopupMenu.Ornament.DOT;
         ornamentForRole[ShellMenu.MenuTrackerItemRole.CHECK] = PopupMenu.Ornament.CHECK;
@@ -163,7 +163,7 @@ var RemoteMenuItemMapper = new Lang.Class({
         this.menuItem.setOrnament(ornament);
     },
 
-    _updateRole: function() {
+    _updateRole() {
         let a11yRoles = {};
         a11yRoles[ShellMenu.MenuTrackerItemRole.NORMAL] = Atk.Role.MENU_ITEM;
         a11yRoles[ShellMenu.MenuTrackerItemRole.RADIO] = Atk.Role.RADIO_MENU_ITEM;
@@ -180,7 +180,7 @@ var RemoteMenu = new Lang.Class({
     Name: 'RemoteMenu',
     Extends: PopupMenu.PopupMenu,
 
-    _init: function(sourceActor, model, actionGroup) {
+    _init(sourceActor, model, actionGroup) {
         this.parent(sourceActor, 0.0, St.Side.TOP);
 
         this._model = model;
@@ -196,7 +196,7 @@ var RemoteMenu = new Lang.Class({
         return this._actionGroup;
     },
 
-    destroy: function() {
+    destroy() {
         this._tracker.destroy();
         this.parent();
     },

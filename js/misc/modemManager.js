@@ -2,7 +2,7 @@
 
 const Gio = imports.gi.Gio;
 const Lang = imports.lang;
-const NMGtk = imports.gi.NMGtk;
+const NMA = imports.gi.NMA;
 const Signals = imports.signals;
 
 // _getMobileProvidersDatabase:
@@ -14,7 +14,7 @@ let _mpd;
 function _getMobileProvidersDatabase() {
     if (_mpd == null) {
         try {
-            _mpd = new NMGtk.MobileProvidersDatabase();
+            _mpd = new NMA.MobileProvidersDatabase();
             _mpd.init(null);
         } catch (e) {
             log(e.message);
@@ -133,22 +133,22 @@ const ModemCdmaProxy = Gio.DBusProxy.makeProxyWrapper(ModemCdmaInterface);
 var ModemGsm = new Lang.Class({
     Name: 'ModemGsm',
 
-    _init: function(path) {
+    _init(path) {
         this._proxy = new ModemGsmNetworkProxy(Gio.DBus.system, 'org.freedesktop.ModemManager', path);
 
         this.signal_quality = 0;
         this.operator_name = null;
 
         // Code is duplicated because the function have different signatures
-        this._proxy.connectSignal('SignalQuality', Lang.bind(this, function(proxy, sender, [quality]) {
+        this._proxy.connectSignal('SignalQuality', (proxy, sender, [quality]) => {
             this.signal_quality = quality;
             this.emit('notify::signal-quality');
-        }));
-        this._proxy.connectSignal('RegistrationInfo', Lang.bind(this, function(proxy, sender, [status, code, name]) {
+        });
+        this._proxy.connectSignal('RegistrationInfo', (proxy, sender, [status, code, name]) => {
             this.operator_name = _findProviderForMccMnc(name, code);
             this.emit('notify::operator-name');
-        }));
-        this._proxy.GetRegistrationInfoRemote(Lang.bind(this, function([result], err) {
+        });
+        this._proxy.GetRegistrationInfoRemote(([result], err) => {
             if (err) {
                 log(err);
                 return;
@@ -157,8 +157,8 @@ var ModemGsm = new Lang.Class({
             let [status, code, name] = result;
             this.operator_name = _findProviderForMccMnc(name, code);
             this.emit('notify::operator-name');
-        }));
-        this._proxy.GetSignalQualityRemote(Lang.bind(this, function(result, err) {
+        });
+        this._proxy.GetSignalQualityRemote((result, err) => {
             if (err) {
                 // it will return an error if the device is not connected
                 this.signal_quality = 0;
@@ -167,7 +167,7 @@ var ModemGsm = new Lang.Class({
                 this.signal_quality = quality;
             }
             this.emit('notify::signal-quality');
-        }));
+        });
     }
 });
 Signals.addSignalMethods(ModemGsm.prototype);
@@ -175,12 +175,12 @@ Signals.addSignalMethods(ModemGsm.prototype);
 var ModemCdma = new Lang.Class({
     Name: 'ModemCdma',
 
-    _init: function(path) {
+    _init(path) {
         this._proxy = new ModemCdmaProxy(Gio.DBus.system, 'org.freedesktop.ModemManager', path);
 
         this.signal_quality = 0;
         this.operator_name = null;
-        this._proxy.connectSignal('SignalQuality', Lang.bind(this, function(proxy, sender, params) {
+        this._proxy.connectSignal('SignalQuality', (proxy, sender, params) => {
             this.signal_quality = params[0];
             this.emit('notify::signal-quality');
 
@@ -188,8 +188,8 @@ var ModemCdma = new Lang.Class({
             // and we can finally call GetServingSystem
             if (this.operator_name == null)
                 this._refreshServingSystem();
-        }));
-        this._proxy.GetSignalQualityRemote(Lang.bind(this, function(result, err) {
+        });
+        this._proxy.GetSignalQualityRemote((result, err) => {
             if (err) {
                 // it will return an error if the device is not connected
                 this.signal_quality = 0;
@@ -198,11 +198,11 @@ var ModemCdma = new Lang.Class({
                 this.signal_quality = quality;
             }
             this.emit('notify::signal-quality');
-        }));
+        });
     },
 
-    _refreshServingSystem: function() {
-        this._proxy.GetServingSystemRemote(Lang.bind(this, function([result], err) {
+    _refreshServingSystem() {
+        this._proxy.GetServingSystemRemote(([result], err) => {
             if (err) {
                 // it will return an error if the device is not connected
                 this.operator_name = null;
@@ -212,7 +212,7 @@ var ModemCdma = new Lang.Class({
                 this.operator_name = _findProviderForSid(sid)
             }
             this.emit('notify::operator-name');
-        }));
+        });
     }
 });
 Signals.addSignalMethods(ModemCdma.prototype);
@@ -247,40 +247,40 @@ const BroadbandModemCdmaProxy = Gio.DBusProxy.makeProxyWrapper(BroadbandModemCdm
 var BroadbandModem = new Lang.Class({
     Name: 'BroadbandModem',
 
-    _init: function(path, capabilities) {
+    _init(path, capabilities) {
         this._proxy = new BroadbandModemProxy(Gio.DBus.system, 'org.freedesktop.ModemManager1', path);
         this._proxy_3gpp = new BroadbandModem3gppProxy(Gio.DBus.system, 'org.freedesktop.ModemManager1', path);
         this._proxy_cdma = new BroadbandModemCdmaProxy(Gio.DBus.system, 'org.freedesktop.ModemManager1', path);
         this._capabilities = capabilities;
 
-        this._proxy.connect('g-properties-changed', Lang.bind(this, function(proxy, properties) {
+        this._proxy.connect('g-properties-changed', (proxy, properties) => {
             if ('SignalQuality' in properties.deep_unpack())
                 this._reloadSignalQuality();
-        }));
+        });
         this._reloadSignalQuality();
 
-        this._proxy_3gpp.connect('g-properties-changed', Lang.bind(this, function(proxy, properties) {
+        this._proxy_3gpp.connect('g-properties-changed', (proxy, properties) => {
             let unpacked = properties.deep_unpack();
             if ('OperatorName' in unpacked || 'OperatorCode' in unpacked)
                 this._reload3gppOperatorName();
-        }));
+        });
         this._reload3gppOperatorName();
 
-        this._proxy_cdma.connect('g-properties-changed', Lang.bind(this, function(proxy, properties) {
+        this._proxy_cdma.connect('g-properties-changed', (proxy, properties) => {
             let unpacked = properties.deep_unpack();
             if ('Nid' in unpacked || 'Sid' in unpacked)
                 this._reloadCdmaOperatorName();
-        }));
+        });
         this._reloadCdmaOperatorName();
     },
 
-    _reloadSignalQuality: function() {
+    _reloadSignalQuality() {
         let [quality, recent] = this._proxy.SignalQuality;
         this.signal_quality = quality;
         this.emit('notify::signal-quality');
     },
 
-    _reloadOperatorName: function() {
+    _reloadOperatorName() {
         let new_name = "";
         if (this.operator_name_3gpp && this.operator_name_3gpp.length > 0)
             new_name += this.operator_name_3gpp;
@@ -295,14 +295,14 @@ var BroadbandModem = new Lang.Class({
         this.emit('notify::operator-name');
     },
 
-    _reload3gppOperatorName: function() {
+    _reload3gppOperatorName() {
         let name = this._proxy_3gpp.OperatorName;
         let code = this._proxy_3gpp.OperatorCode;
         this.operator_name_3gpp = _findProviderForMccMnc(name, code);
         this._reloadOperatorName();
     },
 
-    _reloadCdmaOperatorName: function() {
+    _reloadCdmaOperatorName() {
         let sid = this._proxy_cdma.Sid;
         this.operator_name_cdma = _findProviderForSid(sid);
         this._reloadOperatorName();

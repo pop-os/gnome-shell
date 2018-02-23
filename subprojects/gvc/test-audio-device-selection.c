@@ -41,7 +41,7 @@ audio_selection_needed (GvcMixerControl      *volume,
 	args[n] = NULL;
 
 	g_print ("+++ Audio selection needed for id %d\n", id);
-	g_print ("    Choices are: %s\n");
+	g_print ("    Choices are:\n");
 	for (i = 0; args[i] != NULL; i++)
 		g_print ("    %d. %s\n", i + 1, args[i]);
 

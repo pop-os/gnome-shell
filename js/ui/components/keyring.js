@@ -24,13 +24,13 @@ var KeyringDialog = new Lang.Class({
     Name: 'KeyringDialog',
     Extends: ModalDialog.ModalDialog,
 
-    _init: function() {
+    _init() {
         this.parent({ styleClass: 'prompt-dialog' });
 
         this.prompt = new Shell.KeyringPrompt();
-        this.prompt.connect('show-password', Lang.bind(this, this._onShowPassword));
-        this.prompt.connect('show-confirm', Lang.bind(this, this._onShowConfirm));
-        this.prompt.connect('prompt-close', Lang.bind(this, this._onHidePrompt));
+        this.prompt.connect('show-password', this._onShowPassword.bind(this));
+        this.prompt.connect('show-confirm', this._onShowConfirm.bind(this));
+        this.prompt.connect('prompt-close', this._onHidePrompt.bind(this));
 
         let icon = new Gio.ThemedIcon({ name: 'dialog-password-symbolic' });
         this._content = new Dialog.MessageDialogContent({ icon });
@@ -55,17 +55,17 @@ var KeyringDialog = new Lang.Class({
         this._controlTable = null;
 
         this._cancelButton = this.addButton({ label: '',
-                                              action: Lang.bind(this, this._onCancelButton),
+                                              action: this._onCancelButton.bind(this),
                                               key: Clutter.Escape });
         this._continueButton = this.addButton({ label: '',
-                                                action: Lang.bind(this, this._onContinueButton),
+                                                action: this._onContinueButton.bind(this),
                                                 default: true });
 
         this.prompt.bind_property('cancel-label', this._cancelButton, 'label', GObject.BindingFlags.SYNC_CREATE);
         this.prompt.bind_property('continue-label', this._continueButton, 'label', GObject.BindingFlags.SYNC_CREATE);
     },
 
-    _setWorking: function(working) {
+    _setWorking(working) {
         if (!this._workSpinner)
             return;
 
@@ -84,7 +84,7 @@ var KeyringDialog = new Lang.Class({
                                time: WORK_SPINNER_ANIMATION_TIME,
                                transition: 'linear',
                                onCompleteScope: this,
-                               onComplete: function() {
+                               onComplete() {
                                    if (this._workSpinner)
                                        this._workSpinner.stop();
                                }
@@ -92,7 +92,7 @@ var KeyringDialog = new Lang.Class({
         }
     },
 
-    _buildControlTable: function() {
+    _buildControlTable() {
         let layout = new Clutter.GridLayout({ orientation: Clutter.Orientation.VERTICAL });
         let table = new St.Widget({ style_class: 'keyring-dialog-control-table',
                                     layout_manager: layout });
@@ -112,7 +112,7 @@ var KeyringDialog = new Lang.Class({
                                                  x_expand: true });
             this._passwordEntry.clutter_text.set_password_char('\u25cf'); // ● U+25CF BLACK CIRCLE
             ShellEntry.addContextMenu(this._passwordEntry, { isPassword: true });
-            this._passwordEntry.clutter_text.connect('activate', Lang.bind(this, this._onPasswordActivate));
+            this._passwordEntry.clutter_text.connect('activate', this._onPasswordActivate.bind(this));
 
             let spinnerIcon = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/process-working.svg');
             this._workSpinner = new Animation.AnimatedIcon(spinnerIcon, WORK_SPINNER_ICON_SIZE);
@@ -144,7 +144,7 @@ var KeyringDialog = new Lang.Class({
                                                 x_expand: true });
             this._confirmEntry.clutter_text.set_password_char('\u25cf'); // ● U+25CF BLACK CIRCLE
             ShellEntry.addContextMenu(this._confirmEntry, { isPassword: true });
-            this._confirmEntry.clutter_text.connect('activate', Lang.bind(this, this._onConfirmActivate));
+            this._confirmEntry.clutter_text.connect('activate', this._onConfirmActivate.bind(this));
             if (rtl) {
                 layout.attach(this._confirmEntry, 0, row, 1, 1);
                 layout.attach(label, 1, row, 1, 1);
@@ -185,7 +185,7 @@ var KeyringDialog = new Lang.Class({
         this._content.messageBox.add(table, { x_fill: true, y_fill: true });
     },
 
-    _updateSensitivity: function(sensitive) {
+    _updateSensitivity(sensitive) {
         if (this._passwordEntry) {
             this._passwordEntry.reactive = sensitive;
             this._passwordEntry.clutter_text.editable = sensitive;
@@ -201,7 +201,7 @@ var KeyringDialog = new Lang.Class({
         this._setWorking(!sensitive);
     },
 
-    _ensureOpen: function() {
+    _ensureOpen() {
         // NOTE: ModalDialog.open() is safe to call if the dialog is
         // already open - it just returns true without side-effects
         if (this.open())
@@ -219,41 +219,41 @@ var KeyringDialog = new Lang.Class({
         return false;
     },
 
-    _onShowPassword: function(prompt) {
+    _onShowPassword(prompt) {
         this._buildControlTable();
         this._ensureOpen();
         this._updateSensitivity(true);
         this._passwordEntry.grab_key_focus();
     },
 
-    _onShowConfirm: function(prompt) {
+    _onShowConfirm(prompt) {
         this._buildControlTable();
         this._ensureOpen();
         this._updateSensitivity(true);
         this._continueButton.grab_key_focus();
     },
 
-    _onHidePrompt: function(prompt) {
+    _onHidePrompt(prompt) {
         this.close();
     },
 
-    _onPasswordActivate: function() {
+    _onPasswordActivate() {
         if (this.prompt.confirm_visible)
             this._confirmEntry.grab_key_focus();
         else
             this._onContinueButton();
     },
 
-    _onConfirmActivate: function() {
+    _onConfirmActivate() {
         this._onContinueButton();
     },
 
-    _onContinueButton: function() {
+    _onContinueButton() {
         this._updateSensitivity(false);
         this.prompt.complete();
     },
 
-    _onCancelButton: function() {
+    _onCancelButton() {
         this.prompt.cancel();
     },
 });
@@ -261,15 +261,13 @@ var KeyringDialog = new Lang.Class({
 var KeyringDummyDialog = new Lang.Class({
     Name: 'KeyringDummyDialog',
 
-    _init: function() {
+    _init() {
         this.prompt = new Shell.KeyringPrompt();
-        this.prompt.connect('show-password',
-                            Lang.bind(this, this._cancelPrompt));
-        this.prompt.connect('show-confirm', Lang.bind(this,
-                            this._cancelPrompt));
+        this.prompt.connect('show-password', this._cancelPrompt.bind(this));
+        this.prompt.connect('show-confirm', this._cancelPrompt.bind(this));
     },
 
-    _cancelPrompt: function() {
+    _cancelPrompt() {
         this.prompt.cancel();
     }
 });
@@ -277,22 +275,21 @@ var KeyringDummyDialog = new Lang.Class({
 var KeyringPrompter = new Lang.Class({
     Name: 'KeyringPrompter',
 
-    _init: function() {
+    _init() {
         this._prompter = new Gcr.SystemPrompter();
-        this._prompter.connect('new-prompt', Lang.bind(this,
-            function() {
-                let dialog = this._enabled ? new KeyringDialog()
-                                           : new KeyringDummyDialog();
-                this._currentPrompt = dialog.prompt;
-                return this._currentPrompt;
-            }));
+        this._prompter.connect('new-prompt', () => {
+            let dialog = this._enabled ? new KeyringDialog()
+                                       : new KeyringDummyDialog();
+            this._currentPrompt = dialog.prompt;
+            return this._currentPrompt;
+        });
         this._dbusId = null;
         this._registered = false;
         this._enabled = false;
         this._currentPrompt = null;
     },
 
-    enable: function() {
+    enable() {
         if (!this._registered) {
             this._prompter.register(Gio.DBus.session);
             this._dbusId = Gio.DBus.session.own_name('org.gnome.keyring.SystemPrompter',
@@ -302,7 +299,7 @@ var KeyringPrompter = new Lang.Class({
         this._enabled = true;
     },
 
-    disable: function() {
+    disable() {
         this._enabled = false;
 
         if (this._prompter.prompting)

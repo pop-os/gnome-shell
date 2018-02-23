@@ -3,55 +3,41 @@ project('gvc', 'c',
   default_options: ['static=true']
 )
 
-if not meson.is_subproject()
-  error('This project is only intended to be used as a subproject!')
-endif
+assert(meson.is_subproject(), 'This project is only intended to be used as a subproject!')
 
 gnome = import('gnome')
 
 pkglibdir = get_option('pkglibdir')
 pkgdatadir = get_option('pkgdatadir')
 
-alsa = dependency('alsa', required: false)
-gio = dependency('gio-2.0')
-gobject = dependency('gobject-2.0')
-libpulse = dependency('libpulse', version: '>= 2.0')
-libpulse_glib = dependency('libpulse-mainloop-glib')
-
 cdata = configuration_data()
-cdata.set_quoted('GETTEXT_PACKAGE', get_option('package-name'))
-cdata.set_quoted('PACKAGE_VERSION', get_option('package-version'))
-cdata.set('HAVE_ALSA', alsa.found())
+cdata.set_quoted('GETTEXT_PACKAGE', get_option('package_name'))
+cdata.set_quoted('PACKAGE_VERSION', get_option('package_version'))
 
-config = configure_file(
-  input: 'config.h.meson',
-  output: 'config.h',
-  configuration: cdata
-)
-
-libgvc_inc = include_directories('.')
+libgvc_gir_headers = [
+  'gvc-channel-map.h',
+  'gvc-mixer-card.h',
+  'gvc-mixer-control.h',
+  'gvc-mixer-event-role.h',
+  'gvc-mixer-sink.h',
+  'gvc-mixer-sink-input.h',
+  'gvc-mixer-source.h',
+  'gvc-mixer-source-output.h',
+  'gvc-mixer-stream.h',
+  'gvc-mixer-ui-device.h'
+]
 
 libgvc_gir_sources = [
-  'gvc-mixer-card.h',
-  'gvc-mixer-card.c',
-  'gvc-mixer-stream.h',
-  'gvc-mixer-stream.c',
-  'gvc-channel-map.h',
   'gvc-channel-map.c',
-  'gvc-mixer-ui-device.h',
-  'gvc-mixer-ui-device.c',
-  'gvc-mixer-sink.h',
-  'gvc-mixer-sink.c',
-  'gvc-mixer-source.h',
-  'gvc-mixer-source.c',
-  'gvc-mixer-sink-input.h',
-  'gvc-mixer-sink-input.c',
-  'gvc-mixer-source-output.h',
-  'gvc-mixer-source-output.c',
-  'gvc-mixer-event-role.h',
+  'gvc-mixer-card.c',
+  'gvc-mixer-control.c',
   'gvc-mixer-event-role.c',
-  'gvc-mixer-control.h',
-  'gvc-mixer-control.c'
+  'gvc-mixer-sink.c',
+  'gvc-mixer-sink-input.c',
+  'gvc-mixer-source.c',
+  'gvc-mixer-source-output.c',
+  'gvc-mixer-stream.c',
+  'gvc-mixer-ui-device.c'
 ]
 
 libgvc_no_gir_sources = [
@@ -63,30 +49,33 @@ libgvc_no_gir_sources = [
 ]
 
 libgvc_deps = [
-  alsa,
-  gio,
-  gobject,
-  libpulse,
-  libpulse_glib
+  dependency('gio-2.0'),
+  dependency('gobject-2.0'),
+  dependency('libpulse', version: '>= 2.0'),
+  dependency('libpulse-mainloop-glib')
 ]
 
-static = get_option('static')
-with_introspection = get_option('with-introspection')
-
-if static and with_introspection
-  error('Currently meson requires a shared library for building girs.')
+enable_alsa = get_option('alsa')
+if enable_alsa
+  libgvc_deps += dependency('alsa')
 endif
+cdata.set('HAVE_ALSA', enable_alsa)
+
+enable_static = get_option('static')
+enable_introspection = get_option('introspection')
+
+assert(not enable_static or not enable_introspection, 'Currently meson requires a shared library for building girs.')
+assert(enable_static or pkglibdir != '', 'Installing shared library, but pkglibdir is unset!')
 
 c_args = ['-DG_LOG_DOMAIN="Gvc"']
 
-if with_introspection
+if enable_introspection
   c_args += '-DWITH_INTROSPECTION'
 endif
 
-if static
+if enable_static
   libgvc_static = static_library('gvc',
     sources: libgvc_gir_sources + libgvc_no_gir_sources,
-    include_directories: libgvc_inc,
     dependencies: libgvc_deps,
     c_args: c_args
   )
@@ -99,7 +88,6 @@ else
 
   libgvc_shared = shared_library('gvc',
     sources: libgvc_gir_sources + libgvc_no_gir_sources,
-    include_directories: libgvc_inc,
     dependencies: libgvc_deps,
     c_args: c_args,
     install_rpath: pkgdatadir,
@@ -110,15 +98,11 @@ else
   libgvc = libgvc_shared
 endif
 
-if with_introspection
-  if pkgdatadir == ''
-    error('Installing introspection, but pkgdatadir is unset!')
-  elif (pkglibdir == '')
-    error('Installing introspection, but pkglibdir is unset!')
-  endif
+if enable_introspection
+  assert(pkgdatadir != '', 'Installing introspection, but pkgdatadir is unset!')
 
   libgvc_gir = gnome.generate_gir(libgvc,
-    sources: libgvc_gir_sources,
+    sources: libgvc_gir_sources + libgvc_gir_headers,
     nsversion: '1.0',
     namespace: 'Gvc',
     includes: ['Gio-2.0', 'GObject-2.0'],
@@ -129,7 +113,7 @@ if with_introspection
   )
 endif
 
-if alsa.found()
+if enable_alsa
   executable('test-audio-device-selection',
     sources: 'test-audio-device-selection.c',
     link_with: libgvc,
@@ -140,6 +124,11 @@ endif
 
 libgvc_dep = declare_dependency(
   link_with: libgvc,
-  include_directories: libgvc_inc,
+  include_directories: include_directories('.'),
   dependencies: libgvc_deps
+)
+
+configure_file(
+  output: 'config.h',
+  configuration: cdata
 )

@@ -63,12 +63,12 @@ const EndSessionDialogIface = '<node> \
 const logoutDialogContent = {
     subjectWithUser: C_("title", "Log Out %s"),
     subject: C_("title", "Log Out"),
-    descriptionWithUser: function(user, seconds) {
+    descriptionWithUser(user, seconds) {
         return ngettext("%s will be logged out automatically in %d second.",
                         "%s will be logged out automatically in %d seconds.",
                         seconds).format(user, seconds);
     },
-    description: function(seconds) {
+    description(seconds) {
         return ngettext("You will be logged out automatically in %d second.",
                         "You will be logged out automatically in %d seconds.",
                         seconds).format(seconds);
@@ -83,7 +83,7 @@ const logoutDialogContent = {
 const shutdownDialogContent = {
     subject: C_("title", "Power Off"),
     subjectWithUpdates: C_("title", "Install Updates & Power Off"),
-    description: function(seconds) {
+    description(seconds) {
         return ngettext("The system will power off automatically in %d second.",
                         "The system will power off automatically in %d seconds.",
                         seconds).format(seconds);
@@ -101,7 +101,7 @@ const shutdownDialogContent = {
 
 const restartDialogContent = {
     subject: C_("title", "Restart"),
-    description: function(seconds) {
+    description(seconds) {
         return ngettext("The system will restart automatically in %d second.",
                         "The system will restart automatically in %d seconds.",
                         seconds).format(seconds);
@@ -117,7 +117,7 @@ const restartDialogContent = {
 const restartUpdateDialogContent = {
 
     subject: C_("title", "Restart & Install Updates"),
-    description: function(seconds) {
+    description(seconds) {
         return ngettext("The system will automatically restart and install updates in %d second.",
                         "The system will automatically restart and install updates in %d seconds.",
                         seconds).format(seconds);
@@ -135,7 +135,7 @@ const restartUpdateDialogContent = {
 const restartUpgradeDialogContent = {
 
     subject: C_("title", "Restart & Install Upgrade"),
-    upgradeDescription: function(distroName, distroVersion) {
+    upgradeDescription(distroName, distroVersion) {
         /* Translators: This is the text displayed for system upgrades in the
            shut down dialog. First %s gets replaced with the distro name and
            second %s with the distro version to upgrade to */
@@ -279,7 +279,7 @@ var EndSessionDialog = new Lang.Class({
     Name: 'EndSessionDialog',
     Extends: ModalDialog.ModalDialog,
 
-    _init: function() {
+    _init() {
         this.parent({ styleClass: 'end-session-dialog',
                       destroyOnClose: false });
 
@@ -290,22 +290,22 @@ var EndSessionDialog = new Lang.Class({
         this._pkOfflineProxy = new PkOfflineProxy(Gio.DBus.system,
                                                   'org.freedesktop.PackageKit',
                                                   '/org/freedesktop/PackageKit',
-                                                  Lang.bind(this, function(proxy, error) {
+                                                  (proxy, error) => {
                                                       if (error)
                                                           log(error.message);
-                                                  }));
+                                                  });
         this._powerProxy = new UPowerProxy(Gio.DBus.system,
                                            'org.freedesktop.UPower',
                                            '/org/freedesktop/UPower',
-                                           Lang.bind(this, function(proxy, error) {
+                                           (proxy, error) => {
                                                if (error) {
                                                    log(error.message);
                                                    return;
                                                }
                                                this._powerProxy.connect('g-properties-changed',
-                                                                        Lang.bind(this, this._sync));
+                                                                        this._sync.bind(this));
                                                this._sync();
-                                           }));
+                                           });
 
         this._secondsLeft = 0;
         this._totalSecondsToStayOpen = 0;
@@ -313,12 +313,12 @@ var EndSessionDialog = new Lang.Class({
         this._sessions = [];
 
         this.connect('destroy',
-                     Lang.bind(this, this._onDestroy));
+                     this._onDestroy.bind(this));
         this.connect('opened',
-                     Lang.bind(this, this._onOpened));
+                     this._onOpened.bind(this));
 
-        this._userLoadedId = this._user.connect('notify::is_loaded', Lang.bind(this, this._sync));
-        this._userChangedId = this._user.connect('changed', Lang.bind(this, this._sync));
+        this._userLoadedId = this._user.connect('notify::is_loaded', this._sync.bind(this));
+        this._userChangedId = this._user.connect('changed', this._sync.bind(this));
 
         let mainContentLayout = new St.BoxLayout({ vertical: false });
         this.contentLayout.add(mainContentLayout,
@@ -354,7 +354,7 @@ var EndSessionDialog = new Lang.Class({
                             y_align: St.Align.START });
 
         this._checkBox = new CheckBox.CheckBox();
-        this._checkBox.actor.connect('clicked', Lang.bind(this, this._sync));
+        this._checkBox.actor.connect('clicked', this._sync.bind(this));
         messageLayout.add(this._checkBox.actor);
 
         this._batteryWarning = new St.Label({ style_class: 'end-session-dialog-warning',
@@ -398,12 +398,12 @@ var EndSessionDialog = new Lang.Class({
         this._dbusImpl.export(Gio.DBus.session, '/org/gnome/SessionManager/EndSessionDialog');
     },
 
-    _onDestroy: function() {
+    _onDestroy() {
         this._user.disconnect(this._userLoadedId);
         this._user.disconnect(this._userChangedId);
     },
 
-    _sync: function() {
+    _sync() {
         let open = (this.state == ModalDialog.State.OPENING || this.state == ModalDialog.State.OPENED);
         if (!open)
             return;
@@ -476,48 +476,47 @@ var EndSessionDialog = new Lang.Class({
         this._sessionHeader.visible = hasSessions;
     },
 
-    _updateButtons: function() {
+    _updateButtons() {
         let dialogContent = DialogContent[this._type];
-        let buttons = [{ action: Lang.bind(this, this.cancel),
+        let buttons = [{ action: this.cancel.bind(this),
                          label:  _("Cancel"),
                          key:    Clutter.Escape }];
 
         for (let i = 0; i < dialogContent.confirmButtons.length; i++) {
             let signal = dialogContent.confirmButtons[i].signal;
             let label = dialogContent.confirmButtons[i].label;
-            buttons.push({ action: Lang.bind(this, function() {
-                                       this.close(true);
-                                       let signalId = this.connect('closed',
-                                                                   Lang.bind(this, function() {
-                                                                       this.disconnect(signalId);
-                                                                       this._confirm(signal);
-                                                                   }));
-                                   }),
+            buttons.push({ action: () => {
+                               this.close(true);
+                               let signalId = this.connect('closed', () => {
+                                   this.disconnect(signalId);
+                                   this._confirm(signal);
+                               });
+                           },
                            label: label });
         }
 
         this.setButtons(buttons);
     },
 
-    close: function(skipSignal) {
+    close(skipSignal) {
         this.parent();
 
         if (!skipSignal)
             this._dbusImpl.emit_signal('Closed', null);
     },
 
-    cancel: function() {
+    cancel() {
         this._stopTimer();
         this._dbusImpl.emit_signal('Canceled', null);
         this.close();
     },
 
-    _confirm: function(signal) {
-        let callback = Lang.bind(this, function() {
+    _confirm(signal) {
+        let callback = () => {
             this._fadeOutDialog();
             this._stopTimer();
             this._dbusImpl.emit_signal(signal, null);
-        });
+        };
 
         // Offline update not available; just emit the signal
         if (!this._checkBox.actor.visible) {
@@ -547,13 +546,12 @@ var EndSessionDialog = new Lang.Class({
         }
     },
 
-    _onOpened: function() {
+    _onOpened() {
         this._sync();
     },
 
-    _triggerOfflineUpdateReboot: function(callback) {
-        this._pkOfflineProxy.TriggerRemote('reboot',
-                                           function (result, error) {
+    _triggerOfflineUpdateReboot(callback) {
+        this._pkOfflineProxy.TriggerRemote('reboot', (result, error) => {
             if (error)
                 log(error.message);
 
@@ -561,9 +559,8 @@ var EndSessionDialog = new Lang.Class({
         });
     },
 
-    _triggerOfflineUpdateShutdown: function(callback) {
-        this._pkOfflineProxy.TriggerRemote('power-off',
-                                           function (result, error) {
+    _triggerOfflineUpdateShutdown(callback) {
+        this._pkOfflineProxy.TriggerRemote('power-off', (result, error) => {
             if (error)
                 log(error.message);
 
@@ -571,8 +568,8 @@ var EndSessionDialog = new Lang.Class({
         });
     },
 
-    _triggerOfflineUpdateCancel: function(callback) {
-        this._pkOfflineProxy.CancelRemote(function (result, error) {
+    _triggerOfflineUpdateCancel(callback) {
+        this._pkOfflineProxy.CancelRemote((result, error) => {
             if (error)
                 log(error.message);
 
@@ -580,32 +577,31 @@ var EndSessionDialog = new Lang.Class({
         });
     },
 
-    _startTimer: function() {
+    _startTimer() {
         let startTime = GLib.get_monotonic_time();
         this._secondsLeft = this._totalSecondsToStayOpen;
 
-        this._timerId = Mainloop.timeout_add_seconds(1, Lang.bind(this,
-            function() {
-                let currentTime = GLib.get_monotonic_time();
-                let secondsElapsed = ((currentTime - startTime) / 1000000);
+        this._timerId = Mainloop.timeout_add_seconds(1, () => {
+            let currentTime = GLib.get_monotonic_time();
+            let secondsElapsed = ((currentTime - startTime) / 1000000);
 
-                this._secondsLeft = this._totalSecondsToStayOpen - secondsElapsed;
-                if (this._secondsLeft > 0) {
-                    this._sync();
-                    return GLib.SOURCE_CONTINUE;
-                }
+            this._secondsLeft = this._totalSecondsToStayOpen - secondsElapsed;
+            if (this._secondsLeft > 0) {
+                this._sync();
+                return GLib.SOURCE_CONTINUE;
+            }
 
-                let dialogContent = DialogContent[this._type];
-                let button = dialogContent.confirmButtons[dialogContent.confirmButtons.length - 1];
-                this._confirm(button.signal);
-                this._timerId = 0;
+            let dialogContent = DialogContent[this._type];
+            let button = dialogContent.confirmButtons[dialogContent.confirmButtons.length - 1];
+            this._confirm(button.signal);
+            this._timerId = 0;
 
-                return GLib.SOURCE_REMOVE;
-            }));
+            return GLib.SOURCE_REMOVE;
+        });
         GLib.Source.set_name_by_id(this._timerId, '[gnome-shell] this._confirm');
     },
 
-    _stopTimer: function() {
+    _stopTimer() {
         if (this._timerId > 0) {
             Mainloop.source_remove(this._timerId);
             this._timerId = 0;
@@ -614,7 +610,7 @@ var EndSessionDialog = new Lang.Class({
         this._secondsLeft = 0;
     },
 
-    _constructListItemForApp: function(inhibitor, app) {
+    _constructListItemForApp(inhibitor, app) {
         let actor = new St.BoxLayout({ style_class: 'end-session-dialog-app-list-item',
                                        can_focus: true });
         actor.add(app.create_icon_texture(_ITEM_ICON_SIZE));
@@ -639,7 +635,7 @@ var EndSessionDialog = new Lang.Class({
         return actor;
     },
 
-    _onInhibitorLoaded: function(inhibitor) {
+    _onInhibitorLoaded(inhibitor) {
         if (this._applications.indexOf(inhibitor) < 0) {
             // Stale inhibitor
             return;
@@ -658,7 +654,7 @@ var EndSessionDialog = new Lang.Class({
         this._sync();
     },
 
-    _constructListItemForSession: function(session) {
+    _constructListItemForSession(session) {
         let avatar = new UserWidget.Avatar(session.user, { iconSize: _ITEM_ICON_SIZE });
         avatar.update();
 
@@ -688,8 +684,8 @@ var EndSessionDialog = new Lang.Class({
         return actor;
     },
 
-    _loadSessions: function() {
-        this._loginManager.listSessions(Lang.bind(this, function(result) {
+    _loadSessions() {
+        this._loginManager.listSessions(result => {
             let n = 0;
             for (let i = 0; i < result.length; i++) {
                 let[id, uid, userName, seat, sessionPath] = result[i];
@@ -720,10 +716,10 @@ var EndSessionDialog = new Lang.Class({
             }
 
             this._sync();
-        }));
+        });
     },
 
-    OpenAsync: function(parameters, invocation) {
+    OpenAsync(parameters, invocation) {
         let [type, timestamp, totalSecondsToStayOpen, inhibitorObjectPaths] = parameters;
         this._totalSecondsToStayOpen = totalSecondsToStayOpen;
         this._type = type;
@@ -750,9 +746,9 @@ var EndSessionDialog = new Lang.Class({
         let dialogContent = DialogContent[this._type];
 
         for (let i = 0; i < inhibitorObjectPaths.length; i++) {
-            let inhibitor = new GnomeSession.Inhibitor(inhibitorObjectPaths[i], Lang.bind(this, function(proxy, error) {
+            let inhibitor = new GnomeSession.Inhibitor(inhibitorObjectPaths[i], (proxy, error) => {
                 this._onInhibitorLoaded(proxy);
-            }));
+            });
 
             this._applications.push(inhibitor);
         }
@@ -787,14 +783,13 @@ var EndSessionDialog = new Lang.Class({
 
         this._sync();
 
-        let signalId = this.connect('opened',
-                                    Lang.bind(this, function() {
-                                        invocation.return_value(null);
-                                        this.disconnect(signalId);
-                                    }));
+        let signalId = this.connect('opened', () => {
+            invocation.return_value(null);
+            this.disconnect(signalId);
+        });
     },
 
-    Close: function(parameters, invocation) {
+    Close(parameters, invocation) {
         this.close();
     }
 });

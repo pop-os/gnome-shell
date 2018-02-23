@@ -13,7 +13,7 @@ var BackgroundMenu = new Lang.Class({
     Name: 'BackgroundMenu',
     Extends: PopupMenu.PopupMenu,
 
-    _init: function(layoutManager) {
+    _init(layoutManager) {
         this.parent(layoutManager.dummyCursor, 0, St.Side.TOP);
 
         this.addSettingsAction(_("Change Background…"), 'gnome-background-panel.desktop');
@@ -40,7 +40,7 @@ function addBackgroundMenu(actor, layoutManager) {
     }
 
     let clickAction = new Clutter.ClickAction();
-    clickAction.connect('long-press', function(action, actor, state) {
+    clickAction.connect('long-press', (action, actor, state) => {
         if (state == Clutter.LongPressState.QUERY)
             return ((action.get_button() == 0 ||
                      action.get_button() == 1) &&
@@ -52,7 +52,7 @@ function addBackgroundMenu(actor, layoutManager) {
         }
         return true;
     });
-    clickAction.connect('clicked', function(action) {
+    clickAction.connect('clicked', action => {
         if (action.get_button() == 3) {
             let [x, y] = action.get_coords();
             openMenu(x, y);
@@ -60,11 +60,11 @@ function addBackgroundMenu(actor, layoutManager) {
     });
     actor.add_action(clickAction);
 
-    let grabOpBeginId = global.display.connect('grab-op-begin', function () {
+    let grabOpBeginId = global.display.connect('grab-op-begin', () => {
         clickAction.release();
     });
 
-    actor.connect('destroy', function() {
+    actor.connect('destroy', () => {
         actor._backgroundMenu.destroy();
         actor._backgroundMenu = null;
         actor._backgroundManager = null;

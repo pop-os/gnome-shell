@@ -49,24 +49,24 @@ var AppFavorites = new Lang.Class({
 
     FAVORITE_APPS_KEY: 'favorite-apps',
 
-    _init: function() {
+    _init() {
         this._favorites = {};
-        global.settings.connect('changed::' + this.FAVORITE_APPS_KEY, Lang.bind(this, this._onFavsChanged));
+        global.settings.connect('changed::' + this.FAVORITE_APPS_KEY, this._onFavsChanged.bind(this));
         this.reload();
     },
 
-    _onFavsChanged: function() {
+    _onFavsChanged() {
         this.reload();
         this.emit('changed');
     },
 
-    reload: function() {
+    reload() {
         let ids = global.settings.get_strv(this.FAVORITE_APPS_KEY);
         let appSys = Shell.AppSystem.get_default();
 
         // Map old desktop file names to the current ones
         let updated = false;
-        ids = ids.map(function (id) {
+        ids = ids.map(id => {
             let newId = RENAMED_DESKTOP_IDS[id];
             if (newId !== undefined &&
                 appSys.lookup_app(newId) != null) {
@@ -79,11 +79,8 @@ var AppFavorites = new Lang.Class({
         if (updated)
             global.settings.set_strv(this.FAVORITE_APPS_KEY, ids);
 
-        let apps = ids.map(function (id) {
-                return appSys.lookup_app(id);
-            }).filter(function (app) {
-                return app != null;
-            });
+        let apps = ids.map(id => appSys.lookup_app(id))
+                      .filter(app => app != null);
         this._favorites = {};
         for (let i = 0; i < apps.length; i++) {
             let app = apps[i];
@@ -91,29 +88,29 @@ var AppFavorites = new Lang.Class({
         }
     },
 
-    _getIds: function() {
+    _getIds() {
         let ret = [];
         for (let id in this._favorites)
             ret.push(id);
         return ret;
     },
 
-    getFavoriteMap: function() {
+    getFavoriteMap() {
         return this._favorites;
     },
 
-    getFavorites: function() {
+    getFavorites() {
         let ret = [];
         for (let id in this._favorites)
             ret.push(this._favorites[id]);
         return ret;
     },
 
-    isFavorite: function(appId) {
+    isFavorite(appId) {
         return appId in this._favorites;
     },
 
-    _addFavorite: function(appId, pos) {
+    _addFavorite(appId, pos) {
         if (appId in this._favorites)
             return false;
 
@@ -132,7 +129,7 @@ var AppFavorites = new Lang.Class({
         return true;
     },
 
-    addFavoriteAtPos: function(appId, pos) {
+    addFavoriteAtPos(appId, pos) {
         if (!this._addFavorite(appId, pos))
             return;
 
@@ -140,31 +137,31 @@ var AppFavorites = new Lang.Class({
 
         Main.overview.setMessage(_("%s has been added to your favorites.").format(app.get_name()),
                                  { forFeedback: true,
-                                   undoCallback: Lang.bind(this, function () {
-                                                               this._removeFavorite(appId);
-                                                           })
+                                   undoCallback: () => {
+                                       this._removeFavorite(appId);
+                                   }
                                  });
     },
 
-    addFavorite: function(appId) {
+    addFavorite(appId) {
         this.addFavoriteAtPos(appId, -1);
     },
 
-    moveFavoriteToPos: function(appId, pos) {
+    moveFavoriteToPos(appId, pos) {
         this._removeFavorite(appId);
         this._addFavorite(appId, pos);
     },
 
-    _removeFavorite: function(appId) {
+    _removeFavorite(appId) {
         if (!appId in this._favorites)
             return false;
 
-        let ids = this._getIds().filter(function (id) { return id != appId; });
+        let ids = this._getIds().filter(id => id != appId);
         global.settings.set_strv(this.FAVORITE_APPS_KEY, ids);
         return true;
     },
 
-    removeFavorite: function(appId) {
+    removeFavorite(appId) {
         let ids = this._getIds();
         let pos = ids.indexOf(appId);
 
@@ -174,9 +171,9 @@ var AppFavorites = new Lang.Class({
 
         Main.overview.setMessage(_("%s has been removed from your favorites.").format(app.get_name()),
                                  { forFeedback: true,
-                                   undoCallback: Lang.bind(this, function () {
-                                                               this._addFavorite(appId, pos);
-                                                           })
+                                   undoCallback: () => {
+                                       this._addFavorite(appId, pos);
+                                   }
                                  });
     }
 });

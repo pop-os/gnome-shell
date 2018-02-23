@@ -19,32 +19,32 @@ const PopupMenu = imports.ui.popupMenu;
 var AltSwitcher = new Lang.Class({
     Name: 'AltSwitcher',
 
-    _init: function(standard, alternate) {
+    _init(standard, alternate) {
         this._standard = standard;
-        this._standard.connect('notify::visible', Lang.bind(this, this._sync));
+        this._standard.connect('notify::visible', this._sync.bind(this));
         if (this._standard instanceof St.Button)
             this._standard.connect('clicked',
                                    () => { this._clickAction.release(); });
 
         this._alternate = alternate;
-        this._alternate.connect('notify::visible', Lang.bind(this, this._sync));
+        this._alternate.connect('notify::visible', this._sync.bind(this));
         if (this._alternate instanceof St.Button)
             this._alternate.connect('clicked',
                                     () => { this._clickAction.release(); });
 
-        this._capturedEventId = global.stage.connect('captured-event', Lang.bind(this, this._onCapturedEvent));
+        this._capturedEventId = global.stage.connect('captured-event', this._onCapturedEvent.bind(this));
 
         this._flipped = false;
 
         this._clickAction = new Clutter.ClickAction();
-        this._clickAction.connect('long-press', Lang.bind(this, this._onLongPress));
+        this._clickAction.connect('long-press', this._onLongPress.bind(this));
 
         this.actor = new St.Bin();
-        this.actor.connect('destroy', Lang.bind(this, this._onDestroy));
+        this.actor.connect('destroy', this._onDestroy.bind(this));
         this.actor.connect('notify::mapped', () => { this._flipped = false; });
     },
 
-    _sync: function() {
+    _sync() {
         let childToShow = null;
 
         if (this._standard.visible && this._alternate.visible) {
@@ -82,14 +82,14 @@ var AltSwitcher = new Lang.Class({
         this.actor.visible = (childToShow != null);
     },
 
-    _onDestroy: function() {
+    _onDestroy() {
         if (this._capturedEventId > 0) {
             global.stage.disconnect(this._capturedEventId);
             this._capturedEventId = 0;
         }
     },
 
-    _onCapturedEvent: function(actor, event) {
+    _onCapturedEvent(actor, event) {
         let type = event.type();
         if (type == Clutter.EventType.KEY_PRESS || type == Clutter.EventType.KEY_RELEASE) {
             let key = event.get_key_symbol();
@@ -100,7 +100,7 @@ var AltSwitcher = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _onLongPress: function(action, actor, state) {
+    _onLongPress(action, actor, state) {
         if (state == Clutter.LongPressState.QUERY ||
             state == Clutter.LongPressState.CANCEL)
             return true;
@@ -115,7 +115,7 @@ var Indicator = new Lang.Class({
     Name: 'SystemIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         let userManager = AccountsService.UserManager.get_default();
@@ -133,20 +133,19 @@ var Indicator = new Lang.Class({
         // settings (disable-log-out) and Polkit policy - the latter doesn't
         // notify, so we update the menu item each time the menu opens or
         // the lockdown setting changes, which should be close enough.
-        this.menu.connect('open-state-changed', Lang.bind(this,
-            function(menu, open) {
-                if (!open)
-                    return;
+        this.menu.connect('open-state-changed', (menu, open) => {
+            if (!open)
+                return;
 
-                this._systemActions.forceUpdate();
-            }));
+            this._systemActions.forceUpdate();
+        });
         this._updateMultiUser();
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
     },
 
-    _updateActionsVisibility: function() {
+    _updateActionsVisibility() {
         let visible = (this._settingsAction.visible ||
                        this._orientationLockAction.visible ||
                        this._lockScreenAction.visible ||
@@ -155,18 +154,18 @@ var Indicator = new Lang.Class({
         this._actionsItem.actor.visible = visible;
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         this._settingsAction.visible = Main.sessionMode.allowSettings;
     },
 
-    _updateMultiUser: function() {
+    _updateMultiUser() {
         let hasSwitchUser = this._loginScreenItem.actor.visible;
         let hasLogout = this._logoutItem.actor.visible;
 
         this._switchUserSubMenu.actor.visible = hasSwitchUser || hasLogout;
     },
 
-    _updateSwitchUserSubMenu: function() {
+    _updateSwitchUserSubMenu() {
         this._switchUserSubMenu.label.text = this._user.get_real_name();
         let clutterText = this._switchUserSubMenu.label.clutter_text;
 
@@ -199,7 +198,7 @@ var Indicator = new Lang.Class({
         }
     },
 
-    _createActionButton: function(iconName, accessibleName) {
+    _createActionButton(iconName, accessibleName) {
         let icon = new St.Button({ reactive: true,
                                    can_focus: true,
                                    track_hover: true,
@@ -209,7 +208,7 @@ var Indicator = new Lang.Class({
         return icon;
     },
 
-    _createSubMenu: function() {
+    _createSubMenu() {
         let bindFlags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE;
         let item;
 
@@ -220,10 +219,10 @@ var Indicator = new Lang.Class({
         // the popup menu, and we can't easily connect on allocation-changed
         // or notify::width without creating layout cycles, simply update the
         // label whenever the menu is opened.
-        this.menu.connect('open-state-changed', Lang.bind(this, function(menu, isOpen) {
+        this.menu.connect('open-state-changed', (menu, isOpen) => {
             if (isOpen)
                 this._updateSwitchUserSubMenu();
-        }));
+        });
 
         item = new PopupMenu.PopupMenuItem(_("Switch User"));
         item.connect('activate', () => {
@@ -252,8 +251,8 @@ var Indicator = new Lang.Class({
         this._switchUserSubMenu.menu.addSettingsAction(_("Account Settings"),
                                                        'gnome-user-accounts-panel.desktop');
 
-        this._user.connect('notify::is-loaded', Lang.bind(this, this._updateSwitchUserSubMenu));
-        this._user.connect('changed', Lang.bind(this, this._updateSwitchUserSubMenu));
+        this._user.connect('notify::is-loaded', this._updateSwitchUserSubMenu.bind(this));
+        this._user.connect('changed', this._updateSwitchUserSubMenu.bind(this));
 
         this.menu.addMenuItem(this._switchUserSubMenu);
 
@@ -329,7 +328,7 @@ var Indicator = new Lang.Class({
                                         () => { this._updateActionsVisibility(); });
     },
 
-    _onSettingsClicked: function() {
+    _onSettingsClicked() {
         this.menu.itemActivated();
         let app = Shell.AppSystem.get_default().lookup_app('gnome-control-center.desktop');
         Main.overview.hide();
