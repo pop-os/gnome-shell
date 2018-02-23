@@ -34,36 +34,35 @@ var RunDialog = new Lang.Class({
     Name: 'RunDialog',
     Extends: ModalDialog.ModalDialog,
 
-    _init : function() {
+    _init() {
         this.parent({ styleClass: 'run-dialog',
                       destroyOnClose: false });
 
         this._lockdownSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
         this._terminalSettings = new Gio.Settings({ schema_id: TERMINAL_SCHEMA });
-        global.settings.connect('changed::development-tools', Lang.bind(this, function () {
+        global.settings.connect('changed::development-tools', () => {
             this._enableInternalCommands = global.settings.get_boolean('development-tools');
-        }));
+        });
         this._enableInternalCommands = global.settings.get_boolean('development-tools');
 
-        this._internalCommands = { 'lg':
-                                   Lang.bind(this, function() {
+        this._internalCommands = { 'lg': () => {
                                        Main.createLookingGlass().open();
-                                   }),
+                                   },
 
-                                   'r': Lang.bind(this, this._restart),
+                                   'r': this._restart.bind(this),
 
                                    // Developer brain backwards compatibility
-                                   'restart': Lang.bind(this, this._restart),
+                                   'restart': this._restart.bind(this),
 
-                                   'debugexit': Lang.bind(this, function() {
+                                   'debugexit': () => {
                                        Meta.quit(Meta.ExitCode.ERROR);
-                                   }),
+                                   },
 
                                    // rt is short for "reload theme"
-                                   'rt': Lang.bind(this, function() {
+                                   'rt': () => {
                                        Main.reloadThemeResource();
                                        Main.loadTheme();
-                                   })
+                                   }
                                  };
 
 
@@ -107,7 +106,7 @@ var RunDialog = new Lang.Class({
 
         this._errorBox.hide();
 
-        this.setButtons([{ action: Lang.bind(this, this.close),
+        this.setButtons([{ action: this.close.bind(this),
                            label: _("Close"),
                            key: Clutter.Escape }]);
 
@@ -115,7 +114,7 @@ var RunDialog = new Lang.Class({
 
         this._history = new History.HistoryManager({ gsettingsKey: HISTORY_KEY,
                                                      entry: this._entryText });
-        this._entryText.connect('key-press-event', Lang.bind(this, function(o, e) {
+        this._entryText.connect('key-press-event', (o, e) => {
             let symbol = e.get_key_symbol();
             if (symbol == Clutter.Return || symbol == Clutter.KP_Enter) {
                 this.popModal();
@@ -142,10 +141,10 @@ var RunDialog = new Lang.Class({
                 return Clutter.EVENT_STOP;
             }
             return Clutter.EVENT_PROPAGATE;
-        }));
+        });
     },
 
-    _getCommandCompletion: function(text) {
+    _getCommandCompletion(text) {
         function _getCommon(s1, s2) {
             if (s1 == null)
                 return s2;
@@ -162,7 +161,7 @@ var RunDialog = new Lang.Class({
 
         let paths = GLib.getenv('PATH').split(':');
         paths.push(GLib.get_home_dir());
-        let someResults = paths.map(function(path) {
+        let someResults = paths.map(path => {
             let results = [];
             try {
                 let file = Gio.File.new_for_path(path);
@@ -180,9 +179,7 @@ var RunDialog = new Lang.Class({
                 return results;
             }
         });
-        let results = someResults.reduce(function(a, b) {
-            return a.concat(b);
-        }, []);
+        let results = someResults.reduce((a, b) => a.concat(b), []);
 
         if (!results.length)
             return null;
@@ -191,7 +188,7 @@ var RunDialog = new Lang.Class({
         return common.substr(text.length);
     },
 
-    _getCompletion : function(text) {
+    _getCompletion(text) {
         if (text.indexOf('/') != -1) {
             return this._pathCompleter.get_completion_suffix(text);
         } else {
@@ -199,7 +196,7 @@ var RunDialog = new Lang.Class({
         }
     },
 
-    _run : function(input, inTerminal) {
+    _run(input, inTerminal) {
         let command = input;
 
         this._history.addItem(input);
@@ -250,7 +247,7 @@ var RunDialog = new Lang.Class({
         }
     },
 
-    _showError : function(message) {
+    _showError(message) {
         this._commandError = true;
 
         this._errorMessage.set_text(message);
@@ -263,16 +260,15 @@ var RunDialog = new Lang.Class({
                              { height: parentActor.height + errorBoxNaturalHeight,
                                time: DIALOG_GROW_TIME,
                                transition: 'easeOutQuad',
-                               onComplete: Lang.bind(this,
-                                                     function() {
-                                                         parentActor.set_height(-1);
-                                                         this._errorBox.show();
-                                                     })
+                               onComplete: () => {
+                                   parentActor.set_height(-1);
+                                   this._errorBox.show();
+                               }
                              });
         }
     },
 
-    _restart: function() {
+    _restart() {
         if (Meta.is_wayland_compositor()) {
             this._showError(_("Restart is not available on Wayland"));
             return;
@@ -282,7 +278,7 @@ var RunDialog = new Lang.Class({
         Meta.restart(_("Restarting…"));
     },
 
-    open: function() {
+    open() {
         this._history.lastItem();
         this._errorBox.hide();
         this._entryText.set_text('');

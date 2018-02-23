@@ -34,16 +34,16 @@ function stripPrefix(string, prefix) {
 
 var Application = new Lang.Class({
     Name: 'Application',
-    _init: function() {
+    _init() {
         GLib.set_prgname('gnome-shell-extension-prefs');
         this.application = new Gtk.Application({
             application_id: 'org.gnome.shell.ExtensionPrefs',
             flags: Gio.ApplicationFlags.HANDLES_COMMAND_LINE
         });
 
-        this.application.connect('activate', Lang.bind(this, this._onActivate));
-        this.application.connect('command-line', Lang.bind(this, this._onCommandLine));
-        this.application.connect('startup', Lang.bind(this, this._onStartup));
+        this.application.connect('activate', this._onActivate.bind(this));
+        this.application.connect('command-line', this._onCommandLine.bind(this));
+        this.application.connect('startup', this._onStartup.bind(this));
 
         this._extensionPrefsModules = {};
 
@@ -52,7 +52,7 @@ var Application = new Lang.Class({
         this._skipMainWindow = false;
     },
 
-    _extensionAvailable: function(uuid) {
+    _extensionAvailable(uuid) {
         let extension = ExtensionUtils.extensions[uuid];
 
         if (!extension)
@@ -64,7 +64,7 @@ var Application = new Lang.Class({
         return true;
     },
 
-    _getExtensionPrefsModule: function(extension) {
+    _getExtensionPrefsModule(extension) {
         let uuid = extension.metadata.uuid;
 
         if (this._extensionPrefsModules.hasOwnProperty(uuid))
@@ -79,7 +79,7 @@ var Application = new Lang.Class({
         return prefsModule;
     },
 
-    _selectExtension: function(uuid) {
+    _selectExtension(uuid) {
         if (!this._extensionAvailable(uuid))
             return;
 
@@ -114,7 +114,7 @@ var Application = new Lang.Class({
         dialog.show();
     },
 
-    _buildErrorUI: function(extension, exc) {
+    _buildErrorUI(extension, exc) {
         let box = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
         let label = new Gtk.Label({
             label: _("There was an error loading the preferences dialog for %s:").format(extension.metadata.name)
@@ -127,9 +127,7 @@ var Application = new Lang.Class({
         errortext += 'Stack trace:\n';
 
         // Indent stack trace.
-        errortext += exc.stack.split('\n').map(function(line) {
-            return '  ' + line;
-        }).join('\n');
+        errortext += exc.stack.split('\n').map(line => '  ' + line).join('\n');
 
         let scroll = new Gtk.ScrolledWindow({ vexpand: true });
         let buffer = new Gtk.TextBuffer({ text: errortext });
@@ -142,7 +140,7 @@ var Application = new Lang.Class({
         return box;
     },
 
-    _buildUI: function(app) {
+    _buildUI(app) {
         this._window = new Gtk.ApplicationWindow({ application: app,
                                                    window_position: Gtk.WindowPosition.CENTER });
 
@@ -164,28 +162,28 @@ var Application = new Lang.Class({
         this._window.add(scroll);
 
         this._extensionSelector = new Gtk.ListBox({ selection_mode: Gtk.SelectionMode.NONE });
-        this._extensionSelector.set_sort_func(Lang.bind(this, this._sortList));
-        this._extensionSelector.set_header_func(Lang.bind(this, this._updateHeader));
+        this._extensionSelector.set_sort_func(this._sortList.bind(this));
+        this._extensionSelector.set_header_func(this._updateHeader.bind(this));
 
         scroll.add(this._extensionSelector);
 
 
         this._shellProxy = new GnomeShellProxy(Gio.DBus.session, 'org.gnome.Shell', '/org/gnome/Shell');
-        this._shellProxy.connectSignal('ExtensionStatusChanged', Lang.bind(this, function(proxy, senderName, [uuid, state, error]) {
+        this._shellProxy.connectSignal('ExtensionStatusChanged', (proxy, senderName, [uuid, state, error]) => {
             if (ExtensionUtils.extensions[uuid] !== undefined)
                 this._scanExtensions();
-        }));
+        });
 
         this._window.show_all();
     },
 
-    _sortList: function(row1, row2) {
+    _sortList(row1, row2) {
         let name1 = ExtensionUtils.extensions[row1.uuid].metadata.name;
         let name2 = ExtensionUtils.extensions[row2.uuid].metadata.name;
         return name1.localeCompare(name2);
     },
 
-    _updateHeader: function(row, before) {
+    _updateHeader(row, before) {
         if (!before || row.get_header())
             return;
 
@@ -193,27 +191,26 @@ var Application = new Lang.Class({
         row.set_header(sep);
     },
 
-    _scanExtensions: function() {
+    _scanExtensions() {
         let finder = new ExtensionUtils.ExtensionFinder();
-        finder.connect('extension-found', Lang.bind(this, this._extensionFound));
+        finder.connect('extension-found', this._extensionFound.bind(this));
         finder.scanExtensions();
         this._extensionsLoaded();
     },
 
-    _extensionFound: function(finder, extension) {
+    _extensionFound(finder, extension) {
         let row = new ExtensionRow(extension.uuid);
 
         row.prefsButton.visible = this._extensionAvailable(row.uuid);
-        row.prefsButton.connect('clicked', Lang.bind(this,
-            function() {
-                this._selectExtension(row.uuid);
-            }));
+        row.prefsButton.connect('clicked', () => {
+            this._selectExtension(row.uuid);
+        });
 
         row.show_all();
         this._extensionSelector.add(row);
     },
 
-    _extensionsLoaded: function() {
+    _extensionsLoaded() {
         if (this._startupUuid && this._extensionAvailable(this._startupUuid))
             this._selectExtension(this._startupUuid);
         this._startupUuid = null;
@@ -221,16 +218,16 @@ var Application = new Lang.Class({
         this._loaded = true;
     },
 
-    _onActivate: function() {
+    _onActivate() {
         this._window.present();
     },
 
-    _onStartup: function(app) {
+    _onStartup(app) {
         this._buildUI(app);
         this._scanExtensions();
     },
 
-    _onCommandLine: function(app, commandLine) {
+    _onCommandLine(app, commandLine) {
         app.activate();
         let args = commandLine.get_arguments();
 
@@ -257,7 +254,7 @@ var DescriptionLabel = new Lang.Class({
     Name: 'DescriptionLabel',
     Extends: Gtk.Label,
 
-    vfunc_get_preferred_height_for_width: function(width) {
+    vfunc_get_preferred_height_for_width(width) {
         // Hack: Request the maximum height allowed by the line limit
         if (this.lines > 0)
             return this.parent(0);
@@ -269,29 +266,28 @@ var ExtensionRow = new Lang.Class({
     Name: 'ExtensionRow',
     Extends: Gtk.ListBoxRow,
 
-    _init: function(uuid) {
+    _init(uuid) {
         this.parent();
 
         this.uuid = uuid;
 
         this._settings = new Gio.Settings({ schema_id: 'org.gnome.shell' });
-        this._settings.connect('changed::enabled-extensions', Lang.bind(this,
-            function() {
-                this._switch.state = this._isEnabled();
-            }));
+        this._settings.connect('changed::enabled-extensions', () => {
+            this._switch.state = this._isEnabled();
+        });
         this._settings.connect('changed::disable-extension-version-validation',
-            Lang.bind(this, function() {
+            () => {
                 this._switch.sensitive = this._canEnable();
-            }));
+            });
         this._settings.connect('changed::disable-user-extensions',
-            Lang.bind(this, function() {
+            () => {
                 this._switch.sensitive = this._canEnable();
-            }));
+            });
 
         this._buildUI();
     },
 
-    _buildUI: function() {
+    _buildUI() {
         let extension = ExtensionUtils.extensions[this.uuid];
 
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
@@ -328,18 +324,17 @@ var ExtensionRow = new Lang.Class({
         this._switch = new Gtk.Switch({ valign: Gtk.Align.CENTER,
                                         sensitive: this._canEnable(),
                                         state: this._isEnabled() });
-        this._switch.connect('notify::active', Lang.bind(this,
-            function() {
-                if (this._switch.active)
-                    this._enable();
-                else
-                    this._disable();
-            }));
-        this._switch.connect('state-set', function() { return true; });
+        this._switch.connect('notify::active', () => {
+            if (this._switch.active)
+                this._enable();
+            else
+                this._disable();
+        });
+        this._switch.connect('state-set', () => true);
         hbox.add(this._switch);
     },
 
-    _canEnable: function() {
+    _canEnable() {
         let extension = ExtensionUtils.extensions[this.uuid];
         let checkVersion = !this._settings.get_boolean('disable-extension-version-validation');
 
@@ -347,12 +342,12 @@ var ExtensionRow = new Lang.Class({
                !(checkVersion && ExtensionUtils.isOutOfDate(extension));
     },
 
-    _isEnabled: function() {
+    _isEnabled() {
         let extensions = this._settings.get_strv('enabled-extensions');
         return extensions.indexOf(this.uuid) != -1;
     },
 
-    _enable: function() {
+    _enable() {
         let extensions = this._settings.get_strv('enabled-extensions');
         if (extensions.indexOf(this.uuid) != -1)
             return;
@@ -361,7 +356,7 @@ var ExtensionRow = new Lang.Class({
         this._settings.set_strv('enabled-extensions', extensions);
     },
 
-    _disable: function() {
+    _disable() {
         let extensions = this._settings.get_strv('enabled-extensions');
         let pos = extensions.indexOf(this.uuid);
         if (pos == -1)
@@ -378,11 +373,11 @@ function initEnvironment() {
     // Monkey-patch in a "global" object that fakes some Shell utilities
     // that ExtensionUtils depends on.
     window.global = {
-        log: function() {
+        log() {
             print([].join.call(arguments, ', '));
         },
 
-        logError: function(s) {
+        logError(s) {
             log('ERROR: ' + s);
         },
 

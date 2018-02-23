@@ -34,7 +34,7 @@ var SlideLayout = new Lang.Class({
     Name: 'SlideLayout',
     Extends: Clutter.FixedLayout,
 
-    _init: function(params) {
+    _init(params) {
         this._slideX = 1;
         this._translationX = undefined;
         this._direction = SlideDirection.LEFT;
@@ -42,7 +42,7 @@ var SlideLayout = new Lang.Class({
         this.parent(params);
     },
 
-    vfunc_get_preferred_width: function(container, forHeight) {
+    vfunc_get_preferred_width(container, forHeight) {
         let child = container.get_first_child();
 
         let [minWidth, natWidth] = child.get_preferred_width(forHeight);
@@ -53,7 +53,7 @@ var SlideLayout = new Lang.Class({
         return [minWidth, natWidth];
     },
 
-    vfunc_allocate: function(container, box, flags) {
+    vfunc_allocate(container, box, flags) {
         let child = container.get_first_child();
 
         let availWidth = Math.round(box.x2 - box.x1);
@@ -107,7 +107,7 @@ var SlideLayout = new Lang.Class({
 var SlidingControl = new Lang.Class({
     Name: 'SlidingControl',
 
-    _init: function(params) {
+    _init(params) {
         params = Params.parse(params, { slideDirection: SlideDirection.LEFT });
 
         this._visible = true;
@@ -119,34 +119,34 @@ var SlidingControl = new Lang.Class({
                                      style_class: 'overview-controls',
                                      clip_to_allocation: true });
 
-        Main.overview.connect('hiding', Lang.bind(this, this._onOverviewHiding));
+        Main.overview.connect('hiding', this._onOverviewHiding.bind(this));
 
-        Main.overview.connect('item-drag-begin', Lang.bind(this, this._onDragBegin));
-        Main.overview.connect('item-drag-end', Lang.bind(this, this._onDragEnd));
-        Main.overview.connect('item-drag-cancelled', Lang.bind(this, this._onDragEnd));
+        Main.overview.connect('item-drag-begin', this._onDragBegin.bind(this));
+        Main.overview.connect('item-drag-end', this._onDragEnd.bind(this));
+        Main.overview.connect('item-drag-cancelled', this._onDragEnd.bind(this));
 
-        Main.overview.connect('window-drag-begin', Lang.bind(this, this._onWindowDragBegin));
-        Main.overview.connect('window-drag-cancelled', Lang.bind(this, this._onWindowDragEnd));
-        Main.overview.connect('window-drag-end', Lang.bind(this, this._onWindowDragEnd));
+        Main.overview.connect('window-drag-begin', this._onWindowDragBegin.bind(this));
+        Main.overview.connect('window-drag-cancelled', this._onWindowDragEnd.bind(this));
+        Main.overview.connect('window-drag-end', this._onWindowDragEnd.bind(this));
     },
 
-    _getSlide: function() {
+    _getSlide() {
         throw new Error('getSlide() must be overridden');
     },
 
-    _updateSlide: function() {
+    _updateSlide() {
         Tweener.addTween(this.layout, { slideX: this._getSlide(),
                                         time: SIDE_CONTROLS_ANIMATION_TIME,
                                         transition: 'easeOutQuad' });
     },
 
-    getVisibleWidth: function() {
+    getVisibleWidth() {
         let child = this.actor.get_first_child();
         let [, , natWidth, ] = child.get_preferred_size();
         return natWidth;
     },
 
-    _getTranslation: function() {
+    _getTranslation() {
         let child = this.actor.get_first_child();
         let direction = getRtlSlideDirection(this.layout.slideDirection, child);
         let visibleWidth = this.getVisibleWidth();
@@ -157,7 +157,7 @@ var SlidingControl = new Lang.Class({
             return visibleWidth;
     },
 
-    _updateTranslation: function() {
+    _updateTranslation() {
         let translationStart = 0;
         let translationEnd = 0;
         let translation = this._getTranslation();
@@ -178,57 +178,57 @@ var SlidingControl = new Lang.Class({
                                         transition: 'easeOutQuad' });
     },
 
-    _onOverviewHiding: function() {
+    _onOverviewHiding() {
         // We need to explicitly slideOut since showing pages
         // doesn't imply sliding out, instead, hiding the overview does.
         this.slideOut();
     },
 
-    _onWindowDragBegin: function() {
+    _onWindowDragBegin() {
         this._onDragBegin();
     },
 
-    _onWindowDragEnd: function() {
+    _onWindowDragEnd() {
         this._onDragEnd();
     },
 
-    _onDragBegin: function() {
+    _onDragBegin() {
         this._inDrag = true;
         this._updateTranslation();
         this._updateSlide();
     },
 
-    _onDragEnd: function() {
+    _onDragEnd() {
         this._inDrag = false;
         this._updateSlide();
     },
 
-    fadeIn: function() {
+    fadeIn() {
         Tweener.addTween(this.actor, { opacity: 255,
                                        time: SIDE_CONTROLS_ANIMATION_TIME / 2,
                                        transition: 'easeInQuad'
                                      });
     },
 
-    fadeHalf: function() {
+    fadeHalf() {
         Tweener.addTween(this.actor, { opacity: 128,
                                        time: SIDE_CONTROLS_ANIMATION_TIME / 2,
                                        transition: 'easeOutQuad'
                                      });
     },
 
-    slideIn: function() {
+    slideIn() {
         this._visible = true;
         // we will update slideX and the translation from pageEmpty
     },
 
-    slideOut: function() {
+    slideOut() {
         this._visible = false;
         this._updateTranslation();
         // we will update slideX from pageEmpty
     },
 
-    pageEmpty: function() {
+    pageEmpty() {
         // When pageEmpty is received, there's no visible view in the
         // selector; this means we can now safely set the full slide for
         // the next page, since slideIn or slideOut might have been called,
@@ -242,7 +242,7 @@ var ThumbnailsSlider = new Lang.Class({
     Name: 'ThumbnailsSlider',
     Extends: SlidingControl,
 
-    _init: function(thumbnailsBox) {
+    _init(thumbnailsBox) {
         this.parent({ slideDirection: SlideDirection.RIGHT });
 
         this._thumbnailsBox = thumbnailsBox;
@@ -252,12 +252,12 @@ var ThumbnailsSlider = new Lang.Class({
         this.actor.track_hover = true;
         this.actor.add_actor(this._thumbnailsBox.actor);
 
-        Main.layoutManager.connect('monitors-changed', Lang.bind(this, this._updateSlide));
-        this.actor.connect('notify::hover', Lang.bind(this, this._updateSlide));
+        Main.layoutManager.connect('monitors-changed', this._updateSlide.bind(this));
+        this.actor.connect('notify::hover', this._updateSlide.bind(this));
         this._thumbnailsBox.actor.bind_property('visible', this.actor, 'visible', GObject.BindingFlags.SYNC_CREATE);
     },
 
-    _getAlwaysZoomOut: function() {
+    _getAlwaysZoomOut() {
         // Always show the pager on hover or during a drag
         let alwaysZoomOut = this.actor.hover || this._inDrag;
 
@@ -279,12 +279,12 @@ var ThumbnailsSlider = new Lang.Class({
         return alwaysZoomOut;
     },
 
-    getNonExpandedWidth: function() {
+    getNonExpandedWidth() {
         let child = this.actor.get_first_child();
         return child.get_theme_node().get_length('visible-width');
     },
 
-    _getSlide: function() {
+    _getSlide() {
         if (!this._visible)
             return 0;
 
@@ -299,7 +299,7 @@ var ThumbnailsSlider = new Lang.Class({
         return this.getNonExpandedWidth() / expandedWidth;
     },
 
-    getVisibleWidth: function() {
+    getVisibleWidth() {
         let alwaysZoomOut = this._getAlwaysZoomOut();
         if (alwaysZoomOut)
             return this.parent();
@@ -312,7 +312,7 @@ var DashSlider = new Lang.Class({
     Name: 'DashSlider',
     Extends: SlidingControl,
 
-    _init: function(dash) {
+    _init(dash) {
         this.parent({ slideDirection: SlideDirection.LEFT });
 
         this._dash = dash;
@@ -328,21 +328,21 @@ var DashSlider = new Lang.Class({
 
         this.actor.add_actor(this._dash.actor);
 
-        this._dash.connect('icon-size-changed', Lang.bind(this, this._updateSlide));
+        this._dash.connect('icon-size-changed', this._updateSlide.bind(this));
     },
 
-    _getSlide: function() {
+    _getSlide() {
         if (this._visible || this._inDrag)
             return 1;
         else
             return 0;
     },
 
-    _onWindowDragBegin: function() {
+    _onWindowDragBegin() {
         this.fadeHalf();
     },
 
-    _onWindowDragEnd: function() {
+    _onWindowDragEnd() {
         this.fadeIn();
     }
 });
@@ -351,13 +351,13 @@ var DashSpacer = new Lang.Class({
     Name: 'DashSpacer',
     Extends: St.Widget,
 
-    _init: function(params) {
+    _init(params) {
         this.parent(params);
 
         this._bindConstraint = null;
     },
 
-    setDashActor: function(dashActor) {
+    setDashActor(dashActor) {
         if (this._bindConstraint) {
             this.remove_constraint(this._bindConstraint);
             this._bindConstraint = null;
@@ -370,14 +370,14 @@ var DashSpacer = new Lang.Class({
         }
     },
 
-    vfunc_get_preferred_width: function(forHeight) {
+    vfunc_get_preferred_width(forHeight) {
         let box = this.get_allocation_box();
         let minWidth = this.parent(forHeight)[0];
         let natWidth = box.x2 - box.x1;
         return [minWidth, natWidth];
     },
 
-    vfunc_get_preferred_height: function(forWidth) {
+    vfunc_get_preferred_height(forWidth) {
         let box = this.get_allocation_box();
         let minHeight = this.parent(forWidth)[0];
         let natHeight = box.y2 - box.y1;
@@ -390,7 +390,7 @@ var ControlsLayout = new Lang.Class({
     Extends: Clutter.BinLayout,
     Signals: { 'allocation-changed': { flags: GObject.SignalFlags.RUN_LAST } },
 
-    vfunc_allocate: function(container, box, flags) {
+    vfunc_allocate(container, box, flags) {
         this.parent(container, box, flags);
         this.emit('allocation-changed');
     }
@@ -399,7 +399,7 @@ var ControlsLayout = new Lang.Class({
 var ControlsManager = new Lang.Class({
     Name: 'ControlsManager',
 
-    _init: function(searchEntry) {
+    _init(searchEntry) {
         this.dash = new Dash.Dash();
         this._dashSlider = new DashSlider(this.dash);
         this._dashSpacer = new DashSpacer();
@@ -410,8 +410,8 @@ var ControlsManager = new Lang.Class({
 
         this.viewSelector = new ViewSelector.ViewSelector(searchEntry,
                                                           this.dash.showAppsButton);
-        this.viewSelector.connect('page-changed', Lang.bind(this, this._setVisibility));
-        this.viewSelector.connect('page-empty', Lang.bind(this, this._onPageEmpty));
+        this.viewSelector.connect('page-changed', this._setVisibility.bind(this));
+        this.viewSelector.connect('page-empty', this._onPageEmpty.bind(this));
 
         let layout = new ControlsLayout();
         this.actor = new St.Widget({ layout_manager: layout,
@@ -428,26 +428,23 @@ var ControlsManager = new Lang.Class({
                                                    expand: true });
         this._group.add_actor(this._thumbnailsSlider.actor);
 
-        layout.connect('allocation-changed', Lang.bind(this, this._updateWorkspacesGeometry));
+        layout.connect('allocation-changed', this._updateWorkspacesGeometry.bind(this));
 
-        Main.overview.connect('showing', Lang.bind(this, this._updateSpacerVisibility));
-        Main.overview.connect('item-drag-begin', Lang.bind(this,
-            function() {
-                let activePage = this.viewSelector.getActivePage();
-                if (activePage != ViewSelector.ViewPage.WINDOWS)
-                    this.viewSelector.fadeHalf();
-            }));
-        Main.overview.connect('item-drag-end', Lang.bind(this,
-            function() {
-                this.viewSelector.fadeIn();
-            }));
-        Main.overview.connect('item-drag-cancelled', Lang.bind(this,
-            function() {
-                this.viewSelector.fadeIn();
-            }));
+        Main.overview.connect('showing', this._updateSpacerVisibility.bind(this));
+        Main.overview.connect('item-drag-begin', () => {
+            let activePage = this.viewSelector.getActivePage();
+            if (activePage != ViewSelector.ViewPage.WINDOWS)
+                this.viewSelector.fadeHalf();
+        });
+        Main.overview.connect('item-drag-end', () => {
+            this.viewSelector.fadeIn();
+        });
+        Main.overview.connect('item-drag-cancelled', () => {
+            this.viewSelector.fadeIn();
+        });
     },
 
-    _updateWorkspacesGeometry: function() {
+    _updateWorkspacesGeometry() {
         let [x, y] = this.actor.get_transformed_position();
         let [width, height] = this.actor.get_transformed_size();
         let geometry = { x: x, y: y, width: width, height: height };
@@ -467,7 +464,7 @@ var ControlsManager = new Lang.Class({
         this.viewSelector.setWorkspacesFullGeometry(geometry);
     },
 
-    _setVisibility: function() {
+    _setVisibility() {
         // Ignore the case when we're leaving the overview, since
         // actors will be made visible again when entering the overview
         // next time, and animating them while doing so is just
@@ -492,7 +489,7 @@ var ControlsManager = new Lang.Class({
             this._thumbnailsSlider.slideOut();
     },
 
-    _updateSpacerVisibility: function() {
+    _updateSpacerVisibility() {
         if (Main.overview.animationInProgress && !Main.overview.visibleTarget)
             return;
 
@@ -500,7 +497,7 @@ var ControlsManager = new Lang.Class({
         this._dashSpacer.visible = (activePage == ViewSelector.ViewPage.WINDOWS);
     },
 
-    _onPageEmpty: function() {
+    _onPageEmpty() {
         this._dashSlider.pageEmpty();
         this._thumbnailsSlider.pageEmpty();
 

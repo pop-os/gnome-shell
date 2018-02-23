@@ -51,7 +51,7 @@ var MediaMessage = new Lang.Class({
     Name: 'MediaMessage',
     Extends: MessageList.Message,
 
-    _init: function(player) {
+    _init(player) {
         this._player = player;
 
         this.parent('', '');
@@ -60,35 +60,35 @@ var MediaMessage = new Lang.Class({
         this.setIcon(this._icon);
 
         this._prevButton = this.addMediaControl('media-skip-backward-symbolic',
-            Lang.bind(this, function() {
+            () => {
                 this._player.previous();
-            }));
+            });
 
         this._playPauseButton = this.addMediaControl(null,
-            Lang.bind(this, function() {
+            () => {
                 this._player.playPause();
-            }));
+            });
 
         this._nextButton = this.addMediaControl('media-skip-forward-symbolic',
-            Lang.bind(this, function() {
+            () => {
                 this._player.next();
-            }));
+            });
 
-        this._player.connect('changed', Lang.bind(this, this._update));
-        this._player.connect('closed', Lang.bind(this, this.close));
+        this._player.connect('changed', this._update.bind(this));
+        this._player.connect('closed', this.close.bind(this));
         this._update();
     },
 
-    _onClicked: function() {
+    _onClicked() {
         this._player.raise();
         Main.panel.closeCalendar();
     },
 
-    _updateNavButton: function(button, sensitive) {
+    _updateNavButton(button, sensitive) {
         button.reactive = sensitive;
     },
 
-    _update: function() {
+    _update() {
         this.setTitle(this._player.trackArtists.join(', '));
         this.setBody(this._player.trackTitle);
 
@@ -114,13 +114,13 @@ var MediaMessage = new Lang.Class({
 var MprisPlayer = new Lang.Class({
     Name: 'MprisPlayer',
 
-    _init: function(busName) {
+    _init(busName) {
         this._mprisProxy = new MprisProxy(Gio.DBus.session, busName,
                                           '/org/mpris/MediaPlayer2',
-                                          Lang.bind(this, this._onMprisProxyReady));
+                                          this._onMprisProxyReady.bind(this));
         this._playerProxy = new MprisPlayerProxy(Gio.DBus.session, busName,
                                                  '/org/mpris/MediaPlayer2',
-                                                 Lang.bind(this, this._onPlayerProxyReady));
+                                                 this._onPlayerProxyReady.bind(this));
 
         this._visible = false;
         this._trackArtists = [];
@@ -144,7 +144,7 @@ var MprisPlayer = new Lang.Class({
         return this._trackCoverUrl;
     },
 
-    playPause: function() {
+    playPause() {
         this._playerProxy.PlayPauseRemote();
     },
 
@@ -152,7 +152,7 @@ var MprisPlayer = new Lang.Class({
         return this._playerProxy.CanGoNext;
     },
 
-    next: function() {
+    next() {
         this._playerProxy.NextRemote();
     },
 
@@ -160,11 +160,11 @@ var MprisPlayer = new Lang.Class({
         return this._playerProxy.CanGoPrevious;
     },
 
-    previous: function() {
+    previous() {
         this._playerProxy.PreviousRemote();
     },
 
-    raise: function() {
+    raise() {
         // The remote Raise() method may run into focus stealing prevention,
         // so prefer activating the app via .desktop file if possible
         let app = null;
@@ -179,7 +179,7 @@ var MprisPlayer = new Lang.Class({
             this._mprisProxy.RaiseRemote();
     },
 
-    _close: function() {
+    _close() {
         this._mprisProxy.disconnect(this._ownerNotifyId);
         this._mprisProxy = null;
 
@@ -189,21 +189,21 @@ var MprisPlayer = new Lang.Class({
         this.emit('closed');
     },
 
-    _onMprisProxyReady: function() {
+    _onMprisProxyReady() {
         this._ownerNotifyId = this._mprisProxy.connect('notify::g-name-owner',
-            Lang.bind(this, function() {
+            () => {
                 if (!this._mprisProxy.g_name_owner)
                     this._close();
-            }));
+            });
     },
 
-    _onPlayerProxyReady: function() {
+    _onPlayerProxyReady() {
         this._propsChangedId = this._playerProxy.connect('g-properties-changed',
-                                                         Lang.bind(this, this._updateState));
+                                                         this._updateState.bind(this));
         this._updateState();
     },
 
-    _updateState: function() {
+    _updateState() {
         let metadata = {};
         for (let prop in this._playerProxy.Metadata)
             metadata[prop] = this._playerProxy.Metadata[prop].deep_unpack();
@@ -230,7 +230,7 @@ var MediaSection = new Lang.Class({
     Name: 'MediaSection',
     Extends: MessageList.MessageListSection,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._players = new Map();
@@ -238,46 +238,44 @@ var MediaSection = new Lang.Class({
         this._proxy = new DBusProxy(Gio.DBus.session,
                                     'org.freedesktop.DBus',
                                     '/org/freedesktop/DBus',
-                                    Lang.bind(this, this._onProxyReady));
+                                    this._onProxyReady.bind(this));
     },
 
-    _shouldShow: function() {
+    _shouldShow() {
         return !this.empty && Calendar.isToday(this._date);
     },
 
-    _addPlayer: function(busName) {
+    _addPlayer(busName) {
         if (this._players.get(busName))
             return;
 
         let player = new MprisPlayer(busName);
-        player.connect('closed', Lang.bind(this,
-            function() {
+        player.connect('closed',
+            () => {
                 this._players.delete(busName);
-            }));
-        player.connect('show', Lang.bind(this,
-            function() {
+            });
+        player.connect('show',
+            () => {
                 let message = new MediaMessage(player);
                 this.addMessage(message, true);
-            }));
+            });
         this._players.set(busName, player);
     },
 
-    _onProxyReady: function() {
-        this._proxy.ListNamesRemote(Lang.bind(this,
-            function([names]) {
-                names.forEach(Lang.bind(this,
-                    function(name) {
-                        if (!name.startsWith(MPRIS_PLAYER_PREFIX))
-                            return;
+    _onProxyReady() {
+        this._proxy.ListNamesRemote(([names]) => {
+            names.forEach(name => {
+                if (!name.startsWith(MPRIS_PLAYER_PREFIX))
+                    return;
 
-                        this._addPlayer(name);
-                    }));
-            }));
+                this._addPlayer(name);
+            });
+        });
         this._proxy.connectSignal('NameOwnerChanged',
-                                  Lang.bind(this, this._onNameOwnerChanged));
+                                  this._onNameOwnerChanged.bind(this));
     },
 
-    _onNameOwnerChanged: function(proxy, sender, [name, oldOwner, newOwner]) {
+    _onNameOwnerChanged(proxy, sender, [name, oldOwner, newOwner]) {
         if (!name.startsWith(MPRIS_PLAYER_PREFIX))
             return;
 

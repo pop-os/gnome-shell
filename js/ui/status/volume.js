@@ -30,24 +30,24 @@ function getMixerControl() {
 var StreamSlider = new Lang.Class({
     Name: 'StreamSlider',
 
-    _init: function(control) {
+    _init(control) {
         this._control = control;
 
         this.item = new PopupMenu.PopupBaseMenuItem({ activate: false });
 
         this._slider = new Slider.Slider(0);
-        this._slider.connect('value-changed', Lang.bind(this, this._sliderChanged));
-        this._slider.connect('drag-end', Lang.bind(this, this._notifyVolumeChange));
+        this._slider.connect('value-changed', this._sliderChanged.bind(this));
+        this._slider.connect('drag-end', this._notifyVolumeChange.bind(this));
 
         this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
         this.item.actor.add(this._icon);
         this.item.actor.add(this._slider.actor, { expand: true });
-        this.item.actor.connect('button-press-event', Lang.bind(this, function(actor, event) {
+        this.item.actor.connect('button-press-event', (actor, event) => {
             return this._slider.startDragging(event);
-        }));
-        this.item.actor.connect('key-press-event', Lang.bind(this, function(actor, event) {
+        });
+        this.item.actor.connect('key-press-event', (actor, event) => {
             return this._slider.onKeyPressEvent(actor, event);
-        }));
+        });
 
         this._stream = null;
     },
@@ -73,37 +73,37 @@ var StreamSlider = new Lang.Class({
         this._updateVisibility();
     },
 
-    _disconnectStream: function(stream) {
+    _disconnectStream(stream) {
         stream.disconnect(this._mutedChangedId);
         this._mutedChangedId = 0;
         stream.disconnect(this._volumeChangedId);
         this._volumeChangedId = 0;
     },
 
-    _connectStream: function(stream) {
-        this._mutedChangedId = stream.connect('notify::is-muted', Lang.bind(this, this._updateVolume));
-        this._volumeChangedId = stream.connect('notify::volume', Lang.bind(this, this._updateVolume));
+    _connectStream(stream) {
+        this._mutedChangedId = stream.connect('notify::is-muted', this._updateVolume.bind(this));
+        this._volumeChangedId = stream.connect('notify::volume', this._updateVolume.bind(this));
     },
 
-    _shouldBeVisible: function() {
+    _shouldBeVisible() {
         return this._stream != null;
     },
 
-    _updateVisibility: function() {
+    _updateVisibility() {
         let visible = this._shouldBeVisible();
         this.item.actor.visible = visible;
     },
 
-    scroll: function(event) {
+    scroll(event) {
         return this._slider.scroll(event);
     },
 
-    setValue: function(value) {
+    setValue(value) {
         // piggy-back off of sliderChanged
         this._slider.setValue(value);
     },
 
-    _sliderChanged: function(slider, value, property) {
+    _sliderChanged(slider, value, property) {
         if (!this._stream)
             return;
 
@@ -121,7 +121,7 @@ var StreamSlider = new Lang.Class({
         this._stream.push_volume();
     },
 
-    _notifyVolumeChange: function() {
+    _notifyVolumeChange() {
         global.cancel_theme_sound(VOLUME_NOTIFY_ID);
         global.play_theme_sound(VOLUME_NOTIFY_ID,
                                 'audio-volume-change',
@@ -129,13 +129,13 @@ var StreamSlider = new Lang.Class({
                                 Clutter.get_current_event ());
     },
 
-    _updateVolume: function() {
+    _updateVolume() {
         let muted = this._stream.is_muted;
         this._slider.setValue(muted ? 0 : (this._stream.volume / this._control.get_vol_max_norm()));
         this.emit('stream-updated');
     },
 
-    getIcon: function() {
+    getIcon() {
         if (!this._stream)
             return null;
 
@@ -152,7 +152,7 @@ var StreamSlider = new Lang.Class({
         }
     },
 
-    getLevel: function() {
+    getLevel() {
         if (!this._stream)
             return null;
 
@@ -165,18 +165,18 @@ var OutputStreamSlider = new Lang.Class({
     Name: 'OutputStreamSlider',
     Extends: StreamSlider,
 
-    _init: function(control) {
+    _init(control) {
         this.parent(control);
         this._slider.actor.accessible_name = _("Volume");
     },
 
-    _connectStream: function(stream) {
+    _connectStream(stream) {
         this.parent(stream);
-        this._portChangedId = stream.connect('notify::port', Lang.bind(this, this._portChanged));
+        this._portChangedId = stream.connect('notify::port', this._portChanged.bind(this));
         this._portChanged();
     },
 
-    _findHeadphones: function(sink) {
+    _findHeadphones(sink) {
         // This only works for external headphones (e.g. bluetooth)
         if (sink.get_form_factor() == 'headset' ||
             sink.get_form_factor() == 'headphone')
@@ -191,19 +191,19 @@ var OutputStreamSlider = new Lang.Class({
         return false;
     },
 
-    _disconnectStream: function(stream) {
+    _disconnectStream(stream) {
         this.parent(stream);
         stream.disconnect(this._portChangedId);
         this._portChangedId = 0;
     },
 
-    _updateSliderIcon: function() {
+    _updateSliderIcon() {
         this._icon.icon_name = (this._hasHeadphones ?
                                 'audio-headphones-symbolic' :
                                 'audio-speakers-symbolic');
     },
 
-    _portChanged: function() {
+    _portChanged() {
         let hasHeadphones = this._findHeadphones(this._stream);
         if (hasHeadphones != this._hasHeadphones) {
             this._hasHeadphones = hasHeadphones;
@@ -216,20 +216,20 @@ var InputStreamSlider = new Lang.Class({
     Name: 'InputStreamSlider',
     Extends: StreamSlider,
 
-    _init: function(control) {
+    _init(control) {
         this.parent(control);
         this._slider.actor.accessible_name = _("Microphone");
-        this._control.connect('stream-added', Lang.bind(this, this._maybeShowInput));
-        this._control.connect('stream-removed', Lang.bind(this, this._maybeShowInput));
+        this._control.connect('stream-added', this._maybeShowInput.bind(this));
+        this._control.connect('stream-removed', this._maybeShowInput.bind(this));
         this._icon.icon_name = 'audio-input-microphone-symbolic';
     },
 
-    _connectStream: function(stream) {
+    _connectStream(stream) {
         this.parent(stream);
         this._maybeShowInput();
     },
 
-    _maybeShowInput: function() {
+    _maybeShowInput() {
         // only show input widgets if any application is recording audio
         let showInput = false;
         let recordingApps = this._control.get_source_outputs();
@@ -250,7 +250,7 @@ var InputStreamSlider = new Lang.Class({
         this._updateVisibility();
     },
 
-    _shouldBeVisible: function() {
+    _shouldBeVisible() {
         return this.parent() && this._showInput;
     }
 });
@@ -259,20 +259,20 @@ var VolumeMenu = new Lang.Class({
     Name: 'VolumeMenu',
     Extends: PopupMenu.PopupMenuSection,
 
-    _init: function(control) {
+    _init(control) {
         this.parent();
 
         this.hasHeadphones = false;
 
         this._control = control;
-        this._control.connect('state-changed', Lang.bind(this, this._onControlStateChanged));
-        this._control.connect('default-sink-changed', Lang.bind(this, this._readOutput));
-        this._control.connect('default-source-changed', Lang.bind(this, this._readInput));
+        this._control.connect('state-changed', this._onControlStateChanged.bind(this));
+        this._control.connect('default-sink-changed', this._readOutput.bind(this));
+        this._control.connect('default-source-changed', this._readInput.bind(this));
 
         this._output = new OutputStreamSlider(this._control);
-        this._output.connect('stream-updated', Lang.bind(this, function() {
+        this._output.connect('stream-updated', () => {
             this.emit('icon-changed');
-        }));
+        });
         this.addMenuItem(this._output.item);
 
         this._input = new InputStreamSlider(this._control);
@@ -283,11 +283,11 @@ var VolumeMenu = new Lang.Class({
         this._onControlStateChanged();
     },
 
-    scroll: function(event) {
+    scroll(event) {
         return this._output.scroll(event);
     },
 
-    _onControlStateChanged: function() {
+    _onControlStateChanged() {
         if (this._control.get_state() == Gvc.MixerControlState.READY) {
             this._readInput();
             this._readOutput();
@@ -296,19 +296,19 @@ var VolumeMenu = new Lang.Class({
         }
     },
 
-    _readOutput: function() {
+    _readOutput() {
         this._output.stream = this._control.get_default_sink();
     },
 
-    _readInput: function() {
+    _readInput() {
         this._input.stream = this._control.get_default_source();
     },
 
-    getIcon: function() {
+    getIcon() {
         return this._output.getIcon();
     },
 
-    getLevel: function() {
+    getLevel() {
         return this._output.getLevel();
     }
 });
@@ -317,14 +317,14 @@ var Indicator = new Lang.Class({
     Name: 'VolumeIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._primaryIndicator = this._addIndicator();
 
         this._control = getMixerControl();
         this._volumeMenu = new VolumeMenu(this._control);
-        this._volumeMenu.connect('icon-changed', Lang.bind(this, function(menu) {
+        this._volumeMenu.connect('icon-changed', menu => {
             let icon = this._volumeMenu.getIcon();
 
             if (icon != null) {
@@ -333,14 +333,14 @@ var Indicator = new Lang.Class({
             } else {
                 this.indicators.hide();
             }
-        }));
+        });
 
         this.menu.addMenuItem(this._volumeMenu);
 
-        this.indicators.connect('scroll-event', Lang.bind(this, this._onScrollEvent));
+        this.indicators.connect('scroll-event', this._onScrollEvent.bind(this));
     },
 
-    _onScrollEvent: function(actor, event) {
+    _onScrollEvent(actor, event) {
         let result = this._volumeMenu.scroll(event);
         if (result == Clutter.EVENT_PROPAGATE || this.menu.actor.mapped)
             return result;

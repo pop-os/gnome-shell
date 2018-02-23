@@ -68,14 +68,14 @@ var Indicator = new Lang.Class({
     Name: 'LocationIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._settings = new Gio.Settings({ schema_id: LOCATION_SCHEMA });
         this._settings.connect('changed::' + ENABLED,
-                               Lang.bind(this, this._onMaxAccuracyLevelChanged));
+                               this._onMaxAccuracyLevelChanged.bind(this));
         this._settings.connect('changed::' + MAX_ACCURACY_LEVEL,
-                               Lang.bind(this, this._onMaxAccuracyLevelChanged));
+                               this._onMaxAccuracyLevelChanged.bind(this));
 
         this._indicator = this._addIndicator();
         this._indicator.icon_name = 'find-location-symbolic';
@@ -87,7 +87,7 @@ var Indicator = new Lang.Class({
         this._agent.export(Gio.DBus.system, '/org/freedesktop/GeoClue2/Agent');
 
         this._item.label.text = _("Location Enabled");
-        this._onOffAction = this._item.menu.addAction(_("Disable"), Lang.bind(this, this._onOnOffAction));
+        this._onOffAction = this._item.menu.addAction(_("Disable"), this._onOnOffAction.bind(this));
         this._item.menu.addSettingsAction(_("Privacy Settings"), 'gnome-privacy-panel.desktop');
 
         this.menu.addMenuItem(this._item);
@@ -95,9 +95,9 @@ var Indicator = new Lang.Class({
         this._watchId = Gio.bus_watch_name(Gio.BusType.SYSTEM,
                                            'org.freedesktop.GeoClue2',
                                            0,
-                                           Lang.bind(this, this._connectToGeoclue),
-                                           Lang.bind(this, this._onGeoclueVanished));
-        Main.sessionMode.connect('updated', Lang.bind(this, this._onSessionUpdated));
+                                           this._connectToGeoclue.bind(this),
+                                           this._onGeoclueVanished.bind(this));
+        Main.sessionMode.connect('updated', this._onSessionUpdated.bind(this));
         this._onSessionUpdated();
         this._onMaxAccuracyLevelChanged();
         this._connectToGeoclue();
@@ -108,7 +108,7 @@ var Indicator = new Lang.Class({
         return this._getMaxAccuracyLevel();
     },
 
-    AuthorizeAppAsync: function(params, invocation) {
+    AuthorizeAppAsync(params, invocation) {
         let [desktopId, reqAccuracyLevel] = params;
 
         let authorizer = new AppAuthorizer(desktopId,
@@ -116,14 +116,14 @@ var Indicator = new Lang.Class({
                                            this._permStoreProxy,
                                            this._getMaxAccuracyLevel());
 
-        authorizer.authorize(Lang.bind(this, function(accuracyLevel) {
+        authorizer.authorize(accuracyLevel => {
             let ret = (accuracyLevel != GeoclueAccuracyLevel.NONE);
             invocation.return_value(GLib.Variant.new('(bu)',
                                                      [ret, accuracyLevel]));
-        }));
+        });
     },
 
-    _syncIndicator: function() {
+    _syncIndicator() {
         if (this._managerProxy == null) {
             this._indicator.visible = false;
             this._item.actor.visible = false;
@@ -135,7 +135,7 @@ var Indicator = new Lang.Class({
         this._updateMenuLabels();
     },
 
-    _connectToGeoclue: function() {
+    _connectToGeoclue() {
         if (this._managerProxy != null || this._connecting)
             return false;
 
@@ -143,11 +143,11 @@ var Indicator = new Lang.Class({
         new GeoclueManager(Gio.DBus.system,
                            'org.freedesktop.GeoClue2',
                            '/org/freedesktop/GeoClue2/Manager',
-                           Lang.bind(this, this._onManagerProxyReady));
+                           this._onManagerProxyReady.bind(this));
         return true;
     },
 
-    _onManagerProxyReady: function(proxy, error) {
+    _onManagerProxyReady(proxy, error) {
         if (error != null) {
             log(error.message);
             this._connecting = false;
@@ -156,14 +156,14 @@ var Indicator = new Lang.Class({
 
         this._managerProxy = proxy;
         this._propertiesChangedId = this._managerProxy.connect('g-properties-changed',
-                                                        Lang.bind(this, this._onGeocluePropsChanged));
+                                                        this._onGeocluePropsChanged.bind(this));
 
         this._syncIndicator();
 
-        this._managerProxy.AddAgentRemote('gnome-shell', Lang.bind(this, this._onAgentRegistered));
+        this._managerProxy.AddAgentRemote('gnome-shell', this._onAgentRegistered.bind(this));
     },
 
-    _onAgentRegistered: function(result, error) {
+    _onAgentRegistered(result, error) {
         this._connecting = false;
         this._notifyMaxAccuracyLevel();
 
@@ -171,7 +171,7 @@ var Indicator = new Lang.Class({
             log(error.message);
     },
 
-    _onGeoclueVanished: function() {
+    _onGeoclueVanished() {
         if (this._propertiesChangedId) {
             this._managerProxy.disconnect(this._propertiesChangedId);
             this._propertiesChangedId = 0;
@@ -181,17 +181,17 @@ var Indicator = new Lang.Class({
         this._syncIndicator();
     },
 
-    _onOnOffAction: function() {
+    _onOnOffAction() {
         let enabled = this._settings.get_boolean(ENABLED);
         this._settings.set_boolean(ENABLED, !enabled);
     },
 
-    _onSessionUpdated: function() {
+    _onSessionUpdated() {
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
         this.menu.setSensitive(sensitive);
     },
 
-    _updateMenuLabels: function() {
+    _updateMenuLabels() {
         if (this._settings.get_boolean(ENABLED)) {
             this._item.label.text = this._indicator.visible ? _("Location In Use")
                                                             : _("Location Enabled");
@@ -202,7 +202,7 @@ var Indicator = new Lang.Class({
         }
     },
 
-    _onMaxAccuracyLevelChanged: function() {
+    _onMaxAccuracyLevelChanged() {
         this._updateMenuLabels();
 
         // Gotta ensure geoclue is up and we are registered as agent to it
@@ -211,7 +211,7 @@ var Indicator = new Lang.Class({
             this._notifyMaxAccuracyLevel();
     },
 
-    _getMaxAccuracyLevel: function() {
+    _getMaxAccuracyLevel() {
         if (this._settings.get_boolean(ENABLED)) {
             let level = this._settings.get_string(MAX_ACCURACY_LEVEL);
 
@@ -222,23 +222,23 @@ var Indicator = new Lang.Class({
         }
     },
 
-    _notifyMaxAccuracyLevel: function() {
+    _notifyMaxAccuracyLevel() {
         let variant = new GLib.Variant('u', this._getMaxAccuracyLevel());
         this._agent.emit_property_changed('MaxAccuracyLevel', variant);
     },
 
-    _onGeocluePropsChanged: function(proxy, properties) {
+    _onGeocluePropsChanged(proxy, properties) {
         let unpacked = properties.deep_unpack();
         if ("InUse" in unpacked)
             this._syncIndicator();
     },
 
-    _connectToPermissionStore: function() {
+    _connectToPermissionStore() {
         this._permStoreProxy = null;
-        new PermissionStore.PermissionStore(Lang.bind(this, this._onPermStoreProxyReady), null);
+        new PermissionStore.PermissionStore(this._onPermStoreProxyReady.bind(this));
     },
 
-    _onPermStoreProxyReady: function(proxy, error) {
+    _onPermStoreProxyReady(proxy, error) {
         if (error != null) {
             log(error.message);
             return;
@@ -255,7 +255,7 @@ function clamp(value, min, max) {
 var AppAuthorizer = new Lang.Class({
     Name: 'LocationAppAuthorizer',
 
-    _init: function(desktopId,
+    _init(desktopId,
                     reqAccuracyLevel,
                     permStoreProxy,
                     maxAccuracyLevel) {
@@ -268,7 +268,7 @@ var AppAuthorizer = new Lang.Class({
         this._accuracyLevel = GeoclueAccuracyLevel.NONE;
     },
 
-    authorize: function(onAuthDone) {
+    authorize(onAuthDone) {
         this._onAuthDone = onAuthDone;
 
         let appSystem = Shell.AppSystem.get_default();
@@ -281,11 +281,10 @@ var AppAuthorizer = new Lang.Class({
 
         this._permStoreProxy.LookupRemote(APP_PERMISSIONS_TABLE,
                                           APP_PERMISSIONS_ID,
-                                          Lang.bind(this,
-                                                    this._onPermLookupDone));
+                                          this._onPermLookupDone.bind(this));
     },
 
-    _onPermLookupDone: function(result, error) {
+    _onPermLookupDone(result, error) {
         if (error != null) {
             if (error.domain == Gio.DBusError) {
                 // Likely no xdg-app installed, just authorize the app
@@ -318,30 +317,29 @@ var AppAuthorizer = new Lang.Class({
         }
     },
 
-    _userAuthorizeApp: function() {
+    _userAuthorizeApp() {
         let name = this._app.get_name();
         let appInfo = this._app.get_app_info();
-        let reason = appInfo.get_string("X-Geoclue-Reason");
+        let reason = appInfo.get_locale_string("X-Geoclue-Reason");
 
         this._showAppAuthDialog(name, reason);
     },
 
-    _showAppAuthDialog: function(name, reason) {
+    _showAppAuthDialog(name, reason) {
         this._dialog = new GeolocationDialog(name,
                                              reason,
                                              this.reqAccuracyLevel);
 
-        let responseId = this._dialog.connect('response', Lang.bind(this,
-            function(dialog, level) {
-                this._dialog.disconnect(responseId);
-                this._accuracyLevel = level;
-                this._completeAuth();
-            }));
+        let responseId = this._dialog.connect('response', (dialog, level) => {
+            this._dialog.disconnect(responseId);
+            this._accuracyLevel = level;
+            this._completeAuth();
+        });
 
         this._dialog.open();
     },
 
-    _completeAuth: function() {
+    _completeAuth() {
         if (this._accuracyLevel != GeoclueAccuracyLevel.NONE) {
             this._accuracyLevel = clamp(this._accuracyLevel,
                                         0,
@@ -352,7 +350,7 @@ var AppAuthorizer = new Lang.Class({
         this._onAuthDone(this._accuracyLevel);
     },
 
-    _saveToPermissionStore: function() {
+    _saveToPermissionStore() {
         if (this._permStoreProxy == null)
             return;
 
@@ -367,7 +365,7 @@ var AppAuthorizer = new Lang.Class({
                                        APP_PERMISSIONS_ID,
                                        this._permissions,
                                        data,
-                                       function (result, error) {
+                                       (result, error) => {
             if (error != null)
                 log(error.message);
         });
@@ -378,7 +376,7 @@ var GeolocationDialog = new Lang.Class({
     Name: 'GeolocationDialog',
     Extends: ModalDialog.ModalDialog,
 
-    _init: function(name, subtitle, reqAccuracyLevel) {
+    _init(name, subtitle, reqAccuracyLevel) {
         this.parent({ styleClass: 'geolocation-dialog' });
         this.reqAccuracyLevel = reqAccuracyLevel;
 
@@ -393,20 +391,20 @@ var GeolocationDialog = new Lang.Class({
         this.contentLayout.add_actor(content);
 
         let button = this.addButton({ label: _("Deny Access"),
-                                      action: Lang.bind(this, this._onDenyClicked),
+                                      action: this._onDenyClicked.bind(this),
                                       key: Clutter.KEY_Escape });
         this.addButton({ label: _("Grant Access"),
-                         action: Lang.bind(this, this._onGrantClicked) });
+                         action: this._onGrantClicked.bind(this) });
 
         this.setInitialKeyFocus(button);
     },
 
-    _onGrantClicked: function() {
+    _onGrantClicked() {
         this.emit('response', this.reqAccuracyLevel);
         this.close();
     },
 
-    _onDenyClicked: function() {
+    _onDenyClicked() {
         this.emit('response', GeoclueAccuracyLevel.NONE);
         this.close();
     }

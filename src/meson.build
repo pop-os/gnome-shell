@@ -13,7 +13,6 @@ script_data.set('libdir', libdir)
 script_data.set('libexecdir', libexecdir)
 script_data.set('pkgdatadir', pkgdatadir)
 script_data.set('pkglibdir', pkglibdir)
-script_data.set('sysconfdir', sysconfdir)
 script_data.set('PYTHON', python.path())
 script_data.set('VERSION', meson.project_version())
 
@@ -227,7 +226,7 @@ libshell_gir_includes = [
 ]
 
 if have_networkmanager
-  libshell_gir_includes += ['NetworkManager-1.0', 'NMClient-1.0']
+  libshell_gir_includes += ['NM-1.0']
 endif
 
 libshell_gir_includes += [

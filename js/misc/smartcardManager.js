@@ -27,34 +27,34 @@ function getSmartcardManager() {
 
 var SmartcardManager = new Lang.Class({
     Name: 'SmartcardManager',
-    _init: function() {
+    _init() {
         this._objectManager = new ObjectManager.ObjectManager({ connection: Gio.DBus.session,
                                                                 name: "org.gnome.SettingsDaemon.Smartcard",
                                                                 objectPath: '/org/gnome/SettingsDaemon/Smartcard',
                                                                 knownInterfaces: [ SmartcardTokenIface ],
-                                                                onLoaded: Lang.bind(this, this._onLoaded) });
+                                                                onLoaded: this._onLoaded.bind(this) });
         this._insertedTokens = {};
         this._loginToken = null;
     },
 
-    _onLoaded: function() {
+    _onLoaded() {
         let tokens = this._objectManager.getProxiesForInterface('org.gnome.SettingsDaemon.Smartcard.Token');
 
         for (let i = 0; i < tokens.length; i++)
             this._addToken(tokens[i]);
 
-        this._objectManager.connect('interface-added', Lang.bind(this, function(objectManager, interfaceName, proxy) {
+        this._objectManager.connect('interface-added', (objectManager, interfaceName, proxy) => {
             if (interfaceName == 'org.gnome.SettingsDaemon.Smartcard.Token')
                 this._addToken(proxy);
-        }));
+        });
 
-        this._objectManager.connect('interface-removed', Lang.bind(this, function(objectManager, interfaceName, proxy) {
+        this._objectManager.connect('interface-removed', (objectManager, interfaceName, proxy) => {
             if (interfaceName == 'org.gnome.SettingsDaemon.Smartcard.Token')
                 this._removeToken(proxy);
-        }));
+        });
     },
 
-    _updateToken: function(token) {
+    _updateToken(token) {
         let objectPath = token.get_object_path();
 
         delete this._insertedTokens[objectPath];
@@ -66,28 +66,27 @@ var SmartcardManager = new Lang.Class({
             this._loginToken = token;
     },
 
-    _addToken: function(token) {
+    _addToken(token) {
         this._updateToken(token);
 
-        token.connect('g-properties-changed',
-                      Lang.bind(this, function(proxy, properties) {
-                          if ('IsInserted' in properties.deep_unpack()) {
-                              this._updateToken(token);
+        token.connect('g-properties-changed', (proxy, properties) => {
+            if ('IsInserted' in properties.deep_unpack()) {
+                this._updateToken(token);
 
-                              if (token.IsInserted) {
-                                  this.emit('smartcard-inserted', token);
-                              } else {
-                                  this.emit('smartcard-removed', token);
-                              }
-                          }
-                      }));
+                if (token.IsInserted) {
+                    this.emit('smartcard-inserted', token);
+                } else {
+                    this.emit('smartcard-removed', token);
+                }
+            }
+        });
 
         // Emit a smartcard-inserted at startup if it's already plugged in
         if (token.IsInserted)
             this.emit('smartcard-inserted', token);
     },
 
-    _removeToken: function(token) {
+    _removeToken(token) {
         let objectPath = token.get_object_path();
 
         if (this._insertedTokens[objectPath] == token) {
@@ -101,11 +100,11 @@ var SmartcardManager = new Lang.Class({
         token.disconnectAll();
     },
 
-    hasInsertedTokens: function() {
+    hasInsertedTokens() {
         return Object.keys(this._insertedTokens).length > 0;
     },
 
-    hasInsertedLoginToken: function() {
+    hasInsertedLoginToken() {
         if (!this._loginToken)
             return false;
 

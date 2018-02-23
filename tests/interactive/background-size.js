@@ -19,9 +19,9 @@ function test() {
     let scroll = new St.ScrollView();
     vbox.add(scroll, { expand: true });
 
-    let vbox = new St.BoxLayout({ vertical: true,
-                                  style: 'padding: 10px;'
-                                  + 'spacing: 20px;' });
+    vbox = new St.BoxLayout({ vertical: true,
+                              style: 'padding: 10px;'
+                              + 'spacing: 20px;' });
     scroll.add_actor(vbox);
 
     let tbox = null;
@@ -35,7 +35,7 @@ function test() {
         if (useCairo)
             obin.style = 'border: 3px solid green;';
         else
-            obin.connect_after('paint', function(actor) {
+            obin.connect_after('paint', actor => {
                 Cogl.set_source_color4f(0, 1, 0, 1);
 
                 let geom = actor.get_allocation_geometry();
@@ -81,16 +81,16 @@ function test() {
         tbox = new St.BoxLayout({ style: 'spacing: 20px;' });
         vbox.add(tbox);
 
-        for each (let s in backgroundSizes)
+        for (let s of backgroundSizes)
             addTestCase(image, size, s, false);
-        for each (let s in backgroundSizes)
+        for (let s of backgroundSizes)
             addTestCase(image, size, s, true);
     }
 
     function addTestImage(image) {
         const containerSizes = [[100, 100], [200, 200], [250, 250], [100, 250], [250, 100]];
 
-        for each (let size in containerSizes)
+        for (let size of containerSizes)
             addTestLine(image, size);
     }
 

@@ -34,7 +34,7 @@ function _isToday(date) {
 var TodayButton = new Lang.Class({
     Name: 'TodayButton',
 
-    _init: function(calendar) {
+    _init(calendar) {
         // Having the ability to go to the current date if the user is already
         // on the current date can be confusing. So don't make the button reactive
         // until the selected date changes.
@@ -43,10 +43,9 @@ var TodayButton = new Lang.Class({
                                      can_focus: true,
                                      reactive: false
                                    });
-        this.actor.connect('clicked', Lang.bind(this,
-            function() {
-                this._calendar.setDate(new Date(), false);
-            }));
+        this.actor.connect('clicked', () => {
+            this._calendar.setDate(new Date(), false);
+        });
 
         let hbox = new St.BoxLayout({ vertical: true });
         this.actor.add_actor(hbox);
@@ -59,15 +58,14 @@ var TodayButton = new Lang.Class({
         hbox.add_actor(this._dateLabel);
 
         this._calendar = calendar;
-        this._calendar.connect('selected-date-changed', Lang.bind(this,
-            function(calendar, date) {
-                // Make the button reactive only if the selected date is not the
-                // current date.
-                this.actor.reactive = !_isToday(date)
-            }));
+        this._calendar.connect('selected-date-changed', (calendar, date) => {
+            // Make the button reactive only if the selected date is not the
+            // current date.
+            this.actor.reactive = !_isToday(date)
+        });
     },
 
-    setDate: function(date) {
+    setDate(date) {
         this._dayLabel.set_text(date.toLocaleFormat('%A'));
 
         /* Translators: This is the date format to use when the calendar popup is
@@ -88,7 +86,7 @@ var TodayButton = new Lang.Class({
 var WorldClocksSection = new Lang.Class({
     Name: 'WorldClocksSection',
 
-    _init: function() {
+    _init() {
         this._clock = new GnomeDesktop.WallClock();
         this._clockNotifyId = 0;
 
@@ -97,13 +95,12 @@ var WorldClocksSection = new Lang.Class({
         this.actor = new St.Button({ style_class: 'world-clocks-button',
                                      x_fill: true,
                                      can_focus: true });
-        this.actor.connect('clicked', Lang.bind(this,
-            function() {
-                this._clockAppMon.activateApp();
+        this.actor.connect('clicked', () => {
+            this._clockAppMon.activateApp();
 
-                Main.overview.hide();
-                Main.panel.closeCalendar();
-            }));
+            Main.overview.hide();
+            Main.panel.closeCalendar();
+        });
 
         let layout = new Clutter.GridLayout({ orientation: Clutter.Orientation.VERTICAL });
         this._grid = new St.Widget({ style_class: 'world-clocks-grid',
@@ -115,28 +112,31 @@ var WorldClocksSection = new Lang.Class({
         this._clockAppMon = new Util.AppSettingsMonitor('org.gnome.clocks.desktop',
                                                         'org.gnome.clocks');
         this._clockAppMon.connect('available-changed',
-                                  Lang.bind(this, this._sync));
+                                  this._sync.bind(this));
         this._clockAppMon.watchSetting('world-clocks',
-                                       Lang.bind(this, this._clocksChanged));
+                                       this._clocksChanged.bind(this));
         this._sync();
     },
 
-    _sync: function() {
+    _sync() {
         this.actor.visible = this._clockAppMon.available;
     },
 
-    _clocksChanged: function(settings) {
+    _clocksChanged(settings) {
         this._grid.destroy_all_children();
         this._locations = [];
 
         let world = GWeather.Location.get_world();
         let clocks = settings.get_value('world-clocks').deep_unpack();
         for (let i = 0; i < clocks.length; i++) {
+            if (!clocks[i].location)
+                continue;
             let l = world.deserialize(clocks[i].location);
-            this._locations.push({ location: l });
+            if (l)
+                this._locations.push({ location: l });
         }
 
-        this._locations.sort(function(a, b) {
+        this._locations.sort((a, b) => {
             return a.location.get_timezone().get_offset() -
                    b.location.get_timezone().get_offset();
         });
@@ -176,7 +176,7 @@ var WorldClocksSection = new Lang.Class({
         if (this._grid.get_n_children() > 1) {
             if (!this._clockNotifyId)
                 this._clockNotifyId =
-                    this._clock.connect('notify::clock', Lang.bind(this, this._updateLabels));
+                    this._clock.connect('notify::clock', this._updateLabels.bind(this));
             this._updateLabels();
         } else {
             if (this._clockNotifyId)
@@ -185,7 +185,7 @@ var WorldClocksSection = new Lang.Class({
         }
     },
 
-    _updateLabels: function() {
+    _updateLabels() {
         for (let i = 0; i < this._locations.length; i++) {
             let l = this._locations[i];
             let tz = GLib.TimeZone.new(l.location.get_timezone().get_tzid());
@@ -198,7 +198,7 @@ var WorldClocksSection = new Lang.Class({
 var WeatherSection = new Lang.Class({
     Name: 'WeatherSection',
 
-    _init: function() {
+    _init() {
         this._weatherClient = new Weather.WeatherClient();
 
         this.actor = new St.Button({ style_class: 'weather-button',
@@ -230,11 +230,11 @@ var WeatherSection = new Lang.Class({
         this._conditionsLabel.clutter_text.line_wrap = true;
         box.add_child(this._conditionsLabel);
 
-        this._weatherClient.connect('changed', Lang.bind(this, this._sync));
+        this._weatherClient.connect('changed', this._sync.bind(this));
         this._sync();
     },
 
-    _getSummary: function(info, capitalize=false) {
+    _getSummary(info, capitalize=false) {
         let options = capitalize ? GWeather.FormatOptions.SENTENCE_CAPITALIZATION
                                  : GWeather.FormatOptions.NO_CAPITALIZATION;
 
@@ -248,7 +248,7 @@ var WeatherSection = new Lang.Class({
         return GWeather.Sky.to_string_full(sky, options);
     },
 
-    _sameSummary: function(info1, info2) {
+    _sameSummary(info1, info2) {
         let [ok1, phenom1, qualifier1] = info1.get_value_conditions();
         let [ok2, phenom2, qualifier2] = info2.get_value_conditions();
         if (ok1 || ok2)
@@ -259,7 +259,7 @@ var WeatherSection = new Lang.Class({
         return sky1 == sky2;
     },
 
-    _getSummaryText: function() {
+    _getSummaryText() {
         let info = this._weatherClient.info;
         let forecasts = info.get_forecast_list();
         if (forecasts.length == 0) // No forecasts, just current conditions
@@ -307,7 +307,7 @@ var WeatherSection = new Lang.Class({
         return String.prototype.format.apply(fmt, summaries);
     },
 
-    _getLabelText: function() {
+    _getLabelText() {
         if (!this._weatherClient.hasLocation)
             return _("Select a location…");
 
@@ -326,7 +326,7 @@ var WeatherSection = new Lang.Class({
         return _("Weather information is currently unavailable");
     },
 
-    _sync: function() {
+    _sync() {
         this.actor.visible = this._weatherClient.available;
 
         if (!this.actor.visible)
@@ -339,7 +339,7 @@ var WeatherSection = new Lang.Class({
 var MessagesIndicator = new Lang.Class({
     Name: 'MessagesIndicator',
 
-    _init: function() {
+    _init() {
         this.actor = new St.Icon({ icon_name: 'message-indicator-symbolic',
                                    icon_size: 16,
                                    visible: false, y_expand: true,
@@ -347,31 +347,28 @@ var MessagesIndicator = new Lang.Class({
 
         this._sources = [];
 
-        Main.messageTray.connect('source-added', Lang.bind(this, this._onSourceAdded));
-        Main.messageTray.connect('source-removed', Lang.bind(this, this._onSourceRemoved));
-        Main.messageTray.connect('queue-changed', Lang.bind(this, this._updateCount));
+        Main.messageTray.connect('source-added', this._onSourceAdded.bind(this));
+        Main.messageTray.connect('source-removed', this._onSourceRemoved.bind(this));
+        Main.messageTray.connect('queue-changed', this._updateCount.bind(this));
 
         let sources = Main.messageTray.getSources();
-        sources.forEach(Lang.bind(this, function(source) { this._onSourceAdded(null, source); }));
+        sources.forEach(source => { this._onSourceAdded(null, source); });
     },
 
-    _onSourceAdded: function(tray, source) {
-        source.connect('count-updated', Lang.bind(this, this._updateCount));
+    _onSourceAdded(tray, source) {
+        source.connect('count-updated', this._updateCount.bind(this));
         this._sources.push(source);
         this._updateCount();
     },
 
-    _onSourceRemoved: function(tray, source) {
+    _onSourceRemoved(tray, source) {
         this._sources.splice(this._sources.indexOf(source), 1);
         this._updateCount();
     },
 
-    _updateCount: function() {
+    _updateCount() {
         let count = 0;
-        this._sources.forEach(Lang.bind(this,
-            function(source) {
-                count += source.unseenCount;
-            }));
+        this._sources.forEach(source => { count += source.unseenCount; });
         count -= Main.messageTray.queueCount;
 
         this.actor.visible = (count > 0);
@@ -382,19 +379,19 @@ var IndicatorPad = new Lang.Class({
     Name: 'IndicatorPad',
     Extends: St.Widget,
 
-    _init: function(actor) {
+    _init(actor) {
         this._source = actor;
         this._source.connect('notify::visible', () => { this.queue_relayout(); });
         this.parent();
     },
 
-    vfunc_get_preferred_width: function(container, forHeight) {
+    vfunc_get_preferred_width(container, forHeight) {
         if (this._source.visible)
             return this._source.get_preferred_width(forHeight);
         return [0, 0];
     },
 
-    vfunc_get_preferred_height: function(container, forWidth) {
+    vfunc_get_preferred_height(container, forWidth) {
         if (this._source.visible)
             return this._source.get_preferred_height(forWidth);
         return [0, 0];
@@ -405,7 +402,7 @@ var FreezableBinLayout = new Lang.Class({
     Name: 'FreezableBinLayout',
     Extends: Clutter.BinLayout,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._frozen = false;
@@ -422,19 +419,19 @@ var FreezableBinLayout = new Lang.Class({
             this.layout_changed();
     },
 
-    vfunc_get_preferred_width: function(container, forHeight) {
+    vfunc_get_preferred_width(container, forHeight) {
         if (!this._frozen || this._savedWidth.some(isNaN))
             return this.parent(container, forHeight);
         return this._savedWidth;
     },
 
-    vfunc_get_preferred_height: function(container, forWidth) {
+    vfunc_get_preferred_height(container, forWidth) {
         if (!this._frozen || this._savedHeight.some(isNaN))
             return this.parent(container, forWidth);
         return this._savedHeight;
     },
 
-    vfunc_allocate: function(container, allocation, flags) {
+    vfunc_allocate(container, allocation, flags) {
         this.parent(container, allocation, flags);
 
         let [width, height] = allocation.get_size();
@@ -447,12 +444,12 @@ var CalendarColumnLayout = new Lang.Class({
     Name: 'CalendarColumnLayout',
     Extends: Clutter.BoxLayout,
 
-    _init: function(actor) {
+    _init(actor) {
         this.parent({ orientation: Clutter.Orientation.VERTICAL });
         this._calActor = actor;
     },
 
-    vfunc_get_preferred_width: function(container, forHeight) {
+    vfunc_get_preferred_width(container, forHeight) {
         if (!this._calActor || this._calActor.get_parent() != container)
             return this.parent(container, forHeight);
         return this._calActor.get_preferred_width(forHeight);
@@ -463,7 +460,7 @@ var DateMenuButton = new Lang.Class({
     Name: 'DateMenuButton',
     Extends: PanelMenu.Button,
 
-    _init: function() {
+    _init() {
         let item;
         let hbox;
         let vbox;
@@ -497,12 +494,12 @@ var DateMenuButton = new Lang.Class({
 
         this._calendar = new Calendar.Calendar();
         this._calendar.connect('selected-date-changed',
-                               Lang.bind(this, function(calendar, date) {
+                               (calendar, date) => {
                                    layout.frozen = !_isToday(date);
                                    this._messageList.setDate(date);
-                               }));
+                               });
 
-        this.menu.connect('open-state-changed', Lang.bind(this, function(menu, isOpen) {
+        this.menu.connect('open-state-changed', (menu, isOpen) => {
             // Whenever the menu is opened, select today
             if (isOpen) {
                 let now = new Date();
@@ -510,7 +507,7 @@ var DateMenuButton = new Lang.Class({
                 this._date.setDate(now);
                 this._messageList.setDate(now);
             }
-        }));
+        });
 
         // Fill up the first column
         this._messageList = new Calendar.CalendarMessageList();
@@ -548,17 +545,17 @@ var DateMenuButton = new Lang.Class({
 
         this._clock = new GnomeDesktop.WallClock();
         this._clock.bind_property('clock', this._clockDisplay, 'text', GObject.BindingFlags.SYNC_CREATE);
-        this._clock.connect('notify::timezone', Lang.bind(this, this._updateTimeZone));
+        this._clock.connect('notify::timezone', this._updateTimeZone.bind(this));
 
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sessionUpdated));
+        Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
     },
 
-    _getEventSource: function() {
+    _getEventSource() {
         return new Calendar.DBusEventSource();
     },
 
-    _setEventSource: function(eventSource) {
+    _setEventSource(eventSource) {
         if (this._eventSource)
             this._eventSource.destroy();
 
@@ -568,7 +565,7 @@ var DateMenuButton = new Lang.Class({
         this._eventSource = eventSource;
     },
 
-    _updateTimeZone: function() {
+    _updateTimeZone() {
         // SpiderMonkey caches the time zone so we must explicitly clear it
         // before we can update the calendar, see
         // https://bugzilla.gnome.org/show_bug.cgi?id=678507
@@ -577,7 +574,7 @@ var DateMenuButton = new Lang.Class({
         this._calendar.updateTimeZone();
     },
 
-    _sessionUpdated: function() {
+    _sessionUpdated() {
         let eventSource;
         let showEvents = Main.sessionMode.showCalendarEvents;
         if (showEvents) {

@@ -47,7 +47,7 @@ var NotificationDirection = {
     RECEIVED: 'chat-received'
 };
 
-var N_ = function(s) { return s; };
+var N_ = s => s;
 
 function makeMessageFromTpMessage(tpMessage, direction) {
     let [text, flags] = tpMessage.to_text();
@@ -82,7 +82,7 @@ function makeMessageFromTplEvent(event) {
 var TelepathyComponent = new Lang.Class({
     Name: 'TelepathyComponent',
 
-    _init: function() {
+    _init() {
         this._client = null;
 
         if (!HAVE_TP)
@@ -91,7 +91,7 @@ var TelepathyComponent = new Lang.Class({
         this._client = new TelepathyClient();
     },
 
-    enable: function() {
+    enable() {
         if (!this._client)
             return;
 
@@ -105,7 +105,7 @@ var TelepathyComponent = new Lang.Class({
             this._client.account_manager.prepare_async(null, null);
     },
 
-    disable: function() {
+    disable() {
         if (!this._client)
             return;
 
@@ -117,7 +117,7 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
     Name: 'TelepathyClient',
     Extends: Tp.BaseClient,
 
-    _init: function() {
+    _init() {
         // channel path -> ChatSource
         this._chatSources = {};
         this._chatState = Tp.ChannelChatState.ACTIVE;
@@ -157,10 +157,10 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         // Allow other clients (such as Empathy) to pre-empt our channels if
         // needed
         this.set_delegated_channels_callback(
-            Lang.bind(this, this._delegatedChannelsCb));
+            this._delegatedChannelsCb.bind(this));
     },
 
-    vfunc_observe_channels: function(account, conn, channels,
+    vfunc_observe_channels(account, conn, channels,
                                      dispatchOp, requests, context) {
         let len = channels.length;
         for (let i = 0; i < len; i++) {
@@ -181,26 +181,25 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         context.accept();
     },
 
-    _createChatSource: function(account, conn, channel, contact) {
+    _createChatSource(account, conn, channel, contact) {
         if (this._chatSources[channel.get_object_path()])
             return;
 
         let source = new ChatSource(account, conn, channel, contact, this);
 
         this._chatSources[channel.get_object_path()] = source;
-        source.connect('destroy', Lang.bind(this,
-                       function() {
-                           delete this._chatSources[channel.get_object_path()];
-                       }));
+        source.connect('destroy', () => {
+            delete this._chatSources[channel.get_object_path()];
+        });
     },
 
-    vfunc_handle_channels: function(account, conn, channels, requests,
+    vfunc_handle_channels(account, conn, channels, requests,
                                     user_action_time, context) {
         this._handlingChannels(account, conn, channels, true);
         context.accept();
     },
 
-    _handlingChannels: function(account, conn, channels, notify) {
+    _handlingChannels(account, conn, channels, notify) {
         let len = channels.length;
         for (let i = 0; i < len; i++) {
             let channel = channels[i];
@@ -234,7 +233,7 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         }
     },
 
-    vfunc_add_dispatch_operation: function(account, conn, channels,
+    vfunc_add_dispatch_operation(account, conn, channels,
                                            dispatchOp, context) {
         let channel = channels[0];
         let chanType = channel.get_channel_type();
@@ -252,7 +251,7 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
                                         message: 'Unsupported channel type' }));
     },
 
-    _approveTextChannel: function(account, conn, channel, dispatchOp, context) {
+    _approveTextChannel(account, conn, channel, dispatchOp, context) {
         let [targetHandle, targetHandleType] = channel.get_handle();
 
         if (targetHandleType != Tp.HandleType.CONTACT) {
@@ -262,19 +261,19 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         }
 
         // Approve private text channels right away as we are going to handle it
-        dispatchOp.claim_with_async(this, Lang.bind(this, function(dispatchOp, result) {
+        dispatchOp.claim_with_async(this, (dispatchOp, result) => {
             try {
                 dispatchOp.claim_with_finish(result);
                 this._handlingChannels(account, conn, [channel], false);
             } catch (err) {
                 log('Failed to Claim channel: ' + err);
             }
-        }));
+        });
 
         context.accept();
     },
 
-    _delegatedChannelsCb: function(client, channels) {
+    _delegatedChannelsCb(client, channels) {
         // Nothing to do as we don't make a distinction between observed and
         // handled channels.
     },
@@ -284,7 +283,7 @@ var ChatSource = new Lang.Class({
     Name: 'ChatSource',
     Extends: MessageTray.Source,
 
-    _init: function(account, conn, channel, contact, client) {
+    _init(account, conn, channel, contact, client) {
         this._account = account;
         this._contact = contact;
         this._client = client;
@@ -296,19 +295,19 @@ var ChatSource = new Lang.Class({
 
         this._conn = conn;
         this._channel = channel;
-        this._closedId = this._channel.connect('invalidated', Lang.bind(this, this._channelClosed));
+        this._closedId = this._channel.connect('invalidated', this._channelClosed.bind(this));
 
         this._notifyTimeoutId = 0;
 
         this._presence = contact.get_presence_type();
 
-        this._sentId = this._channel.connect('message-sent', Lang.bind(this, this._messageSent));
-        this._receivedId = this._channel.connect('message-received', Lang.bind(this, this._messageReceived));
-        this._pendingId = this._channel.connect('pending-message-removed', Lang.bind(this, this._pendingRemoved));
+        this._sentId = this._channel.connect('message-sent', this._messageSent.bind(this));
+        this._receivedId = this._channel.connect('message-received', this._messageReceived.bind(this));
+        this._pendingId = this._channel.connect('pending-message-removed', this._pendingRemoved.bind(this));
 
-        this._notifyAliasId = this._contact.connect('notify::alias', Lang.bind(this, this._updateAlias));
-        this._notifyAvatarId = this._contact.connect('notify::avatar-file', Lang.bind(this, this._updateAvatarIcon));
-        this._presenceChangedId = this._contact.connect('presence-changed', Lang.bind(this, this._presenceChanged));
+        this._notifyAliasId = this._contact.connect('notify::alias', this._updateAlias.bind(this));
+        this._notifyAvatarId = this._contact.connect('notify::avatar-file', this._updateAvatarIcon.bind(this));
+        this._presenceChangedId = this._contact.connect('presence-changed', this._presenceChanged.bind(this));
 
         // Add ourselves as a source.
         Main.messageTray.add(this);
@@ -316,45 +315,42 @@ var ChatSource = new Lang.Class({
         this._getLogMessages();
     },
 
-    _ensureNotification: function() {
+    _ensureNotification() {
         if (this._notification)
             return;
 
         this._notification = new ChatNotification(this);
-        this._notification.connect('activated', Lang.bind(this, this.open));
-        this._notification.connect('updated', Lang.bind(this,
-            function() {
-                if (this._banner && this._banner.expanded)
-                    this._ackMessages();
-            }));
-        this._notification.connect('destroy', Lang.bind(this,
-            function() {
-                this._notification = null;
-            }));
+        this._notification.connect('activated', this.open.bind(this));
+        this._notification.connect('updated', () => {
+            if (this._banner && this._banner.expanded)
+                this._ackMessages();
+        });
+        this._notification.connect('destroy', () => {
+            this._notification = null;
+        });
         this.pushNotification(this._notification);
     },
 
-    _createPolicy: function() {
+    _createPolicy() {
         if (this._account.protocol_name == 'irc')
             return new MessageTray.NotificationApplicationPolicy('org.gnome.Polari');
         return new MessageTray.NotificationApplicationPolicy('empathy');
     },
 
-    createBanner: function() {
+    createBanner() {
         this._banner = new ChatNotificationBanner(this._notification);
 
         // We ack messages when the user expands the new notification
-        let id = this._banner.connect('expanded', Lang.bind(this, this._ackMessages));
-        this._banner.actor.connect('destroy', Lang.bind(this,
-            function() {
-                this._banner.disconnect(id);
-                this._banner = null;
-            }));
+        let id = this._banner.connect('expanded', this._ackMessages.bind(this));
+        this._banner.actor.connect('destroy', () => {
+            this._banner.disconnect(id);
+            this._banner = null;
+        });
 
         return this._banner;
     },
 
-    _updateAlias: function() {
+    _updateAlias() {
         let oldAlias = this.title;
         let newAlias = this._contact.get_alias();
 
@@ -366,7 +362,7 @@ var ChatSource = new Lang.Class({
             this._notification.appendAliasChange(oldAlias, newAlias);
     },
 
-    getIcon: function() {
+    getIcon() {
         let file = this._contact.get_avatar_file();
         if (file) {
             return new Gio.FileIcon({ file: file });
@@ -375,7 +371,7 @@ var ChatSource = new Lang.Class({
         }
     },
 
-    getSecondaryIcon: function() {
+    getSecondaryIcon() {
         let iconName;
         let presenceType = this._contact.get_presence_type();
 
@@ -404,7 +400,7 @@ var ChatSource = new Lang.Class({
        return new Gio.ThemedIcon({ name: iconName });
     },
 
-    _updateAvatarIcon: function() {
+    _updateAvatarIcon() {
         this.iconUpdated();
         if (this._notifiction)
             this._notification.update(this._notification.title,
@@ -412,7 +408,7 @@ var ChatSource = new Lang.Class({
                                       { gicon: this.getIcon() });
     },
 
-    open: function() {
+    open() {
         Main.overview.hide();
         Main.panel.closeCalendar();
 
@@ -437,16 +433,16 @@ var ChatSource = new Lang.Class({
         }
     },
 
-    _getLogMessages: function() {
+    _getLogMessages() {
         let logManager = Tpl.LogManager.dup_singleton();
         let entity = Tpl.Entity.new_from_tp_contact(this._contact, Tpl.EntityType.CONTACT);
 
         logManager.get_filtered_events_async(this._account, entity,
                                              Tpl.EventTypeMask.TEXT, SCROLLBACK_HISTORY_LINES,
-                                             null, Lang.bind(this, this._displayPendingMessages));
+                                             null, this._displayPendingMessages.bind(this));
     },
 
-    _displayPendingMessages: function(logManager, result) {
+    _displayPendingMessages(logManager, result) {
         let [success, events] = logManager.get_filtered_events_finish(result);
 
         let logMessages = events.map(makeMessageFromTplEvent);
@@ -499,12 +495,12 @@ var ChatSource = new Lang.Class({
             this.notify();
     },
 
-    destroy: function(reason) {
+    destroy(reason) {
         if (this._client.is_handling_channel(this._channel)) {
             this._ackMessages();
             // The chat box has been destroyed so it can't
             // handle the channel any more.
-            this._channel.close_async(function(channel, result) {
+            this._channel.close_async((channel, result) => {
                 channel.close_finish(result);
             });
         } else {
@@ -534,7 +530,7 @@ var ChatSource = new Lang.Class({
         this.parent(reason);
     },
 
-    _channelClosed: function() {
+    _channelClosed() {
         this.destroy(MessageTray.NotificationDestroyedReason.SOURCE_CLOSED);
     },
 
@@ -551,7 +547,7 @@ var ChatSource = new Lang.Class({
         return this.count > 0;
     },
 
-    _messageReceived: function(channel, message) {
+    _messageReceived(channel, message) {
         if (message.get_message_type() == Tp.ChannelTextMessageType.DELIVERY_REPORT)
             return;
 
@@ -567,11 +563,11 @@ var ChatSource = new Lang.Class({
         if (this._notifyTimeoutId != 0)
             Mainloop.source_remove(this._notifyTimeoutId);
         this._notifyTimeoutId = Mainloop.timeout_add(500,
-            Lang.bind(this, this._notifyTimeout));
+            this._notifyTimeout.bind(this));
         GLib.Source.set_name_by_id(this._notifyTimeoutId, '[gnome-shell] this._notifyTimeout');
     },
 
-    _notifyTimeout: function() {
+    _notifyTimeout() {
         if (this._pendingMessages.length != 0)
             this.notify();
 
@@ -582,17 +578,17 @@ var ChatSource = new Lang.Class({
 
     // This is called for both messages we send from
     // our client and other clients as well.
-    _messageSent: function(channel, message, flags, token) {
+    _messageSent(channel, message, flags, token) {
         this._ensureNotification();
         message = makeMessageFromTpMessage(message, NotificationDirection.SENT);
         this._notification.appendMessage(message);
     },
 
-    notify: function() {
+    notify() {
         this.parent(this._notification);
     },
 
-    respond: function(text) {
+    respond(text) {
         let type;
         if (text.slice(0, 4) == '/me ') {
             type = Tp.ChannelTextMessageType.ACTION;
@@ -602,12 +598,12 @@ var ChatSource = new Lang.Class({
         }
 
         let msg = Tp.ClientMessage.new_text(type, text);
-        this._channel.send_message_async(msg, 0, Lang.bind(this, function (src, result) {
+        this._channel.send_message_async(msg, 0, (src, result) => {
             this._channel.send_message_finish(result); 
-        }));
+        });
     },
 
-    setChatState: function(state) {
+    setChatState(state) {
         // We don't want to send COMPOSING every time a letter is typed into
         // the entry. We send the state only when it changes. Telepathy/Empathy
         // might change it behind our back if the user is using both
@@ -620,14 +616,14 @@ var ChatSource = new Lang.Class({
         }
     },
 
-    _presenceChanged: function (contact, presence, status, message) {
+    _presenceChanged(contact, presence, status, message) {
         if (this._notification)
             this._notification.update(this._notification.title,
                                       this._notification.bannerBodyText,
                                       { secondaryGIcon: this.getSecondaryIcon() });
     },
 
-    _pendingRemoved: function(channel, message) {
+    _pendingRemoved(channel, message) {
         let idx = this._pendingMessages.indexOf(message);
 
         if (idx >= 0) {
@@ -640,7 +636,7 @@ var ChatSource = new Lang.Class({
             this._banner.hide();
     },
 
-    _ackMessages: function() {
+    _ackMessages() {
         // Don't clear our messages here, tp-glib will send a
         // 'pending-message-removed' for each one.
         this._channel.ack_all_pending_messages_async(null);
@@ -651,7 +647,7 @@ var ChatNotification = new Lang.Class({
     Name: 'ChatNotification',
     Extends: MessageTray.Notification,
 
-    _init: function(source) {
+    _init(source) {
         this.parent(source, source.title, null,
                     { secondaryGIcon: source.getSecondaryIcon() });
         this.setUrgency(MessageTray.Urgency.HIGH);
@@ -661,7 +657,7 @@ var ChatNotification = new Lang.Class({
         this._timestampTimeoutId = 0;
     },
 
-    destroy: function(reason) {
+    destroy(reason) {
         if (this._timestampTimeoutId)
             Mainloop.source_remove(this._timestampTimeoutId);
         this._timestampTimeoutId = 0;
@@ -681,7 +677,7 @@ var ChatNotification = new Lang.Class({
      *   will be added, regardless of the difference since the
      *   last timestamp
      */
-    appendMessage: function(message, noTimestamp) {
+    appendMessage(message, noTimestamp) {
         let messageBody = GLib.markup_escape_text(message.text, -1);
         let styles = [message.direction];
 
@@ -706,7 +702,7 @@ var ChatNotification = new Lang.Class({
                        noTimestamp: noTimestamp });
     },
 
-    _filterMessages: function() {
+    _filterMessages() {
         if (this.messages.length < 1)
             return;
 
@@ -722,7 +718,7 @@ var ChatNotification = new Lang.Class({
         let maxLength = (lastMessageTime < currentTime - SCROLLBACK_RECENT_TIME) ?
             SCROLLBACK_IDLE_LENGTH : SCROLLBACK_RECENT_LENGTH;
 
-        let filteredHistory = this.messages.filter(function(item) { return item.realMessage });
+        let filteredHistory = this.messages.filter(item => item.realMessage);
         if (filteredHistory.length > maxLength) {
             let lastMessageToKeep = filteredHistory[maxLength];
             let expired = this.messages.splice(this.messages.indexOf(lastMessageToKeep));
@@ -741,7 +737,7 @@ var ChatNotification = new Lang.Class({
      *  timestamp: The timestamp of the message.
      *  noTimestamp: suppress timestamp signal?
      */
-    _append: function(props) {
+    _append(props) {
         let currentTime = (Date.now() / 1000);
         props = Params.parse(props, { body: null,
                                       group: null,
@@ -771,7 +767,7 @@ var ChatNotification = new Lang.Class({
                 // from the timestamp of the message.
                 this._timestampTimeoutId = Mainloop.timeout_add_seconds(
                     SCROLLBACK_IMMEDIATE_TIME - (currentTime - timestamp),
-                    Lang.bind(this, this.appendTimestamp));
+                    this.appendTimestamp.bind(this));
                 GLib.Source.set_name_by_id(this._timestampTimeoutId, '[gnome-shell] this.appendTimestamp');
             }
         }
@@ -779,7 +775,7 @@ var ChatNotification = new Lang.Class({
         this._filterMessages();
     },
 
-    appendTimestamp: function() {
+    appendTimestamp() {
         this._timestampTimeoutId = 0;
 
         this.messages[0].showTimestamp = true;
@@ -790,7 +786,7 @@ var ChatNotification = new Lang.Class({
         return GLib.SOURCE_REMOVE;
     },
 
-    appendAliasChange: function(oldAlias, newAlias) {
+    appendAliasChange(oldAlias, newAlias) {
         oldAlias = GLib.markup_escape_text(oldAlias, -1);
         newAlias = GLib.markup_escape_text(newAlias, -1);
 
@@ -810,7 +806,7 @@ var ChatLineBox = new Lang.Class({
     Name: 'ChatLineBox',
     Extends: St.BoxLayout,
 
-    vfunc_get_preferred_height: function(forWidth) {
+    vfunc_get_preferred_height(forWidth) {
         let [, natHeight] = this.parent(forWidth);
         return [natHeight, natHeight];
     }
@@ -820,23 +816,23 @@ var ChatNotificationBanner = new Lang.Class({
     Name: 'ChatNotificationBanner',
     Extends: MessageTray.NotificationBanner,
 
-    _init: function(notification) {
+    _init(notification) {
         this.parent(notification);
 
         this._responseEntry = new St.Entry({ style_class: 'chat-response',
                                              x_expand: true,
                                              can_focus: true });
-        this._responseEntry.clutter_text.connect('activate', Lang.bind(this, this._onEntryActivated));
-        this._responseEntry.clutter_text.connect('text-changed', Lang.bind(this, this._onEntryChanged));
+        this._responseEntry.clutter_text.connect('activate', this._onEntryActivated.bind(this));
+        this._responseEntry.clutter_text.connect('text-changed', this._onEntryChanged.bind(this));
         this.setActionArea(this._responseEntry);
 
-        this._responseEntry.clutter_text.connect('key-focus-in', Lang.bind(this, function() {
+        this._responseEntry.clutter_text.connect('key-focus-in', () => {
             this.focused = true;
-        }));
-        this._responseEntry.clutter_text.connect('key-focus-out', Lang.bind(this, function() {
+        });
+        this._responseEntry.clutter_text.connect('key-focus-out', () => {
             this.focused = false;
             this.emit('unfocused');
-        }));
+        });
 
         this._scrollArea = new St.ScrollView({ style_class: 'chat-scrollview vfade',
                                                vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
@@ -855,11 +851,11 @@ var ChatNotificationBanner = new Lang.Class({
         // force a scroll to the bottom if things change while we were at the
         // bottom
         this._oldMaxScrollValue = this._scrollArea.vscroll.adjustment.value;
-        this._scrollArea.vscroll.adjustment.connect('changed', Lang.bind(this, function(adjustment) {
+        this._scrollArea.vscroll.adjustment.connect('changed', adjustment => {
             if (adjustment.value == this._oldMaxScrollValue)
                 this.scrollTo(St.Side.BOTTOM);
             this._oldMaxScrollValue = Math.max(adjustment.lower, adjustment.upper - adjustment.page_size);
-        }));
+        });
 
         this._inputHistory = new History.HistoryManager({ entry: this._responseEntry.clutter_text });
 
@@ -868,32 +864,32 @@ var ChatNotificationBanner = new Lang.Class({
         this._messageActors = new Map();
 
         this._messageAddedId = this.notification.connect('message-added',
-            Lang.bind(this, function(n, message) {
+            (n, message) => {
                 this._addMessage(message);
-            }));
+            });
         this._messageRemovedId = this.notification.connect('message-removed',
-            Lang.bind(this, function(n, message) {
+            (n, message) => {
                 let actor = this._messageActors.get(message);
                 if (this._messageActors.delete(message))
                     actor.destroy();
-            }));
+            });
         this._timestampChangedId = this.notification.connect('timestamp-changed',
-            Lang.bind(this, function(n, message) {
+            (n, message) => {
                 this._updateTimestamp(message);
-            }));
+            });
 
         for (let i = this.notification.messages.length - 1; i >= 0; i--)
             this._addMessage(this.notification.messages[i]);
     },
 
-    _onDestroy: function() {
+    _onDestroy() {
         this.parent();
         this.notification.disconnect(this._messageAddedId);
         this.notification.disconnect(this._messageRemovedId);
         this.notification.disconnect(this._timestampChangedId);
     },
 
-    scrollTo: function(side) {
+    scrollTo(side) {
         let adjustment = this._scrollArea.vscroll.adjustment;
         if (side == St.Side.TOP)
             adjustment.value = adjustment.lower;
@@ -901,11 +897,11 @@ var ChatNotificationBanner = new Lang.Class({
             adjustment.value = adjustment.upper;
     },
 
-    hide: function() {
+    hide() {
         this.emit('done-displaying');
     },
 
-    _addMessage: function(message) {
+    _addMessage(message) {
         let highlighter = new MessageList.URLHighlighter(message.body, true, true);
         let body = highlighter.actor;
 
@@ -927,7 +923,7 @@ var ChatNotificationBanner = new Lang.Class({
         this._updateTimestamp(message);
     },
 
-    _updateTimestamp: function(message) {
+    _updateTimestamp(message) {
         let actor = this._messageActors.get(message);
         if (!actor)
             return;
@@ -948,7 +944,7 @@ var ChatNotificationBanner = new Lang.Class({
         }
     },
 
-    _onEntryActivated: function() {
+    _onEntryActivated() {
         let text = this._responseEntry.get_text();
         if (text == '')
             return;
@@ -961,7 +957,7 @@ var ChatNotificationBanner = new Lang.Class({
         this.notification.source.respond(text);
     },
 
-    _composingStopTimeout: function() {
+    _composingStopTimeout() {
         this._composingTimeoutId = 0;
 
         this.notification.source.setChatState(Tp.ChannelChatState.PAUSED);
@@ -969,7 +965,7 @@ var ChatNotificationBanner = new Lang.Class({
         return GLib.SOURCE_REMOVE;
     },
 
-    _onEntryChanged: function() {
+    _onEntryChanged() {
         let text = this._responseEntry.get_text();
 
         // If we're typing, we want to send COMPOSING.
@@ -988,7 +984,7 @@ var ChatNotificationBanner = new Lang.Class({
 
             this._composingTimeoutId = Mainloop.timeout_add_seconds(
                 COMPOSING_STOP_TIMEOUT,
-                Lang.bind(this, this._composingStopTimeout));
+                this._composingStopTimeout.bind(this));
             GLib.Source.set_name_by_id(this._composingTimeoutId, '[gnome-shell] this._composingStopTimeout');
         } else {
             this.notification.source.setChatState(Tp.ChannelChatState.ACTIVE);

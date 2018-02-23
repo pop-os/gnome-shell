@@ -37,11 +37,11 @@ function FlowedBoxes() {
 }
 
 FlowedBoxes.prototype = {
-    _init: function() {
+    _init() {
 	this.actor = new Shell.GenericContainer();
-        this.actor.connect('get-preferred-width', Lang.bind(this, this._getPreferredWidth));
-        this.actor.connect('get-preferred-height', Lang.bind(this, this._getPreferredHeight));
-        this.actor.connect('allocate', Lang.bind(this, this._allocate));
+        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
+        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
+        this.actor.connect('allocate', this._allocate.bind(this));
 
 	for (let i = 0; i < BOX_WIDTHS.length; i++) {
 	    let child = new St.Bin({ width: BOX_WIDTHS[i], height: BOX_HEIGHT,
@@ -50,7 +50,7 @@ FlowedBoxes.prototype = {
 	}
     },
 
-    _getPreferredWidth: function (actor, forHeight, alloc) {
+    _getPreferredWidth(actor, forHeight, alloc) {
         let children = this.actor.get_children();
 
 	let maxMinWidth = 0;
@@ -69,7 +69,7 @@ FlowedBoxes.prototype = {
 	alloc.natural_size = totalNaturalWidth;
     },
 
-    _layoutChildren: function(forWidth, callback) {
+    _layoutChildren(forWidth, callback) {
         let children = this.actor.get_children();
 
 	let x = 0;
@@ -99,7 +99,7 @@ FlowedBoxes.prototype = {
 
     },
 
-    _getPreferredHeight: function (actor, forWidth, alloc) {
+    _getPreferredHeight(actor, forWidth, alloc) {
 	let height = 0;
 	this._layoutChildren(forWidth,
            function(child, x1, y1, x2, y2) {
@@ -109,7 +109,7 @@ FlowedBoxes.prototype = {
 	alloc.min_size = alloc.natural_size = height;
     },
 
-    _allocate: function (actor, box, flags) {
+    _allocate(actor, box, flags) {
 	this._layoutChildren(box.x2 - box.x1,
            function(child, x1, y1, x2, y2) {
 	       child.allocate(new Clutter.ActorBox({ x1: x1, y1: y1, x2: x2, y2: y2 }),
@@ -132,12 +132,12 @@ function SizingIllustrator() {
 }
 
 SizingIllustrator.prototype = {
-    _init: function() {
+    _init() {
 	this.actor = new Shell.GenericContainer();
 
-        this.actor.connect('get-preferred-width', Lang.bind(this, this._getPreferredWidth));
-        this.actor.connect('get-preferred-height', Lang.bind(this, this._getPreferredHeight));
-        this.actor.connect('allocate', Lang.bind(this, this._allocate));
+        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
+        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
+        this.actor.connect('allocate', this._allocate.bind(this));
 
 	this.minWidthLine = new St.Bin({ style: 'background: red' });
 	this.actor.add_actor(this.minWidthLine);
@@ -156,9 +156,9 @@ SizingIllustrator.prototype = {
 
 	this.handle = new St.Bin({ style: 'background: yellow; border: 1px solid black;',
 				   reactive: true });
-	this.handle.connect('button-press-event', Lang.bind(this, this._handlePressed));
-	this.handle.connect('button-release-event', Lang.bind(this, this._handleReleased));
-	this.handle.connect('motion-event', Lang.bind(this, this._handleMotion));
+	this.handle.connect('button-press-event', this._handlePressed.bind(this));
+	this.handle.connect('button-release-event', this._handleReleased.bind(this));
+	this.handle.connect('motion-event', this._handleMotion.bind(this));
 	this.actor.add_actor(this.handle);
 
 	this._inDrag = false;
@@ -167,13 +167,13 @@ SizingIllustrator.prototype = {
 	this.height = 300;
     },
 
-    add: function(child) {
+    add(child) {
 	this.child = child;
 	this.actor.add_actor(this.child);
 	this.child.lower_bottom();
     },
 
-    _getPreferredWidth: function (actor, forHeight, alloc) {
+    _getPreferredWidth(actor, forHeight, alloc) {
         let children = this.actor.get_children();
 	for (let i = 0; i < children.length; i++) {
 	    let child = children[i];
@@ -188,7 +188,7 @@ SizingIllustrator.prototype = {
 	alloc.natural_size = 400;
     },
 
-    _getPreferredHeight: function (actor, forWidth, alloc) {
+    _getPreferredHeight(actor, forWidth, alloc) {
         let children = this.actor.get_children();
 	for (let i = 0; i < children.length; i++) {
 	    let child = children[i];
@@ -204,7 +204,7 @@ SizingIllustrator.prototype = {
 	alloc.natural_size = 400;
     },
 
-    _allocate: function (actor, box, flags) {
+    _allocate(actor, box, flags) {
 	let allocWidth = box.x2 - box.x1;
 	let allocHeight = box.y2 - box.y1;
 
@@ -223,7 +223,7 @@ SizingIllustrator.prototype = {
 	alloc(this.handle, this.width, this.height, this.width + 10, this.height + 10);
     },
 
-    _handlePressed: function(handle, event) {
+    _handlePressed(handle, event) {
 	if (event.get_button() == 1) {
 	    this._inDrag = true;
 	    let [handleX, handleY] = handle.get_transformed_position();
@@ -234,14 +234,14 @@ SizingIllustrator.prototype = {
 	}
     },
 
-    _handleReleased: function(handle, event) {
+    _handleReleased(handle, event) {
 	if (event.get_button() == 1) {
 	    this._inDrag = false;
 	    Clutter.ungrab_pointer(handle);
 	}
     },
 
-    _handleMotion: function(handle, event) {
+    _handleMotion(handle, event) {
 	if (this._inDrag) {
 	    let [x, y] = event.get_coords();
 	    let [actorX, actorY] = this.actor.get_transformed_position();
@@ -321,8 +321,8 @@ function test() {
         scrollView.set_policy(Gtk.PolicyType[hpolicy.label], Gtk.PolicyType[vpolicy.label]);
     }
 
-    hpolicy.connect('clicked', function() { togglePolicy(hpolicy); });
-    vpolicy.connect('clicked', function() { togglePolicy(vpolicy); });
+    hpolicy.connect('clicked', () => { togglePolicy(hpolicy); });
+    vpolicy.connect('clicked', () => { togglePolicy(vpolicy); });
 
     let fadeBox = new St.BoxLayout({ vertical: false });
     mainBox.add(fadeBox);
@@ -361,7 +361,7 @@ function test() {
             scrollView.style += (button.label == 'Yes' ? 'padding: 10px;' : 'padding: 0;');
     }
 
-    paddingButton.connect('clicked', function() { togglePadding(paddingButton); });
+    paddingButton.connect('clicked', () => { togglePadding(paddingButton); });
 
     function toggleBorders(button) {
         switch(button.label) {
@@ -378,7 +378,7 @@ function test() {
             scrollView.style += (button.label == 'Yes' ? 'border: 2px solid red;' : 'border: 0;');
     }
 
-    borderButton.connect('clicked', function() { toggleBorders(borderButton); });
+    borderButton.connect('clicked', () => { toggleBorders(borderButton); });
 
     function toggleFade(button) {
         switch(button.label) {
@@ -392,7 +392,7 @@ function test() {
         scrollView.set_style_class_name(button.label == 'Yes' ? 'vfade' : '');
     }
 
-    vfade.connect('clicked', function() { toggleFade(vfade); });
+    vfade.connect('clicked', () => { toggleFade(vfade); });
     toggleFade(vfade);
 
     function toggleOverlay(button) {
@@ -407,7 +407,7 @@ function test() {
         scrollView.overlay_scrollbars = (button.label == 'Yes');
     }
 
-    overlay.connect('clicked', function() { toggleOverlay(overlay); });
+    overlay.connect('clicked', () => { toggleOverlay(overlay); });
 
     UI.main(stage);
 }

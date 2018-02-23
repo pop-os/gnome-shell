@@ -9,19 +9,19 @@ const MessageTray = imports.ui.messageTray;
 var WindowAttentionHandler = new Lang.Class({
     Name: 'WindowAttentionHandler',
 
-    _init : function() {
+    _init() {
         this._tracker = Shell.WindowTracker.get_default();
         this._windowDemandsAttentionId = global.display.connect('window-demands-attention',
-                                                                Lang.bind(this, this._onWindowDemandsAttention));
+                                                                this._onWindowDemandsAttention.bind(this));
     },
 
-    _getTitleAndBanner: function(app, window) {
+    _getTitleAndBanner(app, window) {
         let title = app.get_name();
         let banner = _("“%s” is ready").format(window.get_title());
         return [title, banner]
     },
 
-    _onWindowDemandsAttention : function(display, window) {
+    _onWindowDemandsAttention(display, window) {
         // We don't want to show the notification when the window is already focused,
         // because this is rather pointless.
         // Some apps (like GIMP) do things like setting the urgency hint on the
@@ -40,17 +40,17 @@ var WindowAttentionHandler = new Lang.Class({
         let [title, banner] = this._getTitleAndBanner(app, window);
 
         let notification = new MessageTray.Notification(source, title, banner);
-        notification.connect('activated', function() {
+        notification.connect('activated', () => {
             source.open();
         });
         notification.setForFeedback(true);
 
         source.notify(notification);
 
-        source.signalIDs.push(window.connect('notify::title', Lang.bind(this, function() {
+        source.signalIDs.push(window.connect('notify::title', () => {
             let [title, banner] = this._getTitleAndBanner(app, window);
             notification.update(title, banner);
-        })));
+        }));
     }
 });
 
@@ -58,32 +58,44 @@ var Source = new Lang.Class({
     Name: 'WindowAttentionSource',
     Extends: MessageTray.Source,
 
-    _init: function(app, window) {
+    _init(app, window) {
         this._window = window;
         this._app = app;
 
         this.parent(app.get_name());
 
         this.signalIDs = [];
-        this.signalIDs.push(this._window.connect('notify::demands-attention', Lang.bind(this, function() { this.destroy(); })));
-        this.signalIDs.push(this._window.connect('focus', Lang.bind(this, function() { this.destroy(); })));
-        this.signalIDs.push(this._window.connect('unmanaged', Lang.bind(this, function() { this.destroy(); })));
+        this.signalIDs.push(this._window.connect('notify::demands-attention',
+                                                 () => { this.destroy(); }));
+        this.signalIDs.push(this._window.connect('focus',
+                                                 () => { this.destroy(); }));
+        this.signalIDs.push(this._window.connect('unmanaged',
+                                                 () => { this.destroy(); }));
 
-        this.connect('destroy', Lang.bind(this, this._onDestroy));
+        this.connect('destroy', this._onDestroy.bind(this));
     },
 
-    _onDestroy : function() {
+    _onDestroy() {
         for(let i = 0; i < this.signalIDs.length; i++) {
            this._window.disconnect(this.signalIDs[i]);
         }
         this.signalIDs = [];
     },
 
-    createIcon : function(size) {
+    _createPolicy() {
+        if (this._app && this._app.get_app_info()) {
+            let id = this._app.get_id().replace(/\.desktop$/,'');
+            return new MessageTray.NotificationApplicationPolicy(id);
+        } else {
+            return new MessageTray.NotificationGenericPolicy();
+        }
+    },
+
+    createIcon(size) {
         return this._app.create_icon_texture(size);
     },
 
-    open: function() {
+    open() {
         Main.activateWindow(this._window);
         this.destroy();
     }

@@ -16,7 +16,7 @@ const PopupMenu = imports.ui.popupMenu;
 var ButtonBox = new Lang.Class({
     Name: 'ButtonBox',
 
-    _init: function(params) {
+    _init(params) {
         params = Params.parse(params, { style_class: 'panel-button' }, true);
         this.actor = new Shell.GenericContainer(params);
         this.actor._delegate = this;
@@ -25,22 +25,22 @@ var ButtonBox = new Lang.Class({
                                       x_fill: true,
                                       child: this.actor });
 
-        this.actor.connect('get-preferred-width', Lang.bind(this, this._getPreferredWidth));
-        this.actor.connect('get-preferred-height', Lang.bind(this, this._getPreferredHeight));
-        this.actor.connect('allocate', Lang.bind(this, this._allocate));
+        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
+        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
+        this.actor.connect('allocate', this._allocate.bind(this));
 
-        this.actor.connect('style-changed', Lang.bind(this, this._onStyleChanged));
+        this.actor.connect('style-changed', this._onStyleChanged.bind(this));
         this._minHPadding = this._natHPadding = 0.0;
     },
 
-    _onStyleChanged: function(actor) {
+    _onStyleChanged(actor) {
         let themeNode = actor.get_theme_node();
 
         this._minHPadding = themeNode.get_length('-minimum-hpadding');
         this._natHPadding = themeNode.get_length('-natural-hpadding');
     },
 
-    _getPreferredWidth: function(actor, forHeight, alloc) {
+    _getPreferredWidth(actor, forHeight, alloc) {
         let child = actor.get_first_child();
 
         if (child) {
@@ -53,7 +53,7 @@ var ButtonBox = new Lang.Class({
         alloc.natural_size += 2 * this._natHPadding;
     },
 
-    _getPreferredHeight: function(actor, forWidth, alloc) {
+    _getPreferredHeight(actor, forWidth, alloc) {
         let child = actor.get_first_child();
 
         if (child) {
@@ -63,7 +63,7 @@ var ButtonBox = new Lang.Class({
         }
     },
 
-    _allocate: function(actor, box, flags) {
+    _allocate(actor, box, flags) {
         let child = actor.get_first_child();
         if (!child)
             return;
@@ -93,15 +93,15 @@ var Button = new Lang.Class({
     Name: 'PanelMenuButton',
     Extends: ButtonBox,
 
-    _init: function(menuAlignment, nameText, dontCreateMenu) {
+    _init(menuAlignment, nameText, dontCreateMenu) {
         this.parent({ reactive: true,
                       can_focus: true,
                       track_hover: true,
                       accessible_name: nameText ? nameText : "",
                       accessible_role: Atk.Role.MENU });
 
-        this.actor.connect('event', Lang.bind(this, this._onEvent));
-        this.actor.connect('notify::visible', Lang.bind(this, this._onVisibilityChanged));
+        this.actor.connect('event', this._onEvent.bind(this));
+        this.actor.connect('notify::visible', this._onVisibilityChanged.bind(this));
 
         if (dontCreateMenu)
             this.menu = new PopupMenu.PopupDummyMenu(this.actor);
@@ -109,21 +109,21 @@ var Button = new Lang.Class({
             this.setMenu(new PopupMenu.PopupMenu(this.actor, menuAlignment, St.Side.TOP, 0));
     },
 
-    setSensitive: function(sensitive) {
+    setSensitive(sensitive) {
         this.actor.reactive = sensitive;
         this.actor.can_focus = sensitive;
         this.actor.track_hover = sensitive;
     },
 
-    setMenu: function(menu) {
+    setMenu(menu) {
         if (this.menu)
             this.menu.destroy();
 
         this.menu = menu;
         if (this.menu) {
             this.menu.actor.add_style_class_name('panel-menu');
-            this.menu.connect('open-state-changed', Lang.bind(this, this._onOpenStateChanged));
-            this.menu.actor.connect('key-press-event', Lang.bind(this, this._onMenuKeyPress));
+            this.menu.connect('open-state-changed', this._onOpenStateChanged.bind(this));
+            this.menu.actor.connect('key-press-event', this._onMenuKeyPress.bind(this));
 
             Main.uiGroup.add_actor(this.menu.actor);
             this.menu.actor.hide();
@@ -131,7 +131,7 @@ var Button = new Lang.Class({
         this.emit('menu-set');
     },
 
-    _onEvent: function(actor, event) {
+    _onEvent(actor, event) {
         if (this.menu &&
             (event.type() == Clutter.EventType.TOUCH_BEGIN ||
              event.type() == Clutter.EventType.BUTTON_PRESS))
@@ -140,7 +140,7 @@ var Button = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _onVisibilityChanged: function() {
+    _onVisibilityChanged() {
         if (!this.menu)
             return;
 
@@ -148,7 +148,7 @@ var Button = new Lang.Class({
             this.menu.close();
     },
 
-    _onMenuKeyPress: function(actor, event) {
+    _onMenuKeyPress(actor, event) {
         if (global.focus_manager.navigate_from_event(event))
             return Clutter.EVENT_STOP;
 
@@ -164,7 +164,7 @@ var Button = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _onOpenStateChanged: function(menu, open) {
+    _onOpenStateChanged(menu, open) {
         if (open)
             this.actor.add_style_pseudo_class('active');
         else
@@ -184,7 +184,7 @@ var Button = new Lang.Class({
         this.menu.actor.style = ('max-height: %spx;').format(maxHeight);
     },
 
-    destroy: function() {
+    destroy() {
         this.actor._delegate = null;
 
         if (this.menu)
@@ -206,23 +206,21 @@ Signals.addSignalMethods(Button.prototype);
 var SystemIndicator = new Lang.Class({
     Name: 'SystemIndicator',
 
-    _init: function() {
+    _init() {
         this.indicators = new St.BoxLayout({ style_class: 'panel-status-indicators-box',
                                              reactive: true });
         this.indicators.hide();
         this.menu = new PopupMenu.PopupMenuSection();
     },
 
-    _syncIndicatorsVisible: function() {
-        this.indicators.visible = this.indicators.get_children().some(function(actor) {
-            return actor.visible;
-        });
+    _syncIndicatorsVisible() {
+        this.indicators.visible = this.indicators.get_children().some(a => a.visible);
     },
 
-    _addIndicator: function() {
+    _addIndicator() {
         let icon = new St.Icon({ style_class: 'system-status-icon' });
         this.indicators.add_actor(icon);
-        icon.connect('notify::visible', Lang.bind(this, this._syncIndicatorsVisible));
+        icon.connect('notify::visible', this._syncIndicatorsVisible.bind(this));
         this._syncIndicatorsVisible();
         return icon;
     }

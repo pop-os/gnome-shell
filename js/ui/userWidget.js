@@ -22,7 +22,7 @@ var AVATAR_ICON_SIZE = 64;
 var Avatar = new Lang.Class({
     Name: 'Avatar',
 
-    _init: function(user, params) {
+    _init(user, params) {
         this._user = user;
         params = Params.parse(params, { reactive: false,
                                         iconSize: AVATAR_ICON_SIZE,
@@ -38,15 +38,15 @@ var Avatar = new Lang.Class({
 
         // Monitor the scaling factor to make sure we recreate the avatar when needed.
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        themeContext.connect('notify::scale-factor', Lang.bind(this, this.update));
+        themeContext.connect('notify::scale-factor', this.update.bind(this));
     },
 
-    setSensitive: function(sensitive) {
+    setSensitive(sensitive) {
         this.actor.can_focus = sensitive;
         this.actor.reactive = sensitive;
     },
 
-    update: function() {
+    update() {
         let iconFile = this._user.get_icon_file();
         if (iconFile && !GLib.file_test(iconFile, GLib.FileTest.EXISTS))
             iconFile = null;
@@ -70,7 +70,7 @@ var UserWidgetLabel = new Lang.Class({
     Name: 'UserWidgetLabel',
     Extends: St.Widget,
 
-    _init: function(user) {
+    _init(user) {
         this.parent({ layout_manager: new Clutter.BinLayout() });
 
         this._user = user;
@@ -85,8 +85,8 @@ var UserWidgetLabel = new Lang.Class({
 
         this._currentLabel = null;
 
-        this._userLoadedId = this._user.connect('notify::is-loaded', Lang.bind(this, this._updateUser));
-        this._userChangedId = this._user.connect('changed', Lang.bind(this, this._updateUser));
+        this._userLoadedId = this._user.connect('notify::is-loaded', this._updateUser.bind(this));
+        this._userChangedId = this._user.connect('changed', this._updateUser.bind(this));
         this._updateUser();
 
         // We can't override the destroy vfunc because that might be called during
@@ -94,10 +94,10 @@ var UserWidgetLabel = new Lang.Class({
         // so we use a signal, that will be disconnected by GObject the first time
         // the actor is destroyed (which is guaranteed to be as part of a normal
         // destroy() call from JS, possibly from some ancestor)
-        this.connect('destroy', Lang.bind(this, this._onDestroy));
+        this.connect('destroy', this._onDestroy.bind(this));
     },
 
-    _onDestroy: function() {
+    _onDestroy() {
         if (this._userLoadedId != 0) {
             this._user.disconnect(this._userLoadedId);
             this._userLoadedId = 0;
@@ -109,7 +109,7 @@ var UserWidgetLabel = new Lang.Class({
         }
     },
 
-    vfunc_allocate: function(box, flags) {
+    vfunc_allocate(box, flags) {
         this.set_allocation(box, flags);
 
         let availWidth = box.x2 - box.x1;
@@ -136,11 +136,11 @@ var UserWidgetLabel = new Lang.Class({
         this._currentLabel.allocate(childBox, flags);
     },
 
-    vfunc_paint: function() {
+    vfunc_paint() {
         this._currentLabel.paint();
     },
 
-    _updateUser: function() {
+    _updateUser() {
         if (this._user.is_loaded) {
             this._realNameLabel.text = this._user.get_real_name();
             this._userNameLabel.text = this._user.get_user_name();
@@ -154,12 +154,12 @@ var UserWidgetLabel = new Lang.Class({
 var UserWidget = new Lang.Class({
     Name: 'UserWidget',
 
-    _init: function(user) {
+    _init(user) {
         this._user = user;
 
         this.actor = new St.BoxLayout({ style_class: 'user-widget',
                                         vertical: false });
-        this.actor.connect('destroy', Lang.bind(this, this._onDestroy));
+        this.actor.connect('destroy', this._onDestroy.bind(this));
 
         this._avatar = new Avatar(user);
         this.actor.add_child(this._avatar.actor);
@@ -170,12 +170,12 @@ var UserWidget = new Lang.Class({
         this._label.bind_property('label-actor', this.actor, 'label-actor',
                                   GObject.BindingFlags.SYNC_CREATE);
 
-        this._userLoadedId = this._user.connect('notify::is-loaded', Lang.bind(this, this._updateUser));
-        this._userChangedId = this._user.connect('changed', Lang.bind(this, this._updateUser));
+        this._userLoadedId = this._user.connect('notify::is-loaded', this._updateUser.bind(this));
+        this._userChangedId = this._user.connect('changed', this._updateUser.bind(this));
         this._updateUser();
     },
 
-    _onDestroy: function() {
+    _onDestroy() {
         if (this._userLoadedId != 0) {
             this._user.disconnect(this._userLoadedId);
             this._userLoadedId = 0;
@@ -187,7 +187,7 @@ var UserWidget = new Lang.Class({
         }
     },
 
-    _updateUser: function() {
+    _updateUser() {
         this._avatar.update();
     }
 });

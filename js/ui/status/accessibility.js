@@ -38,7 +38,7 @@ var ATIndicator = new Lang.Class({
     Name: 'ATIndicator',
     Extends: PanelMenu.Button,
 
-    _init: function() {
+    _init() {
         this.parent(0.0, _("Accessibility"));
 
         this._hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
@@ -49,7 +49,7 @@ var ATIndicator = new Lang.Class({
         this.actor.add_child(this._hbox);
 
         this._a11ySettings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
-        this._a11ySettings.connect('changed::' + KEY_ALWAYS_SHOW, Lang.bind(this, this._queueSyncMenuVisibility));
+        this._a11ySettings.connect('changed::' + KEY_ALWAYS_SHOW, this._queueSyncMenuVisibility.bind(this));
 
         let highContrast = this._buildHCItem();
         this.menu.addMenuItem(highContrast);
@@ -87,57 +87,55 @@ var ATIndicator = new Lang.Class({
         this._syncMenuVisibility();
     },
 
-    _syncMenuVisibility: function() {
+    _syncMenuVisibility() {
         this._syncMenuVisibilityIdle = 0;
 
         let alwaysShow = this._a11ySettings.get_boolean(KEY_ALWAYS_SHOW);
         let items = this.menu._getMenuItems();
 
-        this.actor.visible = alwaysShow || items.some(function(f) { return !!f.state; });
+        this.actor.visible = alwaysShow || items.some(f => !!f.state);
 
         return GLib.SOURCE_REMOVE;
     },
 
-    _queueSyncMenuVisibility: function() {
+    _queueSyncMenuVisibility() {
         if (this._syncMenuVisibilityIdle)
             return;
 
-        this._syncMenuVisibilityIdle = Mainloop.idle_add(Lang.bind(this, this._syncMenuVisibility));
+        this._syncMenuVisibilityIdle = Mainloop.idle_add(this._syncMenuVisibility.bind(this));
         GLib.Source.set_name_by_id(this._syncMenuVisibilityIdle, '[gnome-shell] this._syncMenuVisibility');
     },
 
-    _buildItemExtended: function(string, initial_value, writable, on_set) {
+    _buildItemExtended(string, initial_value, writable, on_set) {
         let widget = new PopupMenu.PopupSwitchMenuItem(string, initial_value);
         if (!writable)
             widget.actor.reactive = false;
         else
-            widget.connect('toggled', function(item) {
+            widget.connect('toggled', item => {
                 on_set(item.state);
             });
         return widget;
     },
 
-    _buildItem: function(string, schema, key) {
+    _buildItem(string, schema, key) {
         let settings = new Gio.Settings({ schema_id: schema });
-        settings.connect('changed::'+key, Lang.bind(this, function() {
+        settings.connect('changed::'+key, () => {
             widget.setToggleState(settings.get_boolean(key));
 
             this._queueSyncMenuVisibility();
-        }));
+        });
 
         let widget = this._buildItemExtended(string,
             settings.get_boolean(key),
             settings.is_writable(key),
-            function(enabled) {
-                return settings.set_boolean(key, enabled);
-            });
+            enabled => settings.set_boolean(key, enabled));
         return widget;
     },
 
-    _buildHCItem: function() {
+    _buildHCItem() {
         let interfaceSettings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });
         let wmSettings = new Gio.Settings({ schema_id: WM_SCHEMA });
-        interfaceSettings.connect('changed::' + KEY_GTK_THEME, Lang.bind(this, function() {
+        interfaceSettings.connect('changed::' + KEY_GTK_THEME, () => {
             let value = interfaceSettings.get_string(KEY_GTK_THEME);
             if (value == HIGH_CONTRAST_THEME) {
                 highContrast.setToggleState(true);
@@ -147,13 +145,13 @@ var ATIndicator = new Lang.Class({
             }
 
             this._queueSyncMenuVisibility();
-        }));
-        interfaceSettings.connect('changed::' + KEY_ICON_THEME, function() {
+        });
+        interfaceSettings.connect('changed::' + KEY_ICON_THEME, () => {
             let value = interfaceSettings.get_string(KEY_ICON_THEME);
             if (value != HIGH_CONTRAST_THEME)
                 iconTheme = value;
         });
-        wmSettings.connect('changed::' + KEY_WM_THEME, function() {
+        wmSettings.connect('changed::' + KEY_WM_THEME, () => {
             let value = wmSettings.get_string(KEY_WM_THEME);
             if (value != HIGH_CONTRAST_THEME)
                 wmTheme = value;
@@ -169,7 +167,7 @@ var ATIndicator = new Lang.Class({
             interfaceSettings.is_writable(KEY_GTK_THEME) &&
             interfaceSettings.is_writable(KEY_ICON_THEME) &&
             wmSettings.is_writable(KEY_WM_THEME),
-            function (enabled) {
+            enabled => {
                 if (enabled) {
                     interfaceSettings.set_string(KEY_GTK_THEME, HIGH_CONTRAST_THEME);
                     interfaceSettings.set_string(KEY_ICON_THEME, HIGH_CONTRAST_THEME);
@@ -187,22 +185,22 @@ var ATIndicator = new Lang.Class({
         return highContrast;
     },
 
-    _buildFontItem: function() {
+    _buildFontItem() {
         let settings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });
-        settings.connect('changed::' + KEY_TEXT_SCALING_FACTOR, Lang.bind(this, function() {
+        settings.connect('changed::' + KEY_TEXT_SCALING_FACTOR, () => {
             let factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
             let active = (factor > 1.0);
             widget.setToggleState(active);
 
             this._queueSyncMenuVisibility();
-        }));
+        });
 
         let factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
         let initial_setting = (factor > 1.0);
         let widget = this._buildItemExtended(_("Large Text"),
             initial_setting,
             settings.is_writable(KEY_TEXT_SCALING_FACTOR),
-            function (enabled) {
+            enabled => {
                 if (enabled)
                     settings.set_double(KEY_TEXT_SCALING_FACTOR,
                                         DPI_FACTOR_LARGE);
@@ -211,13 +209,4 @@ var ATIndicator = new Lang.Class({
             });
         return widget;
     }
-});
-
-var ATGreeterIndicator = new Lang.Class({
-    Name: 'ATGreeterIndicator',
-    Extends: ATIndicator,
-
-    // Override visibility handling to be always visible
-    _syncMenuVisibility: function() { },
-    _queueSyncMenuVisibility: function() { }
 });

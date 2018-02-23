@@ -34,7 +34,7 @@ var State = {
 var ModalDialog = new Lang.Class({
     Name: 'ModalDialog',
 
-    _init: function(params) {
+    _init(params) {
         params = Params.parse(params, { shellReactive: false,
                                         styleClass: null,
                                         actionMode: Shell.ActionMode.SYSTEM_MODAL,
@@ -60,7 +60,7 @@ var ModalDialog = new Lang.Class({
                                                       coordinate: Clutter.BindCoordinate.ALL });
         this._group.add_constraint(constraint);
 
-        this._group.connect('destroy', Lang.bind(this, this._onGroupDestroy));
+        this._group.connect('destroy', this._onGroupDestroy.bind(this));
 
         this.backgroundStack = new St.Widget({ layout_manager: new Clutter.BinLayout() });
         this._backgroundBin = new St.Bin({ child: this.backgroundStack,
@@ -89,15 +89,15 @@ var ModalDialog = new Lang.Class({
         this._savedKeyFocus = null;
     },
 
-    destroy: function() {
+    destroy() {
         this._group.destroy();
     },
 
-    clearButtons: function() {
+    clearButtons() {
         this.dialogLayout.clearButtons();
     },
 
-    setButtons: function(buttons) {
+    setButtons(buttons) {
         this.clearButtons();
 
         for (let i = 0; i < buttons.length; i++) {
@@ -117,15 +117,15 @@ var ModalDialog = new Lang.Class({
         }
     },
 
-    addButton: function (buttonInfo) {
+    addButton(buttonInfo) {
         return this.dialogLayout.addButton(buttonInfo);
     },
 
-    _onGroupDestroy: function() {
+    _onGroupDestroy() {
         this.emit('destroy');
     },
 
-    _fadeOpen: function(onPrimary) {
+    _fadeOpen(onPrimary) {
         if (onPrimary)
             this._monitorConstraint.primary = true;
         else
@@ -142,27 +142,26 @@ var ModalDialog = new Lang.Class({
                          { opacity: 255,
                            time: this._shouldFadeIn ? OPEN_AND_CLOSE_TIME : 0,
                            transition: 'easeOutQuad',
-                           onComplete: Lang.bind(this,
-                               function() {
-                                   this.state = State.OPENED;
-                                   this.emit('opened');
-                               })
+                           onComplete: () => {
+                               this.state = State.OPENED;
+                               this.emit('opened');
+                           }
                          });
     },
 
-    setInitialKeyFocus: function(actor) {
+    setInitialKeyFocus(actor) {
         if (this._initialKeyFocusDestroyId)
             this._initialKeyFocus.disconnect(this._initialKeyFocusDestroyId);
 
         this._initialKeyFocus = actor;
 
-        this._initialKeyFocusDestroyId = actor.connect('destroy', Lang.bind(this, function() {
+        this._initialKeyFocusDestroyId = actor.connect('destroy', () => {
             this._initialKeyFocus = null;
             this._initialKeyFocusDestroyId = 0;
-        }));
+        });
     },
 
-    open: function(timestamp, onPrimary) {
+    open(timestamp, onPrimary) {
         if (this.state == State.OPENED || this.state == State.OPENING)
             return true;
 
@@ -173,7 +172,7 @@ var ModalDialog = new Lang.Class({
         return true;
     },
 
-    _closeComplete: function() {
+    _closeComplete() {
         this.state = State.CLOSED;
         this._group.hide();
         this.emit('closed');
@@ -182,7 +181,7 @@ var ModalDialog = new Lang.Class({
             this.destroy();
     },
 
-    close: function(timestamp) {
+    close(timestamp) {
         if (this.state == State.CLOSED || this.state == State.CLOSING)
             return;
 
@@ -195,8 +194,7 @@ var ModalDialog = new Lang.Class({
                              { opacity: 0,
                                time: OPEN_AND_CLOSE_TIME,
                                transition: 'easeOutQuad',
-                               onComplete: Lang.bind(this,
-                                                     this._closeComplete)
+                               onComplete: this._closeComplete.bind(this)
                              })
         else
             this._closeComplete();
@@ -205,7 +203,7 @@ var ModalDialog = new Lang.Class({
     // Drop modal status without closing the dialog; this makes the
     // dialog insensitive as well, so it needs to be followed shortly
     // by either a close() or a pushModal()
-    popModal: function(timestamp) {
+    popModal(timestamp) {
         if (!this._hasModal)
             return;
 
@@ -215,14 +213,14 @@ var ModalDialog = new Lang.Class({
         else
             this._savedKeyFocus = null;
         Main.popModal(this._group, timestamp);
-        global.gdk_screen.get_display().sync();
+        Gdk.Display.get_default().sync();
         this._hasModal = false;
 
         if (!this._shellReactive)
             this._eventBlocker.raise_top();
     },
 
-    pushModal: function (timestamp) {
+    pushModal(timestamp) {
         if (this._hasModal)
             return true;
 
@@ -257,7 +255,7 @@ var ModalDialog = new Lang.Class({
     // e.g., if a user clicked "Log Out" then the dialog should go away
     // imediately, but the lightbox should remain until the logout is
     // complete.
-    _fadeOutDialog: function(timestamp) {
+    _fadeOutDialog(timestamp) {
         if (this.state == State.CLOSED || this.state == State.CLOSING)
             return;
 
@@ -269,10 +267,9 @@ var ModalDialog = new Lang.Class({
                          { opacity: 0,
                            time:    FADE_OUT_DIALOG_TIME,
                            transition: 'easeOutQuad',
-                           onComplete: Lang.bind(this,
-                               function() {
-                                   this.state = State.FADED_OUT;
-                               })
+                           onComplete: () => {
+                               this.state = State.FADED_OUT;
+                           }
                          });
     }
 });

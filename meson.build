@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '3.26.2',
+  version: '3.27.91',
   meson_version: '>= 0.42.0',
   license: 'GPLv2+'
 )
@@ -23,10 +23,11 @@ gi_req = '>= 1.49.1'
 gjs_req = '>= 1.47.0'
 gtk_req = '>= 3.15.0'
 json_glib_req = '>= 0.13.2'
-mutter_req = '>= 3.26.0'
+mutter_req = '>= 3.27.91'
 polkit_req = '>= 0.100'
 schemas_req = '>= 3.21.3'
 startup_req = '>= 0.11'
+ibus_req = '>= 1.5.2'
 
 bt_req = '>= 3.9.0'
 gst_req = '>= 0.11.92'
@@ -43,7 +44,6 @@ datadir = join_paths(prefix, get_option('datadir'))
 libdir = join_paths(prefix, get_option('libdir'))
 libexecdir = join_paths(prefix, get_option('libexecdir'))
 mandir = join_paths(prefix, get_option('mandir'))
-sysconfdir = join_paths(prefix, get_option('sysconfdir'))
 
 pkgdatadir = join_paths(datadir, meson.project_name())
 pkglibdir = join_paths(libdir, meson.project_name())
@@ -88,6 +88,7 @@ mutter_dep = dependency(libmutter_pc, version: mutter_req)
 polkit_dep = dependency('polkit-agent-1', version: polkit_req)
 soup_dep = dependency('libsoup-2.4')
 startup_dep = dependency('libstartup-notification-1.0', version: startup_req)
+ibus_dep = dependency('ibus-1.0', version: ibus_req)
 x11_dep = dependency('x11')
 schemas_dep = dependency('gsettings-desktop-schemas', version: schemas_req)
 
@@ -102,54 +103,34 @@ if enable_recorder
 endif
 
 nm_deps = []
-enable_networkmanager = get_option('enable-networkmanager')
-if enable_networkmanager != 'no'
-  want_networkmanager = enable_networkmanager == 'yes'
+if get_option('networkmanager')
+  nm_deps += dependency('libnm', version: nm_req)
+  nm_deps += dependency('libsecret-1', version: secret_req)
 
-  nm_deps += dependency('libnm-glib',
-    version: nm_req, required: want_networkmanager
-  )
-  nm_deps += dependency('libnm-util',
-    version: nm_req, required: want_networkmanager
-  )
-  nm_deps += dependency('libnm-gtk',
-    version: nm_req, required: want_networkmanager
-  )
-  nm_deps += dependency('libsecret-1',
-    version: secret_req, required: want_networkmanager
-  )
+  vpndir = nm_deps[0].get_pkgconfig_variable('vpnservicedir')
 
   have_networkmanager = true
-  foreach dep : nm_deps
-    have_networkmanager = have_networkmanager and dep.found()
-  endforeach
-
-  if not have_networkmanager
-    nm_deps = []
-  endif
 else
+  vpndir = prefix
+
   have_networkmanager = false
 endif
 
-enable_systemd = get_option('enable-systemd')
-if enable_systemd != 'no'
-  want_systemd = enable_systemd == 'yes'
-  systemd_dep = dependency('libsystemd', required: want_systemd)
+if get_option('systemd')
+  systemd_dep = dependency('libsystemd')
   have_systemd = systemd_dep.found()
 else
   systemd_dep = []
   have_systemd = false
 endif
 
-enable_plugin = get_option('enable-browser-plugin')
-if enable_plugin
+if get_option('browser_plugin')
   json_glib_dep = dependency('json-glib-1.0', version: json_glib_req)
 
   subdir('browser-plugin')
 endif
 
-enable_man = get_option('enable-man')
-if enable_man
+if get_option('man')
   xsltproc = find_program('xsltproc')
 
   subdir('man')
@@ -157,7 +138,7 @@ endif
 
 mutter_typelibdir = mutter_dep.get_pkgconfig_variable('typelibdir')
 python = find_program('python3')
-sassc = find_program('sassc', required: false)
+sassc = find_program('sassc')
 
 cc = meson.get_compiler('c')
 
@@ -188,12 +169,13 @@ conf_inc = include_directories('.')
 
 libgvc = subproject('gvc',
   default_options: [
-    'package-name=' + meson.project_name(),
-    'package-version=' + meson.project_version(),
+    'package_name=' + meson.project_name(),
+    'package_version=' + meson.project_version(),
     'pkgdatadir=' + pkgdatadir,
     'pkglibdir=' + pkglibdir,
     'static=false',
-    'with-introspection=true'
+    'introspection=true',
+    'alsa=false'
   ]
 )
 libgvc_gir = libgvc.get_variable('libgvc_gir')
@@ -204,6 +186,6 @@ subdir('po')
 subdir('data')
 subdir('tests')
 
-if get_option('enable-documentation')
+if get_option('gtk_doc')
   subdir('docs/reference')
 endif

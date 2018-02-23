@@ -17,6 +17,7 @@
     <file>misc/gnomeSession.js</file>
     <file>misc/history.js</file>
     <file>misc/ibusManager.js</file>
+    <file>misc/inputMethod.js</file>
     <file>misc/jsParse.js</file>
     <file>misc/keyboardManager.js</file>
     <file>misc/loginManager.js</file>
@@ -61,6 +62,7 @@
     <file>ui/ibusCandidatePopup.js</file>
     <file>ui/iconGrid.js</file>
     <file>ui/inhibitShortcutsDialog.js</file>
+    <file>ui/kbdA11yDialog.js</file>
     <file>ui/keyboard.js</file>
     <file>ui/layout.js</file>
     <file>ui/lightbox.js</file>
@@ -130,5 +132,6 @@
     <file>ui/status/bluetooth.js</file>
     <file>ui/status/screencast.js</file>
     <file>ui/status/system.js</file>
+    <file>ui/status/thunderbolt.js</file>
   </gresource>
 </gresources>

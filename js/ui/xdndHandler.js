@@ -11,7 +11,7 @@ const DND = imports.ui.dnd;
 var XdndHandler = new Lang.Class({
     Name: 'XdndHandler',
 
-    _init: function() {
+    _init() {
         // Used to display a clone of the cursor window when the
         // window group is hidden (like it happens in the overview)
         this._cursorWindowClone = null;
@@ -25,15 +25,15 @@ var XdndHandler = new Lang.Class({
             global.init_xdnd();
 
         var dnd = Meta.get_backend().get_dnd();
-        dnd.connect('dnd-enter', Lang.bind(this, this._onEnter));
-        dnd.connect('dnd-position-change', Lang.bind(this, this._onPositionChanged));
-        dnd.connect('dnd-leave', Lang.bind(this, this._onLeave));
+        dnd.connect('dnd-enter', this._onEnter.bind(this));
+        dnd.connect('dnd-position-change', this._onPositionChanged.bind(this));
+        dnd.connect('dnd-leave', this._onLeave.bind(this));
 
         this._windowGroupVisibilityHandlerId = 0;
     },
 
     // Called when the user cancels the drag (i.e release the button)
-    _onLeave: function() {
+    _onLeave() {
         if (this._windowGroupVisibilityHandlerId != 0) {
             global.window_group.disconnect(this._windowGroupVisibilityHandlerId);
             this._windowGroupVisibilityHandlerId = 0;
@@ -46,15 +46,15 @@ var XdndHandler = new Lang.Class({
         this.emit('drag-end');
     },
 
-    _onEnter: function() {
+    _onEnter() {
         this._windowGroupVisibilityHandlerId  =
                 global.window_group.connect('notify::visible',
-                    Lang.bind(this, this._onWindowGroupVisibilityChanged));
+                    this._onWindowGroupVisibilityChanged.bind(this));
 
         this.emit('drag-begin', global.get_current_time());
     },
 
-    _onWindowGroupVisibilityChanged: function() {
+    _onWindowGroupVisibilityChanged() {
         if (!global.window_group.visible) {
             if (this._cursorWindowClone)
                 return;
@@ -82,7 +82,7 @@ var XdndHandler = new Lang.Class({
         }
     },
 
-    _onPositionChanged: function(obj, x, y) {
+    _onPositionChanged(obj, x, y) {
         let pickedActor = global.stage.get_actor_at_pos(Clutter.PickMode.REACTIVE, x, y);
 
         // Make sure that the cursor window is on top

@@ -143,7 +143,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {
     // Special case gnome-control-center to be always active and always first
     sortOrder.unshift('gnome-control-center.desktop');
 
-    loadedProviders = loadedProviders.filter(function(provider) {
+    loadedProviders = loadedProviders.filter(provider => {
         let appId = provider.appInfo.get_id();
 
         if (provider.defaultEnabled) {
@@ -155,7 +155,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {
         }
     });
 
-    loadedProviders.sort(function(providerA, providerB) {
+    loadedProviders.sort((providerA, providerB) => {
         let idxA, idxB;
         let appIdA, appIdB;
 
@@ -191,7 +191,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {
 var RemoteSearchProvider = new Lang.Class({
     Name: 'RemoteSearchProvider',
 
-    _init: function(appInfo, dbusName, dbusPath, autoStart, proxyInfo) {
+    _init(appInfo, dbusName, dbusPath, autoStart, proxyInfo) {
         if (!proxyInfo)
             proxyInfo = SearchProviderProxyInfo;
 
@@ -215,7 +215,7 @@ var RemoteSearchProvider = new Lang.Class({
         this.canLaunchSearch = false;
     },
 
-    createIcon: function(size, meta) {
+    createIcon(size, meta) {
         let gicon = null;
         let icon = null;
 
@@ -236,17 +236,17 @@ var RemoteSearchProvider = new Lang.Class({
         return icon;
     },
 
-    filterResults: function(results, maxNumber) {
+    filterResults(results, maxNumber) {
         if (results.length <= maxNumber)
             return results;
 
-        let regularResults = results.filter(function(r) { return !r.startsWith('special:'); });
-        let specialResults = results.filter(function(r) { return r.startsWith('special:'); });
+        let regularResults = results.filter(r => !r.startsWith('special:'));
+        let specialResults = results.filter(r => r.startsWith('special:'));
 
         return regularResults.slice(0, maxNumber).concat(specialResults.slice(0, maxNumber));
     },
 
-    _getResultsFinished: function(results, error, callback) {
+    _getResultsFinished(results, error, callback) {
         if (error) {
             if (error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 return;
@@ -259,19 +259,23 @@ var RemoteSearchProvider = new Lang.Class({
         callback(results[0]);
     },
 
-    getInitialResultSet: function(terms, callback, cancellable) {
+    getInitialResultSet(terms, callback, cancellable) {
         this.proxy.GetInitialResultSetRemote(terms,
-                                             Lang.bind(this, this._getResultsFinished, callback),
+                                             (results, error) => {
+                                                 this._getResultsFinished(results, error, callback);
+                                             },
                                              cancellable);
     },
 
-    getSubsearchResultSet: function(previousResults, newTerms, callback, cancellable) {
+    getSubsearchResultSet(previousResults, newTerms, callback, cancellable) {
         this.proxy.GetSubsearchResultSetRemote(previousResults, newTerms,
-                                               Lang.bind(this, this._getResultsFinished, callback),
+                                               (results, error) => {
+                                                   this._getResultsFinished(results, error, callback);
+                                               },
                                                cancellable);
     },
 
-    _getResultMetasFinished: function(results, error, callback) {
+    _getResultMetasFinished(results, error, callback) {
         if (error) {
             if (!error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 log('Received error from DBus search provider %s during GetResultMetas: %s'.format(this.id, String(error)));
@@ -290,24 +294,27 @@ var RemoteSearchProvider = new Lang.Class({
             resultMetas.push({ id: metas[i]['id'],
                                name: metas[i]['name'],
                                description: metas[i]['description'],
-                               createIcon: Lang.bind(this,
-                                                     this.createIcon, metas[i]),
+                               createIcon: size => {
+                                   this.createIcon(size, metas[i]);
+                               },
                                clipboardText: metas[i]['clipboardText'] });
         }
         callback(resultMetas);
     },
 
-    getResultMetas: function(ids, callback, cancellable) {
+    getResultMetas(ids, callback, cancellable) {
         this.proxy.GetResultMetasRemote(ids,
-                                        Lang.bind(this, this._getResultMetasFinished, callback),
+                                        (results, error) => {
+                                            this._getResultMetasFinished(results, error, callback);
+                                        },
                                         cancellable);
     },
 
-    activateResult: function(id) {
+    activateResult(id) {
         this.proxy.ActivateResultRemote(id);
     },
 
-    launchSearch: function(terms) {
+    launchSearch(terms) {
         // the provider is not compatible with the new version of the interface, launch
         // the app itself but warn so we can catch the error in logs
         log('Search provider ' + this.appInfo.get_id() + ' does not implement LaunchSearch');
@@ -319,17 +326,17 @@ var RemoteSearchProvider2 = new Lang.Class({
     Name: 'RemoteSearchProvider2',
     Extends: RemoteSearchProvider,
 
-    _init: function(appInfo, dbusName, dbusPath, autoStart) {
+    _init(appInfo, dbusName, dbusPath, autoStart) {
         this.parent(appInfo, dbusName, dbusPath, autoStart, SearchProvider2ProxyInfo);
 
         this.canLaunchSearch = true;
     },
 
-    activateResult: function(id, terms) {
+    activateResult(id, terms) {
         this.proxy.ActivateResultRemote(id, terms, global.get_current_time());
     },
 
-    launchSearch: function(terms) {
+    launchSearch(terms) {
         this.proxy.LaunchSearchRemote(terms, global.get_current_time());
     }
 });

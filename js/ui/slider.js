@@ -12,7 +12,7 @@ var SLIDER_SCROLL_STEP = 0.02; /* Slider scrolling step in % */
 var Slider = new Lang.Class({
     Name: "Slider",
 
-    _init: function(value) {
+    _init(value) {
         if (isNaN(value))
             // Avoid spreading NaNs around
             throw TypeError('The slider value must be a number');
@@ -23,11 +23,11 @@ var Slider = new Lang.Class({
                                           can_focus: true,
                                           reactive: true,
                                           accessible_role: Atk.Role.SLIDER });
-        this.actor.connect('repaint', Lang.bind(this, this._sliderRepaint));
-        this.actor.connect('button-press-event', Lang.bind(this, this._startDragging));
-        this.actor.connect('touch-event', Lang.bind(this, this._touchDragging));
-        this.actor.connect('scroll-event', Lang.bind(this, this._onScrollEvent));
-        this.actor.connect('key-press-event', Lang.bind(this, this.onKeyPressEvent));
+        this.actor.connect('repaint', this._sliderRepaint.bind(this));
+        this.actor.connect('button-press-event', this._startDragging.bind(this));
+        this.actor.connect('touch-event', this._touchDragging.bind(this));
+        this.actor.connect('scroll-event', this._onScrollEvent.bind(this));
+        this.actor.connect('key-press-event', this.onKeyPressEvent.bind(this));
         this.actor.connect('allocation-changed', (actor, box) => {
             this._sliderWidth = box.get_width();
         });
@@ -38,16 +38,16 @@ var Slider = new Lang.Class({
         this._customAccessible = St.GenericAccessible.new_for_actor(this.actor);
         this.actor.set_accessible(this._customAccessible);
 
-        this._customAccessible.connect('get-current-value', Lang.bind(this, this._getCurrentValue));
-        this._customAccessible.connect('get-minimum-value', Lang.bind(this, this._getMinimumValue));
-        this._customAccessible.connect('get-maximum-value', Lang.bind(this, this._getMaximumValue));
-        this._customAccessible.connect('get-minimum-increment', Lang.bind(this, this._getMinimumIncrement));
-        this._customAccessible.connect('set-current-value', Lang.bind(this, this._setCurrentValue));
+        this._customAccessible.connect('get-current-value', this._getCurrentValue.bind(this));
+        this._customAccessible.connect('get-minimum-value', this._getMinimumValue.bind(this));
+        this._customAccessible.connect('get-maximum-value', this._getMaximumValue.bind(this));
+        this._customAccessible.connect('get-minimum-increment', this._getMinimumIncrement.bind(this));
+        this._customAccessible.connect('set-current-value', this._setCurrentValue.bind(this));
 
-        this.connect('value-changed', Lang.bind(this, this._valueChanged));
+        this.connect('value-changed', this._valueChanged.bind(this));
     },
 
-    setValue: function(value) {
+    setValue(value) {
         if (isNaN(value))
             throw TypeError('The slider value must be a number');
 
@@ -55,7 +55,7 @@ var Slider = new Lang.Class({
         this.actor.queue_repaint();
     },
 
-    _sliderRepaint: function(area) {
+    _sliderRepaint(area) {
         let cr = area.get_context();
         let themeNode = area.get_theme_node();
         let [width, height] = area.get_surface_size();
@@ -115,11 +115,11 @@ var Slider = new Lang.Class({
         cr.$dispose();
     },
 
-    _startDragging: function(actor, event) {
+    _startDragging(actor, event) {
         return this.startDragging(event);
     },
 
-    startDragging: function(event) {
+    startDragging(event) {
         if (this._dragging)
             return Clutter.EVENT_PROPAGATE;
 
@@ -137,8 +137,8 @@ var Slider = new Lang.Class({
         this._grabbedSequence = sequence;
 
         if (sequence == null) {
-            this._releaseId = this.actor.connect('button-release-event', Lang.bind(this, this._endDragging));
-            this._motionId = this.actor.connect('motion-event', Lang.bind(this, this._motionEvent));
+            this._releaseId = this.actor.connect('button-release-event', this._endDragging.bind(this));
+            this._motionId = this.actor.connect('motion-event', this._motionEvent.bind(this));
         }
 
         // We need to emit 'drag-begin' before moving the handle to make
@@ -151,7 +151,7 @@ var Slider = new Lang.Class({
         return Clutter.EVENT_STOP;
     },
 
-    _endDragging: function() {
+    _endDragging() {
         if (this._dragging) {
             if (this._releaseId)
                 this.actor.disconnect(this._releaseId);
@@ -172,7 +172,7 @@ var Slider = new Lang.Class({
         return Clutter.EVENT_STOP;
     },
 
-    _touchDragging: function(actor, event) {
+    _touchDragging(actor, event) {
         let device = event.get_device();
         let sequence = event.get_event_sequence();
 
@@ -190,7 +190,7 @@ var Slider = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    scroll: function(event) {
+    scroll(event) {
         let direction = event.get_scroll_direction();
         let delta;
 
@@ -215,18 +215,18 @@ var Slider = new Lang.Class({
         return Clutter.EVENT_STOP;
     },
 
-    _onScrollEvent: function(actor, event) {
+    _onScrollEvent(actor, event) {
         return this.scroll(event);
     },
 
-    _motionEvent: function(actor, event) {
+    _motionEvent(actor, event) {
         let absX, absY;
         [absX, absY] = event.get_coords();
         this._moveHandle(absX, absY);
         return Clutter.EVENT_STOP;
     },
 
-    onKeyPressEvent: function (actor, event) {
+    onKeyPressEvent(actor, event) {
         let key = event.get_key_symbol();
         if (key == Clutter.KEY_Right || key == Clutter.KEY_Left) {
             let delta = key == Clutter.KEY_Right ? 0.1 : -0.1;
@@ -240,7 +240,7 @@ var Slider = new Lang.Class({
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _moveHandle: function(absX, absY) {
+    _moveHandle(absX, absY) {
         let relX, relY, sliderX, sliderY;
         [sliderX, sliderY] = this.actor.get_transformed_position();
         relX = absX - sliderX;
@@ -261,27 +261,27 @@ var Slider = new Lang.Class({
         this.emit('value-changed', this._value);
     },
 
-    _getCurrentValue: function (actor) {
+    _getCurrentValue(actor) {
         return this._value;
     },
 
-    _getMinimumValue: function (actor) {
+    _getMinimumValue(actor) {
         return 0;
     },
 
-    _getMaximumValue: function (actor) {
+    _getMaximumValue(actor) {
         return 1;
     },
 
-    _getMinimumIncrement: function (actor) {
+    _getMinimumIncrement(actor) {
         return 0.1;
     },
 
-    _setCurrentValue: function (actor, value) {
+    _setCurrentValue(actor, value) {
         this._value = value;
     },
 
-    _valueChanged: function (slider, value, property) {
+    _valueChanged(slider, value, property) {
         this._customAccessible.notify ("accessible-value");
     },
 

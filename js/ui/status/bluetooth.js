@@ -15,6 +15,7 @@ const RfkillManagerInterface = '<node> \
 <interface name="org.gnome.SettingsDaemon.Rfkill"> \
 <property name="BluetoothAirplaneMode" type="b" access="readwrite" /> \
 <property name="BluetoothHasAirplaneMode" type="b" access="read" /> \
+<property name="BluetoothHardwareAirplaneMode" type="b" access="readwrite" /> \
 </interface> \
 </node>';
 
@@ -26,7 +27,7 @@ var Indicator = new Lang.Class({
     Name: 'BTIndicator',
     Extends: PanelMenu.SystemIndicator,
 
-    _init: function() {
+    _init() {
         this.parent();
 
         this._indicator = this._addIndicator();
@@ -34,23 +35,23 @@ var Indicator = new Lang.Class({
         this._hadSetupDevices = global.settings.get_boolean(HAD_BLUETOOTH_DEVICES_SETUP);
 
         this._proxy = new RfkillManagerProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH,
-                                             Lang.bind(this, function(proxy, error) {
+                                             (proxy, error) => {
                                                  if (error) {
                                                      log(error.message);
                                                      return;
                                                  }
 
                                                  this._sync();
-                                             }));
-        this._proxy.connect('g-properties-changed', Lang.bind(this, this._sync));
+                                             });
+        this._proxy.connect('g-properties-changed', this._sync.bind(this));
 
         this._item = new PopupMenu.PopupSubMenuMenuItem(_("Bluetooth"), true);
         this._item.icon.icon_name = 'bluetooth-active-symbolic';
 
         this._toggleItem = new PopupMenu.PopupMenuItem('');
-        this._toggleItem.connect('activate', Lang.bind(this, function() {
+        this._toggleItem.connect('activate', () => {
             this._proxy.BluetoothAirplaneMode = !this._proxy.BluetoothAirplaneMode;
-        }));
+        });
         this._item.menu.addMenuItem(this._toggleItem);
 
         this._item.menu.addSettingsAction(_("Bluetooth Settings"), 'gnome-bluetooth-panel.desktop');
@@ -58,14 +59,14 @@ var Indicator = new Lang.Class({
 
         this._client = new GnomeBluetooth.Client();
         this._model = this._client.get_model();
-        this._model.connect('row-changed', Lang.bind(this, this._sync));
-        this._model.connect('row-deleted', Lang.bind(this, this._sync));
-        this._model.connect('row-inserted', Lang.bind(this, this._sync));
-        Main.sessionMode.connect('updated', Lang.bind(this, this._sync));
+        this._model.connect('row-changed', this._sync.bind(this));
+        this._model.connect('row-deleted', this._sync.bind(this));
+        this._model.connect('row-inserted', this._sync.bind(this));
+        Main.sessionMode.connect('updated', this._sync.bind(this));
         this._sync();
     },
 
-    _getDefaultAdapter: function() {
+    _getDefaultAdapter() {
         let [ret, iter] = this._model.get_iter_first();
         while (ret) {
             let isDefault = this._model.get_value(iter,
@@ -86,7 +87,7 @@ var Indicator = new Lang.Class({
     //
     // nConnectedDevices is the number of devices connected to the default
     // adapter if one exists and is powered, or -1 if it's not available.
-    _getNDevices: function() {
+    _getNDevices() {
         let adapter = this._getDefaultAdapter();
         if (!adapter)
             return [ this._hadSetupDevices ? 1 : -1, -1 ];
@@ -117,7 +118,7 @@ var Indicator = new Lang.Class({
         return [ nDevices, nConnectedDevices];
     },
 
-    _sync: function() {
+    _sync() {
         let [ nDevices, nConnectedDevices ] = this._getNDevices();
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
 

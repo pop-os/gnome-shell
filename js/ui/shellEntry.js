@@ -14,7 +14,7 @@ var EntryMenu = new Lang.Class({
     Name: 'ShellEntryMenu',
     Extends: PopupMenu.PopupMenu,
 
-    _init: function(entry) {
+    _init(entry) {
         this.parent(entry, 0, St.Side.TOP);
 
         this._entry = entry;
@@ -23,12 +23,12 @@ var EntryMenu = new Lang.Class({
         // Populate menu
         let item;
         item = new PopupMenu.PopupMenuItem(_("Copy"));
-        item.connect('activate', Lang.bind(this, this._onCopyActivated));
+        item.connect('activate', this._onCopyActivated.bind(this));
         this.addMenuItem(item);
         this._copyItem = item;
 
         item = new PopupMenu.PopupMenuItem(_("Paste"));
-        item.connect('activate', Lang.bind(this, this._onPasteActivated));
+        item.connect('activate', this._onPasteActivated.bind(this));
         this.addMenuItem(item);
         this._pasteItem = item;
 
@@ -38,10 +38,9 @@ var EntryMenu = new Lang.Class({
         this.actor.hide();
     },
 
-    _makePasswordItem: function() {
+    _makePasswordItem() {
         let item = new PopupMenu.PopupMenuItem('');
-        item.connect('activate', Lang.bind(this,
-                                           this._onPasswordActivated));
+        item.connect('activate', this._onPasswordActivated.bind(this));
         this.addMenuItem(item);
         this._passwordItem = item;
     },
@@ -64,7 +63,7 @@ var EntryMenu = new Lang.Class({
         }
     },
 
-    open: function(animate) {
+    open(animate) {
         this._updatePasteItem();
         this._updateCopyItem();
         if (this._passwordItem)
@@ -78,20 +77,20 @@ var EntryMenu = new Lang.Class({
             this.actor.grab_key_focus();
     },
 
-    _updateCopyItem: function() {
+    _updateCopyItem() {
         let selection = this._entry.clutter_text.get_selection();
         this._copyItem.setSensitive(!this._entry.clutter_text.password_char &&
                                     selection && selection != '');
     },
 
-    _updatePasteItem: function() {
-        this._clipboard.get_text(St.ClipboardType.CLIPBOARD, Lang.bind(this,
-            function(clipboard, text) {
+    _updatePasteItem() {
+        this._clipboard.get_text(St.ClipboardType.CLIPBOARD,
+            (clipboard, text) => {
                 this._pasteItem.setSensitive(text && text != '');
-            }));
+            });
     },
 
-    _updatePasswordItem: function() {
+    _updatePasswordItem() {
         let textHidden = (this._entry.clutter_text.password_char);
         if (textHidden)
             this._passwordItem.label.set_text(_("Show Text"));
@@ -99,23 +98,23 @@ var EntryMenu = new Lang.Class({
             this._passwordItem.label.set_text(_("Hide Text"));
     },
 
-    _onCopyActivated: function() {
+    _onCopyActivated() {
         let selection = this._entry.clutter_text.get_selection();
         this._clipboard.set_text(St.ClipboardType.CLIPBOARD, selection);
     },
 
-    _onPasteActivated: function() {
-        this._clipboard.get_text(St.ClipboardType.CLIPBOARD, Lang.bind(this,
-            function(clipboard, text) {
+    _onPasteActivated() {
+        this._clipboard.get_text(St.ClipboardType.CLIPBOARD,
+            (clipboard, text) => {
                 if (!text)
                     return;
                 this._entry.clutter_text.delete_selection();
                 let pos = this._entry.clutter_text.get_cursor_position();
                 this._entry.clutter_text.insert_text(text, pos);
-            }));
+            });
     },
 
-    _onPasswordActivated: function() {
+    _onPasswordActivated() {
         let visible = !!(this._entry.clutter_text.password_char);
         this._entry.clutter_text.set_password_char(visible ? '' : '\u25cf');
     }
@@ -161,12 +160,16 @@ function addContextMenu(entry, params) {
     // Add an event handler to both the entry and its clutter_text; the former
     // so padding is included in the clickable area, the latter because the
     // event processing of ClutterText prevents event-bubbling.
-    entry.clutter_text.connect('button-press-event', Lang.bind(null, _onButtonPressEvent, entry));
-    entry.connect('button-press-event', Lang.bind(null, _onButtonPressEvent, entry));
+    entry.clutter_text.connect('button-press-event', (actor, event) => {
+        _onButtonPressEvent(actor, event, entry);
+    });
+    entry.connect('button-press-event', (actor, event) => {
+        _onButtonPressEvent(actor, event, entry);
+    });
 
-    entry.connect('popup-menu', Lang.bind(null, _onPopup, entry));
+    entry.connect('popup-menu', actor => { _onPopup(actor, entry); });
 
-    entry.connect('destroy', function() {
+    entry.connect('destroy', () => {
         entry.menu.destroy();
         entry.menu = null;
         entry._menuManager = null;

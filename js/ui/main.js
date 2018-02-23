@@ -19,6 +19,7 @@ const EndSessionDialog = imports.ui.endSessionDialog;
 const Environment = imports.ui.environment;
 const ExtensionSystem = imports.ui.extensionSystem;
 const ExtensionDownloader = imports.ui.extensionDownloader;
+const InputMethod = imports.misc.inputMethod;
 const Keyboard = imports.ui.keyboard;
 const MessageTray = imports.ui.messageTray;
 const ModalDialog = imports.ui.modalDialog;
@@ -44,6 +45,7 @@ const WindowManager = imports.ui.windowManager;
 const Magnifier = imports.ui.magnifier;
 const XdndHandler = imports.ui.xdndHandler;
 const Util = imports.misc.util;
+const KbdA11yDialog = imports.ui.kbdA11yDialog;
 
 const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
 const STICKY_KEYS_ENABLE = 'stickykeys-enable';
@@ -78,11 +80,14 @@ var magnifier = null;
 var xdndHandler = null;
 var keyboard = null;
 var layoutManager = null;
+var kbdA11yDialog = null;
+var inputMethod = null;
 let _startDate;
 let _defaultCssStylesheet = null;
 let _cssStylesheet = null;
 let _a11ySettings = null;
 let _themeResource = null;
+let _oskResource = null;
 
 function _sessionUpdated() {
     if (sessionMode.isPrimary)
@@ -91,7 +96,7 @@ function _sessionUpdated() {
     wm.setCustomKeybindingHandler('panel-main-menu',
                                   Shell.ActionMode.NORMAL |
                                   Shell.ActionMode.OVERVIEW,
-                                  sessionMode.hasOverview ? Lang.bind(overview, overview.toggle) : null);
+                                  sessionMode.hasOverview ? overview.toggle.bind(overview) : null);
     wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL |
                                       Shell.ActionMode.OVERVIEW);
 
@@ -114,7 +119,9 @@ function start() {
     global.log = window.log;
 
     // Chain up async errors reported from C
-    global.connect('notify-error', function (global, msg, detail) { notifyError(msg, detail); });
+    global.connect('notify-error', (global, msg, detail) => {
+        notifyError(msg, detail);
+    });
 
     Gio.DesktopAppInfo.set_desktop_env('GNOME');
 
@@ -146,6 +153,7 @@ function _initializeUI() {
     Shell.AppUsage.get_default();
 
     reloadThemeResource();
+    _loadOskLayouts();
     _loadDefaultStylesheet();
 
     // Setup the stage hierarchy early
@@ -163,10 +171,14 @@ function _initializeUI() {
     osdWindowManager = new OsdWindow.OsdWindowManager();
     osdMonitorLabeler = new OsdMonitorLabeler.OsdMonitorLabeler();
     overview = new Overview.Overview();
+    kbdA11yDialog = new KbdA11yDialog.KbdA11yDialog();
     wm = new WindowManager.WindowManager();
     magnifier = new Magnifier.Magnifier();
     if (LoginManager.canLock())
         screenShield = new ScreenShield.ScreenShield();
+
+    inputMethod = new InputMethod.InputMethod();
+    Clutter.get_default_backend().set_input_method(inputMethod);
 
     messageTray = new MessageTray.MessageTray();
     panel = new Panel.Panel();
@@ -180,17 +192,17 @@ function _initializeUI() {
 
     _a11ySettings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
 
-    global.display.connect('overlay-key', Lang.bind(overview, function () {
+    global.display.connect('overlay-key', () => {
         if (!_a11ySettings.get_boolean (STICKY_KEYS_ENABLE))
             overview.toggle();
-    }));
+    });
 
-    global.display.connect('show-restart-message', function(display, message) {
+    global.display.connect('show-restart-message', (display, message) => {
         showRestartMessage(message);
         return true;
     });
 
-    global.display.connect('restart', function() {
+    global.display.connect('restart', () => {
         global.reexec_self();
         return true;
     });
@@ -217,12 +229,12 @@ function _initializeUI() {
     ExtensionSystem.init();
 
     if (sessionMode.isGreeter && screenShield) {
-        layoutManager.connect('startup-prepared', function() {
+        layoutManager.connect('startup-prepared', () => {
             screenShield.showDialog();
         });
     }
 
-    layoutManager.connect('startup-complete', function() {
+    layoutManager.connect('startup-complete', () => {
         if (actionMode == Shell.ActionMode.NONE) {
             actionMode = Shell.ActionMode.NORMAL;
         }
@@ -304,6 +316,11 @@ function reloadThemeResource() {
 
     _themeResource = Gio.Resource.load(global.datadir + '/gnome-shell-theme.gresource');
     _themeResource._register();
+}
+
+function _loadOskLayouts() {
+    _oskResource = Gio.Resource.load(global.datadir + '/gnome-shell-osk-layouts.gresource');
+    _oskResource._register();
 }
 
 /**
@@ -408,7 +425,7 @@ function pushModal(actor, params) {
     }
 
     modalCount += 1;
-    let actorDestroyId = actor.connect('destroy', function() {
+    let actorDestroyId = actor.connect('destroy', () => {
         let index = _findModal(actor);
         if (index >= 0)
             popModal(actor);
@@ -417,7 +434,7 @@ function pushModal(actor, params) {
     let prevFocus = global.stage.get_key_focus();
     let prevFocusDestroyId;
     if (prevFocus != null) {
-        prevFocusDestroyId = prevFocus.connect('destroy', function() {
+        prevFocusDestroyId = prevFocus.connect('destroy', () => {
             let index = _findModal(actor);
             if (index >= 0)
                 modalActorFocusStack[index].prevFocus = null;
@@ -591,7 +608,7 @@ function _runBeforeRedrawQueue() {
 function _queueBeforeRedraw(workId) {
     _beforeRedrawQueue.push(workId);
     if (_beforeRedrawQueue.length == 1) {
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, function () {
+        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
             _runBeforeRedrawQueue();
             return false;
         });
@@ -621,12 +638,12 @@ function initializeDeferredWork(actor, callback, props) {
     let workId = '' + (++_deferredWorkSequence);
     _deferredWorkData[workId] = { 'actor': actor,
                                   'callback': callback };
-    actor.connect('notify::mapped', function () {
+    actor.connect('notify::mapped', () => {
         if (!(actor.mapped && _deferredWorkQueue.indexOf(workId) >= 0))
             return;
         _queueBeforeRedraw(workId);
     });
-    actor.connect('destroy', function() {
+    actor.connect('destroy', () => {
         let index = _deferredWorkQueue.indexOf(workId);
         if (index >= 0)
             _deferredWorkQueue.splice(index, 1);
@@ -658,7 +675,7 @@ function queueDeferredWork(workId) {
         _queueBeforeRedraw(workId);
         return;
     } else if (_deferredTimeoutId == 0) {
-        _deferredTimeoutId = Mainloop.timeout_add_seconds(DEFERRED_TIMEOUT_SECONDS, function () {
+        _deferredTimeoutId = Mainloop.timeout_add_seconds(DEFERRED_TIMEOUT_SECONDS, () => {
             _runAllDeferredWork();
             _deferredTimeoutId = 0;
             return GLib.SOURCE_REMOVE;
@@ -671,7 +688,7 @@ var RestartMessage = new Lang.Class({
     Name: 'RestartMessage',
     Extends: ModalDialog.ModalDialog,
 
-    _init : function(message) {
+    _init(message) {
         this.parent({ shellReactive: true,
                       styleClass: 'restart-message headline',
                       shouldFadeIn: false,
