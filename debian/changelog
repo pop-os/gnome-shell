@@ -6,6 +6,8 @@ gnome-shell (3.27.91-1) UNRELEASED; urgency=medium
   * Drop caribou dependencies. GNOME Shell has a new built-in keyboard now.
   * Drop patches applied in new release
   * Cherry-pick bump-api.patch
+  * Disable the 6 patches from merge request !4 since they need to
+    be rebased
 
  -- Jeremy Bicha <jbicha@debian.org>  Fri, 23 Feb 2018 18:11:29 -0500
 
