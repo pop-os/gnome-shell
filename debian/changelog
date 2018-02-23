@@ -3,6 +3,7 @@ gnome-shell (3.27.91-1) UNRELEASED; urgency=medium
   * New upstream development release (LP: #1751070)
   * Bump minimum mutter to 3.27.91
   * Build-Depend on sassc
+  * Drop caribou dependencies. GNOME Shell has a new built-in keyboard now.
 
  -- Jeremy Bicha <jbicha@debian.org>  Fri, 23 Feb 2018 18:11:29 -0500
 
