@@ -32,8 +32,8 @@ override_dh_install:
 	sed -e 's/#2975c4/#dd4814/' -e 's/#4a90d9/#e95420/' data/theme/close-window.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-close-window.svg
 	sed -e 's/#182f4c/#bb3e11/' -e 's/#205b9a/#e95420/' data/theme/toggle-on-us.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-toggle-on-us.svg
 	sed -e 's/#182f4c/#bb3e11/' -e 's/#205b9a/#e95420/' data/theme/toggle-on-intl.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-toggle-on-intl.svg
-	sed -e 's/#2b3133/#bb3e11/' -e 's/#16191a/#191a16/' -e 's/#454c4c/#4c4c45/' -e 's/#454c4c/#4c4c45/' -e 's/#393f3f/#3f3f39/' -e 's/#2d3232/32322d/' -e 's/#3465a4/#dd4814/' data/theme/checkbox-off-focused.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-checkbox-off-focused.svg
-	sed -e 's/#2b3133/#bb3e11/' -e 's/#16191a/#191a16/' -e 's/#454c4c/#4c4c45/' -e 's/#454c4c/#4c4c45/' -e 's/#393f3f/#3f3f39/' -e 's/#2d3232/32322d/' -e 's/#0b2e52/#dd4814/' -e 's/#667482/#e95420/' -e 's/#2d3232/#32322d/' -e 's/#3465a4/#dd4814/' data/theme/checkbox-focused.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-checkbox-focused.svg
+	sed -e 's/#2b3133/#bb3e11/' -e 's/#16191a/#191a16/' -e 's/#454c4c/#4c4c45/' -e 's/#393f3f/#3f3f39/' -e 's/#2d3232/32322d/' -e 's/#3465a4/#dd4814/' data/theme/checkbox-off-focused.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-checkbox-off-focused.svg
+	sed -e 's/#2b3133/#bb3e11/' -e 's/#16191a/#191a16/' -e 's/#454c4c/#4c4c45/' -e 's/#393f3f/#3f3f39/' -e 's/#2d3232/32322d/' -e 's/#0b2e52/#dd4814/' -e 's/#667482/#e95420/' -e 's/#2d3232/#32322d/' -e 's/#3465a4/#dd4814/' data/theme/checkbox-focused.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-checkbox-focused.svg
 	cp data/theme/gnome-shell-high-contrast.css debian/tmp/usr/share/gnome-shell/theme/ubuntu-high-contrast.css
 	dh_install --fail-missing
 

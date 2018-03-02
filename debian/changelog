@@ -2,6 +2,8 @@ gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
 
   * debian/ubuntu-session-mods/ubuntu.css:
     - adapt to new GNOME Shell theme including OSK.
+  * debian/rules:
+    - some duplication removal.
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 02 Mar 2018 10:04:06 +0100
 
