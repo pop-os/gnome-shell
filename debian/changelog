@@ -1,5 +1,6 @@
 gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
 
+  [ Didier Roche ]
   * New upstream version (LP: #1751070, LP: #1722725,
     LP: #1714989, LP: #1724557, LP: #1723857, LP: #1744970):
     - debian/patches/70_allow_sound_above_100.patch,
@@ -30,6 +31,9 @@ gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
     - upstream mutter API bump.
   * debian/gnome-shell-common.install, debian/rules:
     - the .css files aren't shipped anymore, so copy from the built version.
+
+  [ Jeremy Bicha ]
+  * Update NetworkManager dependencies
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 02 Mar 2018 10:04:06 +0100
 
