@@ -25,6 +25,8 @@ gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
     debian/patches/ubuntu_gdm.patch,
     debian/patches/ubuntu_lock_on_suspend.patch:
     - unfuzzed
+  * Cherry-pick git_ea0770ae22a6c34797db4343cf7d2f59bb8d68f6.patch:
+    upstream mutter API bump.
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 02 Mar 2018 10:04:06 +0100
 

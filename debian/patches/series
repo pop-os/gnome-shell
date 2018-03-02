@@ -14,3 +14,4 @@ ubuntu_gdm_alternatives.patch
 ubuntu_block_mode_extension_update.patch
 workaround_crasher_fractional_scaling.patch
 fix-wayland-vbox-crash.patch
+git_ea0770ae22a6c34797db4343cf7d2f59bb8d68f6.patch
