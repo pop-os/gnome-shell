@@ -27,6 +27,8 @@ gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
     - unfuzzed
   * Cherry-pick git_ea0770ae22a6c34797db4343cf7d2f59bb8d68f6.patch:
     upstream mutter API bump.
+  * debian/gnome-shell-common.install, debian/rules:
+    - the .css files aren't shipped anymore, so copy from the built version.
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 02 Mar 2018 10:04:06 +0100
 
