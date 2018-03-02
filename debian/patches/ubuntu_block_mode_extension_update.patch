@@ -14,10 +14,10 @@ patch.
 Origin: ubuntu
 Forwaded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
 
-Index: gnome-shell-3.26.2/js/misc/desktop.js
+Index: gnome-shell-3.27.91/js/misc/desktop.js
 ===================================================================
---- gnome-shell-3.26.2.orig/js/misc/desktop.js
-+++ gnome-shell-3.26.2/js/misc/desktop.js
+--- gnome-shell-3.27.91.orig/js/misc/desktop.js
++++ gnome-shell-3.27.91/js/misc/desktop.js
 @@ -6,6 +6,8 @@ const GLib = imports.gi.GLib;
  // the env variable. It's safe to cache matching result
  let _currentDesktopsMatches = {};
@@ -42,10 +42,10 @@ Index: gnome-shell-3.26.2/js/misc/desktop.js
 +
 +    return ubuntuModeExtensions.indexOf(uuid) !== -1;
 +}
-Index: gnome-shell-3.26.2/js/misc/extensionUtils.js
+Index: gnome-shell-3.27.91/js/misc/extensionUtils.js
 ===================================================================
---- gnome-shell-3.26.2.orig/js/misc/extensionUtils.js
-+++ gnome-shell-3.26.2/js/misc/extensionUtils.js
+--- gnome-shell-3.27.91.orig/js/misc/extensionUtils.js
++++ gnome-shell-3.27.91/js/misc/extensionUtils.js
 @@ -9,6 +9,7 @@ const Signals = imports.signals;
  const Gio = imports.gi.Gio;
  
@@ -67,10 +67,10 @@ Index: gnome-shell-3.26.2/js/misc/extensionUtils.js
          try {
              extension = createExtensionObject(uuid, extensionDir, type);
          } catch(e) {
-Index: gnome-shell-3.26.2/js/ui/extensionDownloader.js
+Index: gnome-shell-3.27.91/js/ui/extensionDownloader.js
 ===================================================================
---- gnome-shell-3.26.2.orig/js/ui/extensionDownloader.js
-+++ gnome-shell-3.26.2/js/ui/extensionDownloader.js
+--- gnome-shell-3.27.91.orig/js/ui/extensionDownloader.js
++++ gnome-shell-3.27.91/js/ui/extensionDownloader.js
 @@ -10,9 +10,11 @@ const St = imports.gi.St;
  const Shell = imports.gi.Shell;
  
@@ -97,7 +97,7 @@ Index: gnome-shell-3.26.2/js/ui/extensionDownloader.js
 +
      let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
  
-     _httpSession.queue_message(message, function(session, message) {
+     _httpSession.queue_message(message, (session, message) => {
 @@ -160,6 +170,9 @@ function updateExtension(uuid) {
  function checkForUpdates() {
      let metadatas = {};

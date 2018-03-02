@@ -14,10 +14,10 @@ https://bugzilla.gnome.org/show_bug.cgi?id=688320
  js/ui/layout.js                     | 8 ++++++++
  2 files changed, 16 insertions(+)
 
-diff --git a/data/org.gnome.shell.gschema.xml.in b/data/org.gnome.shell.gschema.xml.in
-index 63a19032d..8ec1d2683 100644
---- a/data/org.gnome.shell.gschema.xml.in
-+++ b/data/org.gnome.shell.gschema.xml.in
+Index: gnome-shell-3.27.91/data/org.gnome.shell.gschema.xml.in
+===================================================================
+--- gnome-shell-3.27.91.orig/data/org.gnome.shell.gschema.xml.in
++++ gnome-shell-3.27.91/data/org.gnome.shell.gschema.xml.in
 @@ -38,6 +38,14 @@
          load all extensions regardless of the versions they claim to support.
        </description>
@@ -33,11 +33,11 @@ index 63a19032d..8ec1d2683 100644
      <key name="favorite-apps" type="as">
        <default>[ 'epiphany.desktop', 'evolution.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop' ]</default>
        <summary>List of desktop file IDs for favorite applications</summary>
-diff --git a/js/ui/layout.js b/js/ui/layout.js
-index aaf9da536..c9bc3b6bc 100644
---- a/js/ui/layout.js
-+++ b/js/ui/layout.js
-@@ -265,6 +265,9 @@ const LayoutManager = new Lang.Class({
+Index: gnome-shell-3.27.91/js/ui/layout.js
+===================================================================
+--- gnome-shell-3.27.91.orig/js/ui/layout.js
++++ gnome-shell-3.27.91/js/ui/layout.js
+@@ -268,6 +268,9 @@ var LayoutManager = new Lang.Class({
          this._backgroundGroup.lower_bottom();
          this._bgManagers = [];
  
@@ -46,8 +46,8 @@ index aaf9da536..c9bc3b6bc 100644
 +
          // Need to update struts on new workspaces when they are added
          global.screen.connect('notify::n-workspaces',
-                               Lang.bind(this, this._queueUpdateRegions));
-@@ -349,6 +352,11 @@ const LayoutManager = new Lang.Class({
+                               this._queueUpdateRegions.bind(this));
+@@ -364,6 +367,11 @@ var LayoutManager = new Lang.Class({
          });
          this.hotCorners = [];
  

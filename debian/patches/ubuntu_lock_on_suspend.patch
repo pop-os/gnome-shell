@@ -7,8 +7,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  js/ui/screenShield.js |    3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
---- a/js/ui/screenShield.js
-+++ b/js/ui/screenShield.js
+Index: gnome-shell-3.27.91/js/ui/screenShield.js
+===================================================================
+--- gnome-shell-3.27.91.orig/js/ui/screenShield.js
++++ gnome-shell-3.27.91/js/ui/screenShield.js
 @@ -32,6 +32,7 @@ const Util = imports.misc.util;
  const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
  const LOCK_ENABLED_KEY = 'lock-enabled';
@@ -17,9 +19,9 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  
  const LOCKDOWN_SCHEMA = 'org.gnome.desktop.lockdown';
  const DISABLE_LOCK_KEY = 'disable-lock-screen';
-@@ -727,7 +728,7 @@ const ScreenShield = new Lang.Class({
+@@ -727,7 +728,7 @@ var ScreenShield = new Lang.Class({
  
-     _prepareForSleep: function(loginManager, aboutToSuspend) {
+     _prepareForSleep(loginManager, aboutToSuspend) {
          if (aboutToSuspend) {
 -            if (this._settings.get_boolean(LOCK_ENABLED_KEY))
 +            if (this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY))

@@ -4,11 +4,11 @@ Description: Ensure gdm has an ubuntu styling by default.
  user session though.
 Forwarded: not-needed
 Author: Didier Roche <didrocks@ubuntu.com>
-Index: gnome-shell-3.24.3/js/ui/sessionMode.js
+Index: gnome-shell-3.27.91/js/ui/sessionMode.js
 ===================================================================
---- gnome-shell-3.24.3.orig/js/ui/sessionMode.js
-+++ gnome-shell-3.24.3/js/ui/sessionMode.js
-@@ -43,6 +43,7 @@ const _modes = {
+--- gnome-shell-3.27.91.orig/js/ui/sessionMode.js
++++ gnome-shell-3.27.91/js/ui/sessionMode.js
+@@ -42,6 +42,7 @@ const _modes = {
  
      'gdm': {
          hasNotifications: true,

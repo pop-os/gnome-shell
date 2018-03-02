@@ -17,10 +17,10 @@ Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1716921
 Forwaded: https://bugzilla.gnome.org/show_bug.cgi?id=787627
 
-Index: gnome-shell-3.25.91/js/ui/altTab.js
+Index: gnome-shell-3.27.91/js/ui/altTab.js
 ===================================================================
---- gnome-shell-3.25.91.orig/js/ui/altTab.js
-+++ gnome-shell-3.25.91/js/ui/altTab.js
+--- gnome-shell-3.27.91.orig/js/ui/altTab.js
++++ gnome-shell-3.27.91/js/ui/altTab.js
 @@ -13,6 +13,7 @@ const Atk = imports.gi.Atk;
  const Main = imports.ui.main;
  const SwitcherPopup = imports.ui.switcherPopup;
@@ -29,9 +29,9 @@ Index: gnome-shell-3.25.91/js/ui/altTab.js
  
  var APP_ICON_HOVER_TIMEOUT = 200; // milliseconds
  
-@@ -247,6 +248,15 @@ var AppSwitcherPopup = new Lang.Class({
+@@ -285,6 +286,15 @@ var AppSwitcherPopup = new Lang.Class({
  
-     _finish : function(timestamp) {
+     _finish(timestamp) {
          let appIcon = this._items[this._selectedIndex];
 +
 +        // Only activate the first window of next app in case of fast alt-tab
@@ -44,11 +44,11 @@ Index: gnome-shell-3.25.91/js/ui/altTab.js
 +
          if (this._currentWindow < 0)
              appIcon.app.activate_window(appIcon.cachedWindows[0], timestamp);
-         else
-Index: gnome-shell-3.25.91/js/ui/switcherPopup.js
+         else if (appIcon.cachedWindows[this._currentWindow])
+Index: gnome-shell-3.27.91/js/ui/switcherPopup.js
 ===================================================================
---- gnome-shell-3.25.91.orig/js/ui/switcherPopup.js
-+++ gnome-shell-3.25.91/js/ui/switcherPopup.js
+--- gnome-shell-3.27.91.orig/js/ui/switcherPopup.js
++++ gnome-shell-3.27.91/js/ui/switcherPopup.js
 @@ -12,8 +12,10 @@ const St = imports.gi.St;
  
  const Main = imports.ui.main;

@@ -4,9 +4,11 @@ Origin: https://bugzilla.gnome.org/show_bug.cgi?id=788908
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/1724810
 Last-Update: 2017-10-31
 
---- gnome-shell-3.26.1.orig/src/st/st-entry.c
-+++ gnome-shell-3.26.1/src/st/st-entry.c
-@@ -875,7 +875,8 @@ st_entry_paint (ClutterActor *actor)
+Index: gnome-shell-3.27.91/src/st/st-entry.c
+===================================================================
+--- gnome-shell-3.27.91.orig/src/st/st-entry.c
++++ gnome-shell-3.27.91/src/st/st-entry.c
+@@ -874,7 +874,8 @@ st_entry_paint (ClutterActor *actor)
              cogl_handle_unref (priv->text_shadow_material);
  
            material = _st_create_shadow_pipeline_from_actor (shadow_spec,
@@ -16,8 +18,10 @@ Last-Update: 2017-10-31
  
            priv->shadow_width = width;
            priv->shadow_height = height;
---- gnome-shell-3.26.1.orig/src/st/st-icon.c
-+++ gnome-shell-3.26.1/src/st/st-icon.c
+Index: gnome-shell-3.27.91/src/st/st-icon.c
+===================================================================
+--- gnome-shell-3.27.91.orig/src/st/st-icon.c
++++ gnome-shell-3.27.91/src/st/st-icon.c
 @@ -56,12 +56,15 @@ struct _StIconPrivate
  
    CoglPipeline *shadow_pipeline;
@@ -155,8 +159,10 @@ Last-Update: 2017-10-31
  
        /* "pixbuf-change" is actually a misnomer for "texture-changed" */
        g_signal_connect_object (priv->icon_texture, "pixbuf-change",
---- gnome-shell-3.26.1.orig/src/st/st-label.c
-+++ gnome-shell-3.26.1/src/st/st-label.c
+Index: gnome-shell-3.27.91/src/st/st-label.c
+===================================================================
+--- gnome-shell-3.27.91.orig/src/st/st-label.c
++++ gnome-shell-3.27.91/src/st/st-label.c
 @@ -210,7 +210,10 @@ st_label_paint (ClutterActor *actor)
  
            priv->shadow_width = width;
@@ -169,8 +175,10 @@ Last-Update: 2017-10-31
          }
  
        if (priv->text_shadow_pipeline != NULL)
---- gnome-shell-3.26.1.orig/src/st/st-private.c
-+++ gnome-shell-3.26.1/src/st/st-private.c
+Index: gnome-shell-3.27.91/src/st/st-private.c
+===================================================================
+--- gnome-shell-3.27.91.orig/src/st/st-private.c
++++ gnome-shell-3.27.91/src/st/st-private.c
 @@ -411,30 +411,41 @@ _st_create_shadow_pipeline (StShadow
  
  CoglPipeline *
@@ -220,8 +228,10 @@ Last-Update: 2017-10-31
      {
        CoglTexture *buffer;
        CoglOffscreen *offscreen;
---- gnome-shell-3.26.1.orig/src/st/st-private.h
-+++ gnome-shell-3.26.1/src/st/st-private.h
+Index: gnome-shell-3.27.91/src/st/st-private.h
+===================================================================
+--- gnome-shell-3.27.91.orig/src/st/st-private.h
++++ gnome-shell-3.27.91/src/st/st-private.h
 @@ -43,6 +43,13 @@ G_BEGIN_DECLS
  
  G_END_DECLS
@@ -246,8 +256,10 @@ Last-Update: 2017-10-31
  cairo_pattern_t *_st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
                                                    cairo_pattern_t *src_pattern);
  
---- gnome-shell-3.26.1.orig/src/st/st-shadow.c
-+++ gnome-shell-3.26.1/src/st/st-shadow.c
+Index: gnome-shell-3.27.91/src/st/st-shadow.c
+===================================================================
+--- gnome-shell-3.27.91.orig/src/st/st-shadow.c
++++ gnome-shell-3.27.91/src/st/st-shadow.c
 @@ -231,7 +231,9 @@ st_shadow_helper_update (StShadowHelper
        if (helper->pipeline)
          cogl_object_unref (helper->pipeline);
