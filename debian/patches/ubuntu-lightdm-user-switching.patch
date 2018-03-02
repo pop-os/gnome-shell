@@ -12,13 +12,15 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
  js/misc/systemActions.js |   38 ++++++++++++++++++++++++++++++--------
  1 file changed, 30 insertions(+), 8 deletions(-)
 
---- a/js/misc/systemActions.js
-+++ b/js/misc/systemActions.js
+Index: gnome-shell-3.27.91/js/misc/systemActions.js
+===================================================================
+--- gnome-shell-3.27.91.orig/js/misc/systemActions.js
++++ gnome-shell-3.27.91/js/misc/systemActions.js
 @@ -218,6 +218,21 @@ const SystemActions = new Lang.Class({
          return this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName;
      },
  
-+    _lightdmLoginSession: function() {
++    _lightdmLoginSession() {
 +        try {
 +            let seat = GLib.getenv("XDG_SEAT_PATH");
 +            let result = Gio.DBus.system.call_sync('org.freedesktop.DisplayManager',
@@ -33,7 +35,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
 +        }
 +    },
 +
-     _sensorProxyAppeared: function() {
+     _sensorProxyAppeared() {
          this._sensorProxy = new SensorProxy(Gio.DBus.system, SENSOR_BUS_NAME, SENSOR_OBJECT_PATH,
              (proxy, error)  => {
 @@ -313,7 +328,7 @@ const SystemActions = new Lang.Class({
@@ -45,7 +47,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
          this.notify('can-lock-screen');
      },
  
-@@ -400,20 +415,24 @@ const SystemActions = new Lang.Class({
+@@ -400,20 +415,25 @@ const SystemActions = new Lang.Class({
          if (!this._actions.get(LOCK_SCREEN_ACTION_ID).available)
              throw new Error('The lock-screen action is not available!');
  
@@ -56,19 +58,19 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
 +            this._lightdmLoginSession();
      },
  
-     activateSwitchUser: function() {
+     activateSwitchUser() {
          if (!this._actions.get(SWITCH_USER_ACTION_ID).available)
              throw new Error('The switch-user action is not available!');
  
 -        if (Main.screenShield)
 +        if (Main.screenShield) {
              Main.screenShield.lock(false);
--
--        Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
+ 
+-        Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, () => {
 -            Gdm.goto_login_session_sync(null);
 -            return false;
 -        });
-+            Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
++            Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, () => {
 +                Gdm.goto_login_session_sync(null);
 +                return false;
 +            });
@@ -76,4 +78,4 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
 +            this._lightdmLoginSession();
      },
  
-     activateLogout: function() {
+     activateLogout() {

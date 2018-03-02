@@ -1,5 +1,12 @@
 gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
 
+  * New upstream version:
+    - debian/patches/70_allow_sound_above_100.patch,
+      debian/patches/ubuntu-lightdm-user-switching.patch patches
+      refreshed for new release. Removed ': function()' syntax as
+      upstreamed removed them in those context.
+    - debian/patches/ubuntu_panel_center_date_workarea.patch removed as
+      upstreamed now.
   * debian/ubuntu-session-mods/ubuntu.css, debian/rules:
     - adapt to new GNOME Shell theme including OSK.
     - color shift keys in orange in OSK and use differente svg.
