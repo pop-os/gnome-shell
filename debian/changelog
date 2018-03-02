@@ -1,3 +1,10 @@
+gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
+
+  * debian/ubuntu-session-mods/ubuntu.css:
+    - adapt to new GNOME Shell theme including OSK.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Fri, 02 Mar 2018 10:04:06 +0100
+
 gnome-shell (3.26.2-0ubuntu3) bionic; urgency=medium
 
   * debian/patches/ubuntu_panel_center_date_workarea.patch:
