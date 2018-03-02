@@ -9,8 +9,9 @@ gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
       upstreamed now.
     - debian/control.in, debian/rules:
       bump deps, add sassc which is now required.
+      drop caribou dep, as the OSK is now built-in.
     - debian/rules:
-     use now with renamed build options.
+      use now with renamed build options.
   * debian/ubuntu-session-mods/ubuntu.css, debian/rules:
     - adapt to new GNOME Shell theme including OSK.
     - color shift keys in orange in OSK and use differente svg.
