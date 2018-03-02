@@ -1,6 +1,7 @@
 gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
 
-  * New upstream version:
+  * New upstream version (LP: #1751070, LP: #1722725,
+    LP: #1714989, LP: #1724557, LP: #1723857, LP: #1744970):
     - debian/patches/70_allow_sound_above_100.patch,
       debian/patches/ubuntu-lightdm-user-switching.patch patches
       refreshed for new release. Removed ': function()' syntax as
