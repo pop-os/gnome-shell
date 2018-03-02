@@ -1,7 +1,8 @@
 gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
 
-  * debian/ubuntu-session-mods/ubuntu.css:
+  * debian/ubuntu-session-mods/ubuntu.css, debian/rules:
     - adapt to new GNOME Shell theme including OSK.
+    - color shift keys in orange in OSK and use differente svg.
   * debian/rules:
     - some duplication removal.
 

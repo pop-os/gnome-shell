@@ -1557,9 +1557,9 @@ StScrollBar {
   .keyboard-key.shift-key-lowercase {
     background-image: url("resource:///org/gnome/shell/theme/key-shift.svg"); }
   .keyboard-key.shift-key-uppercase {
-    background-image: url("resource:///org/gnome/shell/theme/key-shift-uppercase.svg"); }
+    background-image: url("key-shift-uppercase.svg"); }
   .keyboard-key.shift-key-uppercase:latched {
-    background-image: url("resource:///org/gnome/shell/theme/key-shift-latched-uppercase.svg"); }
+    background-image: url("key-shift-latched-uppercase.svg"); }
   .keyboard-key.hide-key {
     background-image: url("resource:///org/gnome/shell/theme/key-hide.svg"); }
   .keyboard-key.layout-key {
