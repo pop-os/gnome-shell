@@ -1,4 +1,4 @@
-gnome-shell (3.27.91-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.27.91-0ubuntu1) bionic; urgency=medium
 
   [ Didier Roche ]
   * New upstream version (LP: #1751070, LP: #1722725,
