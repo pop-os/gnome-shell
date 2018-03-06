@@ -1,6 +1,7 @@
 gnome-shell (3.27.92-1) UNRELEASED; urgency=medium
 
   * New upstream release candidate
+  * Drop bump-api.patch: Applied in new release
 
  -- Jeremy Bicha <jbicha@debian.org>  Mon, 05 Mar 2018 20:49:37 -0500
 
