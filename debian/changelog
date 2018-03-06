@@ -1,9 +1,9 @@
-gnome-shell (3.27.92-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.27.92-0ubuntu1) bionic; urgency=medium
 
   * New upstream release candidate
   * Drop api patch applied in new release
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 05 Mar 2018 20:40:48 -0500
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 06 Mar 2018 05:38:48 -0500
 
 gnome-shell (3.27.91-0ubuntu1) bionic; urgency=medium
 
