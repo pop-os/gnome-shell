@@ -517,7 +517,7 @@ var ViewSelector = new Lang.Class({
 
         let synthEvent = event.copy();
         synthEvent.set_source(this._text);
-        this._text.event(synthEvent, true);
+        this._text.event(synthEvent, false);
     },
 
     // the entry does not show the hint
@@ -600,15 +600,6 @@ var ViewSelector = new Lang.Class({
                 // with no search term entered and no keyboard button pressed
                 // - cancel the search
                 this.reset();
-            }
-        } else if (!(global.stage.get_key_focus() instanceof Clutter.Text) &&
-                   (event.type() == Clutter.EventType.KEY_PRESS ||
-                    event.type() == Clutter.EventType.KEY_RELEASE)) {
-            let unichar = event.get_key_unicode();
-
-            if (GLib.unichar_isprint(unichar)) {
-                this._text.grab_key_focus();
-                return this._text.event(event, false);
             }
         }
 
