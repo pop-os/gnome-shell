@@ -1,8 +1,9 @@
-gnome-shell (3.28.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.28.0-1) unstable; urgency=medium
 
+  [ Simon McVittie ]
   * New upstream stable release
 
- -- Simon McVittie <smcv@debian.org>  Tue, 13 Mar 2018 08:55:45 +0000
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 18 Mar 2018 20:16:20 -0400
 
 gnome-shell (3.27.92-2) unstable; urgency=medium
 
