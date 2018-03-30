@@ -1,9 +1,15 @@
-gnome-shell (3.27.92-0ubuntu2) bionic; urgency=medium
+gnome-shell (3.28.0-0ubuntu2) bionic; urgency=medium
 
   * debian/patches/ubuntu_theme_lookup_xdg.patch:
     - theme lookup should respect XDG_DATA_DIRS (LP: #1760039)
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 30 Mar 2018 10:21:27 +0200
+
+gnome-shell (3.28.0-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 15 Mar 2018 10:39:16 -0400
 
 gnome-shell (3.27.92-0ubuntu1) bionic; urgency=medium
 
