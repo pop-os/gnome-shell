@@ -1,0 +1,34 @@
+Description: ui: Theme lookup should respect XDG_DATA_DIRS
+ mods, extensions and others GNOME Shell assets lookup into each dir, relative
+ to XDG_DATA_DIRS. However, this isn't the case for themes (which can be
+ referenced by a mod in a different XDG_DATA_DIR), hardcoding global.datadir.
+ The fix is to have the theme finding pattern following the same logic than
+ other elements.
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1760039
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/70
+Author: Didier Roche <didrocks@ubuntu.com>
+diff --git a/js/ui/main.js b/js/ui/main.js
+index 7c1214e0a..99edd28d7 100644
+--- a/js/ui/main.js
++++ b/js/ui/main.js
+@@ -254,9 +254,14 @@ function _getStylesheet(name) {
+     if (stylesheet.query_exists(null))
+         return stylesheet;
+ 
+-    stylesheet = Gio.File.new_for_path(global.datadir + '/theme/' + name);
+-    if (stylesheet.query_exists(null))
+-        return stylesheet;
++    let dataDirs = GLib.get_system_data_dirs();
++    for (let i = 0; i < dataDirs.length; i++) {
++        let path = GLib.build_filenamev([dataDirs[i], 'gnome-shell', 'theme', name]);
++        let stylesheet = Gio.file_new_for_path(path);
++        if (stylesheet.query_exists(null)) {
++            return stylesheet;
++        }
++    }
+ 
+     return null;
+ }
+-- 
+2.15.1
+

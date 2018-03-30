@@ -12,5 +12,6 @@ ubuntu_gdm.patch
 ubuntu_background_login.patch
 ubuntu_gdm_alternatives.patch
 ubuntu_block_mode_extension_update.patch
+ubuntu_theme_lookup_xdg.patch
 workaround_crasher_fractional_scaling.patch
 fix-wayland-vbox-crash.patch
