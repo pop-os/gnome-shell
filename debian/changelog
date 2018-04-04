@@ -1,3 +1,9 @@
+gnome-shell (3.28.0-0ubuntu3) UNRELEASED; urgency=medium
+
+  * Recommend bolt for Thunderbolt 3 support (LP: #1759538)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 04 Apr 2018 10:02:18 -0400
+
 gnome-shell (3.28.0-0ubuntu2) bionic; urgency=medium
 
   * debian/patches/ubuntu_theme_lookup_xdg.patch:
