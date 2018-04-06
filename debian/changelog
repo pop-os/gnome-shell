@@ -1,3 +1,13 @@
+gnome-shell (3.28.0-0ubuntu4) bionic; urgency=medium
+
+  * debian/rules:
+    - Drop javascript comments in gnome-shell.pot so the currently used
+      version of gettext in LP gets more permissive wrt cases where
+      the number of %d modifiers in a translation differs from what's
+      in msgid (LP: #1756547).
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Fri, 06 Apr 2018 15:58:00 +0200
+
 gnome-shell (3.28.0-0ubuntu3) bionic; urgency=medium
 
   * Recommend bolt for Thunderbolt 3 support (LP: #1759538)
