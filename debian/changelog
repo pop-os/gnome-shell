@@ -1,3 +1,9 @@
+gnome-shell (3.28.0-0ubuntu5) bionic; urgency=medium
+
+  * No-change rebuild for translations (LP: #1756547)
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Sat, 07 Apr 2018 15:58:00 +0200
+
 gnome-shell (3.28.0-0ubuntu4) bionic; urgency=medium
 
   * debian/rules:
