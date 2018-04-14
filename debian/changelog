@@ -1,5 +1,6 @@
-gnome-shell (3.28.0-2) UNRELEASED; urgency=medium
+gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
 
+  * New upstream release
   * Bump required glib to 2.56. Thanks Marcus Lundblad.
   * debian/gnome-shell.gsettings-overrides:
     Adapt favorite-apps to the renaming of Evolution's .desktop
