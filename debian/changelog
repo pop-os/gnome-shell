@@ -5,6 +5,7 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
   * debian/gnome-shell.gsettings-overrides:
     Adapt favorite-apps to the renaming of Evolution's .desktop
   * Drop obsolete dh_translations override
+  * Bump Standards-Version to 4.1.4
 
  -- Jeremy Bicha <jbicha@debian.org>  Mon, 19 Mar 2018 16:51:53 -0400
 
@@ -227,7 +228,7 @@ gnome-shell (3.25.91-1) experimental; urgency=medium
       and apparently not needed
   * debian/gnome-shell-common.install:
     - Don't try to install gtk-doc documentation
-  * Drop icon theme dependency hack no longer used by Ubuntu 
+  * Drop icon theme dependency hack no longer used by Ubuntu
   * Add run-unit-tests.patch: Run unit tests with meson
   * Drop 3.14 upgrade hack, not needed after stretch
   * Drop 50-extension-reload-fail.patch: applied in new release
@@ -667,10 +668,10 @@ gnome-shell (3.16.2-1) experimental; urgency=medium
 gnome-shell (3.14.4-1) unstable; urgency=medium
 
   * New upstream translation and bugfix release.
-    + Includes workaround for #768896 which is very annoying for users 
+    + Includes workaround for #768896 which is very annoying for users
       of the proprietary nvidia driver.
-  * 01_network_list.patch, 02_auth_prompt.patch, 
-    50-compute-weeknumber-with-gdatetime.patch: dropped, merged 
+  * 01_network_list.patch, 02_auth_prompt.patch,
+    50-compute-weeknumber-with-gdatetime.patch: dropped, merged
     upstream.
   * Bump (build-)dependencies on mutter as usual.
 
@@ -679,7 +680,7 @@ gnome-shell (3.14.4-1) unstable; urgency=medium
 gnome-shell (3.14.2-3) unstable; urgency=medium
 
   * Add missing dependency on mutter. Closes: #764715.
-  * 10_background_race.patch: fix a race condition when loading two 
+  * 10_background_race.patch: fix a race condition when loading two
     backgrounds made of different XML files.
 
  -- Josselin Mouette <joss@debian.org>  Fri, 12 Dec 2014 22:32:31 +0100
@@ -694,14 +695,14 @@ gnome-shell (3.14.2-2) unstable; urgency=medium
 
 gnome-shell (3.14.2-1) unstable; urgency=medium
 
-  * gnome-shell.gsettings-override: remove shotwell which is no longer 
+  * gnome-shell.gsettings-override: remove shotwell which is no longer
     part of the default installation.
   * New upstream bugfix release.
     + Summarize notifications instead of queuing up.
   * Bump (build-)dependencies on mutter.
-  * 01_network_list.patch: patch from upstream git. Fix an UI bug when 
+  * 01_network_list.patch: patch from upstream git. Fix an UI bug when
     removing network connections.
-  * 02_auth_prompt.patch: patch from upstream git. Fix the prompt with  
+  * 02_auth_prompt.patch: patch from upstream git. Fix the prompt with
     disable_user_list after canceling an attempt. Closes: #683338.
 
  -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 13:52:46 +0100
@@ -867,7 +868,7 @@ gnome-shell (3.12.0-1) experimental; urgency=low
   * Have quilt refresh patches.
   * Add build-dependency on libgnome-menu-3-dev
     - need GMenu-3.0.gir
-  * Bump glib2.0 build-dependency to 2.39.90 
+  * Bump glib2.0 build-dependency to 2.39.90
     - code uses new g_app_info_monitor*
   * Bump gsettings-desktop-schemas {build-,}dependency to 3.11
     - needs new key at runtime
@@ -1194,7 +1195,7 @@ gnome-shell (3.6.1-3ubuntu1) raring; urgency=low
 gnome-shell (3.6.1-3) experimental; urgency=low
 
   * debian/rules: Depends on 3.6 versions of gir1.2-gnomebluetooth-1.0 and
-    gir1.2-gnomedesktop-3.0 
+    gir1.2-gnomedesktop-3.0
   * debian/rules: Add dependency on evolution-data-server (Closes: #690554)
   * debian/rules: Depend on gir1.2-telepathylogger-0.2 >= 0.4.0-2 to get the
     annotation updates needed by gnome-shell
@@ -1270,7 +1271,7 @@ gnome-shell (3.4.2-1) unstable; urgency=low
   * d/p/27-nm-libexec-path.patch: Use Debian specific NM VPN helpers paths
 
   [ Josselin Mouette ]
-  * Change epiphany desktop file name to match the change in the 
+  * Change epiphany desktop file name to match the change in the
     epiphany package.
 
   [ Jordi Mallach ]
@@ -1284,12 +1285,12 @@ gnome-shell (3.4.2-1) unstable; urgency=low
 
 gnome-shell (3.4.1-8) unstable; urgency=low
 
-  * 27-don-t-show-apps-in-NoDisplay-categories.patch: renamed as 
+  * 27-don-t-show-apps-in-NoDisplay-categories.patch: renamed as
     03_don-t-show-apps-in-NoDisplay-categories.patch for reordering.
-  * 01_slist_cleanup.patch, 02_filter_nodisplay_parents.patch, 
-    04_fix_nodisplay.patch: correctly filter out applications in a 
-    NoDisplay directory, including parent directories. This should 
-    finally fix for good handling of the Debian menu, including in 
+  * 01_slist_cleanup.patch, 02_filter_nodisplay_parents.patch,
+    04_fix_nodisplay.patch: correctly filter out applications in a
+    NoDisplay directory, including parent directories. This should
+    finally fix for good handling of the Debian menu, including in
     searches.  Closes: #677498.
   * Bump the build-dependency on gnome-menus accordingly.
 
@@ -1373,7 +1374,7 @@ gnome-shell (3.4.1-1) experimental; urgency=low
 
   [ Jeremy Bicha ]
   * New upstream release.
-  * debian/control.in: 
+  * debian/control.in:
     - Add debug package
     - Update dependencies
     - Recommend gnome-user-guide
@@ -1480,7 +1481,7 @@ gnome-shell (3.2.1-6) experimental; urgency=low
     version that works with GNOME 3.2.
 
   [ Josselin Mouette ]
-  * Split common files and translations in gnome-shell-common. Add 
+  * Split common files and translations in gnome-shell-common. Add
     appropriate Breaks/Replaces.
 
   [ Michael Biebl ]
@@ -1629,8 +1630,8 @@ gnome-shell (3.0.2-2) experimental; urgency=low
   [ Martin Pitt ]
   * debian/control.in, debian/rules: When building on Ubuntu, add a dependency
     to gnome-icon-theme-full.
-  * debian/control.in: Change gir1.2-json-glib-1.0 build-dep to 
-    gir1.2-json-1.0 to reflect the binary rename in json-glib 
+  * debian/control.in: Change gir1.2-json-glib-1.0 build-dep to
+    gir1.2-json-1.0 to reflect the binary rename in json-glib
     0.13.4-2. Thanks Micah Gersten!
 
   [ Laurent Bigonville ]
@@ -1641,8 +1642,8 @@ gnome-shell (3.0.2-2) experimental; urgency=low
   * debian/compat: Bump debhelper compatibility to 8
 
   [ Josselin Mouette ]
-  * 03_hidden_applications.patch: do not show NoDisplay=true submenus 
-    and applications. This will avoid showing the Debian menu while 
+  * 03_hidden_applications.patch: do not show NoDisplay=true submenus
+    and applications. This will avoid showing the Debian menu while
     asked not to. Closes: #557997.
   * 01_favorite_apps.patch: dropped, replaced by override file.
   * Add libreoffice and yelp to favorite applications.
@@ -2021,7 +2022,7 @@ gnome-shell (2.27.3-0ubuntu1) karmic; urgency=low
 
   * New upstream version
   * debian/control:
-    - depends on python since it's used in the wrapper 
+    - depends on python since it's used in the wrapper
       (lp: #413096)
     - updated gir requirement
 
