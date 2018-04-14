@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '3.28.0',
+  version: '3.28.1',
   meson_version: '>= 0.42.0',
   license: 'GPLv2+'
 )
@@ -18,7 +18,7 @@ ecal_req = '>= 3.5.3'
 eds_req = '>= 3.17.2'
 gcr_req = '>= 3.7.5'
 gdesktop_req = '>= 3.7.90'
-gio_req = '>= 2.53.0'
+gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
 gjs_req = '>= 1.47.0'
 gtk_req = '>= 3.15.0'
@@ -189,3 +189,5 @@ subdir('tests')
 if get_option('gtk_doc')
   subdir('docs/reference')
 endif
+
+meson.add_install_script('meson/meson-postinstall.sh')
