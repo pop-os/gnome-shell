@@ -1,4 +1,3 @@
-27-nm-libexec-path.patch
 #30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
 41-handle-logind-fail.patch
 50_add_ubuntu_desktop_detect.patch
@@ -14,4 +13,3 @@ ubuntu_gdm_alternatives.patch
 ubuntu_block_mode_extension_update.patch
 ubuntu_theme_lookup_xdg.patch
 workaround_crasher_fractional_scaling.patch
-fix-wayland-vbox-crash.patch

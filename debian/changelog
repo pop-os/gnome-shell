@@ -1,3 +1,12 @@
+gnome-shell (3.28.1-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream release
+  * Drop obsolete patches:
+    - 27-nm-libexec-path.patch
+    - fix-wayland-vbox-crash.patch
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 Apr 2018 21:40:17 -0400
+
 gnome-shell (3.28.0-0ubuntu5) bionic; urgency=medium
 
   * No-change rebuild for translations (LP: #1756547)
