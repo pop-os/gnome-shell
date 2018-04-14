@@ -44,12 +44,3 @@ else
 	-xvfb-run dh_auto_test
 endif
 endif
-
-# Needed by Ubuntu
-override_dh_translations:
-	ninja -C obj-$(DEB_HOST_GNU_TYPE) gnome-shell-pot
-	dh_translations
-
-override_dh_auto_clean:
-	dh_auto_clean
-	rm -f po/gnome-shell.pot

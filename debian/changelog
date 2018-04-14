@@ -4,6 +4,7 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
   * Bump required glib to 2.56. Thanks Marcus Lundblad.
   * debian/gnome-shell.gsettings-overrides:
     Adapt favorite-apps to the renaming of Evolution's .desktop
+  * Drop obsolete dh_translations override
 
  -- Jeremy Bicha <jbicha@debian.org>  Mon, 19 Mar 2018 16:51:53 -0400
 
