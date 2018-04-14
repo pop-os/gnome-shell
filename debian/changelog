@@ -1,4 +1,4 @@
-gnome-shell (3.28.1-0ubuntu0.1) UNRELEASED; urgency=medium
+gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
   * Bump required glib to 2.56. Thanks Marcus Lundblad.
