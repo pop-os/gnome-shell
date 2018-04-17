@@ -12,7 +12,7 @@ until https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/1 is merged.
 The patch set is too large otherwise to keep it maintainable as a distro
 patch.
 Origin: ubuntu
-Forwaded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
+Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
 
 Index: gnome-shell-3.27.91/js/misc/desktop.js
 ===================================================================

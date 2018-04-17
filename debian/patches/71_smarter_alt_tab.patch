@@ -15,7 +15,7 @@ Description: Build a smarter alt-tab in the ubuntu session
  impacted.
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1716921
-Forwaded: https://bugzilla.gnome.org/show_bug.cgi?id=787627
+Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=787627
 
 Index: gnome-shell-3.27.91/js/ui/altTab.js
 ===================================================================
