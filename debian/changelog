@@ -1,9 +1,35 @@
-gnome-shell (3.28.1-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.28.1-0ubuntu1~bionic2) UNRELEASED; urgency=medium
 
+  [ Jeremy Bicha ]
   * New upstream release
   * Drop obsolete patches:
     - 27-nm-libexec-path.patch
     - fix-wayland-vbox-crash.patch
+
+  [ Marco Trevisan (Treviño) ]
+  * ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch:
+    - Renamed from ubuntu_theme_lookup_xdg.patch and cherry-picked from
+      upstream
+  * StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch:
+    - Don't try to compute shadows on not allocated icons (LP: #1723378)
+  * js-fix-invalid-access-errors.patch:
+    - Fix javascript errors (LP: #1747566)
+  * popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch:
+    - Cherry-pick from upstream
+  * shell-ignore-invalid-window-monitor-index.patch:
+    - Fix crash on accessing on invalid monitor windows (LP: #1724439)
+  * volume-Add-back-sound-feedback-on-scroll.patch:
+    - Fix regression causing missing feedback on volume slider scroll
+  * workspace-fix-repositioned-windows-in-activities.patch:
+    - Ensure windows thumbnails coordinates are correct (LP: #1653153)
+  * workspaceThumbnail-initialize-porthole-based-on-workArea.patch:
+    workspaceThumbnail-only-update-_porthole-if-the-overview-.patch:
+    workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch:
+    - Cherry-picks from upstream, avoid unneeded computations in activities
+  * st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch:
+    - Fix possible crash on cache loading
+  * st-texture-cache-Don-t-add-NULL-textures-to-cache.patch:
+    - Fix crash when deleting NULL textures from cash (LP: #1754445)
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 Apr 2018 21:40:17 -0400
 
