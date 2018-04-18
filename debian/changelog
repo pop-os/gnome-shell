@@ -1,4 +1,4 @@
-gnome-shell (3.28.1-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.28.1-0ubuntu1) bionic; urgency=medium
 
   [ Jeremy Bicha ]
   * New upstream release
@@ -7,25 +7,28 @@ gnome-shell (3.28.1-0ubuntu1) UNRELEASED; urgency=medium
     - fix-wayland-vbox-crash.patch
 
   [ Marco Trevisan (Treviño) ]
+  Cherry-pick patches applied to upstream git master:
   * ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch:
     - Renamed from ubuntu_theme_lookup_xdg.patch and cherry-picked from
       upstream
+  * workspaceThumbnail-only-update-_porthole-if-the-overview-.patch:
+    workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch:
+    workspaceThumbnail-initialize-porthole-based-on-workArea.patch:
+    - Cherry-picks from upstream, avoid unneeded computations in activities
+  * popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch:
+    - Cherry-pick from upstream
+  * volume-Add-back-sound-feedback-on-scroll.patch:
+    - Fix regression causing missing feedback on volume slider scroll
+
+  Add patches proposed upstream:
+  * shell-ignore-invalid-window-monitor-index.patch:
+    - Fix crash on accessing on invalid monitor windows (LP: #1724439)
   * StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch:
     - Don't try to compute shadows on not allocated icons (LP: #1723378)
   * js-fix-invalid-access-errors.patch:
     - Fix javascript errors (LP: #1747566)
-  * popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch:
-    - Cherry-pick from upstream
-  * shell-ignore-invalid-window-monitor-index.patch:
-    - Fix crash on accessing on invalid monitor windows (LP: #1724439)
-  * volume-Add-back-sound-feedback-on-scroll.patch:
-    - Fix regression causing missing feedback on volume slider scroll
   * workspace-fix-repositioned-windows-in-activities.patch:
     - Ensure windows thumbnails coordinates are correct (LP: #1653153)
-  * workspaceThumbnail-initialize-porthole-based-on-workArea.patch:
-    workspaceThumbnail-only-update-_porthole-if-the-overview-.patch:
-    workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch:
-    - Cherry-picks from upstream, avoid unneeded computations in activities
   * st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch:
     - Fix possible crash on cache loading
   * st-texture-cache-Don-t-add-NULL-textures-to-cache.patch:
