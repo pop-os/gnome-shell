@@ -11,15 +11,17 @@ ubuntu_gdm.patch
 ubuntu_background_login.patch
 ubuntu_gdm_alternatives.patch
 ubuntu_block_mode_extension_update.patch
+# Cherry picks from upstream
 ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
-workaround_crasher_fractional_scaling.patch
-shell-ignore-invalid-window-monitor-index.patch
 workspaceThumbnail-only-update-_porthole-if-the-overview-.patch
 workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch
 workspaceThumbnail-initialize-porthole-based-on-workArea.patch
 popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch
-StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch
 volume-Add-back-sound-feedback-on-scroll.patch
+# End of Cherry-picked patches
+workaround_crasher_fractional_scaling.patch
+shell-ignore-invalid-window-monitor-index.patch
+StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch
 js-fix-invalid-access-errors.patch
 workspace-fix-repositioned-windows-in-activities.patch
 st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
