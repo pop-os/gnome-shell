@@ -30,6 +30,9 @@ gnome-shell (3.28.1-0ubuntu1) UNRELEASED; urgency=medium
     - Fix possible crash on cache loading
   * st-texture-cache-Don-t-add-NULL-textures-to-cache.patch:
     - Fix crash when deleting NULL textures from cache (LP: #1754445)
+  * js-ui-Choose-some-actors-to-cache-on-the-GPU.patch:
+    - Improve rendering of shell elements moving rendering to GPU
+      (LP: #1744001)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 17 Apr 2018 14:40:17 -0400
 
