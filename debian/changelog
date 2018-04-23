@@ -11,6 +11,7 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
 
   [ Simon McVittie ]
   * d/patches: Remove patches that no longer apply
+  * d/gbp.conf: Don't use numbered patches
 
  -- Jeremy Bicha <jbicha@debian.org>  Mon, 19 Mar 2018 16:51:53 -0400
 
