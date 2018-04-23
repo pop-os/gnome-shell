@@ -1,5 +1,6 @@
 gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
 
+  [ Jeremy Bicha ]
   * New upstream release
   * Bump required glib to 2.56. Thanks Marcus Lundblad.
   * debian/gnome-shell.gsettings-overrides:
@@ -7,6 +8,9 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
   * Drop obsolete dh_translations override
   * Drop 27-nm-libexec-path.patch: no longer needed
   * Bump Standards-Version to 4.1.4
+
+  [ Simon McVittie ]
+  * d/patches: Remove patches that no longer apply
 
  -- Jeremy Bicha <jbicha@debian.org>  Mon, 19 Mar 2018 16:51:53 -0400
 
