@@ -1,4 +1,4 @@
-gnome-shell (3.28.1-0ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (3.28.1-0ubuntu2) bionic; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * js-ui-Choose-some-actors-to-cache-on-the-GPU.patch:
@@ -9,7 +9,7 @@ gnome-shell (3.28.1-0ubuntu2) UNRELEASED; urgency=medium
   * Cherry-pick polkitAgent-Guard-against-repeated-close-calls.patch:
     - Fix PolicyKit authorization prompt after cancelling once (LP: #1765353)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 18 Apr 2018 21:29:28 -0500
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 23 Apr 2018 15:29:28 -0500
 
 gnome-shell (3.28.1-0ubuntu1) bionic; urgency=medium
 
