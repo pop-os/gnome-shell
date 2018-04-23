@@ -1,1 +1,6 @@
+popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch
+workspaceThumbnail-initialize-porthole-based-on-workArea.patch
+workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch
+workspaceThumbnail-only-update-_porthole-if-the-overview-.patch
+polkitAgent-Guard-against-repeated-close-calls.patch
 workaround_crasher_fractional_scaling.patch

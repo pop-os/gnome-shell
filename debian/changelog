@@ -12,6 +12,12 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
   [ Simon McVittie ]
   * d/patches: Remove patches that no longer apply
   * d/gbp.conf: Don't use numbered patches
+  * d/p/popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch,
+    d/p/workspaceThumbnail-initialize-porthole-based-on-workArea.patch,
+    d/p/workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch,
+    d/p/workspaceThumbnail-only-update-_porthole-if-the-overview-.patch,
+    d/p/polkitAgent-Guard-against-repeated-close-calls.patch:
+    Apply post-release bug fixes from upstream
 
  -- Jeremy Bicha <jbicha@debian.org>  Mon, 19 Mar 2018 16:51:53 -0400
 

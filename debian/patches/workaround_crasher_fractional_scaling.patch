@@ -8,6 +8,8 @@ The true fix would be to avoid width and height to get NaN values.
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1714542
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=788316
+Forwarded: yes
+Applied-upstream: no
 ---
  src/st/st-theme-node-drawing.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
