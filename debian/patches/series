@@ -4,3 +4,9 @@ workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch
 workspaceThumbnail-only-update-_porthole-if-the-overview-.patch
 polkitAgent-Guard-against-repeated-close-calls.patch
 workaround_crasher_fractional_scaling.patch
+tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
+dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
+workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch
+workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch
+workspace-Disconnect-from-window-signals-on-destruction.patch
+workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch

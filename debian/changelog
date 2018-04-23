@@ -18,6 +18,14 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
     d/p/workspaceThumbnail-only-update-_porthole-if-the-overview-.patch,
     d/p/polkitAgent-Guard-against-repeated-close-calls.patch:
     Apply post-release bug fixes from upstream
+  * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
+    d/p/dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch,
+    d/p/workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch,
+    d/p/workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch,
+    d/p/workspace-Disconnect-from-window-signals-on-destruction.patch,
+    d/p/workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch:
+    Apply patches proposed upstream by Marco Trevisan to fix various uses
+    of objects after they are disposed (Closes: #887082) (LP: #1747566)
 
  -- Jeremy Bicha <jbicha@debian.org>  Mon, 19 Mar 2018 16:51:53 -0400
 
