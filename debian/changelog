@@ -1,4 +1,4 @@
-gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
+gnome-shell (3.28.1-1) unstable; urgency=medium
 
   [ Jeremy Bicha ]
   * New upstream release
@@ -29,7 +29,7 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
     Apply patches proposed upstream by Marco Trevisan to fix various uses
     of objects after they are disposed (Closes: #887082) (LP: #1747566)
 
- -- Jeremy Bicha <jbicha@debian.org>  Mon, 19 Mar 2018 16:51:53 -0400
+ -- Jeremy Bicha <jbicha@debian.org>  Tue, 08 May 2018 09:00:35 -0400
 
 gnome-shell (3.28.0-1) unstable; urgency=medium
 
