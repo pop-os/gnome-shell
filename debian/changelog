@@ -8,6 +8,7 @@ gnome-shell (3.28.1-1) UNRELEASED; urgency=medium
   * Drop obsolete dh_translations override
   * Drop 27-nm-libexec-path.patch: no longer needed
   * Cherry-pick thunderbolt-sync-D-Bus-API-with-bolt-changes.patch
+  * Recommend bolt >= 0.3 for Thunderbolt support
   * Bump Standards-Version to 4.1.4
 
   [ Simon McVittie ]
