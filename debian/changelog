@@ -1,8 +1,21 @@
 gnome-shell (3.28.2-1) UNRELEASED; urgency=medium
 
   * New upstream release
+  * d/p/polkitAgent-Guard-against-repeated-close-calls.patch,
+    d/p/popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch,
+    d/p/workspaceThumbnail-initialize-porthole-based-on-workArea.patch,
+    d/p/workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch,
+    d/p/workspaceThumbnail-only-update-_porthole-if-the-overview-.patch:
+    Drop patches that were cherry-picked from upstream 3.28 branch
+  * d/p/ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch:
+    Add patch from upstream git master to make themes respect XDG_DATA_DIRS
+    (LP: #1760039)
+  * d/p/networkAgent-Fix-fallout-from-libnm-port.patch:
+    Add patch from upstream 3.28 branch to fix a regression in wifi
+    password prompting
+  * Re-order patch series to put patches that were applied upstream first
 
- -- Simon McVittie <smcv@debian.org>  Thu, 17 May 2018 09:45:25 +0100
+ -- Simon McVittie <smcv@debian.org>  Thu, 17 May 2018 10:29:59 +0100
 
 gnome-shell (3.28.1-1) unstable; urgency=medium
 
