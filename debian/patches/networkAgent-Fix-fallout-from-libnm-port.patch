@@ -1,0 +1,29 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 9 May 2018 16:17:17 +0200
+Subject: networkAgent: Fix fallout from libnm port
+
+While the libnm-glib version of the function returns a GByteArray*
+that gjs can directly cast to the required gutf8*, the libnm function
+returns GBytes* from which we need to explicitly fetch the data.
+
+(cherry picked from commit c0a453f64f4c725e520830b2cdba8a608acc94e4)
+
+Origin: upstream, 3.28.3, commit:e1ed4b25e1eea39dfe83829d336c6b065440b1cb
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/136
+---
+ js/ui/components/networkAgent.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/components/networkAgent.js b/js/ui/components/networkAgent.js
+index 75f4203..60ebf94 100644
+--- a/js/ui/components/networkAgent.js
++++ b/js/ui/components/networkAgent.js
+@@ -655,7 +655,7 @@ var NetworkAgent = new Lang.Class({
+         switch (connectionType) {
+         case '802-11-wireless':
+             let wirelessSetting = connection.get_setting_wireless();
+-            let ssid = NM.utils_ssid_to_utf8(wirelessSetting.get_ssid());
++            let ssid = NM.utils_ssid_to_utf8(wirelessSetting.get_ssid().get_data());
+             title = _("Authentication required by wireless network");
+             body = _("Passwords or encryption keys are required to access the wireless network “%s”.").format(ssid);
+             break;
