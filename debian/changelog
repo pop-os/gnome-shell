@@ -1,5 +1,6 @@
-gnome-shell (3.28.2-1) UNRELEASED; urgency=medium
+gnome-shell (3.28.2-1) unstable; urgency=medium
 
+  * Team upload
   * New upstream release
   * d/p/polkitAgent-Guard-against-repeated-close-calls.patch,
     d/p/popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch,
@@ -15,7 +16,7 @@ gnome-shell (3.28.2-1) UNRELEASED; urgency=medium
     password prompting
   * Re-order patch series to put patches that were applied upstream first
 
- -- Simon McVittie <smcv@debian.org>  Thu, 17 May 2018 10:29:59 +0100
+ -- Simon McVittie <smcv@debian.org>  Thu, 17 May 2018 10:37:37 +0100
 
 gnome-shell (3.28.1-1) unstable; urgency=medium
 
