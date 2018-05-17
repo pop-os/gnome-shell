@@ -1,9 +1,9 @@
 ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
-workaround_crasher_fractional_scaling.patch
+networkAgent-Fix-fallout-from-libnm-port.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
 workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch
 workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch
 workspace-Disconnect-from-window-signals-on-destruction.patch
 workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch
-networkAgent-Fix-fallout-from-libnm-port.patch
+workaround_crasher_fractional_scaling.patch
