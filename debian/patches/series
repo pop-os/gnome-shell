@@ -1,3 +1,4 @@
+ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
 workaround_crasher_fractional_scaling.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
