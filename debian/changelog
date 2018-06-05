@@ -1,3 +1,16 @@
+gnome-shell (3.28.2-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream release
+    - fixes valid password rejection at login screen (LP: #1765261)
+  * Drop patches applied upstream:
+    - debian/patches/polkitAgent-Guard-against-repeated-close-calls.patch
+    - debian/patches/popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch
+    - debian/patches/workspaceThumbnail-initialize-porthole-based-on-workArea.patch
+    - debian/patches/workspaceThumbnail-only-update-_porthole-if-the-overview-.patch
+    - debian/patches/workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch
+
+ -- Olivier Tilloy <olivier.tilloy@canonical.com>  Tue, 05 Jun 2018 16:37:49 +0200
+
 gnome-shell (3.28.1-0ubuntu2) bionic; urgency=medium
 
   [ Marco Trevisan (Treviño) ]

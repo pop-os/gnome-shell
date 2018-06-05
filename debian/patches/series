@@ -13,12 +13,7 @@ ubuntu_gdm_alternatives.patch
 ubuntu_block_mode_extension_update.patch
 # Cherry picks from upstream
 ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
-workspaceThumbnail-only-update-_porthole-if-the-overview-.patch
-workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch
-workspaceThumbnail-initialize-porthole-based-on-workArea.patch
-popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch
 volume-Add-back-sound-feedback-on-scroll.patch
-polkitAgent-Guard-against-repeated-close-calls.patch
 # End of Cherry-picked patches
 workaround_crasher_fractional_scaling.patch
 shell-ignore-invalid-window-monitor-index.patch
