@@ -25,3 +25,6 @@ workspace-fix-repositioned-windows-in-activities.patch
 st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
 js-ui-Choose-some-actors-to-cache-on-the-GPU.patch
 magnifier.js-Fix-zoom-juddering.patch
+authPrompt-Unset-preemptiveAnswer-on-reset.patch
+authPrompt-Do-not-enable-sensitivity-if-retries-are-disal.patch
+gdm-util-Always-allow-to-retry-login-in-unlock-mode.patch

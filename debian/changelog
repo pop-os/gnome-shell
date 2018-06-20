@@ -22,6 +22,10 @@ gnome-shell (3.28.2-0ubuntu1) UNRELEASED; urgency=medium
     - Cherry pick updated version from upstream, splitted in:
     + debian/patches/st-texture-cache-Don-t-add-NULL-textures-to-cache.patch
     + debian/patches/st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch
+  * debian/patches/authPrompt-Do-not-enable-sensitivity-if-retries-are-disal.patch
+    debian/patches/authPrompt-Unset-preemptiveAnswer-on-reset.patch
+    debian/patches/gdm-util-Always-allow-to-retry-login-in-unlock-mode.patch:
+    - GDM gnome-shell greeter fix to fix unneeded login attempts (LP: #1777956)
   * debian/patches/series:
     - reorder to apply upstream cherry-picks before the others
   

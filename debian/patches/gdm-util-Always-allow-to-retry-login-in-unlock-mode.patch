@@ -1,0 +1,37 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Tue, 29 May 2018 02:10:09 +0200
+Subject: gdm, util: Always allow to retry login in unlock mode
+
+When in lockscreen mode there's no point of resetting the auth login as there's
+no welcome screen, and that would just cause the UI to freeze, with no reason.
+This could have been useful if we were stopping the user to login for a given
+time after ALLOWED_FAILURES attempts, but this is not the case yet.
+
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/311
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1777956
+Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/116
+---
+ js/gdm/util.js | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 0532ca8..105a320 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -534,12 +534,13 @@ var ShellUserVerifier = new Lang.Class({
+     _verificationFailed(retry) {
+         // For Not Listed / enterprise logins, immediately reset
+         // the dialog
+-        // Otherwise, we allow ALLOWED_FAILURES attempts. After that, we
+-        // go back to the welcome screen.
++        // Otherwise, when in login mode we allow ALLOWED_FAILURES attempts.
++        // After that, we go back to the welcome screen.
+ 
+         this._failCounter++;
+         let canRetry = retry && this._userName &&
+-            this._failCounter < this._settings.get_int(ALLOWED_FAILURES_KEY);
++            (this._reauthOnly ||
++             this._failCounter < this._settings.get_int(ALLOWED_FAILURES_KEY));
+ 
+         if (canRetry) {
+             if (!this.hasPendingMessages) {

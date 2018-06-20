@@ -1,0 +1,48 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Tue, 29 May 2018 02:00:04 +0200
+Subject: authPrompt: Do not enable sensitivity if retries are disallowed
+
+Set the sensitivity of the UI according to the canRetry parameter and thus
+if no more logins are allowed don't take any input.
+
+Fixes #311
+
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/311
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1777956
+Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/116
+---
+ js/gdm/authPrompt.js | 4 ++--
+ js/gdm/util.js       | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index d9ec7ee..a0a4a21 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -242,11 +242,11 @@ var AuthPrompt = new Lang.Class({
+         this.emit('prompted');
+     },
+ 
+-    _onVerificationFailed() {
++    _onVerificationFailed(userVerifier, canRetry) {
+         this._queryingService = null;
+         this.clear();
+ 
+-        this.updateSensitivity(true);
++        this.updateSensitivity(canRetry);
+         this.setActorInDefaultButtonWell(null);
+         this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
+     },
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 261e1e4..0532ca8 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -562,7 +562,7 @@ var ShellUserVerifier = new Lang.Class({
+             }
+         }
+ 
+-        this.emit('verification-failed');
++        this.emit('verification-failed', canRetry);
+     },
+ 
+     _onConversationStopped(client, serviceName) {
