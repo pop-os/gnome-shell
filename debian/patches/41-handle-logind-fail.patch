@@ -1,4 +1,6 @@
-Author: Emilio Pozuelo Monfort <pochu@debian.org>
+From: Emilio Pozuelo Monfort <pochu@debian.org>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: handle-logind-fail
 
 Even if logind is running (which is what haveSystemd() is checking), it may
 fail to create a session, e.g. if the kernel doesn't have cgroups support.
@@ -8,10 +10,15 @@ start. Thus talk to logind if XDG_SESSION_ID is set, which is a sign that
 logind actually created our session. Otherwise, fall back to ConsoleKit.
 
 http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=729877
+---
+ js/misc/loginManager.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
+diff --git a/js/misc/loginManager.js b/js/misc/loginManager.js
+index 4eb0686..3d3c4b4 100644
 --- a/js/misc/loginManager.js
 +++ b/js/misc/loginManager.js
-@@ -93,7 +93,7 @@
+@@ -93,7 +93,7 @@ let _loginManager = null;
   */
  function getLoginManager() {
      if (_loginManager == null) {

@@ -1,4 +1,3 @@
-From b043396a553e047178fd2bc5e3b69870963580fc Mon Sep 17 00:00:00 2001
 From: Tim Lunn <tim@feathertop.org>
 Date: Tue, 9 Oct 2012 20:18:28 +1100
 Subject: [PATCH] userMenu: allow user switching when using lightdm
@@ -9,13 +8,13 @@ switch to the lightdm greeter.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=685794
 ---
- js/misc/systemActions.js |   38 ++++++++++++++++++++++++++++++--------
- 1 file changed, 30 insertions(+), 8 deletions(-)
+ js/misc/systemActions.js | 34 +++++++++++++++++++++++++++-------
+ 1 file changed, 27 insertions(+), 7 deletions(-)
 
-Index: gnome-shell-3.27.91/js/misc/systemActions.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/misc/systemActions.js
-+++ gnome-shell-3.27.91/js/misc/systemActions.js
+diff --git a/js/misc/systemActions.js b/js/misc/systemActions.js
+index bf8b460..fffa567 100644
+--- a/js/misc/systemActions.js
++++ b/js/misc/systemActions.js
 @@ -218,6 +218,21 @@ const SystemActions = new Lang.Class({
          return this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName;
      },

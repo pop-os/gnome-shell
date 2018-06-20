@@ -1,13 +1,35 @@
-Description: Add an helper to detect current desktop
- We will differentiate some behavior depending on current desktop. Add an
- helper to centralize the current desktop detection.
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: Add an helper to detect current desktop
+
+We will differentiate some behavior depending on current desktop. Add an
+helper to centralize the current desktop detection.
 Forwarded: not-needed
 Origin: ubuntu
-Author: didrocks@ubuntu.com
-Index: gnome-shell-3.24.3/js/misc/desktop.js
 ===================================================================
+---
+ js/js-resources.gresource.xml |  1 +
+ js/misc/desktop.js            | 39 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 40 insertions(+)
+ create mode 100644 js/misc/desktop.js
+
+diff --git a/js/js-resources.gresource.xml b/js/js-resources.gresource.xml
+index 883b62d..3909dc8 100644
+--- a/js/js-resources.gresource.xml
++++ b/js/js-resources.gresource.xml
+@@ -13,6 +13,7 @@
+ 
+     <file>misc/config.js</file>
+     <file>misc/extensionUtils.js</file>
++    <file>misc/desktop.js</file>
+     <file>misc/fileUtils.js</file>
+     <file>misc/gnomeSession.js</file>
+     <file>misc/history.js</file>
+diff --git a/js/misc/desktop.js b/js/misc/desktop.js
+new file mode 100644
+index 0000000..3b0d128
 --- /dev/null
-+++ gnome-shell-3.24.3/js/misc/desktop.js
++++ b/js/misc/desktop.js
 @@ -0,0 +1,39 @@
 +// -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 +
@@ -48,15 +70,3 @@ Index: gnome-shell-3.24.3/js/misc/desktop.js
 +    _currentDesktopsMatches[name] = false;
 +    return false;
 +}
-Index: gnome-shell-3.24.3/js/js-resources.gresource.xml
-===================================================================
---- gnome-shell-3.24.3.orig/js/js-resources.gresource.xml
-+++ gnome-shell-3.24.3/js/js-resources.gresource.xml
-@@ -13,6 +13,7 @@
- 
-     <file>misc/config.js</file>
-     <file>misc/extensionUtils.js</file>
-+    <file>misc/desktop.js</file>
-     <file>misc/fileUtils.js</file>
-     <file>misc/gnomeSession.js</file>
-     <file>misc/history.js</file>

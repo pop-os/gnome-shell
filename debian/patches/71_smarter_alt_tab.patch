@@ -1,26 +1,33 @@
-Description: Build a smarter alt-tab in the ubuntu session
- In case of a quick alt-tab (before the switcher UI shows up), we want to cover
- the power user use-case, which is to switch quickly between 2 windows.
- The issue with current behavior is say:
- - you have an application with one instance, maximized
- - you have another application with multiple instances, like multiple
-   terminals, not maximized.
- If you press alt-tab, even quickly, the whole second application would be
- raised (as no window has been selected). The consequence is that you have
- all terminal in front of, for instance, your browser or documentation viewer
- you are using.
- The behavior we implement enables this. However, as soon as the switcher ui
- is displayed to the user, not selecting a particular window instance will
- raise the whole applications. Consequently only "quick alt-tab" flow is
- impacted.
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: Build a smarter alt-tab in the ubuntu session
+
+In case of a quick alt-tab (before the switcher UI shows up), we want to cover
+the power user use-case, which is to switch quickly between 2 windows.
+The issue with current behavior is say:
+- you have an application with one instance, maximized
+- you have another application with multiple instances, like multiple
+  terminals, not maximized.
+If you press alt-tab, even quickly, the whole second application would be
+raised (as no window has been selected). The consequence is that you have
+all terminal in front of, for instance, your browser or documentation viewer
+you are using.
+The behavior we implement enables this. However, as soon as the switcher ui
+is displayed to the user, not selecting a particular window instance will
+raise the whole applications. Consequently only "quick alt-tab" flow is
+impacted.
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1716921
 Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=787627
+---
+ js/ui/altTab.js        | 10 ++++++++++
+ js/ui/switcherPopup.js |  4 +++-
+ 2 files changed, 13 insertions(+), 1 deletion(-)
 
-Index: gnome-shell-3.27.91/js/ui/altTab.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/ui/altTab.js
-+++ gnome-shell-3.27.91/js/ui/altTab.js
+diff --git a/js/ui/altTab.js b/js/ui/altTab.js
+index 97dddce..764d308 100644
+--- a/js/ui/altTab.js
++++ b/js/ui/altTab.js
 @@ -13,6 +13,7 @@ const Atk = imports.gi.Atk;
  const Main = imports.ui.main;
  const SwitcherPopup = imports.ui.switcherPopup;
@@ -45,10 +52,10 @@ Index: gnome-shell-3.27.91/js/ui/altTab.js
          if (this._currentWindow < 0)
              appIcon.app.activate_window(appIcon.cachedWindows[0], timestamp);
          else if (appIcon.cachedWindows[this._currentWindow])
-Index: gnome-shell-3.27.91/js/ui/switcherPopup.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/ui/switcherPopup.js
-+++ gnome-shell-3.27.91/js/ui/switcherPopup.js
+diff --git a/js/ui/switcherPopup.js b/js/ui/switcherPopup.js
+index a53b1e6..71911c8 100644
+--- a/js/ui/switcherPopup.js
++++ b/js/ui/switcherPopup.js
 @@ -12,8 +12,10 @@ const St = imports.gi.St;
  
  const Main = imports.ui.main;

@@ -1,16 +1,16 @@
-Description: add support for the ubuntu lock on suspend option 
-Author: Tim Lunn <tim@feathertop.org>
+From: Tim Lunn <tim@feathertop.org>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: add support for the ubuntu lock on suspend option
+
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
-
 ---
----
- js/ui/screenShield.js |    3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ js/ui/screenShield.js | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-Index: gnome-shell-3.28.1/js/ui/screenShield.js
-===================================================================
---- gnome-shell-3.28.1.orig/js/ui/screenShield.js
-+++ gnome-shell-3.28.1/js/ui/screenShield.js
+diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
+index 2d8d9b3..5ceb993 100644
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
 @@ -32,6 +32,7 @@ const Util = imports.misc.util;
  const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
  const LOCK_ENABLED_KEY = 'lock-enabled';

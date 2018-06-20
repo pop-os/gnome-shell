@@ -1,4 +1,7 @@
-Description: Don't allow ubuntu mode extension to update
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: Don't allow ubuntu mode extension to update
+
 Ensure that no update is proposed or loaded if sideloaded (always
 prefer system version) on the ubuntu session.
 We want to ensure that the default code running is going through
@@ -13,11 +16,16 @@ The patch set is too large otherwise to keep it maintainable as a distro
 patch.
 Origin: ubuntu
 Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
+---
+ js/misc/desktop.js           | 13 +++++++++++++
+ js/misc/extensionUtils.js    |  7 +++++++
+ js/ui/extensionDownloader.js | 13 +++++++++++++
+ 3 files changed, 33 insertions(+)
 
-Index: gnome-shell-3.27.91/js/misc/desktop.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/misc/desktop.js
-+++ gnome-shell-3.27.91/js/misc/desktop.js
+diff --git a/js/misc/desktop.js b/js/misc/desktop.js
+index 3b0d128..82da582 100644
+--- a/js/misc/desktop.js
++++ b/js/misc/desktop.js
 @@ -6,6 +6,8 @@ const GLib = imports.gi.GLib;
  // the env variable. It's safe to cache matching result
  let _currentDesktopsMatches = {};
@@ -42,10 +50,10 @@ Index: gnome-shell-3.27.91/js/misc/desktop.js
 +
 +    return ubuntuModeExtensions.indexOf(uuid) !== -1;
 +}
-Index: gnome-shell-3.27.91/js/misc/extensionUtils.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/misc/extensionUtils.js
-+++ gnome-shell-3.27.91/js/misc/extensionUtils.js
+diff --git a/js/misc/extensionUtils.js b/js/misc/extensionUtils.js
+index 9f77b4c..685b98b 100644
+--- a/js/misc/extensionUtils.js
++++ b/js/misc/extensionUtils.js
 @@ -9,6 +9,7 @@ const Signals = imports.signals;
  const Gio = imports.gi.Gio;
  
@@ -67,10 +75,10 @@ Index: gnome-shell-3.27.91/js/misc/extensionUtils.js
          try {
              extension = createExtensionObject(uuid, extensionDir, type);
          } catch(e) {
-Index: gnome-shell-3.27.91/js/ui/extensionDownloader.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/ui/extensionDownloader.js
-+++ gnome-shell-3.27.91/js/ui/extensionDownloader.js
+diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
+index 9b6f7a3..034f964 100644
+--- a/js/ui/extensionDownloader.js
++++ b/js/ui/extensionDownloader.js
 @@ -10,9 +10,11 @@ const St = imports.gi.St;
  const Shell = imports.gi.Shell;
  
@@ -83,7 +91,7 @@ Index: gnome-shell-3.27.91/js/ui/extensionDownloader.js
  const ModalDialog = imports.ui.modalDialog;
  
  const _signals = ExtensionSystem._signals;
-@@ -28,6 +30,14 @@ function installExtension(uuid, invocati
+@@ -28,6 +30,14 @@ function installExtension(uuid, invocation) {
      let params = { uuid: uuid,
                     shell_version: Config.PACKAGE_VERSION };
  

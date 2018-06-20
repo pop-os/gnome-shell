@@ -1,13 +1,20 @@
-Description: Ensure gdm has an ubuntu styling by default.
- As it's system-wide and not user-wide, use the ubuntu.css stylesheet
- for the gdm mode of GNOME Shell. This doesn't impact the aNOME
- user session though.
+From: Didier Roche <didrocks@ubuntu.com>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: Ensure gdm has an ubuntu styling by default.
+
+As it's system-wide and not user-wide, use the ubuntu.css stylesheet
+for the gdm mode of GNOME Shell. This doesn't impact the aNOME
+user session though.
 Forwarded: not-needed
-Author: Didier Roche <didrocks@ubuntu.com>
-Index: gnome-shell-3.27.91/js/ui/sessionMode.js
 ===================================================================
---- gnome-shell-3.27.91.orig/js/ui/sessionMode.js
-+++ gnome-shell-3.27.91/js/ui/sessionMode.js
+---
+ js/ui/sessionMode.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
+index aac29ae..97118dc 100644
+--- a/js/ui/sessionMode.js
++++ b/js/ui/sessionMode.js
 @@ -42,6 +42,7 @@ const _modes = {
  
      'gdm': {

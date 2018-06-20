@@ -1,19 +1,21 @@
-Description: Allow volume to be set above 100%.
- Some systems have low maximum volume set (like x220), allow, from an option
- in gnome-control-center to set it above that 100% limit from g-s-d
- (keyboard) and gnome-shell.
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: Allow volume to be set above 100%.
+
+Some systems have low maximum volume set (like x220), allow, from an option
+in gnome-control-center to set it above that 100% limit from g-s-d
+(keyboard) and gnome-shell.
 Origin: ubuntu
 Bug-Ubuntu: https://launchpad.net/bugs/1706524
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
-
 ---
- js/ui/status/volume.js |   33 ++++++++++++++++++++++++++++++---
- 1 file changed, 30 insertions(+), 3 deletions(-)
+ js/ui/status/volume.js | 32 +++++++++++++++++++++++++++++---
+ 1 file changed, 29 insertions(+), 3 deletions(-)
 
-Index: gnome-shell-3.27.91/js/ui/status/volume.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/ui/status/volume.js
-+++ gnome-shell-3.27.91/js/ui/status/volume.js
+diff --git a/js/ui/status/volume.js b/js/ui/status/volume.js
+index d814ef6..65c4c42 100644
+--- a/js/ui/status/volume.js
++++ b/js/ui/status/volume.js
 @@ -7,6 +7,7 @@ const Gvc = imports.gi.Gvc;
  const St = imports.gi.St;
  const Signals = imports.signals;

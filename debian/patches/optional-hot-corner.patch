@@ -1,5 +1,4 @@
-From 9d7ad6b631470b28efcdb49d24ca4a835d3df17d Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
 Date: Thu, 8 Jun 2017 17:07:56 +0200
 Subject: [PATCH] layout: Make the hot corner optional
 
@@ -14,10 +13,10 @@ https://bugzilla.gnome.org/show_bug.cgi?id=688320
  js/ui/layout.js                     | 8 ++++++++
  2 files changed, 16 insertions(+)
 
-Index: gnome-shell-3.27.91/data/org.gnome.shell.gschema.xml.in
-===================================================================
---- gnome-shell-3.27.91.orig/data/org.gnome.shell.gschema.xml.in
-+++ gnome-shell-3.27.91/data/org.gnome.shell.gschema.xml.in
+diff --git a/data/org.gnome.shell.gschema.xml.in b/data/org.gnome.shell.gschema.xml.in
+index 63a1903..8ec1d26 100644
+--- a/data/org.gnome.shell.gschema.xml.in
++++ b/data/org.gnome.shell.gschema.xml.in
 @@ -38,6 +38,14 @@
          load all extensions regardless of the versions they claim to support.
        </description>
@@ -33,10 +32,10 @@ Index: gnome-shell-3.27.91/data/org.gnome.shell.gschema.xml.in
      <key name="favorite-apps" type="as">
        <default>[ 'epiphany.desktop', 'evolution.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop' ]</default>
        <summary>List of desktop file IDs for favorite applications</summary>
-Index: gnome-shell-3.27.91/js/ui/layout.js
-===================================================================
---- gnome-shell-3.27.91.orig/js/ui/layout.js
-+++ gnome-shell-3.27.91/js/ui/layout.js
+diff --git a/js/ui/layout.js b/js/ui/layout.js
+index 6f81039..3d53bd4 100644
+--- a/js/ui/layout.js
++++ b/js/ui/layout.js
 @@ -268,6 +268,9 @@ var LayoutManager = new Lang.Class({
          this._backgroundGroup.lower_bottom();
          this._bgManagers = [];
