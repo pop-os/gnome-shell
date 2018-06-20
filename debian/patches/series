@@ -1,4 +1,7 @@
-#30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch
+# Cherry picks from upstream
+ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
+st-label-Unset-clutter-text-instance-on-disposal.patch
+# End of Cherry-picked patches
 41-handle-logind-fail.patch
 50_add_ubuntu_desktop_detect.patch
 70_allow_sound_above_100.patch
@@ -11,10 +14,7 @@ ubuntu_gdm.patch
 ubuntu_background_login.patch
 ubuntu_gdm_alternatives.patch
 ubuntu_block_mode_extension_update.patch
-# Cherry picks from upstream
-ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
 volume-Add-back-sound-feedback-on-scroll.patch
-# End of Cherry-picked patches
 workaround_crasher_fractional_scaling.patch
 shell-ignore-invalid-window-monitor-index.patch
 StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch

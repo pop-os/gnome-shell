@@ -1,0 +1,30 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Tue, 29 May 2018 02:28:26 +0300
+Subject: st-label: Unset clutter text instance on disposal
+
+The instance is owned by the actor (being its child), and thus when the
+disposal happens for the parent the text is disposed too, thus it's just
+safer to nullify its reference so that we won't try to access to invalid
+objects later, and this might be the case since the JS objects could be kept
+around until they aren't finalized.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=788931
+
+
+(cherry picked from commit 44894262f49b9f8b2809321ebcf1cd9426303fd6)
+---
+ src/st/st-label.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/st/st-label.c b/src/st/st-label.c
+index a7893b0..515e343 100644
+--- a/src/st/st-label.c
++++ b/src/st/st-label.c
+@@ -180,6 +180,7 @@ st_label_dispose (GObject   *object)
+ {
+   StLabelPrivate *priv = ST_LABEL (object)->priv;
+ 
++  priv->label = NULL;
+   g_clear_pointer (&priv->text_shadow_pipeline, cogl_object_unref);
+ 
+   G_OBJECT_CLASS (st_label_parent_class)->dispose (object);
