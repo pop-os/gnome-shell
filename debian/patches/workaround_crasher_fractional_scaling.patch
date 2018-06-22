@@ -1,0 +1,19 @@
+Description: Avoid crashing if width or height are NaNs.
+ This is a temporary workaround that avoid a crash if width or height are NaNs.
+ The true fix would be to avoid width and height to get NaN values.
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1714542
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=788316
+
+--- a/src/st/st-theme-node-drawing.c
++++ b/src/st/st-theme-node-drawing.c
+@@ -2505,7 +2505,7 @@
+   allocation.x2 = width;
+   allocation.y2 = height;
+ 
+-  if (width <= 0 || height <= 0)
++  if (width <= 0 || height <= 0 || isnan (width) || isnan (height))
+     return;
+ 
+   /* Check whether we need to recreate the textures of the paint
+

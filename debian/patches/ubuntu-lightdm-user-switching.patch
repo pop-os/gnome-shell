@@ -1,0 +1,81 @@
+From b043396a553e047178fd2bc5e3b69870963580fc Mon Sep 17 00:00:00 2001
+From: Tim Lunn <tim@feathertop.org>
+Date: Tue, 9 Oct 2012 20:18:28 +1100
+Subject: [PATCH] userMenu: allow user switching when using lightdm
+
+When running lightdm and gnome-shell, its currently not possible to
+switch users via the usermenu. This commit adds a dbus call to
+switch to the lightdm greeter.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=685794
+---
+ js/misc/systemActions.js |   38 ++++++++++++++++++++++++++++++--------
+ 1 file changed, 30 insertions(+), 8 deletions(-)
+
+Index: gnome-shell-3.27.91/js/misc/systemActions.js
+===================================================================
+--- gnome-shell-3.27.91.orig/js/misc/systemActions.js
++++ gnome-shell-3.27.91/js/misc/systemActions.js
+@@ -218,6 +218,21 @@ const SystemActions = new Lang.Class({
+         return this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName;
+     },
+ 
++    _lightdmLoginSession() {
++        try {
++            let seat = GLib.getenv("XDG_SEAT_PATH");
++            let result = Gio.DBus.system.call_sync('org.freedesktop.DisplayManager',
++                                                   seat,
++                                                   'org.freedesktop.DisplayManager.Seat',
++                                                   'SwitchToGreeter', null, null,
++                                                   Gio.DBusCallFlags.NONE,
++                                                   -1, null);
++            return result;
++        } catch(e) {
++            return false;
++        }
++    },
++
+     _sensorProxyAppeared() {
+         this._sensorProxy = new SensorProxy(Gio.DBus.system, SENSOR_BUS_NAME, SENSOR_OBJECT_PATH,
+             (proxy, error)  => {
+@@ -313,7 +328,7 @@ const SystemActions = new Lang.Class({
+     _updateLockScreen() {
+         let showLock = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
+         let allowLockScreen = !this._lockdownSettings.get_boolean(DISABLE_LOCK_SCREEN_KEY);
+-        this._actions.get(LOCK_SCREEN_ACTION_ID).available = showLock && allowLockScreen && LoginManager.canLock();
++        this._actions.get(LOCK_SCREEN_ACTION_ID).available = showLock && allowLockScreen;
+         this.notify('can-lock-screen');
+     },
+ 
+@@ -400,20 +415,25 @@ const SystemActions = new Lang.Class({
+         if (!this._actions.get(LOCK_SCREEN_ACTION_ID).available)
+             throw new Error('The lock-screen action is not available!');
+ 
+-        Main.screenShield.lock(true);
++        if (Main.screenShield)
++            Main.screenShield.lock(true);
++        else
++            this._lightdmLoginSession();
+     },
+ 
+     activateSwitchUser() {
+         if (!this._actions.get(SWITCH_USER_ACTION_ID).available)
+             throw new Error('The switch-user action is not available!');
+ 
+-        if (Main.screenShield)
++        if (Main.screenShield) {
+             Main.screenShield.lock(false);
+ 
+-        Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, () => {
+-            Gdm.goto_login_session_sync(null);
+-            return false;
+-        });
++            Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, () => {
++                Gdm.goto_login_session_sync(null);
++                return false;
++            });
++        } else
++            this._lightdmLoginSession();
+     },
+ 
+     activateLogout() {

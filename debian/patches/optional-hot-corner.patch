@@ -1,0 +1,61 @@
+From 9d7ad6b631470b28efcdb49d24ca4a835d3df17d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Florian=20M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 8 Jun 2017 17:07:56 +0200
+Subject: [PATCH] layout: Make the hot corner optional
+
+Whether people love or hate the hot corner depends in large extents
+on hardware sensitivity and habits, which is hard to get right
+universally. So bite the bullet and add an option to enable or
+disable hot corners ...
+
+https://bugzilla.gnome.org/show_bug.cgi?id=688320
+---
+ data/org.gnome.shell.gschema.xml.in | 8 ++++++++
+ js/ui/layout.js                     | 8 ++++++++
+ 2 files changed, 16 insertions(+)
+
+Index: gnome-shell-3.27.91/data/org.gnome.shell.gschema.xml.in
+===================================================================
+--- gnome-shell-3.27.91.orig/data/org.gnome.shell.gschema.xml.in
++++ gnome-shell-3.27.91/data/org.gnome.shell.gschema.xml.in
+@@ -38,6 +38,14 @@
+         load all extensions regardless of the versions they claim to support.
+       </description>
+     </key>
++    <key name="enable-hot-corners" type="b">
++      <default>true</default>
++      <summary>Enable hot corners</summary>
++      <description>
++        If true, the overview can be accessed by moving the mouse to the
++        top-left corner.
++      </description>
++    </key>
+     <key name="favorite-apps" type="as">
+       <default>[ 'epiphany.desktop', 'evolution.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop' ]</default>
+       <summary>List of desktop file IDs for favorite applications</summary>
+Index: gnome-shell-3.27.91/js/ui/layout.js
+===================================================================
+--- gnome-shell-3.27.91.orig/js/ui/layout.js
++++ gnome-shell-3.27.91/js/ui/layout.js
+@@ -268,6 +268,9 @@ var LayoutManager = new Lang.Class({
+         this._backgroundGroup.lower_bottom();
+         this._bgManagers = [];
+ 
++        global.settings.connect('changed::enable-hot-corners',
++                                Lang.bind(this, this._updateHotCorners));
++
+         // Need to update struts on new workspaces when they are added
+         global.screen.connect('notify::n-workspaces',
+                               this._queueUpdateRegions.bind(this));
+@@ -364,6 +367,11 @@ var LayoutManager = new Lang.Class({
+         });
+         this.hotCorners = [];
+ 
++        if (!global.settings.get_boolean('enable-hot-corners')) {
++            this.emit('hot-corners-changed');
++            return;
++        }
++
+         let size = this.panelBox.height;
+ 
+         // build new hot corners

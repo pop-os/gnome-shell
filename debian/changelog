@@ -1,3 +1,603 @@
+gnome-shell (3.28.1-0ubuntu2) bionic; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * js-ui-Choose-some-actors-to-cache-on-the-GPU.patch:
+    - Improve rendering of shell elements moving rendering to GPU
+      (LP: #1744001)
+
+  [ Jeremy Bicha ]
+  * Cherry-pick polkitAgent-Guard-against-repeated-close-calls.patch:
+    - Fix PolicyKit authorization prompt after cancelling once (LP: #1765353)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 23 Apr 2018 15:29:28 -0500
+
+gnome-shell (3.28.1-0ubuntu1) bionic; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release
+  * Drop obsolete patches:
+    - 27-nm-libexec-path.patch
+    - fix-wayland-vbox-crash.patch
+
+  [ Marco Trevisan (Treviño) ]
+  Cherry-pick patches applied to upstream git master:
+  * ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch:
+    - Renamed from ubuntu_theme_lookup_xdg.patch and cherry-picked from
+      upstream
+  * workspaceThumbnail-only-update-_porthole-if-the-overview-.patch:
+    workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch:
+    workspaceThumbnail-initialize-porthole-based-on-workArea.patch:
+    - Cherry-picks from upstream, avoid unneeded computations in activities
+  * popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch:
+    - Cherry-pick from upstream
+  * volume-Add-back-sound-feedback-on-scroll.patch:
+    - Fix regression causing missing feedback on volume slider scroll
+
+  Add patches proposed upstream:
+  * shell-ignore-invalid-window-monitor-index.patch:
+    - Fix crash on accessing on invalid monitor windows (LP: #1724439)
+  * StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch:
+    - Don't try to compute shadows on not allocated icons (LP: #1723378)
+  * js-fix-invalid-access-errors.patch:
+    - Fix javascript errors (LP: #1747566)
+  * workspace-fix-repositioned-windows-in-activities.patch:
+    - Ensure windows thumbnails coordinates are correct (LP: #1653153)
+  * st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch:
+    - Fix possible crash on cache loading
+  * st-texture-cache-Don-t-add-NULL-textures-to-cache.patch:
+    - Fix crash when deleting NULL textures from cache (LP: #1754445)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 17 Apr 2018 14:40:17 -0400
+
+gnome-shell (3.28.0-0ubuntu5) bionic; urgency=medium
+
+  * No-change rebuild for translations (LP: #1756547)
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Sat, 07 Apr 2018 15:58:00 +0200
+
+gnome-shell (3.28.0-0ubuntu4) bionic; urgency=medium
+
+  * debian/rules:
+    - Drop javascript comments in gnome-shell.pot so the currently used
+      version of gettext in LP gets more permissive wrt cases where
+      the number of %d modifiers in a translation differs from what's
+      in msgid (LP: #1756547).
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Fri, 06 Apr 2018 15:58:00 +0200
+
+gnome-shell (3.28.0-0ubuntu3) bionic; urgency=medium
+
+  * Recommend bolt for Thunderbolt 3 support (LP: #1759538)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 04 Apr 2018 10:04:50 -0400
+
+gnome-shell (3.28.0-0ubuntu2) bionic; urgency=medium
+
+  * debian/patches/ubuntu_theme_lookup_xdg.patch:
+    - theme lookup should respect XDG_DATA_DIRS (LP: #1760039)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Fri, 30 Mar 2018 10:21:27 +0200
+
+gnome-shell (3.28.0-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 15 Mar 2018 10:39:16 -0400
+
+gnome-shell (3.27.92-0ubuntu1) bionic; urgency=medium
+
+  * New upstream release candidate
+  * Drop api patch applied in new release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 06 Mar 2018 05:38:48 -0500
+
+gnome-shell (3.27.91-0ubuntu1) bionic; urgency=medium
+
+  [ Didier Roche ]
+  * New upstream version (LP: #1751070, LP: #1722725,
+    LP: #1714989, LP: #1724557, LP: #1723857, LP: #1744970):
+    - debian/patches/70_allow_sound_above_100.patch,
+      debian/patches/ubuntu-lightdm-user-switching.patch patches
+      refreshed for new release. Removed ': function()' syntax as
+      upstreamed removed them in those context.
+    - debian/patches/ubuntu_panel_center_date_workarea.patch removed as
+      upstreamed now.
+    - debian/control.in, debian/rules:
+      bump deps, add sassc and libnm-dev which is now required.
+      drop caribou dep, as the OSK is now built-in.
+    - debian/rules:
+      use now with renamed build options.
+  * debian/ubuntu-session-mods/ubuntu.css, debian/rules:
+    - adapt to new GNOME Shell theme including OSK.
+    - color shift keys in orange in OSK and use differente svg.
+  * debian/rules:
+    - some duplication removal.
+  * debian/patches/27-nm-libexec-path.patch,
+    debian/patches/71_smarter_alt_tab.patch,
+    debian/patches/fix-wayland-vbox-crash.patch,
+    debian/patches/optional-hot-corner.patch,
+    debian/patches/ubuntu_block_mode_extension_update.patch,
+    debian/patches/ubuntu_gdm.patch,
+    debian/patches/ubuntu_lock_on_suspend.patch:
+    - unfuzzed
+  * Cherry-pick git_ea0770ae22a6c34797db4343cf7d2f59bb8d68f6.patch:
+    - upstream mutter API bump.
+  * debian/gnome-shell-common.install, debian/rules:
+    - the .css files aren't shipped anymore, so copy from the built version.
+
+  [ Jeremy Bicha ]
+  * Update NetworkManager dependencies
+
+ -- Didier Roche <didrocks@ubuntu.com>  Fri, 02 Mar 2018 10:04:06 +0100
+
+gnome-shell (3.26.2-0ubuntu3) bionic; urgency=medium
+
+  * debian/patches/ubuntu_panel_center_date_workarea.patch:
+    Align date entry relative to workarea. That way, title bars are
+    centered relative to date entry. (LP: #1716432)
+  * :
+    Don't allow ubuntu mode extension to update
+    Ensure that no update is proposed or loaded if sideloaded (always
+    prefer system version) on the ubuntu session.
+    We want to ensure that the default code running is going through
+    our QA and security team process than being loaded from a 3rd
+    party website.
+    Also, that will enable us to upload newer versions on GNOME
+    extension website while still letting older ubuntu release versions
+    running expected extension version.
+    Note that the patch set is simplified with a hardcoded extension list
+    until https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/1 is merged.
+    The patch set is too large otherwise to keep it maintainable as a distro
+    patch.
+    See also https://bugzilla.gnome.org/show_bug.cgi?id=789852.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 15 Feb 2018 15:25:18 +0100
+
+gnome-shell (3.26.2-0ubuntu2) bionic; urgency=medium
+
+  * No-change rebuild for libical soname change.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sat, 09 Dec 2017 11:41:33 +0000
+
+gnome-shell (3.26.2-0ubuntu1) bionic; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release (LP: #1731053)
+  * debian/control.in:
+    - Drop redundant Suggests on gir1.2-gdm-1.0
+  * Drop patches applied in new release:
+    - fix_reset_initial_focus.patch
+    - git_layout-unset-when-headless.patch
+
+  [ Didier Roche ]
+  * Modify debian/patches/70_allow_sound_above_100.patch:
+    - Fix a crasher when people log into the ubuntu session without installing
+      gsettings-ubuntu-schemas (LP: #1712798)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 08 Nov 2017 16:19:02 -0500
+
+gnome-shell (3.26.1-0ubuntu6) bionic; urgency=medium
+
+  * Upstream-proposed fix for lid close crash with wayland and virtualbox.
+    (wayland is behaving badly with vbox dynamic resizing)
+    (LP: #1724810)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Tue, 31 Oct 2017 08:55:10 +0100
+
+gnome-shell (3.26.1-0ubuntu5) artful; urgency=medium
+
+  [ Didier Roche ]
+  * Reenable headless patches and cherry-pick now that the gdm fix
+    is in mutter. (LP: #1725153)
+  * Add dep on latest mutter to ensure people don't end up in a non working
+    UI state again.
+
+  [ Jeremy Bicha ]
+  * Restore dependency on gir1.2-gdm-1.0 (LP: #1725288)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 19 Oct 2017 08:38:31 +0200
+
+gnome-shell (3.26.1-0ubuntu4) artful; urgency=medium
+
+  * revert_023b50e7a7002226d6176bede22930d96da074a9.patch,
+    revert_5c37facc083078564faaeec4aa58084857c56ee1.patch,
+    and comment git_layout-unset-when-headless.patch:
+    - Revert 2 upstream commits and cherry-pick to remove headless mode
+      which shadows Shell crashing and thus fallback to Xorg, resulting in
+      some user configs not having any UI on startup. (LP: #1723577)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 18 Oct 2017 15:05:32 +0200
+
+gnome-shell (3.26.1-0ubuntu3) artful; urgency=medium
+
+  * Cherry-pick git_layout-unset-when-headless.patch from gnome-3-26
+    branch to fix crash bug (LP: #1717170)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 Oct 2017 16:10:59 -0400
+
+gnome-shell (3.26.1-0ubuntu2) artful; urgency=medium
+
+  [ Andrea Azzarone ]
+  * debian/patches/workaround_crasher_fractional_scaling.patch:
+    workaround a popular crash for now when fractional scaling is enabled.
+    Andrea is working on a proper fix/debug (LP: #1714542)
+
+
+  [ Didier Roche ]
+  * debian/patches/fix_reset_initial_focus.patch:
+    - cherry-pick fixed proposed by upstream to avoid regression when keyboard
+      is used the second time a modal dialog is drawn.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 10 Oct 2017 10:09:56 +0200
+
+gnome-shell (3.26.1-0ubuntu1) artful; urgency=medium
+
+  * New upstream release
+  * debian/ubuntu-session-mods/ubuntu.css: workaround font blurryness
+    under wayland by providing a slight stroke around the font matching
+    windows title bar. (LP: #1714459)
+  * Remove 72_consistent_alt_key_above_tab_behavior.patch: upstreamed
+  * Remove run-unit-tests.patch: was cherry-picked
+
+ -- Didier Roche <didrocks@ubuntu.com>  Fri, 06 Oct 2017 09:36:54 +0200
+
+gnome-shell (3.26.0-0ubuntu2) artful; urgency=medium
+
+  * fix typo in comment for ubuntu.css
+  * Make St checkbox orange instead of blue, as other icons in our theme.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 20 Sep 2017 11:57:56 +0200
+
+gnome-shell (3.26.0-0ubuntu1) artful; urgency=medium
+
+  * New upstream release
+  * Dep on newer mutter.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Fri, 15 Sep 2017 07:51:56 +0200
+
+gnome-shell (3.25.91-0ubuntu5) artful; urgency=medium
+
+  Changes for ubuntu session:
+  * 71_smarter_alt_tab.patch
+    - quick alt-tab (without showing up the switcher) switch only between
+      the last window of the last 2 applications to be focused instead of
+      raising all windows of those apps. (LP: #1716921)
+  * 72_consistent_alt_key_above_tab_behavior.patch:
+    - ensure alt + key above tab, when the switcher is opened, focus the first
+      window and not directly the second one of an application. This is
+      relevant as the select window part of the switcher is only raising the
+      selected window, not the whole application. (LP: #1716872)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 12 Sep 2017 09:40:45 +0200
+
+gnome-shell (3.25.91-0ubuntu4) artful; urgency=medium
+
+  [ Jeremy Soller ]
+  * Change path of gdm3 stylesheet (LP: #1715722)
+  * Add alternatives for gdm3 stylesheet, setting ubuntu.css as the default
+
+  [ Didier Roche ]
+  * debian/gnome-shell-common.install:
+    Install upstream theme for gdm if vanilla gnome theme is selected.
+
+ -- Jeremy Soller <jeremy@system76.com>  Fri, 08 Sep 2017 10:12:58 -0600
+
+gnome-shell (3.25.91-0ubuntu3) artful; urgency=medium
+
+  * Ship new ubuntu css theme enabled in the ubuntu session.
+    We don't generate is from a regexp list or patch as it has complex
+    data structure (removal of some parts of stenzas, same source color
+    mapping to different destination colors depending as corresponding
+    to different elements).
+    Right now, we prefer to do a 3-way merge of the theme and look working
+    upstream for better theming support.
+    Some summary of the changes are:
+    - use ubuntu colors for panel, and most graphical elements (dialog box,
+      sliders, menu items, buttons highlights).
+    - remove rounded corners as they don't play well with nautilus showing up
+      desktop and non black panel theme.
+    - change blue grey scheme by orange grey (LP: #1690966)
+    - change gdm assets and background. Theme it aubergine instead of
+      a wallpaper as it matches the boot sequence, and can't be easily changed
+      by the user.
+    - ensure lock screen matches gdm and shell theming.
+    Make the theme maintainable still overriding on purpose some properties
+    instead of changing them in context.
+  * Theme new assets on build (close and toggle buttons)
+  * Add upstream high contrast theme to ubuntu mode. This will default to
+    adwaita with upstream colors for accessibility.
+  * debian/patches/50_add_ubuntu_desktop_detect.patch:
+    - add caching for desktop detection to avoid querying the current desktop
+      env variable as iterate through the list each time. For the time of the
+      Shell process, we can expect this env variable to stay stable.
+  * debian/patches/ubuntu_background_login.patch:
+    - Change default background color as we modified the default GDM color
+      for our ubuntu session. Change it as well here, still applying the
+      background noise loading.
+      This screen is appearing for a slip second when the Shell is loading.
+  * debian/rules:
+    - Use ninja to generate translations. Thanks Jeremy.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Mon, 04 Sep 2017 09:24:21 +0200
+
+gnome-shell (3.25.91-0ubuntu2) artful; urgency=medium
+
+  * debian/rules:
+    - Don't use variable when passing libexecdir for meson build
+    - Change --list-missing to --fail-missing to catch this kind of problem
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 01 Sep 2017 10:38:12 -0400
+
+gnome-shell (3.25.91-0ubuntu1) artful; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release (LP: #1712800)
+  * Build with meson
+  * debian/control.in:
+    - Build-depend on libasound2-dev
+    - Bump minimum libglib2.0-dev to 2.53.0
+    - Update dependencies for mutter 3.25.90
+  * debian/rules:
+    - Drop disable-new-dtags flag, no longer needed
+    - Drop dh_girepository override, doesn't work with meson
+      and apparently not needed
+  * Refresh patches
+  * Drop git patches applied in new release
+  * Add run-unit-tests.patch: Run unit tests with meson
+
+  [ Tim Lunn ]
+  * New upstream release
+  * debian/control.in
+    - Update dependencies for mutter 3.25.91
+  * debian/patches:
+    - ubuntu_lock_on_suspend.patch: Rebased on changes introduced
+      in commit 9c3b3320f
+    - optional-libgdm.patch: disabled, this should not be required
+      since Ubuntu is using gdm
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 30 Aug 2017 14:46:42 -0400
+
+gnome-shell (3.24.3-0ubuntu7) artful; urgency=medium
+
+  * Add appindicator extension enabled by default in the ubuntu session
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 23 Aug 2017 08:13:25 +0200
+
+gnome-shell (3.24.3-0ubuntu6) artful; urgency=medium
+
+  * debian/rules: Ignore unit test failures on armhf
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 21 Aug 2017 11:46:36 -0400
+
+gnome-shell (3.24.3-0ubuntu5) artful; urgency=medium
+
+  * Rebuild against gjs 1.49 / mozjs52
+  * Backport patches from GNOME 3.26 to fix errors with new gjs/mozjs
+    - git_define-constant-before-using.patch
+    - git_define-properties-with-var.patch
+    - git_messageTray-use-spread-syntax.patch
+    - git_workspace-use-haspointer.patch
+  * Backport patch to fix some warnings with new gjs/mozjs
+    - git_define-classes-with-var.patch
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 21 Aug 2017 10:19:38 -0400
+
+gnome-shell (3.24.3-0ubuntu4) artful; urgency=medium
+
+  * Enable ubuntu-dock in ubuntu mode.
+  * debian/patches/optional-hot-corner.patch:
+    - enable patch proposed by upstream developer already in package
+      (but not in series) to add a settings for optional hot corner
+      activation.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Fri, 18 Aug 2017 08:22:29 +0200
+
+gnome-shell (3.24.3-0ubuntu3) artful; urgency=medium
+
+  * Add patch to allow setting volume above 100%:
+    - debian/patches/70_allow_sound_above_100.patch, which allows the volume
+      slider in the aggregatemenu to reflect and set correct current volume
+      position. (LP: #1706524)
+  * Add debian/patches/50_add_ubuntu_desktop_detect.patch to centralize
+    current desktop detection.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 16 Aug 2017 08:29:17 +0200
+
+gnome-shell (3.24.3-0ubuntu2) artful; urgency=medium
+
+  * Ship ubuntu GNOME Shell mode which will be a slightely modified
+    mode compared to upstream vanilla GNOME Shell one:
+    reference a cutomized ubuntu.css, with some based rules changes
+    from the upstream one, like default font, no symbolic icon in the
+    appmenu for coherence with other set of icons not having symbolic ones.
+    We use regexp rules based on the source shell css, so that it's always
+    in sync with shell theming on any update. (LP: #1698795)
+  * Dropped debian/patches/ubuntu_font.patch, not needed anymore as we will
+    have our own theme.
+  * debian/patches/ubuntu_gdm.patch:
+    as gdm is system-wide and not session-wide, ensure gdm has an ubuntu
+    styling by default, not impacting the gnome user session though.
+  * Bump Standard-Version to latest
+  * Remove debian/gnome-shell.gsettings-override, as this is now in
+    ubuntu-settings, and we will have per-session overrides there.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Mon, 14 Aug 2017 09:03:41 +0200
+
+gnome-shell (3.24.3-0ubuntu1) artful; urgency=medium
+
+  * New upstream release
+  * Drop fix-markup-test.patch: Applied in new release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 23 Jul 2017 13:08:04 -0400
+
+gnome-shell (3.24.2-0ubuntu7) artful; urgency=medium
+
+  [ Robert Ancell ]
+  * debian/control:
+    - Set Vcs-Bzr
+
+  [ Didier Roche ]
+  * debian/control*:
+    - Recommends ubuntu-session | gnome-session to ensure people have one
+      session installed if they install the Shell rather than depends on
+      gnome-session.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 20 Jun 2017 11:59:13 +0200
+
+gnome-shell (3.24.2-0ubuntu6) artful; urgency=medium
+
+  * debian/patches/optional-libgdm.patch:
+    - Handle libgdm gsettings schema not being installed (LP: #1695212)
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Tue, 06 Jun 2017 20:30:53 +1200
+
+gnome-shell (3.24.2-0ubuntu5) artful; urgency=medium
+
+  * debian/control:
+    - Make gir1.2-gdm-1.0 a suggests so it doesn't have to be in main
+  * debian/patches/optional-libgdm.patch:
+    - Handle libgdm not being installed
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 01 Jun 2017 21:23:51 +1200
+
+gnome-shell (3.24.2-0ubuntu4) artful; urgency=medium
+
+  * Have dh_auto_test run the unit tests
+  * depend/control.in:
+    - Build-depend on packages needed for the tests
+  * Add debian/patches/fix-markup-test.patch:
+    - Update one of the unit tests
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 18 May 2017 15:26:41 -0400
+
+gnome-shell (3.24.2-0ubuntu3) artful; urgency=medium
+
+  * Extend ubuntu-lightdm-user-switching.patch to allow
+    locking screen using LightDM (LP: #1684205)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 14 May 2017 21:42:39 -0400
+
+gnome-shell (3.24.2-0ubuntu2) artful; urgency=medium
+
+  * Depend on caribou (LP: #1589240)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 13 May 2017 17:35:48 -0400
+
+gnome-shell (3.24.2-0ubuntu1) artful; urgency=medium
+
+  * New upstream release (LP: #1690182)
+  * debian/control.in:
+    - Restore iio-sensor-proxy to Recommends since it was already in main
+    - Recommend gnome-user-guide again too
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 28 Apr 2017 13:29:39 -0400
+
+gnome-shell (3.24.1-0ubuntu3) artful; urgency=medium
+
+  * Add ubuntu_font.patch:
+    - Use Ubuntu font
+  * debian/rules, debian/control.in:
+    - Don't depend on adwaita-icon-theme-full
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 27 Apr 2017 08:32:39 -0400
+
+gnome-shell (3.24.1-0ubuntu2) artful; urgency=medium
+
+  [ Ken VanDine ]
+  * debian/control.in:
+    - Suggest switcheroo-control & chrome-gnome-shell instead of recommend
+    - Dropped gnome-contacts from recommends, let's use the seed to select
+      apps
+
+  [ Simon McVittie]
+  * Drop Telepathy g-i bindings from Depends to Suggests now that they
+    are runtime-optional upstream
+
+  [ Jeremy Bicha ]
+  * Lower more depends and recommends to suggests to smooth Main inclusion:
+    - adwaita-icon-theme-full
+    - gnome-themes-standard-data
+    - gnome-user-guide
+    - iio-sensor-proxy
+    - gdm3
+  * Replace gnome-backgrounds dependency with ubuntu-wallpapers
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 25 Apr 2017 22:01:55 -0400
+
+gnome-shell (3.24.1-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release (LP: #1682238)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 12 Apr 2017 17:40:02 -0400
+
+gnome-shell (3.24.0-0ubuntu2) zesty; urgency=medium
+
+  * Recommend switcheroo-control for dual GPU support (LP: #1671828)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 23 Mar 2017 21:46:25 -0400
+
+gnome-shell (3.24.0-0ubuntu1) zesty; urgency=medium
+
+  * New upstream translations release.
+  * Bump minimum mutter to 3.24.0
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 20 Mar 2017 20:07:54 -0400
+
+gnome-shell (3.23.92-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release
+  * debian/control.in:
+    - Drop obsolete Build-Depends against telepathy-glib
+    - Bump minimum mutter to 3.23.92
+  * Drop git patches applied in new release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 14 Mar 2017 15:28:09 -0400
+
+gnome-shell (3.23.91-0ubuntu4) zesty; urgency=medium
+
+  * debian/control.in:
+    - Recommend chrome-gnome-shell
+    - Recommend xserver-xorg-legacy until all the proprietary NVIDIA
+      drivers depend on it (LP: #1559576)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 10 Mar 2017 20:08:00 -0500
+
+gnome-shell (3.23.91-0ubuntu3) zesty; urgency=medium
+
+  * debian/control.in:
+    - Depend on gir1.2-geoclue-2.0 (LP: #1671823)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 10 Mar 2017 09:19:54 -0500
+
+gnome-shell (3.23.91-0ubuntu2) zesty; urgency=medium
+
+  * Add patches to backport some commits from git:
+    - git_fix_typos.patch
+    - git_fix_telepathy_notifications.patch
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 02 Mar 2017 15:50:41 -0500
+
+gnome-shell (3.23.91-0ubuntu1) zesty; urgency=medium
+
+  * Merge with Debian unstable. Remaining changes:
+    - debian/control.in:
+      + Update mutter dependencies
+      + Depend on gir1.2-rsvg-2.0
+      + Bump minimum gjs to 1.47.90
+      + Depend on gnome-session which due to package
+        split now contains only the session files
+    - debian/patches/ubuntu-lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - debian/patches/ubuntu_lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - debian/gnome-shell.gsettings-override:
+      + Replace firefox-esr with firefox
+    - Don't install the 3.14 process-working file since
+      we already did the 3.14 upgrade for 16.04 LTS
+  * New upstream release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 01 Mar 2017 13:06:59 -0500
+
 gnome-shell (3.22.3-2) unstable; urgency=medium
 
   * d/control: Drop dependency on telepathy-mission-control-5. GNOME Shell

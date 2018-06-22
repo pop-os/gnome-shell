@@ -1,0 +1,98 @@
+From: Sam Spilsbury <sam@endlessm.com>
+Date: Wed, 11 Oct 2017 05:42:04 -0500
+Subject: shell: ignore invalid window monitor index
+
+windowMenu: Check if monitorIndex is valid before using it
+
+Calling meta_window_get_monitor on an unmanaged window may return
+-1, so we need to check the return value.
+
+Fixes https://bugzilla.gnome.org/show_bug.cgi?id=788882
+
+keyboard: Handle case where keyboardMonitor is unset
+
+This may be the case where keyboardIndex is -1, which may be the
+case where either the keyboard monitor hasn't been set yet, or
+the keyboard is being unmanaged and meta_window_get_monitor
+returns -1
+
+https://bugzilla.gnome.org/show_bug.cgi?id=788882
+
+layout: Remove focusMonitor, as it is unused
+
+It also uses focusIndex to determine which monitor to
+return and may occassionally return undefined if focusIndex
+was -1.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=788882
+
+Bug-GNOME: https://bugzilla.gnome.org/show_bug.cgi?id=788882
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1724439
+Forwarded: yes
+---
+ js/ui/keyboard.js   | 8 ++++++++
+ js/ui/layout.js     | 4 ----
+ js/ui/windowMenu.js | 7 ++++---
+ 3 files changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index e13c7b7..14f6e7b 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -939,6 +939,12 @@ var Keyboard = new Lang.Class({
+         if (this.actor == null)
+             return;
+         let monitor = Main.layoutManager.keyboardMonitor;
++
++        // monitor may be null here if the underlying keyboard monitor
++        // index was still unset.
++        if (!monitor)
++            return;
++
+         let maxHeight = monitor.height / 3;
+         this.actor.width = monitor.width;
+         this.actor.height = maxHeight;
+@@ -1001,6 +1007,8 @@ var Keyboard = new Lang.Class({
+         if (!this._enabled)
+             return;
+ 
++       
++
+         this._clearShowIdle();
+         this._keyboardRequested = true;
+ 
+diff --git a/js/ui/layout.js b/js/ui/layout.js
+index 3d53bd4..cf0dad0 100644
+--- a/js/ui/layout.js
++++ b/js/ui/layout.js
+@@ -564,10 +564,6 @@ var LayoutManager = new Lang.Class({
+         return i;
+     },
+ 
+-    get focusMonitor() {
+-        return this.monitors[this.focusIndex];
+-    },
+-
+     set keyboardIndex(v) {
+         this._keyboardIndex = v;
+         this._updateKeyboardBox();
+diff --git a/js/ui/windowMenu.js b/js/ui/windowMenu.js
+index f0e564b..9bd7d19 100644
+--- a/js/ui/windowMenu.js
++++ b/js/ui/windowMenu.js
+@@ -128,11 +128,12 @@ var WindowMenu = new Lang.Class({
+ 
+         let screen = global.screen;
+         let nMonitors = screen.get_n_monitors();
+-        if (nMonitors > 1) {
++        let monitorIndex = window.get_monitor();
++        // meta_window_get_monitor can return -1, so handle that case
++        // appropriately.
++        if (nMonitors > 1 && monitorIndex >= 0) {
+             this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+ 
+-            let monitorIndex = window.get_monitor();
+-
+             let dir = Meta.ScreenDirection.UP;
+             let upMonitorIndex =
+                 screen.get_monitor_neighbor_index(monitorIndex, dir);

@@ -1,0 +1,30 @@
+Description: add support for the ubuntu lock on suspend option 
+Author: Tim Lunn <tim@feathertop.org>
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
+
+---
+---
+ js/ui/screenShield.js |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+Index: gnome-shell-3.27.91/js/ui/screenShield.js
+===================================================================
+--- gnome-shell-3.27.91.orig/js/ui/screenShield.js
++++ gnome-shell-3.27.91/js/ui/screenShield.js
+@@ -32,6 +32,7 @@ const Util = imports.misc.util;
+ const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
+ const LOCK_ENABLED_KEY = 'lock-enabled';
+ const LOCK_DELAY_KEY = 'lock-delay';
++const SUSPEND_LOCK_ENABLED_KEY = 'ubuntu-lock-on-suspend';
+ 
+ const LOCKDOWN_SCHEMA = 'org.gnome.desktop.lockdown';
+ const DISABLE_LOCK_KEY = 'disable-lock-screen';
+@@ -727,7 +728,7 @@ var ScreenShield = new Lang.Class({
+ 
+     _prepareForSleep(loginManager, aboutToSuspend) {
+         if (aboutToSuspend) {
+-            if (this._settings.get_boolean(LOCK_ENABLED_KEY))
++            if (this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY))
+                 this.lock(true);
+         } else {
+             this._wakeUpScreen();

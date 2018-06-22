@@ -5,31 +5,41 @@ include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
 # Ensure at build time that the library has no dependencies on undefined
 # symbols, and speed up loading.
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
-# Work around binutils behaviour change https://bugs.debian.org/847298
-DEB_LDFLAGS_MAINT_APPEND += -Wl,--disable-new-dtags
 
 %:
-	dh $@ --with gir,gnome
-
-override_dh_autoreconf:
-	dh_autoreconf --as-needed
+	dh $@ --with gir,gnome --buildsystem=meson
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFFLAGS = \
-	--enable-networkmanager \
-	--enable-systemd
+	-Dnetworkmanager=true \
+	-Dsystemd=true
 endif
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		--libdir=/usr/lib \
-		--libexecdir="\$${libdir}/gnome-shell" \
-		--enable-compile-warnings \
+		--libexecdir=/usr/lib/gnome-shell \
 		$(CONFFLAGS)
+
+override_dh_translations:
+	ninja -C obj-$(DEB_HOST_GNU_TYPE) gnome-shell-pot
+	# work around https://launchpad.net/bugs/1756547
+	sed -i '/^#, javascript-format/d' po/gnome-shell.pot
+	dh_translations
 
 override_dh_install:
 	find debian/tmp -name '*.la' -delete
-	dh_install --list-missing
+	# add more assets
+	mkdir -p debian/tmp/usr/share/gnome-shell/theme/
+	sed -e 's/#2975c4/#dd4814/' -e 's/#4a90d9/#e95420/' data/theme/close-window.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-close-window.svg
+	sed -e 's/#182f4c/#bb3e11/' -e 's/#205b9a/#e95420/' data/theme/toggle-on-us.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-toggle-on-us.svg
+	sed -e 's/#182f4c/#bb3e11/' -e 's/#205b9a/#e95420/' data/theme/toggle-on-intl.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-toggle-on-intl.svg
+	sed -e 's/#2b3133/#bb3e11/' -e 's/#16191a/#191a16/' -e 's/#454c4c/#4c4c45/' -e 's/#393f3f/#3f3f39/' -e 's/#2d3232/32322d/' -e 's/#3465a4/#dd4814/' data/theme/checkbox-off-focused.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-checkbox-off-focused.svg
+	sed -e 's/#2b3133/#bb3e11/' -e 's/#16191a/#191a16/' -e 's/#454c4c/#4c4c45/' -e 's/#393f3f/#3f3f39/' -e 's/#2d3232/32322d/' -e 's/#0b2e52/#dd4814/' -e 's/#667482/#e95420/' -e 's/#2d3232/#32322d/' -e 's/#3465a4/#dd4814/' data/theme/checkbox-focused.svg > debian/tmp/usr/share/gnome-shell/theme/ubuntu-checkbox-focused.svg
+	sed -e 's/#006098/#e95420/' data/theme/key-shift-uppercase.svg > debian/tmp/usr/share/gnome-shell/theme/key-shift-uppercase.svg
+	sed -e 's/#006098/#e95420/' data/theme/key-shift-latched-uppercase.svg > debian/tmp/usr/share/gnome-shell/theme/key-shift-latched-uppercase.svg
+	cp obj-*/data/theme/gnome-shell-high-contrast.css debian/tmp/usr/share/gnome-shell/theme/ubuntu-high-contrast.css
+	dh_install --fail-missing
 
 override_dh_makeshlibs:
 	dh_makeshlibs -Xlibgnome-shell
@@ -38,16 +48,8 @@ override_dh_shlibdeps:
 	# gnome-shell uses mutters private mutter-clutter-1.0.so etc.
 	dh_shlibdeps -l"usr/lib/$(DEB_HOST_MULTIARCH)/mutter"
 
-override_dh_girepository:
-	dh_girepository \
-		-l src:src/gvc \
-		-p /usr/lib/$(DEB_HOST_MULTIARCH)/mutter \
-		/usr/lib/gnome-shell
-
 override_dh_strip:
 	dh_strip --dbgsym-migration='gnome-shell-dbg (<< 3.20.2-2~)'
 
-ifeq ($(shell dpkg-vendor --query vendor),Ubuntu)
-override_dh_gencontrol:
-	dh_gencontrol -- -Vicon-theme:Depends=adwaita-icon-theme-full
-endif
+override_dh_auto_test:
+	xvfb-run dh_auto_test

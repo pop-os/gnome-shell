@@ -1,0 +1,97 @@
+---
+ js/gdm/loginDialog.js    |    6 +++++-
+ js/misc/systemActions.js |   18 ++++++++++++------
+ js/ui/unlockDialog.js    |    6 +++++-
+ 3 files changed, 22 insertions(+), 8 deletions(-)
+
+--- a/js/gdm/loginDialog.js
++++ b/js/gdm/loginDialog.js
+@@ -19,7 +19,11 @@
+ const AccountsService = imports.gi.AccountsService;
+ const Atk = imports.gi.Atk;
+ const Clutter = imports.gi.Clutter;
+-const Gdm = imports.gi.Gdm;
++try {
++    var Gdm = imports.gi.Gdm;
++} catch (e) {
++    var Gdm = null;
++}
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
+ const GObject = imports.gi.GObject;
+--- a/js/misc/systemActions.js
++++ b/js/misc/systemActions.js
+@@ -1,6 +1,10 @@
+ const AccountsService = imports.gi.AccountsService;
+ const Clutter = imports.gi.Clutter;
+-const Gdm = imports.gi.Gdm;
++try {
++    var Gdm = imports.gi.Gdm;
++} catch (e) {
++    var Gdm = null;
++}
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
+ const Lang = imports.lang;
+@@ -137,7 +141,8 @@ const SystemActions = new Lang.Class({
+                             keywords: _("lock orientation").split(';'),
+                             available: false });
+ 
+-        this._loginScreenSettings = new Gio.Settings({ schema_id: LOGIN_SCREEN_SCHEMA });
++        if (Gdm)
++            this._loginScreenSettings = new Gio.Settings({ schema_id: LOGIN_SCREEN_SCHEMA });
+         this._lockdownSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
+         this._orientationSettings = new Gio.Settings({ schema_id: 'org.gnome.settings-daemon.peripherals.touchscreen' });
+ 
+@@ -345,7 +350,7 @@ const SystemActions = new Lang.Class({
+     _updatePowerOff: function() {
+         let disabled = Main.sessionMode.isLocked ||
+                        (Main.sessionMode.isGreeter &&
+-                        this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY));
++                        Gdm ? this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY) : false);
+         this._actions.get(POWER_OFF_ACTION_ID).available = this._canHavePowerOff && !disabled;
+         this.notify('can-power-off');
+     },
+@@ -363,7 +368,7 @@ const SystemActions = new Lang.Class({
+         let disabled = (Main.sessionMode.isLocked &&
+                         this._suspendNeedsAuth) ||
+                        (Main.sessionMode.isGreeter &&
+-                        this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY));
++        Gdm ? this._loginScreenSettings.get_boolean(DISABLE_RESTART_KEY) : false);
+         this._actions.get(SUSPEND_ACTION_ID).available = this._canHaveSuspend && !disabled;
+         this.notify('can-suspend');
+     },
+@@ -393,7 +398,7 @@ const SystemActions = new Lang.Class({
+         let systemAccount = user.system_account;
+         let localAccount = user.local_account;
+         let multiUser = this._userManager.has_multiple_users;
+-        let multiSession = Gdm.get_session_ids().length > 1;
++        let multiSession = Gdm ? Gdm.get_session_ids().length > 1 : false;
+         let shouldShowInMode = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
+ 
+         let visible = allowLogout && (alwaysShow || multiUser || multiSession || systemAccount || !localAccount) && shouldShowInMode;
+@@ -428,7 +433,8 @@ const SystemActions = new Lang.Class({
+         if (Main.screenShield) {
+             Main.screenShield.lock(false);
+             Clutter.threads_add_repaint_func_full(Clutter.RepaintFlags.POST_PAINT, function() {
+-                Gdm.goto_login_session_sync(null);
++                if (Gdm)
++                    Gdm.goto_login_session_sync(null);
+                 return false;
+             });
+         } else
+--- a/js/ui/unlockDialog.js
++++ b/js/ui/unlockDialog.js
+@@ -3,7 +3,11 @@
+ const AccountsService = imports.gi.AccountsService;
+ const Atk = imports.gi.Atk;
+ const Clutter = imports.gi.Clutter;
+-const Gdm  = imports.gi.Gdm;
++try {
++    var Gdm = imports.gi.Gdm;
++} catch (e) {
++    var Gdm = null;
++}
+ const Gio = imports.gi.Gio;
+ const GLib = imports.gi.GLib;
+ const GnomeDesktop = imports.gi.GnomeDesktop;

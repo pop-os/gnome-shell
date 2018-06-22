@@ -1,0 +1,87 @@
+Description: Allow volume to be set above 100%.
+ Some systems have low maximum volume set (like x220), allow, from an option
+ in gnome-control-center to set it above that 100% limit from g-s-d
+ (keyboard) and gnome-shell.
+Origin: ubuntu
+Bug-Ubuntu: https://launchpad.net/bugs/1706524
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=710424
+
+---
+ js/ui/status/volume.js |   33 ++++++++++++++++++++++++++++++---
+ 1 file changed, 30 insertions(+), 3 deletions(-)
+
+Index: gnome-shell-3.27.91/js/ui/status/volume.js
+===================================================================
+--- gnome-shell-3.27.91.orig/js/ui/status/volume.js
++++ gnome-shell-3.27.91/js/ui/status/volume.js
+@@ -7,6 +7,7 @@ const Gvc = imports.gi.Gvc;
+ const St = imports.gi.St;
+ const Signals = imports.signals;
+ 
++const Desktop = imports.misc.desktop;
+ const Main = imports.ui.main;
+ const PanelMenu = imports.ui.panelMenu;
+ const PopupMenu = imports.ui.popupMenu;
+@@ -50,6 +51,18 @@ var StreamSlider = new Lang.Class({
+         });
+ 
+         this._stream = null;
++
++        this._use_amplifiedvolume = false;
++        if (Desktop.is('ubuntu')) {
++            let source = Gio.SettingsSchemaSource.get_default();
++            let schema = source.lookup('com.ubuntu.sound', true);
++            if (schema) {
++                this._volumesettings = new Gio.Settings({ settings_schema: schema });
++                this._volumesettings.connect('changed::allow-amplified-volume',
++                    Lang.bind(this, this._updateAmplifiedVolume));
++                this._updateAmplifiedVolume();
++            }
++        }
+     },
+ 
+     get stream() {
+@@ -103,11 +116,24 @@ var StreamSlider = new Lang.Class({
+         this._slider.setValue(value);
+     },
+ 
++    _updateAmplifiedVolume() {
++        this._use_amplifiedvolume =
++            this._volumesettings.get_boolean('allow-amplified-volume');
++    },
++
++    _get_control_max_volume() {
++        // return max volume depending if we are in an permitted amplified setting or not
++        if (this._use_amplifiedvolume) {
++            return this._control.get_vol_max_amplified();
++        }
++        return this._control.get_vol_max_norm();
++    },
++
+     _sliderChanged(slider, value, property) {
+         if (!this._stream)
+             return;
+ 
+-        let volume = value * this._control.get_vol_max_norm();
++        let volume = value * this._get_control_max_volume();
+         let prevMuted = this._stream.is_muted;
+         if (volume < 1) {
+             this._stream.volume = 0;
+@@ -131,7 +157,7 @@ var StreamSlider = new Lang.Class({
+ 
+     _updateVolume() {
+         let muted = this._stream.is_muted;
+-        this._slider.setValue(muted ? 0 : (this._stream.volume / this._control.get_vol_max_norm()));
++        this._slider.setValue(muted ? 0 : (this._stream.volume / this._get_control_max_volume()));
+         this.emit('stream-updated');
+     },
+ 
+@@ -143,7 +169,7 @@ var StreamSlider = new Lang.Class({
+         if (this._stream.is_muted || volume <= 0) {
+             return 'audio-volume-muted-symbolic';
+         } else {
+-            let n = Math.floor(3 * volume / this._control.get_vol_max_norm()) + 1;
++            let n = Math.floor(3 * volume / this._get_control_max_volume()) + 1;
+             if (n < 2)
+                 return 'audio-volume-low-symbolic';
+             if (n >= 3)

@@ -1,0 +1,21 @@
+Description: Add support for GDM3 theme alternatives
+  GNOME vanilla and systemd76 derivative ships their own GDM theme.
+Author: Jeremy Soller <jeremy@system76.com>
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=787454
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1715722
+Last-Update: 2017-09-08
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: gnome-shell-3.25.91/js/ui/sessionMode.js
+===================================================================
+--- gnome-shell-3.25.91.orig/js/ui/sessionMode.js
++++ gnome-shell-3.25.91/js/ui/sessionMode.js
+@@ -42,7 +42,7 @@ const _modes = {
+ 
+     'gdm': {
+         hasNotifications: true,
+-        stylesheetName: 'ubuntu.css',
++        stylesheetName: 'gdm3.css',
+         isGreeter: true,
+         isPrimary: true,
+         unlockDialog: imports.gdm.loginDialog.LoginDialog,
