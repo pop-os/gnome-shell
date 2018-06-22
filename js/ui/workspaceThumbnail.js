@@ -275,8 +275,8 @@ var WorkspaceThumbnail = new Lang.Class({
 
         this._createBackground();
 
-        let monitor = Main.layoutManager.primaryMonitor;
-        this.setPorthole(monitor.x, monitor.y, monitor.width, monitor.height);
+        let workArea = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
+        this.setPorthole(workArea.x, workArea.y, workArea.width, workArea.height);
 
         let windows = global.get_window_actors().filter(actor => {
             let win = actor.meta_window;
@@ -321,8 +321,6 @@ var WorkspaceThumbnail = new Lang.Class({
     },
 
     setPorthole(x, y, width, height) {
-        this._portholeX = x;
-        this._portholeY = y;
         this.actor.set_size(width, height);
         this._contents.set_position(-x, -y);
     },
@@ -675,11 +673,7 @@ var ThumbnailsBox = new Lang.Class({
         this._settings.connect('changed::dynamic-workspaces',
             this._updateSwitcherVisibility.bind(this));
 
-        Main.layoutManager.connect('monitors-changed', () => {
-            this._destroyThumbnails();
-            if (Main.overview.visible)
-                this._createThumbnails();
-        });
+        Main.layoutManager.connect('monitors-changed', this._rebuildThumbnails.bind(this));
     },
 
     _updateSwitcherVisibility() {
@@ -872,6 +866,9 @@ var ThumbnailsBox = new Lang.Class({
             Main.overview.connect('windows-restacked',
                                   this._syncStacking.bind(this));
 
+        this._workareasChangedId =
+            global.screen.connect('workareas-changed', this._rebuildThumbnails.bind(this));
+
         this._targetScale = 0;
         this._scale = 0;
         this._pendingScaleUpdate = false;
@@ -901,10 +898,22 @@ var ThumbnailsBox = new Lang.Class({
             this._syncStackingId = 0;
         }
 
+        if (this._workareasChangedId > 0) {
+            global.screen.disconnect(this._workareasChangedId);
+            this._workareasChangedId = 0;
+        }
+
         for (let w = 0; w < this._thumbnails.length; w++)
             this._thumbnails[w].destroy();
         this._thumbnails = [];
         this._porthole = null;
+    },
+
+    _rebuildThumbnails() {
+        this._destroyThumbnails();
+
+        if (Main.overview.visible)
+            this._createThumbnails();
     },
 
     _workspacesChanged() {
@@ -1159,7 +1168,7 @@ var ThumbnailsBox = new Lang.Class({
     // The "porthole" is the portion of the screen that we show in the
     // workspaces
     _ensurePorthole() {
-        if (!Main.layoutManager.primaryMonitor)
+        if (!Main.layoutManager.primaryMonitor || !Main.overview.visible)
             return false;
 
         if (!this._porthole)
