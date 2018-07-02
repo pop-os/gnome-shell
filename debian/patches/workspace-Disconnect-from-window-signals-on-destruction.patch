@@ -5,7 +5,7 @@ Subject: workspace: Disconnect from window signals on destruction
 Avoid to try to destroy the window clone content more than once
 when a window is destroyed, and do it in proper order.
 
-(cherry picked from commit 3671c986aad4d6572dc34f051d48f99a632d3470)
+(cherry picked from commit 6da7b3bfdede17a9e3d7f58c7a32e11f3885c132)
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=791233
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1747566
 Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4

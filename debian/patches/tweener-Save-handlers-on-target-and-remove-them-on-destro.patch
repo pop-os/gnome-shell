@@ -7,7 +7,7 @@ them when resetting the object state.
 Without doing this an handler could be called on a destroyed target when this
 happens on the onComplete callback.
 
-(cherry picked from commit 9be8e87628c1e686734d9ded279beb5ac9895801)
+(cherry picked from commit e5521a22569032318808fedfd1aa4da938b0fd1e)
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=791233
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1747566
 Bug-Debian: https://bugs.debian.org/887082

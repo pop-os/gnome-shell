@@ -13,7 +13,7 @@ to the proper cleanup; keeping track of the signal connections, in
 order to avoid callback loops (not really harmful in this case, but
 good practice).
 
-(cherry picked from commit c00a325b4099d8440492c1f5e3519fdf80f58774)
+(cherry picked from commit a021bea1103e20c2024e7670de895eb057b0d8ee)
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=791233
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1747566
 Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4

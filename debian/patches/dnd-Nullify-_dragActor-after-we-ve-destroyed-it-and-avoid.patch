@@ -12,7 +12,7 @@ instead of using booleans.
 
 Remove duplicated handler on 'destroy' and just use a generic one.
 
-(cherry picked from commit 9a2eb81ea477598bf427d902d754825f048e2b66)
+(cherry picked from commit 366275c25359eb1cfcb42c423772802106140902)
 Bug: https://bugzilla.gnome.org/show_bug.cgi?id=791233
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1747566
 Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4

@@ -10,6 +10,8 @@ gnome-shell (3.28.2-2) UNRELEASED; urgency=medium
     d/p/st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch:
     Update to upstream gnome-3-28 branch
     - magnifier.js: Zoom more smoothly (LP: #1691675)
+  * d/p/workspaceThumbnail-remove-unused-private-win-reference.patch:
+    Update patch series for #887082 to latest version proposed upstream
 
  -- Simon McVittie <smcv@debian.org>  Mon, 02 Jul 2018 09:29:10 +0100
 
