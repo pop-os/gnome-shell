@@ -13,6 +13,7 @@ elements.
 
 Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/167
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1760039
+Applied-upstream: 3.28.3, commit:da96408098cdf1735b2c7a1b1c722ecb2a263ce9
 Applied-upstream: 3.29.0, commit:d6d09fd3c82dd39dac1a764073040b57baeb8659
 ---
  js/ui/main.js | 8 ++++++++

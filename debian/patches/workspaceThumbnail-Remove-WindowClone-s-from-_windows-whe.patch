@@ -23,7 +23,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
  1 file changed, 18 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/workspaceThumbnail.js b/js/ui/workspaceThumbnail.js
-index 91c20e0..0c72e74 100644
+index 01f42ad..11c9be2 100644
 --- a/js/ui/workspaceThumbnail.js
 +++ b/js/ui/workspaceThumbnail.js
 @@ -137,6 +137,8 @@ var WindowClone = new Lang.Class({

@@ -1,5 +1,13 @@
-ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
 networkAgent-Fix-fallout-from-libnm-port.patch
+network-Update-the-icon-in-the-panel-whenever-NM-s-state-.patch
+Update-Afrikaans-translation.patch
+st-label-Unset-clutter-text-instance-on-disposal.patch
+Update-Scottish-Gaelic-translation.patch
+magnifier.js-Fix-zoom-juddering.patch
+Change-const-to-var.patch
+st-texture-cache-Don-t-add-NULL-textures-to-cache.patch
+st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch
+ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
 workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch

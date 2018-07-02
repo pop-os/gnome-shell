@@ -1,0 +1,35 @@
+From: Mario Sanchez Prada <mario@endlessm.com>
+Date: Tue, 17 Apr 2018 21:51:34 +0100
+Subject: network: Update the icon in the panel whenever NM's state changes
+
+Similar to what it's done when the main connection changes, we need
+to make sure that the icon in the panel gets updated before calling
+_syncConnectivity(), so that the icon gets always updated if needed,
+regardless of whether there's an active connection or not.
+
+This is needed because there's at least one case when an icon should
+be shown when the computer is not connected to any network: when a
+hotspot has been enabled, which can be useful even if there's not
+an internet connection to share (e.g. to easily allow connecting
+other devices to the computer.
+
+(cherry picked from commit d8b9e23502ad763329c75659387c21fb9084de57)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/214
+Applied-upstream: 3.28.3, commit:9a2597f80b936eb857d1ed9be9793514eda60e6c
+---
+ js/ui/status/network.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/status/network.js b/js/ui/status/network.js
+index 54ed5ca..a759936 100644
+--- a/js/ui/status/network.js
++++ b/js/ui/status/network.js
+@@ -1944,6 +1944,7 @@ var NMApplet = new Lang.Class({
+         this.indicators.visible = this._client.nm_running;
+         this.menu.actor.visible = this._client.networking_enabled;
+ 
++        this._updateIcon();
+         this._syncConnectivity();
+     },
+ 

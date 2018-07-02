@@ -1,3 +1,18 @@
+gnome-shell (3.28.2-2) UNRELEASED; urgency=medium
+
+  * d/p/network-Update-the-icon-in-the-panel-whenever-NM-s-state-.patch,
+    d/p/Update-Afrikaans-translation.patch,
+    d/p/st-label-Unset-clutter-text-instance-on-disposal.patch,
+    d/p/Update-Scottish-Gaelic-translation.patch,
+    d/p/magnifier.js-Fix-zoom-juddering.patch,
+    d/p/Change-const-to-var.patch,
+    d/p/st-texture-cache-Don-t-add-NULL-textures-to-cache.patch,
+    d/p/st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch:
+    Update to upstream gnome-3-28 branch
+    - magnifier.js: Zoom more smoothly (LP: #1691675)
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 02 Jul 2018 09:29:10 +0100
+
 gnome-shell (3.28.2-1) unstable; urgency=medium
 
   * Team upload
