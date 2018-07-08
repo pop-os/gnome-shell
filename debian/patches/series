@@ -15,4 +15,6 @@ workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch
 workspace-Disconnect-from-window-signals-on-destruction.patch
 workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch
 workspaceThumbnail-remove-unused-private-win-reference.patch
+messageList-stop-syncing-if-closeButton-has-been-destroye.patch
+automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 workaround_crasher_fractional_scaling.patch

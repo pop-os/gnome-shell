@@ -11,7 +11,9 @@ gnome-shell (3.28.2-2) UNRELEASED; urgency=medium
     Update to upstream gnome-3-28 branch
     - magnifier.js: Zoom more smoothly (LP: #1691675)
     - The StLabel patch might resolve #900776
-  * d/p/workspaceThumbnail-remove-unused-private-win-reference.patch:
+  * d/p/workspaceThumbnail-remove-unused-private-win-reference.patch,
+    d/p/messageList-stop-syncing-if-closeButton-has-been-destroye.patch,
+    d/p/automountManager-remove-allowAutorun-expire-timeout-on-vo.patch:
     Update patch series for #887082 to latest version proposed upstream
 
  -- Simon McVittie <smcv@debian.org>  Mon, 02 Jul 2018 09:29:10 +0100

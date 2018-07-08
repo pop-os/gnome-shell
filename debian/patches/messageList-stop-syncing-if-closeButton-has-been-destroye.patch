@@ -1,0 +1,27 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Wed, 4 Jul 2018 15:56:25 +0200
+Subject: messageList: stop syncing if closeButton has been destroyed
+
+The _sync function for Message only updates the close button visibility,
+so we can safely stop doing that if the close button get get destroyed earlier
+(as it happens when clicking on it).
+
+https://bugzilla.gnome.org/show_bug.cgi?id=791233
+---
+ js/ui/messageList.js | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/messageList.js b/js/ui/messageList.js
+index aff201e..2d397c1 100644
+--- a/js/ui/messageList.js
++++ b/js/ui/messageList.js
+@@ -362,7 +362,8 @@ var Message = new Lang.Class({
+         this.setBody(body);
+ 
+         this._closeButton.connect('clicked', this.close.bind(this));
+-        this.actor.connect('notify::hover', this._sync.bind(this));
++        let actorHoverId = this.actor.connect('notify::hover', this._sync.bind(this));
++        this._closeButton.connect('destroy', this.actor.disconnect.bind(this.actor, actorHoverId));
+         this.actor.connect('clicked', this._onClicked.bind(this));
+         this.actor.connect('destroy', this._onDestroy.bind(this));
+         this._sync();
