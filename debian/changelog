@@ -1,3 +1,23 @@
+gnome-shell (3.28.3-1) UNRELEASED; urgency=medium
+
+  * New upstream release (LP: #1718931)
+    d/p/Change-const-to-var.patch,
+    d/p/Update-Afrikaans-translation.patch,
+    d/p/Update-Scottish-Gaelic-translation.patch,
+    d/p/magnifier.js-Fix-zoom-juddering.patch,
+    d/p/network-Update-the-icon-in-the-panel-whenever-NM-s-state-.patch,
+    d/p/networkAgent-Fix-fallout-from-libnm-port.patch,
+    d/p/st-label-Unset-clutter-text-instance-on-disposal.patch,
+    d/p/st-texture-cache-Don-t-add-NULL-textures-to-cache.patch,
+    d/p/st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch,
+    d/p/ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch,
+    d/p/workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch,
+    d/p/workspaceThumbnail-remove-unused-private-win-reference.patch,
+    d/p/workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch:
+    - Drop patches applied on the 3.28 branch
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Jul 2018 18:22:21 +0200
+
 gnome-shell (3.28.2-2) unstable; urgency=medium
 
   * Team upload
