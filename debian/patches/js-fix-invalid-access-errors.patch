@@ -74,9 +74,9 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
 ---
  js/ui/dnd.js                | 65 +++++++++++++++++++++++++++------------------
  js/ui/tweener.js            | 64 +++++++++++++++++++++++++++++++++++---------
- js/ui/workspace.js          | 35 +++++++++++++++++-------
- js/ui/workspaceThumbnail.js | 33 +++++++++++++++++------
- 4 files changed, 140 insertions(+), 57 deletions(-)
+ js/ui/workspace.js          | 26 +++++++++++-------
+ js/ui/workspaceThumbnail.js | 21 ++++++++++-----
+ 4 files changed, 122 insertions(+), 54 deletions(-)
 
 diff --git a/js/ui/dnd.js b/js/ui/dnd.js
 index a38607c..431c60d 100644
@@ -362,7 +362,7 @@ index 1a85e2f..663b97b 100644
  
  function _actorDestroyed(target) {
 diff --git a/js/ui/workspace.js b/js/ui/workspace.js
-index 1e121b7..8836537 100644
+index 8b56932..c148ccb 100644
 --- a/js/ui/workspace.js
 +++ b/js/ui/workspace.js
 @@ -139,14 +139,8 @@ var WindowClone = new Lang.Class({
@@ -413,30 +413,8 @@ index 1e121b7..8836537 100644
 +    _doRemoveWindow(metaWin, {cloneDestroy}={cloneDestroy: true}) {
          let win = metaWin.get_compositor_private();
  
-         // find the position of the window in our list
-@@ -1438,8 +1441,10 @@ var Workspace = new Lang.Class({
-             return;
- 
-         let clone = this._windows[index];
-+        clone.disconnect(this._windowsDestroyedIds[index]);
- 
-         this._windows.splice(index, 1);
-+        this._windowsDestroyedIds.splice(index, 1);
-         this._windowOverlays.splice(index, 1);
- 
-         // If metaWin.get_compositor_private() returned non-NULL, that
-@@ -1457,7 +1462,9 @@ var Workspace = new Lang.Class({
-                 scale: stageWidth / clone.actor.width
-             };
-         }
--        clone.destroy();
-+
-+        if (cloneDestroy)
-+            clone.destroy();
- 
- 
-         // We need to reposition the windows; to avoid shuffling windows
-@@ -1800,7 +1807,11 @@ var Workspace = new Lang.Class({
+         let clone = this._removeWindowClone(metaWin);
+@@ -1792,7 +1795,11 @@ var Workspace = new Lang.Class({
              this._actualGeometryLater = 0;
          }
  
@@ -448,17 +426,7 @@ index 1e121b7..8836537 100644
      },
  
      // Sets this.leavingOverview flag to false.
-@@ -1848,6 +1859,9 @@ var Workspace = new Lang.Class({
-         clone.connect('size-changed', () => {
-             this._recalculateWindowPositions(WindowPositionFlags.NONE);
-         });
-+        let cloneDestroyedId = clone.connect('destroy', () => {
-+            this._doRemoveWindow(clone.metaWindow, {cloneDestroy: false});
-+        });
- 
-         this.actor.add_actor(clone.actor);
- 
-@@ -1864,6 +1878,7 @@ var Workspace = new Lang.Class({
+@@ -1859,6 +1866,7 @@ var Workspace = new Lang.Class({
              clone.setStackAbove(this._windows[this._windows.length - 1].actor);
  
          this._windows.push(clone);
@@ -467,7 +435,7 @@ index 1e121b7..8836537 100644
  
          return [clone, overlay];
 diff --git a/js/ui/workspaceThumbnail.js b/js/ui/workspaceThumbnail.js
-index c1b4bdd..0c72e74 100644
+index 381169e..016dda6 100644
 --- a/js/ui/workspaceThumbnail.js
 +++ b/js/ui/workspaceThumbnail.js
 @@ -70,12 +70,7 @@ var WindowClone = new Lang.Class({
@@ -507,31 +475,7 @@ index c1b4bdd..0c72e74 100644
          this._allWindows = [];
          this._minimizedChangedIds = [];
          for (let i = 0; i < windows.length; i++) {
-@@ -371,7 +375,7 @@ var WorkspaceThumbnail = new Lang.Class({
-         return this._collapseFraction;
-     },
- 
--    _doRemoveWindow(metaWin) {
-+    _doRemoveWindow(metaWin, {cloneDestroy}={cloneDestroy: true}) {
-         let win = metaWin.get_compositor_private();
- 
-         // find the position of the window in our list
-@@ -381,9 +385,13 @@ var WorkspaceThumbnail = new Lang.Class({
-             return;
- 
-         let clone = this._windows[index];
-+        clone.disconnect(this._windowsDestroyedIds[index]);
-+
-         this._windows.splice(index, 1);
-+        this._windowsDestroyedIds.splice(index, 1);
- 
--        clone.destroy();
-+        if (cloneDestroy)
-+            clone.destroy();
-     },
- 
-     _doAddWindow(metaWin) {
-@@ -502,7 +510,11 @@ var WorkspaceThumbnail = new Lang.Class({
+@@ -493,7 +497,11 @@ var WorkspaceThumbnail = new Lang.Class({
            this._bgManager = null;
          }
  
@@ -543,18 +487,7 @@ index c1b4bdd..0c72e74 100644
          this.actor = null;
      },
  
-@@ -535,6 +547,10 @@ var WorkspaceThumbnail = new Lang.Class({
-         clone.connect('drag-end', () => {
-             Main.overview.endWindowDrag(clone.metaWindow);
-         });
-+        let cloneDestroyedId = clone.connect('destroy', () => {
-+            this._doRemoveWindow(clone.metaWindow, {cloneDestroy: false});
-+        });
-+
-         this._contents.add_actor(clone.actor);
- 
-         if (this._windows.length == 0)
-@@ -543,6 +559,7 @@ var WorkspaceThumbnail = new Lang.Class({
+@@ -537,6 +545,7 @@ var WorkspaceThumbnail = new Lang.Class({
              clone.setStackAbove(this._windows[this._windows.length - 1].actor);
  
          this._windows.push(clone);

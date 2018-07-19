@@ -1,9 +1,3 @@
-# Cherry picks from upstream
-ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch
-st-label-Unset-clutter-text-instance-on-disposal.patch
-st-texture-cache-Don-t-add-NULL-textures-to-cache.patch
-st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch
-# End of Cherry-picked patches
 41-handle-logind-fail.patch
 50_add_ubuntu_desktop_detect.patch
 70_allow_sound_above_100.patch
@@ -24,7 +18,6 @@ js-fix-invalid-access-errors.patch
 workspace-fix-repositioned-windows-in-activities.patch
 st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
 js-ui-Choose-some-actors-to-cache-on-the-GPU.patch
-magnifier.js-Fix-zoom-juddering.patch
 authPrompt-Unset-preemptiveAnswer-on-reset.patch
 authPrompt-Do-not-enable-sensitivity-if-retries-are-disal.patch
 gdm-util-Always-allow-to-retry-login-in-unlock-mode.patch
