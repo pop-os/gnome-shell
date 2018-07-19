@@ -31,7 +31,7 @@ var WORKSPACE_CUT_SIZE = 10;
 
 var WORKSPACE_KEEP_ALIVE_TIME = 100;
 
-const OVERRIDE_SCHEMA = 'org.gnome.shell.overrides';
+var OVERRIDE_SCHEMA = 'org.gnome.shell.overrides';
 
 /* A layout manager that requests size only for primary_actor, but then allocates
    all using a fixed layout */
@@ -241,7 +241,7 @@ var WindowClone = new Lang.Class({
 Signals.addSignalMethods(WindowClone.prototype);
 
 
-const ThumbnailState = {
+var ThumbnailState = {
     NEW   :         0,
     ANIMATING_IN :  1,
     NORMAL:         2,
@@ -372,18 +372,9 @@ var WorkspaceThumbnail = new Lang.Class({
     },
 
     _doRemoveWindow(metaWin) {
-        let win = metaWin.get_compositor_private();
-
-        // find the position of the window in our list
-        let index = this._lookupIndex (metaWin);
-
-        if (index == -1)
-            return;
-
-        let clone = this._windows[index];
-        this._windows.splice(index, 1);
-
-        clone.destroy();
+        let clone = this._removeWindowClone(metaWin);
+        if (clone)
+            clone.destroy();
     },
 
     _doAddWindow(metaWin) {
@@ -535,6 +526,9 @@ var WorkspaceThumbnail = new Lang.Class({
         clone.connect('drag-end', () => {
             Main.overview.endWindowDrag(clone.metaWindow);
         });
+        clone.actor.connect('destroy', () => {
+            this._removeWindowClone(clone.metaWindow);
+        });
         this._contents.add_actor(clone.actor);
 
         if (this._windows.length == 0)
@@ -545,6 +539,16 @@ var WorkspaceThumbnail = new Lang.Class({
         this._windows.push(clone);
 
         return clone;
+    },
+
+    _removeWindowClone(metaWin) {
+        // find the position of the window in our list
+        let index = this._lookupIndex (metaWin);
+
+        if (index == -1)
+            return null;
+
+        return this._windows.splice(index, 1).pop();
     },
 
     activate(time) {
