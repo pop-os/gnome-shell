@@ -1,4 +1,4 @@
-gnome-shell (3.28.3-1) UNRELEASED; urgency=medium
+gnome-shell (3.28.3-1) unstable; urgency=medium
 
   * New upstream release (LP: #1718931)
     d/p/Change-const-to-var.patch,
@@ -16,7 +16,7 @@ gnome-shell (3.28.3-1) UNRELEASED; urgency=medium
     d/p/workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch:
     - Drop patches applied on the 3.28 branch
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Jul 2018 18:22:21 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Jul 2018 20:05:52 +0100
 
 gnome-shell (3.28.2-2) unstable; urgency=medium
 
