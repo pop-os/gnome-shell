@@ -20,12 +20,12 @@ Bug-GNOME: https://bugzilla.gnome.org/show_bug.cgi?id=776588
 Bug-Ubuntu: https://bugs.launchpad.net/gnome-shell/+bug/1653153
 Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/8
 ---
- js/ui/workspace.js          | 28 +++++++++++++++-------------
- js/ui/workspaceThumbnail.js |  9 ++++-----
- 2 files changed, 19 insertions(+), 18 deletions(-)
+ js/ui/workspace.js          | 25 +++++++++++++------------
+ js/ui/workspaceThumbnail.js |  7 +++----
+ 2 files changed, 16 insertions(+), 16 deletions(-)
 
 diff --git a/js/ui/workspace.js b/js/ui/workspace.js
-index 8836537..f06b78e 100644
+index 8b56932..112c54e 100644
 --- a/js/ui/workspace.js
 +++ b/js/ui/workspace.js
 @@ -137,8 +137,10 @@ var WindowClone = new Lang.Class({
@@ -38,10 +38,10 @@ index 8836537..f06b78e 100644
 +            this._onMetaWindowSizeChanged.bind(this));
 +        this._windowClone._posChangedId = this.metaWindow.connect('position-changed',
 +            this._computeBoundingBox.bind(this));
-         this._windowClone._destroyId = this.realWindow.connect('destroy',
-             this.destroy.bind(this));
- 
-@@ -200,8 +202,7 @@ var WindowClone = new Lang.Class({
+         this._windowClone._destroyId =
+             this.realWindow.connect('destroy', () => {
+                 // First destroy the clone and then destroy everything
+@@ -206,8 +208,7 @@ var WindowClone = new Lang.Class({
  
      addAttachedDialog(win) {
          this._doAddAttachedDialog(win, win.get_compositor_private());
@@ -51,7 +51,7 @@ index 8836537..f06b78e 100644
      },
  
      hasAttachedDialogs() {
-@@ -210,15 +211,14 @@ var WindowClone = new Lang.Class({
+@@ -216,15 +217,14 @@ var WindowClone = new Lang.Class({
  
      _doAddAttachedDialog(metaWin, realWin) {
          let clone = new Clutter.Clone({ source: realWin });
@@ -68,21 +68,11 @@ index 8836537..f06b78e 100644
  
 -            this._computeBoundingBox();
 -            this.emit('size-changed');
-+            this._onMetaWindowSizeChanged.bind(this);
++            this._onMetaWindowSizeChanged();
          });
          this.actor.add_child(clone);
      },
-@@ -308,7 +308,8 @@ var WindowClone = new Lang.Class({
- 
-         // First destroy the clone and then destroy everything
-         // This will ensure that we never see it in the _disconnectSignals loop
--        this.metaWindow.disconnect(this._windowClone._updateId);
-+        this.metaWindow.disconnect(this._windowClone._sizeChangedId);
-+        this.metaWindow.disconnect(this._windowClone._posChangedId);
-         this.realWindow.disconnect(this._windowClone._destroyId);
-         this._windowClone.destroy();
- 
-@@ -323,12 +324,13 @@ var WindowClone = new Lang.Class({
+@@ -321,12 +321,13 @@ var WindowClone = new Lang.Class({
              else
                  realWindow = child.source;
  
@@ -99,7 +89,7 @@ index 8836537..f06b78e 100644
          this.emit('size-changed');
      },
 diff --git a/js/ui/workspaceThumbnail.js b/js/ui/workspaceThumbnail.js
-index 0c72e74..4db8c19 100644
+index 381169e..417296d 100644
 --- a/js/ui/workspaceThumbnail.js
 +++ b/js/ui/workspaceThumbnail.js
 @@ -68,7 +68,7 @@ var WindowClone = new Lang.Class({
@@ -109,27 +99,18 @@ index 0c72e74..4db8c19 100644
 -        this.clone._updateId = this.metaWindow.connect('position-changed',
 +        this.clone._updateId = this.realWindow.connect('notify::position',
                                                         this._onPositionChanged.bind(this));
-         this.clone._destroyId = this.realWindow.connect('destroy', this.destroy.bind(this));
-         this._onPositionChanged();
-@@ -141,7 +141,7 @@ var WindowClone = new Lang.Class({
- 
-         // First destroy the clone and then destroy everything
-         // This will ensure that we never see it in the _disconnectSignals loop
--        this.metaWindow.disconnect(this.clone._updateId);
-+        this.realWindow.disconnect(this.clone._updateId);
-         this.realWindow.disconnect(this.clone._destroyId);
-         this.clone.destroy();
- 
-@@ -156,7 +156,7 @@ var WindowClone = new Lang.Class({
+         this.clone._destroyId = this.realWindow.connect('destroy', () => {
+             // First destroy the clone and then destroy everything
+@@ -153,7 +153,7 @@ var WindowClone = new Lang.Class({
          let clone = new Clutter.Clone({ source: realDialog });
          this._updateDialogPosition(realDialog, clone);
  
 -        clone._updateId = metaDialog.connect('position-changed', dialog => {
-+        clone._updateId = metaDialog.connect('notify::position', dialog => {
++        clone._updateId = realDialog.connect('notify::position', dialog => {
              this._updateDialogPosition(dialog, clone);
          });
          clone._destroyId = realDialog.connect('destroy', () => {
-@@ -174,7 +174,6 @@ var WindowClone = new Lang.Class({
+@@ -171,7 +171,6 @@ var WindowClone = new Lang.Class({
      },
  
      _onPositionChanged() {
@@ -137,7 +118,7 @@ index 0c72e74..4db8c19 100644
          this.actor.set_position(this.realWindow.x, this.realWindow.y);
      },
  
-@@ -182,7 +181,7 @@ var WindowClone = new Lang.Class({
+@@ -179,7 +178,7 @@ var WindowClone = new Lang.Class({
          this.actor.get_children().forEach(child => {
              let realWindow = child.source;
  
