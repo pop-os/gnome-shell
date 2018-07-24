@@ -24,47 +24,37 @@ Remove duplicated handler on 'destroy' and just use a generic one.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=791233
 
-workspaceThumbnail: Disconnect from window signals on destruction
-
-Avoid to try to destroy the window clone content more than once
-when a window is destroyed, and do it in proper order.
-
-https://bugzilla.gnome.org/show_bug.cgi?id=791233
-
-workspaceThumbnail: Remove WindowClone's from _windows when destroyed
-
-A WindowClone might be destroyed earlier than its MetaWindow counterpart
-as its WindowActor could be destroyed earlier, thus when happens it's safer
-to remove the clone from the windows list, without waiting for the workspace
-to request to do so.
-
-WindowClone now emits a 'destroy' signals earlier enough and this now
-triggers a _doRemoveWindow on WorkspaceThumbnail which will lead
-to the proper cleanup; keeping track of the signal connections, in
-order to avoid callback loops (not really harmful in this case, but
-good practice).
+automountManager: remove allowAutorun expire timeout on volume removal
+    
+If the volume is removed before AUTORUN_EXPIRE_TIMEOUT_SECS seconds, we can stop
+the timeout earlier as there's nothing to unset, while the volume instance
+won't be valid anymore.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=791233
 
-workspace: Disconnect from window signals on destruction
+messageList: stop syncing if closeButton has been destroyed
 
-Avoid to try to destroy the window clone content more than once
-when a window is destroyed, and do it in proper order.
+The _sync function for Message only updates the close button visibility,
+so we can safely stop doing that if the close button get get destroyed earlier
+(as it happens when clicking on it).
 
 https://bugzilla.gnome.org/show_bug.cgi?id=791233
 
-workspace: Remove WindowClone's from _windows when destroyed
+workspaceThumbnail: Don't keep stale clones in list
 
-A WindowClone might be destroyed earlier than its MetaWindow counterpart
-as its WindowActor could be destroyed earlier, thus when happens it's safer
-to remove the clone from the windows list, without waiting for the workspace
-to request to do so.
+If a clone gets destroyed before the corresponding MetaWindow is
+removed from the workspace, we will still find it in the list of
+clones and try to destroy it again. Avoid the resulting warnings
+by updating the list of clones immediately when a clone is destroyed.
 
-WindowClone now emits a 'destroy' signals earlier enough and this now
-triggers a _doRemoveWindow on WorkspaceThumbnail which will lead
-to the proper cleanup; keeping track of the signal connections, in
-order to avoid callback loops (not really harmful in this case, but
-good practice).
+https://bugzilla.gnome.org/show_bug.cgi?id=791233
+
+workspace: Don't keep stale clones in list
+
+If a clone gets destroyed before the corresponding MetaWindow is
+removed from the workspace, we will still find it in the list of
+clones and try to destroy it again. Avoid the resulting warnings
+by updating the list of clones immediately when a clone is destroyed.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=791233
 
@@ -72,12 +62,52 @@ Bug-GNOME: https://bugzilla.gnome.org/show_bug.cgi?id=791233
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1747566
 Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
 ---
- js/ui/dnd.js                | 65 +++++++++++++++++++++++++++------------------
- js/ui/tweener.js            | 64 +++++++++++++++++++++++++++++++++++---------
- js/ui/workspace.js          | 26 +++++++++++-------
- js/ui/workspaceThumbnail.js | 21 ++++++++++-----
- 4 files changed, 122 insertions(+), 54 deletions(-)
+ js/ui/calendar.js                    |  2 ++
+ js/ui/components/automountManager.js |  6 ++++
+ js/ui/dnd.js                         | 65 +++++++++++++++++++++---------------
+ js/ui/messageList.js                 |  3 +-
+ js/ui/tweener.js                     | 63 ++++++++++++++++++++++++++--------
+ 5 files changed, 99 insertions(+), 40 deletions(-)
 
+diff --git a/js/ui/calendar.js b/js/ui/calendar.js
+index 651aac6..fd133cc 100644
+--- a/js/ui/calendar.js
++++ b/js/ui/calendar.js
+@@ -802,6 +802,8 @@ var NotificationMessage = new Lang.Class({
+     },
+ 
+     _onDestroy() {
++        this.parent();
++
+         if (this._updatedId)
+             this.notification.disconnect(this._updatedId);
+         this._updatedId = 0;
+diff --git a/js/ui/components/automountManager.js b/js/ui/components/automountManager.js
+index 2d8f3f8..a6cd857 100644
+--- a/js/ui/components/automountManager.js
++++ b/js/ui/components/automountManager.js
+@@ -210,6 +210,10 @@ var AutomountManager = new Lang.Class({
+     },
+ 
+     _onVolumeRemoved(monitor, volume) {
++        if (volume._allowAutorunExpireId && volume._allowAutorunExpireId > 0) {
++            Mainloop.source_remove(volume._allowAutorunExpireId);
++            delete volume._allowAutorunExpireId;
++        }
+         this._volumeQueue = 
+             this._volumeQueue.filter(element => (element != volume));
+     },
+@@ -234,8 +238,10 @@ var AutomountManager = new Lang.Class({
+     _allowAutorunExpire(volume) {
+         let id = Mainloop.timeout_add_seconds(AUTORUN_EXPIRE_TIMEOUT_SECS, () => {
+             volume.allowAutorun = false;
++            delete volume._allowAutorunExpireId;
+             return GLib.SOURCE_REMOVE;
+         });
++        volume._allowAutorunExpireId = id;
+         GLib.Source.set_name_by_id(id, '[gnome-shell] volume.allowAutorun');
+     }
+ });
 diff --git a/js/ui/dnd.js b/js/ui/dnd.js
 index a38607c..431c60d 100644
 --- a/js/ui/dnd.js
@@ -275,11 +305,25 @@ index a38607c..431c60d 100644
          currentDraggable = null;
      }
  });
+diff --git a/js/ui/messageList.js b/js/ui/messageList.js
+index aff201e..2d397c1 100644
+--- a/js/ui/messageList.js
++++ b/js/ui/messageList.js
+@@ -362,7 +362,8 @@ var Message = new Lang.Class({
+         this.setBody(body);
+ 
+         this._closeButton.connect('clicked', this.close.bind(this));
+-        this.actor.connect('notify::hover', this._sync.bind(this));
++        let actorHoverId = this.actor.connect('notify::hover', this._sync.bind(this));
++        this._closeButton.connect('destroy', this.actor.disconnect.bind(this.actor, actorHoverId));
+         this.actor.connect('clicked', this._onClicked.bind(this));
+         this.actor.connect('destroy', this._onDestroy.bind(this));
+         this._sync();
 diff --git a/js/ui/tweener.js b/js/ui/tweener.js
-index 1a85e2f..663b97b 100644
+index 1a85e2f..22818ba 100644
 --- a/js/ui/tweener.js
 +++ b/js/ui/tweener.js
-@@ -69,30 +69,68 @@ function _getTweenState(target) {
+@@ -69,30 +69,67 @@ function _getTweenState(target) {
      return target.__ShellTweenerState;
  }
  
@@ -320,8 +364,7 @@ index 1a85e2f..663b97b 100644
 +    let wrapperNeeded = false;
 +    let tweenerHandlers = _ensureHandlers(target);
 +
-+    if (!(name in tweenerHandlers))
-+    {
++    if (!(name in tweenerHandlers)) {
 +        tweenerHandlers[name] = [];
 +        wrapperNeeded = true;
 +    }
@@ -361,137 +404,3 @@ index 1a85e2f..663b97b 100644
  }
  
  function _actorDestroyed(target) {
-diff --git a/js/ui/workspace.js b/js/ui/workspace.js
-index 8b56932..c148ccb 100644
---- a/js/ui/workspace.js
-+++ b/js/ui/workspace.js
-@@ -139,14 +139,8 @@ var WindowClone = new Lang.Class({
- 
-         this._windowClone._updateId = this.metaWindow.connect('size-changed',
-             this._onRealWindowSizeChanged.bind(this));
--        this._windowClone._destroyId =
--            this.realWindow.connect('destroy', () => {
--                // First destroy the clone and then destroy everything
--                // This will ensure that we never see it in the
--                // _disconnectSignals loop
--                this._windowClone.destroy();
--                this.destroy();
--            });
-+        this._windowClone._destroyId = this.realWindow.connect('destroy',
-+            this.destroy.bind(this));
- 
-         this._updateAttachedDialogs();
-         this._computeBoundingBox();
-@@ -310,6 +304,14 @@ var WindowClone = new Lang.Class({
-     },
- 
-     destroy() {
-+        this.emit('destroy');
-+
-+        // First destroy the clone and then destroy everything
-+        // This will ensure that we never see it in the _disconnectSignals loop
-+        this.metaWindow.disconnect(this._windowClone._updateId);
-+        this.realWindow.disconnect(this._windowClone._destroyId);
-+        this._windowClone.destroy();
-+
-         this.actor.destroy();
-     },
- 
-@@ -1131,6 +1133,7 @@ var Workspace = new Lang.Class({
-         // Create clones for windows that should be
-         // visible in the Overview
-         this._windows = [];
-+        this._windowsDestroyedIds = [];
-         this._windowOverlays = [];
-         for (let i = 0; i < windows.length; i++) {
-             if (this._isOverviewWindow(windows[i])) {
-@@ -1428,7 +1431,7 @@ var Workspace = new Lang.Class({
-         return GLib.SOURCE_REMOVE;
-     },
- 
--    _doRemoveWindow(metaWin) {
-+    _doRemoveWindow(metaWin, {cloneDestroy}={cloneDestroy: true}) {
-         let win = metaWin.get_compositor_private();
- 
-         let clone = this._removeWindowClone(metaWin);
-@@ -1792,7 +1795,11 @@ var Workspace = new Lang.Class({
-             this._actualGeometryLater = 0;
-         }
- 
-+        for (let index = 0; index < this._windows.length; ++index)
-+            this._windows[index].disconnect(this._windowsDestroyedIds[index]);
-+
-         this._windows = [];
-+        this._windowsDestroyedIds = [];
-     },
- 
-     // Sets this.leavingOverview flag to false.
-@@ -1859,6 +1866,7 @@ var Workspace = new Lang.Class({
-             clone.setStackAbove(this._windows[this._windows.length - 1].actor);
- 
-         this._windows.push(clone);
-+        this._windowsDestroyedIds.push(cloneDestroyedId);
-         this._windowOverlays.push(overlay);
- 
-         return [clone, overlay];
-diff --git a/js/ui/workspaceThumbnail.js b/js/ui/workspaceThumbnail.js
-index 381169e..016dda6 100644
---- a/js/ui/workspaceThumbnail.js
-+++ b/js/ui/workspaceThumbnail.js
-@@ -70,12 +70,7 @@ var WindowClone = new Lang.Class({
- 
-         this.clone._updateId = this.metaWindow.connect('position-changed',
-                                                        this._onPositionChanged.bind(this));
--        this.clone._destroyId = this.realWindow.connect('destroy', () => {
--            // First destroy the clone and then destroy everything
--            // This will ensure that we never see it in the _disconnectSignals loop
--            this.clone.destroy();
--            this.destroy();
--        });
-+        this.clone._destroyId = this.realWindow.connect('destroy', this.destroy.bind(this));
-         this._onPositionChanged();
- 
-         this.actor.connect('button-release-event',
-@@ -142,6 +137,14 @@ var WindowClone = new Lang.Class({
-     },
- 
-     destroy() {
-+        this.emit('destroy');
-+
-+        // First destroy the clone and then destroy everything
-+        // This will ensure that we never see it in the _disconnectSignals loop
-+        this.metaWindow.disconnect(this.clone._updateId);
-+        this.realWindow.disconnect(this.clone._destroyId);
-+        this.clone.destroy();
-+
-         this.actor.destroy();
-     },
- 
-@@ -285,6 +288,7 @@ var WorkspaceThumbnail = new Lang.Class({
- 
-         // Create clones for windows that should be visible in the Overview
-         this._windows = [];
-+        this._windowsDestroyedIds = [];
-         this._allWindows = [];
-         this._minimizedChangedIds = [];
-         for (let i = 0; i < windows.length; i++) {
-@@ -493,7 +497,11 @@ var WorkspaceThumbnail = new Lang.Class({
-           this._bgManager = null;
-         }
- 
-+        for (let index = 0; index < this._windows.length; ++index)
-+            this._windows[index].disconnect(this._windowsDestroyedIds[index]);
-+
-         this._windows = [];
-+        this._windowsDestroyedIds = [];
-         this.actor = null;
-     },
- 
-@@ -537,6 +545,7 @@ var WorkspaceThumbnail = new Lang.Class({
-             clone.setStackAbove(this._windows[this._windows.length - 1].actor);
- 
-         this._windows.push(clone);
-+        this._windowsDestroyedIds.push(cloneDestroyedId);
- 
-         return clone;
-     },
