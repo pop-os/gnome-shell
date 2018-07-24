@@ -1,4 +1,4 @@
-gnome-shell (3.28.3-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.28.3-0ubuntu1) cosmic; urgency=medium
 
   * debian/patches/30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch,
     debian/patches/magnifier.js-Fix-zoom-juddering.patch,
@@ -10,7 +10,7 @@ gnome-shell (3.28.3-0ubuntu1) UNRELEASED; urgency=medium
   * debian/patches/js-fix-invalid-access-errors.patch:
     - Refreshed to reflect upstream changes
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Jul 2018 16:33:46 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 24 Jul 2018 12:29:20 +0100
 
 gnome-shell (3.28.2-0ubuntu1) cosmic; urgency=medium
 
