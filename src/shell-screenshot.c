@@ -31,6 +31,8 @@ struct _ShellScreenshotPrivate
   char *filename;
   char *filename_used;
 
+  GDateTime *datetime;
+
   cairo_surface_t *image;
   cairo_rectangle_int_t screenshot_area;
 
@@ -72,8 +74,9 @@ on_screenshot_written (GObject      *source,
   g_clear_pointer (&priv->image, cairo_surface_destroy);
   g_clear_pointer (&priv->filename, g_free);
   g_clear_pointer (&priv->filename_used, g_free);
+  g_clear_pointer (&priv->datetime, g_date_time_unref);
 
-  meta_enable_unredirect_for_screen (shell_global_get_screen (priv->global));
+  meta_enable_unredirect_for_display (shell_global_get_display (priv->global));
 }
 
 /* called in an I/O thread */
@@ -175,6 +178,7 @@ write_screenshot_thread (GTask        *result,
   GOutputStream *stream;
   ShellScreenshot *screenshot = SHELL_SCREENSHOT (object);
   ShellScreenshotPrivate *priv;
+  char *creation_time;
 
   g_assert (screenshot != NULL);
 
@@ -193,14 +197,18 @@ write_screenshot_thread (GTask        *result,
                                             0, 0,
                                             cairo_image_surface_get_width (priv->image),
                                             cairo_image_surface_get_height (priv->image));
+      creation_time = g_date_time_format (priv->datetime, "%c");
 
       if (gdk_pixbuf_save_to_stream (pixbuf, stream, "png", NULL, NULL,
-                                    "tEXt::Software", "gnome-screenshot", NULL))
+                                     "tEXt::Software", "gnome-screenshot",
+                                     "tEXt::Creation Time", creation_time,
+                                     NULL))
         status = CAIRO_STATUS_SUCCESS;
       else
         status = CAIRO_STATUS_WRITE_ERROR;
 
       g_object_unref (pixbuf);
+      g_free (creation_time);
     }
 
 
@@ -241,6 +249,7 @@ do_grab_screenshot (ShellScreenshot *screenshot,
                                                        n_captures,
                                                        x, y,
                                                        width, height);
+  priv->datetime = g_date_time_new_now_local ();
 
   for (i = 0; i < n_captures; i++)
     cairo_surface_destroy (captures[i].image);
@@ -306,19 +315,19 @@ static void
 grab_screenshot (ClutterActor *stage,
                  ShellScreenshot *screenshot)
 {
-  MetaScreen *screen;
+  MetaDisplay *display;
   MetaCursorTracker *tracker;
   int width, height;
   GTask *result;
   GSettings *settings;
   ShellScreenshotPrivate *priv = screenshot->priv;
 
-  screen = shell_global_get_screen (priv->global);
-  meta_screen_get_size (screen, &width, &height);
+  display = shell_global_get_display (priv->global);
+  meta_display_get_size (display, &width, &height);
 
   do_grab_screenshot (screenshot, CLUTTER_STAGE (stage), 0, 0, width, height);
 
-  if (meta_screen_get_n_monitors (screen) > 1)
+  if (meta_display_get_n_monitors (display) > 1)
     {
       cairo_region_t *screen_region = cairo_region_create ();
       cairo_region_t *stage_region;
@@ -327,10 +336,11 @@ grab_screenshot (ClutterActor *stage,
       int i;
       cairo_t *cr;
 
-      for (i = meta_screen_get_n_monitors (screen) - 1; i >= 0; i--)
+      for (i = meta_display_get_n_monitors (display) - 1; i >= 0; i--)
         {
-          meta_screen_get_monitor_geometry (screen, i, &monitor_rect);
-          cairo_region_union_rectangle (screen_region, (const cairo_rectangle_int_t *) &monitor_rect);
+          meta_display_get_monitor_geometry (display, i, &monitor_rect);
+          cairo_region_union_rectangle (screen_region,
+                                        (const cairo_rectangle_int_t *) &monitor_rect);
         }
 
       stage_rect.x = 0;
@@ -365,7 +375,7 @@ grab_screenshot (ClutterActor *stage,
   if (priv->include_cursor &&
       !g_settings_get_boolean (settings, MAGNIFIER_ACTIVE_KEY))
     {
-      tracker = meta_cursor_tracker_get_for_screen (screen);
+      tracker = meta_cursor_tracker_get_for_display (display);
       _draw_cursor_image (tracker, priv->image, priv->screenshot_area);
     }
   g_object_unref (settings);
@@ -404,9 +414,8 @@ grab_window_screenshot (ClutterActor *stage,
   ShellScreenshotPrivate *priv = screenshot->priv;
   GTask *result;
   GSettings *settings;
-  MetaScreen *screen = shell_global_get_screen (priv->global);
+  MetaDisplay *display = shell_global_get_display (priv->global);
   MetaCursorTracker *tracker;
-  MetaDisplay *display = meta_screen_get_display (screen);
   MetaWindow *window = meta_display_get_focus_window (display);
   ClutterActor *window_actor;
   gfloat actor_x, actor_y;
@@ -432,11 +441,12 @@ grab_window_screenshot (ClutterActor *stage,
 
   stex = META_SHAPED_TEXTURE (meta_window_actor_get_texture (META_WINDOW_ACTOR (window_actor)));
   priv->image = meta_shaped_texture_get_image (stex, &clip);
+  priv->datetime = g_date_time_new_now_local ();
 
   settings = g_settings_new (A11Y_APPS_SCHEMA);
   if (priv->include_cursor && !g_settings_get_boolean (settings, MAGNIFIER_ACTIVE_KEY))
     {
-      tracker = meta_cursor_tracker_get_for_screen (screen);
+      tracker = meta_cursor_tracker_get_for_display (display);
       _draw_cursor_image (tracker, priv->image, priv->screenshot_area);
     }
   g_object_unref (settings);
@@ -480,7 +490,7 @@ shell_screenshot_screenshot (ShellScreenshot *screenshot,
 
   stage = CLUTTER_ACTOR (shell_global_get_stage (priv->global));
 
-  meta_disable_unredirect_for_screen (shell_global_get_screen (priv->global));
+  meta_disable_unredirect_for_display (shell_global_get_display (priv->global));
 
   g_signal_connect_after (stage, "paint", G_CALLBACK (grab_screenshot), (gpointer)screenshot);
 
@@ -529,7 +539,7 @@ shell_screenshot_screenshot_area (ShellScreenshot *screenshot,
 
   stage = CLUTTER_ACTOR (shell_global_get_stage (priv->global));
 
-  meta_disable_unredirect_for_screen (shell_global_get_screen (shell_global_get ()));
+  meta_disable_unredirect_for_display (shell_global_get_display (shell_global_get ()));
 
   g_signal_connect_after (stage, "paint", G_CALLBACK (grab_area_screenshot), (gpointer)screenshot);
 
@@ -557,9 +567,8 @@ shell_screenshot_screenshot_window (ShellScreenshot *screenshot,
                                     ShellScreenshotCallback callback)
 {
   ShellScreenshotPrivate *priv = screenshot->priv;
-  MetaScreen *screen = shell_global_get_screen (priv->global);
+  MetaDisplay *display = shell_global_get_display (priv->global);
   ClutterActor *stage;
-  MetaDisplay *display = meta_screen_get_display (screen);
   MetaWindow *window = meta_display_get_focus_window (display);
 
   if (priv->filename != NULL || !window) {
@@ -575,7 +584,7 @@ shell_screenshot_screenshot_window (ShellScreenshot *screenshot,
 
   stage = CLUTTER_ACTOR (shell_global_get_stage (priv->global));
 
-  meta_disable_unredirect_for_screen (shell_global_get_screen (shell_global_get ()));
+  meta_disable_unredirect_for_display (shell_global_get_display (shell_global_get ()));
 
   g_signal_connect_after (stage, "paint", G_CALLBACK (grab_window_screenshot), (gpointer)screenshot);
 

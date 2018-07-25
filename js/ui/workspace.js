@@ -447,12 +447,13 @@ var WindowOverlay = new Lang.Class({
         this.border = new St.Bin({ style_class: 'window-clone-border' });
 
         let title = new St.Label({ style_class: 'window-caption',
-                                   text: metaWindow.title });
+                                   text: this._getCaption() });
         title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         windowClone.actor.label_actor = title;
 
         this._updateCaptionId = metaWindow.connect('notify::title', w => {
             this.title.text = w.title;
+            this.title.text = this._getCaption();
             this.relayout(false);
         });
 
@@ -563,6 +564,16 @@ var WindowOverlay = new Lang.Class({
             this.border.set_position(borderX, borderY);
             this.border.set_size(borderWidth, borderHeight);
         }
+    },
+
+    _getCaption() {
+        let metaWindow = this._windowClone.metaWindow;
+        if (metaWindow.title)
+            return metaWindow.title;
+
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(metaWindow);
+        return app.get_name();
     },
 
     _animateOverlayActor(actor, x, y, width, height) {
@@ -1145,10 +1156,10 @@ var Workspace = new Lang.Class({
             this._windowRemovedId = this.metaWorkspace.connect('window-removed',
                                                                this._windowRemoved.bind(this));
         }
-        this._windowEnteredMonitorId = global.screen.connect('window-entered-monitor',
-                                                             this._windowEnteredMonitor.bind(this));
-        this._windowLeftMonitorId = global.screen.connect('window-left-monitor',
-                                                          this._windowLeftMonitor.bind(this));
+        this._windowEnteredMonitorId = global.display.connect('window-entered-monitor',
+                                                              this._windowEnteredMonitor.bind(this));
+        this._windowLeftMonitorId = global.display.connect('window-left-monitor',
+                                                           this._windowLeftMonitor.bind(this));
         this._repositionWindowsId = 0;
 
         this.leavingOverview = false;
@@ -1294,7 +1305,8 @@ var Workspace = new Lang.Class({
         let area = padArea(this._actualGeometry, padding);
         let slots = strategy.computeWindowSlots(layout, area);
 
-        let currentWorkspace = global.screen.get_active_workspace();
+        let workspaceManager = global.workspace_manager;
+        let currentWorkspace = workspaceManager.get_active_workspace();
         let isOnCurrentWorkspace = this.metaWorkspace == null || this.metaWorkspace == currentWorkspace;
 
         for (let i = 0; i < slots.length; i++) {
@@ -1549,13 +1561,13 @@ var Workspace = new Lang.Class({
         this._doRemoveWindow(metaWin);
     },
 
-    _windowEnteredMonitor(metaScreen, monitorIndex, metaWin) {
+    _windowEnteredMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doAddWindow(metaWin);
         }
     },
 
-    _windowLeftMonitor(metaScreen, monitorIndex, metaWin) {
+    _windowLeftMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doRemoveWindow(metaWin);
         }
@@ -1580,7 +1592,9 @@ var Workspace = new Lang.Class({
         if (this._windows.length == 0)
             return;
 
-        if (this.metaWorkspace != null && this.metaWorkspace != global.screen.get_active_workspace())
+        let workspaceManager = global.workspace_manager;
+        let activeWorkspace = workspaceManager.get_active_workspace();
+        if (this.metaWorkspace != null && this.metaWorkspace != activeWorkspace)
             return;
 
         // Special case maximized windows, since it doesn't make sense
@@ -1636,7 +1650,9 @@ var Workspace = new Lang.Class({
             this._repositionWindowsId = 0;
         }
 
-        if (this.metaWorkspace != null && this.metaWorkspace != global.screen.get_active_workspace())
+        let workspaceManager = global.workspace_manager;
+        let activeWorkspace = workspaceManager.get_active_workspace();
+        if (this.metaWorkspace != null && this.metaWorkspace != activeWorkspace)
             return;
 
         // Special case maximized windows, since it doesn't make sense
@@ -1706,7 +1722,8 @@ var Workspace = new Lang.Class({
     },
 
     zoomFromOverview() {
-        let currentWorkspace = global.screen.get_active_workspace();
+        let workspaceManager = global.workspace_manager;
+        let currentWorkspace = workspaceManager.get_active_workspace();
 
         this.leavingOverview = true;
 
@@ -1774,8 +1791,8 @@ var Workspace = new Lang.Class({
             this.metaWorkspace.disconnect(this._windowAddedId);
             this.metaWorkspace.disconnect(this._windowRemovedId);
         }
-        global.screen.disconnect(this._windowEnteredMonitorId);
-        global.screen.disconnect(this._windowLeftMonitorId);
+        global.display.disconnect(this._windowEnteredMonitorId);
+        global.display.disconnect(this._windowLeftMonitorId);
 
         if (this._repositionWindowsId > 0) {
             Mainloop.source_remove(this._repositionWindowsId);
@@ -2010,7 +2027,8 @@ var Workspace = new Lang.Class({
             if (metaWindow.get_monitor() != this.monitorIndex)
                 metaWindow.move_to_monitor(this.monitorIndex);
 
-            let index = this.metaWorkspace ? this.metaWorkspace.index() : global.screen.get_active_workspace_index();
+            let workspaceManager = global.workspace_manager;
+            let index = this.metaWorkspace ? this.metaWorkspace.index() : workspaceManager.get_active_workspace_index();
             metaWindow.change_workspace_by_index(index, false);
             return true;
         } else if (source.shellWorkspaceLaunch) {

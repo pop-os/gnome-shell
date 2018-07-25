@@ -1,30 +1,66 @@
-3.28.3
+3.29.4
 ======
-* Fix lagging pointer when zoomed [Daniel; #682013]
 * Fix "Clear All" for calendar events [Florian; #325]
-* Misc. bug fixes [Florian, Mario, Marco; #136, #214, #788931, #791233]
+* Allow cancelling direct switch operations [Xavier; #315]
+* Support being started by systemd --user [Iain; !137, !138]
+* Support key event forwarding required by some input methods [Carlos; #275]
+* Misc. bug fixes and cleanups [Jasper, Andrea, Florian; #663461, #372, !112,
+  #414, !151]
 
 Contributors:
-  Carlos Garnacho, Florian Müllner, Mario Sanchez Prada, Joe Rabinoff,
-  Didier Roche, Marco Trevisan (Treviño), Daniel van Vugt
+  Andrea Azzarone, Carlos Garnacho, Xavier Johnson, Iain Lane, Florian Müllner,
+  Jasper St. Pierre
 
 Translators:
-  Pieter Schalk Schoeman [af], Gun Chleoc [gd]
+  Stas Solovey [ru]
 
-3.28.2
+3.29.3
 ======
-* Fix lock-up on cancelling polkit dialog [Florian; #221]
-* Guard against untimely keyboard map changes [Carlos; #240]
-* Fix blurriness of OSD under some resolutions [Silvère; #782011]
-* Fix icons in search provider results [Florian; #249]
-* Misc. bug fixes [Marco, Florian; #792687, #781471]
+* Save creation time in screenshot metadata [Florian; #790481]
+* Improve consistency between ctrl- and middle-click on app icons [Xavier; #316]
+* Add support for font-feature-settings CSS property [Ryan; #34]
+* Adjust to MetaScreen removal [Jonas; #759538]
+* Misc. bug fixes [Florian, Marco, Sam; #298, #788931, #26, #76, !54, #788882,
+  #791233]
 
 Contributors:
-  Carlos Garnacho, Silvère Latchurié, Florian Müllner, Mario Sanchez Prada,
-  Ray Strode, Marco Trevisan (Treviño)
+  Jonas Ådahl, Ryan Hendrickson, Xavier Johnson, Florian Müllner, Joe Rabinoff,
+  Sam Spilsbury, Marco Trevisan (Treviño)
 
 Translators:
-  Stas Solovey [ru], Rafael Fontenelle [pt_BR]
+  Gun Chleoc [gd], Yi-Jyun Pan [zh_TW], Cédric Valmary [oc], Jordi Mas [ca]
+
+3.29.2
+======
+* Guard against untimely keyboard map changes [Carlos; #240]
+* Fix icons in search provider results [Florian; #249]
+* Fix blurriness of OSD under some resolutions [Silvère; #782011]
+* Fix lagging pointer when zoomed [Daniel; #682013]
+* Misc. bug fixes [Milan, Xiaoguang, Florian, Mario, Ole; #244, #787871,
+  #781471, #136, #214, #294]
+
+Contributors:
+  Ole Jørgen Brønner, Milan Crha, Carlos Garnacho, Yussuf Khalil,
+  Silvère Latchurié, Florian Müllner, Mario Sanchez Prada, Ray Strode,
+  Daniel van Vugt, Xiaoguang Wang
+
+Translators:
+  Rafael Fontenelle [pt_BR], Kukuh Syafaat [id], Marcos Lans [gl],
+  Anders Jonsson [sv], Mingcong Bai [zh_CN]
+
+3.29.1
+======
+* Support icons in app-menu [Florian; #760985]
+* Misc. bug fixes [Marco, Florian, Lubomir; #792687, #221, !63]
+
+Contributors:
+  Piotr Drąg, Takao Fujiwara, Christian Kellner, Florian Müllner,
+  Mario Sanchez Prada, Lubomir Rintel, Didier Roche, Marco Trevisan (Treviño),
+  verdre
+
+Translators:
+  gogo [hr], Stas Solovey [ru], Matej Urbančič [sl], Daniel Șerbănescu [ro],
+  Fabio Tomat [fur], Marek Cernocky [cs], Daniel Mustieles [es]
 
 3.28.1
 ======

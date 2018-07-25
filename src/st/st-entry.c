@@ -308,9 +308,8 @@ st_entry_style_changed (StWidget *self)
     }
 
   theme_node = st_widget_get_theme_node (self);
- 
-  st_theme_node_get_foreground_color (theme_node, &color);
-  clutter_text_set_color (CLUTTER_TEXT (priv->entry), &color);
+
+  _st_set_text_from_style (CLUTTER_TEXT (priv->entry), theme_node);
 
   if (st_theme_node_lookup_length (theme_node, "caret-size", TRUE, &size))
     clutter_text_set_cursor_size (CLUTTER_TEXT (priv->entry), (int)(.5 + size));
@@ -906,6 +905,13 @@ st_entry_unmap (ClutterActor *actor)
   CLUTTER_ACTOR_CLASS (st_entry_parent_class)->unmap (actor);
 }
 
+static gboolean
+st_entry_get_paint_volume (ClutterActor       *actor,
+                           ClutterPaintVolume *volume)
+{
+  return clutter_paint_volume_set_from_allocation (volume, actor);
+}
+
 static void
 st_entry_class_init (StEntryClass *klass)
 {
@@ -923,6 +929,7 @@ st_entry_class_init (StEntryClass *klass)
   actor_class->allocate = st_entry_allocate;
   actor_class->paint = st_entry_paint;
   actor_class->unmap = st_entry_unmap;
+  actor_class->get_paint_volume = st_entry_get_paint_volume;
 
   actor_class->key_press_event = st_entry_key_press_event;
   actor_class->key_focus_in = st_entry_key_focus_in;
