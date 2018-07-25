@@ -2,8 +2,7 @@
 
 set -e
 
-if [ "$1" = "remove" ]; then
-  update-alternatives --remove gdm3.css /usr/share/gnome-shell/theme/ubuntu.css
-fi
+# Remove older deprecated theme. Can be removed post 20.04
+update-alternatives --remove gdm3.css /usr/share/gnome-shell/theme/ubuntu.css || true
 
 #DEBHELPER#

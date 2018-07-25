@@ -7,9 +7,8 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
       - ubuntu-session (| gnome-session) to have the ubuntu session available
       - xserver-xorg-legacy
     + Update debian/gbp.conf with Ubuntu settings
-    + gnome-shell-common.install: Install Ubuntu mode and Shell theme
-    + gnome-shell-common.{postinst,prerm}: Set up the Ubuntu css theme as an
-      alternative
+    + gnome-shell-common.install: Install Ubuntu mode
+    + gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
     + 50_add_ubuntu_desktop_detect.patch
       - add caching for desktop detection to avoid querying the current
         desktop env variable as iterate through the list each time. For the
@@ -46,7 +45,6 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
     + debian/rules:
       - Run dh_translations and work around an issue with Rosetta and plural
         translations
-      - Modify upstream theme assets for the Ubuntu them
       - Run dh_install with fail-missing
   * d/p/ubuntu_background_login.patch,
     d/p/ubuntu_block_mode_extension_update.patch,
@@ -57,6 +55,11 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
     d/p/ubuntu_lock_on_suspend.patch,
     d/p/71_smarter_alt_tab.patch:
     - Using Gbp-Pq Topic to ubuntu (so they get moved to debian/patches/ubuntu)
+
+  [ Didier Roche ]
+  * Remove ubuntu.css and related assets:
+    - Don't install them anymore, as we rely on Yaru as our default theme.
+    - Remove older alternative unconditionnally.
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 15 Aug 2018 00:34:28 +0200
 
