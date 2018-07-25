@@ -1,3 +1,10 @@
+gnome-shell (3.28.3-2) UNRELEASED; urgency=medium
+
+  * debian/gbp.conf: We've branched experimental for 3.29/3.30, use
+    upstream/3.28.x for upstream sources.
+
+ -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 15:47:40 +0100
+
 gnome-shell (3.28.3-1) unstable; urgency=medium
 
   * New upstream release (LP: #1718931)
