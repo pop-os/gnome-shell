@@ -1,4 +1,5 @@
 debian/source_gnome-shell.py /usr/share/apport/package-hooks
+usr/lib/systemd/user
 usr/share/GConf
 usr/share/glib-2.0
 usr/share/gnome-control-center

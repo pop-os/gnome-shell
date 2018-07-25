@@ -1,8 +1,23 @@
-gnome-shell (3.28.3-2) UNRELEASED; urgency=medium
+gnome-shell (3.29.4-1) UNRELEASED; urgency=medium
 
   * debian/*: Update for experimental (3.29/3.30 series)
+  * New upstream release 3.29.4 (etc)
+    + Fix "Clear All" for calendar events
+    + Allow cancelling direct switch operations
+    + Support being started by systemd --user
+    + Support key event forwarding required by some input methods
+    + Save creation time in screenshot metadata
+    + Improve consistency between ctrl- and middle-click on app icons
+    + Add support for font-feature-settings CSS property
+    + Adjust to MetaScreen removal
+    + Guard against untimely keyboard map changes
+    + Fix icons in search provider results
+    + Fix blurriness of OSD under some resolutions
+    + Fix lagging pointer when zoomed
+    + Support icons in app-menu
+  * Install new systemd user units (aren't used by anything just yet)
 
- -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 15:46:58 +0100
+ -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 15:49:18 +0100
 
 gnome-shell (3.28.3-1) unstable; urgency=medium
 
