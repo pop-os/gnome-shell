@@ -60,6 +60,7 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
   * Remove ubuntu.css and related assets:
     - Don't install them anymore, as we rely on Yaru as our default theme.
     - Remove older alternative unconditionnally.
+  * Set Yaru theme as default for the ubuntu mod (LP: #1783571)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 15 Aug 2018 00:34:28 +0200
 
