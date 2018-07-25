@@ -1,4 +1,4 @@
-gnome-shell (3.28.3-0ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (3.28.3-0ubuntu2) cosmic; urgency=medium
 
   * debian/patch/js-fix-invalid-access-errors.patch:
     - Updated to include upstream requested changes and removing
