@@ -18,7 +18,7 @@ gnome-shell (3.29.4-1) UNRELEASED; urgency=medium
   * Install new systemd user units (aren't used by anything just yet)
   * Refresh patches
   * debian/gnome-shell.docs: README is now called README.md
-  * debian/control*: Require mutter API version 3
+  * debian/control*: Require mutter API version 3 and mutter 3.29.4
 
  -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 15:49:18 +0100
 
