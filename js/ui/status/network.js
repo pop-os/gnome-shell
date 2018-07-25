@@ -995,8 +995,16 @@ var NMWirelessDialog = new Lang.Class({
         else if (!oneHasConnection && twoHasConnection)
             return 1;
 
-        let oneStrength = one.accessPoints[0].strength;
-        let twoStrength = two.accessPoints[0].strength;
+        let oneAp = one.accessPoints[0] || null;
+        let twoAp = two.accessPoints[0] || null;
+
+        if (oneAp != null && twoAp == null)
+            return -1;
+        else if (oneAp == null && twoAp != null)
+            return 1;
+
+        let oneStrength = oneAp.strength;
+        let twoStrength = twoAp.strength;
 
         // place stronger connections first
         if (oneStrength != twoStrength)
@@ -1155,6 +1163,11 @@ var NMWirelessDialog = new Lang.Class({
         network.item.connect('selected', () => {
             Util.ensureActorVisibleInScrollView(this._scrollView, network.item.actor);
             this._selectNetwork(network);
+        });
+        network.item.actor.connect('destroy', () => {
+            let keyFocus = global.stage.key_focus;
+            if (keyFocus && keyFocus.contains(network.item.actor))
+                this._itemBox.grab_key_focus();
         });
     },
 });
