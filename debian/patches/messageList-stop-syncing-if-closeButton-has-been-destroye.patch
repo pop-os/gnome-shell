@@ -12,10 +12,10 @@ https://bugzilla.gnome.org/show_bug.cgi?id=791233
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/js/ui/messageList.js b/js/ui/messageList.js
-index aff201e..2d397c1 100644
+index 3b3c2b6..547135a 100644
 --- a/js/ui/messageList.js
 +++ b/js/ui/messageList.js
-@@ -362,7 +362,8 @@ var Message = new Lang.Class({
+@@ -363,7 +363,8 @@ var Message = new Lang.Class({
          this.setBody(body);
  
          this._closeButton.connect('clicked', this.close.bind(this));

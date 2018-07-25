@@ -14,7 +14,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
  1 file changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/js/ui/workspace.js b/js/ui/workspace.js
-index 8b56932..7d6339b 100644
+index 06a9d77..1d0e4fd 100644
 --- a/js/ui/workspace.js
 +++ b/js/ui/workspace.js
 @@ -139,14 +139,8 @@ var WindowClone = new Lang.Class({
