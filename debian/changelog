@@ -1,4 +1,4 @@
-gnome-shell (3.29.4-1) UNRELEASED; urgency=medium
+gnome-shell (3.29.4-1) experimental; urgency=medium
 
   * debian/*: Update for experimental (3.29/3.30 series)
   * New upstream release 3.29.4 (etc)
@@ -20,7 +20,7 @@ gnome-shell (3.29.4-1) UNRELEASED; urgency=medium
   * debian/gnome-shell.docs: README is now called README.md
   * debian/control*: Require mutter API version 3 and mutter 3.29.4
 
- -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 15:49:18 +0100
+ -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 17:40:58 +0100
 
 gnome-shell (3.28.3-1) unstable; urgency=medium
 
