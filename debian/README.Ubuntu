@@ -6,8 +6,7 @@ in `debian/control`
 
 ## What should be reported?
 
-The GNOME Shell `data/theme/` directory is the source of Yaru GNOME Shell theme. So any changes there should be updated
-in Yaru as well. Most of the sass files are under the `gnome-shell-sass/` subdirectory.
+The upstream GNOME Shell `data/theme/` directory is used as a basis for our Yaru GNOME Shell theme so any change made upstream needs to be reflected in our derivative version. Most of the sass files are under the `gnome-shell-sass/` subdirectory.
 
 Note that Yaru has its own `meson.build` file. Changes there shouldn't be in general reported apart if new assets are installed.
 It should be a simple assessment in general if you need to do anything on the build system side.
