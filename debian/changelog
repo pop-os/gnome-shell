@@ -1,3 +1,10 @@
+gnome-shell (3.28.3-0ubuntu3) UNRELEASED; urgency=medium
+
+  * Add debian/README.Ubuntu with instructions on how to update the Yaru
+    theme.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 26 Jul 2018 10:24:49 +0200
+
 gnome-shell (3.28.3-0ubuntu2) cosmic; urgency=medium
 
   * debian/patch/js-fix-invalid-access-errors.patch:
