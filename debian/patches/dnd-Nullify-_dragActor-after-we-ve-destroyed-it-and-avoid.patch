@@ -1,17 +1,7 @@
 From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
-Date: Mon, 4 Dec 2017 19:41:50 -0600
-Subject: js: fix invalid-access errors
-
-tweener: Save handlers on target and remove them on destroy
-
-Saving handlers we had using the wrapper as a property of the object and delete
-them when resetting the object state.
-Without doing this an handler could be called on a destroyed target when this
-happens on the onComplete callback.
-
-https://bugzilla.gnome.org/show_bug.cgi?id=791233
-
-dnd: Nullify _dragActor after we've destroyed it, and avoid invalid access
+Date: Tue, 5 Dec 2017 22:41:17 +0100
+Subject: dnd: Nullify _dragActor after we've destroyed it,
+ and avoid invalid access
 
 We need to avoid that we use the _dragActor instance after that it has
 been destroyed or we'll get errors. We now set it to null when this
@@ -22,94 +12,16 @@ instead of using booleans.
 
 Remove duplicated handler on 'destroy' and just use a generic one.
 
-https://bugzilla.gnome.org/show_bug.cgi?id=791233
-
-automountManager: remove allowAutorun expire timeout on volume removal
-    
-If the volume is removed before AUTORUN_EXPIRE_TIMEOUT_SECS seconds, we can stop
-the timeout earlier as there's nothing to unset, while the volume instance
-won't be valid anymore.
-
-https://bugzilla.gnome.org/show_bug.cgi?id=791233
-
-messageList: stop syncing if closeButton has been destroyed
-
-The _sync function for Message only updates the close button visibility,
-so we can safely stop doing that if the close button get get destroyed earlier
-(as it happens when clicking on it).
-
-https://bugzilla.gnome.org/show_bug.cgi?id=791233
-
-workspaceThumbnail: Don't keep stale clones in list
-
-If a clone gets destroyed before the corresponding MetaWindow is
-removed from the workspace, we will still find it in the list of
-clones and try to destroy it again. Avoid the resulting warnings
-by updating the list of clones immediately when a clone is destroyed.
-
-https://bugzilla.gnome.org/show_bug.cgi?id=791233
-
-workspace: Don't keep stale clones in list
-
-If a clone gets destroyed before the corresponding MetaWindow is
-removed from the workspace, we will still find it in the list of
-clones and try to destroy it again. Avoid the resulting warnings
-by updating the list of clones immediately when a clone is destroyed.
-
-https://bugzilla.gnome.org/show_bug.cgi?id=791233
-
-Bug-GNOME: https://bugzilla.gnome.org/show_bug.cgi?id=791233
+(cherry picked from commit 366275c25359eb1cfcb42c423772802106140902)
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=791233
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1747566
-Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
 ---
- js/ui/calendar.js                    |  2 ++
- js/ui/components/automountManager.js |  6 ++++
- js/ui/dnd.js                         | 65 +++++++++++++++++++++---------------
- js/ui/messageList.js                 |  3 +-
- js/ui/tweener.js                     | 63 ++++++++++++++++++++++++++--------
- 5 files changed, 99 insertions(+), 40 deletions(-)
+ js/ui/dnd.js | 65 ++++++++++++++++++++++++++++++++++++------------------------
+ 1 file changed, 39 insertions(+), 26 deletions(-)
 
-diff --git a/js/ui/calendar.js b/js/ui/calendar.js
-index 651aac6..fd133cc 100644
---- a/js/ui/calendar.js
-+++ b/js/ui/calendar.js
-@@ -802,6 +802,8 @@ var NotificationMessage = new Lang.Class({
-     },
- 
-     _onDestroy() {
-+        this.parent();
-+
-         if (this._updatedId)
-             this.notification.disconnect(this._updatedId);
-         this._updatedId = 0;
-diff --git a/js/ui/components/automountManager.js b/js/ui/components/automountManager.js
-index 2d8f3f8..a6cd857 100644
---- a/js/ui/components/automountManager.js
-+++ b/js/ui/components/automountManager.js
-@@ -210,6 +210,10 @@ var AutomountManager = new Lang.Class({
-     },
- 
-     _onVolumeRemoved(monitor, volume) {
-+        if (volume._allowAutorunExpireId && volume._allowAutorunExpireId > 0) {
-+            Mainloop.source_remove(volume._allowAutorunExpireId);
-+            delete volume._allowAutorunExpireId;
-+        }
-         this._volumeQueue = 
-             this._volumeQueue.filter(element => (element != volume));
-     },
-@@ -234,8 +238,10 @@ var AutomountManager = new Lang.Class({
-     _allowAutorunExpire(volume) {
-         let id = Mainloop.timeout_add_seconds(AUTORUN_EXPIRE_TIMEOUT_SECS, () => {
-             volume.allowAutorun = false;
-+            delete volume._allowAutorunExpireId;
-             return GLib.SOURCE_REMOVE;
-         });
-+        volume._allowAutorunExpireId = id;
-         GLib.Source.set_name_by_id(id, '[gnome-shell] volume.allowAutorun');
-     }
- });
 diff --git a/js/ui/dnd.js b/js/ui/dnd.js
-index a38607c..431c60d 100644
+index 634a7d6..8483e89 100644
 --- a/js/ui/dnd.js
 +++ b/js/ui/dnd.js
 @@ -27,6 +27,12 @@ var DragMotionResult = {
@@ -220,7 +132,7 @@ index a38607c..431c60d 100644
  
 -                    this._dragInProgress = false;
 +                    this._dragState = DragState.INIT;
-                     global.screen.set_cursor(Meta.Cursor.DEFAULT);
+                     global.display.set_cursor(Meta.Cursor.DEFAULT);
                      this.emit('drag-end', event.get_time(), true);
                      this._dragComplete();
 @@ -557,20 +572,22 @@ var _Draggable = new Lang.Class({
@@ -234,7 +146,7 @@ index a38607c..431c60d 100644
  
 -        if (this._actorDestroyed) {
 +        if (this._actorDestroyed || wasCancelled) {
-             global.screen.set_cursor(Meta.Cursor.DEFAULT);
+             global.display.set_cursor(Meta.Cursor.DEFAULT);
              if (!this._buttonDown)
                  this._dragComplete();
              this.emit('drag-end', eventTime, false);
@@ -305,102 +217,3 @@ index a38607c..431c60d 100644
          currentDraggable = null;
      }
  });
-diff --git a/js/ui/messageList.js b/js/ui/messageList.js
-index aff201e..2d397c1 100644
---- a/js/ui/messageList.js
-+++ b/js/ui/messageList.js
-@@ -362,7 +362,8 @@ var Message = new Lang.Class({
-         this.setBody(body);
- 
-         this._closeButton.connect('clicked', this.close.bind(this));
--        this.actor.connect('notify::hover', this._sync.bind(this));
-+        let actorHoverId = this.actor.connect('notify::hover', this._sync.bind(this));
-+        this._closeButton.connect('destroy', this.actor.disconnect.bind(this.actor, actorHoverId));
-         this.actor.connect('clicked', this._onClicked.bind(this));
-         this.actor.connect('destroy', this._onDestroy.bind(this));
-         this._sync();
-diff --git a/js/ui/tweener.js b/js/ui/tweener.js
-index 1a85e2f..22818ba 100644
---- a/js/ui/tweener.js
-+++ b/js/ui/tweener.js
-@@ -69,30 +69,67 @@ function _getTweenState(target) {
-     return target.__ShellTweenerState;
- }
- 
-+function _ensureHandlers(target) {
-+    if (!target.__ShellTweenerHandlers)
-+        target.__ShellTweenerHandlers = {};
-+    return target.__ShellTweenerHandlers;
-+}
-+
- function _resetTweenState(target) {
-     let state = target.__ShellTweenerState;
- 
-     if (state) {
--        if (state.destroyedId)
-+        if (state.destroyedId) {
-             state.actor.disconnect(state.destroyedId);
-+            delete state.destroyedId;
-+        }
-     }
- 
-+    _removeHandler(target, 'onComplete', _tweenCompleted);
-     target.__ShellTweenerState = {};
- }
- 
- function _addHandler(target, params, name, handler) {
--    if (params[name]) {
--        let oldHandler = params[name];
--        let oldScope = params[name + 'Scope'];
--        let oldParams = params[name + 'Params'];
--        let eventScope = oldScope ? oldScope : target;
--
--        params[name] = () => {
--            oldHandler.apply(eventScope, oldParams);
--            handler(target);
--        };
--    } else
--        params[name] = () => { handler(target); };
-+    let wrapperNeeded = false;
-+    let tweenerHandlers = _ensureHandlers(target);
-+
-+    if (!(name in tweenerHandlers)) {
-+        tweenerHandlers[name] = [];
-+        wrapperNeeded = true;
-+    }
-+
-+    let handlers = tweenerHandlers[name];
-+    handlers.push(handler);
-+
-+    if (wrapperNeeded) {
-+        if (params[name]) {
-+            let oldHandler = params[name];
-+            let oldScope = params[name + 'Scope'];
-+            let oldParams = params[name + 'Params'];
-+            let eventScope = oldScope ? oldScope : target;
-+
-+            params[name] = () => {
-+                oldHandler.apply(eventScope, oldParams);
-+                handlers.forEach((h) => h(target));
-+            };
-+        } else {
-+            params[name] = () => { handlers.forEach((h) => h(target)); };
-+        }
-+    }
-+}
-+
-+function _removeHandler(target, name, handler) {
-+    let tweenerHandlers = _ensureHandlers(target);
-+
-+    if (name in tweenerHandlers) {
-+        let handlers = tweenerHandlers[name];
-+        let handlerIndex = handlers.indexOf(handler);
-+
-+        while (handlerIndex > -1) {
-+            handlers.splice(handlerIndex, 1);
-+            handlerIndex = handlers.indexOf(handler);
-+        }
-+    }
- }
- 
- function _actorDestroyed(target) {

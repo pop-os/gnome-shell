@@ -14,10 +14,16 @@ volume-Add-back-sound-feedback-on-scroll.patch
 workaround_crasher_fractional_scaling.patch
 shell-ignore-invalid-window-monitor-index.patch
 StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch
-js-fix-invalid-access-errors.patch
+tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
+dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
+workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch
+workspace-Disconnect-from-window-signals-on-destruction.patch
+messageList-stop-syncing-if-closeButton-has-been-destroye.patch
+automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 workspace-fix-repositioned-windows-in-activities.patch
 st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
 js-ui-Choose-some-actors-to-cache-on-the-GPU.patch
 authPrompt-Unset-preemptiveAnswer-on-reset.patch
 authPrompt-Do-not-enable-sensitivity-if-retries-are-disal.patch
 gdm-util-Always-allow-to-retry-login-in-unlock-mode.patch
+

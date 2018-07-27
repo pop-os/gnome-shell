@@ -2545,6 +2545,28 @@ st_theme_node_get_text_align(StThemeNode *node)
   return ST_TEXT_ALIGN_LEFT;
 }
 
+/**
+ * st_theme_node_get_letter_spacing:
+ * @node: a #StThemeNode
+ *
+ * Gets the value for the letter-spacing style property, in pixels.
+ *
+ * Return value: the value of the letter-spacing property, if
+ *   found, or zero if such property has not been found.
+ */
+gdouble
+st_theme_node_get_letter_spacing (StThemeNode *node)
+{
+  gdouble spacing = 0.;
+
+  g_return_val_if_fail (ST_IS_THEME_NODE (node), spacing);
+
+  ensure_properties (node);
+
+  st_theme_node_lookup_length (node, "letter-spacing", FALSE, &spacing);
+  return spacing;
+}
+
 static gboolean
 font_family_from_terms (CRTerm *term,
                         char  **family)
@@ -2995,6 +3017,39 @@ st_theme_node_get_font (StThemeNode *node)
     pango_font_description_set_variant (node->font_desc, variant);
 
   return node->font_desc;
+}
+
+gchar *
+st_theme_node_get_font_features (StThemeNode *node)
+{
+  int i;
+
+  ensure_properties (node);
+
+  for (i = node->n_properties - 1; i >= 0; i--)
+    {
+      CRDeclaration *decl = node->properties[i];
+
+      if (strcmp (decl->property->stryng->str, "font-feature-settings") == 0)
+        {
+          CRTerm *term = decl->value;
+
+          if (!term->next && term->type == TERM_IDENT)
+            {
+              gchar *ident = term->content.str->stryng->str;
+
+              if (strcmp (ident, "inherit") == 0)
+                break;
+
+              if (strcmp (ident, "normal") == 0)
+                return NULL;
+            }
+
+          return (gchar *)cr_term_to_string (term);
+        }
+    }
+
+  return node->parent_node ? st_theme_node_get_font_features (node->parent_node) : NULL;
 }
 
 /**

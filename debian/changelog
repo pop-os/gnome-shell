@@ -1,9 +1,57 @@
-gnome-shell (3.28.3-0ubuntu3) UNRELEASED; urgency=medium
+gnome-shell (3.29.4-1ubuntu1) UNRELEASED; urgency=medium
 
+  [ Didier Roche ]
   * Add debian/README.Ubuntu with instructions on how to update the Yaru
     theme.
 
- -- Didier Roche <didrocks@ubuntu.com>  Thu, 26 Jul 2018 10:24:49 +0200
+  [ Marco Trevisan (Treviño) ]
+  * Merge back with debian
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 27 Jul 2018 21:53:57 +0200
+
+gnome-shell (3.29.4-1) experimental; urgency=medium
+
+  * debian/*: Update for experimental (3.29/3.30 series)
+  * New upstream release 3.29.4 (etc)
+    + Fix "Clear All" for calendar events
+    + Allow cancelling direct switch operations
+    + Support being started by systemd --user
+    + Support key event forwarding required by some input methods
+    + Save creation time in screenshot metadata
+    + Improve consistency between ctrl- and middle-click on app icons
+    + Add support for font-feature-settings CSS property
+    + Adjust to MetaScreen removal
+    + Guard against untimely keyboard map changes
+    + Fix icons in search provider results
+    + Fix blurriness of OSD under some resolutions
+    + Fix lagging pointer when zoomed
+    + Support icons in app-menu
+  * Install new systemd user units (aren't used by anything just yet)
+  * Refresh patches
+  * debian/gnome-shell.docs: README is now called README.md
+  * debian/control*: Require mutter API version 3 and mutter 3.29.4
+
+ -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 17:40:58 +0100
+
+gnome-shell (3.28.3-1) unstable; urgency=medium
+
+  * New upstream release (LP: #1718931)
+    d/p/Change-const-to-var.patch,
+    d/p/Update-Afrikaans-translation.patch,
+    d/p/Update-Scottish-Gaelic-translation.patch,
+    d/p/magnifier.js-Fix-zoom-juddering.patch,
+    d/p/network-Update-the-icon-in-the-panel-whenever-NM-s-state-.patch,
+    d/p/networkAgent-Fix-fallout-from-libnm-port.patch,
+    d/p/st-label-Unset-clutter-text-instance-on-disposal.patch,
+    d/p/st-texture-cache-Don-t-add-NULL-textures-to-cache.patch,
+    d/p/st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch,
+    d/p/ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch,
+    d/p/workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch,
+    d/p/workspaceThumbnail-remove-unused-private-win-reference.patch,
+    d/p/workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch:
+    - Drop patches applied on the 3.28 branch
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Jul 2018 20:05:52 +0100
 
 gnome-shell (3.28.3-0ubuntu2) cosmic; urgency=medium
 
@@ -28,6 +76,47 @@ gnome-shell (3.28.3-0ubuntu1) cosmic; urgency=medium
     - Refreshed to reflect upstream changes
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 24 Jul 2018 12:29:20 +0100
+
+gnome-shell (3.28.2-2) unstable; urgency=medium
+
+  * Team upload
+  * d/p/network-Update-the-icon-in-the-panel-whenever-NM-s-state-.patch,
+    d/p/Update-Afrikaans-translation.patch,
+    d/p/st-label-Unset-clutter-text-instance-on-disposal.patch,
+    d/p/Update-Scottish-Gaelic-translation.patch,
+    d/p/magnifier.js-Fix-zoom-juddering.patch,
+    d/p/Change-const-to-var.patch,
+    d/p/st-texture-cache-Don-t-add-NULL-textures-to-cache.patch,
+    d/p/st-texture-cache-Save-cairo-surfaces-to-a-different-map.patch:
+    Update to upstream gnome-3-28 branch
+    - magnifier.js: Zoom more smoothly (LP: #1691675)
+    - The StLabel patch might resolve #900776
+  * d/p/workspaceThumbnail-remove-unused-private-win-reference.patch,
+    d/p/messageList-stop-syncing-if-closeButton-has-been-destroye.patch,
+    d/p/automountManager-remove-allowAutorun-expire-timeout-on-vo.patch:
+    Update patch series for #887082 to latest version proposed upstream
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 08 Jul 2018 11:32:40 +0100
+
+gnome-shell (3.28.2-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+  * d/p/polkitAgent-Guard-against-repeated-close-calls.patch,
+    d/p/popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch,
+    d/p/workspaceThumbnail-initialize-porthole-based-on-workArea.patch,
+    d/p/workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch,
+    d/p/workspaceThumbnail-only-update-_porthole-if-the-overview-.patch:
+    Drop patches that were cherry-picked from upstream 3.28 branch
+  * d/p/ui-Theme-lookup-should-respect-XDG_DATA_DIRS.patch:
+    Add patch from upstream git master to make themes respect XDG_DATA_DIRS
+    (LP: #1760039)
+  * d/p/networkAgent-Fix-fallout-from-libnm-port.patch:
+    Add patch from upstream 3.28 branch to fix a regression in wifi
+    password prompting
+  * Re-order patch series to put patches that were applied upstream first
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 17 May 2018 10:37:37 +0100
 
 gnome-shell (3.28.2-0ubuntu1) cosmic; urgency=medium
 
@@ -59,12 +148,45 @@ gnome-shell (3.28.2-0ubuntu1) cosmic; urgency=medium
     - GDM gnome-shell greeter fix to fix unneeded login attempts (LP: #1777956)
   * debian/patches/series:
     - reorder to apply upstream cherry-picks before the others
-  
+
   [ Daniel van Vugt ]
   * debian/patches/magnifier.js-Fix-zoom-juddering.patch:
     - magnifier.js: Fix zoom juddering (LP: #1691675)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Jun 2018 01:59:11 +0200
+
+gnome-shell (3.28.1-1) unstable; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release
+  * Bump required glib to 2.56. Thanks Marcus Lundblad.
+  * debian/gnome-shell.gsettings-overrides:
+    Adapt favorite-apps to the renaming of Evolution's .desktop
+  * Drop obsolete dh_translations override
+  * Drop 27-nm-libexec-path.patch: no longer needed
+  * Cherry-pick thunderbolt-sync-D-Bus-API-with-bolt-changes.patch
+  * Recommend bolt >= 0.3 for Thunderbolt support
+  * Bump Standards-Version to 4.1.4
+
+  [ Simon McVittie ]
+  * d/patches: Remove patches that no longer apply
+  * d/gbp.conf: Don't use numbered patches
+  * d/p/popupMenu-Fix-wrong-call-to-clutter_actor_add_child.patch,
+    d/p/workspaceThumbnail-initialize-porthole-based-on-workArea.patch,
+    d/p/workspaceThumbnail-rebuild-thumbnails-if-workareas-size-c.patch,
+    d/p/workspaceThumbnail-only-update-_porthole-if-the-overview-.patch,
+    d/p/polkitAgent-Guard-against-repeated-close-calls.patch:
+    Apply post-release bug fixes from upstream
+  * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
+    d/p/dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch,
+    d/p/workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch,
+    d/p/workspaceThumbnail-Remove-WindowClone-s-from-_windows-whe.patch,
+    d/p/workspace-Disconnect-from-window-signals-on-destruction.patch,
+    d/p/workspace-Remove-WindowClone-s-from-_windows-when-destroy.patch:
+    Apply patches proposed upstream by Marco Trevisan to fix various uses
+    of objects after they are disposed (Closes: #887082) (LP: #1747566)
+
+ -- Jeremy Bicha <jbicha@debian.org>  Tue, 08 May 2018 09:00:35 -0400
 
 gnome-shell (3.28.1-0ubuntu2) bionic; urgency=medium
 
@@ -117,6 +239,13 @@ gnome-shell (3.28.1-0ubuntu1) bionic; urgency=medium
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 17 Apr 2018 14:40:17 -0400
 
+gnome-shell (3.28.0-1) unstable; urgency=medium
+
+  [ Simon McVittie ]
+  * New upstream stable release
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sun, 18 Mar 2018 20:16:20 -0400
+
 gnome-shell (3.28.0-0ubuntu5) bionic; urgency=medium
 
   * No-change rebuild for translations (LP: #1756547)
@@ -152,12 +281,44 @@ gnome-shell (3.28.0-0ubuntu1) bionic; urgency=medium
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Thu, 15 Mar 2018 10:39:16 -0400
 
+gnome-shell (3.27.92-2) unstable; urgency=medium
+
+  [ Simon McVittie ]
+  * Build-depend on libgnome-desktop-3-dev (>= 3.27.90) to carry out
+    libgnome-desktop-3-17 transition in experimental
+  * Tighten dependencies on mutter and gir1.2-gnomedesktop-3.0
+
+  [ Jeremy Bicha ]
+  * Release to unstable
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sat, 10 Mar 2018 19:36:09 -0500
+
+gnome-shell (3.27.92-1) experimental; urgency=medium
+
+  * New upstream release candidate
+  * Drop bump-api.patch: Applied in new release
+
+ -- Jeremy Bicha <jbicha@debian.org>  Mon, 05 Mar 2018 20:51:14 -0500
+
 gnome-shell (3.27.92-0ubuntu1) bionic; urgency=medium
 
   * New upstream release candidate
   * Drop api patch applied in new release
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Tue, 06 Mar 2018 05:38:48 -0500
+
+gnome-shell (3.27.91-1) experimental; urgency=medium
+
+  * New upstream development release (LP: #1751070)
+  * Bump minimum mutter to 3.27.91
+  * Build-Depend on sassc
+  * Drop caribou dependencies. GNOME Shell has a new built-in keyboard now.
+  * Drop patches applied in new release
+  * Cherry-pick bump-api.patch
+  * Disable the 6 patches from merge request !4 since they need to
+    be rebased
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 23 Feb 2018 18:45:14 -0500
 
 gnome-shell (3.27.91-0ubuntu1) bionic; urgency=medium
 
@@ -197,6 +358,73 @@ gnome-shell (3.27.91-0ubuntu1) bionic; urgency=medium
   * Update NetworkManager dependencies
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 02 Mar 2018 10:04:06 +0100
+
+gnome-shell (3.26.2-5) experimental; urgency=medium
+
+  * Team upload
+  * Cherry-pick two more patches from upstream gnome-3-26 branch
+    related to #881301 etc. (now at 3.26.2-14-g64c857e3f)
+  * Apply patches from upstream merge request !4 to address more uses
+    of destroyed objects (Closes: #887082, hopefully)
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 26 Jan 2018 17:10:10 +0000
+
+gnome-shell (3.26.2-4) unstable; urgency=medium
+
+  * Port gnome-shell to libnm (Closes: #862677)
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 21 Jan 2018 21:26:21 +0100
+
+gnome-shell (3.26.2-3) unstable; urgency=medium
+
+  * Team upload
+  * Convert patch metadata to `git format-patch` style for gbp pq
+  * Add patches from upstream gnome-3-26 branch:
+    - Update translations: af, ar, cs, is, nb
+    - Improve robustness of ::drag-end handlers (GNOME #784545)
+    - Reset menuItems and Label objects on change (GNOME #788931)
+      - This is one possible source of the crashes in #881301, #880663.
+    - Make sure dash item labels are only destroyed once (GNOME #791233)
+    - Don't shadow ClutterActor's destroy() (GNOME #791233)
+    - Guard against malformed world-clocks settings (GNOME #791148)
+    - Don't leak fds when background changes (GNOME #791655)
+  * Depend on gjs (>= 1.50.2-3~) so that using an object after it's
+    destroyed doesn't crash the Shell. Critical warnings will be logged
+    instead, usually to the systemd journal. Please report these as new
+    bugs if seen: we can't tell from the crash backtraces whether the
+    bug was in the Shell itself or an extension, which makes the existing
+    bug reports unclear, but the critical warnings should make it clearer
+    where the bug is. (Closes: #881301, #880663; LP: #1714989,
+    LP: #1721321, LP: #1722986, LP: #1725015)
+  * Change Vcs-* to point to salsa.debian.org
+  * Bump Standards-Version to 4.1.3 (no changes required)
+  * Set Rules-Requires-Root to no
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 13 Jan 2018 11:48:13 +0000
+
+gnome-shell (3.26.2-2) unstable; urgency=medium
+
+  * Update Vcs fields for conversion to git
+  * Add debian/gbp.conf
+  * Bump Standards-Version to 4.1.2
+  * Bump debhelper compat to 11
+  * Enable all hardening flags
+
+ -- Jeremy Bicha <jbicha@debian.org>  Mon, 25 Dec 2017 00:13:52 -0500
+
+gnome-shell (3.26.2-1) unstable; urgency=medium
+
+  * New upstream release
+  * Rebase patches
+  * Switch to dh_missing
+  * Update list of binaries in gnome-shell.lintian-overrides using an RPATH
+    for mutter. Don't hard-code the path to be x86_64-linux-gnu specific.
+  * Honour DEB_BUILD_OPTIONS=nocheck so we don't try to run the test suite if
+    xvfb is not installed
+  * Exclude /usr/lib/gnome-shell/ from dh_makeshlibs to avoid an unnecessary
+    ldconfig trigger
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 05 Nov 2017 20:11:21 +0100
 
 gnome-shell (3.26.2-0ubuntu3) bionic; urgency=medium
 
@@ -243,6 +471,52 @@ gnome-shell (3.26.2-0ubuntu1) bionic; urgency=medium
       gsettings-ubuntu-schemas (LP: #1712798)
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 08 Nov 2017 16:19:02 -0500
+
+gnome-shell (3.26.1-3) unstable; urgency=medium
+
+  * Cherry-pick git_popupmenu-icon-via-string.patch:
+    - Fix setting icon name via string, used by some extensions
+  * Cherry-pick git_spawn-wifi-panel-wpa-enterprise.patch:
+    - Launch Wi-Fi Settings not Network panel for WPA Enterprise
+  * Set urgency to high to not further delay gjs/mutter transition
+
+ -- Jeremy Bicha <jbicha@debian.org>  Sat, 21 Oct 2017 20:07:37 -0400
+
+gnome-shell (3.26.1-2) unstable; urgency=medium
+
+  [ Jeremy Bicha ]
+  * Release to unstable
+  * Bump Standards-Version to 4.1.1
+  * Cherry-pick git_layout-unset-when-headless.patch from gnome-3-26
+    branch to fix crash bug (LP: #1717170)
+
+  [ Andrea Azzarone ]
+  * debian/patches/workaround_crasher_fractional_scaling.patch:
+    workaround a popular crash for now when fractional scaling is enabled.
+    Andrea is working on a proper fix/debug (LP: #1714542)
+
+  [ Didier Roche ]
+  * debian/patches/fix_reset_initial_focus.patch:
+    - cherry-pick fix proposed by upstream to avoid regression when keyboard
+      is used the second time a modal dialog is drawn.
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 13 Oct 2017 16:32:23 -0400
+
+gnome-shell (3.26.1-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - d/p/000[1-5]*.patch: Drop patches that came from upstream
+    - d/p/0006-gtk-embed-stop-watching-for-new-windows-when-icon-is.patch:
+      Drop patch for #875609, fixed differently upstream
+    - debian/patches/41-handle-logind-fail.patch:
+      Drop patch for #729877, fixed differently upstream
+    - d/p/run-unit-tests.patch: Drop patch, applied upstream
+  * d/p/30-remoteMenu-Prevent-the-shell-from-becoming-unrespons.patch:
+    Drop patch for GNOME #686502, fixed differently upstream
+    (and was no longer applied anyway)
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 06 Oct 2017 10:35:46 +0100
 
 gnome-shell (3.26.1-0ubuntu6) bionic; urgency=medium
 
@@ -309,6 +583,27 @@ gnome-shell (3.26.1-0ubuntu1) artful; urgency=medium
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 06 Oct 2017 09:36:54 +0200
 
+gnome-shell (3.26.0-2) experimental; urgency=medium
+
+  * Team upload
+  * Add proposed patch fixing a crash in embedding
+    (Closes: #875609, LP: #1714745)
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 11:12:50 +0100
+
+gnome-shell (3.26.0-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream stable release
+    - Bump Mutter dependency to match
+  * d/patches/00*: Add post-release bug fixes from upstream git
+  * d/control.in: Bump recommendation on gnome-control-center to 3.25.2
+    since we no longer provide the API used by older versions
+  * d/control.in: Bump GWeather dependency to 3.25.91 as mentioned on
+    https://bugzilla.gnome.org/show_bug.cgi?id=787423
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Sep 2017 09:43:11 +0100
+
 gnome-shell (3.26.0-0ubuntu2) artful; urgency=medium
 
   * fix typo in comment for ubuntu.css
@@ -322,6 +617,64 @@ gnome-shell (3.26.0-0ubuntu1) artful; urgency=medium
   * Dep on newer mutter.
 
  -- Didier Roche <didrocks@ubuntu.com>  Fri, 15 Sep 2017 07:51:56 +0200
+
+gnome-shell (3.25.91-4) experimental; urgency=medium
+
+  * debian/control.in:
+    - Don't recommend gnome-contacts or gnome-themes-standard-data
+    - Recommend gnome-user-docs instead of transitional package
+  * debian/rules:
+    - Don't use variable when passing libexecdir for meson build
+    - Change --list-missing to --fail-missing to catch this kind of problem
+    - Make build tests mandatory on Ubuntu (unknown failure on Debian)
+    - Add workaround for Ubuntu translations issue
+
+ -- Jeremy Bicha <jbicha@debian.org>  Fri, 01 Sep 2017 11:41:20 -0400
+
+gnome-shell (3.25.91-3) experimental; urgency=medium
+
+  * Don't fail the build for test failures
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 31 Aug 2017 18:51:45 -0400
+
+gnome-shell (3.25.91-2) experimental; urgency=medium
+
+  * Build-Depend on libgl1-mesa-dri for build tests since
+    Debian's mesa packages currently only recommends it
+
+ -- Jeremy Bicha <jbicha@debian.org>  Thu, 31 Aug 2017 12:43:54 -0400
+
+gnome-shell (3.25.91-1) experimental; urgency=medium
+
+  [ Jeremy Bicha ]
+  * New upstream release
+  * Build with meson
+  * debian/control.in:
+    - Drop obsolete Build-Depends against telepathy-glib
+    - Build-Depend on libasound2-dev
+    - Bump minimum mutter to 3.25.91, gjs to 1.47.90,
+      glib to 2.53.0
+    - Depend on gir1.2-geoclue-2.0 and gir1.2-rsvg-2.0
+    - Depend on caribou (LP: #1589240)
+    - Recommend chrome-gnome-shell
+    - Recommend switcheroo-control for dual GPU support
+  * debian/rules:
+    - Drop disable-new-dtags flag, no longer needed
+    - Drop dh_girepository override, doesn't work with meson
+      and apparently not needed
+  * debian/gnome-shell-common.install:
+    - Don't try to install gtk-doc documentation
+  * Drop icon theme dependency hack no longer used by Ubuntu
+  * Add run-unit-tests.patch: Run unit tests with meson
+  * Drop 3.14 upgrade hack, not needed after stretch
+  * Drop 50-extension-reload-fail.patch: applied in new release
+  * Bump Standards-Version to 4.1.0
+
+  [ Simon McVittie]
+  * Drop Telepathy g-i bindings from Depends to Suggests now that they
+    are runtime-optional upstream
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 31 Aug 2017 12:24:23 +0100
 
 gnome-shell (3.25.91-0ubuntu5) artful; urgency=medium
 
@@ -665,6 +1018,14 @@ gnome-shell (3.23.91-0ubuntu1) zesty; urgency=medium
   * New upstream release
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Wed, 01 Mar 2017 13:06:59 -0500
+
+gnome-shell (3.22.3-3) unstable; urgency=medium
+
+  * debian/patches/50-extension-reload-fail.patch:
+    - Add patch to fix a bug where extensions could be left enabled in the
+      lock screen.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 26 Apr 2017 18:47:56 +0200
 
 gnome-shell (3.22.3-2) unstable; urgency=medium
 
@@ -1086,10 +1447,10 @@ gnome-shell (3.16.2-1) experimental; urgency=medium
 gnome-shell (3.14.4-1) unstable; urgency=medium
 
   * New upstream translation and bugfix release.
-    + Includes workaround for #768896 which is very annoying for users 
+    + Includes workaround for #768896 which is very annoying for users
       of the proprietary nvidia driver.
-  * 01_network_list.patch, 02_auth_prompt.patch, 
-    50-compute-weeknumber-with-gdatetime.patch: dropped, merged 
+  * 01_network_list.patch, 02_auth_prompt.patch,
+    50-compute-weeknumber-with-gdatetime.patch: dropped, merged
     upstream.
   * Bump (build-)dependencies on mutter as usual.
 
@@ -1098,7 +1459,7 @@ gnome-shell (3.14.4-1) unstable; urgency=medium
 gnome-shell (3.14.2-3) unstable; urgency=medium
 
   * Add missing dependency on mutter. Closes: #764715.
-  * 10_background_race.patch: fix a race condition when loading two 
+  * 10_background_race.patch: fix a race condition when loading two
     backgrounds made of different XML files.
 
  -- Josselin Mouette <joss@debian.org>  Fri, 12 Dec 2014 22:32:31 +0100
@@ -1113,14 +1474,14 @@ gnome-shell (3.14.2-2) unstable; urgency=medium
 
 gnome-shell (3.14.2-1) unstable; urgency=medium
 
-  * gnome-shell.gsettings-override: remove shotwell which is no longer 
+  * gnome-shell.gsettings-override: remove shotwell which is no longer
     part of the default installation.
   * New upstream bugfix release.
     + Summarize notifications instead of queuing up.
   * Bump (build-)dependencies on mutter.
-  * 01_network_list.patch: patch from upstream git. Fix an UI bug when 
+  * 01_network_list.patch: patch from upstream git. Fix an UI bug when
     removing network connections.
-  * 02_auth_prompt.patch: patch from upstream git. Fix the prompt with  
+  * 02_auth_prompt.patch: patch from upstream git. Fix the prompt with
     disable_user_list after canceling an attempt. Closes: #683338.
 
  -- Josselin Mouette <joss@debian.org>  Sun, 30 Nov 2014 13:52:46 +0100
@@ -1286,7 +1647,7 @@ gnome-shell (3.12.0-1) experimental; urgency=low
   * Have quilt refresh patches.
   * Add build-dependency on libgnome-menu-3-dev
     - need GMenu-3.0.gir
-  * Bump glib2.0 build-dependency to 2.39.90 
+  * Bump glib2.0 build-dependency to 2.39.90
     - code uses new g_app_info_monitor*
   * Bump gsettings-desktop-schemas {build-,}dependency to 3.11
     - needs new key at runtime
@@ -1613,7 +1974,7 @@ gnome-shell (3.6.1-3ubuntu1) raring; urgency=low
 gnome-shell (3.6.1-3) experimental; urgency=low
 
   * debian/rules: Depends on 3.6 versions of gir1.2-gnomebluetooth-1.0 and
-    gir1.2-gnomedesktop-3.0 
+    gir1.2-gnomedesktop-3.0
   * debian/rules: Add dependency on evolution-data-server (Closes: #690554)
   * debian/rules: Depend on gir1.2-telepathylogger-0.2 >= 0.4.0-2 to get the
     annotation updates needed by gnome-shell
@@ -1689,7 +2050,7 @@ gnome-shell (3.4.2-1) unstable; urgency=low
   * d/p/27-nm-libexec-path.patch: Use Debian specific NM VPN helpers paths
 
   [ Josselin Mouette ]
-  * Change epiphany desktop file name to match the change in the 
+  * Change epiphany desktop file name to match the change in the
     epiphany package.
 
   [ Jordi Mallach ]
@@ -1703,12 +2064,12 @@ gnome-shell (3.4.2-1) unstable; urgency=low
 
 gnome-shell (3.4.1-8) unstable; urgency=low
 
-  * 27-don-t-show-apps-in-NoDisplay-categories.patch: renamed as 
+  * 27-don-t-show-apps-in-NoDisplay-categories.patch: renamed as
     03_don-t-show-apps-in-NoDisplay-categories.patch for reordering.
-  * 01_slist_cleanup.patch, 02_filter_nodisplay_parents.patch, 
-    04_fix_nodisplay.patch: correctly filter out applications in a 
-    NoDisplay directory, including parent directories. This should 
-    finally fix for good handling of the Debian menu, including in 
+  * 01_slist_cleanup.patch, 02_filter_nodisplay_parents.patch,
+    04_fix_nodisplay.patch: correctly filter out applications in a
+    NoDisplay directory, including parent directories. This should
+    finally fix for good handling of the Debian menu, including in
     searches.  Closes: #677498.
   * Bump the build-dependency on gnome-menus accordingly.
 
@@ -1792,7 +2153,7 @@ gnome-shell (3.4.1-1) experimental; urgency=low
 
   [ Jeremy Bicha ]
   * New upstream release.
-  * debian/control.in: 
+  * debian/control.in:
     - Add debug package
     - Update dependencies
     - Recommend gnome-user-guide
@@ -1899,7 +2260,7 @@ gnome-shell (3.2.1-6) experimental; urgency=low
     version that works with GNOME 3.2.
 
   [ Josselin Mouette ]
-  * Split common files and translations in gnome-shell-common. Add 
+  * Split common files and translations in gnome-shell-common. Add
     appropriate Breaks/Replaces.
 
   [ Michael Biebl ]
@@ -2048,8 +2409,8 @@ gnome-shell (3.0.2-2) experimental; urgency=low
   [ Martin Pitt ]
   * debian/control.in, debian/rules: When building on Ubuntu, add a dependency
     to gnome-icon-theme-full.
-  * debian/control.in: Change gir1.2-json-glib-1.0 build-dep to 
-    gir1.2-json-1.0 to reflect the binary rename in json-glib 
+  * debian/control.in: Change gir1.2-json-glib-1.0 build-dep to
+    gir1.2-json-1.0 to reflect the binary rename in json-glib
     0.13.4-2. Thanks Micah Gersten!
 
   [ Laurent Bigonville ]
@@ -2060,8 +2421,8 @@ gnome-shell (3.0.2-2) experimental; urgency=low
   * debian/compat: Bump debhelper compatibility to 8
 
   [ Josselin Mouette ]
-  * 03_hidden_applications.patch: do not show NoDisplay=true submenus 
-    and applications. This will avoid showing the Debian menu while 
+  * 03_hidden_applications.patch: do not show NoDisplay=true submenus
+    and applications. This will avoid showing the Debian menu while
     asked not to. Closes: #557997.
   * 01_favorite_apps.patch: dropped, replaced by override file.
   * Add libreoffice and yelp to favorite applications.
@@ -2440,7 +2801,7 @@ gnome-shell (2.27.3-0ubuntu1) karmic; urgency=low
 
   * New upstream version
   * debian/control:
-    - depends on python since it's used in the wrapper 
+    - depends on python since it's used in the wrapper
       (lp: #413096)
     - updated gir requirement
 
