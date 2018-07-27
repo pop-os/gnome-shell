@@ -8,7 +8,7 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 2d8d9b3..5ceb993 100644
+index dee290b..45763f4 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
 @@ -32,6 +32,7 @@ const Util = imports.misc.util;

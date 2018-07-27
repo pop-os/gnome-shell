@@ -12,7 +12,7 @@ Forwarded: not-needed
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index b24f825..9b0a4c1 100644
+index 941b289..737122d 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
 @@ -102,12 +102,13 @@ const Lang = imports.lang;

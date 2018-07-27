@@ -15,10 +15,10 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/116
  1 file changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 0532ca8..105a320 100644
+index 1c6150e..eac8ccd 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -534,12 +534,13 @@ var ShellUserVerifier = new Lang.Class({
+@@ -537,12 +537,13 @@ var ShellUserVerifier = new Lang.Class({
      _verificationFailed(retry) {
          // For Not Listed / enterprise logins, immediately reset
          // the dialog

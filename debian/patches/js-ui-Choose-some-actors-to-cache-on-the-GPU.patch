@@ -96,10 +96,10 @@ index cfa192d..89db963 100644
          this.contentLayout = new St.BoxLayout({ vertical: true,
                                                  style_class: "modal-dialog-content-box" });
 diff --git a/js/ui/main.js b/js/ui/main.js
-index d86cf9e..5277cf7 100644
+index e107de7..6e3c971 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
-@@ -716,3 +716,19 @@ function showRestartMessage(message) {
+@@ -717,3 +717,19 @@ function showRestartMessage(message) {
      let restartMessage = new RestartMessage(message);
      restartMessage.open();
  }
@@ -120,10 +120,10 @@ index d86cf9e..5277cf7 100644
 +    actor.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 +}
 diff --git a/js/ui/panel.js b/js/ui/panel.js
-index 2f59324..2237ead 100644
+index 6f3ac9c..44af37d 100644
 --- a/js/ui/panel.js
 +++ b/js/ui/panel.js
-@@ -772,6 +772,7 @@ var Panel = new Lang.Class({
+@@ -773,6 +773,7 @@ var Panel = new Lang.Class({
          this.actor = new Shell.GenericContainer({ name: 'panel',
                                                    reactive: true });
          this.actor._delegate = this;

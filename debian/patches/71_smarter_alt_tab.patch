@@ -25,7 +25,7 @@ Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=787627
  2 files changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/js/ui/altTab.js b/js/ui/altTab.js
-index 97dddce..764d308 100644
+index d0c3713..b2fa93c 100644
 --- a/js/ui/altTab.js
 +++ b/js/ui/altTab.js
 @@ -13,6 +13,7 @@ const Atk = imports.gi.Atk;
@@ -53,7 +53,7 @@ index 97dddce..764d308 100644
              appIcon.app.activate_window(appIcon.cachedWindows[0], timestamp);
          else if (appIcon.cachedWindows[this._currentWindow])
 diff --git a/js/ui/switcherPopup.js b/js/ui/switcherPopup.js
-index a53b1e6..71911c8 100644
+index d645f1d..8909b36 100644
 --- a/js/ui/switcherPopup.js
 +++ b/js/ui/switcherPopup.js
 @@ -12,8 +12,10 @@ const St = imports.gi.St;

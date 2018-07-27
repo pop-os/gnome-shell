@@ -34,10 +34,10 @@ index d9ec7ee..a0a4a21 100644
          this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
      },
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 261e1e4..0532ca8 100644
+index 75feb77..1c6150e 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -562,7 +562,7 @@ var ShellUserVerifier = new Lang.Class({
+@@ -565,7 +565,7 @@ var ShellUserVerifier = new Lang.Class({
              }
          }
  

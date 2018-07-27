@@ -25,7 +25,7 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/8
  2 files changed, 16 insertions(+), 16 deletions(-)
 
 diff --git a/js/ui/workspace.js b/js/ui/workspace.js
-index 8b56932..112c54e 100644
+index 06a9d77..a183e07 100644
 --- a/js/ui/workspace.js
 +++ b/js/ui/workspace.js
 @@ -137,8 +137,10 @@ var WindowClone = new Lang.Class({
@@ -89,7 +89,7 @@ index 8b56932..112c54e 100644
          this.emit('size-changed');
      },
 diff --git a/js/ui/workspaceThumbnail.js b/js/ui/workspaceThumbnail.js
-index 381169e..417296d 100644
+index 68922c9..b1fa587 100644
 --- a/js/ui/workspaceThumbnail.js
 +++ b/js/ui/workspaceThumbnail.js
 @@ -68,7 +68,7 @@ var WindowClone = new Lang.Class({

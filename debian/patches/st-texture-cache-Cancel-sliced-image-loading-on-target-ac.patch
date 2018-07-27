@@ -19,7 +19,7 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/5
  1 file changed, 26 insertions(+), 4 deletions(-)
 
 diff --git a/src/st/st-texture-cache.c b/src/st/st-texture-cache.c
-index 0c794a3..c39464e 100644
+index 3bf3a5e..189e917 100644
 --- a/src/st/st-texture-cache.c
 +++ b/src/st/st-texture-cache.c
 @@ -1027,6 +1027,7 @@ typedef struct {
