@@ -5,6 +5,7 @@ gnome-shell (3.29.90-1) UNRELEASED; urgency=medium
   * d/p/Revert-Explicitly-convert-raw-data-to-strings.patch:
     Revert porting to mozjs60/gjs 1.53.90. Debian only has mozjs52 at
     the moment (see #904991).
+  * Upgrade in lockstep with mutter 3.29.90
 
  -- Simon McVittie <smcv@debian.org>  Wed, 01 Aug 2018 08:49:37 +0100
 
