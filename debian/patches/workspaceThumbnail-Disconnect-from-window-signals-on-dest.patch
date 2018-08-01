@@ -14,12 +14,12 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
  1 file changed, 7 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/workspaceThumbnail.js b/js/ui/workspaceThumbnail.js
-index 68922c9..9db0651 100644
+index b1fa587..a5c8156 100644
 --- a/js/ui/workspaceThumbnail.js
 +++ b/js/ui/workspaceThumbnail.js
 @@ -70,12 +70,7 @@ var WindowClone = new Lang.Class({
  
-         this.clone._updateId = this.metaWindow.connect('position-changed',
+         this.clone._updateId = this.realWindow.connect('notify::position',
                                                         this._onPositionChanged.bind(this));
 -        this.clone._destroyId = this.realWindow.connect('destroy', () => {
 -            // First destroy the clone and then destroy everything

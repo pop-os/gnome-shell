@@ -14,13 +14,13 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
  1 file changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/js/ui/workspace.js b/js/ui/workspace.js
-index 06a9d77..1d0e4fd 100644
+index a183e07..7317580 100644
 --- a/js/ui/workspace.js
 +++ b/js/ui/workspace.js
-@@ -139,14 +139,8 @@ var WindowClone = new Lang.Class({
- 
-         this._windowClone._updateId = this.metaWindow.connect('size-changed',
-             this._onRealWindowSizeChanged.bind(this));
+@@ -141,14 +141,8 @@ var WindowClone = new Lang.Class({
+             this._onMetaWindowSizeChanged.bind(this));
+         this._windowClone._posChangedId = this.metaWindow.connect('position-changed',
+             this._computeBoundingBox.bind(this));
 -        this._windowClone._destroyId =
 -            this.realWindow.connect('destroy', () => {
 -                // First destroy the clone and then destroy everything
