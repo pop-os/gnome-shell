@@ -5,6 +5,7 @@ gnome-shell (3.29.90-1) UNRELEASED; urgency=medium
   * Rebase patch series
   * Upgrade in lockstep with mutter 3.29.90
   * debian/gnome-shell.install: Install new migration script
+  * Standards-Version: 4.1.5 (no changes required)
 
   [ Marco Trevisan (Treviño) ]
   * d/p/workspace-Disconnect-from-window-signals-on-destruction.patch,
@@ -12,7 +13,7 @@ gnome-shell (3.29.90-1) UNRELEASED; urgency=medium
     - Drop patches not needed anymore as per upstream changes
   * Bump dependency on gsettings-desktop-schemas 3.27.90
 
- -- Simon McVittie <smcv@debian.org>  Wed, 01 Aug 2018 08:49:37 +0100
+ -- Simon McVittie <smcv@debian.org>  Wed, 01 Aug 2018 16:56:08 +0100
 
 gnome-shell (3.29.4-1) experimental; urgency=medium
 
