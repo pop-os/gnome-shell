@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '3.29.4',
+  version: '3.29.90',
   meson_version: '>= 0.42.0',
   license: 'GPLv2+'
 )
@@ -23,9 +23,9 @@ gi_req = '>= 1.49.1'
 gjs_req = '>= 1.47.0'
 gtk_req = '>= 3.15.0'
 json_glib_req = '>= 0.13.2'
-mutter_req = '>= 3.29.4'
+mutter_req = '>= 3.29.90'
 polkit_req = '>= 0.100'
-schemas_req = '>= 3.21.3'
+schemas_req = '>= 3.27.90'
 startup_req = '>= 0.11'
 ibus_req = '>= 1.5.2'
 
@@ -44,10 +44,12 @@ datadir = join_paths(prefix, get_option('datadir'))
 libdir = join_paths(prefix, get_option('libdir'))
 libexecdir = join_paths(prefix, get_option('libexecdir'))
 mandir = join_paths(prefix, get_option('mandir'))
+sysconfdir = join_paths(prefix, get_option('sysconfdir'))
 
 pkgdatadir = join_paths(datadir, meson.project_name())
 pkglibdir = join_paths(libdir, meson.project_name())
 
+autostartdir = join_paths(sysconfdir, 'xdg', 'autostart')
 convertdir = join_paths(datadir, 'GConf', 'gsettings')
 desktopdir = join_paths(datadir, 'applications')
 ifacedir = join_paths(datadir, 'dbus-1', 'interfaces')
@@ -64,7 +66,7 @@ plugindir = get_variable('BROWSER_PLUGIN_DIR', mozplugindir)
 # systemduserunitdir = systemd_dep.get_pkgconfig_variable('systemduserunitdir',
 #                                                         define_variable: ['prefix', prefix])
 # and uncomment systemd_dep below
-systemduserunitdir = join_paths(libdir, 'systemd', 'user')
+systemduserunitdir = join_paths(prefix, 'lib', 'systemd', 'user')
 
 keybindings_dep = dependency('gnome-keybindings', required: false)
 if keybindings_dep.found()
@@ -161,11 +163,20 @@ cdata.set_quoted('PACKAGE_VERSION', meson.project_version())
 cdata.set('HAVE_NETWORKMANAGER', have_networkmanager)
 cdata.set('HAVE_SYSTEMD', have_systemd)
 
+# New API added in glib-2.57.2
+cdata.set('HAVE_GIO_DESKTOP_LAUNCH_URIS_WITH_FDS',
+          cc.has_function('g_desktop_app_info_launch_uris_as_manager_with_fds',
+                          dependencies : gio_dep)
+)
 cdata.set('HAVE_FDWALK', cc.has_function('fdwalk'))
 cdata.set('HAVE_MALLINFO', cc.has_function('mallinfo'))
 cdata.set('HAVE_SYS_RESOURCE_H', cc.has_header('sys/resource.h'))
 cdata.set('HAVE__NL_TIME_FIRST_WEEKDAY',
   cc.has_header_symbol('langinfo.h', '_NL_TIME_FIRST_WEEKDAY')
+)
+
+cdata.set('HAVE_FDWALK',
+          cc.has_function('fdwalk')
 )
 
 config_h = configure_file(
@@ -194,6 +205,7 @@ subdir('src')
 subdir('po')
 subdir('data')
 subdir('tests')
+subdir('tools')
 
 if get_option('gtk_doc')
   subdir('docs/reference')
