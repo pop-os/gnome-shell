@@ -1,11 +1,15 @@
 gnome-shell (3.29.90-1) UNRELEASED; urgency=medium
 
+  [ Simon McVittie ]
   * New upstream release 3.29.90
   * Rebase patch series
-  * d/p/Revert-Explicitly-convert-raw-data-to-strings.patch:
-    Revert porting to mozjs60/gjs 1.53.90. Debian only has mozjs52 at
-    the moment (see #904991).
   * Upgrade in lockstep with mutter 3.29.90
+
+  [ Marco Trevisan (Treviño) ]
+  * d/p/workspace-Disconnect-from-window-signals-on-destruction.patch,
+    d/p/workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch:
+    - Drop patches not needed anymore as per upstream changes
+  * Bump dependency on gsettings-desktop-schemas 3.27.90
 
  -- Simon McVittie <smcv@debian.org>  Wed, 01 Aug 2018 08:49:37 +0100
 
