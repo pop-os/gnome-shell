@@ -51,7 +51,7 @@ index 3b0d128..82da582 100644
 +    return ubuntuModeExtensions.indexOf(uuid) !== -1;
 +}
 diff --git a/js/misc/extensionUtils.js b/js/misc/extensionUtils.js
-index 9f77b4c..685b98b 100644
+index 6e39f87..8051e5d 100644
 --- a/js/misc/extensionUtils.js
 +++ b/js/misc/extensionUtils.js
 @@ -9,6 +9,7 @@ const Signals = imports.signals;
@@ -62,7 +62,7 @@ index 9f77b4c..685b98b 100644
  const FileUtils = imports.misc.fileUtils;
  
  var ExtensionType = {
-@@ -175,6 +176,12 @@ var ExtensionFinder = new Lang.Class({
+@@ -177,6 +178,12 @@ var ExtensionFinder = new Lang.Class({
          let extension;
          let type = extensionDir.has_prefix(perUserDir) ? ExtensionType.PER_USER
                                                         : ExtensionType.SYSTEM;

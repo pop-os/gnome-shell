@@ -1,4 +1,4 @@
-gnome-shell (3.29.4-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.29.90-1ubuntu1) UNRELEASED; urgency=medium
 
   [ Didier Roche ]
   * Add debian/README.Ubuntu with instructions on how to update the Yaru
@@ -8,6 +8,28 @@ gnome-shell (3.29.4-1ubuntu1) UNRELEASED; urgency=medium
   * Merge back with debian
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 27 Jul 2018 21:53:57 +0200
+
+gnome-shell (3.29.90-1) experimental; urgency=medium
+
+  * Team upload
+
+  [ Simon McVittie ]
+  * New upstream release 3.29.90
+  * Rebase patch series
+  * Upgrade in lockstep with mutter 3.29.90
+  * debian/gnome-shell.install: Install new migration script
+  * Standards-Version: 4.1.5 (no changes required)
+  * d/p/schema-Fix-XML-syntax.patch:
+    Fix a comment syntax error that caused glib-compile-schemas to reject
+    the file
+
+  [ Marco Trevisan (Treviño) ]
+  * d/p/workspace-Disconnect-from-window-signals-on-destruction.patch,
+    d/p/workspaceThumbnail-Disconnect-from-window-signals-on-dest.patch:
+    - Drop patches not needed anymore as per upstream changes
+  * Bump dependency on gsettings-desktop-schemas 3.27.90
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 01 Aug 2018 17:01:05 +0100
 
 gnome-shell (3.29.4-1) experimental; urgency=medium
 

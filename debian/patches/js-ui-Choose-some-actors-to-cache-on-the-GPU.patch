@@ -1,5 +1,5 @@
 From: Daniel van Vugt <daniel.van.vugt@canonical.com>
-Date: Fri, 6 Apr 2018 05:26:58 -0500
+Date: Fri, 6 Apr 2018 12:26:58 +0200
 Subject: js/ui: Choose some actors to cache on the GPU
 
 Adds a wrapper function to flag actors that are good candidates for
@@ -120,10 +120,10 @@ index e107de7..6e3c971 100644
 +    actor.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 +}
 diff --git a/js/ui/panel.js b/js/ui/panel.js
-index 6f3ac9c..44af37d 100644
+index 05241ab..513ad3e 100644
 --- a/js/ui/panel.js
 +++ b/js/ui/panel.js
-@@ -773,6 +773,7 @@ var Panel = new Lang.Class({
+@@ -776,6 +776,7 @@ var Panel = new Lang.Class({
          this.actor = new Shell.GenericContainer({ name: 'panel',
                                                    reactive: true });
          this.actor._delegate = this;

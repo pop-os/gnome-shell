@@ -1,3 +1,4 @@
+etc/xdg/autostart/gnome-shell-overrides-migration.desktop
 usr/bin
 usr/lib/gnome-shell
 usr/lib/mozilla

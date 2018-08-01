@@ -1,5 +1,4 @@
 50_add_ubuntu_desktop_detect.patch
-70_allow_sound_above_100.patch
 71_smarter_alt_tab.patch
 optional-hot-corner.patch
 ubuntu-lightdm-user-switching.patch
@@ -9,14 +8,11 @@ ubuntu_background_login.patch
 ubuntu_gdm_alternatives.patch
 ubuntu_block_mode_extension_update.patch
 volume-Add-back-sound-feedback-on-scroll.patch
-workaround_crasher_fractional_scaling.patch
-workspace-fix-repositioned-windows-in-activities.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
 messageList-stop-syncing-if-closeButton-has-been-destroye.patch
 automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
 js-ui-Choose-some-actors-to-cache-on-the-GPU.patch
-authPrompt-Unset-preemptiveAnswer-on-reset.patch
-authPrompt-Do-not-enable-sensitivity-if-retries-are-disal.patch
-gdm-util-Always-allow-to-retry-login-in-unlock-mode.patch
+workaround_crasher_fractional_scaling.patch
+schema-Fix-XML-syntax.patch

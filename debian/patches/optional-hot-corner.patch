@@ -14,7 +14,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=688320
  2 files changed, 16 insertions(+)
 
 diff --git a/data/org.gnome.shell.gschema.xml.in b/data/org.gnome.shell.gschema.xml.in
-index 63a1903..8ec1d26 100644
+index 4ec01a4..3e258e2 100644
 --- a/data/org.gnome.shell.gschema.xml.in
 +++ b/data/org.gnome.shell.gschema.xml.in
 @@ -38,6 +38,14 @@

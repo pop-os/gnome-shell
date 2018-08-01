@@ -12,7 +12,7 @@ Forwarded: not-needed
  1 file changed, 1 insertion(+)
 
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index aac29ae..97118dc 100644
+index e221764..d0c8f2a 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
 @@ -42,6 +42,7 @@ const _modes = {

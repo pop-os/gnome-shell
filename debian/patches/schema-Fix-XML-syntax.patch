@@ -1,0 +1,29 @@
+From: Simon McVittie <smcv@debian.org>
+Date: Wed, 1 Aug 2018 17:58:58 +0200
+Subject: schema: Fix XML syntax
+
+With GLib 2.56.1, ending the comment with "--!>" produces the
+following error:
+
+/usr/share/glib-2.0/schemas/org.gnome.shell.gschema.xml:238:2
+Error on line 238 char 2: Document ended unexpectedly inside a
+comment or processing instruction. This entire file has been ignored.
+
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ data/org.gnome.shell.gschema.xml.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/data/org.gnome.shell.gschema.xml.in b/data/org.gnome.shell.gschema.xml.in
+index 3e258e2..8e6b990 100644
+--- a/data/org.gnome.shell.gschema.xml.in
++++ b/data/org.gnome.shell.gschema.xml.in
+@@ -198,7 +198,7 @@
+     </key>
+   </schema>
+ 
+-  <!-- unused, change 00_org.gnome.shell.gschema.override instead --!>
++  <!-- unused, change 00_org.gnome.shell.gschema.override instead -->
+   <schema id="org.gnome.shell.overrides" path="/org/gnome/shell/overrides/"
+ 	  gettext-domain="@GETTEXT_PACKAGE@">
+     <key name="attach-modal-dialogs" type="b">

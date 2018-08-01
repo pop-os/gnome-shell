@@ -1,5 +1,5 @@
 From: Andrea Azzarone <andrea.azzarone@canonical.com>
-Date: Mon, 9 Oct 2017 18:31:27 +0100
+Date: Mon, 9 Oct 2017 19:31:27 +0200
 Subject: Avoid crashing if width or height are NaNs.
 
 This is a temporary workaround that avoid a crash if width or height are NaNs.

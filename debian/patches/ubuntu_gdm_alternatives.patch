@@ -11,7 +11,7 @@ Last-Update: 2017-09-08
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index 97118dc..9ac12d6 100644
+index d0c8f2a..f521c80 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
 @@ -42,7 +42,7 @@ const _modes = {
