@@ -55,6 +55,9 @@ const ScreenshotIface = '<node> \
     <arg type="i" direction="in" name="width"/> \
     <arg type="i" direction="in" name="height"/> \
 </method> \
+<method name="PickColor"> \
+    <arg type="a{sv}" direction="out" name="result"/> \
+</method> \
 </interface> \
 </node>';
 
@@ -72,10 +75,13 @@ var ScreenshotService = new Lang.Class({
         Gio.DBus.session.own_name('org.gnome.Shell.Screenshot', Gio.BusNameOwnerFlags.REPLACE, null, null);
     },
 
-    _createScreenshot(invocation) {
+    _createScreenshot(invocation, needsDisk=true) {
+        let lockedDown = false;
+        if (needsDisk)
+            lockedDown = this._lockdownSettings.get_boolean('disable-save-to-disk')
+
         let sender = invocation.get_sender();
-        if (this._screenShooter.has(sender) ||
-            this._lockdownSettings.get_boolean('disable-save-to-disk')) {
+        if (this._screenShooter.has(sender) || lockedDown) {
             invocation.return_value(GLib.Variant.new('(bs)', [false, '']));
             return null;
         }
@@ -110,7 +116,7 @@ var ScreenshotService = new Lang.Class({
                y + height <= global.screen_height;
     },
 
-    _onScreenshotComplete(obj, result, area, filenameUsed, flash, invocation) {
+    _onScreenshotComplete(result, area, filenameUsed, flash, invocation) {
         if (result) {
             if (flash) {
                 let flashspot = new Flashspot(area);
@@ -157,9 +163,15 @@ var ScreenshotService = new Lang.Class({
         if (!screenshot)
             return;
         screenshot.screenshot_area (x, y, width, height, filename,
-            (obj, result, area, filenameUsed) => {
-                this._onScreenshotComplete(obj, result, area, filenameUsed,
-                                           flash, invocation);
+            (o, res) => {
+                try {
+                    let [result, area, filenameUsed] =
+                        screenshot.screenshot_area_finish(res);
+                    this._onScreenshotComplete(result, area, filenameUsed,
+                                               flash, invocation);
+                } catch (e) {
+                    invocation.return_gerror (e);
+                }
             });
     },
 
@@ -169,9 +181,15 @@ var ScreenshotService = new Lang.Class({
         if (!screenshot)
             return;
         screenshot.screenshot_window (include_frame, include_cursor, filename,
-            (obj, result, area, filenameUsed) => {
-                this._onScreenshotComplete(obj, result, area, filenameUsed,
-                                           flash, invocation);
+            (o, res) => {
+                try {
+                    let [result, area, filenameUsed] =
+                        screenshot.screenshot_window_finish(res);
+                    this._onScreenshotComplete(result, area, filenameUsed,
+                                               flash, invocation);
+                } catch (e) {
+                    invocation.return_gerror (e);
+                }
             });
     },
 
@@ -181,9 +199,15 @@ var ScreenshotService = new Lang.Class({
         if (!screenshot)
             return;
         screenshot.screenshot(include_cursor, filename,
-            (obj, result, area, filenameUsed) => {
-                this._onScreenshotComplete(obj, result, area, filenameUsed,
-                                           flash, invocation);
+            (o, res) => {
+                try {
+                    let [result, area, filenameUsed] =
+                        screenshot.screenshot_finish(res);
+                    this._onScreenshotComplete(result, area, filenameUsed,
+                                               flash, invocation);
+                } catch (e) {
+                    invocation.return_gerror (e);
+                }
             });
     },
 
@@ -215,6 +239,34 @@ var ScreenshotService = new Lang.Class({
         let flashspot = new Flashspot({ x : x, y : y, width: width, height: height});
         flashspot.fire();
         invocation.return_value(null);
+    },
+
+    PickColorAsync(params, invocation) {
+        let pickPixel = new PickPixel();
+        pickPixel.show();
+        pickPixel.connect('finished', (pickPixel, coords) => {
+            if (coords) {
+                let screenshot = this._createScreenshot(invocation, false);
+                if (!screenshot)
+                    return;
+                screenshot.pick_color(...coords, (o, res) => {
+                    let [success, color] = screenshot.pick_color_finish(res);
+                    let { red, green, blue } = color;
+                    let retval = GLib.Variant.new('(a{sv})', [{
+                        color: GLib.Variant.new('(ddd)', [
+                            red / 255.0,
+                            green / 255.0,
+                            blue / 255.0
+                        ])
+                    }]);
+                    this._removeShooterForSender(invocation.get_sender());
+                    invocation.return_value(retval);
+                });
+            } else {
+                invocation.return_error_literal(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
+                    "Operation was cancelled");
+            }
+        });
     }
 });
 
@@ -340,6 +392,54 @@ var SelectArea = new Lang.Class({
     }
 });
 Signals.addSignalMethods(SelectArea.prototype);
+
+var PickPixel = new Lang.Class({
+    Name: 'PickPixel',
+
+    _init() {
+        this._result = null;
+
+        this._group = new St.Widget({ visible: false,
+                                      reactive: true });
+        Main.uiGroup.add_actor(this._group);
+
+        this._grabHelper = new GrabHelper.GrabHelper(this._group);
+
+        this._group.connect('button-release-event',
+                            this._onButtonRelease.bind(this));
+
+        let constraint = new Clutter.BindConstraint({ source: global.stage,
+                                                      coordinate: Clutter.BindCoordinate.ALL });
+        this._group.add_constraint(constraint);
+    },
+
+    show() {
+        if (!this._grabHelper.grab({ actor: this._group,
+                                     onUngrab: this._onUngrab.bind(this) }))
+            return;
+
+        global.display.set_cursor(Meta.Cursor.CROSSHAIR);
+        Main.uiGroup.set_child_above_sibling(this._group, null);
+        this._group.visible = true;
+    },
+
+    _onButtonRelease(actor, event) {
+        this._result = event.get_coords();
+        this._grabHelper.ungrab();
+        return Clutter.EVENT_PROPAGATE;
+    },
+
+    _onUngrab() {
+        global.display.set_cursor(Meta.Cursor.DEFAULT);
+        this.emit('finished', this._result);
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._group.destroy();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+});
+Signals.addSignalMethods(PickPixel.prototype);
 
 var FLASHSPOT_ANIMATION_OUT_TIME = 0.5; // seconds
 
