@@ -1,0 +1,65 @@
+From: Simon McVittie <smcv@debian.org>
+Date: Wed, 1 Aug 2018 08:50:54 +0100
+Subject: Revert "Explicitly convert raw data to strings"
+
+This reverts commit 7ca418a79afed9d8b99644439e769c0416ee2263.
+Debian does not have mozjs60 yet (see #904991).
+---
+ js/misc/extensionUtils.js | 2 --
+ js/ui/keyboard.js         | 2 --
+ js/ui/padOsd.js           | 2 --
+ js/ui/sessionMode.js      | 2 --
+ 4 files changed, 8 deletions(-)
+
+diff --git a/js/misc/extensionUtils.js b/js/misc/extensionUtils.js
+index 6e39f87..9f77b4c 100644
+--- a/js/misc/extensionUtils.js
++++ b/js/misc/extensionUtils.js
+@@ -112,8 +112,6 @@ function createExtensionObject(uuid, dir, type) {
+     let metadataContents, success, tag;
+     try {
+         [success, metadataContents, tag] = metadataFile.load_contents(null);
+-        if (metadataContents instanceof Uint8Array)
+-            metadataContents = imports.byteArray.toString(metadataContents);
+     } catch (e) {
+         throw new Error('Failed to load metadata.json: ' + e);
+     }
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index 1666a50..1fefb8c 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -472,8 +472,6 @@ var KeyboardModel = new Lang.Class({
+     _loadModel(groupName) {
+         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/osk-layouts/%s.json'.format(groupName));
+         let [success, contents] = file.load_contents(null);
+-        if (contents instanceof Uint8Array)
+-            contents = imports.byteArray.toString(contents);
+ 
+         return JSON.parse(contents);
+     },
+diff --git a/js/ui/padOsd.js b/js/ui/padOsd.js
+index 8ef20b6..9b59869 100644
+--- a/js/ui/padOsd.js
++++ b/js/ui/padOsd.js
+@@ -313,8 +313,6 @@ var PadDiagram = new Lang.Class({
+     _init(params) {
+         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/pad-osd.css');
+         let [success, css, etag] = file.load_contents(null);
+-        if (css instanceof Uint8Array)
+-            css = imports.byteArray.toString(css);
+         this._curEdited = null;
+         this._prevEdited = null;
+         this._css = css;
+diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
+index e221764..aac29ae 100644
+--- a/js/ui/sessionMode.js
++++ b/js/ui/sessionMode.js
+@@ -117,8 +117,6 @@ function _loadMode(file, info) {
+     let fileContent, success, tag, newMode;
+     try {
+         [success, fileContent, tag] = file.load_contents(null);
+-        if (fileContent instanceof Uint8Array)
+-            fileContent = imports.byteArray.toString(fileContent);
+         newMode = JSON.parse(fileContent);
+     } catch(e) {
+         return;

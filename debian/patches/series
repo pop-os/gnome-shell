@@ -5,3 +5,4 @@ workspace-Disconnect-from-window-signals-on-destruction.patch
 messageList-stop-syncing-if-closeButton-has-been-destroye.patch
 automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 workaround_crasher_fractional_scaling.patch
+Revert-Explicitly-convert-raw-data-to-strings.patch
