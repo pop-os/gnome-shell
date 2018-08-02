@@ -69,6 +69,11 @@ gnome-shell (3.29.90-1ubuntu1) UNRELEASED; urgency=medium
     d/p/gdm-util-Always-allow-to-retry-login-in-unlock-mode.patch:
     - Removed obsolete or merged upstream patches
 
+  [ Iain Lane ]
+  * debian/control{,.in}: Break old versions of
+    gnome-shell-extension-ubuntu-dock and yaru-theme, both of which need to be
+    updated to work with this version of Shell.
+
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 02 Aug 2018 00:38:48 +0200
 
 gnome-shell (3.29.90-1) experimental; urgency=medium
