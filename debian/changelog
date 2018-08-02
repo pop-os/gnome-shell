@@ -6,8 +6,21 @@ gnome-shell (3.29.90-1ubuntu1) UNRELEASED; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * Merge back with debian
+  * d/p/volume-Add-back-sound-feedback-on-scroll.patch:
+    - add missing GLib import causing a JS error
+  * d/p/41-handle-logind-fail.patch,
+    d/p/70_allow_sound_above_100.patch,
+    d/p/workaround_crasher_fractional_scaling.patch,
+    d/p/shell-ignore-invalid-window-monitor-index.patch,
+    d/p/StIcon-only-compute-shadow-pipeline-when-the-texture-is-p.patch,
+    d/p/js-fix-invalid-access-errors.patch,
+    d/p/workspace-fix-repositioned-windows-in-activities.patch,
+    d/p/authPrompt-Unset-preemptiveAnswer-on-reset.patch,
+    d/p/authPrompt-Do-not-enable-sensitivity-if-retries-are-disal.patch,
+    d/p/gdm-util-Always-allow-to-retry-login-in-unlock-mode.patch:
+    - Removed obsolete or merged upstream patches
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 27 Jul 2018 21:53:57 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 02 Aug 2018 00:38:48 +0200
 
 gnome-shell (3.29.90-1) experimental; urgency=medium
 
