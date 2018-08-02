@@ -1,5 +1,5 @@
 From: Tim Lunn <tim@feathertop.org>
-Date: Tue, 9 Oct 2012 20:18:28 +1100
+Date: Tue, 9 Oct 2012 11:18:28 +0200
 Subject: [PATCH] userMenu: allow user switching when using lightdm
 
 When running lightdm and gnome-shell, its currently not possible to
