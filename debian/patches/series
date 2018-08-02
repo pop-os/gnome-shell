@@ -29,3 +29,4 @@ global-make-possible-to-set-debug-flags-dynamically.patch
 main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch
 main-add-backtrace-crashes-all-and-backtrace-all.patch
 sessionMode-add-support-for-debugFlags-parameter.patch
+ubuntu/org.gnome.Shell.desktop.in.in-enable-JS-backtrace-on-cras.patch
