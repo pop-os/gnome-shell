@@ -1,4 +1,4 @@
-gnome-shell (3.29.90-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.29.90-1ubuntu1) cosmic; urgency=medium
 
   [ Didier Roche ]
   * Add debian/README.Ubuntu with instructions on how to update the Yaru
@@ -74,7 +74,7 @@ gnome-shell (3.29.90-1ubuntu1) UNRELEASED; urgency=medium
     gnome-shell-extension-ubuntu-dock and yaru-theme, both of which need to be
     updated to work with this version of Shell.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 02 Aug 2018 00:38:48 +0200
+ -- Iain Lane <laney@ubuntu.com>  Thu, 02 Aug 2018 15:17:49 +0100
 
 gnome-shell (3.29.90-1) experimental; urgency=medium
 
