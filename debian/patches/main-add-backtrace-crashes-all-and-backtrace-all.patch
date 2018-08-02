@@ -1,0 +1,47 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 2 Aug 2018 16:17:39 +0200
+Subject: main: add `backtrace-crashes-all` and `backtrace-all`
+
+These are just convenient aliases to not to have to list all the types,
+as having more granularity is cool, but it might also cause some annoyance.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=789377
+
+Bug-GNOME: https://bugzilla.gnome.org/show_bug.cgi?id=789377
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
+---
+ src/main.c         | 7 +++++++
+ src/shell-global.c | 2 ++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/src/main.c b/src/main.c
+index e3fa8d0..d4f2d8d 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -53,6 +53,13 @@ static const GDebugKey SHELL_DEBUG_KEYS[] = {
+   { "backtrace-segfaults",   SHELL_DEBUG_BACKTRACE_SEGFAULTS },
+   { "backtrace-aborts",      SHELL_DEBUG_BACKTRACE_ABORTS },
+   { "backtrace-math-errors", SHELL_DEBUG_BACKTRACE_FPE },
++  { "backtrace-crashes-all", SHELL_DEBUG_BACKTRACE_SEGFAULTS |
++                             SHELL_DEBUG_BACKTRACE_ABORTS |
++                             SHELL_DEBUG_BACKTRACE_FPE },
++  { "backtrace-all",         SHELL_DEBUG_BACKTRACE_WARNINGS |
++                             SHELL_DEBUG_BACKTRACE_SEGFAULTS |
++                             SHELL_DEBUG_BACKTRACE_ABORTS |
++                             SHELL_DEBUG_BACKTRACE_FPE },
+ };
+ static int _default_debug_flags = SHELL_DEBUG_BACKTRACE_ABORTS |
+                                   SHELL_DEBUG_BACKTRACE_FPE;
+diff --git a/src/shell-global.c b/src/shell-global.c
+index 08d1bd9..d52642c 100644
+--- a/src/shell-global.c
++++ b/src/shell-global.c
+@@ -1891,6 +1891,8 @@ shell_global_get_debug_flags (ShellGlobal *global)
+  *  - 'backtrace-segfaults'
+  *  - 'backtrace-aborts'
+  *  - 'backtrace-math-errors'
++ *  - 'backtrace-crashes-all'
++ *  - 'backtrace-all'
+  *  - 'all'
+  */
+ void

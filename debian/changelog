@@ -55,6 +55,13 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
     d/p/ubuntu_lock_on_suspend.patch,
     d/p/71_smarter_alt_tab.patch:
     - Using Gbp-Pq Topic to ubuntu (so they get moved to debian/patches/ubuntu)
+  * d/p/main-show-a-critical-message-on-gnome-shell-crash.patch,
+    d/p/global-make-possible-to-set-debug-flags-dynamically.patch,
+    d/p/main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+    d/p/main-add-backtrace-crashes-all-and-backtrace-all.patch,
+    d/p/sessionMode-add-support-for-debugFlags-parameter.patch:
+    - Allow to get better debug informations on crashes, and in case interactive
+      user informations
 
   [ Didier Roche ]
   * Remove ubuntu.css and related assets:

@@ -1,0 +1,42 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 2 Aug 2018 16:05:13 +0200
+Subject: sessionMode: add support for `debugFlags` parameter
+
+A session can now define `debugFlags` from a json file, still leaving priority
+to the environment variable.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=789377
+
+Bug-GNOME: https://bugzilla.gnome.org/show_bug.cgi?id=789377
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
+---
+ js/ui/main.js        | 3 +++
+ js/ui/sessionMode.js | 1 +
+ 2 files changed, 4 insertions(+)
+
+diff --git a/js/ui/main.js b/js/ui/main.js
+index 6e3c971..aa1de83 100644
+--- a/js/ui/main.js
++++ b/js/ui/main.js
+@@ -111,6 +111,9 @@ function _sessionUpdated() {
+         if (lookingGlass)
+             lookingGlass.close();
+     }
++
++    if (!GLib.getenv("SHELL_DEBUG"))
++        global.set_debug_flags(sessionMode.debugFlags.join(':'));
+ }
+ 
+ function start() {
+diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
+index f521c80..4074b7f 100644
+--- a/js/ui/sessionMode.js
++++ b/js/ui/sessionMode.js
+@@ -22,6 +22,7 @@ const _modes = {
+         allowSettings: false,
+         allowExtensions: false,
+         allowScreencast: false,
++        debugFlags: [],
+         enabledExtensions: [],
+         hasRunDialog: false,
+         hasWorkspaces: false,

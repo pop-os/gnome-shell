@@ -1,0 +1,30 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 2 Aug 2018 15:59:20 +0200
+Subject: main: show an error message on gnome-shell crash
+
+When we call the crash signal handler, write on log the reason of the
+crash, also to make easier to parse the logs later on, and being able
+to understand if a stacktrace is coming from a crash or a different
+gjs error.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=789377
+
+Bug-GNOME: https://bugzilla.gnome.org/show_bug.cgi?id=789377
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
+---
+ src/main.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/main.c b/src/main.c
+index 0115577..5df5667 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -321,6 +321,8 @@ dump_gjs_stack_on_signal_handler (int signo)
+   struct sigaction sa = { 0 };
+   gsize i;
+ 
++  g_printerr ("GNOME Shell crashed with signal %d\n", signo);
++
+   /* Ignore all the signals starting this point, a part the one we'll raise
+    * (which is implicitly ignored here through SA_RESETHAND), this is needed
+    * not to get this handler being called by other signals that we were
