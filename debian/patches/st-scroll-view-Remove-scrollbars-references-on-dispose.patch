@@ -1,0 +1,33 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 3 Aug 2018 19:06:47 +0200
+Subject: st/scroll-view: Remove scrollbars references on dispose
+
+As we're destroying the scrollbars on destruction, we should remove any
+reference of it, not to cause multiple-calls to disposal to unreference them
+again.
+
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/467
+BUG-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1725312
+Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/190
+---
+ src/st/st-scroll-view.c | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
+index b9aaff2..6a0928a 100644
+--- a/src/st/st-scroll-view.c
++++ b/src/st/st-scroll-view.c
+@@ -244,11 +244,8 @@ st_scroll_view_dispose (GObject *object)
+       priv->fade_effect = NULL;
+     }
+ 
+-  if (priv->vscroll)
+-    clutter_actor_destroy (priv->vscroll);
+-
+-  if (priv->hscroll)
+-    clutter_actor_destroy (priv->hscroll);
++  g_clear_pointer (&priv->vscroll, clutter_actor_destroy);
++  g_clear_pointer (&priv->hscroll, clutter_actor_destroy);
+ 
+   /* For most reliable freeing of memory, an object with signals
+    * like StAdjustment should be explicitly disposed. Since we own
