@@ -1,0 +1,25 @@
+From: Olivier Blin <dev@blino.org>
+Date: Fri, 3 Aug 2018 00:35:24 +0200
+Subject: tools: fix XDG desktop syntax in gnome-shell-overrides-migration
+
+Reported by desktop-file-validate:
+error: value "True" for boolean key "NoDisplay" in group "Desktop
+Entry" contains invalid characters, boolean values must be "false" or
+"true"
+
+Origin: upstream, 3.29.91, commit:1fca09037416659e452bd722574e1d5a248f522d
+---
+ data/gnome-shell-overrides-migration.desktop.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/data/gnome-shell-overrides-migration.desktop.in b/data/gnome-shell-overrides-migration.desktop.in
+index 8ef86ac..99452e6 100644
+--- a/data/gnome-shell-overrides-migration.desktop.in
++++ b/data/gnome-shell-overrides-migration.desktop.in
+@@ -1,5 +1,5 @@
+ [Desktop Entry]
+ Type=Application
+ Name=GNOME settings overrides migration
+-NoDisplay=True
++NoDisplay=true
+ Exec=@libexecdir@/gnome-shell-overrides-migration.sh

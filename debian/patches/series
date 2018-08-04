@@ -1,6 +1,14 @@
+Update-Brazilian-Portuguese-translation.patch
+showOSD-Fix-handling-of-defined-falsy-parameters.patch
+data-Fix-comment-in-schema.patch
+workspace-Fix-infinite-loop-when-finding-parent-window-of.patch
+workspace-Simplify-detecting-added-dialogs-after-closing-.patch
+tools-fix-XDG-desktop-syntax-in-gnome-shell-overrides-mig.patch
+Updated-Slovenian-translation.patch
+keyboard-defer-position-changed-till-we-have-a-rect.patch
+keyboard-Refactor-code-resetting-IM-on-window-drags.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
 messageList-stop-syncing-if-closeButton-has-been-destroye.patch
 automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 workaround_crasher_fractional_scaling.patch
-schema-Fix-XML-syntax.patch
