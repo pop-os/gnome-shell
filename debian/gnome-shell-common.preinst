@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "upgrade" ]; then
+  # Remove older deprecated theme. Can be removed post 20.04
+  if dpkg --compare-versions "$2" lt-nl 3.29.90-2ubuntu1; then
+    update-alternatives --remove gdm3.css /usr/share/gnome-shell/theme/ubuntu.css || true
+  fi
+fi
+
+#DEBHELPER#
