@@ -1,0 +1,53 @@
+From: Carlos Garnacho <carlosg@gnome.org>
+Date: Fri, 3 Aug 2018 16:01:48 +0200
+Subject: keyboard: Refactor code resetting IM on window drags
+
+When a window is dragged, the OSK should get hidden. Just
+do this in a nicer way.
+
+Origin: upstream, 3.29.91, commit:6b610b26f8bc2a9ef2ab121a1c6a55bf277d52b7
+---
+ js/ui/keyboard.js | 16 ++++++----------
+ 1 file changed, 6 insertions(+), 10 deletions(-)
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index 4a24940..5d5f0e2 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -492,13 +492,18 @@ var FocusTracker = new Lang.Class({
+ 
+     _init() {
+         this._currentWindow = null;
+-        this._currentWindowPositionId = 0;
+ 
+         global.display.connect('notify::focus-window', () => {
+             this._setCurrentWindow(global.display.focus_window);
+             this.emit('window-changed', this._currentWindow);
+         });
+ 
++        global.display.connect('grab-op-begin', (display, window, op) => {
++            if (window == this._currentWindow &&
++                (op == Meta.GrabOp.MOVING || op == Meta.GrabOp.KEYBOARD_MOVING))
++                this.emit('reset');
++        });
++
+         /* Valid for wayland clients */
+         Main.inputMethod.connect('cursor-location-changed', (o, rect) => {
+             let newRect = { x: rect.get_x(), y: rect.get_y(), width: rect.get_width(), height: rect.get_height() };
+@@ -520,16 +525,7 @@ var FocusTracker = new Lang.Class({
+     },
+ 
+     _setCurrentWindow(window) {
+-        if (this._currentWindow)
+-            this._currentWindow.disconnect(this._currentWindowPositionId);
+-
+         this._currentWindow = window;
+-        if (window) {
+-            this._currentWindowPositionId = this._currentWindow.connect('position-changed', () => {
+-                if (global.display.get_grab_op() != Meta.GrabOp.NONE)
+-                    this.emit('reset');
+-            });
+-        }
+     },
+ 
+     _setCurrentRect(rect) {

@@ -1,3 +1,77 @@
+gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian, remaining changes
+    + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    + Add some Recommends:
+      - ubuntu-session (| gnome-session) to have the ubuntu session available
+      - xserver-xorg-legacy
+    + Update debian/gbp.conf with Ubuntu settings
+    + gnome-shell-common.install: Install Ubuntu mode and Shell theme
+    + gnome-shell-common.{postinst,prerm}: Set up the Ubuntu css theme as an
+      alternative
+    + 50_add_ubuntu_desktop_detect.patch
+      - add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    + 71_smarter_alt_tab.patch
+      - quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    + optional-hot-corner.patch
+      - enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    + ubuntu-lightdm-user-switching.patch
+      - Allow user switching when using LightDM.
+    + ubuntu_lock_on_suspend.patch
+      - Respect Ubuntu's lock-on-suspend setting.
+    + ubuntu_gdm.patch
+      - as gdm is system-wide and not session-wide, ensure gdm has an ubuntu
+        styling by default, not impacting the gnome user session though.
+    + ubuntu_background_login.patch
+      - Change default background color as we modified the default GDM color
+        for our ubuntu session. Change it as well here, still applying the
+        background noise loading.
+    + ubuntu_gdm_alternatives.patch
+      - Add support for GDM3 theme alternatives
+    + ubuntu_block_mode_extension_update.patch
+      - Don't allow ubuntu mode extension to update
+    + volume-Add-back-sound-feedback-on-scroll.patch
+      - Fix regression causing missing feedback on volume slider scroll
+    + st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
+      - Fix possible crash on cache loading
+    + js-ui-Choose-some-actors-to-cache-on-the-GPU.patch
+      - Improve rendering of shell elements moving rendering to GPU
+    + debian/rules:
+      - Run dh_translations and work around an issue with Rosetta and plural
+        translations
+      - Modify upstream theme assets for the Ubuntu them
+      - Run dh_install with fail-missing
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 15 Aug 2018 00:34:28 +0200
+
+gnome-shell (3.29.90-2) experimental; urgency=medium
+
+  * Team upload
+  * Build-depend on GLib 2.57.2 for the new approach to overriding
+    GSettings per desktop
+  * d/p/Update-Brazilian-Portuguese-translation.patch,
+    d/p/showOSD-Fix-handling-of-defined-falsy-parameters.patch,
+    d/p/data-Fix-comment-in-schema.patch,
+    d/p/workspace-Fix-infinite-loop-when-finding-parent-window-of.patch,
+    d/p/workspace-Simplify-detecting-added-dialogs-after-closing-.patch,
+    d/p/tools-fix-XDG-desktop-syntax-in-gnome-shell-overrides-mig.patch,
+    d/p/Updated-Slovenian-translation.patch,
+    d/p/keyboard-defer-position-changed-till-we-have-a-rect.patch,
+    d/p/keyboard-Refactor-code-resetting-IM-on-window-drags.patch:
+    Update to upstream master branch at 3.29.90-9-g6b610b26f
+  * d/p/schema-Fix-XML-syntax.patch:
+    Drop, replaced by functionally equivalent
+    d/p/data-Fix-comment-in-schema.patch
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 04 Aug 2018 16:32:57 +0100
+
 gnome-shell (3.29.90-1ubuntu2) cosmic; urgency=medium
 
   * Thanks component-mismatches, chrome-gnome-shell should indeed be a

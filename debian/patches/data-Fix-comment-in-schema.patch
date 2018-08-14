@@ -1,15 +1,8 @@
-From: Simon McVittie <smcv@debian.org>
-Date: Wed, 1 Aug 2018 17:58:58 +0200
-Subject: schema: Fix XML syntax
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 1 Aug 2018 20:03:03 +0200
+Subject: data: Fix comment in schema
 
-With GLib 2.56.1, ending the comment with "--!>" produces the
-following error:
-
-/usr/share/glib-2.0/schemas/org.gnome.shell.gschema.xml:238:2
-Error on line 238 char 2: Document ended unexpectedly inside a
-comment or processing instruction. This entire file has been ignored.
-
-Signed-off-by: Simon McVittie <smcv@debian.org>
+Origin: upstream, 3.29.91, commit:9f436ce3734b889afcff1880f6fed884196b92c5
 ---
  data/org.gnome.shell.gschema.xml.in | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
