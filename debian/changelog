@@ -62,13 +62,13 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
     d/p/sessionMode-add-support-for-debugFlags-parameter.patch:
     - Allow to get better debug informations on crashes, and in case interactive
       user informations
-  * d/p/ubuntu/org.gnome.Shell.desktop.in.in-enable-JS-backtrace-on-cras.patch:
-    - Enable JS stacktrace printing on gnome-shell crashes
   * d/p/st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch,
     d/p/st-scroll-view-Remove-scrollbars-references-on-dispose.patch:
     - Handle NULL scroll bars in st-scroll-view (LP: #1725312)
   * d/p/js-main-Throw-error-if-no-valid-default-stylesheet-is-fou.patch:
     - Be informative if gnome-shell tries to load an invalid default theme
+  * debian/ubuntu-session-mods/ubuntu.json:
+    - Enable JS stacktrace printing on gnome-shell crashes using debugFlags
 
   [ Didier Roche ]
   * Remove ubuntu.css and related assets:
