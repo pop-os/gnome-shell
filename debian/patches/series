@@ -31,4 +31,6 @@ main-add-backtrace-crashes-all-and-backtrace-all.patch
 sessionMode-add-support-for-debugFlags-parameter.patch
 st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch
 st-scroll-view-Remove-scrollbars-references-on-dispose.patch
+js-main-Throw-error-if-no-valid-default-stylesheet-is-fou.patch
 ubuntu/org.gnome.Shell.desktop.in.in-enable-JS-backtrace-on-cras.patch
+
