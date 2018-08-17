@@ -1,4 +1,4 @@
-gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.29.90-2ubuntu1) cosmic; urgency=medium
 
   * Merge with debian, remaining changes
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -83,7 +83,7 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
     yaru-theme-gnome-shell, since we reference its css file in our
     styleSheetName.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 17 Aug 2018 13:28:29 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 17 Aug 2018 14:38:47 +0100
 
 gnome-shell (3.29.90-2) experimental; urgency=medium
 
