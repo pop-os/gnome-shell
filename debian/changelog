@@ -78,7 +78,12 @@ gnome-shell (3.29.90-2ubuntu1) UNRELEASED; urgency=medium
   * Set default gdm theme as upstream GDM. Will be overriden in the Yaru
     package.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 15 Aug 2018 00:34:28 +0200
+  [ Iain Lane ]
+  * debian/control{,.in}: Make gnome-shell-common Recommend
+    yaru-theme-gnome-shell, since we reference its css file in our
+    styleSheetName.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 17 Aug 2018 13:28:29 +0100
 
 gnome-shell (3.29.90-2) experimental; urgency=medium
 
