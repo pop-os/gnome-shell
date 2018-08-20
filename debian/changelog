@@ -1,5 +1,6 @@
-gnome-shell (3.29.91-1) UNRELEASED; urgency=medium
+gnome-shell (3.29.91-1) experimental; urgency=medium
 
+  * Team upload
   * New upstream development release
   * Build-depend on mutter 3.29.91
   * Build-depend on Meson 0.47.0
@@ -8,7 +9,7 @@ gnome-shell (3.29.91-1) UNRELEASED; urgency=medium
   * d/gnome-shell-common.install: Remove commented-out entry
   * Standards-Version: 4.2.0 (no changes required)
 
- -- Simon McVittie <smcv@debian.org>  Mon, 20 Aug 2018 19:46:20 +0100
+ -- Simon McVittie <smcv@debian.org>  Mon, 20 Aug 2018 21:32:20 +0100
 
 gnome-shell (3.29.90-2) experimental; urgency=medium
 
