@@ -5,6 +5,7 @@ gnome-shell (3.29.91-1) UNRELEASED; urgency=medium
   * Build-depend on Meson 0.47.0
   * Rebase patch series, dropping patches that were applied upstream
   * Normalize package lists with wrap-and-sort -ab
+  * d/gnome-shell-common.install: Remove commented-out entry
 
  -- Simon McVittie <smcv@debian.org>  Mon, 20 Aug 2018 19:46:20 +0100
 
