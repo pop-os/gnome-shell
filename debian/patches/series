@@ -8,13 +8,8 @@ ubuntu/gdm_alternatives.patch
 ubuntu/block_mode_extension_update.patch
 optional-hot-corner.patch
 volume-Add-back-sound-feedback-on-scroll.patch
-tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
-dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
-messageList-stop-syncing-if-closeButton-has-been-destroye.patch
-automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
 js-ui-Choose-some-actors-to-cache-on-the-GPU.patch
-workaround_crasher_fractional_scaling.patch
 main-show-an-error-message-on-gnome-shell-crash.patch
 global-make-possible-to-set-debug-flags-dynamically.patch
 main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch
@@ -23,3 +18,8 @@ sessionMode-add-support-for-debugFlags-parameter.patch
 st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch
 st-scroll-view-Remove-scrollbars-references-on-dispose.patch
 js-main-Throw-error-if-no-valid-default-stylesheet-is-fou.patch
+tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
+dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
+messageList-stop-syncing-if-closeButton-has-been-destroye.patch
+automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
+workaround_crasher_fractional_scaling.patch
