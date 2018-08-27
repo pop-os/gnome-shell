@@ -22,3 +22,7 @@ dnd-Nullify-_dragActor-after-we-ve-destroyed-it-and-avoid.patch
 messageList-stop-syncing-if-closeButton-has-been-destroye.patch
 automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 workaround_crasher_fractional_scaling.patch
+viewSelector-Cancel-search-on-overview-hidden.patch
+search-Cancel-search-provider-operations-on-clear.patch
+search-Ignore-search-provider-results-metas-if-search-is-.patch
+ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch

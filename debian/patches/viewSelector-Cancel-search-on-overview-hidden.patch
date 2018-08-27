@@ -1,0 +1,36 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 23 Aug 2018 16:11:10 +0200
+Subject: viewSelector: Cancel search on overview hidden
+
+Currently when the overview is hidden, any pending search is kept alive, not only
+at remote search provider level (as per issue #183), but even the shell providers
+proxies continue to get and process data. This happens even if this is not needed
+anymore, while the UI reset is performed only next time that the overview is
+shown (causing some more computation presentation time).
+
+In order to stop this to happen, when the overview is hidden, we have to unset
+the search entry to an empty value as this would make SearchResults to have empty
+terms list and that would make the proxies cancellable to be triggered (without
+causing any further search to start).
+
+https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/205
+
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/183
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1756826
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/205
+---
+ js/ui/viewSelector.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/viewSelector.js b/js/ui/viewSelector.js
+index 2d5c33f..c650886 100644
+--- a/js/ui/viewSelector.js
++++ b/js/ui/viewSelector.js
+@@ -311,6 +311,7 @@ var ViewSelector = new Lang.Class({
+     },
+ 
+     hide() {
++        this.reset();
+         this._workspacesDisplay.hide();
+     },
+ 

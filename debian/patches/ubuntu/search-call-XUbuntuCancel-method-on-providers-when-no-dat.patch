@@ -1,0 +1,167 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 23 Aug 2018 20:00:57 +0200
+Subject: search: call XUbuntuCancel method on providers when no data is
+ needed
+
+Add XUbuntuCancel method to search providers and call it when a search provider
+is still doing operations.
+Ignore the result when the method does not exist or is cancelled.
+
+This will allow to stop operations on providers.
+
+Fixes LP: #1756826
+
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/183
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1756826
+Forwarded: not-needed
+---
+ data/org.gnome.ShellSearchProvider.xml  |  6 ++++++
+ data/org.gnome.ShellSearchProvider2.xml |  6 ++++++
+ js/ui/remoteSearch.js                   | 15 +++++++++++++++
+ js/ui/search.js                         | 34 +++++++++++++++++++++++++++++++++
+ 4 files changed, 61 insertions(+)
+
+diff --git a/data/org.gnome.ShellSearchProvider.xml b/data/org.gnome.ShellSearchProvider.xml
+index 78ad305..393cb01 100644
+--- a/data/org.gnome.ShellSearchProvider.xml
++++ b/data/org.gnome.ShellSearchProvider.xml
+@@ -69,5 +69,11 @@
+     <method name="ActivateResult">
+       <arg type="s" name="identifier" direction="in" />
+     </method>
++
++    <!--
++        XUbuntuCancel:
++        Cancel the current search operation
++    -->
++    <method name="XUbuntuCancel" />
+   </interface>
+ </node>
+diff --git a/data/org.gnome.ShellSearchProvider2.xml b/data/org.gnome.ShellSearchProvider2.xml
+index 9502340..8141bc0 100644
+--- a/data/org.gnome.ShellSearchProvider2.xml
++++ b/data/org.gnome.ShellSearchProvider2.xml
+@@ -83,5 +83,11 @@
+       <arg type="as" name="terms" direction="in" />
+       <arg type="u" name="timestamp" direction="in" />
+     </method>
++
++    <!--
++        XUbuntuCancel:
++        Cancel the current search operation
++    -->
++    <method name="XUbuntuCancel" />
+   </interface>
+ </node>
+diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
+index 3b847af..9245745 100644
+--- a/js/ui/remoteSearch.js
++++ b/js/ui/remoteSearch.js
+@@ -31,6 +31,7 @@ const SearchProviderIface = `
+ <method name="ActivateResult">
+     <arg type="s" direction="in" />
+ </method>
++<method name="XUbuntuCancel" />
+ </interface>
+ </node>`;
+ 
+@@ -59,6 +60,7 @@ const SearchProvider2Iface = `
+     <arg type="as" direction="in" />
+     <arg type="u" direction="in" />
+ </method>
++<method name="XUbuntuCancel" />
+ </interface>
+ </node>`;
+ 
+@@ -312,6 +314,19 @@ var RemoteSearchProvider = new Lang.Class({
+                                         cancellable);
+     },
+ 
++    XUbuntuCancel(cancellable, callback) {
++        this.proxy.XUbuntuCancelRemote((results, error) => {
++                if (error &&
++                    !error.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD) &&
++                    !error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
++                    log('Received error from DBus search provider %s during XUbuntuCancel: %s'.format(this.id, String(error)));
++                } else if (callback && !error) {
++                    callback();
++                }
++            },
++            cancellable);
++    },
++
+     activateResult(id) {
+         this.proxy.ActivateResultRemote(id);
+     },
+diff --git a/js/ui/search.js b/js/ui/search.js
+index dd4bfad..629664e 100644
+--- a/js/ui/search.js
++++ b/js/ui/search.js
+@@ -225,7 +225,9 @@ var SearchResultsBase = new Lang.Class({
+             this._cancellable.cancel();
+             this._cancellable.reset();
+ 
++            this.provider.resultsMetasInProgress = true;
+             this.provider.getResultMetas(metasNeeded, metas => {
++                this.provider.resultsMetasInProgress = this._cancellable.is_cancelled();
+                 if (metas.length != metasNeeded.length) {
+                     if (!this._cancellable.is_cancelled())
+                         log(`Wrong number of result metas returned by search provider ${this.provider.id}` +
+@@ -450,6 +452,10 @@ var SearchResults = new Lang.Class({
+ 
+         this._searchTimeoutId = 0;
+         this._cancellable = new Gio.Cancellable();
++        this._searchCancelCancellable = new Gio.Cancellable();
++        this._cancellable.connect(() => {
++            this._cancelSearchProviderRequest();
++        });
+ 
+         this._registerProvider(new AppDisplay.AppSearchProvider());
+         this._reloadRemoteProviders();
+@@ -491,11 +497,32 @@ var SearchResults = new Lang.Class({
+         }
+     },
+ 
++    _cancelSearchProviderRequest() {
++        if (this._terms.length != 0 || this._searchCancelTimeoutId > 0)
++            return;
++
++        this._searchCancelTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
++            this._providers.forEach(provider => {
++                if (provider.isRemoteProvider &&
++                    (provider.searchInProgress || provider.resultsMetasInProgress)) {
++                    provider.XUbuntuCancel(this._searchCancelCancellable, () => {
++                        provider.searchInProgress = false;
++                        provider.resultsMetasInProgress = false;
++                    });
++                }
++            });
++
++            delete this._searchCancelTimeoutId;
++            return GLib.SOURCE_REMOVE;
++        });
++    },
++
+     _reset() {
+         this._terms = [];
+         this._results = {};
+         this._clearDisplay();
+         this._clearSearchTimeout();
++        this._cancelSearchProviderRequest();
+         this._defaultResult = null;
+         this._startingSearch = false;
+ 
+@@ -562,6 +589,13 @@ var SearchResults = new Lang.Class({
+         if (this._terms.length > 0)
+             isSubSearch = searchString.indexOf(previousSearchString) == 0;
+ 
++        this._searchCancelCancellable.cancel();
++        this._searchCancelCancellable.reset();
++        if (this._searchCancelTimeoutId > 0) {
++            GLib.source_remove(this._searchCancelTimeoutId);
++            delete this._searchCancelTimeoutId;
++        }
++
+         this._terms = terms;
+         this._isSubSearch = isSubSearch;
+         this._updateSearchProgress();
