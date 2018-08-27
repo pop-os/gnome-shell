@@ -1,3 +1,16 @@
+gnome-shell (3.29.91-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream development release
+  * Build-depend on mutter 3.29.91
+  * Build-depend on Meson 0.47.0
+  * Rebase patch series, dropping patches that were applied upstream
+  * Normalize package lists with wrap-and-sort -ab
+  * d/gnome-shell-common.install: Remove commented-out entry
+  * Standards-Version: 4.2.0 (no changes required)
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 20 Aug 2018 21:32:20 +0100
+
 gnome-shell (3.29.90-2ubuntu1) cosmic; urgency=medium
 
   * Merge with debian, remaining changes

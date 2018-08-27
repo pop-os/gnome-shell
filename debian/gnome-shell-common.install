@@ -4,7 +4,6 @@ usr/share/GConf
 usr/share/glib-2.0
 usr/share/gnome-control-center
 usr/share/gnome-shell
-#usr/share/gtk-doc
 usr/share/locale
 debian/ubuntu-session-mods/ubuntu.json usr/share/gnome-shell/modes/
 # install upstream theme for gdm if vanilla gnome theme is selected

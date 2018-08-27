@@ -14,7 +14,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=688320
  2 files changed, 16 insertions(+)
 
 diff --git a/data/org.gnome.shell.gschema.xml.in b/data/org.gnome.shell.gschema.xml.in
-index 4ec01a4..3e258e2 100644
+index a7251cd..8e6b990 100644
 --- a/data/org.gnome.shell.gschema.xml.in
 +++ b/data/org.gnome.shell.gschema.xml.in
 @@ -38,6 +38,14 @@
@@ -33,10 +33,10 @@ index 4ec01a4..3e258e2 100644
        <default>[ 'epiphany.desktop', 'evolution.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop' ]</default>
        <summary>List of desktop file IDs for favorite applications</summary>
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 210fb66..eb8a6e1 100644
+index 7a3cb22..08e7495 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -269,6 +269,9 @@ var LayoutManager = new Lang.Class({
+@@ -270,6 +270,9 @@ var LayoutManager = new Lang.Class({
          this._backgroundGroup.lower_bottom();
          this._bgManagers = [];
  
@@ -46,7 +46,7 @@ index 210fb66..eb8a6e1 100644
          // Need to update struts on new workspaces when they are added
          let workspaceManager = global.workspace_manager;
          workspaceManager.connect('notify::n-workspaces',
-@@ -370,6 +373,11 @@ var LayoutManager = new Lang.Class({
+@@ -371,6 +374,11 @@ var LayoutManager = new Lang.Class({
          });
          this.hotCorners = [];
  
