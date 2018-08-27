@@ -14,7 +14,7 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/190
  1 file changed, 2 insertions(+), 5 deletions(-)
 
 diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
-index b9aaff2..6a0928a 100644
+index a8b6d2e..cb38aef 100644
 --- a/src/st/st-scroll-view.c
 +++ b/src/st/st-scroll-view.c
 @@ -244,11 +244,8 @@ st_scroll_view_dispose (GObject *object)

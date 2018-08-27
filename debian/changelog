@@ -58,6 +58,8 @@ gnome-shell (3.29.91-1ubuntu1) UNRELEASED; urgency=medium
       - Run dh_translations and work around an issue with Rosetta and plural
         translations
       - Run dh_install with --fail-missing
+  * d/p/st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch:
+    - Updated as per upstream review
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 28 Aug 2018 00:35:19 +0200
 
