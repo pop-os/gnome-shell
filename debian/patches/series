@@ -9,7 +9,6 @@ ubuntu/block_mode_extension_update.patch
 optional-hot-corner.patch
 volume-Add-back-sound-feedback-on-scroll.patch
 st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
-js-ui-Choose-some-actors-to-cache-on-the-GPU.patch
 main-show-an-error-message-on-gnome-shell-crash.patch
 global-make-possible-to-set-debug-flags-dynamically.patch
 main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch
