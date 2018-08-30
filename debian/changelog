@@ -1,4 +1,6 @@
-gnome-shell (3.29.92-1) UNRELEASED; urgency=medium
+gnome-shell (3.29.92-1) experimental; urgency=medium
+
+  * Team upload
 
   [ Marco Trevisan (Treviño) ]
   * New upstream development release
@@ -21,7 +23,7 @@ gnome-shell (3.29.92-1) UNRELEASED; urgency=medium
     - gnome-shell-extension-workspaces-to-dock (#905112)
     - gnome-shell-pomodoro (#905107)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 29 Aug 2018 21:22:17 -0500
+ -- Simon McVittie <smcv@debian.org>  Thu, 30 Aug 2018 09:20:35 +0100
 
 gnome-shell (3.29.91-1) experimental; urgency=medium
 
