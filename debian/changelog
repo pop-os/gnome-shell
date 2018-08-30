@@ -6,6 +6,20 @@ gnome-shell (3.29.92-1) UNRELEASED; urgency=medium
 
   [ Simon McVittie ]
   * Standards-Version: 4.2.1 (no changes required)
+  * Add Breaks on older versions of extensions that needed updates for
+    this Shell version
+    - gnome-shell-extension-autohidetopbar (#905111)
+    - gnome-shell-extension-caffeine (#905108)
+    - gnome-shell-extension-dashtodock (#905106)
+    - gnome-shell-extension-top-icons-plus (#905115)
+  * Add Breaks on extensions that still need updates for this version,
+    using versions that assume they will be fixed in their next NMU or MU
+    - gnome-shell-extension-dash-to-panel (#905110)
+    - gnome-shell-extension-multi-monitors (#905114)
+    - gnome-shell-extension-pixelsaver (#905109)
+    - gnome-shell-extension-taskbar (#905113)
+    - gnome-shell-extension-workspaces-to-dock (#905112)
+    - gnome-shell-pomodoro (#905107)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 29 Aug 2018 21:22:17 -0500
 
