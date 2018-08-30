@@ -1,6 +1,7 @@
 gnome-shell (3.29.92-1) UNRELEASED; urgency=medium
 
   * New upstream development release
+  * Build-depend on mutter 3.29.92
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 29 Aug 2018 21:22:17 -0500
 
