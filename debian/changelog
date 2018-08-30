@@ -1,4 +1,4 @@
-gnome-shell (3.29.91-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.29.92-1ubuntu1) UNRELEASED; urgency=medium
 
   * Merge with debian, remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -61,7 +61,34 @@ gnome-shell (3.29.91-1ubuntu1) UNRELEASED; urgency=medium
   * d/p/st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch:
     - Updated as per upstream review
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 28 Aug 2018 00:35:19 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 30 Aug 2018 09:08:20 -0500
+
+gnome-shell (3.29.92-1) experimental; urgency=medium
+
+  * Team upload
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream development release
+  * Build-depend on mutter 3.29.92
+
+  [ Simon McVittie ]
+  * Standards-Version: 4.2.1 (no changes required)
+  * Add Breaks on older versions of extensions that needed updates for
+    this Shell version
+    - gnome-shell-extension-autohidetopbar (#905111)
+    - gnome-shell-extension-caffeine (#905108)
+    - gnome-shell-extension-dashtodock (#905106)
+    - gnome-shell-extension-top-icons-plus (#905115)
+  * Add Breaks on extensions that still need updates for this version,
+    using versions that assume they will be fixed in their next NMU or MU
+    - gnome-shell-extension-dash-to-panel (#905110)
+    - gnome-shell-extension-multi-monitors (#905114)
+    - gnome-shell-extension-pixelsaver (#905109)
+    - gnome-shell-extension-taskbar (#905113)
+    - gnome-shell-extension-workspaces-to-dock (#905112)
+    - gnome-shell-pomodoro (#905107)
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 30 Aug 2018 09:20:35 +0100
 
 gnome-shell (3.29.91-1) experimental; urgency=medium
 
