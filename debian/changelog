@@ -1,4 +1,4 @@
-gnome-shell (3.29.92-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.29.92-1ubuntu1) cosmic; urgency=medium
 
   * Merge with debian, remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -70,7 +70,7 @@ gnome-shell (3.29.92-1ubuntu1) UNRELEASED; urgency=medium
     - Add support for cancelling remote search providers when the overlay
       is closed (and actually stop searches when requested from UI, LP: #1756826)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 30 Aug 2018 09:08:20 -0500
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 30 Aug 2018 17:59:08 -0500
 
 gnome-shell (3.29.92-1) experimental; urgency=medium
 
