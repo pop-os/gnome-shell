@@ -1,4 +1,4 @@
-gnome-shell (3.30.0-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.30.0-1ubuntu1) cosmic; urgency=medium
 
   * Merge with debian, remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -65,7 +65,7 @@ gnome-shell (3.30.0-1ubuntu1) UNRELEASED; urgency=medium
         translations
       - Run dh_install with --fail-missing
 
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 04 Sep 2018 19:17:07 +0200
+ -- Didier Roche <didrocks@ubuntu.com>  Tue, 04 Sep 2018 19:20:58 +0200
 
 gnome-shell (3.30.0-1) experimental; urgency=medium
 
