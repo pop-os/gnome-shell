@@ -265,7 +265,8 @@ var AppMenuButton = new Lang.Class({
     },
 
     _findTargetApp() {
-        let workspace = global.screen.get_active_workspace();
+        let workspaceManager = global.workspace_manager;
+        let workspace = workspaceManager.get_active_workspace();
         let tracker = Shell.WindowTracker.get_default();
         let focusedApp = tracker.focus_app;
         if (focusedApp && focusedApp.is_on_workspace(workspace))
@@ -306,8 +307,11 @@ var AppMenuButton = new Lang.Class({
             }
         }
 
+        let shellShowsAppMenu = this._gtkSettings.gtk_shell_shows_app_menu;
+        Meta.prefs_set_show_fallback_app_menu(!shellShowsAppMenu);
+
         let visible = (this._targetApp != null &&
-                       this._gtkSettings.gtk_shell_shows_app_menu &&
+                       shellShowsAppMenu &&
                        !Main.overview.visibleTarget);
         if (visible)
             this.show();
@@ -709,6 +713,7 @@ var AggregateMenu = new Lang.Class({
             this._bluetooth = null;
         }
 
+        this._remoteAccess = new imports.ui.status.remoteAccess.RemoteAccessApplet();
         this._power = new imports.ui.status.power.Indicator();
         this._rfkill = new imports.ui.status.rfkill.Indicator();
         this._volume = new imports.ui.status.volume.Indicator();
@@ -729,6 +734,7 @@ var AggregateMenu = new Lang.Class({
         if (this._bluetooth) {
             this._indicators.add_child(this._bluetooth.indicators);
         }
+        this._indicators.add_child(this._remoteAccess.indicators);
         this._indicators.add_child(this._rfkill.indicators);
         this._indicators.add_child(this._volume.indicators);
         this._indicators.add_child(this._power.indicators);
@@ -743,6 +749,7 @@ var AggregateMenu = new Lang.Class({
         if (this._bluetooth) {
             this.menu.addMenuItem(this._bluetooth.menu);
         }
+        this.menu.addMenuItem(this._remoteAccess.menu);
         this.menu.addMenuItem(this._location.menu);
         this.menu.addMenuItem(this._rfkill.menu);
         this.menu.addMenuItem(this._power.menu);
@@ -772,6 +779,7 @@ var Panel = new Lang.Class({
         this.actor = new Shell.GenericContainer({ name: 'panel',
                                                   reactive: true });
         this.actor._delegate = this;
+        this.actor.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 
         this._sessionStyle = null;
 
@@ -796,6 +804,7 @@ var Panel = new Lang.Class({
         this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
         this.actor.connect('allocate', this._allocate.bind(this));
         this.actor.connect('button-press-event', this._onButtonPress.bind(this));
+        this.actor.connect('touch-event', this._onButtonPress.bind(this));
         this.actor.connect('key-press-event', this._onKeyPress.bind(this));
 
         Main.overview.connect('showing', () => {
@@ -818,7 +827,7 @@ var Panel = new Lang.Class({
         global.window_group.connect('actor-removed', this._onWindowActorRemoved.bind(this));
         global.window_manager.connect('switch-workspace', this._updateSolidStyle.bind(this));
 
-        global.screen.connect('workareas-changed', () => { this.actor.queue_relayout(); });
+        global.display.connect('workareas-changed', () => { this.actor.queue_relayout(); });
         this._updatePanel();
     },
 
@@ -939,8 +948,13 @@ var Panel = new Lang.Class({
         if (event.get_source() != actor)
             return Clutter.EVENT_PROPAGATE;
 
-        let button = event.get_button();
-        if (button != 1)
+        let type = event.type();
+        let isPress = type == Clutter.EventType.BUTTON_PRESS;
+        if (!isPress && type != Clutter.EventType.TOUCH_BEGIN)
+            return Clutter.EVENT_PROPAGATE;
+
+        let button = isPress ? event.get_button() : -1;
+        if (isPress && button != 1)
             return Clutter.EVENT_PROPAGATE;
 
         let focusWindow = global.display.focus_window;
@@ -961,8 +975,7 @@ var Panel = new Lang.Class({
         if (!allowDrag)
             return Clutter.EVENT_PROPAGATE;
 
-        global.display.begin_grab_op(global.screen,
-                                     dragWindow,
+        global.display.begin_grab_op(dragWindow,
                                      Meta.GrabOp.MOVING,
                                      false, /* pointer grab */
                                      true, /* frame action */
@@ -977,7 +990,7 @@ var Panel = new Lang.Class({
     _onKeyPress(actor, event) {
         let symbol = event.get_key_symbol();
         if (symbol == Clutter.KEY_Escape) {
-            global.screen.focus_default_window(event.get_time());
+            global.display.focus_default_window(event.get_time());
             return Clutter.EVENT_STOP;
         }
 
@@ -1075,7 +1088,8 @@ var Panel = new Lang.Class({
             return;
 
         /* Get all the windows in the active workspace that are in the primary monitor and visible */
-        let activeWorkspace = global.screen.get_active_workspace();
+        let workspaceManager = global.workspace_manager;
+        let activeWorkspace = workspaceManager.get_active_workspace();
         let windows = activeWorkspace.list_windows().filter(metaWindow => {
             return metaWindow.is_on_primary_monitor() &&
                    metaWindow.showing_on_its_workspace() &&

@@ -137,8 +137,10 @@ var WindowClone = new Lang.Class({
         this._dragSlot = [0, 0, 0, 0];
         this._stackAbove = null;
 
-        this._windowClone._updateId = this.metaWindow.connect('size-changed',
-            this._onRealWindowSizeChanged.bind(this));
+        this._windowClone._sizeChangedId = this.metaWindow.connect('size-changed',
+            this._onMetaWindowSizeChanged.bind(this));
+        this._windowClone._posChangedId = this.metaWindow.connect('position-changed',
+            this._computeBoundingBox.bind(this));
         this._windowClone._destroyId =
             this.realWindow.connect('destroy', () => {
                 // First destroy the clone and then destroy everything
@@ -177,6 +179,7 @@ var WindowClone = new Lang.Class({
         this.inDrag = false;
 
         this._selected = false;
+        this._closeRequested = false;
     },
 
     set slot(slot) {
@@ -192,7 +195,6 @@ var WindowClone = new Lang.Class({
 
     deleteAll() {
         // Delete all windows, starting from the bottom-most (most-modal) one
-
         let windows = this.actor.get_children();
         for (let i = windows.length - 1; i >= 1; i--) {
             let realWindow = windows[i].source;
@@ -202,12 +204,24 @@ var WindowClone = new Lang.Class({
         }
 
         this.metaWindow.delete(global.get_current_time());
+        this._closeRequested = true;
     },
 
-    addAttachedDialog(win) {
-        this._doAddAttachedDialog(win, win.get_compositor_private());
-        this._computeBoundingBox();
-        this.emit('size-changed');
+    addDialog(win) {
+        let parent = win.get_transient_for();
+        while (parent.is_attached_dialog())
+            parent = parent.get_transient_for();
+
+        // Display dialog if it is attached to our metaWindow
+        if (win.is_attached_dialog() && parent == this.metaWindow) {
+            this._doAddAttachedDialog(win, win.get_compositor_private());
+            this._onMetaWindowSizeChanged();
+        }
+
+        // The dialog popped up after the user tried to close the window,
+        // assume it's a close confirmation and leave the overview
+        if (this._closeRequested)
+            this._activate();
     },
 
     hasAttachedDialogs() {
@@ -216,15 +230,14 @@ var WindowClone = new Lang.Class({
 
     _doAddAttachedDialog(metaWin, realWin) {
         let clone = new Clutter.Clone({ source: realWin });
-        clone._updateId = metaWin.connect('size-changed', () => {
-            this._computeBoundingBox();
-            this.emit('size-changed');
-        });
+        clone._sizeChangedId = metaWin.connect('size-changed',
+            this._onMetaWindowSizeChanged.bind(this));
+        clone._posChangedId = metaWin.connect('position-changed',
+            this._onMetaWindowSizeChanged.bind(this));
         clone._destroyId = realWin.connect('destroy', () => {
             clone.destroy();
 
-            this._computeBoundingBox();
-            this.emit('size-changed');
+            this._onMetaWindowSizeChanged();
         });
         this.actor.add_child(clone);
     },
@@ -321,12 +334,13 @@ var WindowClone = new Lang.Class({
             else
                 realWindow = child.source;
 
-            realWindow.meta_window.disconnect(child._updateId);
+            realWindow.meta_window.disconnect(child._sizeChangedId);
+            realWindow.meta_window.disconnect(child._posChangedId);
             realWindow.disconnect(child._destroyId);
         });
     },
 
-    _onRealWindowSizeChanged() {
+    _onMetaWindowSizeChanged() {
         this._computeBoundingBox();
         this.emit('size-changed');
     },
@@ -447,12 +461,13 @@ var WindowOverlay = new Lang.Class({
         this.border = new St.Bin({ style_class: 'window-clone-border' });
 
         let title = new St.Label({ style_class: 'window-caption',
-                                   text: metaWindow.title });
+                                   text: this._getCaption() });
         title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         windowClone.actor.label_actor = title;
 
         this._updateCaptionId = metaWindow.connect('notify::title', w => {
             this.title.text = w.title;
+            this.title.text = this._getCaption();
             this.relayout(false);
         });
 
@@ -460,13 +475,11 @@ var WindowOverlay = new Lang.Class({
         button._overlap = 0;
 
         this._idleToggleCloseId = 0;
-        button.connect('clicked', this._closeWindow.bind(this));
+        button.connect('clicked', () => this._windowClone.deleteAll());
 
         windowClone.actor.connect('destroy', this._onDestroy.bind(this));
         windowClone.connect('show-chrome', this._onShowChrome.bind(this));
         windowClone.connect('hide-chrome', this._onHideChrome.bind(this));
-
-        this._windowAddedId = 0;
 
         button.hide();
         title.hide();
@@ -565,6 +578,16 @@ var WindowOverlay = new Lang.Class({
         }
     },
 
+    _getCaption() {
+        let metaWindow = this._windowClone.metaWindow;
+        if (metaWindow.title)
+            return metaWindow.title;
+
+        let tracker = Shell.WindowTracker.get_default();
+        let app = tracker.get_window_app(metaWindow);
+        return app.get_name();
+    },
+
     _animateOverlayActor(actor, x, y, width, height) {
         let params = { x: x,
                        y: y,
@@ -578,43 +601,12 @@ var WindowOverlay = new Lang.Class({
         Tweener.addTween(actor, params);
     },
 
-    _closeWindow(actor) {
-        let metaWindow = this._windowClone.metaWindow;
-        this._workspace = metaWindow.get_workspace();
-
-        this._windowAddedId = this._workspace.connect('window-added',
-                                                      this._onWindowAdded.bind(this));
-
-        this._windowClone.deleteAll();
-    },
-
     _windowCanClose() {
         return this._windowClone.metaWindow.can_close() &&
                !this._windowClone.hasAttachedDialogs();
     },
 
-    _onWindowAdded(workspace, win) {
-        let metaWindow = this._windowClone.metaWindow;
-
-        if (win.get_transient_for() == metaWindow) {
-            workspace.disconnect(this._windowAddedId);
-            this._windowAddedId = 0;
-
-            // use an idle handler to avoid mapping problems -
-            // see comment in Workspace._windowAdded
-            let id = Mainloop.idle_add(() => {
-                this._windowClone.emit('selected');
-                return GLib.SOURCE_REMOVE;
-            });
-            GLib.Source.set_name_by_id(id, '[gnome-shell] this._windowClone.emit');
-        }
-    },
-
     _onDestroy() {
-        if (this._windowAddedId > 0) {
-            this._workspace.disconnect(this._windowAddedId);
-            this._windowAddedId = 0;
-        }
         if (this._idleToggleCloseId > 0) {
             Mainloop.source_remove(this._idleToggleCloseId);
             this._idleToggleCloseId = 0;
@@ -1145,10 +1137,10 @@ var Workspace = new Lang.Class({
             this._windowRemovedId = this.metaWorkspace.connect('window-removed',
                                                                this._windowRemoved.bind(this));
         }
-        this._windowEnteredMonitorId = global.screen.connect('window-entered-monitor',
-                                                             this._windowEnteredMonitor.bind(this));
-        this._windowLeftMonitorId = global.screen.connect('window-left-monitor',
-                                                          this._windowLeftMonitor.bind(this));
+        this._windowEnteredMonitorId = global.display.connect('window-entered-monitor',
+                                                              this._windowEnteredMonitor.bind(this));
+        this._windowLeftMonitorId = global.display.connect('window-left-monitor',
+                                                           this._windowLeftMonitor.bind(this));
         this._repositionWindowsId = 0;
 
         this.leavingOverview = false;
@@ -1294,7 +1286,8 @@ var Workspace = new Lang.Class({
         let area = padArea(this._actualGeometry, padding);
         let slots = strategy.computeWindowSlots(layout, area);
 
-        let currentWorkspace = global.screen.get_active_workspace();
+        let workspaceManager = global.workspace_manager;
+        let currentWorkspace = workspaceManager.get_active_workspace();
         let isOnCurrentWorkspace = this.metaWorkspace == null || this.metaWorkspace == currentWorkspace;
 
         for (let i = 0; i < slots.length; i++) {
@@ -1503,21 +1496,17 @@ var Workspace = new Lang.Class({
             return;
 
         if (!this._isOverviewWindow(win)) {
-            if (metaWin.is_attached_dialog()) {
-                let parent = metaWin.get_transient_for();
-                while (parent.is_attached_dialog())
-                    parent = metaWin.get_transient_for();
+            if (metaWin.get_transient_for() == null)
+                return;
 
-                let idx = this._lookupIndex (parent);
-                if (idx < 0) {
-                    // parent was not created yet, it will take care
-                    // of the dialog when created
-                    return;
-                }
+            // Let the top-most ancestor handle all transients
+            let parent = metaWin.find_root_ancestor();
+            let clone = this._windows.find(c => c.metaWindow == parent);
 
-                let clone = this._windows[idx];
-                clone.addAttachedDialog(metaWin);
-            }
+            // If no clone was found, the parent hasn't been created yet
+            // and will take care of the dialog when added
+            if (clone)
+                clone.addDialog(metaWin);
 
             return;
         }
@@ -1549,13 +1538,13 @@ var Workspace = new Lang.Class({
         this._doRemoveWindow(metaWin);
     },
 
-    _windowEnteredMonitor(metaScreen, monitorIndex, metaWin) {
+    _windowEnteredMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doAddWindow(metaWin);
         }
     },
 
-    _windowLeftMonitor(metaScreen, monitorIndex, metaWin) {
+    _windowLeftMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doRemoveWindow(metaWin);
         }
@@ -1580,7 +1569,9 @@ var Workspace = new Lang.Class({
         if (this._windows.length == 0)
             return;
 
-        if (this.metaWorkspace != null && this.metaWorkspace != global.screen.get_active_workspace())
+        let workspaceManager = global.workspace_manager;
+        let activeWorkspace = workspaceManager.get_active_workspace();
+        if (this.metaWorkspace != null && this.metaWorkspace != activeWorkspace)
             return;
 
         // Special case maximized windows, since it doesn't make sense
@@ -1636,7 +1627,9 @@ var Workspace = new Lang.Class({
             this._repositionWindowsId = 0;
         }
 
-        if (this.metaWorkspace != null && this.metaWorkspace != global.screen.get_active_workspace())
+        let workspaceManager = global.workspace_manager;
+        let activeWorkspace = workspaceManager.get_active_workspace();
+        if (this.metaWorkspace != null && this.metaWorkspace != activeWorkspace)
             return;
 
         // Special case maximized windows, since it doesn't make sense
@@ -1706,7 +1699,8 @@ var Workspace = new Lang.Class({
     },
 
     zoomFromOverview() {
-        let currentWorkspace = global.screen.get_active_workspace();
+        let workspaceManager = global.workspace_manager;
+        let currentWorkspace = workspaceManager.get_active_workspace();
 
         this.leavingOverview = true;
 
@@ -1774,8 +1768,8 @@ var Workspace = new Lang.Class({
             this.metaWorkspace.disconnect(this._windowAddedId);
             this.metaWorkspace.disconnect(this._windowRemovedId);
         }
-        global.screen.disconnect(this._windowEnteredMonitorId);
-        global.screen.disconnect(this._windowLeftMonitorId);
+        global.display.disconnect(this._windowEnteredMonitorId);
+        global.display.disconnect(this._windowLeftMonitorId);
 
         if (this._repositionWindowsId > 0) {
             Mainloop.source_remove(this._repositionWindowsId);
@@ -2010,7 +2004,8 @@ var Workspace = new Lang.Class({
             if (metaWindow.get_monitor() != this.monitorIndex)
                 metaWindow.move_to_monitor(this.monitorIndex);
 
-            let index = this.metaWorkspace ? this.metaWorkspace.index() : global.screen.get_active_workspace_index();
+            let workspaceManager = global.workspace_manager;
+            let index = this.metaWorkspace ? this.metaWorkspace.index() : workspaceManager.get_active_workspace_index();
             metaWindow.change_workspace_by_index(index, false);
             return true;
         } else if (source.shellWorkspaceLaunch) {

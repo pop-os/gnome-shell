@@ -506,8 +506,12 @@ var VPNRequestHandler = new Lang.Class({
         try {
             data = this._dataStdout.peek_buffer();
 
-            keyfile.load_from_data(data.toString(), data.length,
-                                   GLib.KeyFileFlags.NONE);
+            if (data instanceof Uint8Array)
+                data = imports.byteArray.toGBytes(data);
+            else
+                data = data.toGBytes();
+
+            keyfile.load_from_bytes(data, GLib.KeyFileFlags.NONE);
 
             if (keyfile.get_integer(VPN_UI_GROUP, 'Version') != 2)
                 throw new Error('Invalid plugin keyfile version, is %d');
@@ -604,12 +608,17 @@ var NetworkAgent = new Lang.Class({
 
         this._native.connect('new-request', this._newRequest.bind(this));
         this._native.connect('cancel-request', this._cancelRequest.bind(this));
-        try {
-            this._native.init(null);
-        } catch(e) {
-            this._native = null;
-            logError(e, 'error initializing the NetworkManager Agent');
-        }
+
+        this._initialized = false;
+        this._native.init_async(GLib.PRIORITY_DEFAULT, null, (o, res) => {
+            try {
+                this._native.init_finish(res);
+                this._initialized = true;
+            } catch(e) {
+                this._native = null;
+                logError(e, 'error initializing the NetworkManager Agent');
+            }
+        });
     },
 
     enable() {
@@ -617,7 +626,7 @@ var NetworkAgent = new Lang.Class({
             return;
 
         this._native.auto_register = true;
-        if (!this._native.registered)
+        if (this._initialized && !this._native.registered)
             this._native.register_async(null, null);
     },
 
@@ -640,7 +649,7 @@ var NetworkAgent = new Lang.Class({
             return;
 
         this._native.auto_register = false;
-        if (this._native.registered)
+        if (this._initialized && this._native.registered)
             this._native.unregister_async(null, null);
     },
 

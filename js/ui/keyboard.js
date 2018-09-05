@@ -472,6 +472,8 @@ var KeyboardModel = new Lang.Class({
     _loadModel(groupName) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/osk-layouts/%s.json'.format(groupName));
         let [success, contents] = file.load_contents(null);
+        if (contents instanceof Uint8Array)
+            contents = imports.byteArray.toString(contents);
 
         return JSON.parse(contents);
     },
@@ -490,11 +492,16 @@ var FocusTracker = new Lang.Class({
 
     _init() {
         this._currentWindow = null;
-        this._currentWindowPositionId = 0;
 
-        global.screen.get_display().connect('notify::focus-window', () => {
-            this._setCurrentWindow(global.screen.get_display().focus_window);
+        global.display.connect('notify::focus-window', () => {
+            this._setCurrentWindow(global.display.focus_window);
             this.emit('window-changed', this._currentWindow);
+        });
+
+        global.display.connect('grab-op-begin', (display, window, op) => {
+            if (window == this._currentWindow &&
+                (op == Meta.GrabOp.MOVING || op == Meta.GrabOp.KEYBOARD_MOVING))
+                this.emit('reset');
         });
 
         /* Valid for wayland clients */
@@ -518,32 +525,29 @@ var FocusTracker = new Lang.Class({
     },
 
     _setCurrentWindow(window) {
-        if (this._currentWindow)
-            this._currentWindow.disconnect(this._currentWindowPositionId);
-
         this._currentWindow = window;
-        if (window) {
-            this._currentWindowPositionId = this._currentWindow.connect('position-changed', () => {
-                if (global.display.get_grab_op() == Meta.GrabOp.NONE)
-                    this.emit('position-changed');
-                else
-                    this.emit('reset');
-            });
-        }
     },
 
     _setCurrentRect(rect) {
-        let frameRect = this._currentWindow.get_frame_rect();
-        rect.x -= frameRect.x;
-        rect.y -= frameRect.y;
+        if (this._currentWindow) {
+            let frameRect = this._currentWindow.get_frame_rect();
+            rect.x -= frameRect.x;
+            rect.y -= frameRect.y;
+        }
 
         this._rect = rect;
         this.emit('position-changed');
     },
 
     getCurrentRect() {
-        let frameRect = this._currentWindow.get_frame_rect();
-        let rect = { x: this._rect.x + frameRect.x, y: this._rect.y + frameRect.y, width: this._rect.width, height: this._rect.height };
+        let rect = { x: this._rect.x, y: this._rect.y,
+                     width: this._rect.width, height: this._rect.height };
+
+        if (this._currentWindow) {
+            let frameRect = this._currentWindow.get_frame_rect();
+            rect.x += frameRect.x;
+            rect.y += frameRect.y;
+        }
 
         return rect;
     }
@@ -916,9 +920,11 @@ var Keyboard = new Lang.Class({
     },
 
     _relayout() {
-        if (this.actor == null)
-            return;
         let monitor = Main.layoutManager.keyboardMonitor;
+
+        if (this.actor == null || monitor == null)
+            return;
+
         let maxHeight = monitor.height / 3;
         this.actor.width = monitor.width;
         this.actor.height = maxHeight;

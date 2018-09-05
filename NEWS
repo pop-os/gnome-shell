@@ -1,30 +1,130 @@
-3.28.3
+3.30.0
 ======
-* Fix lagging pointer when zoomed [Daniel; #682013]
+
+Contributors:
+  Harry Mallon, Marco Trevisan (Treviño)
+
+Translators:
+  Fran Dieguez [gl], Trần Ngọc Quân [vi], Balázs Meskó [hu],
+  Rūdolfs Mazurs [lv], Jiri Grönroos [fi], Anders Jonsson [sv], gogo [hr],
+  Ask Hjorth Larsen [da]
+
+3.29.92
+=======
+* Choose some actors to cache on the GPU [Daniel; #792633]
+* inputMethod: Hide preedit text if requested [Takao; #431]
+* Fix forced fallback app-menus on wayland [Jonas; #276]
+
+Contributors:
+  Jonas Ådahl, Takao Fujiwara, Mohammed Sadiq, Marco Trevisan (Treviño),
+  Daniel van Vugt
+
+Translators:
+  Baurzhan Muftakhidinov [kk], Kukuh Syafaat [id], Milo Casagrande [it],
+  Changwoo Ryu [ko], Marek Cernocky [cs]
+
+3.29.91
+=======
+* Fix handling of 0/false options in ShowOSD D-Bus API [Florian; #791669]
+* overview: Fix handling of confirmation dialogs on wayland [verdre; !180]
+* Avoid some full relayout/redraws [Carlos; !197]
+* Keep workspace switcher slid out when workspaces are in use [Florian; !161]
+* Ignore auto-repeat for some keybindings [Andrea; #373]
+* Misc. bug fixes [Carlos, Florian, Pascal; #464, !189, !191, !192, !162]
+
+Contributors:
+  Andrea Azzarone, Olivier Blin, Carlos Garnacho, Florian Müllner,
+  Pascal Nowack, verdre
+
+Translators:
+  Bruno Lopes da Silva [pt_BR], Matej Urbančič [sl], Piotr Drąg [pl],
+  Aurimas Černius [lt], Emin Tufan Çetin [tr], Fabio Tomat [fur],
+  Alexandre Franke [fr], Yi-Jyun Pan [zh_TW], Bernd Homuth [de],
+  Andre Klapper [cs], Jordi Mas [ca], Daniel Șerbănescu [ro],
+  Bruce Cowan [en_GB]
+
+3.29.90
+=======
+* Add remote access indication on wayland [Jonas; !160]
+* Fix wrong window positions in overview on wayland [Marco; #776588]
+* Add gesture to unfullscreen a window [Jan-Michael; !123]
+* Add PickColor method to screenshot D-Bus interface [Florian; #286]
+* Consider "new-window" action when opening new windows [Florian; #756844]
+* Make workspace switching gestures follow motion [Carlos; #788994]
+* Support audio volumes above 100% [Didier; #790280]
+* Misc. bug fixes [Florian, Daniel; #424, !132, !182, #433, !179, #786496]
+
+Contributors:
+  Jonas Ådahl, Jan-Michael Brummer, Piotr Drąg, Daniel Drake, Carlos Garnacho,
+  Florian Müllner, Georges Basile Stavracas Neto, Didier Roche, Jakub Steiner,
+  Marco Trevisan (Treviño)
+
+Translators:
+  Charles Monzat [fr], Daniel Mustieles [es]
+
+3.29.4
+======
 * Fix "Clear All" for calendar events [Florian; #325]
-* Misc. bug fixes [Florian, Mario, Marco; #136, #214, #788931, #791233]
+* Allow cancelling direct switch operations [Xavier; #315]
+* Support being started by systemd --user [Iain; !137, !138]
+* Support key event forwarding required by some input methods [Carlos; #275]
+* Misc. bug fixes and cleanups [Jasper, Andrea, Florian; #663461, #372, !112,
+  #414, !151]
 
 Contributors:
-  Carlos Garnacho, Florian Müllner, Mario Sanchez Prada, Joe Rabinoff,
-  Didier Roche, Marco Trevisan (Treviño), Daniel van Vugt
+  Andrea Azzarone, Carlos Garnacho, Xavier Johnson, Iain Lane, Florian Müllner,
+  Jasper St. Pierre
 
 Translators:
-  Pieter Schalk Schoeman [af], Gun Chleoc [gd]
+  Stas Solovey [ru]
 
-3.28.2
+3.29.3
 ======
-* Fix lock-up on cancelling polkit dialog [Florian; #221]
-* Guard against untimely keyboard map changes [Carlos; #240]
-* Fix blurriness of OSD under some resolutions [Silvère; #782011]
-* Fix icons in search provider results [Florian; #249]
-* Misc. bug fixes [Marco, Florian; #792687, #781471]
+* Save creation time in screenshot metadata [Florian; #790481]
+* Improve consistency between ctrl- and middle-click on app icons [Xavier; #316]
+* Add support for font-feature-settings CSS property [Ryan; #34]
+* Adjust to MetaScreen removal [Jonas; #759538]
+* Misc. bug fixes [Florian, Marco, Sam; #298, #788931, #26, #76, !54, #788882,
+  #791233]
 
 Contributors:
-  Carlos Garnacho, Silvère Latchurié, Florian Müllner, Mario Sanchez Prada,
-  Ray Strode, Marco Trevisan (Treviño)
+  Jonas Ådahl, Ryan Hendrickson, Xavier Johnson, Florian Müllner, Joe Rabinoff,
+  Sam Spilsbury, Marco Trevisan (Treviño)
 
 Translators:
-  Stas Solovey [ru], Rafael Fontenelle [pt_BR]
+  Gun Chleoc [gd], Yi-Jyun Pan [zh_TW], Cédric Valmary [oc], Jordi Mas [ca]
+
+3.29.2
+======
+* Guard against untimely keyboard map changes [Carlos; #240]
+* Fix icons in search provider results [Florian; #249]
+* Fix blurriness of OSD under some resolutions [Silvère; #782011]
+* Fix lagging pointer when zoomed [Daniel; #682013]
+* Misc. bug fixes [Milan, Xiaoguang, Florian, Mario, Ole; #244, #787871,
+  #781471, #136, #214, #294]
+
+Contributors:
+  Ole Jørgen Brønner, Milan Crha, Carlos Garnacho, Yussuf Khalil,
+  Silvère Latchurié, Florian Müllner, Mario Sanchez Prada, Ray Strode,
+  Daniel van Vugt, Xiaoguang Wang
+
+Translators:
+  Rafael Fontenelle [pt_BR], Kukuh Syafaat [id], Marcos Lans [gl],
+  Anders Jonsson [sv], Mingcong Bai [zh_CN]
+
+3.29.1
+======
+* Support icons in app-menu [Florian; #760985]
+* Misc. bug fixes [Marco, Florian, Lubomir; #792687, #221, !63]
+
+Contributors:
+  Piotr Drąg, Takao Fujiwara, Christian Kellner, Florian Müllner,
+  Mario Sanchez Prada, Lubomir Rintel, Didier Roche, Marco Trevisan (Treviño),
+  verdre
+
+Translators:
+  gogo [hr], Stas Solovey [ru], Matej Urbančič [sl], Daniel Șerbănescu [ro],
+  Fabio Tomat [fur], Marek Cernocky [cs], Daniel Mustieles [es]
 
 3.28.1
 ======

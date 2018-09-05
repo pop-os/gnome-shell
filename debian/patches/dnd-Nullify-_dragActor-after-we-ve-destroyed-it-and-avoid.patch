@@ -21,7 +21,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
  1 file changed, 39 insertions(+), 26 deletions(-)
 
 diff --git a/js/ui/dnd.js b/js/ui/dnd.js
-index a38607c..431c60d 100644
+index 634a7d6..8483e89 100644
 --- a/js/ui/dnd.js
 +++ b/js/ui/dnd.js
 @@ -27,6 +27,12 @@ var DragMotionResult = {
@@ -132,7 +132,7 @@ index a38607c..431c60d 100644
  
 -                    this._dragInProgress = false;
 +                    this._dragState = DragState.INIT;
-                     global.screen.set_cursor(Meta.Cursor.DEFAULT);
+                     global.display.set_cursor(Meta.Cursor.DEFAULT);
                      this.emit('drag-end', event.get_time(), true);
                      this._dragComplete();
 @@ -557,20 +572,22 @@ var _Draggable = new Lang.Class({
@@ -146,7 +146,7 @@ index a38607c..431c60d 100644
  
 -        if (this._actorDestroyed) {
 +        if (this._actorDestroyed || wasCancelled) {
-             global.screen.set_cursor(Meta.Cursor.DEFAULT);
+             global.display.set_cursor(Meta.Cursor.DEFAULT);
              if (!this._buttonDown)
                  this._dragComplete();
              this.emit('drag-end', eventTime, false);

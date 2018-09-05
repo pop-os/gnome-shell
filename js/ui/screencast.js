@@ -8,29 +8,30 @@ const Signals = imports.signals;
 
 const Main = imports.ui.main;
 
-const ScreencastIface = '<node> \
-<interface name="org.gnome.Shell.Screencast"> \
-<method name="Screencast"> \
-    <arg type="s" direction="in" name="file_template"/> \
-    <arg type="a{sv}" direction="in" name="options"/> \
-    <arg type="b" direction="out" name="success"/> \
-    <arg type="s" direction="out" name="filename_used"/> \
-</method> \
-<method name="ScreencastArea"> \
-    <arg type="i" direction="in" name="x"/> \
-    <arg type="i" direction="in" name="y"/> \
-    <arg type="i" direction="in" name="width"/> \
-    <arg type="i" direction="in" name="height"/> \
-    <arg type="s" direction="in" name="file_template"/> \
-    <arg type="a{sv}" direction="in" name="options"/> \
-    <arg type="b" direction="out" name="success"/> \
-    <arg type="s" direction="out" name="filename_used"/> \
-</method> \
-<method name="StopScreencast"> \
-    <arg type="b" direction="out" name="success"/> \
-</method> \
-</interface> \
-</node>';
+const ScreencastIface = `
+<node>
+<interface name="org.gnome.Shell.Screencast">
+<method name="Screencast">
+    <arg type="s" direction="in" name="file_template"/>
+    <arg type="a{sv}" direction="in" name="options"/>
+    <arg type="b" direction="out" name="success"/>
+    <arg type="s" direction="out" name="filename_used"/>
+</method>
+<method name="ScreencastArea">
+    <arg type="i" direction="in" name="x"/>
+    <arg type="i" direction="in" name="y"/>
+    <arg type="i" direction="in" name="width"/>
+    <arg type="i" direction="in" name="height"/>
+    <arg type="s" direction="in" name="file_template"/>
+    <arg type="a{sv}" direction="in" name="options"/>
+    <arg type="b" direction="out" name="success"/>
+    <arg type="s" direction="out" name="filename_used"/>
+</method>
+<method name="StopScreencast">
+    <arg type="b" direction="out" name="success"/>
+</method>
+</interface>
+</node>`;
 
 var ScreencastService = new Lang.Class({
     Name: 'ScreencastService',
@@ -56,7 +57,7 @@ var ScreencastService = new Lang.Class({
         let recorder = this._recorders.get(sender);
         if (!recorder) {
             recorder = new Shell.Recorder({ stage: global.stage,
-                                            screen: global.screen });
+                                            display: global.display });
             recorder._watchNameId =
                 Gio.bus_watch_name(Gio.BusType.SESSION, sender, 0, null,
                                    this._onNameVanished.bind(this));

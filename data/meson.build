@@ -92,6 +92,33 @@ schema = configure_file(
   configuration: schemaconf,
   install_dir: schemadir
 )
+install_data('00_org.gnome.shell.gschema.override', install_dir: schemadir)
+
+overrides_migration_conf = configuration_data()
+overrides_migration_conf.set('libexecdir', libexecdir)
+overrides_migration = configure_file(
+  input: 'gnome-shell-overrides-migration.desktop.in',
+  output: 'gnome-shell-overrides-migration.desktop',
+  configuration: overrides_migration_conf,
+  install_dir: autostartdir
+)
+
+if have_systemd
+  unitconf = configuration_data()
+  unitconf.set('bindir', bindir)
+
+  unit = configure_file(
+    input: 'gnome-shell.service.in',
+    output: 'gnome-shell.service',
+    configuration: unitconf,
+    install_dir: systemduserunitdir
+  )
+
+  units = files('gnome-shell-wayland.target',
+                'gnome-shell-x11.target')
+
+  install_data(units, install_dir: systemduserunitdir)
+endif
 
 # for unit tests - gnome.compile_schemas() only looks in srcdir
 custom_target('compile-schemas',

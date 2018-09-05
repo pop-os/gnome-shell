@@ -15,7 +15,7 @@ Applied-upstream: no
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/st/st-theme-node-drawing.c b/src/st/st-theme-node-drawing.c
-index 8942966..e57ca65 100644
+index 2123cc4..2135514 100644
 --- a/src/st/st-theme-node-drawing.c
 +++ b/src/st/st-theme-node-drawing.c
 @@ -2505,7 +2505,7 @@ st_theme_node_paint (StThemeNode           *node,

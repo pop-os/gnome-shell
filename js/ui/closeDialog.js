@@ -2,6 +2,7 @@
 
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
@@ -13,6 +14,7 @@ const Tweener = imports.ui.tweener;
 
 var FROZEN_WINDOW_BRIGHTNESS = -0.3
 var DIALOG_TRANSITION_TIME = 0.15
+var ALIVE_TIMEOUT = 5000;
 
 var CloseDialog = new Lang.Class({
     Name: 'CloseDialog',
@@ -26,6 +28,7 @@ var CloseDialog = new Lang.Class({
         this.parent();
         this._window = window;
         this._dialog = null;
+        this._timeoutId = 0;
     },
 
     get window() {
@@ -97,6 +100,14 @@ var CloseDialog = new Lang.Class({
         if (this._dialog != null)
             return;
 
+        Meta.disable_unredirect_for_display(global.display);
+
+        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ALIVE_TIMEOUT,
+            () => {
+                this._window.check_alive(global.display.get_current_time_roundtrip());
+                return GLib.SOURCE_CONTINUE;
+            });
+
         this._addWindowEffect();
         this._initDialog();
 
@@ -116,6 +127,11 @@ var CloseDialog = new Lang.Class({
     vfunc_hide() {
         if (this._dialog == null)
             return;
+
+        Meta.enable_unredirect_for_display(global.display);
+
+        GLib.source_remove(this._timeoutId);
+        this._timeoutId = 0;
 
         let dialog = this._dialog;
         this._dialog = null;

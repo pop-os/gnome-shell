@@ -14,54 +14,54 @@ const PanelMenu = imports.ui.panelMenu;
 
 /* Keep in sync with data/org.freedesktop.bolt.xml */
 
-const BoltClientInterface = '<node> \
-  <interface name="org.freedesktop.bolt1.Manager"> \
-    <property name="Probing" type="b" access="read"></property> \
-    <property name="AuthMode" type="s" access="readwrite"></property> \
-    <method name="EnrollDevice"> \
-      <arg type="s" name="uid" direction="in"> </arg> \
-      <arg type="s" name="policy" direction="in"> </arg> \
-      <arg type="s" name="flags" direction="in"> </arg> \
-      <arg name="device" direction="out" type="o"> </arg> \
-    </method> \
-    <signal name="DeviceAdded"> \
-      <arg name="device" type="o"> </arg> \
-    </signal> \
-  </interface> \
-</node>';
+const BoltClientInterface = `
+<node>
+  <interface name="org.freedesktop.bolt1.Manager">
+    <property name="Probing" type="b" access="read"></property>
+    <property name="AuthMode" type="s" access="readwrite"></property>
+    <method name="EnrollDevice">
+      <arg type="s" name="uid" direction="in"> </arg>
+      <arg type="s" name="policy" direction="in"> </arg>
+      <arg type="s" name="flags" direction="in"> </arg>
+      <arg name="device" direction="out" type="o"> </arg>
+    </method>
+    <signal name="DeviceAdded">
+      <arg name="device" type="o"> </arg>
+    </signal>
+  </interface>
+</node>`;
 
-const BoltDeviceInterface = '<node> \
-  <interface name="org.freedesktop.bolt1.Device"> \
-    <property name="Uid" type="s" access="read"></property> \
-    <property name="Name" type="s" access="read"></property> \
-    <property name="Vendor" type="s" access="read"></property> \
-    <property name="Type" type="s" access="read"></property> \
-    <property name="Status" type="s" access="read"></property> \
-    <property name="Parent" type="s" access="read"></property> \
-    <property name="SysfsPath" type="s" access="read"></property> \
-    <property name="Stored" type="b" access="read"></property> \
-    <property name="Policy" type="s" access="read"></property> \
-    <property name="Key" type="s" access="read"></property> \
-    <property name="Label" type="s" access="read"></property> \
-    <property name="ConnectTime" type="t" access="read"></property> \
-    <property name="AuthorizeTime" type="t" access="read"></property> \
-    <property name="StoreTime" type="t" access="read"></property> \
-  </interface> \
-</node>';
+const BoltDeviceInterface = `
+<node>
+  <interface name="org.freedesktop.bolt1.Device">
+    <property name="Uid" type="s" access="read"></property>
+    <property name="Name" type="s" access="read"></property>
+    <property name="Vendor" type="s" access="read"></property>
+    <property name="Type" type="s" access="read"></property>
+    <property name="Status" type="s" access="read"></property>
+    <property name="Parent" type="s" access="read"></property>
+    <property name="SysfsPath" type="s" access="read"></property>
+    <property name="Stored" type="b" access="read"></property>
+    <property name="Policy" type="s" access="read"></property>
+    <property name="Key" type="s" access="read"></property>
+    <property name="Label" type="s" access="read"></property>
+    <property name="ConnectTime" type="t" access="read"></property>
+    <property name="AuthorizeTime" type="t" access="read"></property>
+    <property name="StoreTime" type="t" access="read"></property>
+  </interface>
+</node>`;
 
-const BoltClientProxy = Gio.DBusProxy.makeProxyWrapper(BoltClientInterface);
 const BoltDeviceProxy = Gio.DBusProxy.makeProxyWrapper(BoltDeviceInterface);
 
 /*  */
 
 var Status = {
     DISCONNECTED: 'disconnected',
+    CONNECTING: 'connecting',
     CONNECTED: 'connected',
     AUTHORIZING: 'authorizing',
     AUTH_ERROR: 'auth-error',
-    AUTHORIZED: 'authorized',
-    AUTHORIZED_SECURE: 'authorized-secure',
-    AUTHORIZED_NEWKEY: 'authorized-newkey'
+    AUTHORIZED: 'authorized'
 };
 
 var Policy = {
@@ -70,7 +70,7 @@ var Policy = {
     AUTO: 'auto'
 };
 
-var AuthFlags = {
+var AuthCtrl = {
     NONE: 'none',
 };
 
@@ -79,6 +79,7 @@ var AuthMode = {
     ENABLED: 'enabled'
 };
 
+const BOLT_DBUS_CLIENT_IFACE = 'org.freedesktop.bolt1.Manager';
 const BOLT_DBUS_NAME = 'org.freedesktop.bolt';
 const BOLT_DBUS_PATH = '/org/freedesktop/bolt';
 
@@ -88,22 +89,26 @@ var Client = new Lang.Class({
     _init() {
 
 	this._proxy = null;
-        new BoltClientProxy(
-	    Gio.DBus.system,
-	    BOLT_DBUS_NAME,
-	    BOLT_DBUS_PATH,
-	    this._onProxyReady.bind(this)
-	);
+        let nodeInfo = Gio.DBusNodeInfo.new_for_xml(BoltClientInterface);
+        Gio.DBusProxy.new(Gio.DBus.system,
+                          Gio.DBusProxyFlags.DO_NOT_AUTO_START,
+                          nodeInfo.lookup_interface(BOLT_DBUS_CLIENT_IFACE),
+                          BOLT_DBUS_NAME,
+                          BOLT_DBUS_PATH,
+                          BOLT_DBUS_CLIENT_IFACE,
+                          null,
+                          this._onProxyReady.bind(this));
 
 	this.probing = false;
     },
 
-    _onProxyReady(proxy, error) {
-	if (error !== null) {
-	    log('error creating bolt proxy: %s'.format(error.message));
-	    return;
-	}
-	this._proxy = proxy;
+    _onProxyReady(o, res) {
+        try {
+	    this._proxy = Gio.DBusProxy.new_finish(res);
+        } catch(e) {
+	    log('error creating bolt proxy: %s'.format(e.message));
+            return;
+        }
 	this._propsChangedId = this._proxy.connect('g-properties-changed', this._onPropertiesChanged.bind(this));
 	this._deviceAddedId = this._proxy.connectSignal('DeviceAdded', this._onDeviceAdded.bind(this));
 
@@ -141,9 +146,10 @@ var Client = new Lang.Class({
     },
 
     enrollDevice(id, policy, callback) {
-	this._proxy.EnrollDeviceRemote(id, policy, AuthFlags.NONE,
+	this._proxy.EnrollDeviceRemote(id, policy, AuthCtrl.NONE,
                                        (res, error) => {
 	    if (error) {
+		Gio.DBusError.strip_remote_error(error);
 		callback(null, error);
 		return;
 	    }
@@ -228,7 +234,7 @@ var AuthRobot = new Lang.Class({
 
     _onEnrollDone(device, error) {
 	if (error)
-	    this.emit('enroll-failed', error, device);
+	    this.emit('enroll-failed', device, error);
 
 	/* TODO: scan the list of devices to be authorized for children
 	 *  of this device and remove them (and their children and
@@ -354,7 +360,7 @@ var Indicator = new Lang.Class({
 
     _onEnrollFailed(obj, device, error) {
 	const title = _('Thunderbolt authorization error');
-	const body = _('Could not authorize the thunderbolt device: %s'.format(error.message));
+	const body = _('Could not authorize the Thunderbolt device: %s'.format(error.message));
 	this._notify(title, body);
     }
 
