@@ -1,4 +1,4 @@
-gnome-shell (3.30.0-1) experimental; urgency=medium
+gnome-shell (3.30.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
   * Build-depend on mutter 3.30.0
