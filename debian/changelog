@@ -67,12 +67,17 @@ gnome-shell (3.30.0-1ubuntu1) cosmic; urgency=medium
 
  -- Didier Roche <didrocks@ubuntu.com>  Tue, 04 Sep 2018 19:20:58 +0200
 
-gnome-shell (3.30.0-1) experimental; urgency=medium
+gnome-shell (3.30.0-1) unstable; urgency=medium
 
+  [ Didier Roche ]
   * New upstream release
   * Build-depend on mutter 3.30.0
 
- -- Didier Roche <didrocks@ubuntu.com>  Tue, 04 Sep 2018 19:10:16 +0200
+  [ Iain Lane ]
+  * Merge experimental branch back into master, and update all the references
+    accordingly. This upload is going to unstable.
+
+ -- Didier Roche <didrocks@ubuntu.com>  Wed, 05 Sep 2018 12:06:24 +0100
 
 gnome-shell (3.29.92-1ubuntu1) cosmic; urgency=medium
 
@@ -426,6 +431,13 @@ gnome-shell (3.29.4-1) experimental; urgency=medium
   * debian/control*: Require mutter API version 3 and mutter 3.29.4
 
  -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 17:40:58 +0100
+
+gnome-shell (3.28.3-2) UNRELEASED; urgency=medium
+
+  * debian/gbp.conf: We've branched experimental for 3.29/3.30, use
+    upstream/3.28.x for upstream sources.
+
+ -- Iain Lane <laney@debian.org>  Wed, 25 Jul 2018 15:47:40 +0100
 
 gnome-shell (3.28.3-1) unstable; urgency=medium
 
