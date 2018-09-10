@@ -13,8 +13,6 @@ Origin: ubuntu
  2 files changed, 40 insertions(+)
  create mode 100644 js/misc/desktop.js
 
-diff --git a/js/js-resources.gresource.xml b/js/js-resources.gresource.xml
-index 75a6c3b..c42e4a3 100644
 --- a/js/js-resources.gresource.xml
 +++ b/js/js-resources.gresource.xml
 @@ -11,6 +11,7 @@
@@ -25,9 +23,6 @@ index 75a6c3b..c42e4a3 100644
      <file>misc/fileUtils.js</file>
      <file>misc/gnomeSession.js</file>
      <file>misc/history.js</file>
-diff --git a/js/misc/desktop.js b/js/misc/desktop.js
-new file mode 100644
-index 0000000..3b0d128
 --- /dev/null
 +++ b/js/misc/desktop.js
 @@ -0,0 +1,39 @@
@@ -70,3 +65,13 @@ index 0000000..3b0d128
 +    _currentDesktopsMatches[name] = false;
 +    return false;
 +}
+--- a/js/prefs-resources.gresource.xml
++++ b/js/prefs-resources.gresource.xml
+@@ -5,6 +5,7 @@
+ 
+     <file>misc/config.js</file>
+     <file>misc/extensionUtils.js</file>
++    <file>misc/desktop.js</file>
+     <file>misc/fileUtils.js</file>
+     <file>misc/params.js</file>
+   </gresource>

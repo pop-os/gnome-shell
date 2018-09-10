@@ -1,3 +1,10 @@
+gnome-shell (3.30.0-1ubuntu2) UNRELEASED; urgency=medium
+
+  * ubuntu/desktop_detect.patch:
+    + Added missing misc/desktop.js to pref's gresource.xml (LP: #1790996)
+
+ -- Shem Pasamba <shemgp@gmail.com>  Thu, 06 Sep 2018 16:41:39 +0800
+
 gnome-shell (3.30.0-1ubuntu1) cosmic; urgency=medium
 
   * Merge with debian, remaining changes:
