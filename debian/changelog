@@ -1,3 +1,12 @@
+gnome-shell (3.30.0-2) UNRELEASED; urgency=medium
+
+  * d/p/build-Remove-obsolete-soup-dependency.patch,
+    d/p/shell-Fix-list-of-GIR-includes.patch:
+    Add proposed patch from upstream to fix missing captions on password
+    prompts when used with gjs 1.54
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 20 Sep 2018 11:24:35 +0100
+
 gnome-shell (3.30.0-1) unstable; urgency=medium
 
   [ Didier Roche ]
