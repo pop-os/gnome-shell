@@ -1,3 +1,9 @@
+gnome-shell (3.30.0-3) unstable; urgency=medium
+
+  * Backport the patches recommended by upstream for 3.30 (Closes: #904560)
+
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 30 Sep 2018 23:23:25 +0200
+
 gnome-shell (3.30.0-2) unstable; urgency=medium
 
   * Team upload
