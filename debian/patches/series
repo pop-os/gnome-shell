@@ -5,3 +5,11 @@ automountManager-remove-allowAutorun-expire-timeout-on-vo.patch
 workaround_crasher_fractional_scaling.patch
 build-Remove-obsolete-soup-dependency.patch
 shell-Fix-list-of-GIR-includes.patch
+Fix-connection-to-wifi-APs-from-user-menu-RH-1628263.patch
+inputMethod-Add-a-null-check-for-text-in-vfunc_set_surrou.patch
+network-Don-t-assume-the-active-connection-has-been-proce.patch
+theme-define-proper-hover-and-active-states.patch
+windowManager-listen-actively-to-windows-being-destroyed-.patch
+windowMenu-Port-from-Meta.ScreenDirection-to-Meta.Display.patch
+calendar-chain-up-to-parent-on-_onDestroy.patch
+inputMethod-Fix-setting-surrounding-text.patch
