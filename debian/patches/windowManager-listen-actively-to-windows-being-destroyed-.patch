@@ -1,0 +1,42 @@
+From: Carlos Garnacho <carlosg@gnome.org>
+Date: Thu, 6 Sep 2018 21:50:21 +0200
+Subject: windowManager: listen actively to windows being destroyed during WS
+ switch
+
+Prevents gjs from dealing with already dispose()d objects.
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-shell/issues/539
+---
+ js/ui/windowManager.js | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/windowManager.js b/js/ui/windowManager.js
+index b6627e2..2295e30 100644
+--- a/js/ui/windowManager.js
++++ b/js/ui/windowManager.js
+@@ -1910,6 +1910,14 @@ var WindowManager = new Lang.Class({
+                 actor.visible = visible;
+             }
+         }
++
++        for (let i = 0; i < switchData.windows.length; i++) {
++            let w = switchData.windows[i];
++
++            w.windowDestroyId = w.window.connect('destroy', () => {
++                switchData.windows.splice(switchData.windows.indexOf(w), 1);
++            });
++        }
+     },
+ 
+     _finishWorkspaceSwitch(switchData) {
+@@ -1917,9 +1925,8 @@ var WindowManager = new Lang.Class({
+ 
+         for (let i = 0; i < switchData.windows.length; i++) {
+             let w = switchData.windows[i];
+-            if (w.window.is_destroyed()) // Window gone
+-                continue;
+ 
++            w.window.disconnect(w.windowDestroyId);
+             w.window.reparent(w.parent);
+ 
+             if (w.window.get_meta_window().get_workspace() !=

@@ -1,0 +1,45 @@
+From: Iain Lane <iainl@gnome.org>
+Date: Thu, 16 Aug 2018 11:59:36 +0100
+Subject: network: Don't assume the active connection has been processed first
+
+`NMConnectionDevice._sync()` is responsible for setting up the active
+connection that we'll end up displaying. It expects the active
+connection to already be in a map `_connectionItems`. If it isn't in
+there, we get a null dereference and the indicator can get into a weird
+state where it doesn't display devices / connections properly.
+
+Let's change this expectation. If there is an active connection,
+`_deviceAdded()` will eventually get to it and call `_sync()` to set up
+the active connection state. We make `_sync()` tolerate there being no
+active connection when it's called.
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-shell/issues/140
+---
+ js/ui/status/network.js | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/js/ui/status/network.js b/js/ui/status/network.js
+index 720ba55..626b92e 100644
+--- a/js/ui/status/network.js
++++ b/js/ui/status/network.js
+@@ -420,12 +420,14 @@ var NMConnectionDevice = new Lang.Class({
+         this._deactivateItem.actor.visible = this._device.state > NM.DeviceState.DISCONNECTED;
+ 
+         if (this._activeConnection == null) {
+-            this._activeConnection = this._device.active_connection;
+-
+-            if (this._activeConnection) {
+-                ensureActiveConnectionProps(this._activeConnection, this._client);
+-                let item = this._connectionItems.get(this._activeConnection.connection.get_uuid());
+-                item.setActiveConnection(this._activeConnection);
++            let activeConnection = this._device.active_connection;
++            if (activeConnection && activeConnection.connection) {
++                let item = this._connectionItems.get(activeConnection.connection.get_uuid());
++                if (item) {
++                    this._activeConnection = activeConnection;
++                    ensureActiveConnectionProps(this._activeConnection, this._client);
++                    item.setActiveConnection(this._activeConnection);
++                }
+             }
+         }
+ 
