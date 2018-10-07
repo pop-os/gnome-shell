@@ -18,10 +18,6 @@ override_dh_auto_configure:
 		--libexecdir=/usr/lib/gnome-shell \
 		$(CONFFLAGS)
 
-override_dh_install:
-	find debian/tmp -name '*.la' -print -delete
-	dh_install
-
 override_dh_missing:
 	dh_missing --fail-missing
 
