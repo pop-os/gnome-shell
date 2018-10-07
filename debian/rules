@@ -4,7 +4,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,--as-needed
 
 %:
-	dh $@ --with gir,gnome --buildsystem=meson
+	dh $@ --with gir,gnome
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFFLAGS = \
