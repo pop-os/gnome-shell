@@ -15,16 +15,16 @@ Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/183
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/1756826
 Forwarded: not-needed
 ---
- data/org.gnome.ShellSearchProvider.xml  |  6 ++++++
- data/org.gnome.ShellSearchProvider2.xml |  6 ++++++
- js/ui/remoteSearch.js                   | 15 +++++++++++++++
- js/ui/search.js                         | 34 +++++++++++++++++++++++++++++++++
+ .../org.gnome.ShellSearchProvider.xml              |  6 ++++
+ .../org.gnome.ShellSearchProvider2.xml             |  6 ++++
+ js/ui/remoteSearch.js                              | 15 ++++++++++
+ js/ui/search.js                                    | 34 ++++++++++++++++++++++
  4 files changed, 61 insertions(+)
 
-diff --git a/data/org.gnome.ShellSearchProvider.xml b/data/org.gnome.ShellSearchProvider.xml
+diff --git a/data/dbus-interfaces/org.gnome.ShellSearchProvider.xml b/data/dbus-interfaces/org.gnome.ShellSearchProvider.xml
 index 78ad305..393cb01 100644
---- a/data/org.gnome.ShellSearchProvider.xml
-+++ b/data/org.gnome.ShellSearchProvider.xml
+--- a/data/dbus-interfaces/org.gnome.ShellSearchProvider.xml
++++ b/data/dbus-interfaces/org.gnome.ShellSearchProvider.xml
 @@ -69,5 +69,11 @@
      <method name="ActivateResult">
        <arg type="s" name="identifier" direction="in" />
@@ -37,10 +37,10 @@ index 78ad305..393cb01 100644
 +    <method name="XUbuntuCancel" />
    </interface>
  </node>
-diff --git a/data/org.gnome.ShellSearchProvider2.xml b/data/org.gnome.ShellSearchProvider2.xml
+diff --git a/data/dbus-interfaces/org.gnome.ShellSearchProvider2.xml b/data/dbus-interfaces/org.gnome.ShellSearchProvider2.xml
 index 9502340..8141bc0 100644
---- a/data/org.gnome.ShellSearchProvider2.xml
-+++ b/data/org.gnome.ShellSearchProvider2.xml
+--- a/data/dbus-interfaces/org.gnome.ShellSearchProvider2.xml
++++ b/data/dbus-interfaces/org.gnome.ShellSearchProvider2.xml
 @@ -83,5 +83,11 @@
        <arg type="as" name="terms" direction="in" />
        <arg type="u" name="timestamp" direction="in" />
@@ -94,7 +94,7 @@ index 3b847af..9245745 100644
          this.proxy.ActivateResultRemote(id);
      },
 diff --git a/js/ui/search.js b/js/ui/search.js
-index dd4bfad..629664e 100644
+index 3966741..c67feea 100644
 --- a/js/ui/search.js
 +++ b/js/ui/search.js
 @@ -225,7 +225,9 @@ var SearchResultsBase = new Lang.Class({
@@ -104,10 +104,10 @@ index dd4bfad..629664e 100644
 +            this.provider.resultsMetasInProgress = true;
              this.provider.getResultMetas(metasNeeded, metas => {
 +                this.provider.resultsMetasInProgress = this._cancellable.is_cancelled();
-                 if (metas.length != metasNeeded.length) {
-                     if (!this._cancellable.is_cancelled())
-                         log(`Wrong number of result metas returned by search provider ${this.provider.id}` +
-@@ -450,6 +452,10 @@ var SearchResults = new Lang.Class({
+                 if (this._cancellable.is_cancelled()) {
+                     if (metas.length > 0)
+                         log(`Search provider ${this.provider.id} returned results after the request was canceled`);
+@@ -455,6 +457,10 @@ var SearchResults = new Lang.Class({
  
          this._searchTimeoutId = 0;
          this._cancellable = new Gio.Cancellable();
@@ -118,7 +118,7 @@ index dd4bfad..629664e 100644
  
          this._registerProvider(new AppDisplay.AppSearchProvider());
          this._reloadRemoteProviders();
-@@ -491,11 +497,32 @@ var SearchResults = new Lang.Class({
+@@ -496,11 +502,32 @@ var SearchResults = new Lang.Class({
          }
      },
  
@@ -151,7 +151,7 @@ index dd4bfad..629664e 100644
          this._defaultResult = null;
          this._startingSearch = false;
  
-@@ -562,6 +589,13 @@ var SearchResults = new Lang.Class({
+@@ -567,6 +594,13 @@ var SearchResults = new Lang.Class({
          if (this._terms.length > 0)
              isSubSearch = searchString.indexOf(previousSearchString) == 0;
  

@@ -492,6 +492,7 @@ var FocusTracker = new Lang.Class({
 
     _init() {
         this._currentWindow = null;
+        this._rect = null;
 
         global.display.connect('notify::focus-window', () => {
             this._setCurrentWindow(global.display.focus_window);
@@ -518,6 +519,12 @@ var FocusTracker = new Lang.Class({
 
             this._setCurrentRect(rect);
         });
+        this._ibusManager.connect('focus-in', () => {
+            this.emit('focus-changed', true);
+        });
+        this._ibusManager.connect('focus-out', () => {
+            this.emit('focus-changed', false);
+        });
     },
 
     get currentWindow() {
@@ -534,6 +541,13 @@ var FocusTracker = new Lang.Class({
             rect.x -= frameRect.x;
             rect.y -= frameRect.y;
         }
+
+        if (this._rect &&
+            this._rect.x == rect.x &&
+            this._rect.y == rect.y &&
+            this._rect.width == rect.width &&
+            this._rect.height == rect.height)
+            return;
 
         this._rect = rect;
         this.emit('position-changed');
@@ -581,6 +595,16 @@ var Keyboard = new Lang.Class({
             this._delayedAnimFocusWindow = null;
             this._animFocusedWindow = null;
             this._oskFocusWindow = null;
+        });
+        this._focusTracker.connect('focus-changed', (tracker, focused) => {
+            // Valid only for X11
+            if (Meta.is_wayland_compositor())
+                return;
+
+            if (focused)
+                this.show(Main.layoutManager.focusIndex);
+            else
+                this.hide();
         });
 
         Meta.get_backend().connect('last-device-changed', 
@@ -708,7 +732,6 @@ var Keyboard = new Lang.Class({
         if (this._focusInExtendedKeys || extendedKeysWereFocused)
             return;
 
-        let time = global.get_current_time();
         if (!(focus instanceof Clutter.Text)) {
             this.hide();
             return;

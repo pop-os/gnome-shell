@@ -4,7 +4,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-z,defs -Wl,--as-needed
 
 %:
-	dh $@ --with gir,gnome --buildsystem=meson
+	dh $@ --with gir,gnome
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFFLAGS = \
@@ -24,10 +24,6 @@ override_dh_translations:
 	sed -i '/^#, javascript-format/d' po/gnome-shell.pot
 	dh_translations
 
-override_dh_install:
-	find debian/tmp -name '*.la' -print -delete
-	dh_install --fail-missing
-
 override_dh_missing:
 	dh_missing --fail-missing
 
@@ -42,10 +38,4 @@ override_dh_strip:
 	dh_strip --dbgsym-migration='gnome-shell-dbg (<< 3.20.2-2~)'
 
 override_dh_auto_test:
-ifeq (,$(filter nocheck, $(DEB_BUILD_OPTIONS)))
-ifeq (yes,$(shell dpkg-vendor --derives-from Ubuntu && echo yes))
 	xvfb-run dh_auto_test
-else	
-	-xvfb-run dh_auto_test
-endif
-endif
