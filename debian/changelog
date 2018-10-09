@@ -1,9 +1,10 @@
-gnome-shell (3.30.1-1) UNRELEASED; urgency=medium
+gnome-shell (3.30.1-1) unstable; urgency=medium
 
+  * Team upload
   * New upstream release
     - Drop patches that were applied upstream
 
- -- Simon McVittie <smcv@debian.org>  Tue, 09 Oct 2018 09:59:25 +0100
+ -- Simon McVittie <smcv@debian.org>  Tue, 09 Oct 2018 10:24:16 +0100
 
 gnome-shell (3.30.0-3) unstable; urgency=medium
 
