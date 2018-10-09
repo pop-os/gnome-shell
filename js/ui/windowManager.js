@@ -25,6 +25,8 @@ const EdgeDragAction = imports.ui.edgeDragAction;
 const CloseDialog = imports.ui.closeDialog;
 const SwitchMonitor = imports.ui.switchMonitor;
 
+const { loadInterfaceXML } = imports.misc.fileUtils;
+
 var SHELL_KEYBINDINGS_SCHEMA = 'org.gnome.shell.keybindings';
 var MINIMIZE_WINDOW_ANIMATION_TIME = 0.2;
 var SHOW_WINDOW_ANIMATION_TIME = 0.15;
@@ -42,21 +44,7 @@ var ONE_SECOND = 1000; // in ms
 const GSD_WACOM_BUS_NAME = 'org.gnome.SettingsDaemon.Wacom';
 const GSD_WACOM_OBJECT_PATH = '/org/gnome/SettingsDaemon/Wacom';
 
-const GsdWacomIface = `
-<node name="/org/gnome/SettingsDaemon/Wacom">
-<interface name="org.gnome.SettingsDaemon.Wacom">
-  <method name="SetGroupModeLED">
-    <arg name="device_path" direction="in" type="s"/>
-    <arg name="group" direction="in" type="u"/>
-    <arg name="mode" direction="in" type="u"/>
-  </method>
-  <method name="SetOLEDLabels">
-    <arg name="device_path" direction="in" type="s"/>
-    <arg name="labels" direction="in" type="as"/>
-  </method>
-  </interface>
-</node>`;
-
+const GsdWacomIface = loadInterfaceXML('org.gnome.SettingsDaemon.Wacom');
 const GsdWacomProxy = Gio.DBusProxy.makeProxyWrapper(GsdWacomIface);
 
 var DisplayChangeDialog = new Lang.Class({
@@ -278,15 +266,18 @@ var WorkspaceTracker = new Lang.Class({
         // If we don't have an empty workspace at the end, add one
         if (!emptyWorkspaces[emptyWorkspaces.length -1]) {
             workspaceManager.append_new_workspace(false, global.get_current_time());
-            emptyWorkspaces.push(false);
+            emptyWorkspaces.push(true);
         }
 
+        let lastIndex = emptyWorkspaces.length - 1;
+        let lastEmptyIndex = emptyWorkspaces.lastIndexOf(false) + 1;
         let activeWorkspaceIndex = workspaceManager.get_active_workspace_index();
         emptyWorkspaces[activeWorkspaceIndex] = false;
 
-        // Delete other empty workspaces; do it from the end to avoid index changes
-        for (i = emptyWorkspaces.length - 2; i >= 0; i--) {
-            if (emptyWorkspaces[i])
+        // Delete empty workspaces except for the last one; do it from the end
+        // to avoid index changes
+        for (i = lastIndex; i >= 0; i--) {
+            if (emptyWorkspaces[i] && i != lastEmptyIndex)
                 workspaceManager.remove_workspace(this._workspaces[i], global.get_current_time());
         }
 
@@ -1910,6 +1901,14 @@ var WindowManager = new Lang.Class({
                 actor.visible = visible;
             }
         }
+
+        for (let i = 0; i < switchData.windows.length; i++) {
+            let w = switchData.windows[i];
+
+            w.windowDestroyId = w.window.connect('destroy', () => {
+                switchData.windows.splice(switchData.windows.indexOf(w), 1);
+            });
+        }
     },
 
     _finishWorkspaceSwitch(switchData) {
@@ -1917,9 +1916,8 @@ var WindowManager = new Lang.Class({
 
         for (let i = 0; i < switchData.windows.length; i++) {
             let w = switchData.windows[i];
-            if (w.window.is_destroyed()) // Window gone
-                continue;
 
+            w.window.disconnect(w.windowDestroyId);
             w.window.reparent(w.parent);
 
             if (w.window.get_meta_window().get_workspace() !=
