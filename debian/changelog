@@ -1,3 +1,14 @@
+gnome-shell (3.30.1-2) unstable; urgency=medium
+
+  * Team upload
+
+  [ Jeremy Bicha ]
+  * Don't ignore test failures
+  * Drop unneeded --buildsystem=meson
+  * Drop unneeded override_dh_install
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 09 Oct 2018 12:15:00 +0100
+
 gnome-shell (3.30.1-1) unstable; urgency=medium
 
   * Team upload
