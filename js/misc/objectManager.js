@@ -237,11 +237,12 @@ var ObjectManager = new Lang.Class({
     _onNameVanished() {
         let objectPaths = Object.keys(this._objects);
         for (let i = 0; i < objectPaths.length; i++) {
-            let object = this._objects[objectPaths];
+            let objectPath = objectPaths[i];
+            let object = this._objects[objectPath];
 
             let interfaceNames = Object.keys(object);
-            for (let j = 0; i < interfaceNames.length; i++) {
-                let interfaceName = interfaceNames[i];
+            for (let j = 0; j < interfaceNames.length; j++) {
+                let interfaceName = interfaceNames[j];
 
                 if (object[interfaceName])
                     this._removeInterface(objectPath, interfaceName);

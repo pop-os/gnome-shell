@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '3.30.0',
+  version: '3.30.1',
   meson_version: '>= 0.47.0',
   license: 'GPLv2+'
 )
@@ -23,7 +23,7 @@ gi_req = '>= 1.49.1'
 gjs_req = '>= 1.47.0'
 gtk_req = '>= 3.15.0'
 json_glib_req = '>= 0.13.2'
-mutter_req = '>= 3.30.0'
+mutter_req = '>= 3.30.1'
 polkit_req = '>= 0.100'
 schemas_req = '>= 3.27.90'
 startup_req = '>= 0.11'
@@ -95,7 +95,6 @@ cogl_dep = dependency(cogl_pc, version: mutter_req)
 cogl_pango_dep = dependency(cogl_pango_pc, version: mutter_req)
 mutter_dep = dependency(libmutter_pc, version: mutter_req)
 polkit_dep = dependency('polkit-agent-1', version: polkit_req)
-soup_dep = dependency('libsoup-2.4')
 startup_dep = dependency('libstartup-notification-1.0', version: startup_req)
 ibus_dep = dependency('ibus-1.0', version: ibus_req)
 x11_dep = dependency('x11')
