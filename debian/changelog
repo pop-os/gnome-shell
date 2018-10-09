@@ -1,3 +1,10 @@
+gnome-shell (3.30.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+    - Drop patches that were applied upstream
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 09 Oct 2018 09:59:25 +0100
+
 gnome-shell (3.30.0-3) unstable; urgency=medium
 
   * Backport the patches recommended by upstream for 3.30 (Closes: #904560)
