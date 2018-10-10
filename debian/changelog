@@ -1,4 +1,4 @@
-gnome-shell (3.30.1-2ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.30.1-2ubuntu1) cosmic; urgency=medium
 
   * Merge with debian (LP: #1796837), remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -63,7 +63,7 @@ gnome-shell (3.30.1-2ubuntu1) UNRELEASED; urgency=medium
   * ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
     Refreshed.
 
- -- Iain Lane <iain.lane@canonical.com>  Tue, 09 Oct 2018 12:39:37 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Wed, 10 Oct 2018 09:52:13 +0100
 
 gnome-shell (3.30.1-2) unstable; urgency=medium
 
