@@ -2,8 +2,8 @@ From: Didier Roche <didrocks@ubuntu.com>
 Date: Wed, 20 Jun 2018 19:22:06 +0200
 Subject: Change default background color based on session.
 
-We changed default GDM color for our ubuntu session. Change it as well here,
-still applying the background noise loading.
+We changed default GDM color for our ubuntu session. Change it as well here
+to match Yaru GDM background.
 This screen is appearing for a slip second when the Shell is loading.
 Forwarded: not-needed
 ===================================================================
@@ -11,11 +11,11 @@ Forwarded: not-needed
  js/ui/background.js | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/js/ui/background.js b/js/ui/background.js
-index 941b289..737122d 100644
---- a/js/ui/background.js
-+++ b/js/ui/background.js
-@@ -102,12 +102,13 @@ const Lang = imports.lang;
+Index: gnome-shell-ubuntu/js/ui/background.js
+===================================================================
+--- gnome-shell-ubuntu.orig/js/ui/background.js
++++ gnome-shell-ubuntu/js/ui/background.js
+@@ -102,6 +102,7 @@ const Lang = imports.lang;
  const Meta = imports.gi.Meta;
  const Signals = imports.signals;
  
@@ -23,10 +23,30 @@ index 941b289..737122d 100644
  const LoginManager = imports.misc.loginManager;
  const Main = imports.ui.main;
  const Params = imports.misc.params;
- const Tweener = imports.ui.tweener;
+@@ -496,6 +497,26 @@ var SystemBackground = new Lang.Class({
+     Name: 'SystemBackground',
  
--var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
-+var DEFAULT_BACKGROUND_COLOR = (Desktop.is("ubuntu")) ? Clutter.Color.from_pixel(0x2c001eff) : Clutter.Color.from_pixel(0x2e3436ff);
+     _init() {
++        // Yaru is default ubuntu theme, match GDM look
++        if (Desktop.is("ubuntu")) {
++            if (_systemBackground == null) {
++                _systemBackground = new Meta.Background({ meta_display: global.display });
++                [res, topColor] = Clutter.Color.from_string('#6D2169');
++                [res, bottomColor] = Clutter.Color.from_string('#370026');
++                _systemBackground.set_gradient(GDesktopEnums.BackgroundShading.VERTICAL, topColor, bottomColor);
++            }
++            this.actor = new Meta.BackgroundActor({ meta_display: global.display,
++                                                    monitor: 0,
++                                                    background: _systemBackground });
++            let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
++                this.emit('loaded');
++                return GLib.SOURCE_REMOVE;
++            });
++            GLib.Source.set_name_by_id(id, '[gnome-shell] SystemBackground.loaded');
++
++            return;
++        }
++
+         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/noise-texture.png');
  
- const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
- const PRIMARY_COLOR_KEY = 'primary-color';
+         if (_systemBackground == null) {
