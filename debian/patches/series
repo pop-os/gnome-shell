@@ -19,3 +19,4 @@ sessionMode-add-support-for-debugFlags-parameter.patch
 st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch
 st-scroll-view-Remove-scrollbars-references-on-dispose.patch
 ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
+ubuntu/resolve_alternate_theme_path.patch
