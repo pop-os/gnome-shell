@@ -15,7 +15,7 @@ Forwarded: Not-needed (upstream doesn't support officially theming)
  1 file changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index ce57421..a7b91f0 100644
+index ce57421..7e723fe 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
 @@ -252,6 +252,14 @@ function _initializeUI() {

@@ -8,13 +8,13 @@ This screen is appearing for a slip second when the Shell is loading.
 Forwarded: not-needed
 ===================================================================
 ---
- js/ui/background.js | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ js/ui/background.js | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-Index: gnome-shell-ubuntu/js/ui/background.js
-===================================================================
---- gnome-shell-ubuntu.orig/js/ui/background.js
-+++ gnome-shell-ubuntu/js/ui/background.js
+diff --git a/js/ui/background.js b/js/ui/background.js
+index 941b289..707a37a 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
 @@ -102,6 +102,7 @@ const Lang = imports.lang;
  const Meta = imports.gi.Meta;
  const Signals = imports.signals;
