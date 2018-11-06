@@ -1,4 +1,6 @@
-gnome-shell (3.30.1-3) UNRELEASED; urgency=medium
+gnome-shell (3.30.1-3) unstable; urgency=medium
+
+  * Team upload
 
   [ Iain Lane ]
   * debian/gbp.conf: Update to pkg-gnome's recommended settings
@@ -11,8 +13,11 @@ gnome-shell (3.30.1-3) UNRELEASED; urgency=medium
   [ Simon McVittie ]
   * d/patches: Update to upstream commit 3.30.1-16-ge55bdb0fb from
     gnome-3-30 branch
+  * Make the postinst succeed if update-notifier is not installed or fails
+  * Also signal via /var/run/reboot-required, as used by
+    unattended-upgrades
 
- -- Simon McVittie <smcv@debian.org>  Tue, 06 Nov 2018 09:31:02 +0000
+ -- Simon McVittie <smcv@debian.org>  Tue, 06 Nov 2018 09:55:55 +0000
 
 gnome-shell (3.30.1-2) unstable; urgency=medium
 
