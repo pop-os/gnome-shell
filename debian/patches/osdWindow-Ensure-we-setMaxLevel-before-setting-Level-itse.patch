@@ -1,0 +1,40 @@
+From: Didier Roche <didrocks@ubuntu.com>
+Date: Thu, 18 Oct 2018 15:26:03 +0000
+Subject: osdWindow: Ensure we setMaxLevel before setting Level itself
+
+When maxLevel is > 100%, first OSD appearance was capping the current
+level to 100%. Consecutives key press were then OK.
+Ensure we setMaxLevel before setting Level itself, so that correct cap
+value is applied.
+
+(cherry picked from commit ae7dd5e2db227d53ad2093e5691a4a9415499c13)
+
+Applied-upstream: 3.30.2, commit:ec5db74101bd1c042def682f9d782656f2e6a159
+---
+ js/ui/osdWindow.js | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/osdWindow.js b/js/ui/osdWindow.js
+index 9021c22..fb6587b 100644
+--- a/js/ui/osdWindow.js
++++ b/js/ui/osdWindow.js
+@@ -204,8 +204,8 @@ var OsdWindow = new Lang.Class({
+     _reset() {
+         this.actor.hide();
+         this.setLabel(null);
+-        this.setLevel(null);
+         this.setMaxLevel(null);
++        this.setLevel(null);
+     },
+ 
+     _relayout() {
+@@ -253,8 +253,8 @@ var OsdWindowManager = new Lang.Class({
+     _showOsdWindow(monitorIndex, icon, label, level, maxLevel) {
+         this._osdWindows[monitorIndex].setIcon(icon);
+         this._osdWindows[monitorIndex].setLabel(label);
+-        this._osdWindows[monitorIndex].setLevel(level);
+         this._osdWindows[monitorIndex].setMaxLevel(maxLevel);
++        this._osdWindows[monitorIndex].setLevel(level);
+         this._osdWindows[monitorIndex].show();
+     },
+ 

@@ -1,0 +1,32 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 23 Oct 2018 14:05:01 +0000
+Subject: panel: Also ignore hidden windows for proximity
+
+We currently only ignore minimized windows, not windows that are
+hidden for other reasons - namely on wayland windows are initially
+hidden until they are placed.
+
+This fixes a flicker in the transparent top bar on wayland when the
+"position" of an unplaced window wrongly suggests the window is
+overlapping the top bar.
+
+(cherry picked from commit a0dc8dc7ef8d1599205080195f58af196c73d444)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/693
+Applied-upstream: 3.30.2, commit:d21b276c077ab3117edde4da8b992648bd643cc5
+---
+ js/ui/panel.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/panel.js b/js/ui/panel.js
+index 3726b84..66588f9 100644
+--- a/js/ui/panel.js
++++ b/js/ui/panel.js
+@@ -1093,6 +1093,7 @@ var Panel = new Lang.Class({
+         let windows = activeWorkspace.list_windows().filter(metaWindow => {
+             return metaWindow.is_on_primary_monitor() &&
+                    metaWindow.showing_on_its_workspace() &&
++                   !metaWindow.is_hidden() &&
+                    metaWindow.get_window_type() != Meta.WindowType.DESKTOP;
+         });
+ 

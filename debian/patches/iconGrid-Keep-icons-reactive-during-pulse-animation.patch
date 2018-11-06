@@ -1,0 +1,47 @@
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Fri, 12 Oct 2018 04:00:31 +0000
+Subject: iconGrid: Keep icons reactive during pulse animation
+
+The `reactive` property of icon actors was being restored multiple times
+over the course of the pulse animation, all at slightly different times
+as each icon finished animating at different times.
+
+The problem is that toggling `reactive` on an `StWidget` incurs a style
+change of the `insensitive` pseudo class, and style changes would quickly
+queue relayouts incurring full stage reallocation. This occurred many times
+during a pulse animation, limiting its smoothness and performance.
+
+The solution is to not toggle the `reactive` property in the pulse
+animation at all, which avoids incurring multiple full stage relayouts.
+
+As a bonus, this means the icon under the cursor pulses with the correct
+selection highlight, appearing more seamless and responsive.
+
+(cherry picked from commit 1acdff822ae15551f9721889ce5bce2cdce0b091)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/261
+Applied-upstream: 3.30.2, commit:bacdd1c12d04c9059c40ab40d8d48b1c9dea02f1
+---
+ js/ui/iconGrid.js | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/js/ui/iconGrid.js b/js/ui/iconGrid.js
+index 5389700..ad85675 100644
+--- a/js/ui/iconGrid.js
++++ b/js/ui/iconGrid.js
+@@ -448,7 +448,6 @@ var IconGrid = new Lang.Class({
+ 
+         for (let index = 0; index < actors.length; index++) {
+             let actor = actors[index];
+-            actor.reactive = false;
+             actor.set_scale(0, 0);
+             actor.set_pivot_point(0.5, 0.5);
+ 
+@@ -470,7 +469,6 @@ var IconGrid = new Lang.Class({
+                                                      onComplete: () => {
+                                                         if (isLastItem)
+                                                             this._animationDone();
+-                                                        actor.reactive = true;
+                                                     }
+                                                    });
+                               }
