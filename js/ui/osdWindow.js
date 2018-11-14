@@ -118,13 +118,28 @@ var OsdWindow = new Lang.Class({
         this._hideTimeoutId = 0;
         this._reset();
 
-        Main.layoutManager.connect('monitors-changed',
-                                   this._relayout.bind(this));
+        this.actor.connect('destroy', this._onDestroy.bind(this));
+
+        this._monitorsChangedId =
+            Main.layoutManager.connect('monitors-changed',
+                                       this._relayout.bind(this));
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        themeContext.connect('notify::scale-factor',
-                             this._relayout.bind(this));
+        this._scaleChangedId =
+            themeContext.connect('notify::scale-factor',
+                                 this._relayout.bind(this));
         this._relayout();
         Main.uiGroup.add_child(this.actor);
+    },
+
+    _onDestroy() {
+        if (this._monitorsChangedId)
+            Main.layoutManager.disconnect(this._monitorsChangedId);
+        this._monitorsChangedId = 0;
+
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        if (this._scaleChangedId)
+            themeContext.disconnect(this._scaleChangedId);
+        this._scaleChangedId = 0;
     },
 
     setIcon(icon) {
@@ -204,8 +219,8 @@ var OsdWindow = new Lang.Class({
     _reset() {
         this.actor.hide();
         this.setLabel(null);
-        this.setLevel(null);
         this.setMaxLevel(null);
+        this.setLevel(null);
     },
 
     _relayout() {
@@ -253,8 +268,8 @@ var OsdWindowManager = new Lang.Class({
     _showOsdWindow(monitorIndex, icon, label, level, maxLevel) {
         this._osdWindows[monitorIndex].setIcon(icon);
         this._osdWindows[monitorIndex].setLabel(label);
-        this._osdWindows[monitorIndex].setLevel(level);
         this._osdWindows[monitorIndex].setMaxLevel(maxLevel);
+        this._osdWindows[monitorIndex].setLevel(level);
         this._osdWindows[monitorIndex].show();
     },
 
