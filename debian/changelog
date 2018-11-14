@@ -1,6 +1,7 @@
 gnome-shell (3.30.2-1) UNRELEASED; urgency=medium
 
   * New upstream release
+    - Drop patches that came from upstream gnome-3-30
 
  -- Simon McVittie <smcv@debian.org>  Wed, 14 Nov 2018 20:53:23 +0000
 
