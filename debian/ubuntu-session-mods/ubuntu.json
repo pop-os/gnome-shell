@@ -2,5 +2,5 @@
     "parentMode": "user",
     "stylesheetName": "Yaru/gnome-shell.css",
     "debugFlags": ["backtrace-crashes-all"],
-    "enabledExtensions": ["ubuntu-dock@ubuntu.com", "ubuntu-appindicators@ubuntu.com"]
+    "enabledExtensions": ["ubuntu-dock@ubuntu.com", "ubuntu-appindicators@ubuntu.com", "desktop-icons@csoriano"]
 }
