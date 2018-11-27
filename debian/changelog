@@ -1,3 +1,9 @@
+gnome-shell (3.30.1-2ubuntu2+ppa0) disco; urgency=medium
+
+  * Add desktop-icons to the Ubuntu session by default
+
+ -- Iain Lane <laney@debian.org>  Tue, 27 Nov 2018 17:20:16 +0000
+
 gnome-shell (3.30.1-2ubuntu2) disco; urgency=medium
 
   [ Didier Roche ]
