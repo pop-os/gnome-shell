@@ -1,4 +1,4 @@
-gnome-shell (3.30.2-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.30.2-1ubuntu1) disco; urgency=medium
 
   * Merge with debian, remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -70,7 +70,7 @@ gnome-shell (3.30.2-1ubuntu1) UNRELEASED; urgency=medium
     + Break nautilus << 3.30. We don't want two things trying to handle the
       desktop.
 
- -- Iain Lane <iain.lane@canonical.com>  Fri, 11 Jan 2019 18:04:40 +0000
+ -- Iain Lane <iain.lane@canonical.com>  Fri, 11 Jan 2019 18:09:26 +0000
 
 gnome-shell (3.30.2-1) unstable; urgency=medium
 
