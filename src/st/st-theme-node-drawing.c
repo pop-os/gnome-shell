@@ -229,9 +229,9 @@ unpremultiply (ClutterColor *color)
 {
   if (color->alpha != 0)
     {
-      color->red = (color->red * 255 + 127) / color->alpha;
-      color->green = (color->green * 255 + 127) / color->alpha;
-      color->blue = (color->blue * 255 + 127) / color->alpha;
+      color->red = MIN((color->red * 255 + 127) / color->alpha, 255);
+      color->green = MIN((color->green * 255 + 127) / color->alpha, 255);
+      color->blue = MIN((color->blue * 255 + 127) / color->alpha, 255);
     }
 }
 
@@ -1414,6 +1414,32 @@ st_theme_node_load_background_image (StThemeNode *node)
   return node->background_texture != COGL_INVALID_HANDLE;
 }
 
+static gboolean
+st_theme_node_invalidate_resources_for_file (StThemeNode *node,
+                                             GFile       *file)
+{
+  StBorderImage *border_image;
+  gboolean changed = FALSE;
+  GFile *theme_file;
+
+  theme_file = st_theme_node_get_background_image (node);
+  if ((theme_file != NULL) && g_file_equal (theme_file, file))
+    {
+      st_theme_node_invalidate_background_image (node);
+      changed = TRUE;
+    }
+
+  border_image = st_theme_node_get_border_image (node);
+  theme_file = border_image ? st_border_image_get_file (border_image) : NULL;
+  if ((theme_file != NULL) && g_file_equal (theme_file, file))
+    {
+      st_theme_node_invalidate_border_image (node);
+      changed = TRUE;
+    }
+
+  return changed;
+}
+
 static void st_theme_node_prerender_shadow (StThemeNodePaintState *state);
 
 static void
@@ -2220,11 +2246,14 @@ static void
 st_theme_node_prerender_shadow (StThemeNodePaintState *state)
 {
   StThemeNode *node = state->node;
+  CoglContext *ctx;
   guint border_radius[4];
   int max_borders[4];
   int center_radius, corner_id;
   CoglHandle buffer, offscreen = COGL_INVALID_HANDLE;
   CoglError *error = NULL;
+
+  ctx = clutter_backend_get_cogl_context (clutter_get_default_backend ());
 
   /* Get infos from the node */
   if (state->alloc_width < node->box_shadow_min_width ||
@@ -2261,10 +2290,9 @@ st_theme_node_prerender_shadow (StThemeNodePaintState *state)
     }
 
   /* Render offscreen */
-  buffer = cogl_texture_new_with_size (state->box_shadow_width,
-                                       state->box_shadow_height,
-                                       COGL_TEXTURE_NO_SLICING,
-                                       COGL_PIXEL_FORMAT_ANY);
+  buffer = cogl_texture_2d_new_with_size (ctx,
+                                          state->box_shadow_width,
+                                          state->box_shadow_height);
   if (buffer == NULL)
     return;
 
@@ -2750,4 +2778,18 @@ st_theme_node_paint_state_invalidate (StThemeNodePaintState *state)
 {
   state->alloc_width = 0;
   state->alloc_height = 0;
+}
+
+gboolean
+st_theme_node_paint_state_invalidate_for_file (StThemeNodePaintState *state,
+                                               GFile                 *file)
+{
+  if (state->node != NULL &&
+      st_theme_node_invalidate_resources_for_file (state->node, file))
+    {
+      st_theme_node_paint_state_invalidate (state);
+      return TRUE;
+    }
+
+  return FALSE;
 }

@@ -360,11 +360,14 @@ var InputSourceManager = new Lang.Class({
         this._settings.connect('per-window-changed', this._sourcesPerWindowChanged.bind(this));
         this._sourcesPerWindowChanged();
         this._disableIBus = false;
+        this._reloading = false;
     },
 
     reload() {
+        this._reloading = true;
         this._keyboardManager.setKeyboardOptions(this._settings.keyboardOptions);
         this._inputSourcesChanged();
+        this._reloading = false;
     },
 
     _ibusReadyCallback(im, ready) {
@@ -414,7 +417,7 @@ var InputSourceManager = new Lang.Class({
 
         let popup = new InputSourcePopup(this._mruSources, this._keybindingAction, this._keybindingActionBackward);
         if (!popup.show(binding.is_reversed(), binding.get_name(), binding.get_mask()))
-            popup.destroy();
+            popup.fadeAndDestroy();
     },
 
     _keyboardOptionsChanged() {
@@ -458,7 +461,15 @@ var InputSourceManager = new Lang.Class({
     },
 
     activateInputSource(is, interactive) {
-        KeyboardManager.holdKeyboard();
+        // The focus changes during holdKeyboard/releaseKeyboard may trick
+        // the client into hiding UI containing the currently focused entry.
+        // So holdKeyboard/releaseKeyboard are not called when
+        // 'set-content-type' signal is received.
+        // E.g. Focusing on a password entry in a popup in Xorg Firefox
+        // will emit 'set-content-type' signal.
+        // https://gitlab.gnome.org/GNOME/gnome-shell/issues/391
+        if (!this._reloading)
+            KeyboardManager.holdKeyboard();
         this._keyboardManager.apply(is.xkbId);
 
         // All the "xkb:..." IBus engines simply "echo" back symbols,
@@ -473,7 +484,10 @@ var InputSourceManager = new Lang.Class({
         else
             engine = 'xkb:us::eng';
 
-        this._ibusManager.setEngine(engine, KeyboardManager.releaseKeyboard);
+        if (!this._reloading)
+            this._ibusManager.setEngine(engine, KeyboardManager.releaseKeyboard);
+        else
+            this._ibusManager.setEngine(engine);
         this._currentInputSourceChanged(is);
 
         if (interactive)
@@ -773,6 +787,44 @@ function getInputSourceManager() {
     return _inputSourceManager;
 }
 
+var InputSourceIndicatorContainer = new Lang.Class({
+    Name: 'InputSourceIndicatorContainer',
+    Extends: St.Widget,
+
+    vfunc_get_preferred_width(forHeight) {
+        // Here, and in vfunc_get_preferred_height, we need to query
+        // for the height of all children, but we ignore the results
+        // for those we don't actually display.
+        return this.get_children().reduce((maxWidth, child) => {
+            let width = child.get_preferred_width(forHeight);
+            return [Math.max(maxWidth[0], width[0]),
+                    Math.max(maxWidth[1], width[1])];
+        }, [0, 0]);
+    },
+
+    vfunc_get_preferred_height(forWidth) {
+        return this.get_children().reduce((maxHeight, child) => {
+            let height = child.get_preferred_height(forWidth);
+            return [Math.max(maxHeight[0], height[0]),
+                    Math.max(maxHeight[1], height[1])];
+        }, [0, 0]);
+    },
+
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
+
+        // translate box to (0, 0)
+        box.x2 -= box.x1;
+        box.x1 = 0;
+        box.y2 -= box.y1;
+        box.y1 = 0;
+
+        this.get_children().forEach(c => {
+            c.allocate_align_fill(box, 0.5, 0.5, false, false, flags);
+        });
+    }
+});
+
 var InputSourceIndicator = new Lang.Class({
     Name: 'InputSourceIndicator',
     Extends: PanelMenu.Button,
@@ -783,10 +835,7 @@ var InputSourceIndicator = new Lang.Class({
         this._menuItems = {};
         this._indicatorLabels = {};
 
-        this._container = new Shell.GenericContainer();
-        this._container.connect('get-preferred-width', this._containerGetPreferredWidth.bind(this));
-        this._container.connect('get-preferred-height', this._containerGetPreferredHeight.bind(this));
-        this._container.connect('allocate', this._containerAllocate.bind(this));
+        this._container = new InputSourceIndicatorContainer();
 
         this._hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         this._hbox.add_child(this._container);
@@ -1021,48 +1070,4 @@ var InputSourceIndicator = new Lang.Class({
 
         Util.spawn(['gkbd-keyboard-display', '-l', description]);
     },
-
-    _containerGetPreferredWidth(container, for_height, alloc) {
-        // Here, and in _containerGetPreferredHeight, we need to query
-        // for the height of all children, but we ignore the results
-        // for those we don't actually display.
-        let max_min_width = 0, max_natural_width = 0;
-
-        for (let i in this._inputSourceManager.inputSources) {
-            let label = this._indicatorLabels[i];
-            let [min_width, natural_width] = label.get_preferred_width(for_height);
-            max_min_width = Math.max(max_min_width, min_width);
-            max_natural_width = Math.max(max_natural_width, natural_width);
-        }
-
-        alloc.min_size = max_min_width;
-        alloc.natural_size = max_natural_width;
-    },
-
-    _containerGetPreferredHeight(container, for_width, alloc) {
-        let max_min_height = 0, max_natural_height = 0;
-
-        for (let i in this._inputSourceManager.inputSources) {
-            let label = this._indicatorLabels[i];
-            let [min_height, natural_height] = label.get_preferred_height(for_width);
-            max_min_height = Math.max(max_min_height, min_height);
-            max_natural_height = Math.max(max_natural_height, natural_height);
-        }
-
-        alloc.min_size = max_min_height;
-        alloc.natural_size = max_natural_height;
-    },
-
-    _containerAllocate(container, box, flags) {
-        // translate box to (0, 0)
-        box.x2 -= box.x1;
-        box.x1 = 0;
-        box.y2 -= box.y1;
-        box.y1 = 0;
-
-        for (let i in this._inputSourceManager.inputSources) {
-            let label = this._indicatorLabels[i];
-            label.allocate_align_fill(box, 0.5, 0.5, false, false, flags);
-        }
-    }
 });

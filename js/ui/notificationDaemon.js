@@ -292,7 +292,7 @@ var FdoNotificationDaemon = new Lang.Class({
             });
         }
 
-        let gicon = this._iconForNotificationData(icon, hints);
+        let gicon = this._iconForNotificationData(icon);
         let gimage = this._imageForNotificationData(hints);
 
         // If an icon is not specified, we use 'image-data' or 'image-path' hint for an icon
@@ -658,6 +658,10 @@ var GtkNotificationDaemonAppSource = new Lang.Class({
         return new FdoApplicationProxy(Gio.DBus.session, this._appId, this._objectPath, callback);
     },
 
+    _createNotification(params) {
+        return new GtkNotificationDaemonNotification(this, params);
+    },
+
     activateAction(actionId, target) {
         this._createApp((app, error) => {
             if (error == null)
@@ -684,9 +688,9 @@ var GtkNotificationDaemonAppSource = new Lang.Class({
         this._notificationPending = true;
 
         if (this._notifications[notificationId])
-            this._notifications[notificationId].destroy();
+            this._notifications[notificationId].destroy(MessageTray.NotificationDestroyedReason.REPLACED);
 
-        let notification = new GtkNotificationDaemonNotification(this, notificationParams);
+        let notification = this._createNotification(notificationParams);
         notification.connect('destroy', () => {
             delete this._notifications[notificationId];
         });

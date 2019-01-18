@@ -49,7 +49,6 @@ gnome_shell_deps = [
   cogl_pango_dep,
   startup_dep,
   gi_dep,
-  canberra_dep, canberra_gtk_dep,
   polkit_dep,
   gcr_dep,
   libsystemd_dep
@@ -108,7 +107,6 @@ libshell_public_headers = [
   'shell-app-system.h',
   'shell-app-usage.h',
   'shell-embedded-window.h',
-  'shell-generic-container.h',
   'shell-glsl-quad.h',
   'shell-gtk-embed.h',
   'shell-global.h',
@@ -144,7 +142,6 @@ libshell_sources = [
   'shell-app-usage.c',
   'shell-embedded-window.c',
   'shell-embedded-window-private.h',
-  'shell-generic-container.c',
   'shell-global.c',
   'shell-glsl-quad.c',
   'shell-gtk-embed.c',

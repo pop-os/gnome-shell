@@ -50,12 +50,15 @@ var State = {
 // These reasons are useful when we destroy the notifications received through
 // the notification daemon. We use EXPIRED for notifications that we dismiss
 // and the user did not interact with, DISMISSED for all other notifications
-// that were destroyed as a result of a user action, and SOURCE_CLOSED for the
-// notifications that were requested to be destroyed by the associated source.
+// that were destroyed as a result of a user action, SOURCE_CLOSED for the
+// notifications that were requested to be destroyed by the associated source,
+// and REPLACED for notifications that were destroyed as a consequence of a
+// newer version having replaced them.
 var NotificationDestroyedReason = {
     EXPIRED: 1,
     DISMISSED: 2,
-    SOURCE_CLOSED: 3
+    SOURCE_CLOSED: 3,
+    REPLACED: 4
 };
 
 // Message tray has its custom Urgency enumeration. LOW, NORMAL and CRITICAL
@@ -445,27 +448,11 @@ var Notification = new Lang.Class({
             return;
         }
 
-        if (this._soundName) {
-            if (this.source.app) {
-                let app = this.source.app;
-
-                global.play_theme_sound_full(0, this._soundName,
-                                             this.title, null,
-                                             app.get_id(), app.get_name());
-            } else {
-                global.play_theme_sound(0, this._soundName, this.title, null);
-            }
-        } else if (this._soundFile) {
-            if (this.source.app) {
-                let app = this.source.app;
-
-                global.play_sound_file_full(0, this._soundFile,
-                                            this.title, null,
-                                            app.get_id(), app.get_name());
-            } else {
-                global.play_sound_file(0, this._soundFile, this.title, null);
-            }
-        }
+        let player = global.display.get_sound_player();
+        if (this._soundName)
+            player.play_from_theme(this._soundName, this.title, null);
+        else if (this._soundFile)
+            player.play_from_file(this._soundFile, this.title, null);
     },
 
     // Allow customizing the banner UI:
@@ -587,16 +574,16 @@ var NotificationBanner = new Lang.Class({
 
 var SourceActor = new Lang.Class({
     Name: 'SourceActor',
+    Extends: St.Widget,
 
     _init(source, size) {
+        this.parent();
+
         this._source = source;
         this._size = size;
 
-        this.actor = new Shell.GenericContainer();
-        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this.actor.connect('allocate', this._allocate.bind(this));
-        this.actor.connect('destroy', () => {
+        this.actor = this;
+        this.connect('destroy', () => {
             this._source.disconnect(this._iconUpdatedId);
             this._actorDestroyed = true;
         });
@@ -604,10 +591,11 @@ var SourceActor = new Lang.Class({
 
         let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this._iconBin = new St.Bin({ x_fill: true,
+                                     x_expand: true,
                                      height: size * scale_factor,
                                      width: size * scale_factor });
 
-        this.actor.add_actor(this._iconBin);
+        this.add_actor(this._iconBin);
 
         this._iconUpdatedId = this._source.connect('icon-updated', this._updateIcon.bind(this));
         this._updateIcon();
@@ -616,21 +604,6 @@ var SourceActor = new Lang.Class({
     setIcon(icon) {
         this._iconBin.child = icon;
         this._iconSet = true;
-    },
-
-    _getPreferredWidth(actor, forHeight, alloc) {
-        let [min, nat] = this._iconBin.get_preferred_width(forHeight);
-        alloc.min_size = min; alloc.nat_size = nat;
-    },
-
-    _getPreferredHeight(actor, forWidth, alloc) {
-        let [min, nat] = this._iconBin.get_preferred_height(forWidth);
-        alloc.min_size = min; alloc.nat_size = nat;
-    },
-
-    _allocate(actor, box, flags) {
-        // the iconBin should fill our entire box
-        this._iconBin.allocate(box, flags);
     },
 
     _updateIcon() {
@@ -665,23 +638,23 @@ var SourceActorWithLabel = new Lang.Class({
             this._counterBin.translation_y = themeNode.get_length('-shell-counter-overlap-y');
         });
 
-        this.actor.add_actor(this._counterBin);
+        this.add_actor(this._counterBin);
 
         this._countUpdatedId = this._source.connect('count-updated', this._updateCount.bind(this));
         this._updateCount();
 
-        this.actor.connect('destroy', () => {
+        this.connect('destroy', () => {
             this._source.disconnect(this._countUpdatedId);
         });
     },
 
-    _allocate(actor, box, flags) {
-        this.parent(actor, box, flags);
+    vfunc_allocate(box, flags) {
+        this.parent(box, flags);
 
         let childBox = new Clutter.ActorBox();
 
         let [minWidth, minHeight, naturalWidth, naturalHeight] = this._counterBin.get_preferred_size();
-        let direction = this.actor.get_text_direction();
+        let direction = this.get_text_direction();
 
         if (direction == Clutter.TextDirection.LTR) {
             // allocate on the right in LTR
@@ -1309,10 +1282,8 @@ var MessageTray = new Lang.Class({
         }
 
         this._banner = this._notification.createBanner();
-        this._bannerClickedId = this._banner.connect('done-displaying', () => {
-            Meta.enable_unredirect_for_display(global.display);
-            this._escapeTray();
-        });
+        this._bannerClickedId = this._banner.connect('done-displaying',
+                                                     this._escapeTray.bind(this));
         this._bannerUnfocusedId = this._banner.connect('unfocused', () => {
             this._updateState();
         });
@@ -1462,6 +1433,7 @@ var MessageTray = new Lang.Class({
 
         this._pointerInNotification = false;
         this._notificationRemoved = false;
+        Meta.enable_unredirect_for_display(global.display);
 
         this._banner.actor.destroy();
         this._banner = null;

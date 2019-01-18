@@ -87,9 +87,10 @@ var AutomountManager = new Lang.Class({
         if (!this._session.SessionIsActive)
             return;
 
-        global.play_theme_sound(0, 'device-added-media',
-                                _("External drive connected"),
-                                null);
+        let player = global.display.get_sound_player();
+        player.play_from_theme('device-added-media',
+                               _("External drive connected"),
+                               null);
     },
 
     _onDriveDisconnected() {
@@ -98,9 +99,10 @@ var AutomountManager = new Lang.Class({
         if (!this._session.SessionIsActive)
             return;
 
-        global.play_theme_sound(0, 'device-removed-media',
-                                _("External drive disconnected"),
-                                null);
+        let sound = global.display.get_sound();
+        sound.play_from_theme('device-removed-media',
+                              _("External drive disconnected"),
+                              null);
     },
 
     _onDriveEjectButton(monitor, drive) {
@@ -197,9 +199,13 @@ var AutomountManager = new Lang.Class({
             this._closeOperation(volume);
         } catch (e) {
             // FIXME: we will always get G_IO_ERROR_FAILED from the gvfs udisks
-            // backend in this case, see 
-            // https://bugs.freedesktop.org/show_bug.cgi?id=51271
-            if (e.message.indexOf('No key available with this passphrase') != -1) {
+            // backend, see https://bugs.freedesktop.org/show_bug.cgi?id=51271
+            // To reask the password if the user input was empty or wrong, we
+            // will check for corresponding error messages. However, these
+            // error strings are not unique for the cases in the comments below.
+            if (e.message.includes('No key available with this passphrase') || // cryptsetup
+                e.message.includes('No key available to unlock device') ||     // udisks (no password)
+                e.message.includes('Error unlocking')) {                       // udisks (wrong password)
                 this._reaskPassword(volume);
             } else {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED_HANDLED))

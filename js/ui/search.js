@@ -147,7 +147,7 @@ var GridSearchResult = new Lang.Class({
 
         this.icon = new IconGrid.BaseIcon(this.metaInfo['name'],
                                           { createIcon: this.metaInfo['createIcon'] });
-        let content = new St.Bin({ child: this.icon.actor });
+        let content = new St.Bin({ child: this.icon });
         this.actor.set_child(content);
         this.actor.label_actor = this.icon.label;
     }
@@ -363,8 +363,9 @@ var GridSearchResults = new Lang.Class({
 
         this._grid = new IconGrid.IconGrid({ rowLimit: MAX_GRID_SEARCH_RESULTS_ROWS,
                                              xAlign: St.Align.START });
+
         this._bin = new St.Bin({ x_align: St.Align.MIDDLE });
-        this._bin.set_child(this._grid.actor);
+        this._bin.set_child(this._grid);
 
         this._resultDisplayBin.set_child(this._bin);
     },
