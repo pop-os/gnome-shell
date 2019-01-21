@@ -9,6 +9,8 @@ gnome-shell (3.31.90-1) UNRELEASED; urgency=medium
     - Drop dependencies on libcanberra and libcanberra-gtk3
   * debian/gnome-shell.install:
     - Remove usr/lib/mozilla as no plugin is shipped anymore
+  * debian/gnome-shell.lintian-overrides:
+    - Update mutter libraries paths
 
   [ Laurent Bigonville ]
   * debian/control.in: Recommends ibus, gnome-shell tried to start for years
