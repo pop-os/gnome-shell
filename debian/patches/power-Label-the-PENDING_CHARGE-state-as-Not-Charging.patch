@@ -1,0 +1,213 @@
+From: =?utf-8?q?Jo=C3=A3o_Paulo_Rechi_Vita?= <jprvita@endlessm.com>
+Date: Fri, 2 Nov 2018 21:51:33 +0100
+Subject: power: Label the PENDING_CHARGE state as "Not Charging"
+
+The pending-charge state means AC power is on but the battery is not
+being charged. This can happen because its charge is above a certain
+threshold, to avoid short charging cycles and prolong the battery's
+life, or because the PSU is not powerful enough to charge the batteries.
+
+Instead of lying to the user about something being estimated, we should
+simply tell the truth and set the label to "Not Charging".
+
+Closes: #701.
+
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1745032
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/701
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/commit/52c59ac0dd7ddbe064
+Applied-Upstream: 3.31.4
+---
+ js/ui/status/power.js | 4 +++-
+ po/ca.po              | 4 ++++
+ po/de.po              | 4 ++++
+ po/el.po              | 4 ++++
+ po/eo.po              | 4 ++++
+ po/es.po              | 4 ++++
+ po/fur.po             | 4 ++++
+ po/it.po              | 4 ++++
+ po/ja.po              | 4 ++++
+ po/sl.po              | 4 ++++
+ po/sv.po              | 4 ++++
+ po/tr.po              | 4 ++++
+ 12 files changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/status/power.js b/js/ui/status/power.js
+index f21693f..4a6ce2c 100644
+--- a/js/ui/status/power.js
++++ b/js/ui/status/power.js
+@@ -70,7 +70,9 @@ var Indicator = new Lang.Class({
+             seconds = this._proxy.TimeToFull;
+         else if (this._proxy.State == UPower.DeviceState.DISCHARGING)
+             seconds = this._proxy.TimeToEmpty;
+-        // state is one of PENDING_CHARGING, PENDING_DISCHARGING
++        else if (this._proxy.State == UPower.DeviceState.PENDING_CHARGE)
++            return _("Not Charging");
++        // state is PENDING_DISCHARGE
+         else
+             return _("Estimating…");
+ 
+diff --git a/po/ca.po b/po/ca.po
+index 3880b82..27497e3 100644
+--- a/po/ca.po
++++ b/po/ca.po
+@@ -1926,6 +1926,10 @@ msgstr "Paràmetres d'energia"
+ msgid "Fully Charged"
+ msgstr "Totalment carregada"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr ""
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/de.po b/po/de.po
+index 9244dc6..40bb175 100644
+--- a/po/de.po
++++ b/po/de.po
+@@ -1939,6 +1939,10 @@ msgstr "Energieeinstellungen"
+ msgid "Fully Charged"
+ msgstr "Vollständig geladen"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Lädt nicht"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/el.po b/po/el.po
+index c822608..2061c24 100644
+--- a/po/el.po
++++ b/po/el.po
+@@ -1795,6 +1795,10 @@ msgstr "Ρυθμίσεις τροφοδοσίας"
+ msgid "Fully Charged"
+ msgstr "Πλήρως φορτισμένη"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Δεν φορτίζεται"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/eo.po b/po/eo.po
+index f3f1690..a591b2a 100644
+--- a/po/eo.po
++++ b/po/eo.po
+@@ -1871,6 +1871,10 @@ msgstr "Elektro-agordoj"
+ msgid "Fully Charged"
+ msgstr "Plene ŝargita"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Ne ŝargante"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:75 js/ui/status/power.js:81
+diff --git a/po/es.po b/po/es.po
+index 6c4171f..154249c 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -1914,6 +1914,10 @@ msgstr "Configuración de energía"
+ msgid "Fully Charged"
+ msgstr "Cargada completamente"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "No está cargando"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/fur.po b/po/fur.po
+index 7380766..8765645 100644
+--- a/po/fur.po
++++ b/po/fur.po
+@@ -1914,6 +1914,10 @@ msgstr "Impostazions di alimentazion"
+ msgid "Fully Charged"
+ msgstr "Cjarie"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Nol sta cjariant"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/it.po b/po/it.po
+index 98a8e3b..89a834b 100644
+--- a/po/it.po
++++ b/po/it.po
+@@ -1935,6 +1935,10 @@ msgstr "Impostazioni alimentazione"
+ msgid "Fully Charged"
+ msgstr "Carica"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Non in carica"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:75 js/ui/status/power.js:81
+diff --git a/po/ja.po b/po/ja.po
+index 0264e97..e6ef9a6 100644
+--- a/po/ja.po
++++ b/po/ja.po
+@@ -1800,6 +1800,10 @@ msgstr "電源設定"
+ msgid "Fully Charged"
+ msgstr "充電完了"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "放電中"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/sl.po b/po/sl.po
+index 2d37f35..56ddc1c 100644
+--- a/po/sl.po
++++ b/po/sl.po
+@@ -1936,6 +1936,10 @@ msgstr "Upravljanje napajanja"
+ msgid "Fully Charged"
+ msgstr "Polno napolnjeno"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Naprava se ne polni"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/sv.po b/po/sv.po
+index 20ceb66..542aced 100644
+--- a/po/sv.po
++++ b/po/sv.po
+@@ -1903,6 +1903,10 @@ msgstr "Ströminställningar"
+ msgid "Fully Charged"
+ msgstr "Fulladdad"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Laddar inte"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
+diff --git a/po/tr.po b/po/tr.po
+index 9714623..9932d8c 100644
+--- a/po/tr.po
++++ b/po/tr.po
+@@ -1892,6 +1892,10 @@ msgstr "Güç Ayarları"
+ msgid "Fully Charged"
+ msgstr "Tümüyle Dolu"
+ 
++#: js/ui/status/power.js:74
++msgid "Not Charging"
++msgstr "Şarj Olmuyor"
++
+ #. 0 is reported when UPower does not have enough data
+ #. to estimate battery life
+ #: js/ui/status/power.js:84 js/ui/status/power.js:90
