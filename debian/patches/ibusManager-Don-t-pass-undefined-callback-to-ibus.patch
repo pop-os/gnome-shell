@@ -13,6 +13,7 @@ https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/293
 
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1812266/
 Origin: https://gitlab.gnome.org/GNOME/gnome-shell/commit/74bb9e62492bacda3
+Applied-Upstream: 3.31.4
 ---
  js/misc/ibusManager.js | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
