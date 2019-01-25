@@ -1,3 +1,86 @@
+gnome-shell (3.30.2-2ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian, remaining changes:
+    + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    + Add some Recommends:
+      - ubuntu-session (| gnome-session) to have the ubuntu session available
+      - xserver-xorg-legacy
+      - yaru-theme-gnome-shell for the default ubuntu theming
+    + Update debian/gbp.conf with Ubuntu settings
+    + gnome-shell-common.install: Install Ubuntu mode
+    + gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    + ubuntu/desktop_detect.patch:
+      - add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    + ubuntu/smarter_alt_tab.patch:
+      - quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    + ubuntu/lightdm-user-switching.patch:
+      - Allow user switching when using LightDM.
+    + ubuntu/lock_on_suspend.patch
+      - Respect Ubuntu's lock-on-suspend setting.
+    + ubuntu/gdm.patch
+      - as gdm is system-wide and not session-wide, ensure gdm has an ubuntu
+        styling by default, not impacting the gnome user session though.
+    + ubuntu/background_login.patch
+      - Change default background color as we modified the default GDM color
+        for our ubuntu session. Change it as well here, still applying the
+        background noise loading.
+    + ubuntu/gdm_alternatives.patch
+      - Add support for GDM3 theme alternatives
+    + ubuntu/block_mode_extension_update.patch
+      - Don't allow ubuntu mode extension to update
+    + optional-hot-corner.patch
+      - enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    + volume-Add-back-sound-feedback-on-scroll.patch
+      - Fix regression causing missing feedback on volume slider scroll
+    + st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch
+      - Fix possible crash on cache loading
+    + main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      - Improve debug JS tracing for crash reports
+    + st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch,
+      st-scroll-view-Remove-scrollbars-references-on-dispose.patch:
+      - Fix crash on theme changes
+    + ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      - stop searches when requested from UI
+    + keyboard-Do-not-call-KeyboardManager.holdKeyboard-with-se.patch:
+      - Cherry-pick upstream commit to prevent focus stealing on password fields
+        in firefox when ibus is used
+    + debian/patches/ubuntu/background_login.patch:
+      - match Yaru theme in the ubuntu session instead of our previous GDM
+        background
+    + debian/patches/ubuntu/resolve_alternate_theme_path.patch:
+      - ensure we resolve finale theme file path to correctly load assets
+        under gdm
+    + debian/patches/st-button-Ignore-pointer-emulated-touch-events.patch:
+      - Don't emit two click events on touch under X11
+    + debian/rules:
+      - Run dh_translations and work around an issue with Rosetta and plural
+        translations
+    + Add desktop-icons to the Ubuntu session by default
+    + Break nautilus << 3.30. We don't want two things trying to handle the
+      desktop.
+
+ -- Iain Lane <iain.lane@canonical.com>  Fri, 25 Jan 2019 12:42:00 +0000
+
+gnome-shell (3.30.2-2) unstable; urgency=medium
+
+  * d/p/power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch:
+    - Label the PENDING_CHARGE state as "Not Charging" (LP: #1745032)
+  * d/p/ibusManager-Don-t-pass-undefined-callback-to-ibus.patch:
+    - Fix missing icon in keyboard indicator (LP: #1812266)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 25 Jan 2019 11:52:36 +0000
+
 gnome-shell (3.30.2-1ubuntu1) disco; urgency=medium
 
   * Merge with debian, remaining changes:

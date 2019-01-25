@@ -1,3 +1,5 @@
+power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch
+ibusManager-Don-t-pass-undefined-callback-to-ibus.patch
 keyboard-Do-not-call-KeyboardManager.holdKeyboard-with-se.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 workaround_crasher_fractional_scaling.patch
