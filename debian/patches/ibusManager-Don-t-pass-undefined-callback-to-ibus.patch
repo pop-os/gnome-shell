@@ -1,0 +1,32 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 15 Nov 2018 18:47:55 +0100
+Subject: ibusManager: Don't pass undefined callback to ibus
+
+Since commit 551e8278416, we don't always pass a callback parameter.
+However passing it on as undefined to ibus doesn't work, as gjs doesn't
+accept that as a valid callback value and throw an error. As a result,
+we can end up with no layout selected in the keyboard menu and an "empty"
+indicator. Fix this by explicitly passing null if no callback has been
+provided.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/293
+
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1812266/
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/commit/74bb9e62492bacda3
+---
+ js/misc/ibusManager.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/misc/ibusManager.js b/js/misc/ibusManager.js
+index 34f198c..33ad877 100644
+--- a/js/misc/ibusManager.js
++++ b/js/misc/ibusManager.js
+@@ -210,7 +210,7 @@ var IBusManager = new Lang.Class({
+         }
+ 
+         this._ibus.set_global_engine_async(id, this._MAX_INPUT_SOURCE_ACTIVATION_TIME,
+-                                           null, callback);
++                                           null, callback || null);
+     },
+ 
+     preloadEngines(ids) {
