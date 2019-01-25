@@ -1,5 +1,10 @@
 gnome-shell (3.30.2-2) unstable; urgency=medium
 
+  [ Jeremy Bicha ]
+  * Restore -Wl,-O1 to our LDFLAGS
+  * Bump Standards-Version to 4.3.0
+
+  [ Marco Trevisan (Treviño) ]
   * d/p/power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch:
     - Label the PENDING_CHARGE state as "Not Charging" (LP: #1745032)
   * d/p/ibusManager-Don-t-pass-undefined-callback-to-ibus.patch:
