@@ -14,11 +14,10 @@ diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
 index d0c8f2a..f521c80 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -42,7 +42,7 @@ const _modes = {
+@@ -42,6 +42,7 @@ const _modes = {
  
      'gdm': {
          hasNotifications: true,
--        stylesheetName: 'ubuntu.css',
 +        stylesheetName: 'gdm3.css',
          isGreeter: true,
          isPrimary: true,

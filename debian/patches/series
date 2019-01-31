@@ -6,7 +6,6 @@ workaround_crasher_fractional_scaling.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
-ubuntu/gdm.patch
 ubuntu/background_login.patch
 ubuntu/gdm_alternatives.patch
 ubuntu/block_mode_extension_update.patch
