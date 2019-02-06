@@ -1,5 +1,6 @@
-gnome-shell (3.30.2-3) UNRELEASED; urgency=medium
+gnome-shell (3.30.2-3) unstable; urgency=medium
 
+  * Team upload
   * d/p/ibusManager-Don-t-pass-undefined-callback-to-ibus.patch:
     Mark as applied on upstream gnome-3-30 branch, and reorder earlier
     in the patch series
@@ -16,7 +17,7 @@ gnome-shell (3.30.2-3) UNRELEASED; urgency=medium
       purpose
     - Update translations: eu, eo, sk, fr
 
- -- Simon McVittie <smcv@debian.org>  Wed, 06 Feb 2019 09:31:21 +0000
+ -- Simon McVittie <smcv@debian.org>  Wed, 06 Feb 2019 09:46:52 +0000
 
 gnome-shell (3.30.2-2) unstable; urgency=medium
 
