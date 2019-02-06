@@ -92,10 +92,10 @@ index c822608..2061c24 100644
  #. to estimate battery life
  #: js/ui/status/power.js:84 js/ui/status/power.js:90
 diff --git a/po/eo.po b/po/eo.po
-index f3f1690..a591b2a 100644
+index df3eed1..480035f 100644
 --- a/po/eo.po
 +++ b/po/eo.po
-@@ -1871,6 +1871,10 @@ msgstr "Elektro-agordoj"
+@@ -1873,6 +1873,10 @@ msgstr "Elektro-agordoj"
  msgid "Fully Charged"
  msgstr "Plene ŝargita"
  

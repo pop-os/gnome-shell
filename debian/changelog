@@ -7,6 +7,14 @@ gnome-shell (3.30.2-3) UNRELEASED; urgency=medium
     d/p/shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch:
     Add patches from upstream to fix partial lock screen bypass
     (CVE-2019-3820, Closes: #921490)
+  * Update patch series from gnome-3-30 branch, up to 3.30.2-11-ge23f4d6c7
+    - Fix a crash that can happen when locking the screen
+    - Fix a critical when an app is closed while its popup menu is open
+    - Ignore pointer emulated touch events, fixing unintended double clicks
+      in extensions like dash-to-dock
+    - Don't close ibus popup window when an entry field changes its input
+      purpose
+    - Update translations: eu, eo, sk, fr
 
  -- Simon McVittie <smcv@debian.org>  Wed, 06 Feb 2019 09:31:21 +0000
 
