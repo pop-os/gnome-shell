@@ -1,4 +1,6 @@
 ibusManager-Don-t-pass-undefined-callback-to-ibus.patch
+panel-Don-t-allow-opening-hidden-menus-via-keybindings.patch
+shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch
 power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 workaround_crasher_fractional_scaling.patch

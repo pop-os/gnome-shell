@@ -3,6 +3,10 @@ gnome-shell (3.30.2-3) UNRELEASED; urgency=medium
   * d/p/ibusManager-Don-t-pass-undefined-callback-to-ibus.patch:
     Mark as applied on upstream gnome-3-30 branch, and reorder earlier
     in the patch series
+  * d/p/panel-Don-t-allow-opening-hidden-menus-via-keybindings.patch,
+    d/p/shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch:
+    Add patches from upstream to fix partial lock screen bypass
+    (CVE-2019-3820, Closes: #921490)
 
  -- Simon McVittie <smcv@debian.org>  Wed, 06 Feb 2019 09:31:21 +0000
 

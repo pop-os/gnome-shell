@@ -1,0 +1,31 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 23 Jan 2019 23:55:12 +0100
+Subject: panel: Don't allow opening hidden menus via keybindings
+
+We shouldn't allow toggling menus that aren't supported by the
+current session mode, but as indicators are hidden rather than
+destroyed on mode switches, it is not enough to check for an
+indicator's existence.
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/851
+Bug-CVE: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-3820
+Origin: upstream, 3.30.3, commit:511e8c658445377b044c6dfb241709142c97a8ce
+---
+ js/ui/panel.js | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/panel.js b/js/ui/panel.js
+index 66588f9..5b2ee63 100644
+--- a/js/ui/panel.js
++++ b/js/ui/panel.js
+@@ -998,8 +998,8 @@ var Panel = new Lang.Class({
+     },
+ 
+     _toggleMenu(indicator) {
+-        if (!indicator) // menu not supported by current session mode
+-            return;
++        if (!indicator || !indicator.container.visible)
++            return; // menu not supported by current session mode
+ 
+         let menu = indicator.menu;
+         if (!indicator.actor.reactive)
