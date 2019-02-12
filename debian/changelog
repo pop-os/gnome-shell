@@ -1,3 +1,10 @@
+gnome-shell (3.30.2-4) UNRELEASED; urgency=medium
+
+  * debian/control.in: Recommends ibus, gnome-shell tried to start for years
+    now, ibus is required to input emoji these days. (Closes: #815050)
+
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 12 Feb 2019 11:10:15 +0100
+
 gnome-shell (3.30.2-3) unstable; urgency=medium
 
   * Team upload
