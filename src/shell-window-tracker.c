@@ -5,10 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-#include <gdk/gdk.h>
-#include <gdk/gdkx.h>
 #include <meta/display.h>
 #include <meta/group.h>
 #include <meta/util.h>
@@ -478,7 +474,7 @@ update_focus_app (ShellWindowTracker *self)
   if (new_focus_app)
     {
       shell_app_update_window_actions (new_focus_app, new_focus_win);
-      shell_app_update_app_menu (new_focus_app, new_focus_win);
+      shell_app_update_app_actions (new_focus_app, new_focus_win);
     }
 
   set_focus_app (self, new_focus_app);

@@ -2,7 +2,6 @@
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Lang = imports.lang;
 const Params = imports.misc.params;
 const Signals = imports.signals;
 
@@ -27,9 +26,8 @@ const ObjectManagerIface = `
 
 const ObjectManagerInfo = Gio.DBusInterfaceInfo.new_for_xml(ObjectManagerIface);
 
-var ObjectManager = new Lang.Class({
-    Name: 'ObjectManager',
-    _init(params) {
+var ObjectManager = class {
+    constructor(params) {
         params = Params.parse(params, { connection: null,
                                         name: null,
                                         objectPath: null,
@@ -63,7 +61,7 @@ var ObjectManager = new Lang.Class({
         this._managerProxy.init_async(GLib.PRIORITY_DEFAULT,
                                       this._cancellable,
                                       this._onManagerProxyLoaded.bind(this));
-    },
+    }
 
     _tryToCompleteLoad() {
         if (this._numLoadInhibitors == 0)
@@ -74,7 +72,7 @@ var ObjectManager = new Lang.Class({
             if (this._onLoaded)
                 this._onLoaded();
         }
-    },
+    }
 
     _addInterface(objectPath, interfaceName, onFinished) {
         let info = this._interfaceInfos[interfaceName];
@@ -129,7 +127,7 @@ var ObjectManager = new Lang.Class({
                if (onFinished)
                    onFinished();
         });
-    },
+    }
 
     _removeInterface(objectPath, interfaceName) {
         if (!this._objects[objectPath])
@@ -155,14 +153,14 @@ var ObjectManager = new Lang.Class({
             delete this._objects[objectPath];
             this.emit('object-removed', objectPath);
         }
-    },
+    }
 
     _onManagerProxyLoaded(initable, result) {
         let error = null;
         try {
             initable.init_finish(result);
         } catch(e) {
-            logError(e, 'could not initialize object manager for object ' + params.name);
+            logError(e, 'could not initialize object manager for object ' + this._serviceName);
 
             this._tryToCompleteLoad();
             return;
@@ -194,7 +192,7 @@ var ObjectManager = new Lang.Class({
 
         if (this._managerProxy.g_name_owner)
             this._onNameAppeared();
-    },
+    }
 
     _onNameAppeared() {
         this._managerProxy.GetManagedObjectsRemote((result, error) => {
@@ -232,7 +230,7 @@ var ObjectManager = new Lang.Class({
             }
             this._tryToCompleteLoad();
         });
-    },
+    }
 
     _onNameVanished() {
         let objectPaths = Object.keys(this._objects);
@@ -248,14 +246,14 @@ var ObjectManager = new Lang.Class({
                     this._removeInterface(objectPath, interfaceName);
             }
         }
-    },
+    }
 
     _registerInterfaces(interfaces) {
         for (let i = 0; i < interfaces.length; i++) {
             let info = Gio.DBusInterfaceInfo.new_for_xml(interfaces[i]);
             this._interfaceInfos[info.name] = info;
         }
-    },
+    }
 
     getProxy(objectPath, interfaceName) {
         let object = this._objects[objectPath];
@@ -264,7 +262,7 @@ var ObjectManager = new Lang.Class({
             return null;
 
         return object[interfaceName];
-    },
+    }
 
     getProxiesForInterface(interfaceName) {
         let proxyList = this._interfaces[interfaceName];
@@ -273,7 +271,7 @@ var ObjectManager = new Lang.Class({
             return [];
 
         return proxyList;
-    },
+    }
 
     getAllProxies() {
         let proxies = [];
@@ -283,8 +281,8 @@ var ObjectManager = new Lang.Class({
             let object = this._objects[objectPaths];
 
             let interfaceNames = Object.keys(object);
-            for (let j = 0; i < interfaceNames.length; i++) {
-                let interfaceName = interfaceNames[i];
+            for (let j = 0; j < interfaceNames.length; j++) {
+                let interfaceName = interfaceNames[j];
                 if (object[interfaceName])
                     proxies.push(object(interfaceName));
             }
@@ -292,5 +290,5 @@ var ObjectManager = new Lang.Class({
 
         return proxies;
     }
-});
+};
 Signals.addSignalMethods(ObjectManager.prototype);

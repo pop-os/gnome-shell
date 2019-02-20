@@ -56,6 +56,7 @@
 
 #include "st-icon.h"
 #include "st-label.h"
+#include "st-settings.h"
 #include "st-widget.h"
 #include "st-texture-cache.h"
 #include "st-clipboard.h"
@@ -108,7 +109,7 @@ struct _StEntryPrivate
   gboolean      capslock_warning_shown;
   gboolean      has_ibeam;
 
-  CoglHandle    text_shadow_material;
+  CoglPipeline *text_shadow_material;
   gfloat        shadow_width;
   gfloat        shadow_height;
 };
@@ -239,15 +240,15 @@ remove_capslock_feedback (StEntry *entry)
 }
 
 static void
-keymap_state_changed (GdkKeymap *keymap,
-                      gpointer   user_data)
+keymap_state_changed (ClutterKeymap *keymap,
+                      gpointer       user_data)
 {
   StEntry *entry = ST_ENTRY (user_data);
   StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
 
   if (clutter_text_get_password_char (CLUTTER_TEXT (priv->entry)) != 0)
     {
-      if (gdk_keymap_get_caps_lock_state (keymap))
+      if (clutter_keymap_get_caps_lock_state (keymap))
         show_capslock_feedback (entry);
       else
         remove_capslock_feedback (entry);
@@ -259,15 +260,11 @@ st_entry_dispose (GObject *object)
 {
   StEntry *entry = ST_ENTRY (object);
   StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
-  GdkKeymap *keymap;
+  ClutterKeymap *keymap;
 
-  if (priv->text_shadow_material != COGL_INVALID_HANDLE)
-    {
-      cogl_handle_unref (priv->text_shadow_material);
-      priv->text_shadow_material = COGL_INVALID_HANDLE;
-    }
+  cogl_clear_object (&priv->text_shadow_material);
 
-  keymap = gdk_keymap_get_for_display (gdk_display_get_default ());
+  keymap = clutter_backend_get_keymap (clutter_get_default_backend ());
   g_signal_handlers_disconnect_by_func (keymap, keymap_state_changed, entry);
 
   G_OBJECT_CLASS (st_entry_parent_class)->dispose (object);
@@ -301,11 +298,7 @@ st_entry_style_changed (StWidget *self)
   gchar *font_string, *font_name;
   gdouble size;
 
-  if (priv->text_shadow_material != COGL_INVALID_HANDLE)
-    {
-      cogl_handle_unref (priv->text_shadow_material);
-      priv->text_shadow_material = COGL_INVALID_HANDLE;
-    }
+  cogl_clear_object (&priv->text_shadow_material);
 
   theme_node = st_widget_get_theme_node (self);
 
@@ -338,7 +331,7 @@ st_entry_style_changed (StWidget *self)
 static gboolean
 st_entry_navigate_focus (StWidget         *widget,
                          ClutterActor     *from,
-                         GtkDirectionType  direction)
+                         StDirectionType   direction)
 {
   StEntryPrivate *priv = ST_ENTRY_PRIV (widget);
 
@@ -571,11 +564,11 @@ clutter_text_focus_in_cb (ClutterText  *text,
                           ClutterActor *actor)
 {
   StEntry *entry = ST_ENTRY (actor);
-  GdkKeymap *keymap;
+  ClutterKeymap *keymap;
 
   st_entry_update_hint_visibility (entry);
 
-  keymap = gdk_keymap_get_for_display (gdk_display_get_default ());
+  keymap = clutter_backend_get_keymap (clutter_get_default_backend ());
   keymap_state_changed (keymap, entry);
   g_signal_connect (keymap, "state-changed",
                     G_CALLBACK (keymap_state_changed), entry);
@@ -589,7 +582,7 @@ clutter_text_focus_out_cb (ClutterText  *text,
                            ClutterActor *actor)
 {
   StEntry *entry = ST_ENTRY (actor);
-  GdkKeymap *keymap;
+  ClutterKeymap *keymap;
 
   st_widget_remove_style_pseudo_class (ST_WIDGET (actor), "focus");
 
@@ -598,7 +591,7 @@ clutter_text_focus_out_cb (ClutterText  *text,
   clutter_text_set_cursor_visible (text, FALSE);
   remove_capslock_feedback (entry);
 
-  keymap = gdk_keymap_get_for_display (gdk_display_get_default ());
+  keymap = clutter_backend_get_keymap (clutter_get_default_backend ());
   g_signal_handlers_disconnect_by_func (keymap, keymap_state_changed, entry);
 }
 
@@ -623,11 +616,7 @@ clutter_text_changed_cb (GObject    *object,
   StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
 
   /* Since the text changed, force a regen of the shadow texture */
-  if (priv->text_shadow_material != COGL_INVALID_HANDLE)
-    {
-      cogl_handle_unref (priv->text_shadow_material);
-      priv->text_shadow_material = COGL_INVALID_HANDLE;
-    }
+  cogl_clear_object (&priv->text_shadow_material);
 }
 
 static void
@@ -656,29 +645,32 @@ clutter_text_button_press_event (ClutterActor       *actor,
                                  gpointer            user_data)
 {
   StEntryPrivate *priv = ST_ENTRY_PRIV (user_data);
-  GtkSettings *settings = gtk_settings_get_default ();
-  gboolean primary_paste_enabled;
 
-  g_object_get (settings,
-                "gtk-enable-primary-paste", &primary_paste_enabled,
-                NULL);
-
-  if (primary_paste_enabled && event->button == 2
-      && clutter_text_get_editable (CLUTTER_TEXT (priv->entry)))
+  if (event->button == 2 &&
+      clutter_text_get_editable (CLUTTER_TEXT (priv->entry)))
     {
-      StClipboard *clipboard;
+      StSettings *settings;
+      gboolean primary_paste_enabled;
 
-      clipboard = st_clipboard_get_default ();
+      settings = st_settings_get ();
+      g_object_get (settings, "primary-paste", &primary_paste_enabled, NULL);
 
-      /* By the time the clipboard callback is called,
-       * the rest of the signal handlers will have
-       * run, making the text cursor to be in the correct
-       * place.
-       */
-      st_clipboard_get_text (clipboard,
-                             ST_CLIPBOARD_TYPE_PRIMARY,
-                             st_entry_clipboard_callback,
-                             user_data);
+      if (primary_paste_enabled)
+        {
+          StClipboard *clipboard;
+
+          clipboard = st_clipboard_get_default ();
+
+          /* By the time the clipboard callback is called,
+           * the rest of the signal handlers will have
+           * run, making the text cursor to be in the correct
+           * place.
+           */
+          st_clipboard_get_text (clipboard,
+                                 ST_CLIPBOARD_TYPE_PRIMARY,
+                                 st_entry_clipboard_callback,
+                                 user_data);
+        }
     }
 
   return FALSE;
@@ -863,14 +855,13 @@ st_entry_paint (ClutterActor *actor)
       clutter_actor_get_allocation_box (priv->entry, &allocation);
       clutter_actor_box_get_size (&allocation, &width, &height);
 
-      if (priv->text_shadow_material == COGL_INVALID_HANDLE ||
+      if (priv->text_shadow_material == NULL ||
           width != priv->shadow_width ||
           height != priv->shadow_height)
         {
-          CoglHandle material;
+          CoglPipeline *material;
 
-          if (priv->text_shadow_material != COGL_INVALID_HANDLE)
-            cogl_handle_unref (priv->text_shadow_material);
+          cogl_clear_object (&priv->text_shadow_material);
 
           material = _st_create_shadow_pipeline_from_actor (shadow_spec,
                                                             priv->entry);
@@ -880,8 +871,9 @@ st_entry_paint (ClutterActor *actor)
           priv->text_shadow_material = material;
         }
 
-      if (priv->text_shadow_material != COGL_INVALID_HANDLE)
+      if (priv->text_shadow_material != NULL)
         _st_paint_shadow_with_opacity (shadow_spec,
+                                       cogl_get_draw_framebuffer (),
                                        priv->text_shadow_material,
                                        &allocation,
                                        clutter_actor_get_paint_opacity (priv->entry));
@@ -1063,7 +1055,7 @@ st_entry_init (StEntry *entry)
 
   priv->spacing = 6.0f;
 
-  priv->text_shadow_material = COGL_INVALID_HANDLE;
+  priv->text_shadow_material = NULL;
   priv->shadow_width = -1.;
   priv->shadow_height = -1.;
 

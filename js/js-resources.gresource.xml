@@ -78,11 +78,11 @@
     <file>ui/overview.js</file>
     <file>ui/overviewControls.js</file>
     <file>ui/padOsd.js</file>
+    <file>ui/pageIndicators.js</file>
     <file>ui/panel.js</file>
     <file>ui/panelMenu.js</file>
     <file>ui/pointerWatcher.js</file>
     <file>ui/popupMenu.js</file>
-    <file>ui/remoteMenu.js</file>
     <file>ui/remoteSearch.js</file>
     <file>ui/runDialog.js</file>
     <file>ui/screenShield.js</file>

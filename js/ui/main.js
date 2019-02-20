@@ -1,11 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
 const Clutter = imports.gi.Clutter;
-const Gdk = imports.gi.Gdk;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
@@ -129,9 +126,8 @@ function start() {
 
     sessionMode = new SessionMode.SessionMode();
     sessionMode.connect('updated', _sessionUpdated);
-    Gtk.Settings.get_default().connect('notify::gtk-theme-name',
-                                       _loadDefaultStylesheet);
-    Gtk.IconTheme.get_default().add_resource_path('/org/gnome/shell/theme/icons');
+
+    St.Settings.get().connect('notify::gtk-theme', _loadDefaultStylesheet);
     _initializeUI();
 
     shellAccessDialogDBusService = new AccessDialog.AccessDialogDBus();
@@ -281,7 +277,7 @@ function _getDefaultStylesheet() {
 
     // Look for a high-contrast variant first when using GTK+'s HighContrast
     // theme
-    if (Gtk.Settings.get_default().gtk_theme_name == 'HighContrast')
+    if (St.Settings.get().gtk_theme == 'HighContrast')
         stylesheet = _getStylesheet(name.replace('.css', '-high-contrast.css'));
 
     if (stylesheet == null)
@@ -700,15 +696,12 @@ function queueDeferredWork(workId) {
     }
 }
 
-var RestartMessage = new Lang.Class({
-    Name: 'RestartMessage',
-    Extends: ModalDialog.ModalDialog,
-
-    _init(message) {
-        this.parent({ shellReactive: true,
-                      styleClass: 'restart-message headline',
-                      shouldFadeIn: false,
-                      destroyOnClose: true });
+var RestartMessage = class extends ModalDialog.ModalDialog {
+    constructor(message) {
+        super({ shellReactive: true,
+                styleClass: 'restart-message headline',
+                shouldFadeIn: false,
+                destroyOnClose: true });
 
         let label = new St.Label({ text: message });
 
@@ -718,7 +711,7 @@ var RestartMessage = new Lang.Class({
                                         y_align: St.Align.MIDDLE });
         this.buttonLayout.hide();
     }
-});
+};
 
 function showRestartMessage(message) {
     let restartMessage = new RestartMessage(message);

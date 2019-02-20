@@ -241,6 +241,8 @@ st_button_touch_event (ClutterActor      *actor,
 
   if (priv->pressed != 0)
     return CLUTTER_EVENT_PROPAGATE;
+  if ((priv->button_mask & mask) == 0)
+    return CLUTTER_EVENT_PROPAGATE;
 
   device = clutter_event_get_device ((ClutterEvent*) event);
   sequence = clutter_event_get_event_sequence ((ClutterEvent*) event);
@@ -261,6 +263,10 @@ st_button_touch_event (ClutterActor      *actor,
 
       clutter_input_device_sequence_ungrab (device, sequence);
       return CLUTTER_EVENT_STOP;
+    }
+  else if (event->type == CLUTTER_TOUCH_CANCEL)
+    {
+      st_button_fake_release (button);
     }
 
   return CLUTTER_EVENT_PROPAGATE;

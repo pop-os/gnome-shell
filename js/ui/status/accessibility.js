@@ -3,7 +3,7 @@
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Lang = imports.lang;
+const GObject = imports.gi.GObject;
 const Mainloop = imports.mainloop;
 const St = imports.gi.St;
 
@@ -29,17 +29,14 @@ const KEY_VISUAL_BELL               = 'visual-bell';
 const DESKTOP_INTERFACE_SCHEMA      = 'org.gnome.desktop.interface';
 const KEY_GTK_THEME                 = 'gtk-theme';
 const KEY_ICON_THEME                = 'icon-theme';
-const KEY_WM_THEME                  = 'theme';
 const KEY_TEXT_SCALING_FACTOR       = 'text-scaling-factor';
 
 const HIGH_CONTRAST_THEME           = 'HighContrast';
 
-var ATIndicator = new Lang.Class({
-    Name: 'ATIndicator',
-    Extends: PanelMenu.Button,
-
+var ATIndicator = GObject.registerClass(
+class ATIndicator extends PanelMenu.Button {
     _init() {
-        this.parent(0.0, _("Accessibility"));
+        super._init(0.0, _("Accessibility"));
 
         this._hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         this._hbox.add_child(new St.Icon({ style_class: 'system-status-icon',
@@ -85,7 +82,7 @@ var ATIndicator = new Lang.Class({
         this.menu.addMenuItem(mouseKeys);
 
         this._syncMenuVisibility();
-    },
+    }
 
     _syncMenuVisibility() {
         this._syncMenuVisibilityIdle = 0;
@@ -96,7 +93,7 @@ var ATIndicator = new Lang.Class({
         this.actor.visible = alwaysShow || items.some(f => !!f.state);
 
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     _queueSyncMenuVisibility() {
         if (this._syncMenuVisibilityIdle)
@@ -104,7 +101,7 @@ var ATIndicator = new Lang.Class({
 
         this._syncMenuVisibilityIdle = Mainloop.idle_add(this._syncMenuVisibility.bind(this));
         GLib.Source.set_name_by_id(this._syncMenuVisibilityIdle, '[gnome-shell] this._syncMenuVisibility');
-    },
+    }
 
     _buildItemExtended(string, initial_value, writable, on_set) {
         let widget = new PopupMenu.PopupSwitchMenuItem(string, initial_value);
@@ -115,7 +112,7 @@ var ATIndicator = new Lang.Class({
                 on_set(item.state);
             });
         return widget;
-    },
+    }
 
     _buildItem(string, schema, key) {
         let settings = new Gio.Settings({ schema_id: schema });
@@ -130,11 +127,10 @@ var ATIndicator = new Lang.Class({
             settings.is_writable(key),
             enabled => settings.set_boolean(key, enabled));
         return widget;
-    },
+    }
 
     _buildHCItem() {
         let interfaceSettings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });
-        let wmSettings = new Gio.Settings({ schema_id: WM_SCHEMA });
         interfaceSettings.connect('changed::' + KEY_GTK_THEME, () => {
             let value = interfaceSettings.get_string(KEY_GTK_THEME);
             if (value == HIGH_CONTRAST_THEME) {
@@ -151,39 +147,29 @@ var ATIndicator = new Lang.Class({
             if (value != HIGH_CONTRAST_THEME)
                 iconTheme = value;
         });
-        wmSettings.connect('changed::' + KEY_WM_THEME, () => {
-            let value = wmSettings.get_string(KEY_WM_THEME);
-            if (value != HIGH_CONTRAST_THEME)
-                wmTheme = value;
-        });
 
         let gtkTheme = interfaceSettings.get_string(KEY_GTK_THEME);
         let iconTheme = interfaceSettings.get_string(KEY_ICON_THEME);
-        let wmTheme = wmSettings.get_string(KEY_WM_THEME);
         let hasHC = (gtkTheme == HIGH_CONTRAST_THEME);
         let highContrast = this._buildItemExtended(
             _("High Contrast"),
             hasHC,
             interfaceSettings.is_writable(KEY_GTK_THEME) &&
-            interfaceSettings.is_writable(KEY_ICON_THEME) &&
-            wmSettings.is_writable(KEY_WM_THEME),
+            interfaceSettings.is_writable(KEY_ICON_THEME),
             enabled => {
                 if (enabled) {
                     interfaceSettings.set_string(KEY_GTK_THEME, HIGH_CONTRAST_THEME);
                     interfaceSettings.set_string(KEY_ICON_THEME, HIGH_CONTRAST_THEME);
-                    wmSettings.set_string(KEY_WM_THEME, HIGH_CONTRAST_THEME);
                 } else if(!hasHC) {
                     interfaceSettings.set_string(KEY_GTK_THEME, gtkTheme);
                     interfaceSettings.set_string(KEY_ICON_THEME, iconTheme);
-                    wmSettings.set_string(KEY_WM_THEME, wmTheme);
                 } else {
                     interfaceSettings.reset(KEY_GTK_THEME);
                     interfaceSettings.reset(KEY_ICON_THEME);
-                    wmSettings.reset(KEY_WM_THEME);
                 }
             });
         return highContrast;
-    },
+    }
 
     _buildFontItem() {
         let settings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });

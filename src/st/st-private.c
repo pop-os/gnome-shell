@@ -429,6 +429,7 @@ CoglPipeline *
 _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
                                        ClutterActor *actor)
 {
+  ClutterContent *image = NULL;
   CoglPipeline *shadow_pipeline = NULL;
   float width, height;
 
@@ -439,11 +440,12 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
   if (width == 0 || height == 0)
     return NULL;
 
-  if (CLUTTER_IS_TEXTURE (actor))
+  image = clutter_actor_get_content (actor);
+  if (image && CLUTTER_IS_IMAGE (image))
     {
       CoglTexture *texture;
 
-      texture = clutter_texture_get_cogl_texture (CLUTTER_TEXTURE (actor));
+      texture = clutter_image_get_texture (CLUTTER_IMAGE (image));
       if (texture &&
           cogl_texture_get_width (texture) == width &&
           cogl_texture_get_height (texture) == height)
@@ -658,11 +660,11 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
 
 void
 _st_paint_shadow_with_opacity (StShadow        *shadow_spec,
+                               CoglFramebuffer *framebuffer,
                                CoglPipeline    *shadow_pipeline,
                                ClutterActorBox *box,
                                guint8           paint_opacity)
 {
-  CoglFramebuffer *fb = cogl_get_draw_framebuffer ();
   ClutterActorBox shadow_box;
   CoglColor color;
 
@@ -678,7 +680,8 @@ _st_paint_shadow_with_opacity (StShadow        *shadow_spec,
                             shadow_spec->color.alpha * paint_opacity / 255);
   cogl_color_premultiply (&color);
   cogl_pipeline_set_layer_combine_constant (shadow_pipeline, 0, &color);
-  cogl_framebuffer_draw_rectangle (fb, shadow_pipeline,
+  cogl_framebuffer_draw_rectangle (framebuffer,
+                                   shadow_pipeline,
                                    shadow_box.x1, shadow_box.y1,
                                    shadow_box.x2, shadow_box.y2);
 }

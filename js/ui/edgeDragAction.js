@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Lang = imports.lang;
+const GObject = imports.gi.GObject;
 const Signals = imports.signals;
 const Meta = imports.gi.Meta;
 const Clutter = imports.gi.Clutter;
@@ -11,28 +11,26 @@ const Main = imports.ui.main;
 var EDGE_THRESHOLD = 20;
 var DRAG_DISTANCE = 80;
 
-var EdgeDragAction = new Lang.Class({
-    Name: 'EdgeDragAction',
-    Extends: Clutter.GestureAction,
+var EdgeDragAction = GObject.registerClass({
     Signals: { 'activated': {} },
-
+}, class EdgeDragAction extends Clutter.GestureAction {
     _init(side, allowedModes) {
-        this.parent();
+        super._init();
         this._side = side;
         this._allowedModes = allowedModes;
         this.set_n_touch_points(1);
 
         global.display.connect('grab-op-begin', () => { this.cancel(); });
-    },
+    }
 
     _getMonitorRect(x, y) {
         let rect = new Meta.Rectangle({ x: x - 1, y: y - 1, width: 1, height: 1 });
         let monitorIndex = global.display.get_monitor_index_for_rect(rect);
 
         return global.display.get_monitor_geometry(monitorIndex);
-    },
+    }
 
-    vfunc_gesture_prepare(action, actor) {
+    vfunc_gesture_prepare(actor) {
         if (this.get_n_current_points() == 0)
             return false;
 
@@ -46,9 +44,9 @@ var EdgeDragAction = new Lang.Class({
                 (this._side == St.Side.RIGHT && x > monitorRect.x + monitorRect.width - EDGE_THRESHOLD) ||
                 (this._side == St.Side.TOP && y < monitorRect.y + EDGE_THRESHOLD) ||
                 (this._side == St.Side.BOTTOM && y > monitorRect.y + monitorRect.height - EDGE_THRESHOLD));
-    },
+    }
 
-    vfunc_gesture_progress(action, actor) {
+    vfunc_gesture_progress(actor) {
         let [startX, startY] = this.get_press_coords(0);
         let [x, y] = this.get_motion_coords(0);
         let offsetX = Math.abs (x - startX);
@@ -66,9 +64,9 @@ var EdgeDragAction = new Lang.Class({
         }
 
         return true;
-    },
+    }
 
-    vfunc_gesture_end(action, actor) {
+    vfunc_gesture_end(actor) {
         let [startX, startY] = this.get_press_coords(0);
         let [x, y] = this.get_motion_coords(0);
         let monitorRect = this._getMonitorRect(startX, startY);
