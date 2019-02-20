@@ -1,23 +1,83 @@
-3.30.2
+3.31.90
+=======
+* Fix input methods after ibus restarts [Takao; #295]
+* Refresh world clocks and weather sections [Florian; #262]
+* Port to ES6 classes (update your extensions!) [Florian; !361]
+* networkAgent: Advise users when WPS support is available [Lubomir; !329]
+* Performance improvements [Carlos; #832, #815]
+* Fix drag-and-drop with wacom pens [Carlos; #540]
+* Fix CAPS LOCK indication on wayland [Carlos; #762881]
+* Show details of non-sensitive notifications on lock screen [Philip; #726]
+* Refine extension-prefs' error UI [Florian; !193]
+* Add switch-to-application-n keybindings [Florian; #648000]
+* Remove top bar translucency [Florian; #408]
+* Support emojis and keypads in on-screen keyboard [Carlos; #675]
+* Don't allow popups to re-enable keyboard shortcuts on lock screen
+  (CVE-2019-3820) [Florian, Ray; #851]
+* Replace app menu [Florian; #624]
+* Include commonly copied+pasted extension helpers [Florian; !150]
+* Misc. bug fixes and cleanups [Florian, Daniel, Philip, Sergio, Pascal,
+  Georges, verdre, Carlos, Christopher; #780, #909, !316, !308, !309, #915,
+  !350, !362, !357, !365, !366, !283, !367, #942, !371, !373, !374, !343,
+  !375, !292, !317, !377, !379, !346, !383, #953, !388]
+
+Contributors:
+  Sergio Costas, Christopher Davis, Bilal Elmoussaoui, Takao Fujiwara,
+  Carlos Garnacho, Niels De Graef, Christian Kellner, Ignat Loskutov,
+  Florian Müllner, Georges Basile Stavracas Neto, Pascal Nowack, Lubomir Rintel,
+  Jakub Steiner, Ray Strode, verdre, Daniel van Vugt, Philip Withnall
+
+Translators:
+  Daniel Mustieles [es], Carmen Bianca BAKKER [eo], Charles Monzat [fr],
+  Pieter Schalk Schoeman [af], Jordi Mas [ca], Matej Urbančič [sl],
+  Fran Dieguez [gl], Balázs Úr [hu], A S Alam [pa], Fabio Tomat [fur],
+  Aurimas Černius [lt], Piotr Drąg [pl], Marek Cernocky [cs], Ryuta Fujii [ja]
+
+3.31.4
 ======
+* Improve icon grid performance [Daniel; #174]
+* Remove browser plugin [Michael; #766776]
+* Add DBus API for introspecting the application state [Jonas, Olivier; !326]
+* Always allow leaving the overview via the hot-corner [Pascal; #429]
+* Misc. bug fixes [Florian, Jasper, Andrea, Sam, Dani, Cosimo, Jonas, Carlos;
+  #643595, #673767, !293, #783, #781, !298, !297, #782, !301, !314, !305, #799,
+  #632, !327]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Michael Catanzaro, Cosimo Cecchi, daniruiz,
+  Olivier Fourdan, Carlos Garnacho, Sam Hewitt, Andre Klapper, Florian Müllner,
+  Pascal Nowack, Jasper St. Pierre, RyuzakiKK, Marco Trevisan (Treviño),
+  João Paulo Rechi Vita, Daniel van Vugt
+
+Translators:
+  Kristjan SCHMIDT [eo], Matej Urbančič [sl], Daniel Mustieles [es],
+  Fabio Tomat [fur], Emin Tufan Çetin [tr], Anders Jonsson [sv],
+  Ryuta Fujii [ja]
+
+3.31.2
+======
+* Port away from and remove ShellGenericContainer [Georges; !153]
 * popupMenu: Fix keyboard activation when numlock is active [Andrea; #550]
 * Do not block all shortcuts while app folders are expanded [Florian; #648]
 * Fix regression in handling new input sources [Carlos; #691]
+* Reask password after udisk errors for no/wrong passwords [Sebastian; #640]
 * Improve performance of app icon animations [Daniel; !253, !261]
-* Respect natural-scroll setting for workspace swipe gesture [Erik; #516]
+* Avoid focus changes when updating keyboard options [Takao; #391]
 * notifications: Support icon theme names in 'image-path' hint [Marco; !285]
+* Respect natural-scroll setting for workspace swipe gesture [Erik; #516]
 * Confine window preview titles to workspace area [Florian; !214]
-* Misc. bug fixes [Florian, Cosimo; #602, #693, #768, #430, !286]
+* Misc. bug fixes [Florian, Carmen, Georges, Cosimo, Carlos; #602, #693,
+  #666, #647, !66, #768, #430, !286, !258, !287, gtk#1447]
 
 Contributors:
-  Andrea Azzarone, Cosimo Cecchi, Erik Duxstad, Carlos Garnacho,
-  Florian Müllner, Didier Roche, Marco Trevisan (Treviño), verdre,
-  Daniel van Vugt
+  Andrea Azzarone, Carmen Bianca Bakker, Cosimo Cecchi, Sergio Costas,
+  Erik Duxstad, Takao Fujiwara, Carlos Garnacho, Florian Müllner,
+  Georges Basile Stavracas Neto, Sebastian Pinnau, Didier Roche, Jakub Steiner,
+  Marco Trevisan (Treviño), verdre, Daniel van Vugt
 
 Translators:
-  Rūdolfs Mazurs [lv], Kristjan SCHMIDT [eo], Milo Casagrande [it],
-  Dušan Kazik [sk], gogo [hr], Anish Sheela [ml], Rafael Fontenelle [pt_BR],
-  Daniel Mustieles [es]
+  Kristjan SCHMIDT [eo], Dušan Kazik [sk], Matej Urbančič [sl],
+  Anish Sheela [ml], Rafael Fontenelle [pt_BR], Daniel Mustieles [es]
 
 3.30.1
 ======

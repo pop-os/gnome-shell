@@ -4,8 +4,6 @@ const Clutter = imports.gi.Clutter;
 const GdkPixbuf = imports.gi.GdkPixbuf;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
 const Shell = imports.gi.Shell;
 const Mainloop = imports.mainloop;
 const St = imports.gi.St;
@@ -51,10 +49,8 @@ const rewriteRules = {
     ]
 };
 
-var FdoNotificationDaemon = new Lang.Class({
-    Name: 'FdoNotificationDaemon',
-
-    _init() {
+var FdoNotificationDaemon = class FdoNotificationDaemon {
+    constructor() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(FdoNotificationsIface, this);
         this._dbusImpl.export(Gio.DBus.session, '/org/freedesktop/Notifications');
 
@@ -69,7 +65,7 @@ var FdoNotificationDaemon = new Lang.Class({
             this._onFocusAppChanged.bind(this));
         Main.overview.connect('hidden',
             this._onFocusAppChanged.bind(this));
-    },
+    }
 
     _imageForNotificationData(hints) {
         if (hints['image-data']) {
@@ -77,9 +73,11 @@ var FdoNotificationDaemon = new Lang.Class({
                  bitsPerSample, nChannels, data] = hints['image-data'];
             return Shell.util_create_pixbuf_from_data(data, GdkPixbuf.Colorspace.RGB, hasAlpha,
                                                       bitsPerSample, width, height, rowStride);
+        } else if (hints['image-path']) {
+            return this._iconForNotificationData(hints['image-path']);
         }
-        return this._iconForNotificationData(hints['image-path']);
-    },
+        return null;
+    }
 
     _fallbackIconForNotificationData(hints) {
         let stockIcon;
@@ -93,7 +91,7 @@ var FdoNotificationDaemon = new Lang.Class({
                 break;
         }
         return new Gio.ThemedIcon({ name: stockIcon });
-    },
+    }
 
     _iconForNotificationData(icon) {
         if (icon) {
@@ -105,7 +103,7 @@ var FdoNotificationDaemon = new Lang.Class({
                 return new Gio.ThemedIcon({ name: icon });
         }
         return null;
-    },
+    }
 
     _lookupSource(title, pid) {
         for (let i = 0; i < this._sources.length; i++) {
@@ -114,7 +112,7 @@ var FdoNotificationDaemon = new Lang.Class({
                 return source;
         }
         return null;
-    },
+    }
 
     // Returns the source associated with ndata.notification if it is set.
     // If the existing or requested source is associated with a tray icon
@@ -156,7 +154,7 @@ var FdoNotificationDaemon = new Lang.Class({
 
         Main.messageTray.add(source);
         return source;
-    },
+    }
 
     NotifyAsync(params, invocation) {
         let [appName, replacesId, icon, summary, body, actions, hints, timeout] = params;
@@ -264,7 +262,7 @@ var FdoNotificationDaemon = new Lang.Class({
         });
 
         return invocation.return_value(GLib.Variant.new('(u)', [id]));
-    },
+    }
 
     _notifyForSource(source, ndata) {
         let [id, icon, summary, body, actions, hints, notification] =
@@ -292,7 +290,7 @@ var FdoNotificationDaemon = new Lang.Class({
             });
         }
 
-        let gicon = this._iconForNotificationData(icon, hints);
+        let gicon = this._iconForNotificationData(icon);
         let gimage = this._imageForNotificationData(hints);
 
         // If an icon is not specified, we use 'image-data' or 'image-path' hint for an icon
@@ -353,9 +351,13 @@ var FdoNotificationDaemon = new Lang.Class({
         // of the 'transient' hint with hints['transient'] rather than hints.transient
         notification.setTransient(!!hints['transient']);
 
+        let privacyScope = (hints['x-gnome-privacy-scope'] || 'user');
+        notification.setPrivacyScope(privacyScope == 'system' ? MessageTray.PrivacyScope.SYSTEM
+                                                              : MessageTray.PrivacyScope.USER);
+
         let sourceGIcon = source.useNotificationIcon ? gicon : null;
         source.processNotification(notification, sourceGIcon);
-    },
+    }
 
     CloseNotification(id) {
         let ndata = this._notifications[id];
@@ -364,7 +366,7 @@ var FdoNotificationDaemon = new Lang.Class({
                 ndata.notification.destroy(MessageTray.NotificationDestroyedReason.SOURCE_CLOSED);
             delete this._notifications[id];
         }
-    },
+    }
 
     GetCapabilities() {
         return [
@@ -379,7 +381,7 @@ var FdoNotificationDaemon = new Lang.Class({
             'persistence',
             'sound',
         ];
-    },
+    }
 
     GetServerInformation() {
         return [
@@ -388,7 +390,7 @@ var FdoNotificationDaemon = new Lang.Class({
             Config.PACKAGE_VERSION,
             '1.2'
         ];
-    },
+    }
 
     _onFocusAppChanged() {
         let tracker = Shell.WindowTracker.get_default();
@@ -402,30 +404,26 @@ var FdoNotificationDaemon = new Lang.Class({
                 return;
             }
         }
-    },
+    }
 
     _emitNotificationClosed(id, reason) {
         this._dbusImpl.emit_signal('NotificationClosed',
                                    GLib.Variant.new('(uu)', [id, reason]));
-    },
+    }
 
     _emitActionInvoked(id, action) {
         this._dbusImpl.emit_signal('ActionInvoked',
                                    GLib.Variant.new('(us)', [id, action]));
     }
-});
+};
 
-var FdoNotificationDaemonSource = new Lang.Class({
-    Name: 'FdoNotificationDaemonSource',
-    Extends: MessageTray.Source,
+var FdoNotificationDaemonSource =
+class FdoNotificationDaemonSource extends MessageTray.Source {
+    constructor(title, pid, sender, appId) {
+        super(title);
 
-    _init(title, pid, sender, appId) {
-        // Need to set the app before chaining up, so
-        // methods called from the parent constructor can find it
         this.pid = pid;
         this.app = this._getApp(appId);
-
-        this.parent(title);
 
         this.initialTitle = title;
 
@@ -441,7 +439,7 @@ var FdoNotificationDaemonSource = new Lang.Class({
                                                               this._onNameVanished.bind(this));
         else
             this._nameWatcherId = 0;
-    },
+    }
 
     _createPolicy() {
         if (this.app && this.app.get_app_info()) {
@@ -450,7 +448,7 @@ var FdoNotificationDaemonSource = new Lang.Class({
         } else {
             return new MessageTray.NotificationGenericPolicy();
         }
-    },
+    }
 
     _onNameVanished() {
         // Destroy the notification source when its sender is removed from DBus.
@@ -460,7 +458,7 @@ var FdoNotificationDaemonSource = new Lang.Class({
         // so allow the code path that handles the tray icon being removed to handle that case.
         if (this.app)
             this.destroy();
-    },
+    }
 
     processNotification(notification, gicon) {
         if (gicon)
@@ -472,7 +470,7 @@ var FdoNotificationDaemonSource = new Lang.Class({
             this.pushNotification(notification);
         else
             this.notify(notification);
-    },
+    }
 
     _getApp(appId) {
         let app;
@@ -488,7 +486,7 @@ var FdoNotificationDaemonSource = new Lang.Class({
         }
 
         return null;
-    },
+    }
 
     setTitle(title) {
         // Do nothing if .app is set, we don't want to override the
@@ -497,13 +495,13 @@ var FdoNotificationDaemonSource = new Lang.Class({
         if (this.app)
             return;
 
-        this.parent(title);
-    },
+        super.setTitle(title);
+    }
 
     open() {
         this.openApp();
         this.destroyNonResidentNotifications();
-    },
+    }
 
     openApp() {
         if (this.app == null)
@@ -512,7 +510,7 @@ var FdoNotificationDaemonSource = new Lang.Class({
         this.app.activate();
         Main.overview.hide();
         Main.panel.closeCalendar();
-    },
+    }
 
     destroy() {
         if (this._nameWatcherId) {
@@ -520,8 +518,8 @@ var FdoNotificationDaemonSource = new Lang.Class({
             this._nameWatcherId = 0;
         }
 
-        this.parent();
-    },
+        super.destroy();
+    }
 
     createIcon(size) {
         if (this.app) {
@@ -533,7 +531,7 @@ var FdoNotificationDaemonSource = new Lang.Class({
             return null;
         }
     }
-});
+};
 
 const PRIORITY_URGENCY_MAP = {
     low: MessageTray.Urgency.LOW,
@@ -542,12 +540,10 @@ const PRIORITY_URGENCY_MAP = {
     urgent: MessageTray.Urgency.CRITICAL
 };
 
-var GtkNotificationDaemonNotification = new Lang.Class({
-    Name: 'GtkNotificationDaemonNotification',
-    Extends: MessageTray.Notification,
-
-    _init(source, notification) {
-        this.parent(source);
+var GtkNotificationDaemonNotification =
+class GtkNotificationDaemonNotification extends MessageTray.Notification {
+    constructor(source, notification) {
+        super(source);
         this._serialized = GLib.Variant.new('a{sv}', notification);
 
         let { "title": title,
@@ -584,7 +580,7 @@ var GtkNotificationDaemonNotification = new Lang.Class({
         this.update(title.unpack(), body ? body.unpack() : null,
                     { gicon: gicon ? Gio.icon_deserialize(gicon) : null,
                       datetime : time ? GLib.DateTime.new_from_unix_local(time.unpack()) : null });
-    },
+    }
 
     _activateAction(namespacedActionId, target) {
         if (namespacedActionId) {
@@ -595,22 +591,22 @@ var GtkNotificationDaemonNotification = new Lang.Class({
         } else {
             this.source.open();
         }
-    },
+    }
 
     _onButtonClicked(button) {
         let { 'action': action, 'target': actionTarget } = button;
         this._activateAction(action.unpack(), actionTarget);
-    },
+    }
 
     activate() {
         this._activateAction(this._defaultAction, this._defaultActionTarget);
-        this.parent();
-    },
+        super.activate();
+    }
 
     serialize() {
         return this._serialized;
-    },
-});
+    }
+};
 
 const FdoApplicationIface = loadInterfaceXML('org.freedesktop.Application');
 const FdoApplicationProxy = Gio.DBusProxy.makeProxyWrapper(FdoApplicationIface);
@@ -626,37 +622,42 @@ function getPlatformData() {
 
 function InvalidAppError() {}
 
-var GtkNotificationDaemonAppSource = new Lang.Class({
-    Name: 'GtkNotificationDaemonAppSource',
-    Extends: MessageTray.Source,
+var GtkNotificationDaemonAppSource = 
+class GtkNotificationDaemonAppSource extends MessageTray.Source {
+    constructor(appId) {
+        let objectPath = objectPathFromAppId(appId);
+        if (!GLib.Variant.is_object_path(objectPath))
+            throw new InvalidAppError();
 
-    _init(appId) {
+        let app = Shell.AppSystem.get_default().lookup_app(appId + '.desktop');
+        if (!app)
+            throw new InvalidAppError();
+
+        super(app.get_name());
+
         this._appId = appId;
-        this._objectPath = objectPathFromAppId(appId);
-        if (!GLib.Variant.is_object_path(this._objectPath))
-            throw new InvalidAppError();
-
-        this._app = Shell.AppSystem.get_default().lookup_app(appId + '.desktop');
-        if (!this._app)
-            throw new InvalidAppError();
+        this._app = app;
+        this._objectPath = objectPath;
 
         this._notifications = {};
         this._notificationPending = false;
-
-        this.parent(this._app.get_name());
-    },
+    }
 
     createIcon(size) {
         return this._app.create_icon_texture(size);
-    },
+    }
 
     _createPolicy() {
         return new MessageTray.NotificationApplicationPolicy(this._appId);
-    },
+    }
 
     _createApp(callback) {
         return new FdoApplicationProxy(Gio.DBus.session, this._appId, this._objectPath, callback);
-    },
+    }
+
+    _createNotification(params) {
+        return new GtkNotificationDaemonNotification(this, params);
+    }
 
     activateAction(actionId, target) {
         this._createApp((app, error) => {
@@ -667,7 +668,7 @@ var GtkNotificationDaemonAppSource = new Lang.Class({
         });
         Main.overview.hide();
         Main.panel.closeCalendar();
-    },
+    }
 
     open() {
         this._createApp((app, error) => {
@@ -678,15 +679,15 @@ var GtkNotificationDaemonAppSource = new Lang.Class({
         });
         Main.overview.hide();
         Main.panel.closeCalendar();
-    },
+    }
 
     addNotification(notificationId, notificationParams, showBanner) {
         this._notificationPending = true;
 
         if (this._notifications[notificationId])
-            this._notifications[notificationId].destroy();
+            this._notifications[notificationId].destroy(MessageTray.NotificationDestroyedReason.REPLACED);
 
-        let notification = new GtkNotificationDaemonNotification(this, notificationParams);
+        let notification = this._createNotification(notificationParams);
         notification.connect('destroy', () => {
             delete this._notifications[notificationId];
         });
@@ -698,18 +699,18 @@ var GtkNotificationDaemonAppSource = new Lang.Class({
             this.pushNotification(notification);
 
         this._notificationPending = false;
-    },
+    }
 
     destroy(reason) {
         if (this._notificationPending)
             return;
-        this.parent(reason);
-    },
+        super.destroy(reason);
+    }
 
     removeNotification(notificationId) {
         if (this._notifications[notificationId])
             this._notifications[notificationId].destroy(MessageTray.NotificationDestroyedReason.SOURCE_CLOSED);
-    },
+    }
 
     serialize() {
         let notifications = [];
@@ -718,15 +719,13 @@ var GtkNotificationDaemonAppSource = new Lang.Class({
             notifications.push([notificationId, notification.serialize()]);
         }
         return [this._appId, notifications];
-    },
-});
+    }
+};
 
 const GtkNotificationsIface = loadInterfaceXML('org.gtk.Notifications');
 
-var GtkNotificationDaemon = new Lang.Class({
-    Name: 'GtkNotificationDaemon',
-
-    _init() {
+var GtkNotificationDaemon = class GtkNotificationDaemon {
+    constructor() {
         this._sources = {};
 
         this._loadNotifications();
@@ -735,7 +734,7 @@ var GtkNotificationDaemon = new Lang.Class({
         this._dbusImpl.export(Gio.DBus.session, '/org/gtk/Notifications');
 
         Gio.DBus.session.own_name('org.gtk.Notifications', Gio.BusNameOwnerFlags.REPLACE, null, null);
-    },
+    }
 
     _ensureAppSource(appId) {
         if (this._sources[appId])
@@ -751,7 +750,7 @@ var GtkNotificationDaemon = new Lang.Class({
         Main.messageTray.add(source);
         this._sources[appId] = source;
         return source;
-    },
+    }
 
     _loadNotifications() {
         this._isLoading = true;
@@ -779,7 +778,7 @@ var GtkNotificationDaemon = new Lang.Class({
         }
 
         this._isLoading = false;
-    },
+    }
 
     _saveNotifications() {
         if (this._isLoading)
@@ -792,7 +791,7 @@ var GtkNotificationDaemon = new Lang.Class({
         }
 
         global.set_persistent_state('notifications', new GLib.Variant('a(sa(sv))', sources));
-    },
+    }
 
     AddNotificationAsync(params, invocation) {
         let [appId, notificationId, notification] = params;
@@ -814,7 +813,7 @@ var GtkNotificationDaemon = new Lang.Class({
         source.addNotification(notificationId, notification, true);
 
         invocation.return_value(null);
-    },
+    }
 
     RemoveNotificationAsync(params, invocation) {
         let [appId, notificationId] = params;
@@ -823,14 +822,12 @@ var GtkNotificationDaemon = new Lang.Class({
             source.removeNotification(notificationId);
 
         invocation.return_value(null);
-    },
-});
+    }
+};
 
-var NotificationDaemon = new Lang.Class({
-    Name: 'NotificationDaemon',
-
-    _init() {
+var NotificationDaemon = class NotificationDaemon {
+    constructor() {
         this._fdoNotificationDaemon = new FdoNotificationDaemon();
         this._gtkNotificationDaemon = new GtkNotificationDaemon();
-    },
-});
+    }
+};

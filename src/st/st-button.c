@@ -241,6 +241,8 @@ st_button_touch_event (ClutterActor      *actor,
 
   if (priv->pressed != 0)
     return CLUTTER_EVENT_PROPAGATE;
+  if ((priv->button_mask & mask) == 0)
+    return CLUTTER_EVENT_PROPAGATE;
 
   device = clutter_event_get_device ((ClutterEvent*) event);
   sequence = clutter_event_get_event_sequence ((ClutterEvent*) event);
@@ -248,16 +250,23 @@ st_button_touch_event (ClutterActor      *actor,
   if (event->type == CLUTTER_TOUCH_BEGIN && !priv->press_sequence)
     {
       clutter_input_device_sequence_grab (device, sequence, actor);
-      st_button_press (button, device, 0, sequence);
+      if (!clutter_event_is_pointer_emulated ((ClutterEvent*) event))
+        st_button_press (button, device, 0, sequence);
       return CLUTTER_EVENT_STOP;
     }
   else if (event->type == CLUTTER_TOUCH_END &&
            priv->device == device &&
            priv->press_sequence == sequence)
     {
-      st_button_release (button, device, mask, 0, sequence);
+      if (!clutter_event_is_pointer_emulated ((ClutterEvent*) event))
+        st_button_release (button, device, mask, 0, sequence);
+
       clutter_input_device_sequence_ungrab (device, sequence);
       return CLUTTER_EVENT_STOP;
+    }
+  else if (event->type == CLUTTER_TOUCH_CANCEL)
+    {
+      st_button_fake_release (button);
     }
 
   return CLUTTER_EVENT_PROPAGATE;

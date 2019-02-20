@@ -2,8 +2,7 @@
 
 const Clutter = imports.gi.Clutter;
 const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
+const GObject = imports.gi.GObject;
 const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
@@ -37,25 +36,24 @@ function primaryModifier(mask) {
     return primary;
 }
 
-var SwitcherPopup = new Lang.Class({
-    Name: 'SwitcherPopup',
-    Abstract: true,
-
+var SwitcherPopup = GObject.registerClass(
+class SwitcherPopup extends St.Widget {
     _init(items) {
+        if (new.target === SwitcherPopup)
+            throw new TypeError('Cannot instantiate abstract class ' + new.target.name);
+
+        super._init({ style_class: 'switcher-popup',
+                      reactive: true,
+                      visible: false });
+
         this._switcherList = null;
 
         this._items = items || [];
         this._selectedIndex = 0;
 
-        this.actor = new Shell.GenericContainer({ style_class: 'switcher-popup',
-                                                  reactive: true,
-                                                  visible: false });
-        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this.actor.connect('allocate', this._allocate.bind(this));
-        this.actor.connect('destroy', this._onDestroy.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
 
-        Main.uiGroup.add_actor(this.actor);
+        Main.uiGroup.add_actor(this);
 
         this._haveModal = false;
         this._modifierMask = 0;
@@ -64,43 +62,36 @@ var SwitcherPopup = new Lang.Class({
         this._initialDelayTimeoutId = 0;
         this._noModsTimeoutId = 0;
 
+        this.add_constraint(new Clutter.BindConstraint({
+            source: global.stage,
+            coordinate: Clutter.BindCoordinate.ALL,
+        }));
+
         // Initially disable hover so we ignore the enter-event if
         // the switcher appears underneath the current pointer location
         this._disableHover();
-    },
+    }
 
-    _getPreferredWidth(actor, forHeight, alloc) {
-        let primary = Main.layoutManager.primaryMonitor;
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
 
-        alloc.min_size = primary.width;
-        alloc.natural_size = primary.width;
-    },
-
-    _getPreferredHeight(actor, forWidth, alloc) {
-        let primary = Main.layoutManager.primaryMonitor;
-
-        alloc.min_size = primary.height;
-        alloc.natural_size = primary.height;
-    },
-
-    _allocate(actor, box, flags) {
         let childBox = new Clutter.ActorBox();
         let primary = Main.layoutManager.primaryMonitor;
 
-        let leftPadding = this.actor.get_theme_node().get_padding(St.Side.LEFT);
-        let rightPadding = this.actor.get_theme_node().get_padding(St.Side.RIGHT);
+        let leftPadding = this.get_theme_node().get_padding(St.Side.LEFT);
+        let rightPadding = this.get_theme_node().get_padding(St.Side.RIGHT);
         let hPadding = leftPadding + rightPadding;
 
         // Allocate the switcherList
         // We select a size based on an icon size that does not overflow the screen
-        let [childMinHeight, childNaturalHeight] = this._switcherList.actor.get_preferred_height(primary.width - hPadding);
-        let [childMinWidth, childNaturalWidth] = this._switcherList.actor.get_preferred_width(childNaturalHeight);
+        let [childMinHeight, childNaturalHeight] = this._switcherList.get_preferred_height(primary.width - hPadding);
+        let [childMinWidth, childNaturalWidth] = this._switcherList.get_preferred_width(childNaturalHeight);
         childBox.x1 = Math.max(primary.x + leftPadding, primary.x + Math.floor((primary.width - childNaturalWidth) / 2));
         childBox.x2 = Math.min(primary.x + primary.width - rightPadding, childBox.x1 + childNaturalWidth);
         childBox.y1 = primary.y + Math.floor((primary.height - childNaturalHeight) / 2);
         childBox.y2 = childBox.y1 + childNaturalHeight;
-        this._switcherList.actor.allocate(childBox, flags);
-    },
+        this._switcherList.allocate(childBox, flags);
+    }
 
     _initialSelection(backward, binding) {
         if (backward)
@@ -109,37 +100,36 @@ var SwitcherPopup = new Lang.Class({
             this._select(0);
         else
             this._select(1);
-    },
+    }
 
     show(backward, binding, mask) {
         if (this._items.length == 0)
             return false;
 
-        if (!Main.pushModal(this.actor)) {
+        if (!Main.pushModal(this)) {
             // Probably someone else has a pointer grab, try again with keyboard only
-            if (!Main.pushModal(this.actor, { options: Meta.ModalOptions.POINTER_ALREADY_GRABBED })) {
+            if (!Main.pushModal(this, { options: Meta.ModalOptions.POINTER_ALREADY_GRABBED }))
                 return false;
-            }
         }
         this._haveModal = true;
         this._modifierMask = primaryModifier(mask);
 
-        this.actor.connect('key-press-event', this._keyPressEvent.bind(this));
-        this.actor.connect('key-release-event', this._keyReleaseEvent.bind(this));
+        this.connect('key-press-event', this._keyPressEvent.bind(this));
+        this.connect('key-release-event', this._keyReleaseEvent.bind(this));
 
-        this.actor.connect('button-press-event', this._clickedOutside.bind(this));
-        this.actor.connect('scroll-event', this._scrollEvent.bind(this));
+        this.connect('button-press-event', this._clickedOutside.bind(this));
+        this.connect('scroll-event', this._scrollEvent.bind(this));
 
-        this.actor.add_actor(this._switcherList.actor);
+        this.add_actor(this._switcherList);
         this._switcherList.connect('item-activated', this._itemActivated.bind(this));
         this._switcherList.connect('item-entered', this._itemEntered.bind(this));
         this._switcherList.connect('item-removed', this._itemRemoved.bind(this));
 
         // Need to force an allocation so we can figure out whether we
         // need to scroll when selecting
-        this.actor.opacity = 0;
-        this.actor.show();
-        this.actor.get_allocation_box();
+        this.opacity = 0;
+        this.visible = true;
+        this.get_allocation_box();
 
         this._initialSelection(backward, binding);
 
@@ -163,25 +153,25 @@ var SwitcherPopup = new Lang.Class({
         this._initialDelayTimeoutId = Mainloop.timeout_add(POPUP_DELAY_TIMEOUT,
                                                            () => {
                                                                Main.osdWindowManager.hideAll();
-                                                               this.actor.opacity = 255;
+                                                               this.opacity = 255;
                                                                this._initialDelayTimeoutId = 0;
                                                                return GLib.SOURCE_REMOVE;
                                                            });
         GLib.Source.set_name_by_id(this._initialDelayTimeoutId, '[gnome-shell] Main.osdWindow.cancel');
         return true;
-    },
+    }
 
     _next() {
         return mod(this._selectedIndex + 1, this._items.length);
-    },
+    }
 
     _previous() {
         return mod(this._selectedIndex - 1, this._items.length);
-    },
+    }
 
     _keyPressHandler(keysym, action) {
         throw new Error('Not implemented');
-    },
+    }
 
     _keyPressEvent(actor, event) {
         let keysym = event.get_key_symbol();
@@ -195,10 +185,10 @@ var SwitcherPopup = new Lang.Class({
         // Note: pressing one of the below keys will destroy the popup only if
         // that key is not used by the active popup's keyboard shortcut
         if (keysym == Clutter.Escape || keysym == Clutter.Tab)
-            this.destroy();
+            this.fadeAndDestroy();
 
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _keyReleaseEvent(actor, event) {
         if (this._modifierMask) {
@@ -212,56 +202,56 @@ var SwitcherPopup = new Lang.Class({
         }
 
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _clickedOutside(actor, event) {
-        this.destroy();
+        this.fadeAndDestroy();
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _scrollHandler(direction) {
         if (direction == Clutter.ScrollDirection.UP)
             this._select(this._previous());
         else if (direction == Clutter.ScrollDirection.DOWN)
             this._select(this._next());
-    },
+    }
 
     _scrollEvent(actor, event) {
         this._scrollHandler(event.get_scroll_direction());
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _itemActivatedHandler(n) {
         this._select(n);
-    },
+    }
 
     _itemActivated(switcher, n) {
         this._itemActivatedHandler(n);
         this._finish(global.get_current_time());
-    },
+    }
 
     _itemEnteredHandler(n) {
         this._select(n);
-    },
+    }
 
     _itemEntered(switcher, n) {
         if (!this.mouseActive)
             return;
         this._itemEnteredHandler(n);
-    },
+    }
 
     _itemRemovedHandler(n) {
         if (this._items.length > 0) {
             let newIndex = Math.min(n, this._items.length - 1);
             this._select(newIndex);
         } else {
-            this.actor.destroy();
+            this.fadeAndDestroy();
         }
-    },
+    }
 
     _itemRemoved(switcher, n) {
         this._itemRemovedHandler(n);
-    },
+    }
 
     _disableHover() {
         this.mouseActive = false;
@@ -271,13 +261,13 @@ var SwitcherPopup = new Lang.Class({
 
         this._motionTimeoutId = Mainloop.timeout_add(DISABLE_HOVER_TIMEOUT, this._mouseTimedOut.bind(this));
         GLib.Source.set_name_by_id(this._motionTimeoutId, '[gnome-shell] this._mouseTimedOut');
-    },
+    }
 
     _mouseTimedOut() {
         this._motionTimeoutId = 0;
         this.mouseActive = true;
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     _resetNoModsTimeout() {
         if (this._noModsTimeoutId != 0)
@@ -289,33 +279,34 @@ var SwitcherPopup = new Lang.Class({
                                                          this._noModsTimeoutId = 0;
                                                          return GLib.SOURCE_REMOVE;
                                                      });
-    },
+    }
 
     _popModal() {
         if (this._haveModal) {
-            Main.popModal(this.actor);
+            Main.popModal(this);
             this._haveModal = false;
         }
-    },
+    }
 
-    destroy() {
+    fadeAndDestroy() {
         this._popModal();
-        if (this.actor.visible) {
-            Tweener.addTween(this.actor,
+        if (this.visible) {
+            Tweener.addTween(this,
                              { opacity: 0,
                                time: POPUP_FADE_OUT_TIME,
                                transition: 'easeOutQuad',
                                onComplete: () => {
-                                   this.actor.destroy();
+                                   this.destroy();
                                }
                              });
-        } else
-            this.actor.destroy();
-    },
+        } else {
+            this.destroy();
+        }
+    }
 
     _finish(timestamp) {
-        this.destroy();
-    },
+        this.fadeAndDestroy();
+    }
 
     _onDestroy() {
         this._popModal();
@@ -326,7 +317,7 @@ var SwitcherPopup = new Lang.Class({
             Mainloop.source_remove(this._initialDelayTimeoutId);
         if (this._noModsTimeoutId != 0)
             Mainloop.source_remove(this._noModsTimeoutId);
-    },
+    }
 
     _select(num) {
         this._selectedIndex = num;
@@ -334,35 +325,49 @@ var SwitcherPopup = new Lang.Class({
     }
 });
 
-var SwitcherList = new Lang.Class({
-    Name: 'SwitcherList',
+var SwitcherButton = GObject.registerClass(
+class SwitcherButton extends St.Button {
+    _init(square) {
+        super._init({ style_class: 'item-box',
+                      reactive: true });
 
+        this._square = square;
+    }
+
+    vfunc_get_preferred_width(forHeight) {
+        if (this._square)
+            return this.get_preferred_height(-1);
+        else
+            return super.vfunc_get_preferred_width(forHeight);
+    }
+});
+
+var SwitcherList = GObject.registerClass({
+    Signals: { 'item-activated': { param_types: [GObject.TYPE_INT] },
+               'item-entered': { param_types: [GObject.TYPE_INT] },
+               'item-removed': { param_types: [GObject.TYPE_INT] } },
+}, class SwitcherList extends St.Widget {
     _init(squareItems) {
-        this.actor = new Shell.GenericContainer({ style_class: 'switcher-list' });
-        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this.actor.connect('allocate', this._allocateTop.bind(this));
+        super._init({ style_class: 'switcher-list' });
 
-        // Here we use a GenericContainer so that we can force all the
-        // children to have the same width.
-        this._list = new Shell.GenericContainer({ style_class: 'switcher-list-item-container' });
+        this._list = new St.BoxLayout({ style_class: 'switcher-list-item-container',
+                                        vertical: false,
+                                        x_expand: true,
+                                        y_expand: true });
+
+        let layoutManager = this._list.get_layout_manager();
+
         this._list.spacing = 0;
         this._list.connect('style-changed', () => {
             this._list.spacing = this._list.get_theme_node().get_length('spacing');
         });
 
-        this._list.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this._list.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this._list.connect('allocate', this._allocate.bind(this));
-
         this._scrollView = new St.ScrollView({ style_class: 'hfade',
                                                enable_mouse_scrolling: false });
-        this._scrollView.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER);
+        this._scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.NEVER);
 
-        let scrollBox = new St.BoxLayout();
-        scrollBox.add_actor(this._list);
-        this._scrollView.add_actor(scrollBox);
-        this.actor.add_actor(this._scrollView);
+        this._scrollView.add_actor(this._list);
+        this.add_actor(this._scrollView);
 
         // Those arrows indicate whether scrolling in one direction is possible
         this._leftArrow = new St.DrawingArea({ style_class: 'switcher-arrow',
@@ -376,50 +381,20 @@ var SwitcherList = new Lang.Class({
             drawArrow(this._rightArrow, St.Side.RIGHT);
         });
 
-        this.actor.add_actor(this._leftArrow);
-        this.actor.add_actor(this._rightArrow);
+        this.add_actor(this._leftArrow);
+        this.add_actor(this._rightArrow);
 
         this._items = [];
         this._highlighted = -1;
         this._squareItems = squareItems;
-        this._minSize = 0;
         this._scrollableRight = true;
         this._scrollableLeft = false;
-    },
 
-    _allocateTop(actor, box, flags) {
-        let leftPadding = this.actor.get_theme_node().get_padding(St.Side.LEFT);
-        let rightPadding = this.actor.get_theme_node().get_padding(St.Side.RIGHT);
-
-        let childBox = new Clutter.ActorBox();
-        let scrollable = this._minSize > box.x2 - box.x1;
-
-        box.y1 -= this.actor.get_theme_node().get_padding(St.Side.TOP);
-        box.y2 += this.actor.get_theme_node().get_padding(St.Side.BOTTOM);
-        this._scrollView.allocate(box, flags);
-
-        let arrowWidth = Math.floor(leftPadding / 3);
-        let arrowHeight = arrowWidth * 2;
-        childBox.x1 = leftPadding / 2;
-        childBox.y1 = this.actor.height / 2 - arrowWidth;
-        childBox.x2 = childBox.x1 + arrowWidth;
-        childBox.y2 = childBox.y1 + arrowHeight;
-        this._leftArrow.allocate(childBox, flags);
-        this._leftArrow.opacity = (this._scrollableLeft && scrollable) ? 255 : 0;
-
-        arrowWidth = Math.floor(rightPadding / 3);
-        arrowHeight = arrowWidth * 2;
-        childBox.x1 = this.actor.width - arrowWidth - rightPadding / 2;
-        childBox.y1 = this.actor.height / 2 - arrowWidth;
-        childBox.x2 = childBox.x1 + arrowWidth;
-        childBox.y2 = childBox.y1 + arrowHeight;
-        this._rightArrow.allocate(childBox, flags);
-        this._rightArrow.opacity = (this._scrollableRight && scrollable) ? 255 : 0;
-    },
+        layoutManager.homogeneous = squareItems;
+    }
 
     addItem(item, label) {
-        let bbox = new St.Button({ style_class: 'item-box',
-                                   reactive: true });
+        let bbox = new SwitcherButton(this._squareItems);
 
         bbox.set_child(item);
         this._list.add_actor(bbox);
@@ -433,17 +408,17 @@ var SwitcherList = new Lang.Class({
         this._items.push(bbox);
 
         return bbox;
-    },
+    }
 
     removeItem(index) {
         let item = this._items.splice(index, 1);
         item[0].destroy();
         this.emit('item-removed', index);
-    },
+    }
 
     _onItemClicked(index) {
         this._itemActivated(index);
-    },
+    }
 
     _onItemEnter(index) {
         // Avoid reentrancy
@@ -452,7 +427,7 @@ var SwitcherList = new Lang.Class({
             this._itemEntered(index);
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     highlight(index, justOutline) {
         if (this._items[this._highlighted]) {
@@ -472,14 +447,14 @@ var SwitcherList = new Lang.Class({
         let adjustment = this._scrollView.hscroll.adjustment;
         let [value, lower, upper, stepIncrement, pageIncrement, pageSize] = adjustment.get_values();
         let [absItemX, absItemY] = this._items[index].get_transformed_position();
-        let [result, posX, posY] = this.actor.transform_stage_point(absItemX, 0);
-        let [containerWidth, containerHeight] = this.actor.get_transformed_size();
+        let [result, posX, posY] = this.transform_stage_point(absItemX, 0);
+        let [containerWidth, containerHeight] = this.get_transformed_size();
         if (posX + this._items[index].get_width() > containerWidth)
             this._scrollToRight();
         else if (this._items[index].allocation.x1 - value < 0)
             this._scrollToLeft();
 
-    },
+    }
 
     _scrollToLeft() {
         let adjustment = this._scrollView.hscroll.adjustment;
@@ -500,10 +475,10 @@ var SwitcherList = new Lang.Class({
                            onComplete: () => {
                                 if (this._highlighted == 0)
                                     this._scrollableLeft = false;
-                                this.actor.queue_relayout();
+                                this.queue_relayout();
                            }
                           });
-    },
+    }
 
     _scrollToRight() {
         let adjustment = this._scrollView.hscroll.adjustment;
@@ -524,18 +499,18 @@ var SwitcherList = new Lang.Class({
                            onComplete: () => {
                                 if (this._highlighted == this._items.length - 1)
                                     this._scrollableRight = false;
-                                this.actor.queue_relayout();
+                                this.queue_relayout();
                             }
                           });
-    },
+    }
 
     _itemActivated(n) {
         this.emit('item-activated', n);
-    },
+    }
 
     _itemEntered(n) {
         this.emit('item-entered', n);
-    },
+    }
 
     _maxChildWidth(forHeight) {
         let maxChildMin = 0;
@@ -554,18 +529,17 @@ var SwitcherList = new Lang.Class({
         }
 
         return [maxChildMin, maxChildNat];
-    },
+    }
 
-    _getPreferredWidth(actor, forHeight, alloc) {
-        let [maxChildMin, maxChildNat] = this._maxChildWidth(forHeight);
+    vfunc_get_preferred_width(forHeight) {
+        let themeNode = this.get_theme_node();
+        let [maxChildMin, ] = this._maxChildWidth(forHeight);
+        let [minListWidth, ] = this._list.get_preferred_width(forHeight);
 
-        let totalSpacing = Math.max(this._list.spacing * (this._items.length - 1), 0);
-        alloc.min_size = this._items.length * maxChildMin + totalSpacing;
-        alloc.natural_size = alloc.min_size;
-        this._minSize = alloc.min_size;
-    },
+        return themeNode.adjust_preferred_width(maxChildMin, minListWidth);
+    }
 
-    _getPreferredHeight(actor, forWidth, alloc) {
+    vfunc_get_preferred_height(forWidth) {
         let maxChildMin = 0;
         let maxChildNat = 0;
 
@@ -581,44 +555,46 @@ var SwitcherList = new Lang.Class({
             maxChildNat = maxChildMin;
         }
 
-        alloc.min_size = maxChildMin;
-        alloc.natural_size = maxChildNat;
-    },
+        let themeNode = this.get_theme_node();
+        return themeNode.adjust_preferred_height(maxChildMin, maxChildNat);
+    }
 
-    _allocate(actor, box, flags) {
-        let childHeight = box.y2 - box.y1;
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
 
-        let [maxChildMin, maxChildNat] = this._maxChildWidth(childHeight);
-        let totalSpacing = Math.max(this._list.spacing * (this._items.length - 1), 0);
+        let contentBox = this.get_theme_node().get_content_box(box);
+        let width = contentBox.x2 - contentBox.x1;
+        let height = contentBox.y2 - contentBox.y1;
 
-        let childWidth = Math.floor(Math.max(0, box.x2 - box.x1 - totalSpacing) / this._items.length);
+        let leftPadding = this.get_theme_node().get_padding(St.Side.LEFT);
+        let rightPadding = this.get_theme_node().get_padding(St.Side.RIGHT);
 
-        let x = 0;
-        let children = this._list.get_children();
+        let [, natScrollViewWidth] = this._scrollView.get_preferred_width(height);
+
         let childBox = new Clutter.ActorBox();
+        let scrollable = natScrollViewWidth > width;
 
-        let primary = Main.layoutManager.primaryMonitor;
-        let parentRightPadding = this.actor.get_parent().get_theme_node().get_padding(St.Side.RIGHT);
+        this._scrollView.allocate(contentBox, flags);
 
-        for (let i = 0; i < children.length; i++) {
-            if (this._items.indexOf(children[i]) != -1) {
-                let [childMin, childNat] = children[i].get_preferred_height(childWidth);
-                let vSpacing = (childHeight - childNat) / 2;
-                childBox.x1 = x;
-                childBox.y1 = vSpacing;
-                childBox.x2 = x + childWidth;
-                childBox.y2 = childBox.y1 + childNat;
-                children[i].allocate(childBox, flags);
+        let arrowWidth = Math.floor(leftPadding / 3);
+        let arrowHeight = arrowWidth * 2;
+        childBox.x1 = leftPadding / 2;
+        childBox.y1 = this.height / 2 - arrowWidth;
+        childBox.x2 = childBox.x1 + arrowWidth;
+        childBox.y2 = childBox.y1 + arrowHeight;
+        this._leftArrow.allocate(childBox, flags);
+        this._leftArrow.opacity = (this._scrollableLeft && scrollable) ? 255 : 0;
 
-                x += this._list.spacing + childWidth;
-            } else {
-                // Something else, eg, AppSwitcher's arrows;
-                // we don't allocate it.
-            }
-        }
+        arrowWidth = Math.floor(rightPadding / 3);
+        arrowHeight = arrowWidth * 2;
+        childBox.x1 = this.width - arrowWidth - rightPadding / 2;
+        childBox.y1 = this.height / 2 - arrowWidth;
+        childBox.x2 = childBox.x1 + arrowWidth;
+        childBox.y2 = childBox.y1 + arrowHeight;
+        this._rightArrow.allocate(childBox, flags);
+        this._rightArrow.opacity = (this._scrollableRight && scrollable) ? 255 : 0;
     }
 });
-Signals.addSignalMethods(SwitcherList.prototype);
 
 function drawArrow(area, side) {
     let themeNode = area.get_theme_node();

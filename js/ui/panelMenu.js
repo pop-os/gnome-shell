@@ -2,8 +2,7 @@
 
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
+const GObject = imports.gi.GObject;
 const Shell = imports.gi.Shell;
 const Signals = imports.signals;
 const St = imports.gi.St;
@@ -13,58 +12,61 @@ const Main = imports.ui.main;
 const Params = imports.misc.params;
 const PopupMenu = imports.ui.popupMenu;
 
-var ButtonBox = new Lang.Class({
-    Name: 'ButtonBox',
-
+var ButtonBox = GObject.registerClass(
+class ButtonBox extends St.Widget {
     _init(params) {
         params = Params.parse(params, { style_class: 'panel-button' }, true);
-        this.actor = new Shell.GenericContainer(params);
-        this.actor._delegate = this;
+
+        super._init(params);
+
+        this.actor = this;
+        this._delegate = this;
 
         this.container = new St.Bin({ y_fill: true,
                                       x_fill: true,
                                       child: this.actor });
 
-        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this.actor.connect('allocate', this._allocate.bind(this));
+        this.connect('style-changed', this._onStyleChanged.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
 
-        this.actor.connect('style-changed', this._onStyleChanged.bind(this));
         this._minHPadding = this._natHPadding = 0.0;
-    },
+    }
 
     _onStyleChanged(actor) {
         let themeNode = actor.get_theme_node();
 
         this._minHPadding = themeNode.get_length('-minimum-hpadding');
         this._natHPadding = themeNode.get_length('-natural-hpadding');
-    },
+    }
 
-    _getPreferredWidth(actor, forHeight, alloc) {
-        let child = actor.get_first_child();
+    vfunc_get_preferred_width(forHeight) {
+        let child = this.get_first_child();
+        let minimumSize, naturalSize;
 
-        if (child) {
-            [alloc.min_size, alloc.natural_size] = child.get_preferred_width(-1);
-        } else {
-            alloc.min_size = alloc.natural_size = 0;
-        }
+        if (child)
+            [minimumSize, naturalSize] = child.get_preferred_width(-1);
+        else
+            minimumSize = naturalSize = 0;
 
-        alloc.min_size += 2 * this._minHPadding;
-        alloc.natural_size += 2 * this._natHPadding;
-    },
+        minimumSize += 2 * this._minHPadding;
+        naturalSize += 2 * this._natHPadding;
 
-    _getPreferredHeight(actor, forWidth, alloc) {
-        let child = actor.get_first_child();
+        return [minimumSize, naturalSize];
+    }
 
-        if (child) {
-            [alloc.min_size, alloc.natural_size] = child.get_preferred_height(-1);
-        } else {
-            alloc.min_size = alloc.natural_size = 0;
-        }
-    },
+    vfunc_get_preferred_height(forWidth) {
+        let child = this.get_first_child();
 
-    _allocate(actor, box, flags) {
-        let child = actor.get_first_child();
+        if (child)
+            return child.get_preferred_height(-1);
+
+        return [0, 0];
+    }
+
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
+
+        let child = this.get_first_child();
         if (!child)
             return;
 
@@ -86,34 +88,38 @@ var ButtonBox = new Lang.Class({
         childBox.y2 = availHeight;
 
         child.allocate(childBox, flags);
-    },
+    }
+
+    _onDestroy() {
+        this.container.child = null;
+        this.container.destroy();
+    }
 });
 
-var Button = new Lang.Class({
-    Name: 'PanelMenuButton',
-    Extends: ButtonBox,
-
+var Button = GObject.registerClass({
+    Signals: {'menu-set': {} },
+}, class PanelMenuButton extends ButtonBox {
     _init(menuAlignment, nameText, dontCreateMenu) {
-        this.parent({ reactive: true,
+        super._init({ reactive: true,
                       can_focus: true,
                       track_hover: true,
                       accessible_name: nameText ? nameText : "",
                       accessible_role: Atk.Role.MENU });
 
-        this.actor.connect('event', this._onEvent.bind(this));
-        this.actor.connect('notify::visible', this._onVisibilityChanged.bind(this));
+        this.connect('event', this._onEvent.bind(this));
+        this.connect('notify::visible', this._onVisibilityChanged.bind(this));
 
         if (dontCreateMenu)
             this.menu = new PopupMenu.PopupDummyMenu(this.actor);
         else
             this.setMenu(new PopupMenu.PopupMenu(this.actor, menuAlignment, St.Side.TOP, 0));
-    },
+    }
 
     setSensitive(sensitive) {
-        this.actor.reactive = sensitive;
-        this.actor.can_focus = sensitive;
-        this.actor.track_hover = sensitive;
-    },
+        this.reactive = sensitive;
+        this.can_focus = sensitive;
+        this.track_hover = sensitive;
+    }
 
     setMenu(menu) {
         if (this.menu)
@@ -129,7 +135,7 @@ var Button = new Lang.Class({
             this.menu.actor.hide();
         }
         this.emit('menu-set');
-    },
+    }
 
     _onEvent(actor, event) {
         if (this.menu &&
@@ -138,7 +144,7 @@ var Button = new Lang.Class({
             this.menu.toggle();
 
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _onVisibilityChanged() {
         if (!this.menu)
@@ -146,7 +152,7 @@ var Button = new Lang.Class({
 
         if (!this.actor.visible)
             this.menu.close();
-    },
+    }
 
     _onMenuKeyPress(actor, event) {
         if (global.focus_manager.navigate_from_event(event))
@@ -156,13 +162,13 @@ var Button = new Lang.Class({
         if (symbol == Clutter.KEY_Left || symbol == Clutter.KEY_Right) {
             let group = global.focus_manager.get_group(this.actor);
             if (group) {
-                let direction = (symbol == Clutter.KEY_Left) ? Gtk.DirectionType.LEFT : Gtk.DirectionType.RIGHT;
+                let direction = (symbol == Clutter.KEY_Left) ? St.DirectionType.LEFT : St.DirectionType.RIGHT;
                 group.navigate_focus(this.actor, direction, false);
                 return Clutter.EVENT_STOP;
             }
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _onOpenStateChanged(menu, open) {
         if (open)
@@ -182,19 +188,15 @@ var Button = new Lang.Class({
         // factor when computing max-height
         let maxHeight = Math.round((workArea.height - verticalMargins) / scaleFactor);
         this.menu.actor.style = ('max-height: %spx;').format(maxHeight);
-    },
+    }
 
-    destroy() {
-        this.actor._delegate = null;
+    _onDestroy() {
+        super._onDestroy();
 
         if (this.menu)
             this.menu.destroy();
-        this.actor.destroy();
-
-        this.emit('destroy');
     }
 });
-Signals.addSignalMethods(Button.prototype);
 
 /* SystemIndicator:
  *
@@ -203,19 +205,17 @@ Signals.addSignalMethods(Button.prototype);
  * of an icon and a menu section, which will be composed into the
  * aggregate menu.
  */
-var SystemIndicator = new Lang.Class({
-    Name: 'SystemIndicator',
-
-    _init() {
+var SystemIndicator = class {
+    constructor() {
         this.indicators = new St.BoxLayout({ style_class: 'panel-status-indicators-box',
                                              reactive: true });
         this.indicators.hide();
         this.menu = new PopupMenu.PopupMenuSection();
-    },
+    }
 
     _syncIndicatorsVisible() {
         this.indicators.visible = this.indicators.get_children().some(a => a.visible);
-    },
+    }
 
     _addIndicator() {
         let icon = new St.Icon({ style_class: 'system-status-icon' });
@@ -224,5 +224,5 @@ var SystemIndicator = new Lang.Class({
         this._syncIndicatorsVisible();
         return icon;
     }
-});
+};
 Signals.addSignalMethods(SystemIndicator.prototype);
