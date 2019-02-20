@@ -1,14 +1,2 @@
-ibusManager-Don-t-pass-undefined-callback-to-ibus.patch
-altSwitcher-Fix-error-when-all-alternatives-are-disabled.patch
-dash-destroy-items-s-child-before-tooltip.patch
-Update-Basque-translation.patch
-st-button-Ignore-pointer-emulated-touch-events.patch
-Update-Esperanto-translation.patch
-Update-Slovak-translation.patch
-keyboard-Do-not-call-KeyboardManager.holdKeyboard-with-se.patch
-Update-French-translation.patch
-panel-Don-t-allow-opening-hidden-menus-via-keybindings.patch
-shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch
-power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 workaround_crasher_fractional_scaling.patch
