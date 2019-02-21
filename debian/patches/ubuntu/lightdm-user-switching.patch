@@ -12,12 +12,12 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
  1 file changed, 27 insertions(+), 7 deletions(-)
 
 diff --git a/js/misc/systemActions.js b/js/misc/systemActions.js
-index 3c17137..1f4ea1a 100644
+index 8b2175e..a78894a 100644
 --- a/js/misc/systemActions.js
 +++ b/js/misc/systemActions.js
-@@ -216,6 +216,21 @@ const SystemActions = new Lang.Class({
+@@ -213,6 +213,21 @@ const SystemActions = GObject.registerClass({
          return this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName;
-     },
+     }
  
 +    _lightdmLoginSession() {
 +        try {
@@ -32,21 +32,21 @@ index 3c17137..1f4ea1a 100644
 +        } catch(e) {
 +            return false;
 +        }
-+    },
++    }
 +
      _sensorProxyAppeared() {
          this._sensorProxy = new SensorProxy(Gio.DBus.system, SENSOR_BUS_NAME, SENSOR_OBJECT_PATH,
              (proxy, error)  => {
-@@ -311,7 +326,7 @@ const SystemActions = new Lang.Class({
+@@ -308,7 +323,7 @@ const SystemActions = GObject.registerClass({
      _updateLockScreen() {
          let showLock = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
          let allowLockScreen = !this._lockdownSettings.get_boolean(DISABLE_LOCK_SCREEN_KEY);
 -        this._actions.get(LOCK_SCREEN_ACTION_ID).available = showLock && allowLockScreen && LoginManager.canLock();
 +        this._actions.get(LOCK_SCREEN_ACTION_ID).available = showLock && allowLockScreen;
          this.notify('can-lock-screen');
-     },
+     }
  
-@@ -398,20 +413,25 @@ const SystemActions = new Lang.Class({
+@@ -395,20 +410,25 @@ const SystemActions = GObject.registerClass({
          if (!this._actions.get(LOCK_SCREEN_ACTION_ID).available)
              throw new Error('The lock-screen action is not available!');
  
@@ -55,7 +55,7 @@ index 3c17137..1f4ea1a 100644
 +            Main.screenShield.lock(true);
 +        else
 +            this._lightdmLoginSession();
-     },
+     }
  
      activateSwitchUser() {
          if (!this._actions.get(SWITCH_USER_ACTION_ID).available)
@@ -75,6 +75,6 @@ index 3c17137..1f4ea1a 100644
 +            });
 +        } else
 +            this._lightdmLoginSession();
-     },
+     }
  
      activateLogout() {

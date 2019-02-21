@@ -14,7 +14,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=688320
  2 files changed, 16 insertions(+)
 
 diff --git a/data/org.gnome.shell.gschema.xml.in b/data/org.gnome.shell.gschema.xml.in
-index a7251cd..8e6b990 100644
+index 24e2a75..2a5432a 100644
 --- a/data/org.gnome.shell.gschema.xml.in
 +++ b/data/org.gnome.shell.gschema.xml.in
 @@ -38,6 +38,14 @@
@@ -33,20 +33,20 @@ index a7251cd..8e6b990 100644
        <default>[ 'epiphany.desktop', 'evolution.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop' ]</default>
        <summary>List of desktop file IDs for favorite applications</summary>
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 039cc43..5ab2381 100644
+index 5bf3ec5..00f1123 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -270,6 +270,9 @@ var LayoutManager = new Lang.Class({
+@@ -262,6 +262,9 @@ var LayoutManager = GObject.registerClass({
          this._backgroundGroup.lower_bottom();
          this._bgManagers = [];
  
 +        global.settings.connect('changed::enable-hot-corners',
-+                                Lang.bind(this, this._updateHotCorners));
++                                this._updateHotCorners.bind(this));
 +
          // Need to update struts on new workspaces when they are added
          let workspaceManager = global.workspace_manager;
          workspaceManager.connect('notify::n-workspaces',
-@@ -371,6 +374,11 @@ var LayoutManager = new Lang.Class({
+@@ -363,6 +366,11 @@ var LayoutManager = GObject.registerClass({
          });
          this.hotCorners = [];
  

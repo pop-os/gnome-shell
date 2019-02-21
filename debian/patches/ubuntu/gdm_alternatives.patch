@@ -7,14 +7,14 @@ Bug: https://bugzilla.gnome.org/show_bug.cgi?id=787454
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1715722
 Last-Update: 2017-09-08
 ---
- js/ui/sessionMode.js | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ js/ui/sessionMode.js | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index d0c8f2a..f521c80 100644
+index 5a4e204..580a424 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -42,6 +42,7 @@ const _modes = {
+@@ -41,6 +41,7 @@ const _modes = {
  
      'gdm': {
          hasNotifications: true,

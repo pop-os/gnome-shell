@@ -51,7 +51,7 @@ index 3b0d128..82da582 100644
 +    return ubuntuModeExtensions.indexOf(uuid) !== -1;
 +}
 diff --git a/js/misc/extensionUtils.js b/js/misc/extensionUtils.js
-index 6e39f87..8051e5d 100644
+index cf308b3..41ff5b0 100644
 --- a/js/misc/extensionUtils.js
 +++ b/js/misc/extensionUtils.js
 @@ -9,6 +9,7 @@ const Signals = imports.signals;
@@ -62,7 +62,7 @@ index 6e39f87..8051e5d 100644
  const FileUtils = imports.misc.fileUtils;
  
  var ExtensionType = {
-@@ -177,6 +178,12 @@ var ExtensionFinder = new Lang.Class({
+@@ -235,6 +236,12 @@ var ExtensionFinder = class {
          let extension;
          let type = extensionDir.has_prefix(perUserDir) ? ExtensionType.PER_USER
                                                         : ExtensionType.SYSTEM;
@@ -76,10 +76,10 @@ index 6e39f87..8051e5d 100644
              extension = createExtensionObject(uuid, extensionDir, type);
          } catch(e) {
 diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
-index 9b6f7a3..034f964 100644
+index 828f6f7..dd81fd4 100644
 --- a/js/ui/extensionDownloader.js
 +++ b/js/ui/extensionDownloader.js
-@@ -10,9 +10,11 @@ const St = imports.gi.St;
+@@ -8,9 +8,11 @@ const St = imports.gi.St;
  const Shell = imports.gi.Shell;
  
  const Config = imports.misc.config;
@@ -91,7 +91,7 @@ index 9b6f7a3..034f964 100644
  const ModalDialog = imports.ui.modalDialog;
  
  const _signals = ExtensionSystem._signals;
-@@ -28,6 +30,14 @@ function installExtension(uuid, invocation) {
+@@ -26,6 +28,14 @@ function installExtension(uuid, invocation) {
      let params = { uuid: uuid,
                     shell_version: Config.PACKAGE_VERSION };
  
@@ -106,7 +106,7 @@ index 9b6f7a3..034f964 100644
      let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
  
      _httpSession.queue_message(message, (session, message) => {
-@@ -160,6 +170,9 @@ function updateExtension(uuid) {
+@@ -158,6 +168,9 @@ function updateExtension(uuid) {
  function checkForUpdates() {
      let metadatas = {};
      for (let uuid in ExtensionUtils.extensions) {

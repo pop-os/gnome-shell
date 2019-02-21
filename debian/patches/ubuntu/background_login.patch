@@ -12,10 +12,10 @@ Forwarded: not-needed
  1 file changed, 21 insertions(+)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index 941b289..707a37a 100644
+index 874bda3..0a4e9ad 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
-@@ -102,6 +102,7 @@ const Lang = imports.lang;
+@@ -101,6 +101,7 @@ const GnomeDesktop = imports.gi.GnomeDesktop;
  const Meta = imports.gi.Meta;
  const Signals = imports.signals;
  
@@ -23,16 +23,16 @@ index 941b289..707a37a 100644
  const LoginManager = imports.misc.loginManager;
  const Main = imports.ui.main;
  const Params = imports.misc.params;
-@@ -496,6 +497,26 @@ var SystemBackground = new Lang.Class({
-     Name: 'SystemBackground',
+@@ -489,6 +490,26 @@ let _systemBackground;
  
-     _init() {
+ var SystemBackground = class SystemBackground {
+     constructor() {
 +        // Yaru is default ubuntu theme, match GDM look
 +        if (Desktop.is("ubuntu")) {
 +            if (_systemBackground == null) {
 +                _systemBackground = new Meta.Background({ meta_display: global.display });
-+                [res, topColor] = Clutter.Color.from_string('#6D2169');
-+                [res, bottomColor] = Clutter.Color.from_string('#370026');
++                let [, topColor] = Clutter.Color.from_string('#6D2169');
++                let [, bottomColor] = Clutter.Color.from_string('#370026');
 +                _systemBackground.set_gradient(GDesktopEnums.BackgroundShading.VERTICAL, topColor, bottomColor);
 +            }
 +            this.actor = new Meta.BackgroundActor({ meta_display: global.display,

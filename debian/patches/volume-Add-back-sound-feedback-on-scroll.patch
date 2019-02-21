@@ -38,10 +38,10 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/51
  2 files changed, 19 insertions(+), 3 deletions(-)
 
 diff --git a/js/ui/slider.js b/js/ui/slider.js
-index 65ff8ca..ba188ba 100644
+index bef95e1..0e340e4 100644
 --- a/js/ui/slider.js
 +++ b/js/ui/slider.js
-@@ -183,9 +183,7 @@ var Slider = new Lang.Class({
+@@ -179,9 +179,7 @@ var Slider = class extends BarLevel.BarLevel {
              let delta = key == Clutter.KEY_Right ? 0.1 : -0.1;
              this._value = Math.max(0, Math.min(this._value + delta, this._maxValue));
              this.actor.queue_repaint();
@@ -52,13 +52,13 @@ index 65ff8ca..ba188ba 100644
          }
          return Clutter.EVENT_PROPAGATE;
 diff --git a/js/ui/status/volume.js b/js/ui/status/volume.js
-index 00af791..2de24eb 100644
+index 365ec41..9bbc92b 100644
 --- a/js/ui/status/volume.js
 +++ b/js/ui/status/volume.js
-@@ -2,8 +2,10 @@
+@@ -1,8 +1,10 @@
+ // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
  
  const Clutter = imports.gi.Clutter;
- const Lang = imports.lang;
 +const GLib = imports.gi.GLib;
  const Gio = imports.gi.Gio;
  const Gvc = imports.gi.Gvc;
@@ -66,7 +66,7 @@ index 00af791..2de24eb 100644
  const St = imports.gi.St;
  const Signals = imports.signals;
  
-@@ -37,14 +39,21 @@ var StreamSlider = new Lang.Class({
+@@ -34,14 +36,21 @@ var StreamSlider = class {
  
          this.item = new PopupMenu.PopupBaseMenuItem({ activate: false });
  
@@ -89,7 +89,7 @@ index 00af791..2de24eb 100644
  
          this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
          this.item.actor.add(this._icon);
-@@ -116,6 +125,7 @@ var StreamSlider = new Lang.Class({
+@@ -114,6 +123,7 @@ var StreamSlider = class {
  
          let volume = value * this._control.get_vol_max_norm();
          let prevMuted = this._stream.is_muted;
@@ -97,7 +97,7 @@ index 00af791..2de24eb 100644
          if (volume < 1) {
              this._stream.volume = 0;
              if (!prevMuted)
-@@ -126,6 +136,14 @@ var StreamSlider = new Lang.Class({
+@@ -124,6 +134,14 @@ var StreamSlider = class {
                  this._stream.change_is_muted(false);
          }
          this._stream.push_volume();
@@ -109,6 +109,6 @@ index 00af791..2de24eb 100644
 +                this._notifyVolumeChangeId = 0;
 +                return GLib.SOURCE_REMOVE;
 +            });
-     },
+     }
  
      _notifyVolumeChange() {

@@ -16,10 +16,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  1 file changed, 2 insertions(+)
 
 diff --git a/src/main.c b/src/main.c
-index 0115577..5df5667 100644
+index 2458377..9ca03e0 100644
 --- a/src/main.c
 +++ b/src/main.c
-@@ -321,6 +321,8 @@ dump_gjs_stack_on_signal_handler (int signo)
+@@ -319,6 +319,8 @@ dump_gjs_stack_on_signal_handler (int signo)
    struct sigaction sa = { 0 };
    gsize i;
  

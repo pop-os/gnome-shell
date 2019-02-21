@@ -21,10 +21,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  3 files changed, 102 insertions(+), 13 deletions(-)
 
 diff --git a/src/main.c b/src/main.c
-index 5df5667..4e87d67 100644
+index 9ca03e0..f72cb93 100644
 --- a/src/main.c
 +++ b/src/main.c
-@@ -263,14 +263,14 @@ shell_a11y_init (void)
+@@ -261,14 +261,14 @@ shell_a11y_init (void)
  }
  
  static void
@@ -41,7 +41,7 @@ index 5df5667..4e87d67 100644
                                         G_N_ELEMENTS (keys));
  }
  
-@@ -360,6 +360,42 @@ dump_gjs_stack_on_signal (int signo)
+@@ -358,6 +358,42 @@ dump_gjs_stack_on_signal (int signo)
    _tracked_signals[signo] = TRUE;
  }
  
@@ -84,7 +84,7 @@ index 5df5667..4e87d67 100644
  static gboolean
  list_modes (const char  *option_name,
              const char  *value,
-@@ -438,6 +474,7 @@ main (int argc, char **argv)
+@@ -436,6 +472,7 @@ main (int argc, char **argv)
  {
    GOptionContext *ctx;
    GError *error = NULL;
@@ -92,7 +92,7 @@ index 5df5667..4e87d67 100644
    int ecode;
  
    bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-@@ -473,7 +510,8 @@ main (int argc, char **argv)
+@@ -471,7 +508,8 @@ main (int argc, char **argv)
    g_setenv ("GJS_DEBUG_OUTPUT", "stderr", TRUE);
    g_setenv ("GJS_DEBUG_TOPICS", "JS ERROR;JS LOG", TRUE);
  
@@ -102,7 +102,7 @@ index 5df5667..4e87d67 100644
  
    shell_dbus_init (meta_get_replace_current_wm ());
    shell_a11y_init ();
-@@ -487,18 +525,14 @@ main (int argc, char **argv)
+@@ -485,18 +523,14 @@ main (int argc, char **argv)
    if (session_mode == NULL)
      session_mode = is_gdm_mode ? (char *)"gdm" : (char *)"user";
  
@@ -128,10 +128,10 @@ index 5df5667..4e87d67 100644
    ecode = meta_run ();
  
 diff --git a/src/shell-global.c b/src/shell-global.c
-index dbd3bbe..8553109 100644
+index df84b6b..46507a1 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
-@@ -68,6 +68,7 @@ struct _ShellGlobal {
+@@ -66,6 +66,7 @@ struct _ShellGlobal {
    Display *xdisplay;
  
    char *session_mode;
@@ -139,7 +139,7 @@ index dbd3bbe..8553109 100644
  
    XserverRegion input_region;
  
-@@ -114,6 +115,7 @@ enum {
+@@ -111,6 +112,7 @@ enum {
    PROP_FOCUS_MANAGER,
    PROP_FRAME_TIMESTAMPS,
    PROP_FRAME_FINISH_TIMESTAMP,
@@ -147,7 +147,7 @@ index dbd3bbe..8553109 100644
  };
  
  /* Signals */
-@@ -147,6 +149,9 @@ shell_global_set_property(GObject         *object,
+@@ -144,6 +146,9 @@ shell_global_set_property(GObject         *object,
      case PROP_FRAME_FINISH_TIMESTAMP:
        global->frame_finish_timestamp = g_value_get_boolean (value);
        break;
@@ -157,7 +157,7 @@ index dbd3bbe..8553109 100644
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
        break;
-@@ -221,6 +226,9 @@ shell_global_get_property(GObject         *object,
+@@ -218,6 +223,9 @@ shell_global_get_property(GObject         *object,
      case PROP_FRAME_FINISH_TIMESTAMP:
        g_value_set_boolean (value, global->frame_finish_timestamp);
        break;
@@ -167,7 +167,7 @@ index dbd3bbe..8553109 100644
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
        break;
-@@ -484,6 +492,13 @@ shell_global_class_init (ShellGlobalClass *klass)
+@@ -478,6 +486,13 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                           "Whether at the end of a frame to call glFinish and log paintCompletedTimestamp",
                                                           FALSE,
                                                           G_PARAM_READWRITE));
@@ -181,7 +181,7 @@ index dbd3bbe..8553109 100644
  }
  
  /*
-@@ -1850,3 +1865,40 @@ shell_global_get_persistent_state (ShellGlobal  *global,
+@@ -1731,3 +1746,40 @@ shell_global_get_persistent_state (ShellGlobal  *global,
  {
    return load_variant (global->userdatadir_path, property_type, property_name);
  }
@@ -223,10 +223,10 @@ index dbd3bbe..8553109 100644
 +    }
 +}
 diff --git a/src/shell-global.h b/src/shell-global.h
-index c8cddf8..90d00f1 100644
+index 9d9bc19..7127c64 100644
 --- a/src/shell-global.h
 +++ b/src/shell-global.h
-@@ -125,6 +125,9 @@ void     shell_global_set_persistent_state      (ShellGlobal  *global,
+@@ -97,6 +97,9 @@ void     shell_global_set_persistent_state      (ShellGlobal  *global,
  GVariant * shell_global_get_persistent_state    (ShellGlobal  *global,
                                                   const char   *property_type,
                                                   const char   *property_name);

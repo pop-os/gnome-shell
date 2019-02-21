@@ -19,10 +19,10 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/190
  1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
-index fc0db1c..a8b6d2e 100644
+index 1a83ad4..c77633b 100644
 --- a/src/st/st-scroll-view.c
 +++ b/src/st/st-scroll-view.c
-@@ -741,8 +741,11 @@ st_scroll_view_style_changed (StWidget *widget)
+@@ -742,8 +742,11 @@ st_scroll_view_style_changed (StWidget *widget)
    gdouble hfade_offset = st_theme_node_get_length (theme_node, "-st-hfade-offset");
    st_scroll_view_update_fade_effect (self, vfade_offset, hfade_offset);
  

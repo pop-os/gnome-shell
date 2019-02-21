@@ -54,10 +54,10 @@ index 9502340..8141bc0 100644
    </interface>
  </node>
 diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
-index 3b847af..9245745 100644
+index b4e9202..a3523f1 100644
 --- a/js/ui/remoteSearch.js
 +++ b/js/ui/remoteSearch.js
-@@ -31,6 +31,7 @@ const SearchProviderIface = `
+@@ -30,6 +30,7 @@ const SearchProviderIface = `
  <method name="ActivateResult">
      <arg type="s" direction="in" />
  </method>
@@ -65,7 +65,7 @@ index 3b847af..9245745 100644
  </interface>
  </node>`;
  
-@@ -59,6 +60,7 @@ const SearchProvider2Iface = `
+@@ -58,6 +59,7 @@ const SearchProvider2Iface = `
      <arg type="as" direction="in" />
      <arg type="u" direction="in" />
  </method>
@@ -73,9 +73,9 @@ index 3b847af..9245745 100644
  </interface>
  </node>`;
  
-@@ -312,6 +314,19 @@ var RemoteSearchProvider = new Lang.Class({
+@@ -309,6 +311,19 @@ var RemoteSearchProvider = class {
                                          cancellable);
-     },
+     }
  
 +    XUbuntuCancel(cancellable, callback) {
 +        this.proxy.XUbuntuCancelRemote((results, error) => {
@@ -88,16 +88,16 @@ index 3b847af..9245745 100644
 +                }
 +            },
 +            cancellable);
-+    },
++    }
 +
      activateResult(id) {
          this.proxy.ActivateResultRemote(id);
-     },
+     }
 diff --git a/js/ui/search.js b/js/ui/search.js
-index 3966741..c67feea 100644
+index c53761f..dc5a2eb 100644
 --- a/js/ui/search.js
 +++ b/js/ui/search.js
-@@ -225,7 +225,9 @@ var SearchResultsBase = new Lang.Class({
+@@ -215,7 +215,9 @@ var SearchResultsBase = class {
              this._cancellable.cancel();
              this._cancellable.reset();
  
@@ -107,7 +107,7 @@ index 3966741..c67feea 100644
                  if (this._cancellable.is_cancelled()) {
                      if (metas.length > 0)
                          log(`Search provider ${this.provider.id} returned results after the request was canceled`);
-@@ -455,6 +457,10 @@ var SearchResults = new Lang.Class({
+@@ -438,6 +440,10 @@ var SearchResults = class {
  
          this._searchTimeoutId = 0;
          this._cancellable = new Gio.Cancellable();
@@ -118,12 +118,12 @@ index 3966741..c67feea 100644
  
          this._registerProvider(new AppDisplay.AppSearchProvider());
          this._reloadRemoteProviders();
-@@ -496,11 +502,32 @@ var SearchResults = new Lang.Class({
+@@ -480,11 +486,32 @@ var SearchResults = class {
          }
-     },
+     }
  
 +    _cancelSearchProviderRequest() {
-+        if (this._terms.length != 0 || this._searchCancelTimeoutId > 0)
++        if (this._terms.length != 0 || this._searchCancelTimeoutId)
 +            return;
 +
 +        this._searchCancelTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
@@ -140,7 +140,7 @@ index 3966741..c67feea 100644
 +            delete this._searchCancelTimeoutId;
 +            return GLib.SOURCE_REMOVE;
 +        });
-+    },
++    }
 +
      _reset() {
          this._terms = [];
@@ -151,13 +151,13 @@ index 3966741..c67feea 100644
          this._defaultResult = null;
          this._startingSearch = false;
  
-@@ -567,6 +594,13 @@ var SearchResults = new Lang.Class({
+@@ -551,6 +578,13 @@ var SearchResults = class {
          if (this._terms.length > 0)
              isSubSearch = searchString.indexOf(previousSearchString) == 0;
  
 +        this._searchCancelCancellable.cancel();
 +        this._searchCancelCancellable.reset();
-+        if (this._searchCancelTimeoutId > 0) {
++        if (this._searchCancelTimeoutId) {
 +            GLib.source_remove(this._searchCancelTimeoutId);
 +            delete this._searchCancelTimeoutId;
 +        }
