@@ -19,7 +19,6 @@
 #include <glib/gi18n-lib.h>
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gdk/gdkx.h>
 #include <meta/meta-shaped-texture.h>
 
 #include <locale.h>
@@ -235,14 +234,21 @@ shell_util_translate_time_string (const char *str)
   const char *locale = g_getenv ("LC_TIME");
   const char *res;
   char *sep;
+  locale_t old_loc;
+  locale_t loc = (locale_t) 0;
 
   if (locale)
-    setlocale (LC_MESSAGES, locale);
+    loc = newlocale (LC_MESSAGES_MASK, locale, (locale_t) 0);
+
+  old_loc = uselocale (loc);
 
   sep = strchr (str, '\004');
   res = g_dpgettext (NULL, str, sep ? sep - str + 1 : 0);
 
-  setlocale (LC_MESSAGES, "");
+  uselocale (old_loc);
+
+  if (loc != (locale_t) 0)
+    freelocale (loc);
 
   return res;
 }
@@ -365,24 +371,6 @@ shell_util_create_pixbuf_from_data (const guchar      *data,
   return gdk_pixbuf_new_from_data (data, colorspace, has_alpha,
                                    bits_per_sample, width, height, rowstride,
                                    (GdkPixbufDestroyNotify) g_free, NULL);
-}
-
-void
-shell_util_cursor_tracker_to_clutter (MetaCursorTracker *tracker,
-                                      ClutterTexture    *texture)
-{
-  CoglTexture *sprite;
-
-  sprite = meta_cursor_tracker_get_sprite (tracker);
-  if (sprite)
-    {
-      clutter_actor_show (CLUTTER_ACTOR (texture));
-      clutter_texture_set_cogl_texture (texture, sprite);
-    }
-  else
-    {
-      clutter_actor_hide (CLUTTER_ACTOR (texture));
-    }
 }
 
 typedef const gchar *(*ShellGLGetString) (GLenum);

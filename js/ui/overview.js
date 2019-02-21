@@ -2,14 +2,11 @@
 
 const Clutter = imports.gi.Clutter;
 const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
 const Meta = imports.gi.Meta;
 const Mainloop = imports.mainloop;
 const Signals = imports.signals;
-const Lang = imports.lang;
 const St = imports.gi.St;
 const Shell = imports.gi.Shell;
-const Gdk = imports.gi.Gdk;
 
 const Background = imports.ui.background;
 const DND = imports.ui.dnd;
@@ -35,13 +32,11 @@ var DND_WINDOW_SWITCH_TIMEOUT = 750;
 
 var OVERVIEW_ACTIVATION_TIMEOUT = 0.5;
 
-var ShellInfo = new Lang.Class({
-    Name: 'ShellInfo',
-
-    _init() {
+var ShellInfo = class {
+    constructor() {
         this._source = null;
         this._undoCallback = null;
-    },
+    }
 
     _onUndoClicked() {
         if (this._undoCallback)
@@ -50,7 +45,7 @@ var ShellInfo = new Lang.Class({
 
         if (this._source)
             this._source.destroy();
-    },
+    }
 
     setMessage(text, options) {
         options = Params.parse(options, { undoCallback: null,
@@ -84,18 +79,16 @@ var ShellInfo = new Lang.Class({
 
         this._source.notify(notification);
     }
-});
+};
 
-var Overview = new Lang.Class({
-    Name: 'Overview',
-
-    _init() {
+var Overview = class {
+    constructor() {
         this._overviewCreated = false;
         this._initCalled = false;
 
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
-    },
+    }
 
     _createOverview() {
         if (this._overviewCreated)
@@ -163,11 +156,10 @@ var Overview = new Lang.Class({
         this._windowSwitchTimestamp = 0;
         this._lastActiveWorkspaceIndex = -1;
         this._lastHoveredWindow = null;
-        this._needsFakePointerEvent = false;
 
         if (this._initCalled)
             this.init();
-    },
+    }
 
     _updateBackgrounds() {
         for (let i = 0; i < this._bgManagers.length; i++)
@@ -181,7 +173,7 @@ var Overview = new Lang.Class({
                                                                vignette: true });
             this._bgManagers.push(bgManager);
         }
-    },
+    }
 
     _unshadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
@@ -193,7 +185,7 @@ var Overview = new Lang.Class({
                                transition: 'easeOutQuad'
                              });
         }
-    },
+    }
 
     _shadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
@@ -205,12 +197,12 @@ var Overview = new Lang.Class({
                                transition: 'easeOutQuad'
                              });
         }
-    },
+    }
 
     _sessionUpdated() {
         this.isDummy = !Main.sessionMode.hasOverview;
         this._createOverview();
-    },
+    }
 
     // The members we construct that are implemented in JS might
     // want to access the overview as Main.overview to connect
@@ -226,7 +218,7 @@ var Overview = new Lang.Class({
 
         // Add a clone of the panel to the overview so spacing and such is
         // automatic
-        this._panelGhost = new St.Bin({ child: new Clutter.Clone({ source: Main.panel.actor }),
+        this._panelGhost = new St.Bin({ child: new Clutter.Clone({ source: Main.panel }),
                                         reactive: false,
                                         opacity: 0 });
         this._overview.add_actor(this._panelGhost);
@@ -259,15 +251,15 @@ var Overview = new Lang.Class({
 
         Main.layoutManager.connect('monitors-changed', this._relayout.bind(this));
         this._relayout();
-    },
+    }
 
     addSearchProvider(provider) {
         this.viewSelector.addSearchProvider(provider);
-    },
+    }
 
     removeSearchProvider(provider) {
         this.viewSelector.removeSearchProvider(provider);
-    },
+    }
 
     //
     // options:
@@ -279,7 +271,7 @@ var Overview = new Lang.Class({
             return;
 
         this._shellInfo.setMessage(text, options);
-    },
+    }
 
     _onDragBegin() {
         this._inXdndDrag = true;
@@ -288,7 +280,7 @@ var Overview = new Lang.Class({
         // Remember the workspace we started from
         let workspaceManager = global.workspace_manager;
         this._lastActiveWorkspaceIndex = workspaceManager.get_active_workspace_index();
-    },
+    }
 
     _onDragEnd(time) {
         this._inXdndDrag = false;
@@ -305,24 +297,14 @@ var Overview = new Lang.Class({
         this._lastHoveredWindow = null;
         DND.removeDragMonitor(this._dragMonitor);
         this.endItemDrag();
-    },
+    }
 
     _resetWindowSwitchTimeout() {
         if (this._windowSwitchTimeoutId != 0) {
             Mainloop.source_remove(this._windowSwitchTimeoutId);
             this._windowSwitchTimeoutId = 0;
-            this._needsFakePointerEvent = false;
         }
-    },
-
-    _fakePointerEvent() {
-        let display = Gdk.Display.get_default();
-        let deviceManager = display.get_device_manager();
-        let pointer = deviceManager.get_client_pointer();
-        let [gdkScreen, pointerX, pointerY] = pointer.get_position();
-
-        pointer.warp(gdkScreen, pointerX, pointerY);
-    },
+    }
 
     _onDragMotion(dragEvent) {
         let targetIsWindow = dragEvent.targetActor &&
@@ -345,7 +327,6 @@ var Overview = new Lang.Class({
             this._windowSwitchTimeoutId = Mainloop.timeout_add(DND_WINDOW_SWITCH_TIMEOUT,
                 () => {
                     this._windowSwitchTimeoutId = 0;
-                    this._needsFakePointerEvent = true;
                     Main.activateWindow(dragEvent.targetActor._delegate.metaWindow,
                                         this._windowSwitchTimestamp);
                     this.hide();
@@ -356,19 +337,19 @@ var Overview = new Lang.Class({
         }
 
         return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
     _onScrollEvent(actor, event) {
         this.emit('scroll-event', event);
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     addAction(action) {
         if (this.isDummy)
             return;
 
         this._backgroundGroup.add_action(action);
-    },
+    }
 
     _getDesktopClone() {
         let windows = global.get_window_actors().filter(
@@ -384,7 +365,7 @@ var Overview = new Lang.Class({
             clone.destroy();
         });
         return clone;
-    },
+    }
 
     _relayout() {
         // To avoid updating the position and size of the workspaces
@@ -392,14 +373,11 @@ var Overview = new Lang.Class({
         // when it is next shown.
         this.hide();
 
-        if (!Main.layoutManager.primaryMonitor)
-            return;
-
         this._coverPane.set_position(0, 0);
         this._coverPane.set_size(global.screen_width, global.screen_height);
 
         this._updateBackgrounds();
-    },
+    }
 
     _onRestacked() {
         let stack = global.get_window_actors();
@@ -411,44 +389,44 @@ var Overview = new Lang.Class({
         }
 
         this.emit('windows-restacked', stackIndices);
-    },
+    }
 
     beginItemDrag(source) {
         this.emit('item-drag-begin');
         this._inItemDrag = true;
-    },
+    }
 
     cancelledItemDrag(source) {
         this.emit('item-drag-cancelled');
-    },
+    }
 
     endItemDrag(source) {
         if (!this._inItemDrag)
             return;
         this.emit('item-drag-end');
         this._inItemDrag = false;
-    },
+    }
 
     beginWindowDrag(window) {
         this.emit('window-drag-begin', window);
         this._inWindowDrag = true;
-    },
+    }
 
     cancelledWindowDrag(window) {
         this.emit('window-drag-cancelled', window);
-    },
+    }
 
     endWindowDrag(window) {
         if (!this._inWindowDrag)
             return;
         this.emit('window-drag-end', window);
         this._inWindowDrag = false;
-    },
+    }
 
     focusSearch() {
         this.show();
         this._searchEntry.grab_key_focus();
-    },
+    }
 
     fadeInDesktop() {
             this._desktopFade.opacity = 0;
@@ -457,7 +435,7 @@ var Overview = new Lang.Class({
                              { opacity: 255,
                                time: ANIMATION_TIME,
                                transition: 'easeOutQuad' });
-    },
+    }
 
     fadeOutDesktop() {
         if (!this._desktopFade.get_n_children()) {
@@ -475,7 +453,7 @@ var Overview = new Lang.Class({
                            time: ANIMATION_TIME,
                            transition: 'easeOutQuad'
                          });
-    },
+    }
 
     // Checks if the Activities button is currently sensitive to
     // clicks. The first call to this function within the
@@ -492,7 +470,7 @@ var Overview = new Lang.Class({
             GLib.get_monotonic_time() / GLib.USEC_PER_SEC - this._activationTime > OVERVIEW_ACTIVATION_TIMEOUT)
             return true;
         return false;
-    },
+    }
 
     _syncGrab() {
         // We delay grab changes during animation so that when removing the
@@ -521,7 +499,7 @@ var Overview = new Lang.Class({
             }
         }
         return true;
-    },
+    }
 
     // show:
     //
@@ -538,7 +516,7 @@ var Overview = new Lang.Class({
 
         Main.layoutManager.showOverview();
         this._animateVisible();
-    },
+    }
 
 
     _animateVisible() {
@@ -566,7 +544,7 @@ var Overview = new Lang.Class({
         this._coverPane.raise_top();
         this._coverPane.show();
         this.emit('showing');
-    },
+    }
 
     _showDone() {
         this.animationInProgress = false;
@@ -580,7 +558,7 @@ var Overview = new Lang.Class({
 
         this._syncGrab();
         global.sync_pointer();
-    },
+    }
 
     // hide:
     //
@@ -606,8 +584,7 @@ var Overview = new Lang.Class({
 
         this._animateNotVisible();
         this._syncGrab();
-    },
-
+    }
 
     _animateNotVisible() {
         if (!this.visible || this.animationInProgress)
@@ -631,7 +608,7 @@ var Overview = new Lang.Class({
         this._coverPane.raise_top();
         this._coverPane.show();
         this.emit('hiding');
-    },
+    }
 
     _hideDone() {
         // Re-enable unredirection
@@ -652,13 +629,7 @@ var Overview = new Lang.Class({
             Main.layoutManager.hideOverview();
 
         this._syncGrab();
-
-        // Fake a pointer event if requested
-        if (this._needsFakePointerEvent) {
-            this._fakePointerEvent();
-            this._needsFakePointerEvent = false;
-        }
-    },
+    }
 
     toggle() {
         if (this.isDummy)
@@ -668,10 +639,10 @@ var Overview = new Lang.Class({
             this.hide();
         else
             this.show();
-    },
+    }
 
     getShowAppsButton() {
         return this._dash.showAppsButton;
     }
-});
+};
 Signals.addSignalMethods(Overview.prototype);

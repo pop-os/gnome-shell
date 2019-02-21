@@ -37,6 +37,7 @@
 
 #include "st-label.h"
 #include "st-private.h"
+#include "st-settings.h"
 #include "st-texture-cache.h"
 #include "st-theme-context.h"
 #include "st-theme-node-transition.h"
@@ -44,7 +45,6 @@
 
 #include "st-widget-accessible.h"
 
-#include <gtk/gtk.h>
 #include <atk/atk-enum-types.h>
 
 /* This is set in stone and also hard-coded in GDK. */
@@ -136,7 +136,7 @@ static void st_widget_recompute_style (StWidget    *widget,
                                        StThemeNode *old_theme_node);
 static gboolean st_widget_real_navigate_focus (StWidget         *widget,
                                                ClutterActor     *from,
-                                               GtkDirectionType  direction);
+                                               StDirectionType   direction);
 
 static AtkObject * st_widget_get_accessible (ClutterActor *actor);
 
@@ -289,44 +289,17 @@ st_widget_texture_cache_changed (StTextureCache *cache,
 {
   StWidget *actor = ST_WIDGET (user_data);
   StWidgetPrivate *priv = st_widget_get_instance_private (actor);
-  StThemeNode *node = priv->theme_node;
-  StBorderImage *border_image;
   gboolean changed = FALSE;
-  GFile *theme_file;
+  int i;
 
-  if (node == NULL)
-    return;
-
-  theme_file = st_theme_node_get_background_image (node);
-  if ((theme_file != NULL) && g_file_equal (theme_file, file))
+  for (i = 0; i < G_N_ELEMENTS (priv->paint_states); i++)
     {
-      st_theme_node_invalidate_background_image (node);
-      changed = TRUE;
+      StThemeNodePaintState *paint_state = &priv->paint_states[i];
+      changed |= st_theme_node_paint_state_invalidate_for_file (paint_state, file);
     }
 
-  border_image = st_theme_node_get_border_image (node);
-  theme_file = border_image ? st_border_image_get_file (border_image) : NULL;
-  if ((theme_file != NULL) && g_file_equal (theme_file, file))
-    {
-      st_theme_node_invalidate_border_image (node);
-      changed = TRUE;
-    }
-
-  if (changed)
-    {
-      /* If we prerender the background / border, we need to update
-       * the paint state. We should probably implement a method to
-       * the theme node to determine this, but for now, just wipe
-       * the entire paint state.
-       *
-       * Use the existing state instead of a new one because it's
-       * assumed the rest of the state will stay the same.
-       */
-      st_theme_node_paint_state_invalidate (current_paint_state (actor));
-
-      if (clutter_actor_is_mapped (CLUTTER_ACTOR (actor)))
-        clutter_actor_queue_redraw (CLUTTER_ACTOR (actor));
-    }
+  if (changed && clutter_actor_is_mapped (CLUTTER_ACTOR (actor)))
+    clutter_actor_queue_redraw (CLUTTER_ACTOR (actor));
 }
 
 static void
@@ -441,10 +414,12 @@ void
 st_widget_paint_background (StWidget *widget)
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+  CoglFramebuffer *framebuffer;
   StThemeNode *theme_node;
   ClutterActorBox allocation;
   guint8 opacity;
 
+  framebuffer = cogl_get_draw_framebuffer ();
   theme_node = st_widget_get_theme_node (widget);
 
   clutter_actor_get_allocation_box (CLUTTER_ACTOR (widget), &allocation);
@@ -453,12 +428,13 @@ st_widget_paint_background (StWidget *widget)
 
   if (priv->transition_animation)
     st_theme_node_transition_paint (priv->transition_animation,
+                                    framebuffer,
                                     &allocation,
                                     opacity);
   else
     st_theme_node_paint (theme_node,
                          current_paint_state (widget),
-                         cogl_get_draw_framebuffer (),
+                         framebuffer,
                          &allocation,
                          opacity);
 }
@@ -837,7 +813,6 @@ st_widget_real_get_focus_chain (StWidget *widget)
 
   return g_list_reverse (visible);
 }
-
 
 static void
 st_widget_class_init (StWidgetClass *klass)
@@ -1591,6 +1566,7 @@ st_widget_recompute_style (StWidget    *widget,
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
   StThemeNode *new_theme_node = st_widget_get_theme_node (widget);
   int transition_duration;
+  StSettings *settings;
   gboolean paint_equal;
   gboolean animations_enabled;
 
@@ -1610,9 +1586,8 @@ st_widget_recompute_style (StWidget    *widget,
 
   paint_equal = st_theme_node_paint_equal (old_theme_node, new_theme_node);
 
-  g_object_get (gtk_settings_get_default (),
-                "gtk-enable-animations", &animations_enabled,
-                NULL);
+  settings = st_settings_get ();
+  g_object_get (settings, "enable-animations", &animations_enabled, NULL);
 
   if (animations_enabled && transition_duration > 0)
     {
@@ -1872,7 +1847,7 @@ st_widget_popup_menu (StWidget *self)
 static GList *
 filter_by_position (GList            *children,
                     ClutterActorBox  *rbox,
-                    GtkDirectionType  direction)
+                    StDirectionType   direction)
 {
   ClutterActorBox cbox;
   ClutterVertex abs_vertices[4];
@@ -1892,28 +1867,28 @@ filter_by_position (GList            *children,
        */
       switch (direction)
         {
-        case GTK_DIR_UP:
+        case ST_DIR_UP:
           if (cbox.y2 > rbox->y1 + 0.1)
             continue;
           break;
 
-        case GTK_DIR_DOWN:
+        case ST_DIR_DOWN:
           if (cbox.y1 < rbox->y2 - 0.1)
             continue;
           break;
 
-        case GTK_DIR_LEFT:
+        case ST_DIR_LEFT:
           if (cbox.x2 > rbox->x1 + 0.1)
             continue;
           break;
 
-        case GTK_DIR_RIGHT:
+        case ST_DIR_RIGHT:
           if (cbox.x1 < rbox->x2 - 0.1)
             continue;
           break;
 
-        case GTK_DIR_TAB_BACKWARD:
-        case GTK_DIR_TAB_FORWARD:
+        case ST_DIR_TAB_BACKWARD:
+        case ST_DIR_TAB_FORWARD:
         default:
           g_return_val_if_reached (NULL);
         }
@@ -1970,7 +1945,7 @@ sort_by_distance (gconstpointer  a,
 static gboolean
 st_widget_real_navigate_focus (StWidget         *widget,
                                ClutterActor     *from,
-                               GtkDirectionType  direction)
+                               StDirectionType   direction)
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
   ClutterActor *widget_actor, *focus_child;
@@ -2022,15 +1997,15 @@ st_widget_real_navigate_focus (StWidget         *widget,
     }
 
   children = st_widget_get_focus_chain (widget);
-  if (direction == GTK_DIR_TAB_FORWARD ||
-      direction == GTK_DIR_TAB_BACKWARD)
+  if (direction == ST_DIR_TAB_FORWARD ||
+      direction == ST_DIR_TAB_BACKWARD)
     {
       /* At this point we know that we want to navigate focus to one of
        * @widget's immediate children; the next one after @focus_child, or the
        * first one if @focus_child is %NULL. (With "next" and "first" being
        * determined by @direction.)
        */
-      if (direction == GTK_DIR_TAB_BACKWARD)
+      if (direction == ST_DIR_TAB_BACKWARD)
         children = g_list_reverse (children);
 
       if (focus_child)
@@ -2068,20 +2043,20 @@ st_widget_real_navigate_focus (StWidget         *widget,
           clutter_actor_box_from_vertices (&sort_box, abs_vertices);
           switch (direction)
             {
-            case GTK_DIR_UP:
+            case ST_DIR_UP:
               sort_box.y1 = sort_box.y2;
               break;
-            case GTK_DIR_DOWN:
+            case ST_DIR_DOWN:
               sort_box.y2 = sort_box.y1;
               break;
-            case GTK_DIR_LEFT:
+            case ST_DIR_LEFT:
               sort_box.x1 = sort_box.x2;
               break;
-            case GTK_DIR_RIGHT:
+            case ST_DIR_RIGHT:
               sort_box.x2 = sort_box.x1;
               break;
-            case GTK_DIR_TAB_FORWARD:
-            case GTK_DIR_TAB_BACKWARD:
+            case ST_DIR_TAB_FORWARD:
+            case ST_DIR_TAB_BACKWARD:
             default:
               g_warn_if_reached ();
             }
@@ -2151,7 +2126,7 @@ st_widget_real_navigate_focus (StWidget         *widget,
 gboolean
 st_widget_navigate_focus (StWidget         *widget,
                           ClutterActor     *from,
-                          GtkDirectionType  direction,
+                          StDirectionType   direction,
                           gboolean          wrap_around)
 {
   g_return_val_if_fail (ST_IS_WIDGET (widget), FALSE);

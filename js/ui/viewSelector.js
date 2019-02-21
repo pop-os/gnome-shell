@@ -3,11 +3,9 @@
 const Clutter = imports.gi.Clutter;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
 const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const Signals = imports.signals;
-const Lang = imports.lang;
 const Shell = imports.gi.Shell;
 const St = imports.gi.St;
 const GObject = imports.gi.GObject;
@@ -32,14 +30,12 @@ var ViewPage = {
     SEARCH: 3
 };
 
-var FocusTrap = new Lang.Class({
-    Name: 'FocusTrap',
-    Extends: St.Widget,
-
+var FocusTrap = GObject.registerClass(
+class FocusTrap extends St.Widget {
     vfunc_navigate_focus(from, direction) {
-        if (direction == Gtk.DirectionType.TAB_FORWARD ||
-            direction == Gtk.DirectionType.TAB_BACKWARD)
-            return this.parent(from, direction);
+        if (direction == St.DirectionType.TAB_FORWARD ||
+            direction == St.DirectionType.TAB_BACKWARD)
+            return super.vfunc_navigate_focus(from, direction);
         return false;
     }
 });
@@ -53,12 +49,10 @@ function getTermsForSearchString(searchString) {
     return terms;
 }
 
-var TouchpadShowOverviewAction = new Lang.Class({
-    Name: 'TouchpadShowOverviewAction',
-
-    _init(actor) {
+var TouchpadShowOverviewAction = class {
+    constructor(actor) {
         actor.connect('captured-event', this._handleEvent.bind(this));
-    },
+    }
 
     _handleEvent(actor, event) {
         if (event.type() != Clutter.EventType.TOUCHPAD_PINCH)
@@ -72,27 +66,25 @@ var TouchpadShowOverviewAction = new Lang.Class({
 
         return Clutter.EVENT_STOP;
     }
-});
+};
 Signals.addSignalMethods(TouchpadShowOverviewAction.prototype);
 
-var ShowOverviewAction = new Lang.Class({
-    Name: 'ShowOverviewAction',
-    Extends: Clutter.GestureAction,
+var ShowOverviewAction = GObject.registerClass({
     Signals: { 'activated': { param_types: [GObject.TYPE_DOUBLE] } },
-
+}, class ShowOverviewAction extends Clutter.GestureAction {
     _init() {
-        this.parent();
+        super._init();
         this.set_n_touch_points(3);
 
         global.display.connect('grab-op-begin', () => {
             this.cancel();
         });
-    },
+    }
 
-    vfunc_gesture_prepare(action, actor) {
+    vfunc_gesture_prepare(actor) {
         return Main.actionMode == Shell.ActionMode.NORMAL &&
                this.get_n_current_points() == this.get_n_touch_points();
-    },
+    }
 
     _getBoundingRect(motion) {
         let minX, minY, maxX, maxY;
@@ -121,14 +113,14 @@ var ShowOverviewAction = new Lang.Class({
                                     y: minY,
                                     width: maxX - minX,
                                     height: maxY - minY });
-    },
+    }
 
-    vfunc_gesture_begin(action, actor) {
+    vfunc_gesture_begin(actor) {
         this._initialRect = this._getBoundingRect(false);
         return true;
-    },
+    }
 
-    vfunc_gesture_end(action, actor) {
+    vfunc_gesture_end(actor) {
         let rect = this._getBoundingRect(true);
         let oldArea = this._initialRect.width * this._initialRect.height;
         let newArea = rect.width * rect.height;
@@ -138,10 +130,8 @@ var ShowOverviewAction = new Lang.Class({
     }
 });
 
-var ViewSelector = new Lang.Class({
-    Name: 'ViewSelector',
-
-    _init(searchEntry, showAppsButton) {
+var ViewSelector = class {
+    constructor(searchEntry, showAppsButton) {
         this.actor = new Shell.Stack({ name: 'viewSelector' });
 
         this._showAppsButton = showAppsButton;
@@ -263,22 +253,22 @@ var ViewSelector = new Lang.Class({
 
         gesture = new TouchpadShowOverviewAction(global.stage);
         gesture.connect('activated', this._pinchGestureActivated.bind(this));
-    },
+    }
 
     _pinchGestureActivated(action, scale) {
         if (scale < PINCH_GESTURE_THRESHOLD)
             Main.overview.show();
-    },
+    }
 
     _toggleAppsPage() {
         this._showAppsButton.checked = !this._showAppsButton.checked;
         Main.overview.show();
-    },
+    }
 
     showApps() {
         this._showAppsButton.checked = true;
         Main.overview.show();
-    },
+    }
 
     show() {
         this.reset();
@@ -291,7 +281,7 @@ var ViewSelector = new Lang.Class({
 
         if (!this._workspacesDisplay.activeWorkspaceHasMaximizedWindows())
             Main.overview.fadeOutDesktop();
-    },
+    }
 
     animateFromOverview() {
         // Make sure workspace page is fully visible to allow
@@ -304,16 +294,16 @@ var ViewSelector = new Lang.Class({
 
         if (!this._workspacesDisplay.activeWorkspaceHasMaximizedWindows())
             Main.overview.fadeInDesktop();
-    },
+    }
 
     setWorkspacesFullGeometry(geom) {
         this._workspacesDisplay.setWorkspacesFullGeometry(geom);
-    },
+    }
 
     hide() {
         this.reset();
         this._workspacesDisplay.hide();
-    },
+    }
 
     _addPage(actor, name, a11yIcon, params) {
         params = Params.parse(params, { a11yFocus: null });
@@ -335,7 +325,7 @@ var ViewSelector = new Lang.Class({
         page.hide();
         this.actor.add_actor(page);
         return page;
-    },
+    }
 
     _fadePageIn() {
         Tweener.addTween(this._activePage,
@@ -343,7 +333,7 @@ var ViewSelector = new Lang.Class({
                            time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
                            transition: 'easeOutQuad'
                          });
-    },
+    }
 
     _fadePageOut(page) {
         let oldPage = page;
@@ -355,7 +345,7 @@ var ViewSelector = new Lang.Class({
                                this._animateIn(oldPage);
                            }
                          });
-    },
+    }
 
     _animateIn(oldPage) {
         if (oldPage)
@@ -372,7 +362,7 @@ var ViewSelector = new Lang.Class({
         } else {
             this._fadePageIn();
         }
-    },
+    }
 
     _animateOut(page) {
         let oldPage = page;
@@ -385,7 +375,7 @@ var ViewSelector = new Lang.Class({
         } else {
             this._fadePageOut(page);
         }
-    },
+    }
 
     _showPage(page) {
         if (!Main.overview.visible)
@@ -402,17 +392,17 @@ var ViewSelector = new Lang.Class({
             this._animateOut(oldPage)
         else
             this._animateIn();
-    },
+    }
 
     _a11yFocusPage(page) {
         this._showAppsButton.checked = page == this._appsPage;
-        page.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false);
-    },
+        page.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
+    }
 
     _onShowAppsButtonToggled() {
         this._showPage(this._showAppsButton.checked ?
                        this._appsPage : this._workspacesPage);
-    },
+    }
 
     _onStageKeyPress(actor, event) {
         // Ignore events while anything but the overview has
@@ -435,15 +425,15 @@ var ViewSelector = new Lang.Class({
             this.startSearch(event);
         } else if (!this._searchActive && !global.stage.key_focus) {
             if (symbol == Clutter.Tab || symbol == Clutter.Down) {
-                this._activePage.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false);
+                this._activePage.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
                 return Clutter.EVENT_STOP;
             } else if (symbol == Clutter.ISO_Left_Tab) {
-                this._activePage.navigate_focus(null, Gtk.DirectionType.TAB_BACKWARD, false);
+                this._activePage.navigate_focus(null, St.DirectionType.TAB_BACKWARD, false);
                 return Clutter.EVENT_STOP;
             }
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _searchCancelled() {
         this._showPage(this._showAppsButton.checked ? this._appsPage
@@ -457,7 +447,7 @@ var ViewSelector = new Lang.Class({
         // (https://bugzilla.gnome.org/show_bug.cgi?id=636341) */
         if (this._text.text != '')
             this.reset();
-    },
+    }
 
     reset() {
         // Don't drop the key focus on Clutter's side if anything but the
@@ -470,7 +460,7 @@ var ViewSelector = new Lang.Class({
 
         this._text.set_cursor_visible(true);
         this._text.set_selection(0, 0);
-    },
+    }
 
     _onStageKeyFocusChanged() {
         let focus = global.stage.get_key_focus();
@@ -483,7 +473,7 @@ var ViewSelector = new Lang.Class({
             this._entry.add_style_pseudo_class('focus');
         else
             this._entry.remove_style_pseudo_class('focus');
-    },
+    }
 
     _onMapped() {
         if (this._entry.mapped) {
@@ -498,7 +488,7 @@ var ViewSelector = new Lang.Class({
                 global.stage.disconnect(this._capturedEventId);
             this._capturedEventId = 0;
         }
-    },
+    }
 
     _shouldTriggerSearch(symbol) {
         if (symbol == Clutter.Multi_key)
@@ -515,7 +505,7 @@ var ViewSelector = new Lang.Class({
             return true;
 
         return false;
-    },
+    }
 
     startSearch(event) {
         global.stage.set_key_focus(this._text);
@@ -523,12 +513,12 @@ var ViewSelector = new Lang.Class({
         let synthEvent = event.copy();
         synthEvent.set_source(this._text);
         this._text.event(synthEvent, false);
-    },
+    }
 
     // the entry does not show the hint
     _isActivated() {
         return this._text.text == this._entry.get_text();
-    },
+    }
 
     _onTextChanged(se, prop) {
         let terms = getTermsForSearchString(this._entry.get_text());
@@ -553,7 +543,7 @@ var ViewSelector = new Lang.Class({
             this._entry.set_secondary_icon(null);
             this._searchCancelled();
         }
-    },
+    }
 
     _onKeyPress(entry, event) {
         let symbol = event.get_key_symbol();
@@ -566,22 +556,22 @@ var ViewSelector = new Lang.Class({
             let arrowNext, nextDirection;
             if (entry.get_text_direction() == Clutter.TextDirection.RTL) {
                 arrowNext = Clutter.Left;
-                nextDirection = Gtk.DirectionType.LEFT;
+                nextDirection = St.DirectionType.LEFT;
             } else {
                 arrowNext = Clutter.Right;
-                nextDirection = Gtk.DirectionType.RIGHT;
+                nextDirection = St.DirectionType.RIGHT;
             }
 
             if (symbol == Clutter.Tab) {
-                this._searchResults.navigateFocus(Gtk.DirectionType.TAB_FORWARD);
+                this._searchResults.navigateFocus(St.DirectionType.TAB_FORWARD);
                 return Clutter.EVENT_STOP;
             } else if (symbol == Clutter.ISO_Left_Tab) {
                 this._focusTrap.can_focus = false;
-                this._searchResults.navigateFocus(Gtk.DirectionType.TAB_BACKWARD);
+                this._searchResults.navigateFocus(St.DirectionType.TAB_BACKWARD);
                 this._focusTrap.can_focus = true;
                 return Clutter.EVENT_STOP;
             } else if (symbol == Clutter.Down) {
-                this._searchResults.navigateFocus(Gtk.DirectionType.DOWN);
+                this._searchResults.navigateFocus(St.DirectionType.DOWN);
                 return Clutter.EVENT_STOP;
             } else if (symbol == arrowNext && this._text.position == -1) {
                 this._searchResults.navigateFocus(nextDirection);
@@ -592,7 +582,7 @@ var ViewSelector = new Lang.Class({
             }
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _onCapturedEvent(actor, event) {
         if (event.type() == Clutter.EventType.BUTTON_PRESS) {
@@ -609,7 +599,7 @@ var ViewSelector = new Lang.Class({
         }
 
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     getActivePage() {
         if (this._activePage == this._workspacesPage)
@@ -618,7 +608,7 @@ var ViewSelector = new Lang.Class({
             return ViewPage.APPS;
         else
             return ViewPage.SEARCH;
-    },
+    }
 
     fadeIn() {
         let actor = this._activePage;
@@ -626,7 +616,7 @@ var ViewSelector = new Lang.Class({
                                   time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME / 2,
                                   transition: 'easeInQuad'
                                 });
-    },
+    }
 
     fadeHalf() {
         let actor = this._activePage;
@@ -635,5 +625,5 @@ var ViewSelector = new Lang.Class({
                                   transition: 'easeOutQuad'
                                 });
     }
-});
+};
 Signals.addSignalMethods(ViewSelector.prototype);

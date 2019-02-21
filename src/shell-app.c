@@ -26,12 +26,6 @@
 #include <unistd.h>
 #endif
 
-typedef enum {
-  MATCH_NONE,
-  MATCH_SUBSTRING, /* Not prefix, substring */
-  MATCH_PREFIX, /* Strict prefix */
-} ShellAppSearchMatch;
-
 /* This is mainly a memory usage optimization - the user is going to
  * be running far fewer of the applications at one time than they have
  * installed.  But it also just helps keep the code more logically
@@ -51,7 +45,6 @@ typedef struct {
   guint window_sort_stale : 1;
 
   /* See GApplication documentation */
-  GDBusMenuModel   *remote_menu;
   GtkActionMuxer   *muxer;
   char             *unique_bus_name;
   GDBusConnection  *session;
@@ -98,7 +91,6 @@ enum {
   PROP_ID,
   PROP_DBUS_ID,
   PROP_ACTION_GROUP,
-  PROP_MENU,
   PROP_APP_INFO
 };
 
@@ -136,10 +128,6 @@ shell_app_get_property (GObject    *gobject,
     case PROP_ACTION_GROUP:
       if (app->running_state)
         g_value_set_object (value, app->running_state->muxer);
-      break;
-    case PROP_MENU:
-      if (app->running_state)
-        g_value_set_object (value, app->running_state->remote_menu);
       break;
     case PROP_APP_INFO:
       if (app->info)
@@ -216,7 +204,7 @@ window_backed_app_get_icon (ShellApp *app,
 
   if (window == NULL)
     {
-      actor = clutter_texture_new ();
+      actor = clutter_actor_new ();
       g_object_set (actor, "opacity", 0, "width", (float) size, "height", (float) size, NULL);
       return actor;
     }
@@ -608,6 +596,7 @@ gboolean
 shell_app_can_open_new_window (ShellApp *app)
 {
   ShellAppRunningState *state;
+  MetaWindow *window;
 
   /* Apps that are not running can always open new windows, because
      activating them would open the first one */
@@ -641,11 +630,13 @@ shell_app_can_open_new_window (ShellApp *app)
      Activate() knows nothing about the other instances, so it will show a
      new window.
   */
-  if (state->remote_menu)
+
+  window = state->windows->data;
+
+  if (state->unique_bus_name != NULL &&
+      meta_window_get_gtk_application_object_path (window) != NULL)
     {
-      const char *application_id;
-      application_id = meta_window_get_gtk_application_id (state->windows->data);
-      if (application_id != NULL)
+      if (meta_window_get_gtk_application_id (window) != NULL)
         return FALSE;
       else
         return TRUE;
@@ -1078,7 +1069,7 @@ _shell_app_add_window (ShellApp        *app,
   g_signal_connect (window, "notify::user-time", G_CALLBACK(shell_app_on_user_time_changed), app);
   g_signal_connect (window, "notify::skip-taskbar", G_CALLBACK(shell_app_on_skip_taskbar_changed), app);
 
-  shell_app_update_app_menu (app, window);
+  shell_app_update_app_actions (app, window);
   shell_app_ensure_busy_watch (app);
 
   if (!meta_window_is_skip_taskbar (window))
@@ -1142,10 +1133,10 @@ shell_app_get_pids (ShellApp *app)
 }
 
 void
-_shell_app_handle_startup_sequence (ShellApp          *app,
-                                    SnStartupSequence *sequence)
+_shell_app_handle_startup_sequence (ShellApp            *app,
+                                    MetaStartupSequence *sequence)
 {
-  gboolean starting = !sn_startup_sequence_get_completed (sequence);
+  gboolean starting = !meta_startup_sequence_get_completed (sequence);
 
   /* The Shell design calls for on application launch, the app title
    * appears at top, and no X window is focused.  So when we get
@@ -1160,8 +1151,8 @@ _shell_app_handle_startup_sequence (ShellApp          *app,
 
       shell_app_state_transition (app, SHELL_APP_STATE_STARTING);
       meta_x11_display_focus_the_no_focus_window (x11_display,
-                                                  sn_startup_sequence_get_timestamp (sequence));
-      app->started_on_workspace = sn_startup_sequence_get_workspace (sequence);
+                                                  meta_startup_sequence_get_timestamp (sequence));
+      app->started_on_workspace = meta_startup_sequence_get_workspace (sequence);
     }
 
   if (!starting)
@@ -1380,8 +1371,8 @@ create_running_state (ShellApp *app)
 }
 
 void
-shell_app_update_app_menu (ShellApp   *app,
-                           MetaWindow *window)
+shell_app_update_app_actions (ShellApp   *app,
+                              MetaWindow *window)
 {
   const gchar *unique_bus_name;
 
@@ -1397,23 +1388,18 @@ shell_app_update_app_menu (ShellApp   *app,
 
   unique_bus_name = meta_window_get_gtk_unique_bus_name (window);
 
-  if (app->running_state->remote_menu == NULL ||
-      g_strcmp0 (app->running_state->unique_bus_name, unique_bus_name) != 0)
+  if (g_strcmp0 (app->running_state->unique_bus_name, unique_bus_name) != 0)
     {
       const gchar *application_object_path;
-      const gchar *app_menu_object_path;
       GDBusActionGroup *actions;
 
       application_object_path = meta_window_get_gtk_application_object_path (window);
-      app_menu_object_path = meta_window_get_gtk_app_menu_object_path (window);
 
-      if (application_object_path == NULL || app_menu_object_path == NULL || unique_bus_name == NULL)
+      if (application_object_path == NULL || unique_bus_name == NULL)
         return;
 
       g_clear_pointer (&app->running_state->unique_bus_name, g_free);
       app->running_state->unique_bus_name = g_strdup (unique_bus_name);
-      g_clear_object (&app->running_state->remote_menu);
-      app->running_state->remote_menu = g_dbus_menu_model_get (app->running_state->session, unique_bus_name, app_menu_object_path);
       actions = g_dbus_action_group_get (app->running_state->session, unique_bus_name, application_object_path);
       gtk_action_muxer_insert (app->running_state->muxer, "app", G_ACTION_GROUP (actions));
       g_object_unref (actions);
@@ -1443,11 +1429,9 @@ unref_running_state (ShellAppRunningState *state)
       g_clear_object (&state->cancellable);
     }
 
-  g_clear_object (&state->remote_menu);
   g_clear_object (&state->muxer);
   g_clear_object (&state->session);
   g_clear_pointer (&state->unique_bus_name, g_free);
-  g_clear_pointer (&state->remote_menu, g_free);
 
   g_slice_free (ShellAppRunningState, state);
 }
@@ -1574,19 +1558,6 @@ shell_app_class_init(ShellAppClass *klass)
                                                         "Application Action Group",
                                                         "The action group exported by the remote application",
                                                         G_TYPE_ACTION_GROUP,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  /**
-   * ShellApp:menu:
-   *
-   * The #GMenuProxy associated with this ShellApp, if any. See the
-   * documentation of #GMenuModel for details.
-   */
-  g_object_class_install_property (gobject_class,
-                                   PROP_MENU,
-                                   g_param_spec_object ("menu",
-                                                        "Application Menu",
-                                                        "The primary menu exported by the remote application",
-                                                        G_TYPE_MENU_MODEL,
                                                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   /**
    * ShellApp:app-info:
