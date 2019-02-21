@@ -1,5 +1,6 @@
 gnome-shell (3.31.90-1ubuntu1) UNRELEASED; urgency=medium
 
+  [ Marco Trevisan (Treviño) ]
   * Merge with debian, remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
       gnome-themes-standard-data, gnome-backgrounds
@@ -88,6 +89,9 @@ gnome-shell (3.31.90-1ubuntu1) UNRELEASED; urgency=medium
     d/p/ubuntu/resolve_alternate_theme_path.patch,
     d/p/volume-Add-back-sound-feedback-on-scroll.patch:
     - Refreshed
+
+  [ Iain Lane ]
+  * Bump ubuntu-dock Breaks version; we need to update for this shell
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 13:49:48 +0100
 
