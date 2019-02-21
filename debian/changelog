@@ -1,4 +1,4 @@
-gnome-shell (3.31.90-1) UNRELEASED; urgency=medium
+gnome-shell (3.31.90-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New upstream release
@@ -33,8 +33,12 @@ gnome-shell (3.31.90-1) UNRELEASED; urgency=medium
   * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
     d/p/workaround_crasher_fractional_scaling.patch:
     - Refreshed
+  * debian/control: set breaks on dash-to-panel and dashtodock extensions
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 20 Feb 2019 16:37:57 +0100
+  [ Iain Lane ]
+  * control: Bump libmutter-dev version to 3.31.90, per upstream
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 09:39:22 +0000
 
 gnome-shell (3.30.2-3) unstable; urgency=medium
 
