@@ -1,4 +1,4 @@
-gnome-shell (3.31.90-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.31.90-1ubuntu1) disco; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * Merge with debian, remaining changes:
@@ -93,7 +93,7 @@ gnome-shell (3.31.90-1ubuntu1) UNRELEASED; urgency=medium
   [ Iain Lane ]
   * Bump ubuntu-dock Breaks version; we need to update for this shell
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 13:49:48 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 15:46:50 +0000
 
 gnome-shell (3.31.90-1) experimental; urgency=medium
 
