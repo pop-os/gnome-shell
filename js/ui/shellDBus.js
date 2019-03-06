@@ -1,10 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
+const { Gio, GLib, Meta, Shell } = imports.gi;
 const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
 
 const Config = imports.misc.config;
 const ExtensionSystem = imports.ui.extensionSystem;
@@ -12,7 +9,6 @@ const ExtensionDownloader = imports.ui.extensionDownloader;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Main = imports.ui.main;
 const Screenshot = imports.ui.screenshot;
-const ViewSelector = imports.ui.viewSelector;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
@@ -109,9 +105,9 @@ var GnomeShell = class {
     }
 
     GrabAcceleratorAsync(params, invocation) {
-        let [accel, flags] = params;
+        let [accel, modeFlags, grabFlags] = params;
         let sender = invocation.get_sender();
-        let bindingAction = this._grabAcceleratorForSender(accel, flags, sender);
+        let bindingAction = this._grabAcceleratorForSender(accel, modeFlags, grabFlags, sender);
         return invocation.return_value(GLib.Variant.new('(u)', [bindingAction]));
     }
 
@@ -120,21 +116,28 @@ var GnomeShell = class {
         let sender = invocation.get_sender();
         let bindingActions = [];
         for (let i = 0; i < accels.length; i++) {
-            let [accel, flags] = accels[i];
-            bindingActions.push(this._grabAcceleratorForSender(accel, flags, sender));
+            let [accel, modeFlags, grabFlags] = accels[i];
+            bindingActions.push(this._grabAcceleratorForSender(accel, modeFlags, grabFlags, sender));
         }
         return invocation.return_value(GLib.Variant.new('(au)', [bindingActions]));
     }
 
     UngrabAcceleratorAsync(params, invocation) {
         let [action] = params;
-        let grabbedBy = this._grabbedAccelerators.get(action);
-        if (invocation.get_sender() != grabbedBy)
-            return invocation.return_value(GLib.Variant.new('(b)', [false]));
+        let sender = invocation.get_sender();
+        let ungrabSucceeded = this._ungrabAcceleratorForSender(action, sender);
 
-        let ungrabSucceeded = global.display.ungrab_accelerator(action);
-        if (ungrabSucceeded)
-            this._grabbedAccelerators.delete(action);
+        return invocation.return_value(GLib.Variant.new('(b)', [ungrabSucceeded]));
+    }
+
+    UngrabAcceleratorsAsync(params, invocation) {
+        let [actions] = params;
+        let sender = invocation.get_sender();
+        let ungrabSucceeded = true;
+
+        for (let i = 0; i < actions.length; i++)
+            ungrabSucceeded &= this._ungrabAcceleratorForSender(actions[i], sender);
+
         return invocation.return_value(GLib.Variant.new('(b)', [ungrabSucceeded]));
     }
 
@@ -155,13 +158,13 @@ var GnomeShell = class {
                                GLib.Variant.new('(ua{sv})', [action, params]));
     }
 
-    _grabAcceleratorForSender(accelerator, flags, sender) {
-        let bindingAction = global.display.grab_accelerator(accelerator);
+    _grabAcceleratorForSender(accelerator, modeFlags, grabFlags, sender) {
+        let bindingAction = global.display.grab_accelerator(accelerator, grabFlags);
         if (bindingAction == Meta.KeyBindingAction.NONE)
             return Meta.KeyBindingAction.NONE;
 
         let bindingName = Meta.external_binding_name_for_action(bindingAction);
-        Main.wm.allowKeybinding(bindingName, flags);
+        Main.wm.allowKeybinding(bindingName, modeFlags);
 
         this._grabbedAccelerators.set(bindingAction, sender);
 
@@ -178,6 +181,16 @@ var GnomeShell = class {
         let ungrabSucceeded = global.display.ungrab_accelerator(action);
         if (ungrabSucceeded)
             this._grabbedAccelerators.delete(action);
+
+        return ungrabSucceeded;
+    }
+
+    _ungrabAcceleratorForSender(action, sender) {
+        let grabbedBy = this._grabbedAccelerators.get(action);
+        if (sender != grabbedBy)
+            return false;
+
+        return this._ungrabAccelerator(action);
     }
 
     _onGrabberBusNameVanished(connection, name) {

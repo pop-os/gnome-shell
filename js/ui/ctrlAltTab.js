@@ -1,14 +1,10 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
+const { Clutter, GObject, Meta, Shell, St } = imports.gi;
 
 const Main = imports.ui.main;
 const SwitcherPopup = imports.ui.switcherPopup;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 var POPUP_APPICON_SIZE = 96;
 var POPUP_FADE_TIME = 0.1; // seconds
@@ -98,7 +94,9 @@ var CtrlAltTabManager = class CtrlAltTabManager {
                     if (app)
                         icon = app.create_icon_texture(POPUP_APPICON_SIZE);
                     else
-                        icon = textureCache.bind_cairo_surface_property(windows[i], 'icon');
+                        icon = textureCache.bind_cairo_surface_property(windows[i],
+                                                                        'icon',
+                                                                        POPUP_APPICON_SIZE);
                 }
 
                 items.push({ name: windows[i].title,
@@ -133,10 +131,10 @@ var CtrlAltTabManager = class CtrlAltTabManager {
     }
 };
 
-var CtrlAltTabPopup =
+var CtrlAltTabPopup = GObject.registerClass(
 class CtrlAltTabPopup extends SwitcherPopup.SwitcherPopup {
-    constructor(items) {
-        super(items);
+    _init(items) {
+        super._init(items);
 
         this._switcherList = new CtrlAltTabSwitcher(this._items);
     }
@@ -160,12 +158,12 @@ class CtrlAltTabPopup extends SwitcherPopup.SwitcherPopup {
         super._finish(time);
         Main.ctrlAltTabManager.focusGroup(this._items[this._selectedIndex], time);
     }
-};
+});
 
-var CtrlAltTabSwitcher =
+var CtrlAltTabSwitcher = GObject.registerClass(
 class CtrlAltTabSwitcher extends SwitcherPopup.SwitcherList {
-    constructor(items) {
-        super(true);
+    _init(items) {
+        super._init(true);
 
         for (let i = 0; i < items.length; i++)
             this._addIcon(items[i]);
@@ -187,4 +185,4 @@ class CtrlAltTabSwitcher extends SwitcherPopup.SwitcherList {
 
         this.addItem(box, text);
     }
-};
+});

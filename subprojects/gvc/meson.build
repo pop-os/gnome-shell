@@ -90,7 +90,6 @@ else
     sources: libgvc_gir_sources + libgvc_no_gir_sources,
     dependencies: libgvc_deps,
     c_args: c_args,
-    install_rpath: pkgdatadir,
     install_dir: pkglibdir,
     install: true
   )

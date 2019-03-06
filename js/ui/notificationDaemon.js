@@ -1,18 +1,12 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const GdkPixbuf = imports.gi.GdkPixbuf;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Shell = imports.gi.Shell;
+const { GdkPixbuf, Gio, GLib, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
-const St = imports.gi.St;
 
 const Config = imports.misc.config;
 const Main = imports.ui.main;
 const MessageTray = imports.ui.messageTray;
 const Params = imports.misc.params;
-const Util = imports.misc.util;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 

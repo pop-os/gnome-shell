@@ -93,12 +93,7 @@
 //     MetaBackgroundImage         MetaBackgroundImage
 //     MetaBackgroundImage         MetaBackgroundImage
 
-const Clutter = imports.gi.Clutter;
-const GDesktopEnums = imports.gi.GDesktopEnums;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GnomeDesktop = imports.gi.GnomeDesktop;
-const Meta = imports.gi.Meta;
+const { Clutter, GDesktopEnums, Gio, GLib, GnomeDesktop, Meta } = imports.gi;
 const Signals = imports.signals;
 
 const LoginManager = imports.misc.loginManager;
@@ -751,10 +746,8 @@ var BackgroundManager = class BackgroundManager {
 
         this._container.add_child(backgroundActor);
 
-        let monitor = this._layoutManager.monitors[this._monitorIndex];
-
-        backgroundActor.set_size(monitor.width, monitor.height);
         if (this._controlPosition) {
+            let monitor = this._layoutManager.monitors[this._monitorIndex];
             backgroundActor.set_position(monitor.x, monitor.y);
             backgroundActor.lower_bottom();
         }

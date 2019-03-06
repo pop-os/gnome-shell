@@ -1,12 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const Shell = imports.gi.Shell;
+const { Atk, Clutter, GObject, St } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
-const Atk = imports.gi.Atk;
 
 const Main = imports.ui.main;
 const Params = imports.misc.params;

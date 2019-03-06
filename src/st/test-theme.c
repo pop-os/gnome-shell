@@ -22,6 +22,7 @@
 #include "st-theme.h"
 #include "st-theme-context.h"
 #include "st-label.h"
+#include "st-button.h"
 #include <math.h>
 #include <string.h>
 
@@ -37,7 +38,7 @@ static StThemeNode *group3;
 static StThemeNode *group4;
 static StThemeNode *group5;
 static StThemeNode *group6;
-static StThemeNode *cairo_texture;
+static StThemeNode *button;
 static gboolean fail;
 
 static const char *test;
@@ -280,7 +281,7 @@ test_classes (void)
 {
   test = "classes";
   /* .special-text class overrides size and style;
-   * the ClutterTexture.special-text selector doesn't match */
+   * the StBin.special-text selector doesn't match */
   assert_font (text1, "text1", "sans-serif Italic 32px");
 }
 
@@ -288,12 +289,12 @@ static void
 test_type_inheritance (void)
 {
   test = "type_inheritance";
-  /* From ClutterTexture element selector */
-  assert_length ("cairoTexture", "padding-top", 10.,
-		 st_theme_node_get_padding (cairo_texture, ST_SIDE_TOP));
-  /* From ClutterCairoTexture element selector */
-  assert_length ("cairoTexture", "padding-right", 20.,
-		 st_theme_node_get_padding (cairo_texture, ST_SIDE_RIGHT));
+  /* From StBin element selector */
+  assert_length ("button", "padding-top", 10.,
+		 st_theme_node_get_padding (button, ST_SIDE_TOP));
+  /* From StButton element selector */
+  assert_length ("button", "padding-right", 20.,
+		 st_theme_node_get_padding (button, ST_SIDE_RIGHT));
 }
 
 static void
@@ -410,15 +411,15 @@ test_background (void)
   test = "background";
   /* group1 has a background: shortcut property setting color and image */
   assert_background_color (group1, "group1", 0xff0000ff);
-  assert_background_image (group1, "group1", "st/some-background.png");
+  assert_background_image (group1, "group1", "some-background.png");
   /* text1 inherits the background image but not the color */
   assert_background_color (text1,  "text1",  0x00000000);
-  assert_background_image (text1,  "text1",  "st/some-background.png");
+  assert_background_image (text1,  "text1",  "some-background.png");
   /* text2 inherits both, but then background: none overrides both */
   assert_background_color (text2,  "text2",  0x00000000);
   assert_background_image (text2,  "text2",  NULL);
   /* background-image property */
-  assert_background_image (group2, "group2", "st/other-background.png");
+  assert_background_image (group2, "group2", "other-background.png");
 }
 
 static void
@@ -541,7 +542,10 @@ main (int argc, char **argv)
   if (clutter_init (&argc, &argv) != CLUTTER_INIT_SUCCESS)
     return 1;
 
-  file = g_file_new_for_path ("st/test-theme.css");
+  /* Make sure our assumptions about resolution are correct */
+  g_object_set (clutter_settings_get_default (), "font-dpi", -1, NULL);
+
+  file = g_file_new_for_path ("test-theme.css");
   theme = st_theme_new (file, NULL, NULL);
   g_object_unref (file);
 
@@ -575,8 +579,8 @@ main (int argc, char **argv)
                               CLUTTER_TYPE_TEXT, "text4", NULL, "visited hover", NULL);
   group3 = st_theme_node_new (context, group2, NULL,
                               CLUTTER_TYPE_GROUP, "group3", NULL, "hover", NULL);
-  cairo_texture = st_theme_node_new (context, root, NULL,
-                                     CLUTTER_TYPE_CAIRO_TEXTURE, "cairoTexture", NULL, NULL, NULL);
+  button = st_theme_node_new (context, root, NULL,
+                              ST_TYPE_BUTTON, "button", NULL, NULL, NULL);
 
   test_defaults ();
   test_lengths ();
@@ -592,7 +596,7 @@ main (int argc, char **argv)
   test_pseudo_class ();
   test_inline_style ();
 
-  g_object_unref (cairo_texture);
+  g_object_unref (button);
   g_object_unref (group1);
   g_object_unref (group2);
   g_object_unref (group3);
