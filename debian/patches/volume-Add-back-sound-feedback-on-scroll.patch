@@ -34,14 +34,14 @@ Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/53
 Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/51
 ---
  js/ui/slider.js        |  2 --
- js/ui/status/volume.js | 20 +++++++++++++++++++-
- 2 files changed, 19 insertions(+), 3 deletions(-)
+ js/ui/status/volume.js | 19 ++++++++++++++++++-
+ 2 files changed, 18 insertions(+), 3 deletions(-)
 
 diff --git a/js/ui/slider.js b/js/ui/slider.js
-index bef95e1..0e340e4 100644
+index f9fa732..69f72ce 100644
 --- a/js/ui/slider.js
 +++ b/js/ui/slider.js
-@@ -179,9 +179,7 @@ var Slider = class extends BarLevel.BarLevel {
+@@ -176,9 +176,7 @@ var Slider = class extends BarLevel.BarLevel {
              let delta = key == Clutter.KEY_Right ? 0.1 : -0.1;
              this._value = Math.max(0, Math.min(this._value + delta, this._maxValue));
              this.actor.queue_repaint();
@@ -52,21 +52,18 @@ index bef95e1..0e340e4 100644
          }
          return Clutter.EVENT_PROPAGATE;
 diff --git a/js/ui/status/volume.js b/js/ui/status/volume.js
-index 365ec41..9bbc92b 100644
+index d555b42..f8e4140 100644
 --- a/js/ui/status/volume.js
 +++ b/js/ui/status/volume.js
-@@ -1,8 +1,10 @@
+@@ -1,6 +1,7 @@
  // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
  
- const Clutter = imports.gi.Clutter;
-+const GLib = imports.gi.GLib;
- const Gio = imports.gi.Gio;
- const Gvc = imports.gi.Gvc;
+ const { Clutter, Gio, Gvc, St } = imports.gi;
 +const Mainloop = imports.mainloop;
- const St = imports.gi.St;
  const Signals = imports.signals;
  
-@@ -34,14 +36,21 @@ var StreamSlider = class {
+ const Main = imports.ui.main;
+@@ -31,14 +32,21 @@ var StreamSlider = class {
  
          this.item = new PopupMenu.PopupBaseMenuItem({ activate: false });
  
@@ -89,7 +86,7 @@ index 365ec41..9bbc92b 100644
  
          this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
          this.item.actor.add(this._icon);
-@@ -114,6 +123,7 @@ var StreamSlider = class {
+@@ -111,6 +119,7 @@ var StreamSlider = class {
  
          let volume = value * this._control.get_vol_max_norm();
          let prevMuted = this._stream.is_muted;
@@ -97,7 +94,7 @@ index 365ec41..9bbc92b 100644
          if (volume < 1) {
              this._stream.volume = 0;
              if (!prevMuted)
-@@ -124,6 +134,14 @@ var StreamSlider = class {
+@@ -121,6 +130,14 @@ var StreamSlider = class {
                  this._stream.change_is_muted(false);
          }
          this._stream.push_volume();

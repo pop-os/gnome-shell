@@ -76,11 +76,11 @@ index cf308b3..41ff5b0 100644
              extension = createExtensionObject(uuid, extensionDir, type);
          } catch(e) {
 diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
-index 828f6f7..dd81fd4 100644
+index 9aed29c..3d2cc24 100644
 --- a/js/ui/extensionDownloader.js
 +++ b/js/ui/extensionDownloader.js
-@@ -8,9 +8,11 @@ const St = imports.gi.St;
- const Shell = imports.gi.Shell;
+@@ -3,9 +3,11 @@
+ const { Clutter, Gio, GLib, Soup, St } = imports.gi;
  
  const Config = imports.misc.config;
 +const Desktop = imports.misc.desktop;
@@ -91,7 +91,7 @@ index 828f6f7..dd81fd4 100644
  const ModalDialog = imports.ui.modalDialog;
  
  const _signals = ExtensionSystem._signals;
-@@ -26,6 +28,14 @@ function installExtension(uuid, invocation) {
+@@ -21,6 +23,14 @@ function installExtension(uuid, invocation) {
      let params = { uuid: uuid,
                     shell_version: Config.PACKAGE_VERSION };
  
@@ -106,7 +106,7 @@ index 828f6f7..dd81fd4 100644
      let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
  
      _httpSession.queue_message(message, (session, message) => {
-@@ -158,6 +168,9 @@ function updateExtension(uuid) {
+@@ -153,6 +163,9 @@ function updateExtension(uuid) {
  function checkForUpdates() {
      let metadatas = {};
      for (let uuid in ExtensionUtils.extensions) {

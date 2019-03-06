@@ -15,10 +15,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 4 insertions(+)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index ccecb49..d6da30c 100644
+index f9556f1..5c29627 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
-@@ -110,6 +110,9 @@ function _sessionUpdated() {
+@@ -103,6 +103,9 @@ function _sessionUpdated() {
          if (lookingGlass)
              lookingGlass.close();
      }
@@ -29,10 +29,10 @@ index ccecb49..d6da30c 100644
  
  function start() {
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index 580a424..eb3152f 100644
+index d7aa23c..1bb129a 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -21,6 +21,7 @@ const _modes = {
+@@ -20,6 +20,7 @@ const _modes = {
          allowSettings: false,
          allowExtensions: false,
          allowScreencast: false,

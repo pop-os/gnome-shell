@@ -33,10 +33,10 @@ index 24e2a75..2a5432a 100644
        <default>[ 'epiphany.desktop', 'evolution.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop' ]</default>
        <summary>List of desktop file IDs for favorite applications</summary>
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 5bf3ec5..00f1123 100644
+index b6cf05c..76bd98e 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -262,6 +262,9 @@ var LayoutManager = GObject.registerClass({
+@@ -258,6 +258,9 @@ var LayoutManager = GObject.registerClass({
          this._backgroundGroup.lower_bottom();
          this._bgManagers = [];
  
@@ -46,7 +46,7 @@ index 5bf3ec5..00f1123 100644
          // Need to update struts on new workspaces when they are added
          let workspaceManager = global.workspace_manager;
          workspaceManager.connect('notify::n-workspaces',
-@@ -363,6 +366,11 @@ var LayoutManager = GObject.registerClass({
+@@ -361,6 +364,11 @@ var LayoutManager = GObject.registerClass({
          });
          this.hotCorners = [];
  

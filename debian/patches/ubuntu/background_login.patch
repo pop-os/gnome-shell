@@ -1,25 +1,36 @@
-Description: js/ui/background.js: Use Ubuntu purple to match login screen
- This way the login animation will appear to expand over the login
- screen (system background) instead of suddenly replacing it.
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Wed, 6 Mar 2019 14:48:10 +0000
+Subject: js/ui/background.js: Use Ubuntu purple to match login screen
+
+Original author: Didier Roche <didrocks@ubuntu.com>
+Bug-Ubuntu: https://launchpad.net/bugs/1813119
+Last-Update: 2019-03-01
+Forwarded: not-needed
+
+This way the login animation will appear to expand over the login
+screen (system background) instead of suddenly replacing it.
 Original author: Didier Roche <didrocks@ubuntu.com>
 Author: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Bug-Ubuntu: https://launchpad.net/bugs/1813119
 Last-Update: 2019-03-01
 Forwarded: not-needed
+---
+ js/ui/background.js | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
 
-Index: gnome-shell/js/ui/background.js
-===================================================================
---- gnome-shell.orig/js/ui/background.js
-+++ gnome-shell/js/ui/background.js
-@@ -101,6 +101,7 @@ const GnomeDesktop = imports.gi.GnomeDes
- const Meta = imports.gi.Meta;
+diff --git a/js/ui/background.js b/js/ui/background.js
+index 06e0388..e402a4c 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
+@@ -96,6 +96,7 @@
+ const { Clutter, GDesktopEnums, Gio, GLib, GnomeDesktop, Meta } = imports.gi;
  const Signals = imports.signals;
  
 +const Desktop = imports.misc.desktop;
  const LoginManager = imports.misc.loginManager;
  const Main = imports.ui.main;
  const Params = imports.misc.params;
-@@ -489,6 +490,25 @@ let _systemBackground;
+@@ -484,6 +485,25 @@ let _systemBackground;
  
  var SystemBackground = class SystemBackground {
      constructor() {
