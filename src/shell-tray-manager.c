@@ -212,13 +212,7 @@ void
 shell_tray_manager_manage_screen (ShellTrayManager *manager,
                                   StWidget         *theme_widget)
 {
-  GdkDisplay *display;
-  GdkScreen *gdk_screen;
-
-  display = gdk_display_get_default ();
-  gdk_screen = gdk_display_get_default_screen (display);
-
-  na_tray_manager_manage_screen (manager->priv->na_manager, gdk_screen);
+  na_tray_manager_manage_screen (manager->priv->na_manager);
 
   g_signal_connect_object (theme_widget, "style-changed",
                            G_CALLBACK (shell_tray_manager_style_changed),
@@ -245,8 +239,10 @@ shell_tray_manager_child_on_realize (GtkWidget             *widget,
       bg_pattern = cairo_pattern_create_rgb (color.red / 255.,
                                              color.green / 255.,
                                              color.blue / 255.);
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       gdk_window_set_background_pattern (gtk_widget_get_window (widget),
                                          bg_pattern);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
       cairo_pattern_destroy (bg_pattern);
     }

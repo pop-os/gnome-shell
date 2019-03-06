@@ -3,6 +3,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -434,14 +435,23 @@ shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
   cairo_surface_t *surface;
   cairo_rectangle_int_t clip;
   gfloat actor_x, actor_y;
+  gfloat resource_scale;
 
   texture = meta_window_actor_get_texture (window_actor);
   clutter_actor_get_position (CLUTTER_ACTOR (window_actor), &actor_x, &actor_y);
 
+  if (!clutter_actor_get_resource_scale (CLUTTER_ACTOR (window_actor),
+                                         &resource_scale))
+    {
+      resource_scale = 1.0;
+      g_warning ("Actor resource scale is not know at this point, "
+                 "falling back to default 1.0");
+    }
+
   clip.x = window_rect->x - (gint) actor_x;
   clip.y = window_rect->y - (gint) actor_y;
-  clip.width = window_rect->width;
-  clip.height = window_rect->height;
+  clip.width = ceilf (window_rect->width * resource_scale);
+  clip.height = ceilf (window_rect->height * resource_scale);
 
   surface = meta_shaped_texture_get_image (META_SHAPED_TEXTURE (texture),
                                            &clip);
@@ -462,31 +472,20 @@ shell_util_composite_capture_images (ClutterCapture  *captures,
                                      int              n_captures,
                                      int              x,
                                      int              y,
-                                     int              width,
-                                     int              height)
+                                     int              target_width,
+                                     int              target_height,
+                                     float            target_scale)
 {
   int i;
-  double target_scale;
   cairo_format_t format;
   cairo_surface_t *image;
   cairo_t *cr;
 
   g_assert (n_captures > 0);
-
-  target_scale = 0.0;
-  for (i = 0; i < n_captures; i++)
-    {
-      ClutterCapture *capture = &captures[i];
-      double capture_scale = 1.0;
-
-      cairo_surface_get_device_scale (capture->image, &capture_scale, NULL);
-      target_scale = MAX (target_scale, capture_scale);
-    }
+  g_assert (target_scale > 0.0f);
 
   format = cairo_image_surface_get_format (captures[0].image);
-  image = cairo_image_surface_create (format,
-                                      width * target_scale,
-                                      height * target_scale);
+  image = cairo_image_surface_create (format, target_width, target_height);
   cairo_surface_set_device_scale (image, target_scale, target_scale);
 
   cr = cairo_create (image);

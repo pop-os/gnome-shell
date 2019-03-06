@@ -1,16 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const Atk = imports.gi.Atk;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Pango = imports.gi.Pango;
-const Shell = imports.gi.Shell;
 const Signals = imports.signals;
-const St = imports.gi.St;
 
 const Calendar = imports.ui.calendar;
 const GnomeSession = imports.misc.gnomeSession;
@@ -18,7 +10,6 @@ const Layout = imports.ui.layout;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
 const Tweener = imports.ui.tweener;
-const Util = imports.misc.util;
 
 const SHELL_KEYBINDINGS_SCHEMA = 'org.gnome.shell.keybindings';
 
@@ -715,6 +706,12 @@ var Source = class Source {
         if (!this._policy)
             this._policy = this._createPolicy();
         return this._policy;
+    }
+
+    set policy(policy) {
+        if (this._policy)
+            this._policy.destroy();
+        this._policy = policy;
     }
 
     get count() {

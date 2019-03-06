@@ -1,13 +1,10 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
+const { Gio, GLib } = imports.gi;
 const Mainloop = imports.mainloop;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
 const Params = imports.misc.params;
-const Shell = imports.gi.Shell;
 
 const GnomeSession = imports.misc.gnomeSession;
-const Main = imports.ui.main;
 const ShellMountOperation = imports.ui.shellMountOperation;
 
 var GNOME_SESSION_AUTOMOUNT_INHIBIT = 16;
@@ -96,10 +93,10 @@ var AutomountManager = class {
         if (!this._session.SessionIsActive)
             return;
 
-        let sound = global.display.get_sound();
-        sound.play_from_theme('device-removed-media',
-                              _("External drive disconnected"),
-                              null);
+        let player = global.display.get_sound_player();
+        player.play_from_theme('device-removed-media',
+                               _("External drive disconnected"),
+                               null);
     }
 
     _onDriveEjectButton(monitor, drive) {

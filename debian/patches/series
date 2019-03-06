@@ -1,5 +1,5 @@
+build-Add-mutter-s-private-directory-to-libst-s-build-tim.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
-workaround_crasher_fractional_scaling.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch

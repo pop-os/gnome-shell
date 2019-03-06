@@ -1,18 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Mainloop = imports.mainloop;
+const { Clutter, Gio, GLib } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
 
 const Batch = imports.gdm.batch;
 const Fprint = imports.gdm.fingerprint;
 const OVirt = imports.gdm.oVirt;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const ShellEntry = imports.ui.shellEntry;
 const SmartcardManager = imports.misc.smartcardManager;
 const Tweener = imports.ui.tweener;
 

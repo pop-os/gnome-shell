@@ -2,12 +2,7 @@
 //
 // A widget showing the user avatar and name
 
-const Clutter = imports.gi.Clutter;
-const AccountsService = imports.gi.AccountsService;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const St = imports.gi.St;
+const { Clutter, Gio, GLib, GObject, St } = imports.gi;
 
 const Params = imports.misc.params;
 
@@ -23,7 +18,7 @@ var Avatar = class {
         this._user = user;
         params = Params.parse(params, { reactive: false,
                                         iconSize: AVATAR_ICON_SIZE,
-                                        styleClass: 'framed-user-icon' });
+                                        styleClass: 'user-icon' });
         this._iconSize = params.iconSize;
 
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;

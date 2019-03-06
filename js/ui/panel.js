@@ -1,18 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
+const { Atk, Clutter, Gio, GLib, GObject, Gtk, Meta, Shell, St } = imports.gi;
 const Cairo = imports.cairo;
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Gtk = imports.gi.Gtk;
 const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Pango = imports.gi.Pango;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
-const Signals = imports.signals;
-const Atk = imports.gi.Atk;
 
 const Animation = imports.ui.animation;
 const Config = imports.misc.config;
@@ -120,9 +110,14 @@ class AppMenu extends PopupMenu.PopupMenu {
         });
 
         this._appSystem.connect('installed-changed', () => {
-            let sw = this._appSystem.lookup_app('org.gnome.Software.desktop');
-            this._detailsItem.actor.visible = (sw != null);
+            this._updateDetailsVisibility();
         });
+        this._updateDetailsVisibility();
+    }
+
+    _updateDetailsVisibility() {
+        let sw = this._appSystem.lookup_app('org.gnome.Software.desktop');
+        this._detailsItem.actor.visible = (sw != null);
     }
 
     isEmpty() {
@@ -739,7 +734,7 @@ class AggregateLayout extends Clutter.BoxLayout {
             let child = this._sizeChildren[i];
             let [childMin, childNat] = child.get_preferred_width(forHeight);
             minWidth = Math.max(minWidth, childMin);
-            natWidth = Math.max(minWidth, childNat);
+            natWidth = Math.max(natWidth, childNat);
         }
         return [minWidth, natWidth];
     }
@@ -814,7 +809,6 @@ class AggregateMenu extends PanelMenu.Button {
         menuLayout.addSizeChild(this._location.menu.actor);
         menuLayout.addSizeChild(this._rfkill.menu.actor);
         menuLayout.addSizeChild(this._power.menu.actor);
-        menuLayout.addSizeChild(this._system.menu.actor);
     }
 });
 

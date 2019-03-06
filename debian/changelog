@@ -1,10 +1,39 @@
-gnome-shell (3.31.90-1ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (3.31.92-1ubuntu1) UNRELEASED; urgency=medium
 
+  [ Daniel van Vugt ]
   * Update ubuntu/background_login.patch to match the new login screen
     (system background) design from Yaru for a smooth login animation
     (LP: #1813119).
 
- -- Daniel van Vugt <daniel.van.vugt@canonical.com>  Fri, 01 Mar 2019 16:09:30 +0800
+ -- Iain Lane <iain.lane@canonical.com>  Wed, 06 Mar 2019 14:47:10 +0000
+
+gnome-shell (3.31.92-1) experimental; urgency=medium
+
+  * New upstream release
+    + Add flags parameter in GrabAccelerators API
+    + Always use symbolic user icon in system menu
+    + Don't close on-screen-keyboard's language menu on hover
+    + Don't let unfullscreen gesture interfere with top bar taps
+    + Don't toggle on-screen keyboard on every focus change
+    + Fix generating French OSK layout
+    + Fix legacy tray icons not responding to events on wayland
+    + Fix visual glitch in submenus
+    + Hide trailing separator in search results
+    + Only consider visible children for :first-child/:last-child
+    + Remember choice in inhibit-shortcuts dialogue
+    + Support fractional scaling
+    + Use borderless round user images
+  * control:
+    + BD on mutter 3.31.92, the corresponding release for this Shell
+    + BD on gjs 1.54, per upstream
+  * Drop workaround_crasher_fractional_scaling.patch. Marco says this is
+    probaly not required any more, and it was only ever intended to be a
+    temporary workaround.
+  * Cherry-pick c7342824 to fix `test-theme`
+  * Add a BD <!nocheck> on gnome-settings-daemon-common.
+    This is required for `test-theme`.
+
+ -- Iain Lane <laney@debian.org>  Wed, 06 Mar 2019 14:39:17 +0000
 
 gnome-shell (3.31.90-1ubuntu1) disco; urgency=medium
 
