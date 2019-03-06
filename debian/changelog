@@ -1,4 +1,4 @@
-gnome-shell (3.31.92-1) UNRELEASED; urgency=medium
+gnome-shell (3.31.92-1) experimental; urgency=medium
 
   * New upstream release
     + Add flags parameter in GrabAccelerators API
@@ -24,7 +24,7 @@ gnome-shell (3.31.92-1) UNRELEASED; urgency=medium
   * Add a BD <!nocheck> on gnome-settings-daemon-common.
     This is required for `test-theme`.
 
- -- Iain Lane <laney@debian.org>  Wed, 06 Mar 2019 13:18:06 +0000
+ -- Iain Lane <laney@debian.org>  Wed, 06 Mar 2019 14:39:17 +0000
 
 gnome-shell (3.31.90-1) experimental; urgency=medium
 
