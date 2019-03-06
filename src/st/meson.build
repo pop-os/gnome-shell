@@ -12,6 +12,7 @@ st_headers = [
   'st-generic-accessible.h',
   'st-icon.h',
   'st-icon-colors.h',
+  'st-image-content.h',
   'st-label.h',
   'st-private.h',
   'st-scrollable.h',
@@ -66,6 +67,7 @@ st_sources = [
   'st-generic-accessible.c',
   'st-icon.c',
   'st-icon-colors.c',
+  'st-image-content.c',
   'st-label.c',
   'st-private.c',
   'st-scrollable.c',
@@ -137,7 +139,12 @@ test_theme = executable('test-theme',
   sources: 'test-theme.c',
   c_args: st_cflags,
   dependencies: [clutter_dep, gtk_dep],
+  build_rpath: mutter_typelibdir,
   link_with: libst
+)
+
+test('CSS styling support', test_theme,
+  workdir: meson.current_source_dir()
 )
 
 libst_gir = gnome.generate_gir(libst,

@@ -1,14 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Pango = imports.gi.Pango;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
 const Signals = imports.signals;
 
 const AltTab = imports.ui.altTab;
@@ -1083,6 +1076,15 @@ var WindowManager = class {
             if (currentWindow)
                 currentWindow.unmake_fullscreen();
         });
+
+        let updateUnfullscreenGesture = () => {
+            let currentWindow = global.display.focus_window;
+            gesture.enabled = currentWindow && currentWindow.is_fullscreen();
+        }
+
+        global.display.connect('notify::focus-window', updateUnfullscreenGesture);
+        global.display.connect('in-fullscreen-changed', updateUnfullscreenGesture);
+
         global.stage.add_action(gesture);
     }
 

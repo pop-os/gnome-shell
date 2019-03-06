@@ -1,14 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Signals = imports.signals;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
+const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
+const Signals = imports.signals;
 
 const AppDisplay = imports.ui.appDisplay;
 const AppFavorites = imports.ui.appFavorites;
@@ -16,7 +10,6 @@ const DND = imports.ui.dnd;
 const IconGrid = imports.ui.iconGrid;
 const Main = imports.ui.main;
 const Tweener = imports.ui.tweener;
-const Workspace = imports.ui.workspace;
 
 var DASH_ANIMATION_TIME = 0.2;
 var DASH_ITEM_LABEL_SHOW_TIME = 0.15;

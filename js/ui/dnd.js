@@ -1,15 +1,11 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
-const St = imports.gi.St;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const { Clutter, GLib, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const Tweener = imports.ui.tweener;
-const Main = imports.ui.main;
 
+const Main = imports.ui.main;
 const Params = imports.misc.params;
+const Tweener = imports.ui.tweener;
 
 // Time to scale down to maxDragActorSize
 var SCALE_ANIMATION_TIME = 0.25;
@@ -129,6 +125,16 @@ var _Draggable = class _Draggable {
     }
 
     _onTouchEvent(actor, event) {
+        // We only handle touch events here on wayland. On X11
+        // we do get emulated pointer events, which already works
+        // for single-touch cases. Besides, the X11 passive touch grab
+        // set up by Mutter will make us see first the touch events
+        // and later the pointer events, so it will look like two
+        // unrelated series of events, we want to avoid double handling
+        // in these cases.
+        if (!Meta.is_wayland_compositor())
+            return Clutter.EVENT_PROPAGATE;
+
         if (event.type() != Clutter.EventType.TOUCH_BEGIN ||
             !global.display.is_pointer_emulating_sequence(event.get_event_sequence()))
             return Clutter.EVENT_PROPAGATE;

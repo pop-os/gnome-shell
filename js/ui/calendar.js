@@ -1,17 +1,15 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const St = imports.gi.St;
+const { Clutter, Gio, GLib, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const Shell = imports.gi.Shell;
 
 const Main = imports.ui.main;
 const MessageList = imports.ui.messageList;
 const MessageTray = imports.ui.messageTray;
 const Mpris = imports.ui.mpris;
 const Util = imports.misc.util;
+
+const { loadInterfaceXML } = imports.misc.fileUtils;
 
 var MSECS_IN_DAY = 24 * 60 * 60 * 1000;
 var SHOW_WEEKDATE_KEY = 'show-weekdate';
@@ -125,19 +123,7 @@ var EmptyEventSource = class EmptyEventSource {
 };
 Signals.addSignalMethods(EmptyEventSource.prototype);
 
-const CalendarServerIface = `
-<node>
-<interface name="org.gnome.Shell.CalendarServer">
-<method name="GetEvents">
-    <arg type="x" direction="in" />
-    <arg type="x" direction="in" />
-    <arg type="b" direction="in" />
-    <arg type="a(sssbxxa{sv})" direction="out" />
-</method>
-<property name="HasCalendars" type="b" access="read" />
-<signal name="Changed" />
-</interface>
-</node>`;
+const CalendarServerIface = loadInterfaceXML('org.gnome.Shell.CalendarServer');
 
 const CalendarServerInfo  = Gio.DBusInterfaceInfo.new_for_xml(CalendarServerIface);
 

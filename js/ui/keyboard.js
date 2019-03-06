@@ -1,16 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Atspi = imports.gi.Atspi;
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const { Clutter, Gio, GLib, GObject, Meta, St } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
-const InputSourceManager = imports.ui.status.keyboard;
 
+const InputSourceManager = imports.ui.status.keyboard;
 const IBusManager = imports.misc.ibusManager;
 const BoxPointer = imports.ui.boxpointer;
 const Layout = imports.ui.layout;
@@ -18,7 +11,6 @@ const Main = imports.ui.main;
 const PageIndicators = imports.ui.pageIndicators;
 const PopupMenu = imports.ui.popupMenu;
 const Tweener = imports.ui.tweener;
-const Util = imports.misc.util;
 
 var KEYBOARD_REST_TIME = Layout.KEYBOARD_ANIMATION_TIME * 2 * 1000;
 var KEY_LONG_PRESS_TIME = 250;
@@ -197,16 +189,20 @@ var LanguageSelectionPopup = class extends PopupMenu.PopupMenu {
         let inputSourceManager = InputSourceManager.getInputSourceManager();
         let inputSources = inputSourceManager.inputSources;
 
+        let item;
         for (let i in inputSources) {
             let is = inputSources[i];
 
-            this.addAction(is.displayName, () => {
+            item = this.addAction(is.displayName, () => {
                 inputSourceManager.activateInputSource(is, true);
             });
+            item.actor.can_focus = false;
         }
 
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-        this.addSettingsAction(_("Region & Language Settings"), 'gnome-region-panel.desktop');
+        item = this.addSettingsAction(_("Region & Language Settings"), 'gnome-region-panel.desktop');
+        item.actor.can_focus = false;
+
         this._capturedEventId = 0;
 
         this._unmapId = actor.connect('notify::mapped', () => {

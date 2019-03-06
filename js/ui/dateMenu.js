@@ -1,23 +1,11 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const GnomeDesktop = imports.gi.GnomeDesktop;
-const GObject = imports.gi.GObject;
-const GWeather = imports.gi.GWeather;
-const Mainloop = imports.mainloop;
-const Pango = imports.gi.Pango;
-const Cairo = imports.cairo;
-const Clutter = imports.gi.Clutter;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
-const Atk = imports.gi.Atk;
+const { Clutter, GLib, GnomeDesktop,
+        GObject, GWeather, Shell, St } = imports.gi;
 
-const Params = imports.misc.params;
 const Util = imports.misc.util;
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
 const Calendar = imports.ui.calendar;
 const Weather = imports.misc.weather;
 const System = imports.system;
@@ -391,6 +379,7 @@ class IndicatorPad extends St.Widget {
     _init(actor) {
         this._source = actor;
         this._source.connect('notify::visible', () => { this.queue_relayout(); });
+        this._source.connect('notify::size', () => { this.queue_relayout(); });
         super._init();
     }
 

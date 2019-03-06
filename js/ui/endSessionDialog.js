@@ -18,20 +18,13 @@
 
 const Mainloop = imports.mainloop;
 
-const AccountsService = imports.gi.AccountsService;
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Pango = imports.gi.Pango;
-const Polkit = imports.gi.Polkit;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
+const { AccountsService, Clutter, Gio,
+        GLib, Pango, Polkit, Shell, St }  = imports.gi;
 
 const CheckBox = imports.ui.checkBox;
 const GnomeSession = imports.misc.gnomeSession;
 const LoginManager = imports.misc.loginManager;
 const ModalDialog = imports.ui.modalDialog;
-const Tweener = imports.ui.tweener;
 const UserWidget = imports.ui.userWidget;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
