@@ -1,4 +1,4 @@
-gnome-shell (3.31.92-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.31.92-1ubuntu1) disco; urgency=medium
 
   [ Daniel van Vugt ]
   * Update ubuntu/background_login.patch to match the new login screen
@@ -72,7 +72,7 @@ gnome-shell (3.31.92-1ubuntu1) UNRELEASED; urgency=medium
       - d/p/st-texture-cache-Cancel-sliced-image-loading-on-target-ac.patch:
         Drop, this is now upstream.
 
- -- Iain Lane <iain.lane@canonical.com>  Wed, 06 Mar 2019 14:56:42 +0000
+ -- Iain Lane <iain.lane@canonical.com>  Wed, 06 Mar 2019 14:58:20 +0000
 
 gnome-shell (3.31.92-1) experimental; urgency=medium
 
