@@ -1,4 +1,4 @@
-gnome-shell (3.32.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.32.0-1) experimental; urgency=medium
 
   * New upstream release
     + Fix sizing issues in on-screen-keyboard emoji panel
@@ -11,7 +11,7 @@ gnome-shell (3.32.0-1) UNRELEASED; urgency=medium
       Drop, applied upstream.
   * control: Bump mutter BD to 3.32.0
 
- -- Iain Lane <laney@debian.org>  Tue, 12 Mar 2019 11:19:14 +0000
+ -- Iain Lane <laney@debian.org>  Tue, 12 Mar 2019 12:50:26 +0000
 
 gnome-shell (3.31.92-1) experimental; urgency=medium
 
