@@ -1,3 +1,18 @@
+gnome-shell (3.32.0-1) experimental; urgency=medium
+
+  * New upstream release
+    + Fix sizing issues in on-screen-keyboard emoji panel
+    + Fix test linker failure on Debian/Ubuntu
+    + Avoid assertion when sizing fallback app icons from CSS
+    + Fix mis-sized menu arrows after texture cache changes
+  * debian/patches: Update to master at ede0fd866.  These are all fixes which
+    will be in 3.32.1.
+    - d/p/build-Add-mutter-s-private-directory-to-libst-s-build-tim.patch:
+      Drop, applied upstream.
+  * control: Bump mutter BD to 3.32.0
+
+ -- Iain Lane <laney@debian.org>  Tue, 12 Mar 2019 12:50:26 +0000
+
 gnome-shell (3.31.92-1ubuntu1) disco; urgency=medium
 
   [ Daniel van Vugt ]

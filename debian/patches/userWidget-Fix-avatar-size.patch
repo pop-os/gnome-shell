@@ -1,0 +1,43 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 7 Mar 2019 13:39:17 +0100
+Subject: userWidget: Fix avatar size
+
+The texture cache now returns an actor with an appropriate ClutterContent
+rather than a ClutterTexture. That actor uses the CONTENT_SIZE request
+mode, which means that it will unconditionally request the preferred size
+of the content. That is, setting an explicit size no longer has an effect.
+
+Fix this by making sure the image is already loaded with the desired
+dimensions.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/issues/1024
+
+Origin: upstream, commit:90f4d29a4287a5786d76037b6fe3222ff86982e
+Applied-Upstream: 3.32.1
+---
+ js/ui/userWidget.js | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/js/ui/userWidget.js b/js/ui/userWidget.js
+index a3bf4cb..a11b34b 100644
+--- a/js/ui/userWidget.js
++++ b/js/ui/userWidget.js
+@@ -46,15 +46,14 @@ var Avatar = class {
+         if (iconFile) {
+             let file = Gio.File.new_for_path(iconFile);
+             this.actor.child = null;
+-            this.actor.style = 'background-image: url("%s");'.format(iconFile);
++            this.actor.style = `
++                background-image: url("${iconFile}");
++                background-size: ${this._iconSize}px`;
+         } else {
+             this.actor.style = null;
+             this.actor.child = new St.Icon({ icon_name: 'avatar-default-symbolic',
+                                              icon_size: this._iconSize });
+         }
+-
+-        let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+-        this.actor.set_size(this._iconSize * scaleFactor, this._iconSize * scaleFactor);
+     }
+ };
+ 
