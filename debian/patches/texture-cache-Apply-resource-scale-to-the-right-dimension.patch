@@ -1,0 +1,27 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 6 Mar 2019 21:39:42 +0100
+Subject: texture-cache: Apply resource scale to the right dimension
+
+Size matters!
+
+https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/444
+
+Origin: upstream, commit:729a2e77213030fd73e4885de2eede6a22e3608
+Applied-Upstream: 3.32.1
+---
+ src/st/st-texture-cache.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/st/st-texture-cache.c b/src/st/st-texture-cache.c
+index 61f76ac..cbe3afa 100644
+--- a/src/st/st-texture-cache.c
++++ b/src/st/st-texture-cache.c
+@@ -502,7 +502,7 @@ pixbuf_to_st_content_image (GdkPixbuf *pixbuf,
+     width *= paint_scale;
+ 
+   if (height < 0)
+-    height = ceilf (gdk_pixbuf_get_width (pixbuf) / resource_scale);
++    height = ceilf (gdk_pixbuf_get_height (pixbuf) / resource_scale);
+   else
+     height *= paint_scale;
+ 
