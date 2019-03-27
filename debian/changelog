@@ -1,3 +1,11 @@
+gnome-shell (3.32.0-1ubuntu2) UNRELEASED; urgency=medium
+
+  * d/p/magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+    - magnifier: Show cursor when magnifier is enabled and scale it to
+      match monitor scaling (LP: #1818790)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 27 Mar 2019 16:51:27 +0100
+
 gnome-shell (3.32.0-1ubuntu1) disco; urgency=medium
 
   * Merge with debian, remaining changes:

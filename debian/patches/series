@@ -21,5 +21,6 @@ main-add-backtrace-crashes-all-and-backtrace-all.patch
 sessionMode-add-support-for-debugFlags-parameter.patch
 st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch
 st-scroll-view-Remove-scrollbars-references-on-dispose.patch
+magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch
 ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
