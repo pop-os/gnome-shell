@@ -24,11 +24,15 @@
 #ifndef __ST_SETTINGS_H__
 #define __ST_SETTINGS_H__
 
+#include <glib-object.h>
+
 G_BEGIN_DECLS
 
 #define ST_TYPE_SETTINGS (st_settings_get_type ())
 G_DECLARE_FINAL_TYPE (StSettings, st_settings, ST, SETTINGS, GObject)
 
 StSettings * st_settings_get (void);
+
+G_END_DECLS
 
 #endif /* __ST_SETTINGS_H__ */
