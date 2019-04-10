@@ -1,4 +1,4 @@
-gnome-shell (3.32.0+git20190410-1) UNRELEASED; urgency=medium
+gnome-shell (3.32.0+git20190410-1) experimental; urgency=medium
 
   * Use debhelper-compat 12 and BD on dh-sequence-{gnome,gir}
   * New upstream release, which includes
@@ -10,7 +10,7 @@ gnome-shell (3.32.0+git20190410-1) UNRELEASED; urgency=medium
     would get out of hand if we carried on.  Instead we are using a tarball
     snapshot. So drop the cherry-picks.
 
- -- Iain Lane <laney@debian.org>  Wed, 10 Apr 2019 16:21:49 +0100
+ -- Iain Lane <laney@debian.org>  Wed, 10 Apr 2019 16:36:31 +0100
 
 gnome-shell (3.32.0-1) experimental; urgency=medium
 
