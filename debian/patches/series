@@ -1,10 +1,3 @@
-userWidget-Fix-avatar-size.patch
-layout-Use-custom-actor-for-uiGroup.patch
-texture-cache-Apply-resource-scale-to-the-right-dimension.patch
-theme-improve-legibility-of-error-messages.patch
-st-widget-Add-missing-g_return_val_if_fail.patch
-st-theme-node-transition-Exclude-get_new_paint_state-from.patch
-magnifier-Fix-color-argument.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch

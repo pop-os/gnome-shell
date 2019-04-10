@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Atspi, Clutter, Cogl, GDesktopEnums,
+const { Atspi, Clutter, GDesktopEnums,
         Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
 const Signals = imports.signals;
@@ -18,9 +18,6 @@ var NO_CHANGE = 0.0;
 var POINTER_REST_TIME = 1000; // milliseconds
 
 // Settings
-const APPLICATIONS_SCHEMA       = 'org.gnome.desktop.a11y.applications';
-const SHOW_KEY                  = 'screen-magnifier-enabled';
-
 const MAGNIFIER_SCHEMA          = 'org.gnome.desktop.a11y.magnifier';
 const SCREEN_POSITION_KEY       = 'screen-position';
 const MAG_FACTOR_KEY            = 'mag-factor';
@@ -56,22 +53,19 @@ var MouseSpriteContent = GObject.registerClass({
 
     vfunc_get_preferred_size() {
         if (!this._texture)
-            return [0, 0];
+            return [false, 0, 0];
 
-        return [this._texture.get_width(), this._texture.get_height()];
+        return [true, this._texture.get_width(), this._texture.get_height()];
     }
 
     vfunc_paint_content(actor, node) {
         if (!this._texture)
             return;
 
-        let color = new Cogl.Color();
-        color.init_from_4ub(0, 0, 0, 0);
-
+        let color = Clutter.Color.get_static(Clutter.StaticColor.WHITE);
+        let [minFilter, magFilter] = actor.get_content_scaling_filters();
         let textureNode = new Clutter.TextureNode(this._texture,
-                                                  color,
-                                                  Clutter.ScalingFilter.NEAREST,
-                                                  Clutter.ScalingFilter.NEAREST);
+                                                  color, minFilter, magFilter);
         textureNode.set_name('MouseSpriteContent');
         node.add_child(textureNode);
 
@@ -86,8 +80,14 @@ var MouseSpriteContent = GObject.registerClass({
         if (this._texture == coglTexture)
             return;
 
+        let oldTexture = this._texture;
         this._texture = coglTexture;
         this.invalidate();
+
+        if (!oldTexture || !coglTexture ||
+            oldTexture.get_width() != coglTexture.get_width() ||
+            oldTexture.get_height() != coglTexture.get_height())
+            this.invalidate_size();
     }
 });
 
@@ -102,7 +102,6 @@ var Magnifier = class Magnifier {
 
         this._mouseSprite = new Clutter.Actor({ request_mode: Clutter.RequestMode.CONTENT_SIZE });
         this._mouseSprite.content = new MouseSpriteContent();
-        this._updateSpriteTexture();
 
         this._cursorRoot = new Clutter.Actor();
         this._cursorRoot.add_actor(this._mouseSprite);
@@ -115,14 +114,16 @@ var Magnifier = class Magnifier {
 
         let aZoomRegion = new ZoomRegion(this, this._cursorRoot);
         this._zoomRegions.push(aZoomRegion);
-        let showAtLaunch = this._settingsInit(aZoomRegion);
+        this._settingsInit(aZoomRegion);
         aZoomRegion.scrollContentsTo(this.xMouse, this.yMouse);
 
-        cursorTracker.connect('cursor-changed', this._updateMouseSprite.bind(this));
+        St.Settings.get().connect('notify::magnifier-active', () => {
+            this.setActive(St.Settings.get().magnifier_active);
+        });
 
         // Export to dbus.
         magDBusService = new MagnifierDBus.ShellMagnifier();
-        this.setActive(showAtLaunch);
+        this.setActive(St.Settings.get().magnifier_active);
     }
 
     /**
@@ -155,9 +156,15 @@ var Magnifier = class Magnifier {
 
         if (isActive != activate) {
             if (activate) {
+                this._updateMouseSprite();
+                this._cursorSpriteChangedId =
+                    this._cursorTracker.connect('cursor-changed',
+                                                this._updateMouseSprite.bind(this));
                 Meta.disable_unredirect_for_display(global.display);
                 this.startTrackingMouse();
             } else {
+                this._cursorTracker.disconnect(this._cursorSpriteChangedId);
+                this._mouseSprite.content.texture = null;
                 Meta.enable_unredirect_for_display(global.display);
                 this.stopTrackingMouse();
             }
@@ -495,12 +502,7 @@ var Magnifier = class Magnifier {
     }
 
     _settingsInit(zoomRegion) {
-        this._appSettings = new Gio.Settings({ schema_id: APPLICATIONS_SCHEMA });
         this._settings = new Gio.Settings({ schema_id: MAGNIFIER_SCHEMA });
-
-        this._appSettings.connect('changed::' + SHOW_KEY, () => {
-            this.setActive(this._appSettings.get_boolean(SHOW_KEY));
-        });
 
         this._settings.connect('changed::' + SCREEN_POSITION_KEY,
                                this._updateScreenPosition.bind(this));
@@ -608,8 +610,6 @@ var Magnifier = class Magnifier {
         let showCrosshairs = this._settings.get_boolean(SHOW_CROSS_HAIRS_KEY);
         this.addCrosshairs();
         this.setCrosshairsVisible(showCrosshairs);
-
-        return this._appSettings.get_boolean(SHOW_KEY);
    }
 
     _updateScreenPosition() {
@@ -756,13 +756,41 @@ var ZoomRegion = class ZoomRegion {
 
         this._pointerIdleMonitor = Meta.IdleMonitor.get_for_device(Meta.VIRTUAL_CORE_POINTER_ID);
         this._scrollContentsTimerId = 0;
+    }
 
-        Main.layoutManager.connect('monitors-changed',
-                                   this._monitorsChanged.bind(this));
-        this._focusCaretTracker.connect('caret-moved',
-                                    this._updateCaret.bind(this));
-        this._focusCaretTracker.connect('focus-changed',
-                                    this._updateFocus.bind(this));
+    _connectSignals() {
+        if (this._signalConnections)
+            return;
+
+        this._signalConnections = [];
+        let id = Main.layoutManager.connect('monitors-changed',
+                                            this._monitorsChanged.bind(this));
+        this._signalConnections.push([Main.layoutManager, id]);
+
+        id = this._focusCaretTracker.connect('caret-moved', this._updateCaret.bind(this));
+        this._signalConnections.push([this._focusCaretTracker, id]);
+
+        id = this._focusCaretTracker.connect('focus-changed', this._updateFocus.bind(this));
+        this._signalConnections.push([this._focusCaretTracker, id]);
+    }
+
+    _disconnectSignals() {
+        for (let [obj, id] of this._signalConnections)
+            obj.disconnect(id);
+
+        delete this._signalConnections;
+    }
+
+    _updateScreenPosition() {
+        if (this._screenPosition == GDesktopEnums.MagnifierScreenPosition.NONE)
+            this._setViewPort({
+                x: this._viewPortX,
+                y: this._viewPortY,
+                width: this._viewPortWidth,
+                height: this._viewPortHeight
+            });
+        else
+            this.setScreenPosition(this._screenPosition);
     }
 
     _updateFocus(caller, event) {
@@ -810,10 +838,13 @@ var ZoomRegion = class ZoomRegion {
             this._createActors();
             if (this._isMouseOverRegion())
                 this._magnifier.hideSystemCursor();
+            this._updateScreenPosition();
             this._updateMagViewGeometry();
             this._updateCloneGeometry();
             this._updateMousePosition();
+            this._connectSignals();
         } else {
+            this._disconnectSignals();
             this._destroyActors();
         }
 
@@ -1563,18 +1594,8 @@ var ZoomRegion = class ZoomRegion {
     }
 
     _monitorsChanged() {
-        if (!this.isActive())
-            return;
-
         this._background.set_size(global.screen_width, global.screen_height);
-
-        if (this._screenPosition == GDesktopEnums.MagnifierScreenPosition.NONE)
-            this._setViewPort({ x: this._viewPortX,
-                                y: this._viewPortY,
-                                width: this._viewPortWidth,
-                                height: this._viewPortHeight });
-        else
-            this.setScreenPosition(this._screenPosition);
+        this._updateScreenPosition();
     }
 };
 
