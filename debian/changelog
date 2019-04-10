@@ -1,8 +1,9 @@
-gnome-shell (3.32.0-2) UNRELEASED; urgency=medium
+gnome-shell (3.32.0+git20190410-1) UNRELEASED; urgency=medium
 
   * Use debhelper-compat 12 and BD on dh-sequence-{gnome,gir}
+  * New upstream release
 
- -- Iain Lane <laney@debian.org>  Wed, 10 Apr 2019 16:11:33 +0100
+ -- Iain Lane <laney@debian.org>  Wed, 10 Apr 2019 16:16:36 +0100
 
 gnome-shell (3.32.0-1) experimental; urgency=medium
 
