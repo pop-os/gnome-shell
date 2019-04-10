@@ -1,9 +1,16 @@
 gnome-shell (3.32.0+git20190410-1) UNRELEASED; urgency=medium
 
   * Use debhelper-compat 12 and BD on dh-sequence-{gnome,gir}
-  * New upstream release
+  * New upstream release, which includes
+    - shell: Fallback on ISO 8601 datetime string for screenshot date info
+      (LP: #1796251)
+  * BD on the corresponding mutter
+  * debian/patches/various: Drop upstream cherry-picks. We had cherry-picked
+    the stable branch into Debian patches in the previous upload, but that
+    would get out of hand if we carried on.  Instead we are using a tarball
+    snapshot. So drop the cherry-picks.
 
- -- Iain Lane <laney@debian.org>  Wed, 10 Apr 2019 16:16:36 +0100
+ -- Iain Lane <laney@debian.org>  Wed, 10 Apr 2019 16:21:49 +0100
 
 gnome-shell (3.32.0-1) experimental; urgency=medium
 
