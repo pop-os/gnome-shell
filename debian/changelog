@@ -1,3 +1,68 @@
+gnome-shell (3.32.0+git20190410-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merging with debian git snapshot (LP: #1820775, LP: #1818790),
+    remaining changes:
+    + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    + Add some Recommends:
+      - ubuntu-session (| gnome-session) to have the ubuntu session available
+      - xserver-xorg-legacy
+      - yaru-theme-gnome-shell for the default ubuntu theming
+    + Update debian/gbp.conf with Ubuntu settings
+    + gnome-shell-common.install: Install Ubuntu mode
+    + gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    + ubuntu/desktop_detect.patch:
+      - add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    + ubuntu/smarter_alt_tab.patch:
+      - quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    + ubuntu/lightdm-user-switching.patch:
+      - Allow user switching when using LightDM.
+    + ubuntu/lock_on_suspend.patch
+      - Respect Ubuntu's lock-on-suspend setting.
+    + ubuntu/gdm.patch
+      - as gdm is system-wide and not session-wide, ensure gdm has an ubuntu
+        styling by default, not impacting the gnome user session though.
+    + ubuntu/background_login.patch
+      - Change default background color as we modified the default GDM color
+        for our ubuntu session. Change it as well here, still applying the
+        background noise loading.
+    + ubuntu/gdm_alternatives.patch
+      - Add support for GDM3 theme alternatives
+    + ubuntu/block_mode_extension_update.patch
+      - Don't allow ubuntu mode extension to update
+    + optional-hot-corner.patch
+      - enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    + volume-Add-back-sound-feedback-on-scroll.patch
+      - Fix regression causing missing feedback on volume slider scroll
+    + main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      - Improve debug JS tracing for crash reports
+    + st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch,
+      st-scroll-view-Remove-scrollbars-references-on-dispose.patch:
+      - Fix crash on theme changes
+    + ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      - stop searches when requested from UI
+    + magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      - Show monitor scaled cursor when magnifier is enabled
+  * d/p/magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+    - Dropped the merged part, kept the fix for cursor scaling.
+  * d/p/optional-hot-corner.patch,
+    d/p/sessionMode-add-support-for-debugFlags-parameter.patch,
+    d/p/ubuntu/lock_on_suspend.patch,
+    d/p/ubuntu/resolve_alternate_theme_path.patch:
+    - Refreshed.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 10 Apr 2019 18:29:42 -0500
+
 gnome-shell (3.32.0+git20190410-1) experimental; urgency=medium
 
   * Use debhelper-compat 12 and BD on dh-sequence-{gnome,gir}
