@@ -8,7 +8,7 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 3f45b8a..66fa911 100644
+index a005a20..fb81893 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
 @@ -23,6 +23,7 @@ const Tweener = imports.ui.tweener;
