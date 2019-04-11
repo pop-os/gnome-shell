@@ -1,4 +1,4 @@
-gnome-shell (3.32.0+git20190410-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.32.0+git20190410-1ubuntu1) disco; urgency=medium
 
   * Merging with debian git snapshot (LP: #1820775, LP: #1818790),
     remaining changes:
@@ -61,7 +61,7 @@ gnome-shell (3.32.0+git20190410-1ubuntu1) UNRELEASED; urgency=medium
     d/p/ubuntu/resolve_alternate_theme_path.patch:
     - Refreshed.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 10 Apr 2019 18:29:42 -0500
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 10 Apr 2019 20:15:39 -0500
 
 gnome-shell (3.32.0+git20190410-1) experimental; urgency=medium
 
