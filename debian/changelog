@@ -1,10 +1,11 @@
-gnome-shell (3.30.2-4) UNRELEASED; urgency=medium
+gnome-shell (3.30.2-4) unstable; urgency=medium
 
+  * Team upload
   * d/rules: Create a temporary HOME, XDG_RUNTIME_DIR for the unit tests.
     This hopefully fixes test failures and FTBFS on the s390x buildd.
   * d/.gitignore: Add
 
- -- Simon McVittie <smcv@debian.org>  Sun, 14 Apr 2019 10:35:37 +0100
+ -- Simon McVittie <smcv@debian.org>  Sun, 14 Apr 2019 10:40:33 +0100
 
 gnome-shell (3.30.2-3) unstable; urgency=medium
 
