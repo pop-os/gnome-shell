@@ -45,7 +45,3 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 		XDG_RUNTIME_DIR=$(CURDIR)/debian/home/run \
 		xvfb-run -a dh_auto_test
 endif
-
-override_dh_clean:
-	dh_clean
-	rm -fr $(CURDIR)/debian/home
