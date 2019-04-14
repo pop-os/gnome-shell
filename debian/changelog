@@ -1,3 +1,10 @@
+gnome-shell (3.30.2-5) UNRELEASED; urgency=medium
+
+  * Team upload
+  * Really create a suitable temporary XDG_RUNTIME_DIR for the unit tests
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 14 Apr 2019 15:31:51 +0100
+
 gnome-shell (3.30.2-4) unstable; urgency=medium
 
   * Team upload
