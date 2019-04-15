@@ -1,4 +1,4 @@
-gnome-shell (3.30.2-6) UNRELEASED; urgency=medium
+gnome-shell (3.30.2-6) unstable; urgency=medium
 
   * Team upload
   * d/p/keyboard-Make-items-in-language-menu-unfocusable.patch,
@@ -9,7 +9,7 @@ gnome-shell (3.30.2-6) UNRELEASED; urgency=medium
     Add patches from upstream to add missing French layouts to
     the on-screen keyboard (Closes: #926452)
 
- -- intrigeri <intrigeri@debian.org>  Mon, 15 Apr 2019 11:15:17 +0000
+ -- intrigeri <intrigeri@debian.org>  Mon, 15 Apr 2019 11:23:31 +0000
 
 gnome-shell (3.30.2-5) unstable; urgency=medium
 
