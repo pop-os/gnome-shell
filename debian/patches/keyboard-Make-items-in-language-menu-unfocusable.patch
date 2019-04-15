@@ -1,0 +1,47 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 11 Sep 2018 18:00:22 +0200
+Subject: keyboard: Make items in language menu unfocusable
+
+The menu grabs the key focus when opened, which takes focus away from
+whichever actor triggered the keyboard. And as the menu doesn't have
+any text entries, the keyboard is popped down as a result.
+
+Prevent this by making the menu items unfocusable, so the keyboard
+focus just stays where it is. Considering that the menu is part
+of the on-screen keyboard itself, not being keyboard-navigatable
+isn't a big deal here.
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/171
+Bug-Debian: https://bugs.debian.org/926453
+Origin: upstream, 3.31.92, commit:7dd326f0908558fcc9cc8e6e94533a36ba8d3907
+---
+ js/ui/keyboard.js | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index 491495c..593bd18 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -186,16 +186,20 @@ var LanguageSelectionPopup = new Lang.Class({
+         let inputSourceManager = InputSourceManager.getInputSourceManager();
+         let inputSources = inputSourceManager.inputSources;
+ 
++        let item;
+         for (let i in inputSources) {
+             let is = inputSources[i];
+ 
+-            this.addAction(is.displayName, () => {
++            item = this.addAction(is.displayName, () => {
+                 inputSourceManager.activateInputSource(is, true);
+             });
++            item.actor.can_focus = false;
+         }
+ 
+         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+-        this.addAction(_("Region & Language Settings"), this._launchSettings.bind(this));
++        item = this.addAction(_("Region & Language Settings"), this._launchSettings.bind(this));
++        item.actor.can_focus = false;
++
+         this._capturedEventId = 0;
+ 
+         this._unmapId = actor.connect('notify::mapped', () => {

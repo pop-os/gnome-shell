@@ -1,0 +1,34 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 11 Sep 2018 17:55:36 +0200
+Subject: popupMenu: Respect items' :can-focus property
+
+Menu items use a single 'active' state that follows both hover and
+keyboard focus. It therefore makes sense for the active item to always
+grab the focus, in particular as an item that is sensitive but not
+focusable by keynav would be rather weird.
+
+As it turns out, we do have a case that is weird enough where we want
+exactly that, so only grab focus if the actor's :can-focus property
+allows it.
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/171
+Bug-Debian: https://bugs.debian.org/926453
+Origin: upstream, 3.31.92, commit:24a26e025b65494f8a83f22e0876b52287380ea8
+---
+ js/ui/popupMenu.js | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/popupMenu.js b/js/ui/popupMenu.js
+index 0b2cce8..8f28aca 100644
+--- a/js/ui/popupMenu.js
++++ b/js/ui/popupMenu.js
+@@ -182,7 +182,8 @@ var PopupBaseMenuItem = new Lang.Class({
+             this.active = active;
+             if (active) {
+                 this.actor.add_style_class_name('selected');
+-                this.actor.grab_key_focus();
++                if (this.actor.can_focus)
++                    this.actor.grab_key_focus();
+             } else {
+                 this.actor.remove_style_class_name('selected');
+                 // Remove the CSS active state if the user press the button and

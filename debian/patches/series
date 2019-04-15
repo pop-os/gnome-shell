@@ -12,3 +12,5 @@ shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch
 power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 workaround_crasher_fractional_scaling.patch
+popupMenu-Respect-items-can-focus-property.patch
+keyboard-Make-items-in-language-menu-unfocusable.patch
