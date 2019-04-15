@@ -14,3 +14,4 @@ tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 workaround_crasher_fractional_scaling.patch
 popupMenu-Respect-items-can-focus-property.patch
 keyboard-Make-items-in-language-menu-unfocusable.patch
+osk-layouts-Fix-French-layout.patch
