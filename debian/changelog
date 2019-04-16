@@ -1,3 +1,11 @@
+gnome-shell (3.30.2-7) UNRELEASED; urgency=medium
+
+  * d/clean: Add trailing slash to debian/home/ so that debhelper will
+    be willing to delete a directory, fixing FTBFS when built twice in
+    a row
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 16 Apr 2019 09:29:06 +0100
+
 gnome-shell (3.30.2-6) unstable; urgency=medium
 
   * Team upload
