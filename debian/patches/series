@@ -16,3 +16,4 @@ popupMenu-Respect-items-can-focus-property.patch
 keyboard-Make-items-in-language-menu-unfocusable.patch
 osk-layouts-Fix-French-layout.patch
 st-widget-Add-missing-g_return_val_if_fail.patch
+ShellApp-Use-g_signal_connect_object-for-window-signals.patch

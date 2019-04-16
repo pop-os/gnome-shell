@@ -1,0 +1,48 @@
+From: Simon McVittie <smcv@debian.org>
+Date: Tue, 16 Apr 2019 23:59:58 +0100
+Subject: ShellApp: Use g_signal_connect_object for window signals
+
+A window being unmanaged can cause the ShellApp to be removed from
+the ShellAppSystem, which if we are unlucky is the app's last
+reference, causing it to be disposed and freed. It would be bad if this
+happened before we finished handling the signal.
+
+Use g_signal_connect_object to ensure that a reference is held to
+the ShellApp for the duration of the signal handler, delaying its
+last-unref.
+
+In particular, when a signal handler calls _shell_app_remove_window(),
+there is a brief period for which ShellApp breaks the intended
+invariant (see !497) that app->running_state is non-NULL if and only if
+app->running_state->windows is also non-NULL (non-empty). Freeing the
+ShellApp at this point would cause a crash. This seems likely to be the
+root cause of <https://gitlab.gnome.org/GNOME/gnome-shell/issues/750>,
+<https://gitlab.gnome.org/GNOME/gnome-shell/issues/822> and
+<https://bugs.debian.org/926212>.
+
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/508
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/750
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/822
+Bug-Debian: https://bugs.debian.org/926212
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ src/shell-app.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/shell-app.c b/src/shell-app.c
+index 65c0b55..34c05cc 100644
+--- a/src/shell-app.c
++++ b/src/shell-app.c
+@@ -1074,9 +1074,9 @@ _shell_app_add_window (ShellApp        *app,
+ 
+   app->running_state->window_sort_stale = TRUE;
+   app->running_state->windows = g_slist_prepend (app->running_state->windows, g_object_ref (window));
+-  g_signal_connect (window, "unmanaged", G_CALLBACK(shell_app_on_unmanaged), app);
+-  g_signal_connect (window, "notify::user-time", G_CALLBACK(shell_app_on_user_time_changed), app);
+-  g_signal_connect (window, "notify::skip-taskbar", G_CALLBACK(shell_app_on_skip_taskbar_changed), app);
++  g_signal_connect_object (window, "unmanaged", G_CALLBACK(shell_app_on_unmanaged), app, 0);
++  g_signal_connect_object (window, "notify::user-time", G_CALLBACK(shell_app_on_user_time_changed), app, 0);
++  g_signal_connect_object (window, "notify::skip-taskbar", G_CALLBACK(shell_app_on_skip_taskbar_changed), app, 0);
+ 
+   shell_app_update_app_menu (app, window);
+   shell_app_ensure_busy_watch (app);

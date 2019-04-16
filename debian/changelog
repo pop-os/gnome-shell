@@ -5,6 +5,8 @@ gnome-shell (3.30.2-8) UNRELEASED; urgency=medium
     st_widget_get_theme_node(). This should mitigate crashes if a StWidget
     remains active after it has been destroyed (which is itself a bug,
     but a less serious one with this change). (Closes: #927162, LP: #1796606)
+  * d/p/ShellApp-Use-g_signal_connect_object-for-window-signals.patch:
+    Make the ShellApp more robust against crashes (maybe Closes: #926212)
 
  -- Simon McVittie <smcv@debian.org>  Tue, 16 Apr 2019 22:03:26 +0100
 
