@@ -1,3 +1,9 @@
+gnome-shell (3.32.0+git20190410-1ubuntu1pop0) disco; urgency=medium
+
+  * dash: Fix messed up icon height
+
+ -- Jeremy Soller <jeremy@system76.com>  Tue, 16 Apr 2019 12:14:18 -0600
+
 gnome-shell (3.32.0+git20190410-1ubuntu1) disco; urgency=medium
 
   * Merging with debian git snapshot (LP: #1820775, LP: #1818790),
