@@ -34,8 +34,8 @@ Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/53
 Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/51
 ---
  js/ui/slider.js        |  2 --
- js/ui/status/volume.js | 19 ++++++++++++++++++-
- 2 files changed, 18 insertions(+), 3 deletions(-)
+ js/ui/status/volume.js | 21 +++++++++++++++++++--
+ 2 files changed, 19 insertions(+), 4 deletions(-)
 
 diff --git a/js/ui/slider.js b/js/ui/slider.js
 index f9fa732..69f72ce 100644
@@ -52,13 +52,14 @@ index f9fa732..69f72ce 100644
          }
          return Clutter.EVENT_PROPAGATE;
 diff --git a/js/ui/status/volume.js b/js/ui/status/volume.js
-index d555b42..f8e4140 100644
+index d555b42..88344e7 100644
 --- a/js/ui/status/volume.js
 +++ b/js/ui/status/volume.js
 @@ -1,6 +1,7 @@
  // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
  
- const { Clutter, Gio, Gvc, St } = imports.gi;
+-const { Clutter, Gio, Gvc, St } = imports.gi;
++const { Clutter, Gio, GLib, Gvc, St } = imports.gi;
 +const Mainloop = imports.mainloop;
  const Signals = imports.signals;
  
