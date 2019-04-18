@@ -17,3 +17,4 @@ st-scroll-view-Remove-scrollbars-references-on-dispose.patch
 magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch
 ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
+nvidia-background-workaround.patch

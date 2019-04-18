@@ -1,0 +1,15 @@
+Index: gnome-shell/js/ui/background.js
+===================================================================
+--- gnome-shell.orig/js/ui/background.js
++++ gnome-shell/js/ui/background.js
+@@ -255,7 +255,9 @@ var Background = class Background {
+             (lm, aboutToSuspend) => {
+                 if (aboutToSuspend)
+                     return;
+-                this._refreshAnimation();
++                let imageCache = Meta.BackgroundImageCache.get_default();
++                imageCache.purge(this._file);
++                this.emit('changed');
+             });
+ 
+         this._settingsChangedSignalId = this._settings.connect('changed', () => {
