@@ -1,11 +1,15 @@
-gnome-shell (3.32.0+git20190410-2) UNRELEASED; urgency=medium
+gnome-shell (3.32.1-1) UNRELEASED; urgency=medium
 
+  [ Simon McVittie ]
   * d/rules: Create a temporary HOME, XDG_RUNTIME_DIR for the unit tests.
     This goes some way towards fixing test failures and FTBFS on buster's
     sbuild, as deployed on the s390x buildd.
   * d/.gitignore: Add
 
- -- Simon McVittie <smcv@debian.org>  Sun, 14 Apr 2019 16:16:23 +0100
+  [ Laurent Bigonville ]
+  * New upstream release
+
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 22 Apr 2019 15:34:04 +0200
 
 gnome-shell (3.32.0+git20190410-1) experimental; urgency=medium
 
