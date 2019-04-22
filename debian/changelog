@@ -1,4 +1,4 @@
-gnome-shell (3.32.1-1) UNRELEASED; urgency=medium
+gnome-shell (3.32.1-1) experimental; urgency=medium
 
   [ Simon McVittie ]
   * d/rules: Create a temporary HOME, XDG_RUNTIME_DIR for the unit tests.
@@ -9,7 +9,7 @@ gnome-shell (3.32.1-1) UNRELEASED; urgency=medium
   [ Laurent Bigonville ]
   * New upstream release
 
- -- Laurent Bigonville <bigon@debian.org>  Mon, 22 Apr 2019 15:34:04 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 22 Apr 2019 15:45:49 +0200
 
 gnome-shell (3.32.0+git20190410-1) experimental; urgency=medium
 
