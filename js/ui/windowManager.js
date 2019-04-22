@@ -456,11 +456,26 @@ var TilePreview = class {
 };
 
 var TouchpadWorkspaceSwitchAction = class {
-    constructor(actor) {
+    constructor(actor, allowedModes) {
+        this._allowedModes = allowedModes;
         this._dx = 0;
         this._dy = 0;
+        this._enabled = true;
         actor.connect('captured-event', this._handleEvent.bind(this));
 	this._touchpadSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.peripherals.touchpad'});
+    }
+
+    get enabled() {
+        return this._enabled;
+    }
+
+    set enabled(enabled) {
+        if (this._enabled == enabled)
+            return;
+
+        this._enabled = enabled;
+        if (!enabled)
+            this.emit('cancel');
     }
 
     _checkActivated() {
@@ -482,15 +497,16 @@ var TouchpadWorkspaceSwitchAction = class {
     }
 
     _handleEvent(actor, event) {
-        let allowedModes = Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW;
-
         if (event.type() != Clutter.EventType.TOUCHPAD_SWIPE)
             return Clutter.EVENT_PROPAGATE;
 
         if (event.get_touchpad_gesture_finger_count() != 4)
             return Clutter.EVENT_PROPAGATE;
 
-        if ((allowedModes & Main.actionMode) == 0)
+        if ((this._allowedModes & Main.actionMode) == 0)
+            return Clutter.EVENT_PROPAGATE;
+
+        if (!this._enabled)
             return Clutter.EVENT_PROPAGATE;
 
         if (event.get_gesture_phase() == Clutter.TouchpadGesturePhase.UPDATE) {
@@ -523,10 +539,11 @@ var WorkspaceSwitchAction = GObject.registerClass({
                'motion':    { param_types: [GObject.TYPE_DOUBLE, GObject.TYPE_DOUBLE] },
                'cancel':    { param_types: [] }},
 }, class WorkspaceSwitchAction extends Clutter.SwipeAction {
-    _init() {
+    _init(allowedModes) {
         super._init();
         this.set_n_touch_points(4);
         this._swept = false;
+        this._allowedModes = allowedModes;
 
         global.display.connect('grab-op-begin', () => {
             this.cancel();
@@ -534,14 +551,12 @@ var WorkspaceSwitchAction = GObject.registerClass({
     }
 
     vfunc_gesture_prepare(actor) {
-        let allowedModes = Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW;
-
         this._swept = false;
 
         if (!super.vfunc_gesture_prepare(actor))
             return false;
 
-        return (allowedModes & Main.actionMode);
+        return (this._allowedModes & Main.actionMode);
     }
 
     vfunc_gesture_progress(actor) {
@@ -1043,14 +1058,15 @@ var WindowManager = class {
         global.workspace_manager.override_workspace_layout(Meta.DisplayCorner.TOPLEFT,
                                                            false, -1, 1);
 
-        let gesture = new WorkspaceSwitchAction();
+        let allowedModes = Shell.ActionMode.NORMAL;
+        let gesture = new WorkspaceSwitchAction(allowedModes);
         gesture.connect('motion', this._switchWorkspaceMotion.bind(this));
         gesture.connect('activated', this._actionSwitchWorkspace.bind(this));
         gesture.connect('cancel', this._switchWorkspaceCancel.bind(this));
         global.stage.add_action(gesture);
 
         // This is not a normal Clutter.GestureAction, doesn't need add_action()
-        gesture = new TouchpadWorkspaceSwitchAction(global.stage);
+        gesture = new TouchpadWorkspaceSwitchAction(global.stage, allowedModes);
         gesture.connect('motion', this._switchWorkspaceMotion.bind(this));
         gesture.connect('activated', this._actionSwitchWorkspace.bind(this));
         gesture.connect('cancel', this._switchWorkspaceCancel.bind(this));
@@ -1201,6 +1217,10 @@ var WindowManager = class {
                 return;
             // Same for OR windows
             if (window.is_override_redirect())
+                return;
+            // Sticky windows don't need moving, in fact moving would
+            // unstick them
+            if (window.on_all_workspaces)
                 return;
             // Windows on workspaces below pos don't need moving
             let index = window.get_workspace().index();
@@ -1468,8 +1488,13 @@ var WindowManager = class {
         if (this._clearAnimationInfo(actor))
             this._shellwm.completed_size_change(actor);
 
+        let destroyId = actor.connect('destroy', () => {
+            this._clearAnimationInfo(actor);
+        });
+
         actor.__animationInfo = { clone: actorClone,
-                                  oldRect: oldFrameRect };
+                                  oldRect: oldFrameRect,
+                                  destroyId: destroyId };
     }
 
     _sizeChangedWindow(shellwm, actor) {
@@ -1530,6 +1555,7 @@ var WindowManager = class {
     _clearAnimationInfo(actor) {
         if (actor.__animationInfo) {
             actor.__animationInfo.clone.destroy();
+            actor.disconnect(actor.__animationInfo.destroyId);
             delete actor.__animationInfo;
             return true;
         }
