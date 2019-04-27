@@ -2,6 +2,9 @@ gnome-shell (3.30.2-9) UNRELEASED; urgency=medium
 
   * d/p/ShellApp-Use-g_signal_connect_object-for-window-signals.patch:
     Mark as forwarded and applied upstream
+  * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
+    d/p/workaround_crasher_fractional_scaling.patch:
+    Move non-upstreamed patches to appear last in d/p/series
 
  -- Simon McVittie <smcv@debian.org>  Sat, 27 Apr 2019 09:32:10 +0100
 

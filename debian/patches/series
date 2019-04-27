@@ -10,10 +10,10 @@ Update-French-translation.patch
 panel-Don-t-allow-opening-hidden-menus-via-keybindings.patch
 shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch
 power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch
-tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
-workaround_crasher_fractional_scaling.patch
 popupMenu-Respect-items-can-focus-property.patch
 keyboard-Make-items-in-language-menu-unfocusable.patch
 osk-layouts-Fix-French-layout.patch
 st-widget-Add-missing-g_return_val_if_fail.patch
 ShellApp-Use-g_signal_connect_object-for-window-signals.patch
+tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
+workaround_crasher_fractional_scaling.patch
