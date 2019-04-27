@@ -1,5 +1,6 @@
-gnome-shell (3.30.2-9) UNRELEASED; urgency=medium
+gnome-shell (3.30.2-9) unstable; urgency=medium
 
+  * Team upload
   * d/p/ShellApp-Use-g_signal_connect_object-for-window-signals.patch:
     Mark as forwarded and applied upstream
   * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
@@ -25,7 +26,7 @@ gnome-shell (3.30.2-9) UNRELEASED; urgency=medium
       between workspaces, don't move application windows to the wrong place
     - Update translations: gd, is
 
- -- Simon McVittie <smcv@debian.org>  Sat, 27 Apr 2019 09:32:10 +0100
+ -- Simon McVittie <smcv@debian.org>  Sun, 28 Apr 2019 00:13:04 +0100
 
 gnome-shell (3.30.2-8) unstable; urgency=medium
 
