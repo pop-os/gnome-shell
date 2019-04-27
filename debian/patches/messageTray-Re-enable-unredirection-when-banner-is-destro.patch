@@ -1,0 +1,47 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 22 Nov 2018 17:18:34 +0000
+Subject: messageTray: Re-enable unredirection when banner is destroyed
+
+The intention of commit 4dc20398 was to disable unredirection while
+banners are shown, but the ::done-displaying signal currently used for
+re-enabling unredirection is only emitted under some circumstances, so
+it's possible that unredirection is left disabled indefinitely, whoops.
+
+Fix this by tying disabling unredirection explicitly to the lifetime
+of the banner actor.
+
+(cherry picked from commit e5ce3d541e48dd75c9218312cd74ecb760ab857a)
+(cherry picked from commit 51b04134db2cce3a5a8b9074d8705e4284f5088d)
+
+Origin: upstream, 3.30.3, commit:51b04134db2cce3a5a8b9074d8705e4284f5088d
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/799
+Bug-Debian: https://bugs.debian.org/927718
+---
+ js/ui/messageTray.js | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/js/ui/messageTray.js b/js/ui/messageTray.js
+index 20469af..99f0cf9 100644
+--- a/js/ui/messageTray.js
++++ b/js/ui/messageTray.js
+@@ -1309,10 +1309,8 @@ var MessageTray = new Lang.Class({
+         }
+ 
+         this._banner = this._notification.createBanner();
+-        this._bannerClickedId = this._banner.connect('done-displaying', () => {
+-            Meta.enable_unredirect_for_display(global.display);
+-            this._escapeTray();
+-        });
++        this._bannerClickedId = this._banner.connect('done-displaying',
++                                                     this._escapeTray.bind(this));
+         this._bannerUnfocusedId = this._banner.connect('unfocused', () => {
+             this._updateState();
+         });
+@@ -1462,6 +1460,7 @@ var MessageTray = new Lang.Class({
+ 
+         this._pointerInNotification = false;
+         this._notificationRemoved = false;
++        Meta.enable_unredirect_for_display(global.display);
+ 
+         this._banner.actor.destroy();
+         this._banner = null;

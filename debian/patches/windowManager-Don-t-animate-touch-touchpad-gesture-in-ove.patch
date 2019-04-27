@@ -1,0 +1,41 @@
+From: Xiang Fan <sfanxiang@gmail.com>
+Date: Sat, 16 Mar 2019 18:53:52 +0800
+Subject: windowManager: Don't animate touch/touchpad gesture in overview
+
+The window group is hidden while in overview, so the stick-to-content
+animation isn't visible either. Worse, the gestures messes up the
+position of window actors in that case.
+
+Fix that by skipping the (invisible) animations in the overview.
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/644
+Origin: upstream, 3.30.3, commit:1f03c94d311edffb77d9f87b8fbd6e26eb04e148
+---
+ js/ui/windowManager.js | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/windowManager.js b/js/ui/windowManager.js
+index adfee93..e11b09c 100644
+--- a/js/ui/windowManager.js
++++ b/js/ui/windowManager.js
+@@ -1049,6 +1049,10 @@ var WindowManager = new Lang.Class({
+         let workspaceManager = global.workspace_manager;
+         let activeWorkspace = workspaceManager.get_active_workspace();
+ 
++        // If overview is visible, we would mess up the positioning of windows.
++        if (Main.overview.visible)
++            return;
++
+         if (!this._switchData)
+             this._prepareWorkspaceSwitch(activeWorkspace.index(), -1);
+ 
+@@ -1088,7 +1092,8 @@ var WindowManager = new Lang.Class({
+         if (newWs == activeWorkspace) {
+             this._switchWorkspaceCancel();
+         } else {
+-            this._switchData.gestureActivated = true;
++            if (this._switchData)
++                this._switchData.gestureActivated = true;
+             this.actionMoveWorkspace(newWs);
+         }
+     },

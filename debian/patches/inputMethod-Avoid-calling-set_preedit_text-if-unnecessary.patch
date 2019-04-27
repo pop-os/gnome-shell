@@ -1,0 +1,48 @@
+From: Carlos Garnacho <carlosg@gnome.org>
+Date: Tue, 13 Nov 2018 18:26:13 +0100
+Subject: inputMethod: Avoid calling set_preedit_text() if unnecessary
+
+This is easier down on clients.
+
+(cherry-picked from 8c3811a866017943c276fa7d9e2aed4c0f0554ae)
+(cherry picked from commit 401062800186ca26135d270f2285d8b2b5446437)
+
+Origin: upstream, 3.30.3, commit:401062800186ca26135d270f2285d8b2b5446437
+Bug: https://gitlab.gnome.org/GNOME/gtk/issues/1447
+Bug-Debian: https://bugs.debian.org/927719
+---
+ js/misc/inputMethod.js | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/js/misc/inputMethod.js b/js/misc/inputMethod.js
+index 4a92dc4..e22dfcc 100644
+--- a/js/misc/inputMethod.js
++++ b/js/misc/inputMethod.js
+@@ -144,8 +144,11 @@ var InputMethod = new Lang.Class({
+             this._updateCapabilities();
+         }
+ 
+-        // Unset any preedit text
+-        this.set_preedit_text(null, 0);
++        if (this._preeditStr) {
++            // Unset any preedit text
++            this.set_preedit_text(null, 0);
++            this._preeditStr = null;
++        }
+     },
+ 
+     vfunc_reset() {
+@@ -154,8 +157,11 @@ var InputMethod = new Lang.Class({
+             this._emitRequestSurrounding();
+         }
+ 
+-        // Unset any preedit text
+-        this.set_preedit_text(null, 0);
++        if (this._preeditStr) {
++            // Unset any preedit text
++            this.set_preedit_text(null, 0);
++            this._preeditStr = null;
++        }
+     },
+ 
+     vfunc_set_cursor_location(rect) {

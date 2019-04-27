@@ -1,0 +1,69 @@
+From: Carlos Garnacho <carlosg@gnome.org>
+Date: Tue, 13 Nov 2018 18:28:15 +0100
+Subject: inputMethod: Keep track of preedit string visibility
+
+So we can silence update-preedit-text signals that keep the
+preedit string invisible.
+
+(cherry-picked from 6f5a099184a1a5ecf558b36f2d00d2bfb074628e)
+(cherry picked from commit 1cda65973272baff218244e69dca0afc329ba6da)
+
+Origin: upstream, 3.30.3, commit:1cda65973272baff218244e69dca0afc329ba6da
+Bug: https://gitlab.gnome.org/GNOME/gtk/issues/1447
+Bug-Debian: https://bugs.debian.org/927719
+---
+ js/misc/inputMethod.js | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/js/misc/inputMethod.js b/js/misc/inputMethod.js
+index e22dfcc..0f5590b 100644
+--- a/js/misc/inputMethod.js
++++ b/js/misc/inputMethod.js
+@@ -17,6 +17,7 @@ var InputMethod = new Lang.Class({
+         this._currentFocus = null;
+         this._preeditStr = '';
+         this._preeditPos = 0;
++        this._preeditVisible = false;
+         this._ibus = IBus.Bus.new_async();
+         this._ibus.connect('connected', this._onConnected.bind(this));
+         this._ibus.connect('disconnected', this._clear.bind(this));
+@@ -80,6 +81,7 @@ var InputMethod = new Lang.Class({
+         this._enabled = false;
+         this._preeditStr = ''
+         this._preeditPos = 0;
++        this._preeditVisible = false;
+     },
+ 
+     _emitRequestSurrounding() {
+@@ -98,20 +100,27 @@ var InputMethod = new Lang.Class({
+     _onUpdatePreeditText(context, text, pos, visible) {
+         if (text == null)
+             return;
+-        this._preeditStr = text.get_text();
+-        this._preeditPos = pos;
++
++        let preedit = text.get_text();
++
+         if (visible)
+-            this.set_preedit_text(this._preeditStr, pos);
+-        else
++            this.set_preedit_text(preedit, pos);
++        else if (this._preeditVisible)
+             this.set_preedit_text(null, pos);
++
++        this._preeditStr = preedit;
++        this._preeditPos = pos;
++        this._preeditVisible = visible;
+     },
+ 
+     _onShowPreeditText(context) {
++        this._preeditVisible = true;
+         this.set_preedit_text(this._preeditStr, this._preeditPos);
+     },
+ 
+     _onHidePreeditText(context) {
+         this.set_preedit_text(null, this._preeditPos);
++        this._preeditVisible = false;
+     },
+ 
+     _onForwardKeyEvent(context, keyval, keycode, state) {

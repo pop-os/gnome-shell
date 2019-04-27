@@ -9,6 +9,14 @@ keyboard-Do-not-call-KeyboardManager.holdKeyboard-with-se.patch
 Update-French-translation.patch
 panel-Don-t-allow-opening-hidden-menus-via-keybindings.patch
 shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch
+inputMethod-Avoid-calling-set_preedit_text-if-unnecessary.patch
+inputMethod-Keep-track-of-preedit-string-visibility.patch
+Update-Scottish-Gaelic-translation.patch
+Update-Scottish-Gaelic-translation-1.patch
+Update-Icelandic-translation.patch
+messageTray-Re-enable-unredirection-when-banner-is-destro.patch
+dnd-Only-handle-touch-events-in-wayland.patch
+windowManager-Don-t-animate-touch-touchpad-gesture-in-ove.patch
 power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch
 popupMenu-Respect-items-can-focus-property.patch
 keyboard-Make-items-in-language-menu-unfocusable.patch

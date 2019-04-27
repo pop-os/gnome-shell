@@ -5,6 +5,25 @@ gnome-shell (3.30.2-9) UNRELEASED; urgency=medium
   * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
     d/p/workaround_crasher_fractional_scaling.patch:
     Move non-upstreamed patches to appear last in d/p/series
+  * Update patch series from gnome-3-30 branch, up to 3.30.2-19-g1f03c94d3
+    - d/p/inputMethod-Avoid-calling-set_preedit_text-if-unnecessary.patch,
+      d/p/inputMethod-Keep-track-of-preedit-string-visibility.patch:
+      Avoid a bad interaction between gnome-shell, GTK, non-English input
+      methods, WebKitGTK and Evolution that can cause text to be deleted
+      unintentionally when Ctrl or Alt is pressed (Closes: #927719)
+    - d/p/messageTray-Re-enable-unredirection-when-banner-is-destro.patch:
+      If a notification appears while a game or other graphically intensive
+      application is full-screen, correctly re-enable unredirection (for
+      its performance benefits) when the notification closes
+      (Closes: #927718)
+    - d/p/dnd-Only-handle-touch-events-in-wayland.patch:
+      Fix a bug seen in X11 mode where extensions that use drag-and-drop,
+      such as dash-to-dock, can get the Shell into a state where
+      interaction with apps is no longer possible
+    - d/p/windowManager-Don-t-animate-touch-touchpad-gesture-in-ove.patch:
+      When the four-finger swipe up/down touchpad gesture is used to move
+      between workspaces, don't move application windows to the wrong place
+    - Update translations: gd, is
 
  -- Simon McVittie <smcv@debian.org>  Sat, 27 Apr 2019 09:32:10 +0100
 
