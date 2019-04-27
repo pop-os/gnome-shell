@@ -1,5 +1,5 @@
 From: Simon McVittie <smcv@debian.org>
-Date: Tue, 16 Apr 2019 23:59:58 +0100
+Date: Tue, 16 Apr 2019 22:59:58 +0000
 Subject: ShellApp: Use g_signal_connect_object for window signals
 
 A window being unmanaged can cause the ShellApp to be removed from
@@ -20,11 +20,14 @@ root cause of <https://gitlab.gnome.org/GNOME/gnome-shell/issues/750>,
 <https://gitlab.gnome.org/GNOME/gnome-shell/issues/822> and
 <https://bugs.debian.org/926212>.
 
-Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/508
+Signed-off-by: Simon McVittie <smcv@debian.org>
+(cherry picked from commit 0f531d8c44b7eaf33a32531b02dc92f08a4979e8)
+(cherry picked from commit 78d6ccd804150eef30381e865e7c13dbd1608931)
 Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/750
 Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/822
 Bug-Debian: https://bugs.debian.org/926212
-Signed-off-by: Simon McVittie <smcv@debian.org>
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/508
+Applied-upstream: 3.32.2, commit:78d6ccd804150eef30381e865e7c13dbd1608931
 ---
  src/shell-app.c | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)

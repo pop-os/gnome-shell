@@ -1,3 +1,10 @@
+gnome-shell (3.30.2-9) UNRELEASED; urgency=medium
+
+  * d/p/ShellApp-Use-g_signal_connect_object-for-window-signals.patch:
+    Mark as forwarded and applied upstream
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 27 Apr 2019 09:32:10 +0100
+
 gnome-shell (3.30.2-8) unstable; urgency=medium
 
   * Team upload
