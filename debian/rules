@@ -38,4 +38,16 @@ override_dh_strip:
 	dh_strip --dbgsym-migration='gnome-shell-dbg (<< 3.20.2-2~)'
 
 override_dh_auto_test:
-	xvfb-run -a dh_auto_test
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	# Avoid test failures on buildd environments where HOME,
+	# XDG_RUNTIME_DIR might be invalid
+	mkdir -p -m700 $(CURDIR)/debian/home/run
+	env \
+		-u XDG_CACHE_HOME \
+		-u XDG_CONFIG_DIRS \
+		-u XDG_CONFIG_HOME \
+		-u XDG_DATA_HOME \
+		HOME=$(CURDIR)/debian/home \
+		XDG_RUNTIME_DIR=$(CURDIR)/debian/home/run \
+		xvfb-run -a dh_auto_test
+endif
