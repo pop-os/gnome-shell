@@ -1,5 +1,6 @@
 gnome-shell (3.32.1-1ubuntu1) UNRELEASED; urgency=medium
 
+  [ Marco Trevisan (Treviño) ]
   * Merge with debian
     - Update to 3.32.1 upstream version (LP: #1826936)
     - Fixes Icon disappears from favorites (LP: #1822846)
@@ -58,6 +59,9 @@ gnome-shell (3.32.1-1ubuntu1) UNRELEASED; urgency=medium
       - Show monitor scaled cursor when magnifier is enabled
   * d/p/magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
     - Handle the no-monitor case (LP: #1826797)
+
+  [ Andrea Azzarone ]
+  * d/p/volume-Add-back-sound-feedback-on-scroll.patch: Add missing import
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 29 Apr 2019 17:29:23 -0500
 
