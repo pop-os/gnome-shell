@@ -1,4 +1,4 @@
-gnome-shell (3.32.1-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.32.1-1ubuntu1) eoan; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * Merge with debian
@@ -63,7 +63,7 @@ gnome-shell (3.32.1-1ubuntu1) UNRELEASED; urgency=medium
   [ Andrea Azzarone ]
   * d/p/volume-Add-back-sound-feedback-on-scroll.patch: Add missing import
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 29 Apr 2019 17:29:23 -0500
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 01 May 2019 10:23:16 +0100
 
 gnome-shell (3.32.1-1) experimental; urgency=medium
 
