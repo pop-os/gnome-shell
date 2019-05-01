@@ -1,7 +1,6 @@
 From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
-Date: Wed, 27 Mar 2019 16:14:39 +0100
-Subject: magnifier: Scale the sprite to match the current monitor
- scaling
+Date: Wed, 27 Mar 2019 09:14:39 -0600
+Subject: magnifier: Scale the sprite to match the current monitor scaling
 
 Compute the sprite texture scale (unfortunately using a workaround, based on
 mutter cursor size preferences, tying to figure out the closest texture integer
@@ -13,11 +12,11 @@ Applied-Upstream: no
 Forwarded: yes
 ---
  js/ui/layout.js    | 24 ++++++++++++++++++++----
- js/ui/magnifier.js | 54 ++++++++++++++++++++++++++++++++++++++++++++++++++++--
- 2 files changed, 72 insertions(+), 6 deletions(-)
+ js/ui/magnifier.js | 55 ++++++++++++++++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 73 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 27a3099..376a585 100644
+index 2683213..1b5beaf 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
 @@ -930,22 +930,38 @@ var LayoutManager = GObject.registerClass({
@@ -64,7 +63,7 @@ index 27a3099..376a585 100644
          if (this._startingUp)
              return;
 diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
-index 021dbd8..2bbfcdd 100644
+index 021dbd8..611a656 100644
 --- a/js/ui/magnifier.js
 +++ b/js/ui/magnifier.js
 @@ -48,6 +48,8 @@ var MouseSpriteContent = GObject.registerClass({
@@ -148,20 +147,21 @@ index 021dbd8..2bbfcdd 100644
          St.Settings.get().connect('notify::magnifier-active', () => {
              this.setActive(St.Settings.get().magnifier_active);
          });
-@@ -126,6 +168,12 @@ var Magnifier = class Magnifier {
+@@ -126,6 +168,13 @@ var Magnifier = class Magnifier {
          this.setActive(St.Settings.get().magnifier_active);
      }
  
 +    _updateContentScale() {
 +        let monitor = Main.layoutManager.findMonitorForPoint(this.xMouse,
 +                                                             this.yMouse);
-+        this._mouseSprite.content.monitorScale = monitor.geometry_scale;
++        this._mouseSprite.content.monitorScale = monitor ?
++                                                 monitor.geometry_scale : 1;
 +    }
 +
      /**
       * showSystemCursor:
       * Show the system mouse pointer.
-@@ -235,6 +283,8 @@ var Magnifier = class Magnifier {
+@@ -235,6 +284,8 @@ var Magnifier = class Magnifier {
              this.xMouse = xMouse;
              this.yMouse = yMouse;
  
