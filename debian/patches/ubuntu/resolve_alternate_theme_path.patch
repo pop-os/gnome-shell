@@ -1,5 +1,5 @@
 From: Didier Roche <didrocks@ubuntu.com>
-Date: Tue, 22 Oct 2019 11:22:06 +0200
+Date: Tue, 22 Oct 2019 04:22:06 -0500
 Subject: Resolve real path name for theme file
 
  We are using alternative theme paths. Some of them are symlinks like

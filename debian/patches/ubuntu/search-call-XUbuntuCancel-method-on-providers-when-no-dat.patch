@@ -1,5 +1,5 @@
 From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
-Date: Thu, 23 Aug 2018 20:00:57 +0200
+Date: Thu, 23 Aug 2018 13:00:57 -0500
 Subject: search: call XUbuntuCancel method on providers when no data is
  needed
 

@@ -33,7 +33,7 @@ index 24e2a75..2a5432a 100644
        <default>[ 'epiphany.desktop', 'evolution.desktop', 'rhythmbox.desktop', 'shotwell.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop' ]</default>
        <summary>List of desktop file IDs for favorite applications</summary>
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index e3c93a9..27a3099 100644
+index 30e750d..2683213 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
 @@ -267,6 +267,9 @@ var LayoutManager = GObject.registerClass({
