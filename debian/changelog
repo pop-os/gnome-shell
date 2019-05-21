@@ -1,10 +1,10 @@
-gnome-shell (3.32.2-1) UNRELEASED; urgency=medium
+gnome-shell (3.32.2-1) experimental; urgency=medium
 
   * New upstream release
     - Fix ellipsization in dialog subtitles/bodies (LP: #1809788)
     - Don't crash for world clock locations with no timezone (LP: #1827953)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 May 2019 14:00:22 -0500
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 21 May 2019 17:19:41 +0100
 
 gnome-shell (3.32.1-1) experimental; urgency=medium
 
