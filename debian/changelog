@@ -1,4 +1,4 @@
-gnome-shell (3.32.2-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.32.2-1ubuntu1) eoan; urgency=medium
 
   * Merge with Debian. Remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -53,7 +53,7 @@ gnome-shell (3.32.2-1ubuntu1) UNRELEASED; urgency=medium
     + magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
       - Show monitor scaled cursor when magnifier is enabled
 
- -- Iain Lane <iain.lane@canonical.com>  Tue, 21 May 2019 17:39:50 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Tue, 21 May 2019 17:40:26 +0100
 
 gnome-shell (3.32.2-1) experimental; urgency=medium
 
