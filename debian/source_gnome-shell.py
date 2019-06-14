@@ -20,6 +20,13 @@ def add_info(report):
     attach_gsettings_schema(report, 'org.gnome.settings-daemon.peripherals.mouse')
     attach_gsettings_schema(report, 'org.gnome.settings-daemon.peripherals.touchscreen')
 
+    try:
+        monitors = os.path.join(os.environ['XDG_CONFIG_HOME'], 'monitors.xml')
+    except KeyError:
+        monitors = os.path.expanduser('~/.config/monitors.xml')
+
+    attach_file_if_exists(report, monitors, 'monitors.xml')
+
     result = ''
 
     dm_list = apport.hookutils.command_output(['sh', '-c', 
