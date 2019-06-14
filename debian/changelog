@@ -1,3 +1,16 @@
+gnome-shell (3.32.2-2) UNRELEASED; urgency=medium
+
+  * debian/source_gnome-shell.py:
+    + Add more informations that we might need to debug information in the
+      apport retracing (LP: #1722886):
+      - All the desktop shared gsettings key
+      - Mutter gsettings key and version
+      - Settings daemon settings key used by the shell
+      - ~/.config/monitors.xml
+      - Shell's journalctl since it will include errors and JS stacktrace.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 14 Jun 2019 20:59:52 +0200
+
 gnome-shell (3.32.2-1) experimental; urgency=medium
 
   * New upstream release
