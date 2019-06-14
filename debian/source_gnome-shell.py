@@ -38,3 +38,9 @@ def add_info(report):
             break
 
     report['DisplayManager'] = result
+
+    if command_available('journalctl') and os.path.exists('/run/systemd/system'):
+        report['ShellJournal'] = command_output(['journalctl',
+                                                 '/usr/bin/gnome-shell',
+                                                 '-b', '-o', 'short-monotonic',
+                                                 '--lines', '3000'])
