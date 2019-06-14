@@ -11,6 +11,8 @@ def is_process_running(proc):
     return True
 
 def add_info(report):
+    attach_related_packages(report, ['mutter-common'])
+
     attach_gsettings_package(report, 'gnome-shell-common')
     attach_gsettings_package(report, 'gsettings-desktop-schemas')
     attach_gsettings_package(report, 'mutter-common')
