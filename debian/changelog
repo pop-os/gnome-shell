@@ -8,8 +8,10 @@ gnome-shell (3.32.2-2) UNRELEASED; urgency=medium
       - Settings daemon settings key used by the shell
       - ~/.config/monitors.xml
       - Shell's journalctl since it will include errors and JS stacktrace.
+  * d/p/boxpointer-Unset-the-sourceActor-on-destruction.patch:
+    - Avoid crash on reallocation of dead actors (LP: #1831555)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 14 Jun 2019 20:59:52 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 21 Jun 2019 14:09:25 +0200
 
 gnome-shell (3.32.2-1) experimental; urgency=medium
 
