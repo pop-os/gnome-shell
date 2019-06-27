@@ -1,3 +1,18 @@
+gnome-shell (3.32.2-2) experimental; urgency=medium
+
+  * debian/source_gnome-shell.py:
+    + Add more informations that we might need to debug information in the
+      apport retracing (LP: #1722886):
+      - All the desktop shared gsettings key
+      - Mutter gsettings key and version
+      - Settings daemon settings key used by the shell
+      - ~/.config/monitors.xml
+      - Shell's journalctl since it will include errors and JS stacktrace.
+  * d/p/boxpointer-Unset-the-sourceActor-on-destruction.patch:
+    - Avoid crash on reallocation of dead actors (LP: #1831555)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Jun 2019 17:54:16 +0100
+
 gnome-shell (3.32.2-1ubuntu1) eoan; urgency=medium
 
   * Merge with Debian. Remaining changes:
