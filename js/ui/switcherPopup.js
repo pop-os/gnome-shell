@@ -30,12 +30,10 @@ function primaryModifier(mask) {
     return primary;
 }
 
-var SwitcherPopup = GObject.registerClass(
-class SwitcherPopup extends St.Widget {
+var SwitcherPopup = GObject.registerClass({
+    GTypeFlags: GObject.TypeFlags.ABSTRACT
+}, class SwitcherPopup extends St.Widget {
     _init(items) {
-        if (new.target === SwitcherPopup)
-            throw new TypeError('Cannot instantiate abstract class ' + new.target.name);
-
         super._init({ style_class: 'switcher-popup',
                       reactive: true,
                       visible: false });
@@ -164,7 +162,7 @@ class SwitcherPopup extends St.Widget {
     }
 
     _keyPressHandler(keysym, action) {
-        throw new Error('Not implemented');
+        throw new GObject.NotImplementedError(`_keyPressHandler in ${this.constructor.name}`);
     }
 
     _keyPressEvent(actor, event) {
@@ -394,7 +392,7 @@ var SwitcherList = GObject.registerClass({
         this._list.add_actor(bbox);
 
         let n = this._items.length;
-        bbox.connect('clicked', () => { this._onItemClicked(n); });
+        bbox.connect('clicked', () => this._onItemClicked(n));
         bbox.connect('motion-event', () => this._onItemEnter(n));
 
         bbox.label_actor = label;
@@ -467,11 +465,11 @@ var SwitcherList = GObject.registerClass({
                            time: POPUP_SCROLL_TIME,
                            transition: 'easeOutQuad',
                            onComplete: () => {
-                                if (this._highlighted == 0)
-                                    this._scrollableLeft = false;
-                                this.queue_relayout();
+                               if (this._highlighted == 0)
+                                   this._scrollableLeft = false;
+                               this.queue_relayout();
                            }
-                          });
+                         });
     }
 
     _scrollToRight() {
@@ -491,11 +489,11 @@ var SwitcherList = GObject.registerClass({
                            time: POPUP_SCROLL_TIME,
                            transition: 'easeOutQuad',
                            onComplete: () => {
-                                if (this._highlighted == this._items.length - 1)
-                                    this._scrollableRight = false;
-                                this.queue_relayout();
-                            }
-                          });
+                               if (this._highlighted == this._items.length - 1)
+                                   this._scrollableRight = false;
+                               this.queue_relayout();
+                           }
+                         });
     }
 
     _itemActivated(n) {
@@ -527,8 +525,8 @@ var SwitcherList = GObject.registerClass({
 
     vfunc_get_preferred_width(forHeight) {
         let themeNode = this.get_theme_node();
-        let [maxChildMin, ] = this._maxChildWidth(forHeight);
-        let [minListWidth, ] = this._list.get_preferred_width(forHeight);
+        let [maxChildMin] = this._maxChildWidth(forHeight);
+        let [minListWidth] = this._list.get_preferred_width(forHeight);
 
         return themeNode.adjust_preferred_width(maxChildMin, minListWidth);
     }

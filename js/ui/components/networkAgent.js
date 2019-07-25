@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Clutter, Gio, GLib, NM, Pango, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, NM, Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const Config = imports.misc.config;
@@ -12,9 +12,10 @@ const ShellEntry = imports.ui.shellEntry;
 
 const VPN_UI_GROUP = 'VPN Plugin UI';
 
-var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
-    constructor(agent, requestId, connection, settingName, hints, flags, contentOverride) {
-        super({ styleClass: 'prompt-dialog' });
+var NetworkSecretDialog = GObject.registerClass(
+class NetworkSecretDialog extends ModalDialog.ModalDialog {
+    _init(agent, requestId, connection, settingName, hints, flags, contentOverride) {
+        super._init({ styleClass: 'prompt-dialog' });
 
         this._agent = agent;
         this._requestId = requestId;
@@ -79,8 +80,9 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
                         secret.valid = secret.value.length > 0;
                     this._updateOkButton();
                 });
-            } else
+            } else {
                 secret.valid = true;
+            }
 
             if (rtl) {
                 layout.attach(secret.entry, 0, pos, 1, 1);
@@ -104,19 +106,19 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
             descriptionLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
 
             contentBox.messageBox.add(descriptionLabel,
-                                      { y_fill:  true,
+                                      { y_fill: true,
                                         y_align: St.Align.START,
                                         expand: true });
         }
 
-        this._okButton = { label:  _("Connect"),
+        this._okButton = { label: _("Connect"),
                            action: this._onOk.bind(this),
                            default: true
                          };
 
         this.setButtons([{ label: _("Cancel"),
                            action: this.cancel.bind(this),
-                           key:    Clutter.KEY_Escape,
+                           key: Clutter.KEY_Escape,
                          },
                          this._okButton]);
 
@@ -175,24 +177,25 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
         let value = secret.value;
         if (secret.wep_key_type == NM.WepKeyType.KEY) {
             if (value.length == 10 || value.length == 26) {
-		for (let i = 0; i < value.length; i++) {
+                for (let i = 0; i < value.length; i++) {
                     if (!((value[i] >= 'a' && value[i] <= 'f')
                           || (value[i] >= 'A' && value[i] <= 'F')
                           || (value[i] >= '0' && value[i] <= '9')))
                         return false;
-		}
-	    } else if (value.length == 5 || value.length == 13) {
-		for (let i = 0; i < value.length; i++) {
+                }
+            } else if (value.length == 5 || value.length == 13) {
+                for (let i = 0; i < value.length; i++) {
                     if (!((value[i] >= 'a' && value[i] <= 'z')
                           || (value[i] >= 'A' && value[i] <= 'Z')))
                         return false;
                 }
-            } else
+            } else {
                 return false;
-	} else if (secret.wep_key_type == NM.WepKeyType.PASSPHRASE) {
-	    if (value.length < 0 || value.length > 64)
-	        return false;
-	}
+            }
+        } else if (secret.wep_key_type == NM.WepKeyType.PASSPHRASE) {
+            if (value.length < 0 || value.length > 64)
+                return false;
+        }
         return true;
     }
 
@@ -213,7 +216,7 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
                            validate: this._validateWpaPsk, password: true });
             break;
         case 'none': // static WEP
-            secrets.push({ label: _("Key: "), key: 'wep-key' + wirelessSecuritySetting.wep_tx_keyidx,
+            secrets.push({ label: _("Key: "), key: `wep-key${wirelessSecuritySetting.wep_tx_keyidx}`,
                            value: wirelessSecuritySetting.get_wep_key(wirelessSecuritySetting.wep_tx_keyidx) || '',
                            wep_key_type: wirelessSecuritySetting.wep_key_type,
                            validate: this._validateStaticWep, password: true });
@@ -229,13 +232,12 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
             this._get8021xSecrets(secrets);
             break;
         default:
-            log('Invalid wireless key management: ' + wirelessSecuritySetting.key_mgmt);
+            log(`Invalid wireless key management: ${wirelessSecuritySetting.key_mgmt}`);
         }
     }
 
     _get8021xSecrets(secrets) {
         let ieee8021xSetting = this._connection.get_setting_802_1x();
-        let phase2method;
 
         /* If hints were given we know exactly what we need to ask */
         if (this._settingName == "802-1x" && this._hints.length) {
@@ -272,7 +274,7 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
                            value: ieee8021xSetting.private_key_password || '', password: true });
             break;
         default:
-            log('Invalid EAP/IEEE802.1x method: ' + ieee8021xSetting.get_eap_method(0));
+            log(`Invalid EAP/IEEE802.1x method: ${ieee8021xSetting.get_eap_method(0)}`);
         }
     }
 
@@ -303,7 +305,7 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
         let ssid;
 
         let content = { };
-        content.secrets = [ ];
+        content.secrets = [];
 
         switch (connectionType) {
         case '802-11-wireless':
@@ -326,7 +328,7 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
             this._getPPPoESecrets(content.secrets);
             break;
         case 'gsm':
-            if (this._hints.indexOf('pin') != -1) {
+            if (this._hints.includes('pin')) {
                 let gsmSetting = this._connection.get_setting_gsm();
                 content.title = _("PIN code required");
                 content.message = _("PIN code is needed for the mobile broadband device");
@@ -342,12 +344,12 @@ var NetworkSecretDialog = class extends ModalDialog.ModalDialog {
             this._getMobileSecrets(content.secrets, connectionType);
             break;
         default:
-            log('Invalid connection type: ' + connectionType);
-        };
+            log(`Invalid connection type: ${connectionType}`);
+        }
 
         return content;
     }
-};
+});
 
 var VPNRequestHandler = class {
     constructor(agent, requestId, authHelper, serviceType, connection, hints, flags) {
@@ -358,16 +360,15 @@ var VPNRequestHandler = class {
         this._pluginOutBuffer = [];
         this._title = null;
         this._description = null;
-        this._content = [ ];
+        this._content = [];
         this._shellDialog = null;
 
         let connectionSetting = connection.get_setting_connection();
 
-        let argv = [ authHelper.fileName,
-                     '-u', connectionSetting.uuid,
-                     '-n', connectionSetting.id,
-                     '-s', serviceType
-                   ];
+        let argv = [authHelper.fileName,
+                    '-u', connectionSetting.uuid,
+                    '-n', connectionSetting.id,
+                    '-s', serviceType];
         if (authHelper.externalUIMode)
             argv.push('--external-ui-mode');
         if (flags & NM.SecretAgentGetSecretsFlags.ALLOW_INTERACTION)
@@ -406,7 +407,7 @@ var VPNRequestHandler = class {
                                                     this._vpnChildFinished.bind(this));
 
             this._writeConnection();
-        } catch(e) {
+        } catch (e) {
             logError(e, 'error while spawning VPN auth helper');
 
             this._agent.respond(requestId, Shell.NetworkAgentResponse.INTERNAL_ERROR);
@@ -423,7 +424,7 @@ var VPNRequestHandler = class {
         } else {
             try {
                 this._stdin.write('QUIT\n\n', null);
-            } catch(e) { /* ignore broken pipe errors */ }
+            } catch (e) { /* ignore broken pipe errors */ }
         }
 
         this.destroy();
@@ -458,8 +459,9 @@ var VPNRequestHandler = class {
                 this._agent.respond(this._requestId, Shell.NetworkAgentResponse.USER_CANCELED);
             else
                 this._agent.respond(this._requestId, Shell.NetworkAgentResponse.CONFIRMED);
-        } else
+        } else {
             this._agent.respond(this._requestId, Shell.NetworkAgentResponse.INTERNAL_ERROR);
+        }
 
         this.destroy();
     }
@@ -472,7 +474,7 @@ var VPNRequestHandler = class {
             if (line == '' && this._previousLine == '') {
                 try {
                     this._stdin.write('QUIT\n\n', null);
-                } catch(e) { /* ignore broken pipe errors */ }
+                } catch (e) { /* ignore broken pipe errors */ }
             } else {
                 this._agent.set_password(this._requestId, this._previousLine, line);
                 this._previousLine = undefined;
@@ -560,7 +562,7 @@ var VPNRequestHandler = class {
                     this._agent.set_password(this._requestId, groups[i], value);
                 }
             }
-        } catch(e) {
+        } catch (e) {
             // No output is a valid case it means "both secrets are stored"
             if (data.length > 0) {
                 logError(e, 'error while reading VPN plugin output keyfile');
@@ -586,15 +588,15 @@ var VPNRequestHandler = class {
 
         try {
             vpnSetting.foreach_data_item((key, value) => {
-                this._stdin.write('DATA_KEY=' + key + '\n', null);
-                this._stdin.write('DATA_VAL=' + (value || '') + '\n\n', null);
+                this._stdin.write(`DATA_KEY=${key}\n`, null);
+                this._stdin.write(`DATA_VAL=${value || ''}\n\n`, null);
             });
             vpnSetting.foreach_secret((key, value) => {
-                this._stdin.write('SECRET_KEY=' + key + '\n', null);
-                this._stdin.write('SECRET_VAL=' + (value || '') + '\n\n', null);
+                this._stdin.write(`SECRET_KEY=${key}\n`, null);
+                this._stdin.write(`SECRET_VAL=${value || ''}\n\n`, null);
             });
             this._stdin.write('DONE\n\n', null);
-        } catch(e) {
+        } catch (e) {
             logError(e, 'internal error while writing connection to helper');
 
             this._agent.respond(this._requestId, Shell.NetworkAgentResponse.INTERNAL_ERROR);
@@ -618,9 +620,9 @@ var NetworkAgent = class {
         this._pluginDir = Gio.file_new_for_path(Config.VPNDIR);
         try {
             let monitor = this._pluginDir.monitor(Gio.FileMonitorFlags.NONE, null);
-            monitor.connect('changed', () => { this._vpnCacheBuilt = false; });
-        } catch(e) {
-            log('Failed to create monitor for VPN plugin dir: ' + e.message);
+            monitor.connect('changed', () => this._vpnCacheBuilt = false);
+        } catch (e) {
+            log(`Failed to create monitor for VPN plugin dir: ${e.message}`);
         }
 
         this._native.connect('new-request', this._newRequest.bind(this));
@@ -631,7 +633,7 @@ var NetworkAgent = class {
             try {
                 this._native.init_finish(res);
                 this._initialized = true;
-            } catch(e) {
+            } catch (e) {
                 this._native = null;
                 logError(e, 'error initializing the NetworkManager Agent');
             }
@@ -679,12 +681,13 @@ var NetworkAgent = class {
         let connectionSetting = connection.get_setting_connection();
         let connectionType = connectionSetting.get_connection_type();
         switch (connectionType) {
-        case '802-11-wireless':
+        case '802-11-wireless': {
             let wirelessSetting = connection.get_setting_wireless();
             let ssid = NM.utils_ssid_to_utf8(wirelessSetting.get_ssid().get_data());
             title = _("Authentication required by wireless network");
             body = _("Passwords or encryption keys are required to access the wireless network “%s”.").format(ssid);
             break;
+        }
         case '802-3-ethernet':
             title = _("Wired 802.1X authentication");
             body = _("A password is required to connect to “%s”.".format(connection.get_id()));
@@ -694,8 +697,7 @@ var NetworkAgent = class {
             body = _("A password is required to connect to “%s”.".format(connection.get_id()));
             break;
         case 'gsm':
-            if (hints.indexOf('pin') != -1) {
-                let gsmSetting = connection.get_setting_gsm();
+            if (hints.includes('pin')) {
                 title = _("PIN code required");
                 body = _("PIN code is needed for the mobile broadband device");
                 break;
@@ -707,7 +709,7 @@ var NetworkAgent = class {
             body = _("A password is required to connect to “%s”.").format(connectionSetting.get_id());
             break;
         default:
-            log('Invalid connection type: ' + connectionType);
+            log(`Invalid connection type: ${connectionType}`);
             this._native.respond(requestId, Shell.NetworkAgentResponse.INTERNAL_ERROR);
             return;
         }

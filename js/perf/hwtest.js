@@ -30,7 +30,7 @@ var METRICS = {
     geditStartTime:
     { description: "Time from gedit launch to window drawn",
       units: "us" },
-}
+};
 
 function waitAndDraw(milliseconds) {
     let cb;
@@ -48,7 +48,7 @@ function waitAndDraw(milliseconds) {
             cb();
     });
 
-    return callback => { cb = callback; };
+    return callback => cb = callback;
 }
 
 function waitSignal(object, signal) {
@@ -60,7 +60,7 @@ function waitSignal(object, signal) {
             cb();
     });
 
-    return callback => { cb = callback; };
+    return callback => cb = callback;
 }
 
 function extractBootTimestamp() {
@@ -157,7 +157,7 @@ function *run() {
     Main.overview.hide();
 
     yield Scripting.createTestWindow({ maximized: true,
-                                       redraws: true});
+                                       redraws: true });
     yield Scripting.waitTestWindows();
 
     yield Scripting.sleep(1000);
@@ -269,11 +269,11 @@ function script_collectTimings(time) {
         if (len == 0)
             median = -1;
         else if (len % 2 == 1)
-            median = times[(len - 1)/ 2];
+            median = times[(len - 1) / 2];
         else
             median = Math.round((times[len / 2 - 1] + times[len / 2]) / 2);
 
-        METRICS[timing + 'RedrawTime'].value = median;
+        METRICS[`${timing}RedrawTime`].value = median;
     }
 }
 

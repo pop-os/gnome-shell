@@ -15,17 +15,18 @@ const Util = imports.misc.util;
 const INPUT_SOURCE_TYPE_XKB = 'xkb';
 const INPUT_SOURCE_TYPE_IBUS = 'ibus';
 
-var LayoutMenuItem = class extends PopupMenu.PopupBaseMenuItem {
-    constructor(displayName, shortName) {
-        super();
+var LayoutMenuItem = GObject.registerClass(
+class LayoutMenuItem extends PopupMenu.PopupBaseMenuItem {
+    _init(displayName, shortName) {
+        super._init();
 
         this.label = new St.Label({ text: displayName });
         this.indicator = new St.Label({ text: shortName });
-        this.actor.add(this.label, { expand: true });
-        this.actor.add(this.indicator);
-        this.actor.label_actor = this.label;
+        this.add(this.label, { expand: true });
+        this.add(this.indicator);
+        this.label_actor = this.label;
     }
-};
+});
 
 var InputSource = class {
     constructor(type, id, displayName, shortName, index) {
@@ -59,7 +60,7 @@ var InputSource = class {
             return this.id;
 
         if (engineDesc.variant && engineDesc.variant.length > 0)
-            return engineDesc.layout + '+' + engineDesc.variant;
+            return `${engineDesc.layout}+${engineDesc.variant}`;
         else
             return engineDesc.layout;
     }
@@ -125,8 +126,8 @@ class InputSourceSwitcher extends SwitcherPopup.SwitcherList {
 
 var InputSourceSettings = class {
     constructor() {
-        if (new.target === InputSourceSettings)
-            throw new TypeError('Cannot instantiate abstract class ' + new.target.name);
+        if (this.constructor === InputSourceSettings)
+            throw new TypeError(`Cannot instantiate abstract class ${this.constructor.name}`);
     }
 
     _emitInputSourcesChanged() {
@@ -198,8 +199,8 @@ var InputSourceSystemSettings = class extends InputSourceSettings {
                                  let props;
                                  try {
                                      props = conn.call_finish(result).deep_unpack()[0];
-                                 } catch(e) {
-                                     log('Could not get properties from ' + this._BUS_NAME);
+                                 } catch (e) {
+                                     log(`Could not get properties from ${this._BUS_NAME}`);
                                      return;
                                  }
                                  let layouts = props['X11Layout'].unpack();
@@ -226,8 +227,8 @@ var InputSourceSystemSettings = class extends InputSourceSettings {
 
         for (let i = 0; i < layouts.length && !!layouts[i]; i++) {
             let id = layouts[i];
-            if (!!variants[i])
-                id += '+' + variants[i];
+            if (variants[i])
+                id += `+${variants[i]}`;
             sourcesList.push({ type: INPUT_SOURCE_TYPE_XKB, id: id });
         }
         return sourcesList;
@@ -249,9 +250,9 @@ var InputSourceSessionSettings = class extends InputSourceSettings {
         this._KEY_PER_WINDOW = 'per-window';
 
         this._settings = new Gio.Settings({ schema_id: this._DESKTOP_INPUT_SOURCES_SCHEMA });
-        this._settings.connect('changed::' + this._KEY_INPUT_SOURCES, this._emitInputSourcesChanged.bind(this));
-        this._settings.connect('changed::' + this._KEY_KEYBOARD_OPTIONS, this._emitKeyboardOptionsChanged.bind(this));
-        this._settings.connect('changed::' + this._KEY_PER_WINDOW, this._emitPerWindowChanged.bind(this));
+        this._settings.connect(`changed::${this._KEY_INPUT_SOURCES}`, this._emitInputSourcesChanged.bind(this));
+        this._settings.connect(`changed::${this._KEY_KEYBOARD_OPTIONS}`, this._emitKeyboardOptionsChanged.bind(this));
+        this._settings.connect(`changed::${this._KEY_PER_WINDOW}`, this._emitPerWindowChanged.bind(this));
     }
 
     _getSourcesList(key) {
@@ -538,7 +539,7 @@ var InputSourceManager = class {
             let exists = false;
 
             if (type == INPUT_SOURCE_TYPE_XKB) {
-                [exists, displayName, shortName, , ] =
+                [exists, displayName, shortName] =
                     this._xkbInfo.get_layout_info(id);
             } else if (type == INPUT_SOURCE_TYPE_IBUS) {
                 if (this._disableIBus)
@@ -563,7 +564,7 @@ var InputSourceManager = class {
         if (infosList.length == 0) {
             let type = INPUT_SOURCE_TYPE_XKB;
             let id = KeyboardManager.DEFAULT_LAYOUT;
-            let [ , displayName, shortName, , ] = this._xkbInfo.get_layout_info(id);
+            let [, displayName, shortName] = this._xkbInfo.get_layout_info(id);
             infosList.push({ type: type, id: id, displayName: displayName, shortName: shortName });
         }
 
@@ -809,7 +810,7 @@ class InputSourceIndicatorContainer extends St.Widget {
 var InputSourceIndicator = GObject.registerClass(
 class InputSourceIndicator extends PanelMenu.Button {
     _init() {
-        super._init(0.0, _("Keyboard"));
+        super._init(0.5, _("Keyboard"));
 
         this.connect('destroy', this._onDestroy.bind(this));
 
@@ -822,7 +823,7 @@ class InputSourceIndicator extends PanelMenu.Button {
         this._hbox.add_child(this._container);
         this._hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
 
-        this.actor.add_child(this._hbox);
+        this.add_child(this._hbox);
 
         this._propSeparator = new PopupMenu.PopupSeparatorMenuItem();
         this.menu.addMenuItem(this._propSeparator);
@@ -857,7 +858,7 @@ class InputSourceIndicator extends PanelMenu.Button {
         // but at least for now it is used as "allow popping up windows
         // from shell menus"; we can always add a separate sessionMode
         // option if need arises.
-        this._showLayoutItem.actor.visible = Main.sessionMode.allowSettings;
+        this._showLayoutItem.visible = Main.sessionMode.allowSettings;
     }
 
     _sourcesChanged() {
@@ -874,7 +875,7 @@ class InputSourceIndicator extends PanelMenu.Button {
             let is = this._inputSourceManager.inputSources[i];
 
             let menuItem = new LayoutMenuItem(is.displayName, is.shortName);
-            menuItem.connect('activate', () => { is.activate(true); });
+            menuItem.connect('activate', () => is.activate(true));
 
             let indicatorLabel = new St.Label({ text: is.shortName,
                                                 visible: false });
@@ -908,11 +909,11 @@ class InputSourceIndicator extends PanelMenu.Button {
             // We also hide if we have only one visible source unless
             // it's an IBus source with properties.
             this.menu.close();
-            this.actor.hide();
+            this.hide();
             return;
         }
 
-        this.actor.show();
+        this.show();
 
         this._buildPropSection(newSource.properties);
 
@@ -1058,7 +1059,7 @@ class InputSourceIndicator extends PanelMenu.Button {
 
         let description = xkbLayout;
         if (xkbVariant.length > 0)
-            description = description + '\t' + xkbVariant;
+            description = `${description}\t${xkbVariant}`;
 
         Util.spawn(['gkbd-keyboard-display', '-l', description]);
     }

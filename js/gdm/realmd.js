@@ -19,7 +19,7 @@ var Manager = class {
         this._aggregateProvider = Provider(Gio.DBus.system,
                                            'org.freedesktop.realmd',
                                            '/org/freedesktop/realmd',
-                                           this._reloadRealms.bind(this))
+                                           this._reloadRealms.bind(this));
         this._realms = {};
 
         this._signalId = this._aggregateProvider.connect('g-properties-changed',
@@ -36,10 +36,10 @@ var Manager = class {
             return;
 
         for (let i = 0; i < realmPaths.length; i++) {
-            let realm = Realm(Gio.DBus.system,
-                              'org.freedesktop.realmd',
-                              realmPaths[i],
-                              this._onRealmLoaded.bind(this));
+            Realm(Gio.DBus.system,
+                  'org.freedesktop.realmd',
+                  realmPaths[i],
+                  this._onRealmLoaded.bind(this));
         }
     }
 
@@ -98,10 +98,10 @@ var Manager = class {
         Service(Gio.DBus.system,
                 'org.freedesktop.realmd',
                 '/org/freedesktop/realmd',
-                service => { service.ReleaseRemote(); });
+                service => service.ReleaseRemote());
         this._aggregateProvider.disconnect(this._signalId);
         this._realms = { };
         this._updateLoginFormat();
     }
 };
-Signals.addSignalMethods(Manager.prototype)
+Signals.addSignalMethods(Manager.prototype);

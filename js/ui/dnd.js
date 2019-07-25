@@ -434,14 +434,13 @@ var _Draggable = class _Draggable {
                                    scale_y: scale * origScale,
                                    time: SCALE_ANIMATION_TIME,
                                    transition: 'easeOutQuad',
-                                   onUpdate() {
+                                   onUpdate: () => {
                                        let currentScale = this._dragActor.scale_x / origScale;
                                        this._dragOffsetX = currentScale * origDragOffsetX;
                                        this._dragOffsetY = currentScale * origDragOffsetY;
                                        this._dragActor.set_position(this._dragX + this._dragOffsetX,
                                                                     this._dragY + this._dragOffsetY);
-                                   },
-                                   onUpdateScope: this });
+                                   } });
             }
         }
     }
@@ -561,11 +560,11 @@ var _Draggable = class _Draggable {
             let dropFunc = dragMonitors[i].dragDrop;
             if (dropFunc)
                 switch (dropFunc(dropEvent)) {
-                    case DragDropResult.FAILURE:
-                    case DragDropResult.SUCCESS:
-                        return true;
-                    case DragDropResult.CONTINUE:
-                        continue;
+                case DragDropResult.FAILURE:
+                case DragDropResult.SUCCESS:
+                    return true;
+                case DragDropResult.CONTINUE:
+                    continue;
                 }
         }
 
@@ -588,8 +587,9 @@ var _Draggable = class _Draggable {
                         if (this._restoreOnSuccess) {
                             this._restoreDragActor(event.get_time());
                             return true;
-                        } else
+                        } else {
                             this._dragActor.destroy();
+                        }
                     }
 
                     this._dragState = DragState.INIT;
@@ -689,12 +689,12 @@ var _Draggable = class _Draggable {
         params['onCompleteParams'] = [this._dragActor, eventTime];
 
         // start the animation
-        Tweener.addTween(this._dragActor, params)
+        Tweener.addTween(this._dragActor, params);
     }
 
     _finishAnimation() {
         if (!this._animationInProgress)
-            return
+            return;
 
         this._animationInProgress = false;
         if (!this._buttonDown)

@@ -47,7 +47,7 @@ var TodayButton = class TodayButton {
         this._calendar.connect('selected-date-changed', (calendar, date) => {
             // Make the button reactive only if the selected date is not the
             // current date.
-            this.actor.reactive = !_isToday(date)
+            this.actor.reactive = !_isToday(date);
         });
     }
 
@@ -217,7 +217,7 @@ var WeatherSection = class WeatherSection {
         });
 
         let box = new St.BoxLayout({ style_class: 'weather-box',
-                                      vertical: true });
+                                     vertical: true });
 
         this.actor.child = box;
 
@@ -357,7 +357,7 @@ var MessagesIndicator = class MessagesIndicator {
         Main.messageTray.connect('queue-changed', this._updateCount.bind(this));
 
         let sources = Main.messageTray.getSources();
-        sources.forEach(source => { this._onSourceAdded(null, source); });
+        sources.forEach(source => this._onSourceAdded(null, source));
     }
 
     _onSourceAdded(tray, source) {
@@ -373,7 +373,7 @@ var MessagesIndicator = class MessagesIndicator {
 
     _updateCount() {
         let count = 0;
-        this._sources.forEach(source => { count += source.unseenCount; });
+        this._sources.forEach(source => count += source.unseenCount);
         count -= Main.messageTray.queueCount;
 
         this.actor.visible = (count > 0);
@@ -384,8 +384,8 @@ var IndicatorPad = GObject.registerClass(
 class IndicatorPad extends St.Widget {
     _init(actor) {
         this._source = actor;
-        this._source.connect('notify::visible', () => { this.queue_relayout(); });
-        this._source.connect('notify::size', () => { this.queue_relayout(); });
+        this._source.connect('notify::visible', () => this.queue_relayout());
+        this._source.connect('notify::size', () => this.queue_relayout());
         super._init();
     }
 
@@ -459,7 +459,6 @@ class CalendarColumnLayout extends Clutter.BoxLayout {
 var DateMenuButton = GObject.registerClass(
 class DateMenuButton extends PanelMenu.Button {
     _init() {
-        let item;
         let hbox;
         let vbox;
 
@@ -476,10 +475,9 @@ class DateMenuButton extends PanelMenu.Button {
         box.add_actor(this._clockDisplay);
         box.add_actor(this._indicator.actor);
 
-        this.actor.label_actor = this._clockDisplay;
-        this.actor.add_actor(box);
-        this.actor.add_style_class_name ('clock-display');
-
+        this.label_actor = this._clockDisplay;
+        this.add_actor(box);
+        this.add_style_class_name ('clock-display');
 
         let layout = new FreezableBinLayout();
         let bin = new St.Widget({ layout_manager: layout });

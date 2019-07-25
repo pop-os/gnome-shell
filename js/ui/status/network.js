@@ -69,9 +69,12 @@ function ssidToLabel(ssid) {
 
 function ensureActiveConnectionProps(active, client) {
     if (!active._primaryDevice) {
-        // This list is guaranteed to have only one device in it.
-        let device = active.get_devices()[0]._delegate;
-        active._primaryDevice = device;
+        let devices = active.get_devices();
+        if (devices.length > 0) {
+            // This list is guaranteed to have at most one device in it.
+            let device = devices[0]._delegate;
+            active._primaryDevice = device;
+        }
     }
 }
 
@@ -167,10 +170,10 @@ var NMConnectionItem = class {
 };
 Signals.addSignalMethods(NMConnectionItem.prototype);
 
-var NMConnectionSection = class {
+var NMConnectionSection = class NMConnectionSection {
     constructor(client) {
-        if (new.target === NMConnectionSection)
-            throw new TypeError('Cannot instantiate abstract type ' + new.target.name);
+        if (this.constructor === NMConnectionSection)
+            throw new TypeError(`Cannot instantiate abstract type ${this.constructor.name}`);
 
         this._client = client;
 
@@ -235,14 +238,14 @@ var NMConnectionSection = class {
         if (!this._connectionValid(connection))
             return;
 
-        // This function is called everytime connection is added or updated
+        // This function is called every time the connection is added or updated.
         // In the usual case, we already added this connection and UUID
         // didn't change. So we need to check if we already have an item,
         // and update it for properties in the connection that changed
         // (the only one we care about is the name)
         // But it's also possible we didn't know about this connection
         // (eg, during coldplug, or because it was updated and suddenly
-        // it's valid for this device), in which case we add a new item
+        // it's valid for this device), in which case we add a new item.
 
         let item = this._connectionItems.get(connection.get_uuid());
         if (item)
@@ -267,7 +270,7 @@ var NMConnectionSection = class {
         if (!item)
             return;
 
-        item.connect('icon-changed', () => { this._iconChanged(); });
+        item.connect('icon-changed', () => this._iconChanged());
         item.connect('activation-failed', (item, reason) => {
             this.emit('activation-failed', reason);
         });
@@ -297,12 +300,13 @@ var NMConnectionSection = class {
 };
 Signals.addSignalMethods(NMConnectionSection.prototype);
 
-var NMConnectionDevice = class extends NMConnectionSection {
+var NMConnectionDevice = class NMConnectionDevice extends NMConnectionSection {
     constructor(client, device) {
-        if (new.target === NMConnectionDevice)
-            throw new TypeError('Cannot instantiate abstract type ' + new.target.name);
-
         super(client);
+
+        if (this.constructor === NMConnectionDevice)
+            throw new TypeError(`Cannot instantiate abstract type ${this.constructor.name}`);
+
         this._device = device;
         this._description = '';
 
@@ -327,11 +331,11 @@ var NMConnectionDevice = class extends NMConnectionSection {
 
     destroy() {
         if (this._stateChangedId) {
-            GObject.Object.prototype.disconnect.call(this._device, this._stateChangedId);
+            GObject.signal_handler_disconnect(this._device, this._stateChangedId);
             this._stateChangedId = 0;
         }
         if (this._activeConnectionChangedId) {
-            GObject.Object.prototype.disconnect.call(this._device, this._activeConnectionChangedId);
+            GObject.signal_handler_disconnect(this._device, this._activeConnectionChangedId);
             this._activeConnectionChangedId = 0;
         }
 
@@ -388,8 +392,8 @@ var NMConnectionDevice = class extends NMConnectionSection {
 
     _sync() {
         let nItems = this._connectionItems.size;
-        this._autoConnectItem.actor.visible = (nItems == 0);
-        this._deactivateItem.actor.visible = this._device.state > NM.DeviceState.DISCONNECTED;
+        this._autoConnectItem.visible = (nItems == 0);
+        this._deactivateItem.visible = this._device.state > NM.DeviceState.DISCONNECTED;
 
         if (this._activeConnection == null) {
             let activeConnection = this._device.active_connection;
@@ -410,7 +414,7 @@ var NMConnectionDevice = class extends NMConnectionSection {
         if (!this._device)
             return '';
 
-        switch(this._device.state) {
+        switch (this._device.state) {
         case NM.DeviceState.DISCONNECTED:
             /* Translators: %s is a network identifier */
             return _("%s Off").format(this._getDescription());
@@ -476,7 +480,7 @@ var NMDeviceWired = class extends NMConnectionDevice {
     }
 
     _sync() {
-        this.item.actor.visible = this._hasCarrier();
+        this.item.visible = this._hasCarrier();
         super._sync();
     }
 
@@ -494,8 +498,9 @@ var NMDeviceWired = class extends NMConnectionDevice {
             } else {
                 return 'network-wired-disconnected-symbolic';
             }
-        } else
+        } else {
             return 'network-wired-disconnected-symbolic';
+        }
     }
 };
 
@@ -574,7 +579,7 @@ var NMDeviceModem = class extends NMConnectionDevice {
     }
 
     _getSignalIcon() {
-        return 'network-cellular-signal-' + signalToIcon(this._mobileDevice.signal_quality) + '-symbolic';
+        return `network-cellular-signal-${signalToIcon(this._mobileDevice.signal_quality)}-symbolic`;
     }
 };
 
@@ -612,31 +617,36 @@ var NMDeviceBluetooth = class extends NMConnectionDevice {
     }
 };
 
-var NMWirelessDialogItem = class {
-    constructor(network) {
+var NMWirelessDialogItem = GObject.registerClass({
+    Signals: {
+        'selected': {},
+    }
+}, class NMWirelessDialogItem extends St.BoxLayout {
+    _init(network) {
         this._network = network;
         this._ap = network.accessPoints[0];
 
-        this.actor = new St.BoxLayout({ style_class: 'nm-dialog-item',
-                                        can_focus: true,
-                                        reactive: true });
-        this.actor.connect('key-focus-in', () => { this.emit('selected'); });
+        super._init({ style_class: 'nm-dialog-item',
+                      can_focus: true,
+                      reactive: true });
+
+        this.connect('key-focus-in', () => this.emit('selected'));
         let action = new Clutter.ClickAction();
-        action.connect('clicked', () => { this.actor.grab_key_focus(); });
-        this.actor.add_action(action);
+        action.connect('clicked', () => this.grab_key_focus());
+        this.add_action(action);
 
         let title = ssidToLabel(this._ap.get_ssid());
         this._label = new St.Label({ text: title });
 
-        this.actor.label_actor = this._label;
-        this.actor.add(this._label, { x_align: St.Align.START });
+        this.label_actor = this._label;
+        this.add(this._label, { x_align: St.Align.START });
 
         this._selectedIcon = new St.Icon({ style_class: 'nm-dialog-icon',
                                            icon_name: 'object-select-symbolic' });
-        this.actor.add(this._selectedIcon);
+        this.add(this._selectedIcon);
 
         this._icons = new St.BoxLayout({ style_class: 'nm-dialog-icons' });
-        this.actor.add(this._icons, { expand: true, x_fill: false, x_align: St.Align.END });
+        this.add(this._icons, { expand: true, x_fill: false, x_align: St.Align.END });
 
         this._secureIcon = new St.Icon({ style_class: 'nm-dialog-icon' });
         if (this._ap._secType != NMAccessPointSecurity.NONE)
@@ -666,14 +676,14 @@ var NMWirelessDialogItem = class {
         if (this._ap.mode == NM80211Mode.ADHOC)
             return 'network-workgroup-symbolic';
         else
-            return 'network-wireless-signal-' + signalToIcon(this._ap.strength) + '-symbolic';
+            return `network-wireless-signal-${signalToIcon(this._ap.strength)}-symbolic`;
     }
-};
-Signals.addSignalMethods(NMWirelessDialogItem.prototype);
+});
 
-var NMWirelessDialog = class extends ModalDialog.ModalDialog {
-    constructor(client, device) {
-        super({ styleClass: 'nm-dialog' });
+var NMWirelessDialog = GObject.registerClass(
+class NMWirelessDialog extends ModalDialog.ModalDialog {
+    _init(client, device) {
+        super._init({ styleClass: 'nm-dialog' });
 
         this._client = client;
         this._device = device;
@@ -698,7 +708,7 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
         this._activeApChangedId = device.connect('notify::active-access-point', this._activeApChanged.bind(this));
 
         // accessPointAdded will also create dialog items
-        let accessPoints = device.get_access_points() || [ ];
+        let accessPoints = device.get_access_points() || [];
         accessPoints.forEach(ap => {
             this._accessPointAdded(this._device, ap);
         });
@@ -719,9 +729,11 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
             Main.sessionMode.disconnect(id);
             this.close();
         });
+
+        this.connect('destroy', this._onDestroy.bind(this));
     }
 
-    destroy() {
+    _onDestroy() {
         if (this._apAddedId) {
             GObject.Object.prototype.disconnect.call(this._device, this._apAddedId);
             this._apAddedId = 0;
@@ -747,8 +759,6 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
             Mainloop.source_remove(this._scanTimeoutId);
             this._scanTimeoutId = 0;
         }
-
-        super.destroy();
     }
 
     _onScanTimeout() {
@@ -907,7 +917,7 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
                             this._device.get_path(), accessPoints[0].get_path()]);
             } else {
                 let connection = new NM.SimpleConnection();
-                this._client.add_and_activate_connection_async(connection, this._device, accessPoints[0].get_path(), null, null)
+                this._client.add_and_activate_connection_async(connection, this._device, accessPoints[0].get_path(), null, null);
             }
         }
 
@@ -927,20 +937,20 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
             return accessPoint._secType;
 
         let flags = accessPoint.flags;
-        let wpa_flags = accessPoint.wpa_flags;
-        let rsn_flags = accessPoint.rsn_flags;
+        let wpaFlags = accessPoint.wpa_flags;
+        let rsnFlags = accessPoint.rsn_flags;
         let type;
-        if (rsn_flags != NM80211ApSecurityFlags.NONE) {
+        if (rsnFlags != NM80211ApSecurityFlags.NONE) {
             /* RSN check first so that WPA+WPA2 APs are treated as RSN/WPA2 */
-            if (rsn_flags & NM80211ApSecurityFlags.KEY_MGMT_802_1X)
-	        type = NMAccessPointSecurity.WPA2_ENT;
-	    else if (rsn_flags & NM80211ApSecurityFlags.KEY_MGMT_PSK)
-	        type = NMAccessPointSecurity.WPA2_PSK;
-        } else if (wpa_flags != NM80211ApSecurityFlags.NONE) {
-            if (wpa_flags & NM80211ApSecurityFlags.KEY_MGMT_802_1X)
+            if (rsnFlags & NM80211ApSecurityFlags.KEY_MGMT_802_1X)
+                type = NMAccessPointSecurity.WPA2_ENT;
+            else if (rsnFlags & NM80211ApSecurityFlags.KEY_MGMT_PSK)
+                type = NMAccessPointSecurity.WPA2_PSK;
+        } else if (wpaFlags != NM80211ApSecurityFlags.NONE) {
+            if (wpaFlags & NM80211ApSecurityFlags.KEY_MGMT_802_1X)
                 type = NMAccessPointSecurity.WPA_ENT;
-            else if (wpa_flags & NM80211ApSecurityFlags.KEY_MGMT_PSK)
-	        type = NMAccessPointSecurity.WPA_PSK;
+            else if (wpaFlags & NM80211ApSecurityFlags.KEY_MGMT_PSK)
+                type = NMAccessPointSecurity.WPA_PSK;
         } else {
             if (flags & NM80211ApFlags.PRIVACY)
                 type = NMAccessPointSecurity.WEP;
@@ -1031,7 +1041,7 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
     _checkConnections(network, accessPoint) {
         this._connections.forEach(connection => {
             if (accessPoint.connection_valid(connection) &&
-                network.connections.indexOf(connection) == -1) {
+                !network.connections.includes(connection)) {
                 network.connections.push(connection);
             }
         });
@@ -1050,7 +1060,7 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
 
         if (pos != -1) {
             network = this._networks[pos];
-            if (network.accessPoints.indexOf(accessPoint) != -1) {
+            if (network.accessPoints.includes(accessPoint)) {
                 log('Access point was already seen, not adding again');
                 return;
             }
@@ -1066,16 +1076,16 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
             network = { ssid: accessPoint.get_ssid(),
                         mode: accessPoint.mode,
                         security: this._getApSecurityType(accessPoint),
-                        connections: [ ],
+                        connections: [],
                         item: null,
-                        accessPoints: [ accessPoint ]
+                        accessPoints: [accessPoint]
                       };
             network.ssidText = ssidToLabel(network.ssid);
             this._checkConnections(network, accessPoint);
 
             let newPos = Util.insertSorted(this._networks, network, this._networkSortFunction);
             this._createNetworkItem(network);
-            this._itemBox.insert_child_at_index(network.item.actor, newPos);
+            this._itemBox.insert_child_at_index(network.item, newPos);
         }
 
         this._syncView();
@@ -1093,7 +1103,7 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
         network.accessPoints.splice(res.ap, 1);
 
         if (network.accessPoints.length == 0) {
-            network.item.actor.destroy();
+            network.item.destroy();
             this._networks.splice(res.network, 1);
         } else {
             network.item.updateBestAP(network.accessPoints[0]);
@@ -1109,7 +1119,7 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
 
         this._itemBox.remove_all_children();
         this._networks.forEach(network => {
-            this._itemBox.add_child(network.item.actor);
+            this._itemBox.add_child(network.item);
         });
 
         adjustment.value = scrollValue;
@@ -1117,29 +1127,29 @@ var NMWirelessDialog = class extends ModalDialog.ModalDialog {
 
     _selectNetwork(network) {
         if (this._selectedNetwork)
-            this._selectedNetwork.item.actor.remove_style_pseudo_class('selected');
+            this._selectedNetwork.item.remove_style_pseudo_class('selected');
 
         this._selectedNetwork = network;
         this._updateSensitivity();
 
         if (this._selectedNetwork)
-            this._selectedNetwork.item.actor.add_style_pseudo_class('selected');
+            this._selectedNetwork.item.add_style_pseudo_class('selected');
     }
 
     _createNetworkItem(network) {
         network.item = new NMWirelessDialogItem(network);
         network.item.setActive(network == this._selectedNetwork);
         network.item.connect('selected', () => {
-            Util.ensureActorVisibleInScrollView(this._scrollView, network.item.actor);
+            Util.ensureActorVisibleInScrollView(this._scrollView, network.item);
             this._selectNetwork(network);
         });
-        network.item.actor.connect('destroy', () => {
+        network.item.connect('destroy', () => {
             let keyFocus = global.stage.key_focus;
-            if (keyFocus && keyFocus.contains(network.item.actor))
+            if (keyFocus && keyFocus.contains(network.item))
                 this._itemBox.grab_key_focus();
         });
     }
-};
+});
 
 var NMDeviceWireless = class {
     constructor(client, device) {
@@ -1177,11 +1187,11 @@ var NMDeviceWireless = class {
 
     destroy() {
         if (this._activeApChangedId) {
-            GObject.Object.prototype.disconnect.call(this._device, this._activeApChangedId);
+            GObject.signal_handler_disconnect(this._device, this._activeApChangedId);
             this._activeApChangedId = 0;
         }
         if (this._stateChangedId) {
-            GObject.Object.prototype.disconnect.call(this._device, this._stateChangedId);
+            GObject.signal_handler_disconnect(this._device, this._stateChangedId);
             this._stateChangedId = 0;
         }
         if (this._strengthChangedId > 0) {
@@ -1261,7 +1271,7 @@ var NMDeviceWireless = class {
 
     _sync() {
         this._toggleItem.label.text = this._client.wireless_enabled ? _("Turn Off") : _("Turn On");
-        this._toggleItem.actor.visible = this._client.wireless_hardware_enabled;
+        this._toggleItem.visible = this._client.wireless_hardware_enabled;
 
         this.item.icon.icon_name = this._getMenuIcon();
         this.item.label.text = this._getStatus();
@@ -1347,7 +1357,7 @@ var NMDeviceWireless = class {
         }
 
         if (this._canReachInternet())
-            return 'network-wireless-signal-' + signalToIcon(ap.strength) + '-symbolic';
+            return `network-wireless-signal-${signalToIcon(ap.strength)}-symbolic`;
         else
             return 'network-wireless-no-route-symbolic';
     }
@@ -1382,7 +1392,7 @@ var NMVpnConnectionItem = class extends NMConnectionItem {
         if (this._activeConnection == null)
             return null;
 
-        switch(this._activeConnection.vpn_state) {
+        switch (this._activeConnection.vpn_state) {
         case NM.VpnConnectionState.DISCONNECTED:
         case NM.VpnConnectionState.ACTIVATED:
             return null;
@@ -1451,7 +1461,7 @@ var NMVpnSection = class extends NMConnectionSection {
 
     _sync() {
         let nItems = this._connectionItems.size;
-        this.item.actor.visible = (nItems > 0);
+        this.item.visible = (nItems > 0);
 
         super._sync();
     }
@@ -1534,7 +1544,7 @@ var DeviceCategory = class extends PopupMenu.PopupMenuSection {
 
         this._summaryItem.menu.addSettingsAction(_('Network Settings'),
                                                  'gnome-network-panel.desktop');
-        this._summaryItem.actor.hide();
+        this._summaryItem.hide();
 
     }
 
@@ -1543,35 +1553,35 @@ var DeviceCategory = class extends PopupMenu.PopupMenuSection {
             (prev, child) => prev + (child.visible ? 1 : 0), 0);
         this._summaryItem.label.text = this._getSummaryLabel(nDevices);
         let shouldSummarize = nDevices > MAX_DEVICE_ITEMS;
-        this._summaryItem.actor.visible = shouldSummarize;
+        this._summaryItem.visible = shouldSummarize;
         this.section.actor.visible = !shouldSummarize;
     }
 
     _getSummaryIcon() {
-        switch(this._category) {
-            case NMConnectionCategory.WIRED:
-                return 'network-wired-symbolic';
-            case NMConnectionCategory.WIRELESS:
-            case NMConnectionCategory.WWAN:
-                return 'network-wireless-symbolic';
+        switch (this._category) {
+        case NMConnectionCategory.WIRED:
+            return 'network-wired-symbolic';
+        case NMConnectionCategory.WIRELESS:
+        case NMConnectionCategory.WWAN:
+            return 'network-wireless-symbolic';
         }
         return '';
     }
 
     _getSummaryLabel(nDevices) {
-        switch(this._category) {
-            case NMConnectionCategory.WIRED:
-                return ngettext("%s Wired Connection",
-                                "%s Wired Connections",
-                                nDevices).format(nDevices);
-            case NMConnectionCategory.WIRELESS:
-                return ngettext("%s Wi-Fi Connection",
-                                "%s Wi-Fi Connections",
-                                nDevices).format(nDevices);
-            case NMConnectionCategory.WWAN:
-                return ngettext("%s Modem Connection",
-                                "%s Modem Connections",
-                                nDevices).format(nDevices);
+        switch (this._category) {
+        case NMConnectionCategory.WIRED:
+            return ngettext("%s Wired Connection",
+                            "%s Wired Connections",
+                            nDevices).format(nDevices);
+        case NMConnectionCategory.WIRELESS:
+            return ngettext("%s Wi-Fi Connection",
+                            "%s Wi-Fi Connections",
+                            nDevices).format(nDevices);
+        case NMConnectionCategory.WWAN:
+            return ngettext("%s Modem Connection",
+                            "%s Modem Connections",
+                            nDevices).format(nDevices);
         }
         return '';
     }
@@ -1606,9 +1616,9 @@ var NMApplet = class extends PanelMenu.SystemIndicator {
     _clientGot(obj, result) {
         this._client = NM.Client.new_finish(result);
 
-        this._activeConnections = [ ];
-        this._connections = [ ];
-        this._connectivityQueue = [ ];
+        this._activeConnections = [];
+        this._connections = [];
+        this._connectivityQueue = [];
 
         this._mainConnection = null;
         this._mainConnectionIconChangedId = 0;
@@ -1665,13 +1675,13 @@ var NMApplet = class extends PanelMenu.SystemIndicator {
                                                   'network-transmit-receive');
             this._source.policy = new MessageTray.NotificationApplicationPolicy('gnome-network-panel');
 
-            this._source.connect('destroy', () => { this._source = null; });
+            this._source.connect('destroy', () => this._source = null);
             Main.messageTray.add(this._source);
         }
     }
 
     _readDevices() {
-        let devices = this._client.get_devices() || [ ];
+        let devices = this._client.get_devices() || [];
         for (let i = 0; i < devices.length; ++i) {
             try {
                 this._deviceAdded(this._client, devices[i], true);
@@ -1972,10 +1982,10 @@ var NMApplet = class extends PanelMenu.SystemIndicator {
                     let state = client.check_connectivity_finish(result);
                     if (state >= NM.ConnectivityState.FULL)
                         this._closeConnectivityCheck(path);
-                } catch(e) { }
+                } catch (e) { }
             });
         } else {
-            log('Invalid result from portal helper: ' + result);
+            log(`Invalid result from portal helper: ${result}`);
         }
     }
 
@@ -2010,7 +2020,7 @@ var NMApplet = class extends PanelMenu.SystemIndicator {
             new PortalHelperProxy(Gio.DBus.session, 'org.gnome.Shell.PortalHelper',
                                   '/org/gnome/Shell/PortalHelper', (proxy, error) => {
                                       if (error) {
-                                          log('Error launching the portal helper: ' + error);
+                                          log(`Error launching the portal helper: ${error}`);
                                           return;
                                       }
 

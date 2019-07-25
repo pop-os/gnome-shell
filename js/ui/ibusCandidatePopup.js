@@ -8,8 +8,8 @@ const Main = imports.ui.main;
 
 var MAX_CANDIDATES_PER_PAGE = 16;
 
-var DEFAULT_INDEX_LABELS = [ '1', '2', '3', '4', '5', '6', '7', '8',
-                             '9', '0', 'a', 'b', 'c', 'd', 'e', 'f' ];
+var DEFAULT_INDEX_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8',
+                            '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'];
 
 var CandidateArea = class CandidateArea {
     constructor() {
@@ -37,14 +37,14 @@ var CandidateArea = class CandidateArea {
 
         this.actor.connect('scroll-event', (actor, event) => {
             let direction = event.get_scroll_direction();
-            switch(direction) {
+            switch (direction) {
             case Clutter.ScrollDirection.UP:
                 this.emit('cursor-up');
                 break;
             case Clutter.ScrollDirection.DOWN:
                 this.emit('cursor-down');
                 break;
-            };
+            }
             return Clutter.EVENT_PROPAGATE;
         });
 
@@ -181,7 +181,7 @@ var CandidatePopup = class CandidatePopup {
                 let window = global.display.focus_window.get_compositor_private();
                 this._setDummyCursorGeometry(window.x + x, window.y + y, w, h);
             });
-        } catch(e) {
+        } catch (e) {
             // Only recent IBus versions have support for this signal
             // which is used for wayland clients. In order to work
             // with older IBus versions we can silently ignore the
@@ -235,7 +235,7 @@ var CandidatePopup = class CandidatePopup {
             let indexes = [];
             let indexLabel;
             for (let i = 0; (indexLabel = lookupTable.get_label(i)); ++i)
-                 indexes.push(indexLabel.get_text());
+                indexes.push(indexLabel.get_text());
 
             Main.keyboard.resetSuggestions();
 
@@ -272,7 +272,7 @@ var CandidatePopup = class CandidatePopup {
 
     _setDummyCursorGeometry(x, y, w, h) {
         Main.layoutManager.setDummyCursorGeometry(x, y, w, h);
-        if (this._boxPointer.actor.visible)
+        if (this._boxPointer.visible)
             this._boxPointer.setPosition(Main.layoutManager.dummyCursor, 0);
     }
 
@@ -285,7 +285,7 @@ var CandidatePopup = class CandidatePopup {
         if (isVisible) {
             this._boxPointer.setPosition(Main.layoutManager.dummyCursor, 0);
             this._boxPointer.open(BoxPointer.PopupAnimation.NONE);
-            this._boxPointer.actor.raise_top();
+            this._boxPointer.raise_top();
         } else {
             this._boxPointer.close(BoxPointer.PopupAnimation.NONE);
         }

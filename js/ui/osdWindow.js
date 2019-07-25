@@ -21,7 +21,7 @@ var LevelBar = class extends BarLevel.BarLevel {
 
         this.actor.accessible_name = _("Volume");
 
-        this.actor.connect('notify::width', () => { this.level = this.level; });
+        this.actor.connect('notify::width', () => this.level = this.level);
     }
 
     get level() {
@@ -151,9 +151,7 @@ var OsdWindow = class {
         }
     }
 
-    setMaxLevel(maxLevel) {
-        if (maxLevel === undefined)
-            maxLevel = 100;
+    setMaxLevel(maxLevel = 100) {
         this._level.maxLevel = maxLevel;
     }
 
@@ -195,8 +193,8 @@ var OsdWindow = class {
                            time: FADE_TIME,
                            transition: 'easeOutQuad',
                            onComplete: () => {
-                              this._reset();
-                              Meta.enable_unredirect_for_display(global.display);
+                               this._reset();
+                               Meta.enable_unredirect_for_display(global.display);
                            }
                          });
         return GLib.SOURCE_REMOVE;
@@ -231,7 +229,7 @@ var OsdWindowManager = class {
     constructor() {
         this._osdWindows = [];
         Main.layoutManager.connect('monitors-changed',
-                                    this._monitorsChanged.bind(this));
+                                   this._monitorsChanged.bind(this));
         this._monitorsChanged();
     }
 

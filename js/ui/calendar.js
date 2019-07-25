@@ -17,7 +17,7 @@ var ELLIPSIS_CHAR = '\u2026';
 
 var MESSAGE_ICON_SIZE = -1; // pick up from CSS
 
-var NC_ = (context, str) => context + '\u0004' + str;
+var NC_ = (context, str) => `${context}\u0004${str}`;
 
 function sameYear(dateA, dateB) {
     return (dateA.getYear() == dateB.getYear());
@@ -38,7 +38,7 @@ function isToday(date) {
 function _isWorkDay(date) {
     /* Translators: Enter 0-6 (Sunday-Saturday) for non-work days. Examples: "0" (Sunday) "6" (Saturday) "06" (Sunday and Saturday). */
     let days = C_('calendar-no-work', "06");
-    return days.indexOf(date.getDay().toString()) == -1;
+    return !days.includes(date.getDay().toString());
 }
 
 function _getBeginningOfDay(date) {
@@ -143,8 +143,7 @@ function _datesEqual(a, b) {
     return true;
 }
 
-function _dateIntervalsOverlap(a0, a1, b0, b1)
-{
+function _dateIntervalsOverlap(a0, a1, b0, b1) {
     if (a1 <= b0)
         return false;
     else if (b1 <= a0)
@@ -168,7 +167,7 @@ var DBusEventSource = class DBusEventSource {
             try {
                 this._dbusProxy.init_finish(result);
                 loaded = true;
-            } catch(e) {
+            } catch (e) {
                 if (e.matches(Gio.DBusError, Gio.DBusError.TIMED_OUT)) {
                     // Ignore timeouts and install signals as normal, because with high
                     // probability the service will appear later on, and we will get a
@@ -178,7 +177,7 @@ var DBusEventSource = class DBusEventSource {
                     // about the HasCalendars property and would cause an exception trying
                     // to read it)
                 } else {
-                    log('Error loading calendars: ' + e.message);
+                    log(`Error loading calendars: ${e.message}`);
                     return;
                 }
             }
@@ -238,20 +237,18 @@ var DBusEventSource = class DBusEventSource {
 
     _onEventsReceived(results, error) {
         let newEvents = [];
-        let appointments = results ? results[0] : null;
-        if (appointments != null) {
-            for (let n = 0; n < appointments.length; n++) {
-                let a = appointments[n];
-                let date = new Date(a[4] * 1000);
-                let end = new Date(a[5] * 1000);
-                let id = a[0];
-                let summary = a[1];
-                let allDay = a[3];
-                let event = new CalendarEvent(id, date, end, summary, allDay);
-                newEvents.push(event);
-            }
-            newEvents.sort((ev1, ev2) => ev1.date.getTime() - ev2.date.getTime());
+        let appointments = results[0] || [];
+        for (let n = 0; n < appointments.length; n++) {
+            let a = appointments[n];
+            let date = new Date(a[4] * 1000);
+            let end = new Date(a[5] * 1000);
+            let id = a[0];
+            let summary = a[1];
+            let allDay = a[3];
+            let event = new CalendarEvent(id, date, end, summary, allDay);
+            newEvents.push(event);
         }
+        newEvents.sort((ev1, ev2) => ev1.date.getTime() - ev2.date.getTime());
 
         this._events = newEvents;
         this.isLoading = false;
@@ -263,7 +260,7 @@ var DBusEventSource = class DBusEventSource {
         if (!this._initialized)
             return;
 
-        if (this._curRequestBegin && this._curRequestEnd){
+        if (this._curRequestBegin && this._curRequestEnd) {
             this._dbusProxy.GetEventsRemote(this._curRequestBegin.getTime() / 1000,
                                             this._curRequestEnd.getTime() / 1000,
                                             forceReload,
@@ -285,7 +282,7 @@ var DBusEventSource = class DBusEventSource {
 
     getEvents(begin, end) {
         let result = [];
-        for(let n = 0; n < this._events.length; n++) {
+        for (let n = 0; n < this._events.length; n++) {
             let event = this._events[n];
 
             if (_dateIntervalsOverlap (event.date, event.end, begin, end)) {
@@ -320,7 +317,7 @@ var Calendar = class Calendar {
         this._weekStart = Shell.util_get_week_start();
         this._settings = new Gio.Settings({ schema_id: 'org.gnome.desktop.calendar' });
 
-        this._settings.connect('changed::' + SHOW_WEEKDATE_KEY, this._onSettingsChange.bind(this));
+        this._settings.connect(`changed::${SHOW_WEEKDATE_KEY}`, this._onSettingsChange.bind(this));
         this._useWeekdate = this._settings.get_boolean(SHOW_WEEKDATE_KEY);
 
         /**
@@ -402,8 +399,8 @@ var Calendar = class Calendar {
         this._topBox.add(this._backButton);
         this._backButton.connect('clicked', this._onPrevMonthButtonClicked.bind(this));
 
-        this._monthLabel = new St.Label({style_class: 'calendar-month-label',
-                                         can_focus: true });
+        this._monthLabel = new St.Label({ style_class: 'calendar-month-label',
+                                          can_focus: true });
         this._topBox.add(this._monthLabel, { expand: true, x_fill: false, x_align: St.Align.MIDDLE });
 
         this._forwardButton = new St.Button({ style_class: 'calendar-change-month-forward pager-button',
@@ -466,8 +463,7 @@ var Calendar = class Calendar {
                 let day = 32 - new Date(newDate.getFullYear() - 1, 11, 32).getDate();
                 newDate = new Date(newDate.getFullYear() - 1, 11, day);
             }
-        }
-        else {
+        } else {
             newDate.setMonth(oldMonth - 1);
             if (newDate.getMonth() != oldMonth - 1) {
                 let day = 32 - new Date(newDate.getFullYear(), oldMonth - 1, 32).getDate();
@@ -490,8 +486,7 @@ var Calendar = class Calendar {
                 let day = 32 - new Date(newDate.getFullYear() + 1, 0, 32).getDate();
                 newDate = new Date(newDate.getFullYear() + 1, 0, day);
             }
-        }
-        else {
+        } else {
             newDate.setMonth(oldMonth + 1);
             if (newDate.getMonth() != oldMonth + 1) {
                 let day = 32 - new Date(newDate.getFullYear(), oldMonth + 1, 32).getDate();
@@ -546,8 +541,6 @@ var Calendar = class Calendar {
         this._calendarBegin = new Date(beginDate);
         this._markedAsToday = now;
 
-        let year = beginDate.getYear();
-
         let daysToWeekStart = (7 + beginDate.getDay() - this._weekStart) % 7;
         let startsOnWeekStart = daysToWeekStart == 0;
         let weekPadding = startsOnWeekStart ? 7 : 0;
@@ -559,7 +552,7 @@ var Calendar = class Calendar {
         let row = 2;
         // nRows here means 6 weeks + one header + one navbar
         let nRows = 8;
-        while (row < 8) {
+        while (row < nRows) {
             // xgettext:no-javascript-format
             let button = new St.Button({ label: iter.toLocaleFormat(C_("date day number format", "%d")),
                                          can_focus: true });
@@ -585,12 +578,12 @@ var Calendar = class Calendar {
 
             // Hack used in lieu of border-collapse - see gnome-shell.css
             if (row == 2)
-                styleClass = 'calendar-day-top ' + styleClass;
+                styleClass = `calendar-day-top ${styleClass}`;
 
             let leftMost = rtl ? iter.getDay() == (this._weekStart + 6) % 7
                                : iter.getDay() == this._weekStart;
             if (leftMost)
-                styleClass = 'calendar-day-left ' + styleClass;
+                styleClass = `calendar-day-left ${styleClass}`;
 
             if (sameDay(now, iter))
                 styleClass += ' calendar-today';
@@ -648,9 +641,9 @@ var Calendar = class Calendar {
                 button.add_style_pseudo_class('selected');
                 if (this._shouldDateGrabFocus)
                     button.grab_key_focus();
-            }
-            else
+            } else {
                 button.remove_style_pseudo_class('selected');
+            }
         });
     }
 };
@@ -1077,7 +1070,7 @@ var CalendarMessageList = class CalendarMessageList {
         this._clearButton.set_x_align(Clutter.ActorAlign.END);
         this._clearButton.connect('clicked', () => {
             let sections = [...this._sections.keys()];
-            sections.forEach((s) => { s.clear(); });
+            sections.forEach((s) => s.clear());
         });
         box.add_actor(this._clearButton);
 
@@ -1103,7 +1096,7 @@ var CalendarMessageList = class CalendarMessageList {
     _addSection(section) {
         let obj = {
             destroyId: 0,
-            visibleId:  0,
+            visibleId: 0,
             emptyChangedId: 0,
             canClearChangedId: 0,
             keyFocusId: 0

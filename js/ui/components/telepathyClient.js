@@ -8,7 +8,7 @@ var Tpl = null;
 var Tp = null;
 try {
     ({ TelepathyGLib: Tp, TelepathyLogger: Tpl } = imports.gi);
-} catch(e) {
+} catch (e) {
     log('Telepathy is not available, chat integration will be disabled.');
 }
 
@@ -39,8 +39,6 @@ var NotificationDirection = {
     SENT: 'chat-sent',
     RECEIVED: 'chat-received'
 };
-
-var N_ = s => s;
 
 function makeMessageFromTpMessage(tpMessage, direction) {
     let [text, flags] = tpMessage.to_text();
@@ -89,7 +87,7 @@ var TelepathyComponent = class {
         try {
             this._client.register();
         } catch (e) {
-            throw new Error('Couldn\'t register Telepathy client. Error: \n' + e);
+            throw new Error(`Could not register Telepathy client. Error: ${e}`);
         }
 
         if (!this._client.account_manager.is_prepared(Tp.AccountManager.get_feature_quark_core()))
@@ -149,20 +147,20 @@ class TelepathyClient extends Tp.BaseClient {
             this._delegatedChannelsCb.bind(this));
     }
 
-    vfunc_observe_channels(account, conn, channels,
-                                     dispatchOp, requests, context) {
+    vfunc_observe_channels(...args) {
+        let [account, conn, channels, dispatchOp, requests, context] = args;
         let len = channels.length;
         for (let i = 0; i < len; i++) {
             let channel = channels[i];
             let [targetHandle, targetHandleType] = channel.get_handle();
 
             if (channel.get_invalidated())
-              continue;
+                continue;
 
             /* Only observe contact text channels */
             if ((!(channel instanceof Tp.TextChannel)) ||
                targetHandleType != Tp.HandleType.CONTACT)
-               continue;
+                continue;
 
             this._createChatSource(account, conn, channel, channel.get_target_contact());
         }
@@ -182,8 +180,8 @@ class TelepathyClient extends Tp.BaseClient {
         });
     }
 
-    vfunc_handle_channels(account, conn, channels, requests,
-                                    user_action_time, context) {
+    vfunc_handle_channels(...args) {
+        let [account, conn, channels, requests, userActionTime, context] = args;
         this._handlingChannels(account, conn, channels, true);
         context.accept();
     }
@@ -200,7 +198,7 @@ class TelepathyClient extends Tp.BaseClient {
             }
 
             if (channel.get_invalidated())
-              continue;
+                continue;
 
             // 'notify' will be true when coming from an actual HandleChannels
             // call, and not when from a successful Claim call. The point is
@@ -222,8 +220,8 @@ class TelepathyClient extends Tp.BaseClient {
         }
     }
 
-    vfunc_add_dispatch_operation(account, conn, channels,
-                                           dispatchOp, context) {
+    vfunc_add_dispatch_operation(...args) {
+        let [account, conn, channels, dispatchOp, context] = args;
         let channel = channels[0];
         let chanType = channel.get_channel_type();
 
@@ -255,7 +253,7 @@ class TelepathyClient extends Tp.BaseClient {
                 dispatchOp.claim_with_finish(result);
                 this._handlingChannels(account, conn, [channel], false);
             } catch (err) {
-                log('Failed to Claim channel: ' + err);
+                log(`Failed to Claim channel: ${err}`);
             }
         });
 
@@ -362,28 +360,28 @@ var ChatSource = class extends MessageTray.Source {
         let presenceType = this._contact.get_presence_type();
 
         switch (presenceType) {
-            case Tp.ConnectionPresenceType.AVAILABLE:
-                iconName = 'user-available';
-                break;
-            case Tp.ConnectionPresenceType.BUSY:
-                iconName = 'user-busy';
-                break;
-            case Tp.ConnectionPresenceType.OFFLINE:
-                iconName = 'user-offline';
-                break;
-            case Tp.ConnectionPresenceType.HIDDEN:
-                iconName = 'user-invisible';
-                break;
-            case Tp.ConnectionPresenceType.AWAY:
-                iconName = 'user-away';
-                break;
-            case Tp.ConnectionPresenceType.EXTENDED_AWAY:
-                iconName = 'user-idle';
-                break;
-            default:
-                iconName = 'user-offline';
-       }
-       return new Gio.ThemedIcon({ name: iconName });
+        case Tp.ConnectionPresenceType.AVAILABLE:
+            iconName = 'user-available';
+            break;
+        case Tp.ConnectionPresenceType.BUSY:
+            iconName = 'user-busy';
+            break;
+        case Tp.ConnectionPresenceType.OFFLINE:
+            iconName = 'user-offline';
+            break;
+        case Tp.ConnectionPresenceType.HIDDEN:
+            iconName = 'user-invisible';
+            break;
+        case Tp.ConnectionPresenceType.AWAY:
+            iconName = 'user-away';
+            break;
+        case Tp.ConnectionPresenceType.EXTENDED_AWAY:
+            iconName = 'user-idle';
+            break;
+        default:
+            iconName = 'user-offline';
+        }
+        return new Gio.ThemedIcon({ name: iconName });
     }
 
     _updateAvatarIcon() {
@@ -401,7 +399,7 @@ var ChatSource = class extends MessageTray.Source {
         if (this._client.is_handling_channel(this._channel)) {
             // We are handling the channel, try to pass it to Empathy or Polari
             // (depending on the channel type)
-            // We don't check if either app is availble - mission control will
+            // We don't check if either app is available - mission control will
             // fallback to something else if activation fails
 
             let target;
@@ -597,8 +595,8 @@ var ChatSource = class extends MessageTray.Source {
         // keep track of it with the ChatStateChanged signal but it is good
         // enough right now.
         if (state != this._chatState) {
-          this._chatState = state;
-          this._channel.set_chat_state_async(state, null);
+            this._chatState = state;
+            this._channel.set_chat_state_async(state, null);
         }
     }
 

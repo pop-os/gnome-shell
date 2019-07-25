@@ -62,11 +62,11 @@ var Animation = class {
         if (!validResourceScale)
             return;
 
-        let texture_cache = St.TextureCache.get_default();
+        let textureCache = St.TextureCache.get_default();
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        this._animations = texture_cache.load_sliced_image(file, width, height,
-                                                           scaleFactor, resourceScale,
-                                                           this._animationsLoaded.bind(this));
+        this._animations = textureCache.load_sliced_image(file, width, height,
+                                                          scaleFactor, resourceScale,
+                                                          this._animationsLoaded.bind(this));
         this.actor.set_child(this._animations);
     }
 
@@ -123,7 +123,7 @@ var AnimatedIcon = class extends Animation {
 };
 
 var Spinner = class extends AnimatedIcon {
-    constructor(size, animate=false) {
+    constructor(size, animate = false) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/process-working.svg');
         super(file, size);
 
@@ -162,7 +162,7 @@ var Spinner = class extends AnimatedIcon {
                 time: SPINNER_ANIMATION_TIME,
                 transition: 'linear',
                 onComplete: () => {
-                    this.stop(false);
+                    super.stop();
                 }
             });
         } else {

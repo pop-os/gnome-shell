@@ -1,10 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
 const { Gio, GLib, Meta, Shell } = imports.gi;
-const Lang = imports.lang;
 
 const Config = imports.misc.config;
-const ExtensionSystem = imports.ui.extensionSystem;
 const ExtensionDownloader = imports.ui.extensionDownloader;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Main = imports.ui.main;
@@ -27,8 +25,8 @@ var GnomeShell = class {
         this._grabbers = new Map();
 
         global.display.connect('accelerator-activated',
-            (display, action, deviceid, timestamp) => {
-                this._emitAcceleratorActivated(action, deviceid, timestamp);
+            (display, action, device, timestamp) => {
+                this._emitAcceleratorActivated(action, device, timestamp);
             });
 
         this._cachedOverviewVisible = false;
@@ -65,7 +63,7 @@ var GnomeShell = class {
                 returnValue = '';
             success = true;
         } catch (e) {
-            returnValue = '' + e;
+            returnValue = `${e}`;
             success = false;
         }
         return [success, returnValue];
@@ -144,14 +142,15 @@ var GnomeShell = class {
         return invocation.return_value(GLib.Variant.new('(b)', [ungrabSucceeded]));
     }
 
-    _emitAcceleratorActivated(action, deviceid, timestamp) {
+    _emitAcceleratorActivated(action, device, timestamp) {
         let destination = this._grabbedAccelerators.get(action);
         if (!destination)
             return;
 
         let connection = this._dbusImpl.get_connection();
         let info = this._dbusImpl.get_info();
-        let params = { 'device-id': GLib.Variant.new('u', deviceid),
+        let params = { 'device-id': GLib.Variant.new('u', device.get_device_id()),
+                       'device-node': GLib.Variant.new('s', device.get_device_node()),
                        'timestamp': GLib.Variant.new('u', timestamp),
                        'action-mode': GLib.Variant.new('u', Main.actionMode) };
         connection.emit_signal(destination,
@@ -206,7 +205,7 @@ var GnomeShell = class {
         this._grabbers.delete(name);
     }
 
-    ShowMonitorLabels2Async(params, invocation) {
+    ShowMonitorLabelsAsync(params, invocation) {
         let sender = invocation.get_sender();
         let [dict] = params;
         Main.osdMonitorLabeler.show(sender, dict);
@@ -250,59 +249,26 @@ var GnomeShellExtensions = class {
     constructor() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(GnomeShellExtensionsIface, this);
         this._dbusImpl.export(Gio.DBus.session, '/org/gnome/Shell');
-        ExtensionSystem.connect('extension-state-changed',
-                                this._extensionStateChanged.bind(this));
+        Main.extensionManager.connect('extension-state-changed',
+                                      this._extensionStateChanged.bind(this));
     }
 
     ListExtensions() {
         let out = {};
-        for (let uuid in ExtensionUtils.extensions) {
+        Main.extensionManager.getUuids().forEach(uuid => {
             let dbusObj = this.GetExtensionInfo(uuid);
             out[uuid] = dbusObj;
-        }
+        });
         return out;
     }
 
     GetExtensionInfo(uuid) {
-        let extension = ExtensionUtils.extensions[uuid];
-        if (!extension)
-            return {};
-
-        let obj = {};
-        Lang.copyProperties(extension.metadata, obj);
-
-        // Only serialize the properties that we actually need.
-        const serializedProperties = ["type", "state", "path", "error", "hasPrefs"];
-
-        serializedProperties.forEach(prop => {
-            obj[prop] = extension[prop];
-        });
-
-        let out = {};
-        for (let key in obj) {
-            let val = obj[key];
-            let type;
-            switch (typeof val) {
-            case 'string':
-                type = 's';
-                break;
-            case 'number':
-                type = 'd';
-                break;
-            case 'boolean':
-                type = 'b';
-                break;
-            default:
-                continue;
-            }
-            out[key] = GLib.Variant.new(type, val);
-        }
-
-        return out;
+        let extension = Main.extensionManager.lookup(uuid) || {};
+        return ExtensionUtils.serializeExtension(extension);
     }
 
     GetExtensionErrors(uuid) {
-        let extension = ExtensionUtils.extensions[uuid];
+        let extension = Main.extensionManager.lookup(uuid);
         if (!extension)
             return [];
 
@@ -320,6 +286,14 @@ var GnomeShellExtensions = class {
         return ExtensionDownloader.uninstallExtension(uuid);
     }
 
+    EnableExtension(uuid) {
+        return Main.extensionManager.enableExtension(uuid);
+    }
+
+    DisableExtension(uuid) {
+        return Main.extensionManager.disableExtension(uuid);
+    }
+
     LaunchExtensionPrefs(uuid) {
         let appSys = Shell.AppSystem.get_default();
         let app = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
@@ -330,11 +304,11 @@ var GnomeShellExtensions = class {
     }
 
     ReloadExtension(uuid) {
-        let extension = ExtensionUtils.extensions[uuid];
+        let extension = Main.extensionManager.lookup(uuid);
         if (!extension)
             return;
 
-        ExtensionSystem.reloadExtension(extension);
+        Main.extensionManager.reloadExtension(extension);
     }
 
     CheckForUpdates() {
@@ -346,6 +320,10 @@ var GnomeShellExtensions = class {
     }
 
     _extensionStateChanged(_, newState) {
+        let state = ExtensionUtils.serializeExtension(newState);
+        this._dbusImpl.emit_signal('ExtensionStateChanged',
+            new GLib.Variant('(sa{sv})', [newState.uuid, state]));
+
         this._dbusImpl.emit_signal('ExtensionStatusChanged',
                                    GLib.Variant.new('(sis)', [newState.uuid, newState.state, newState.error]));
     }

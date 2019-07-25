@@ -18,7 +18,7 @@ function getRtlSlideDirection(direction, actor) {
             SlideDirection.RIGHT : SlideDirection.LEFT;
 
     return direction;
-};
+}
 
 var SlideDirection = {
     LEFT: 0,
@@ -122,7 +122,7 @@ var SlidingControl = class {
     }
 
     _getSlide() {
-        throw new Error('getSlide() must be overridden');
+        throw new GObject.NotImplementedError(`_getSlide in ${this.constructor.name}`);
     }
 
     _updateSlide() {
@@ -133,7 +133,7 @@ var SlidingControl = class {
 
     getVisibleWidth() {
         let child = this.actor.get_first_child();
-        let [, , natWidth, ] = child.get_preferred_size();
+        let [, , natWidth] = child.get_preferred_size();
         return natWidth;
     }
 
@@ -410,7 +410,7 @@ var ControlsManager = class {
                                      x_expand: true, y_expand: true,
                                      clip_to_allocation: true });
         this._group = new St.BoxLayout({ name: 'overview-group',
-                                        x_expand: true, y_expand: true });
+                                         x_expand: true, y_expand: true });
         this.actor.add_actor(this._group);
 
         this.actor.add_actor(this._dashSlider.actor);

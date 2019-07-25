@@ -80,7 +80,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
     _getNDevices() {
         let adapter = this._getDefaultAdapter();
         if (!adapter)
-            return [ this._hadSetupDevices ? 1 : -1, -1 ];
+            return [this._hadSetupDevices ? 1 : -1, -1];
 
         let nConnectedDevices = 0;
         let nDevices = 0;
@@ -105,11 +105,11 @@ var Indicator = class extends PanelMenu.SystemIndicator {
             global.settings.set_boolean(HAD_BLUETOOTH_DEVICES_SETUP, this._hadSetupDevices);
         }
 
-        return [ nDevices, nConnectedDevices];
+        return [nDevices, nConnectedDevices];
     }
 
     _sync() {
-        let [ nDevices, nConnectedDevices ] = this._getNDevices();
+        let [nDevices, nConnectedDevices] = this._getNDevices();
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
 
         this.menu.setSensitive(sensitive);
@@ -118,9 +118,9 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         // Remember if there were setup devices and show the menu
         // if we've seen setup devices and we're not hard blocked
         if (nDevices > 0)
-            this._item.actor.visible = !this._proxy.BluetoothHardwareAirplaneMode;
+            this._item.visible = !this._proxy.BluetoothHardwareAirplaneMode;
         else
-            this._item.actor.visible = this._proxy.BluetoothHasAirplaneMode && !this._proxy.BluetoothAirplaneMode;
+            this._item.visible = this._proxy.BluetoothHasAirplaneMode && !this._proxy.BluetoothAirplaneMode;
 
         if (nConnectedDevices > 0)
             /* Translators: this is the number of connected bluetooth devices */

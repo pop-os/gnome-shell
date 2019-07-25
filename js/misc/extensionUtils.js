@@ -3,21 +3,32 @@
 // Common utils for the extension system and the extension
 // preferences tool
 
-const Gettext = imports.gettext;
-const Signals = imports.signals;
+const { Gio, GLib } = imports.gi;
 
-const Gio = imports.gi.Gio;
+const Gettext = imports.gettext;
+const Lang = imports.lang;
 
 const Config = imports.misc.config;
-const FileUtils = imports.misc.fileUtils;
 
 var ExtensionType = {
     SYSTEM: 1,
     PER_USER: 2
 };
 
-// Maps uuid -> metadata object
-var extensions = {};
+var ExtensionState = {
+    ENABLED: 1,
+    DISABLED: 2,
+    ERROR: 3,
+    OUT_OF_DATE: 4,
+    DOWNLOADING: 5,
+    INITIALIZED: 6,
+
+    // Used as an error state for operations on unknown extensions,
+    // should never be in a real extensionMeta object.
+    UNINSTALLED: 99
+};
+
+const SERIALIZED_PROPERTIES = ['type', 'state', 'path', 'error', 'hasPrefs', 'canChange'];
 
 /**
  * getCurrentExtension:
@@ -31,7 +42,7 @@ function getCurrentExtension() {
     // Search for an occurrence of an extension stack frame
     // Start at 1 because 0 is the stack frame of this function
     for (let i = 1; i < stack.length; i++) {
-        if (stack[i].indexOf('/gnome-shell/extensions/') > -1) {
+        if (stack[i].includes('/gnome-shell/extensions/')) {
             extensionStackLine = stack[i];
             break;
         }
@@ -49,13 +60,17 @@ function getCurrentExtension() {
     if (!match)
         return null;
 
+    // local import, as the module is used from outside the gnome-shell process
+    // as well (not this function though)
+    let extensionManager = imports.ui.main.extensionManager;
+
     let path = match[1];
     let file = Gio.File.new_for_path(path);
 
     // Walk up the directory tree, looking for an extension with
     // the same UUID as a directory name.
     while (file != null) {
-        let extension = extensions[file.get_basename()];
+        let extension = extensionManager.lookup(file.get_basename());
         if (extension !== undefined)
             return extension;
         file = file.get_parent();
@@ -161,54 +176,50 @@ function isOutOfDate(extension) {
     return false;
 }
 
-function createExtensionObject(uuid, dir, type) {
-    let info;
+function serializeExtension(extension) {
+    let obj = {};
+    Lang.copyProperties(extension.metadata, obj);
 
-    let metadataFile = dir.get_child('metadata.json');
-    if (!metadataFile.query_exists(null)) {
-        throw new Error('Missing metadata.json');
-    }
+    SERIALIZED_PROPERTIES.forEach(prop => {
+        obj[prop] = extension[prop];
+    });
 
-    let metadataContents, success, tag;
-    try {
-        [success, metadataContents, tag] = metadataFile.load_contents(null);
-        if (metadataContents instanceof Uint8Array)
-            metadataContents = imports.byteArray.toString(metadataContents);
-    } catch (e) {
-        throw new Error('Failed to load metadata.json: ' + e);
-    }
-    let meta;
-    try {
-        meta = JSON.parse(metadataContents);
-    } catch (e) {
-        throw new Error('Failed to parse metadata.json: ' + e);
-    }
-
-    let requiredProperties = ['uuid', 'name', 'description', 'shell-version'];
-    for (let i = 0; i < requiredProperties.length; i++) {
-        let prop = requiredProperties[i];
-        if (!meta[prop]) {
-            throw new Error('missing "' + prop + '" property in metadata.json');
+    let res = {};
+    for (let key in obj) {
+        let val = obj[key];
+        let type;
+        switch (typeof val) {
+        case 'string':
+            type = 's';
+            break;
+        case 'number':
+            type = 'd';
+            break;
+        case 'boolean':
+            type = 'b';
+            break;
+        default:
+            continue;
         }
+        res[key] = GLib.Variant.new(type, val);
     }
 
-    if (uuid != meta.uuid) {
-        throw new Error('uuid "' + meta.uuid + '" from metadata.json does not match directory name "' + uuid + '"');
+    return res;
+}
+
+function deserializeExtension(variant) {
+    let res = { metadata: {} };
+    for (let prop in variant) {
+        let val = variant[prop].unpack();
+        if (SERIALIZED_PROPERTIES.includes(prop))
+            res[prop] = val;
+        else
+            res.metadata[prop] = val;
     }
-
-    let extension = {};
-
-    extension.metadata = meta;
-    extension.uuid = meta.uuid;
-    extension.type = type;
-    extension.dir = dir;
-    extension.path = dir.get_path();
-    extension.error = '';
-    extension.hasPrefs = dir.get_child('prefs.js').query_exists(null);
-
-    extensions[uuid] = extension;
-
-    return extension;
+    // add the 2 additional properties to create a valid extension object, as createExtensionObject()
+    res.uuid = res.metadata.uuid;
+    res.dir = Gio.File.new_for_path(res.path);
+    return res;
 }
 
 function installImporter(extension) {
@@ -219,36 +230,3 @@ function installImporter(extension) {
     extension.imports = imports[extension.uuid];
     imports.searchPath = oldSearchPath;
 }
-
-var ExtensionFinder = class {
-    _loadExtension(extensionDir, info, perUserDir) {
-        let fileType = info.get_file_type();
-        if (fileType != Gio.FileType.DIRECTORY)
-            return;
-        let uuid = info.get_name();
-        let existing = extensions[uuid];
-        if (existing) {
-            log('Extension %s already installed in %s. %s will not be loaded'.format(uuid, existing.path, extensionDir.get_path()));
-            return;
-        }
-
-        let extension;
-        let type = extensionDir.has_prefix(perUserDir) ? ExtensionType.PER_USER
-                                                       : ExtensionType.SYSTEM;
-        try {
-            extension = createExtensionObject(uuid, extensionDir, type);
-        } catch(e) {
-            logError(e, 'Could not load extension %s'.format(uuid));
-            return;
-        }
-        this.emit('extension-found', extension);
-    }
-
-    scanExtensions() {
-        let perUserDir = Gio.File.new_for_path(global.userdatadir);
-        FileUtils.collectFromDatadirs('extensions', true, (dir, info) => {
-            this._loadExtension(dir, info, perUserDir);
-        });
-    }
-};
-Signals.addSignalMethods(ExtensionFinder.prototype);

@@ -204,9 +204,7 @@ _st_create_texture_pipeline (CoglTexture *src_texture)
         clutter_backend_get_cogl_context (clutter_get_default_backend ());
 
       texture_pipeline_template = cogl_pipeline_new (ctx);
-      cogl_pipeline_set_layer_null_texture (texture_pipeline_template,
-                                            0, /* layer */
-                                            COGL_TEXTURE_TYPE_2D);
+      cogl_pipeline_set_layer_null_texture (texture_pipeline_template, 0);
     }
 
   pipeline = cogl_pipeline_copy (texture_pipeline_template);
@@ -364,7 +362,7 @@ _st_create_shadow_pipeline (StShadow    *shadow_spec,
 {
   ClutterBackend *backend = clutter_get_default_backend ();
   CoglContext *ctx = clutter_backend_get_cogl_context (backend);
-  CoglError *error = NULL;
+  GError *error = NULL;
 
   static CoglPipeline *shadow_pipeline_template = NULL;
 
@@ -400,7 +398,7 @@ _st_create_shadow_pipeline (StShadow    *shadow_spec,
   if (error)
     {
       g_warning ("Failed to allocate texture: %s", error->message);
-      cogl_error_free (error);
+      g_error_free (error);
     }
 
   g_free (pixels_out);
@@ -468,7 +466,7 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
       CoglFramebuffer *fb;
       CoglContext *ctx;
       CoglColor clear_color;
-      CoglError *catch_error = NULL;
+      GError *catch_error = NULL;
       float x, y;
 
       ctx = clutter_backend_get_cogl_context (clutter_get_default_backend ());
@@ -482,7 +480,7 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
 
       if (!cogl_framebuffer_allocate (fb, &catch_error))
         {
-          cogl_error_free (catch_error);
+          g_error_free (catch_error);
           cogl_object_unref (offscreen);
           cogl_object_unref (buffer);
           return NULL;

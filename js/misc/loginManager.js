@@ -43,9 +43,31 @@ function canLock() {
 
         let version = result.deep_unpack()[0].deep_unpack();
         return haveSystemd() && versionCompare('3.5.91', version);
-    } catch(e) {
+    } catch (e) {
         return false;
     }
+}
+
+
+function registerSessionWithGDM() {
+    log("Registering session with GDM");
+    Gio.DBus.system.call('org.gnome.DisplayManager',
+                         '/org/gnome/DisplayManager/Manager',
+                         'org.gnome.DisplayManager.Manager',
+                         'RegisterSession',
+                         GLib.Variant.new('(a{sv})', [{}]), null,
+                         Gio.DBusCallFlags.NONE, -1, null,
+        (source, result) => {
+            try {
+                source.call_finish(result);
+            } catch (e) {
+                if (!e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+                    log(`Error registering session with GDM: ${e.message}`);
+                else
+                    log("Not calling RegisterSession(): method not exported, GDM too old?");
+            }
+        }
+    );
 }
 
 let _loginManager = null;
@@ -163,7 +185,7 @@ var LoginManagerSystemd = class {
                     let [outVariant, fdList] = proxy.call_with_unix_fd_list_finish(result);
                     fd = fdList.steal_fds()[0];
                     callback(new Gio.UnixInputStream({ fd: fd }));
-                } catch(e) {
+                } catch (e) {
                     logError(e, "Error getting systemd inhibitor");
                     callback(null);
                 }

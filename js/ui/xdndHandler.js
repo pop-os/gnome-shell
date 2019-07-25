@@ -17,9 +17,6 @@ var XdndHandler = class {
         Main.uiGroup.add_actor(this._dummy);
         this._dummy.hide();
 
-        if (!Meta.is_wayland_compositor())
-            global.init_xdnd();
-
         var dnd = Meta.get_backend().get_dnd();
         dnd.connect('dnd-enter', this._onEnter.bind(this));
         dnd.connect('dnd-position-change', this._onPositionChanged.bind(this));
@@ -43,9 +40,9 @@ var XdndHandler = class {
     }
 
     _onEnter() {
-        this._windowGroupVisibilityHandlerId  =
-                global.window_group.connect('notify::visible',
-                    this._onWindowGroupVisibilityChanged.bind(this));
+        this._windowGroupVisibilityHandlerId =
+            global.window_group.connect('notify::visible',
+                this._onWindowGroupVisibilityChanged.bind(this));
 
         this.emit('drag-begin', global.get_current_time());
     }
@@ -62,14 +59,14 @@ var XdndHandler = class {
             if (!cursorWindow.get_meta_window().is_override_redirect())
                 return;
 
-            let constraint_position = new Clutter.BindConstraint({ coordinate : Clutter.BindCoordinate.POSITION,
-                                                                   source: cursorWindow});
+            let constraintPosition = new Clutter.BindConstraint({ coordinate: Clutter.BindCoordinate.POSITION,
+                                                                  source: cursorWindow });
 
             this._cursorWindowClone = new Clutter.Clone({ source: cursorWindow });
             Main.uiGroup.add_actor(this._cursorWindowClone);
 
             // Make sure that the clone has the same position as the source
-            this._cursorWindowClone.add_constraint(constraint_position);
+            this._cursorWindowClone.add_constraint(constraintPosition);
         } else {
             if (this._cursorWindowClone) {
                 this._cursorWindowClone.destroy();
@@ -83,7 +80,7 @@ var XdndHandler = class {
 
         // Make sure that the cursor window is on top
         if (this._cursorWindowClone)
-             this._cursorWindowClone.raise_top();
+            this._cursorWindowClone.raise_top();
 
         let dragEvent = {
             x: x,
@@ -103,17 +100,17 @@ var XdndHandler = class {
         }
 
         while (pickedActor) {
-                if (pickedActor._delegate && pickedActor._delegate.handleDragOver) {
-                    let [r, targX, targY] = pickedActor.transform_stage_point(x, y);
-                    let result = pickedActor._delegate.handleDragOver(this,
-                                                                      dragEvent.dragActor,
-                                                                      targX,
-                                                                      targY,
-                                                                      global.get_current_time());
-                    if (result != DND.DragMotionResult.CONTINUE)
-                        return;
-                }
-                pickedActor = pickedActor.get_parent();
+            if (pickedActor._delegate && pickedActor._delegate.handleDragOver) {
+                let [r, targX, targY] = pickedActor.transform_stage_point(x, y);
+                let result = pickedActor._delegate.handleDragOver(this,
+                                                                  dragEvent.dragActor,
+                                                                  targX,
+                                                                  targY,
+                                                                  global.get_current_time());
+                if (result != DND.DragMotionResult.CONTINUE)
+                    return;
+            }
+            pickedActor = pickedActor.get_parent();
         }
     }
 };

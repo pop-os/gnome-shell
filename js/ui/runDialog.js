@@ -1,7 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Clutter, Gio, GLib, Meta, Shell, St } = imports.gi;
-const Signals = imports.signals;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
@@ -9,8 +8,6 @@ const ShellEntry = imports.ui.shellEntry;
 const Tweener = imports.ui.tweener;
 const Util = imports.misc.util;
 const History = imports.misc.history;
-
-var MAX_FILE_DELETED_BEFORE_INVALID = 10;
 
 const HISTORY_KEY = 'command-history';
 
@@ -23,10 +20,11 @@ const EXEC_ARG_KEY = 'exec-arg';
 
 var DIALOG_GROW_TIME = 0.1;
 
-var RunDialog = class extends ModalDialog.ModalDialog {
-    constructor() {
-        super({ styleClass: 'run-dialog',
-                destroyOnClose: false });
+var RunDialog = GObject.registerClass(
+class RunDialog extends ModalDialog.ModalDialog {
+    _init() {
+        super._init({ styleClass: 'run-dialog',
+                      destroyOnClose: false });
 
         this._lockdownSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
         this._terminalSettings = new Gio.Settings({ schema_id: TERMINAL_SCHEMA });
@@ -35,30 +33,26 @@ var RunDialog = class extends ModalDialog.ModalDialog {
         });
         this._enableInternalCommands = global.settings.get_boolean('development-tools');
 
-        this._internalCommands = { 'lg': () => {
-                                       Main.createLookingGlass().open();
-                                   },
+        this._internalCommands = {
+            'lg': () => Main.createLookingGlass().open(),
 
-                                   'r': this._restart.bind(this),
+            'r': this._restart.bind(this),
 
-                                   // Developer brain backwards compatibility
-                                   'restart': this._restart.bind(this),
+            // Developer brain backwards compatibility
+            'restart': this._restart.bind(this),
 
-                                   'debugexit': () => {
-                                       Meta.quit(Meta.ExitCode.ERROR);
-                                   },
+            'debugexit': () => Meta.quit(Meta.ExitCode.ERROR),
 
-                                   // rt is short for "reload theme"
-                                   'rt': () => {
-                                       Main.reloadThemeResource();
-                                       Main.loadTheme();
-                                   },
+            // rt is short for "reload theme"
+            'rt': () => {
+                Main.reloadThemeResource();
+                Main.loadTheme();
+            },
 
-                                   'check_cloexec_fds': () => {
-                                       Shell.util_check_cloexec_fds();
-                                   },
-                                 };
-
+            'check_cloexec_fds': () => {
+                Shell.util_check_cloexec_fds();
+            },
+        };
 
         let label = new St.Label({ style_class: 'run-dialog-label',
                                    text: _("Enter a Command") });
@@ -168,9 +162,8 @@ var RunDialog = class extends ModalDialog.ModalDialog {
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND) &&
                     !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_DIRECTORY))
                     log(e);
-            } finally {
-                return results;
             }
+            return results;
         });
         let results = someResults.reduce((a, b) => a.concat(b), []);
 
@@ -182,7 +175,7 @@ var RunDialog = class extends ModalDialog.ModalDialog {
     }
 
     _getCompletion(text) {
-        if (text.indexOf('/') != -1) {
+        if (text.includes('/')) {
             return this._pathCompleter.get_completion_suffix(text);
         } else {
             return this._getCommandCompletion(text);
@@ -205,8 +198,8 @@ var RunDialog = class extends ModalDialog.ModalDialog {
             try {
                 if (inTerminal) {
                     let exec = this._terminalSettings.get_string(EXEC_KEY);
-                    let exec_arg = this._terminalSettings.get_string(EXEC_ARG_KEY);
-                    command = exec + ' ' + exec_arg + ' ' + input;
+                    let execArg = this._terminalSettings.get_string(EXEC_ARG_KEY);
+                    command = `${exec} ${execArg} ${input}`;
                 }
                 Util.trySpawnCommandLine(command);
             } catch (e) {
@@ -282,5 +275,4 @@ var RunDialog = class extends ModalDialog.ModalDialog {
 
         super.open();
     }
-};
-Signals.addSignalMethods(RunDialog.prototype);
+});

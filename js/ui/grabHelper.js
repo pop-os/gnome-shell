@@ -43,6 +43,9 @@ function _popGrabHelper(grabHelper) {
 // call grab().
 var GrabHelper = class GrabHelper {
     constructor(owner, params) {
+        if (!(owner instanceof Clutter.Actor))
+            throw new Error('GrabHelper owner must be a Clutter.Actor');
+
         this._owner = owner;
         this._modalParams = params;
 
@@ -84,7 +87,7 @@ var GrabHelper = class GrabHelper {
     _isWithinGrabbedActor(actor) {
         let currentActor = this.currentGrab.actor;
         while (actor) {
-            if (this._actors.indexOf(actor) != -1)
+            if (this._actors.includes(actor))
                 return true;
             if (actor == currentActor)
                 return true;

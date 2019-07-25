@@ -35,7 +35,7 @@ class DashItemContainer extends St.Widget {
                       x_align: Clutter.ActorAlign.CENTER });
 
         this._labelText = "";
-        this.label = new St.Label({ style_class: 'dash-label'});
+        this.label = new St.Label({ style_class: 'dash-label' });
         this.label.hide();
         Main.layoutManager.addChrome(this.label);
         this.label_actor = this.label;
@@ -81,7 +81,7 @@ class DashItemContainer extends St.Widget {
         let itemHeight = this.allocation.y2 - this.allocation.y1;
 
         let labelHeight = this.label.get_height();
-        let yOffset = Math.floor((itemHeight - labelHeight) / 2)
+        let yOffset = Math.floor((itemHeight - labelHeight) / 2);
 
         let y = stageY + yOffset;
 
@@ -198,9 +198,9 @@ class ShowAppsIcon extends DashItemContainer {
                                             toggle_mode: true });
         this._iconActor = null;
         this.icon = new IconGrid.BaseIcon(_("Show Applications"),
-                                           { setSizeManually: true,
-                                             showLabel: false,
-                                             createIcon: this._createIcon.bind(this) });
+                                          { setSizeManually: true,
+                                            showLabel: false,
+                                            createIcon: this._createIcon.bind(this) });
         this.toggleButton.add_actor(this.icon);
         this.toggleButton._delegate = this;
 
@@ -321,14 +321,14 @@ class DashActor extends St.Widget {
         let themeNode = this.get_theme_node();
         let adjustedForWidth = themeNode.adjust_for_width(forWidth);
         let [, showAppsButton] = this.get_children();
-        let [minHeight, ] = showAppsButton.get_preferred_height(adjustedForWidth);
-        [minHeight, ] = themeNode.adjust_preferred_height(minHeight, natHeight);
+        let [minHeight] = showAppsButton.get_preferred_height(adjustedForWidth);
+        [minHeight] = themeNode.adjust_preferred_height(minHeight, natHeight);
 
         return [minHeight, natHeight];
     }
 });
 
-const baseIconSizes = [ 16, 22, 24, 32, 48, 64 ];
+const baseIconSizes = [16, 22, 24, 32, 48, 64];
 
 var Dash = class Dash {
     constructor() {
@@ -648,10 +648,10 @@ var Dash = class Dash {
         let running = this._appSystem.get_running();
 
         let children = this._box.get_children().filter(actor => {
-                return actor.child &&
-                       actor.child._delegate &&
-                       actor.child._delegate.app;
-            });
+            return actor.child &&
+                   actor.child._delegate &&
+                   actor.child._delegate.app;
+        });
         // Apps currently in the dash
         let oldApps = children.map(actor => actor.child._delegate.app);
         // Apps supposed to be in the dash
@@ -700,14 +700,14 @@ var Dash = class Dash {
             }
 
             // App removed at oldIndex
-            if (oldApp && newApps.indexOf(oldApp) == -1) {
+            if (oldApp && !newApps.includes(oldApp)) {
                 removedActors.push(children[oldIndex]);
                 oldIndex++;
                 continue;
             }
 
             // App added at newIndex
-            if (newApp && oldApps.indexOf(newApp) == -1) {
+            if (newApp && !oldApps.includes(newApp)) {
                 addedItems.push({ app: newApp,
                                   item: this._createAppItem(newApp),
                                   pos: newIndex });
@@ -899,7 +899,7 @@ var Dash = class Dash {
                 favPos++;
         }
 
-        // No drag placeholder means we don't wan't to favorite the app
+        // No drag placeholder means we don't want to favorite the app
         // and we are dragging it to its original position
         if (!this._dragPlaceholder)
             return true;
