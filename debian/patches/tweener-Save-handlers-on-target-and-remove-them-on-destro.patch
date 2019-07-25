@@ -13,14 +13,14 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/bionic/+source/gnome-shell/+bug/17
 Bug-Debian: https://bugs.debian.org/887082
 Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
 ---
- js/ui/tweener.js | 63 ++++++++++++++++++++++++++++++++++++++++++++------------
- 1 file changed, 50 insertions(+), 13 deletions(-)
+ js/ui/tweener.js | 62 ++++++++++++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 49 insertions(+), 13 deletions(-)
 
 diff --git a/js/ui/tweener.js b/js/ui/tweener.js
-index bb9ea55..c04cede 100644
+index f8baee1..58b7b08 100644
 --- a/js/ui/tweener.js
 +++ b/js/ui/tweener.js
-@@ -63,30 +63,67 @@ function _getTweenState(target) {
+@@ -63,30 +63,66 @@ function _getTweenState(target) {
      return target.__ShellTweenerState;
  }
  
@@ -48,16 +48,16 @@ index bb9ea55..c04cede 100644
  function _addHandler(target, params, name, handler) {
 -    if (params[name]) {
 -        let oldHandler = params[name];
--        let oldScope = params[name + 'Scope'];
--        let oldParams = params[name + 'Params'];
+-        let oldScope = params[`${name}Scope`];
+-        let oldParams = params[`${name}Params`];
 -        let eventScope = oldScope ? oldScope : target;
 -
 -        params[name] = () => {
 -            oldHandler.apply(eventScope, oldParams);
 -            handler(target);
 -        };
--    } else
--        params[name] = () => { handler(target); };
+-    } else {
+-        params[name] = () => handler(target);
 +    let wrapperNeeded = false;
 +    let tweenerHandlers = _ensureHandlers(target);
 +
@@ -72,13 +72,13 @@ index bb9ea55..c04cede 100644
 +    if (wrapperNeeded) {
 +        if (params[name]) {
 +            let oldHandler = params[name];
-+            let oldScope = params[name + 'Scope'];
-+            let oldParams = params[name + 'Params'];
++            let oldScope = params[`${name}Scope`];
++            let oldParams = params[`${name}Params`];
 +            let eventScope = oldScope ? oldScope : target;
 +
 +            params[name] = () => {
 +                oldHandler.apply(eventScope, oldParams);
-+                handlers.forEach((h) => h(target));
++                handlers.forEach(h => h(target));
 +            };
 +        } else {
 +            params[name] = () => { handlers.forEach((h) => h(target)); };
@@ -97,7 +97,6 @@ index bb9ea55..c04cede 100644
 +            handlers.splice(handlerIndex, 1);
 +            handlerIndex = handlers.indexOf(handler);
 +        }
-+    }
+     }
  }
  
- function _actorDestroyed(target) {
