@@ -1,8 +1,12 @@
-gnome-shell (3.32.2-3) UNRELEASED; urgency=medium
+gnome-shell (3.33.4-1) UNRELEASED; urgency=medium
 
+  [ Simon McVittie ]
   * d/gnome-shell.bug-control: Include related packages in bug reports
 
- -- Simon McVittie <smcv@debian.org>  Sun, 04 Aug 2019 13:40:07 +0100
+  [ Iain Lane ]
+  * New upstream release
+
+ -- Iain Lane <laney@debian.org>  Thu, 25 Jul 2019 01:26:22 +0100
 
 gnome-shell (3.32.2-2) experimental; urgency=medium
 
