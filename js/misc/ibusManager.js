@@ -42,7 +42,7 @@ var IBusManager = class {
         this._candidatePopup = new IBusCandidatePopup.CandidatePopup();
 
         this._panelService = null;
-        this._engines = {};
+        this._engines = new Map();
         this._ready = false;
         this._registerPropertiesId = 0;
         this._currentEngineName = null;
@@ -62,8 +62,8 @@ var IBusManager = class {
         try {
             Gio.Subprocess.new(['ibus-daemon', '--xim', '--panel', 'disable'],
                                Gio.SubprocessFlags.NONE);
-        } catch(e) {
-            log('Failed to launch ibus-daemon: ' + e.message);
+        } catch (e) {
+            log(`Failed to launch ibus-daemon: ${e.message}`);
         }
     }
 
@@ -73,7 +73,7 @@ var IBusManager = class {
 
         this._panelService = null;
         this._candidatePopup.setPanelService(null);
-        this._engines = {};
+        this._engines.clear();
         this._ready = false;
         this._registerPropertiesId = 0;
         this._currentEngineName = null;
@@ -96,7 +96,7 @@ var IBusManager = class {
         if (enginesList) {
             for (let i = 0; i < enginesList.length; ++i) {
                 let name = enginesList[i].get_name();
-                this._engines[name] = enginesList[i];
+                this._engines.set(name, enginesList[i]);
             }
             this._updateReadiness();
         } else {
@@ -119,7 +119,7 @@ var IBusManager = class {
                 if (!GLib.str_has_suffix(path, '/InputContext_1'))
                     this.emit ('focus-in');
             });
-            this._panelService.connect('focus-out', () => { this.emit('focus-out'); });
+            this._panelService.connect('focus-out', () => this.emit('focus-out'));
 
             try {
                 // IBus versions older than 1.5.10 have a bug which
@@ -138,7 +138,7 @@ var IBusManager = class {
                     engine = this._ibus.get_global_engine_async_finish(result);
                     if (!engine)
                         return;
-                } catch(e) {
+                } catch (e) {
                     return;
                 }
                 this._engineChanged(this._ibus, engine.get_name());
@@ -150,8 +150,7 @@ var IBusManager = class {
     }
 
     _updateReadiness() {
-        this._ready = (Object.keys(this._engines).length > 0 &&
-                       this._panelService != null);
+        this._ready = this._engines.size > 0 && this._panelService != null;
         this.emit('ready', this._ready);
     }
 
@@ -189,10 +188,10 @@ var IBusManager = class {
     }
 
     getEngineDesc(id) {
-        if (!this._ready || !this._engines.hasOwnProperty(id))
+        if (!this._ready || !this._engines.has(id))
             return null;
 
-        return this._engines[id];
+        return this._engines.get(id);
     }
 
     setEngine(id, callback) {

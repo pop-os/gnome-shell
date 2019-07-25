@@ -19,7 +19,6 @@ const PortalHelperSecurityLevel = {
     INSECURE: 2
 };
 
-const INACTIVITY_TIMEOUT = 30000; //ms
 const CONNECTIVITY_CHECK_HOST = 'nmcheck.gnome.org';
 const CONNECTIVITY_CHECK_URI = 'http://' + CONNECTIVITY_CHECK_HOST;
 const CONNECTIVITY_RECHECK_RATELIMIT_TIMEOUT = 30 * GLib.USEC_PER_SEC;
@@ -59,7 +58,7 @@ class PortalHeaderBar extends Gtk.HeaderBar {
                                              single_line_mode: true,
                                              ellipsize: Pango.EllipsizeMode.END,
                                              valign: Gtk.Align.BASELINE,
-                                             selectable: true});
+                                             selectable: true });
         this.subtitleLabel.get_style_context().add_class('subtitle');
         hbox.add(this.subtitleLabel);
 
@@ -265,7 +264,7 @@ class WebPortalHelper extends Gtk.Application {
         this._queue = [];
 
         let action = new Gio.SimpleAction({ name: 'quit' });
-        action.connect('activate', () => { this.active_window.destroyWindow(); });
+        action.connect('activate', () => this.active_window.destroyWindow());
         this.add_action(action);
     }
 

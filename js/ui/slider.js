@@ -14,8 +14,8 @@ var Slider = class extends BarLevel.BarLevel {
             canFocus: true,
             reactive: true,
             accessibleRole: Atk.Role.SLIDER,
-        }
-        super(value, params)
+        };
+        super(value, params);
 
         this.actor.connect('button-press-event', this._startDragging.bind(this));
         this.actor.connect('touch-event', this._touchDragging.bind(this));
@@ -41,8 +41,6 @@ var Slider = class extends BarLevel.BarLevel {
         let handleBorderWidth = themeNode.get_length('-slider-handle-border-width');
         let [hasHandleColor, handleBorderColor] =
             themeNode.lookup_color('-slider-handle-border-color', false);
-
-        const TAU = Math.PI * 2;
 
         let handleX = handleRadius + (width - 2 * handleRadius) * this._value / this._maxValue;
         let handleY = height / 2;
@@ -144,7 +142,7 @@ var Slider = class extends BarLevel.BarLevel {
         if (direction == Clutter.ScrollDirection.DOWN) {
             delta = -SLIDER_SCROLL_STEP;
         } else if (direction == Clutter.ScrollDirection.UP) {
-            delta = +SLIDER_SCROLL_STEP;
+            delta = SLIDER_SCROLL_STEP;
         } else if (direction == Clutter.ScrollDirection.SMOOTH) {
             let [dx, dy] = event.get_scroll_delta();
             // Even though the slider is horizontal, use dy to match
@@ -185,10 +183,9 @@ var Slider = class extends BarLevel.BarLevel {
     }
 
     _moveHandle(absX, absY) {
-        let relX, relY, sliderX, sliderY;
-        [sliderX, sliderY] = this.actor.get_transformed_position();
+        let relX, sliderX;
+        [sliderX] = this.actor.get_transformed_position();
         relX = absX - sliderX;
-        relY = absY - sliderY;
 
         let width = this._barLevelWidth;
         let handleRadius = this.actor.get_theme_node().get_length('-slider-handle-radius');

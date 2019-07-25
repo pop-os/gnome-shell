@@ -74,7 +74,7 @@ class InputMethod extends Clutter.InputMethod {
         this._context = null;
         this._hints = 0;
         this._purpose = 0;
-        this._preeditStr = ''
+        this._preeditStr = '';
         this._preeditPos = 0;
         this._preeditVisible = false;
     }
@@ -262,7 +262,7 @@ class InputMethod extends Clutter.InputMethod {
                                                       let retval = context.process_key_event_async_finish(res);
                                                       this.notify_key_event(event, retval);
                                                   } catch (e) {
-                                                      log('Error processing key on IM: ' + e.message);
+                                                      log(`Error processing key on IM: ${e.message}`);
                                                   }
                                               });
         return true;

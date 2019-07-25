@@ -192,7 +192,7 @@ st_button_button_press (ClutterActor       *actor,
   if (priv->button_mask & mask)
     {
       if (priv->grabbed == 0)
-        clutter_grab_pointer (actor);
+        clutter_input_device_grab (device, actor);
 
       priv->grabbed |= mask;
       st_button_press (button, device, mask, NULL);
@@ -221,7 +221,7 @@ st_button_button_release (ClutterActor       *actor,
 
       priv->grabbed &= ~mask;
       if (priv->grabbed == 0)
-        clutter_ungrab_pointer ();
+        clutter_input_device_ungrab (device);
 
       return TRUE;
     }
@@ -779,18 +779,15 @@ st_button_fake_release (StButton *button)
       clutter_input_device_sequence_ungrab (priv->device,
                                             priv->press_sequence);
     }
+  else if (priv->grabbed)
+    {
+      priv->grabbed = 0;
+      clutter_input_device_ungrab (priv->device);
+    }
 
   if (priv->pressed || priv->press_sequence)
     st_button_release (button, priv->device,
                        priv->pressed, 0, NULL);
-
-  if (priv->grabbed)
-    {
-      priv->grabbed = 0;
-      clutter_ungrab_pointer ();
-    }
-
-  priv->device = NULL;
 }
 
 /******************************************************************************/

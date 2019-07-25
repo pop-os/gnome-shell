@@ -85,7 +85,7 @@ var ShellMagnifier = class ShellMagnifier {
         let ROI = { x: roi[0], y: roi[1], width: roi[2] - roi[0], height: roi[3] - roi[1] };
         let viewBox = { x: viewPort[0], y: viewPort[1], width: viewPort[2] - viewPort[0], height: viewPort[3] - viewPort[1] };
         let realZoomRegion = Main.magnifier.createZoomRegion(xMagFactor, yMagFactor, ROI, viewBox);
-        let objectPath = ZOOM_SERVICE_PATH + '/zoomer' + _zoomRegionInstanceCount;
+        let objectPath = `${ZOOM_SERVICE_PATH}/zoomer${_zoomRegionInstanceCount}`;
         _zoomRegionInstanceCount++;
 
         let zoomRegionProxy = new ShellMagnifierZoomRegion(objectPath, realZoomRegion);
@@ -106,9 +106,9 @@ var ShellMagnifier = class ShellMagnifier {
         if (proxyAndZoomRegion && proxyAndZoomRegion.zoomRegion) {
             Main.magnifier.addZoomRegion(proxyAndZoomRegion.zoomRegion);
             return true;
-        }
-        else
+        } else {
             return false;
+        }
     }
 
     /**
@@ -179,74 +179,74 @@ var ShellMagnifier = class ShellMagnifier {
      * Set the crosswire size of all ZoomRegions.
      * @size:   The thickness of each line in the cross wire.
      */
-     setCrosswireSize(size) {
+    setCrosswireSize(size) {
         Main.magnifier.setCrosshairsThickness(size);
-     }
+    }
 
     /**
      * getCrosswireSize:
      * Get the crosswire size of all ZoomRegions.
      * @return:   The thickness of each line in the cross wire.
      */
-     getCrosswireSize() {
+    getCrosswireSize() {
         return Main.magnifier.getCrosshairsThickness();
-     }
+    }
 
     /**
      * setCrosswireLength:
      * Set the crosswire length of all zoom-regions..
      * @size:   The length of each line in the cross wire.
      */
-     setCrosswireLength(length) {
+    setCrosswireLength(length) {
         Main.magnifier.setCrosshairsLength(length);
-     }
+    }
 
     /**
      * setCrosswireSize:
      * Set the crosswire size of all zoom-regions.
      * @size:   The thickness of each line in the cross wire.
      */
-     getCrosswireLength() {
+    getCrosswireLength() {
         return Main.magnifier.getCrosshairsLength();
-     }
+    }
 
     /**
      * setCrosswireClip:
      * Set if the crosswire will be clipped by the cursor image..
      * @clip:   Flag to indicate whether to clip the crosswire.
      */
-     setCrosswireClip(clip) {
+    setCrosswireClip(clip) {
         Main.magnifier.setCrosshairsClip(clip);
-     }
+    }
 
     /**
      * getCrosswireClip:
      * Get the crosswire clip value.
      * @return:   Whether the crosswire is clipped by the cursor image.
      */
-     getCrosswireClip() {
+    getCrosswireClip() {
         return Main.magnifier.getCrosshairsClip();
-     }
+    }
 
     /**
      * setCrosswireColor:
      * Set the crosswire color of all ZoomRegions.
      * @color:   Unsigned int of the form rrggbbaa.
      */
-     setCrosswireColor(color) {
+    setCrosswireColor(color) {
         Main.magnifier.setCrosshairsColor('#%08x'.format(color));
-     }
+    }
 
     /**
      * getCrosswireClip:
      * Get the crosswire color of all ZoomRegions.
      * @return:   The crosswire color as an unsigned int in the form rrggbbaa.
      */
-     getCrosswireColor() {
+    getCrosswireColor() {
         let colorString = Main.magnifier.getCrosshairsColor();
         // Drop the leading '#'.
         return parseInt(colorString.slice(1), 16);
-     }
+    }
 };
 
 /**

@@ -30,7 +30,7 @@ var LOGO_KEY = 'logo';
 var DISABLE_USER_LIST_KEY = 'disable-user-list';
 
 // Give user 48ms to read each character of a PAM message
-var USER_READ_TIME = 48
+var USER_READ_TIME = 48;
 
 var MessageType = {
     NONE: 0,
@@ -342,7 +342,7 @@ var ShellUserVerifier = class {
         try {
             this._clearUserVerifier();
             this._userVerifier = client.open_reauthentication_channel_finish(result);
-        } catch(e) {
+        } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 return;
             if (e.matches(Gio.DBusError, Gio.DBusError.ACCESS_DENIED) &&
@@ -369,7 +369,7 @@ var ShellUserVerifier = class {
         try {
             this._clearUserVerifier();
             this._userVerifier = client.get_user_verifier_finish(result);
-        } catch(e) {
+        } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 return;
             this._reportInitError('Failed to obtain user verifier', e);
@@ -423,36 +423,31 @@ var ShellUserVerifier = class {
     _startService(serviceName) {
         this._hold.acquire();
         if (this._userName) {
-           this._userVerifier.call_begin_verification_for_user(serviceName,
-                                                               this._userName,
-                                                               this._cancellable,
-                                                               (obj, result) => {
-               try {
-                   obj.call_begin_verification_for_user_finish(result);
-               } catch(e) {
-                   if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                       return;
-                   this._reportInitError('Failed to start verification for user', e);
-                   return;
-               }
+            this._userVerifier.call_begin_verification_for_user(serviceName, this._userName, this._cancellable, (obj, result) => {
+                try {
+                    obj.call_begin_verification_for_user_finish(result);
+                } catch (e) {
+                    if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        return;
+                    this._reportInitError('Failed to start verification for user', e);
+                    return;
+                }
 
-               this._hold.release();
-           });
+                this._hold.release();
+            });
         } else {
-           this._userVerifier.call_begin_verification(serviceName,
-                                                      this._cancellable,
-                                                      (obj, result) => {
-               try {
-                   obj.call_begin_verification_finish(result);
-               } catch(e) {
-                   if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                       return;
-                   this._reportInitError('Failed to start verification', e);
-                   return;
-               }
+            this._userVerifier.call_begin_verification(serviceName, this._cancellable, (obj, result) => {
+                try {
+                    obj.call_begin_verification_finish(result);
+                } catch (e) {
+                    if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        return;
+                    this._reportInitError('Failed to start verification', e);
+                    return;
+                }
 
-               this._hold.release();
-           });
+                this._hold.release();
+            });
         }
     }
 

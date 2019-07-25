@@ -121,7 +121,7 @@ var ActionComboBox = class {
         this.actor.set_child(box);
 
         this._label = new St.Label({ style_class: 'combo-box-label' });
-        box.add_child(this._label)
+        box.add_child(this._label);
 
         let arrow = new St.Icon({ style_class: 'popup-menu-arrow',
                                   icon_name: 'pan-down-symbolic',
@@ -186,7 +186,7 @@ var ActionComboBox = class {
     }
 
     setButtonActionsActive(active) {
-        this._buttonItems.forEach(item => { item.setSensitive(active); });
+        this._buttonItems.forEach(item => item.setSensitive(active));
     }
 };
 Signals.addSignalMethods(ActionComboBox.prototype);
@@ -208,7 +208,7 @@ var ActionEditor = class {
 
         this._doneButton = new St.Button({ label: _("Done"),
                                            style_class: 'button',
-                                           x_expand: false});
+                                           x_expand: false });
         this._doneButton.connect('clicked', this._onEditingDone.bind(this));
         this.actor.add_actor(this._doneButton);
     }
@@ -275,21 +275,23 @@ var ActionEditor = class {
 Signals.addSignalMethods(ActionEditor.prototype);
 
 var PadDiagram = GObject.registerClass({
-    Properties: { 'left-handed': GObject.ParamSpec.boolean('left-handed',
-                                                           'left-handed', 'Left handed',
-                                                           GObject.ParamFlags.READWRITE |
-                                                           GObject.ParamFlags.CONSTRUCT_ONLY,
-                                                           false),
-                  'image': GObject.ParamSpec.string('image', 'image', 'Image',
-                                                    GObject.ParamFlags.READWRITE |
-                                                    GObject.ParamFlags.CONSTRUCT_ONLY,
-                                                    null),
-                  'editor-actor': GObject.ParamSpec.object('editor-actor',
-                                                           'editor-actor',
-                                                           'Editor actor',
-                                                           GObject.ParamFlags.READWRITE |
-                                                           GObject.ParamFlags.CONSTRUCT_ONLY,
-                                                           Clutter.Actor.$gtype) },
+    Properties: {
+        'left-handed': GObject.ParamSpec.boolean('left-handed',
+                                                 'left-handed', 'Left handed',
+                                                 GObject.ParamFlags.READWRITE |
+                                                 GObject.ParamFlags.CONSTRUCT_ONLY,
+                                                 false),
+        'image': GObject.ParamSpec.string('image', 'image', 'Image',
+                                          GObject.ParamFlags.READWRITE |
+                                          GObject.ParamFlags.CONSTRUCT_ONLY,
+                                          null),
+        'editor-actor': GObject.ParamSpec.object('editor-actor',
+                                                 'editor-actor',
+                                                 'Editor actor',
+                                                 GObject.ParamFlags.READWRITE |
+                                                 GObject.ParamFlags.CONSTRUCT_ONLY,
+                                                 Clutter.Actor.$gtype)
+    },
 }, class PadDiagram extends St.DrawingArea {
     _init(params) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/pad-osd.css');
@@ -340,7 +342,7 @@ var PadDiagram = GObject.registerClass({
         return ('<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
                 '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" ' +
                 'xmlns:xi="http://www.w3.org/2001/XInclude" ' +
-                'width="' + this._imageWidth + '" height="' + this._imageHeight + '"> ' +
+                `width="${this._imageWidth}" height="${this._imageHeight}"> ` +
                 '<style type="text/css">');
     }
 
@@ -355,10 +357,10 @@ var PadDiagram = GObject.registerClass({
 
         for (let i = 0; i < this._activeButtons.length; i++) {
             let ch = String.fromCharCode('A'.charCodeAt() + this._activeButtons[i]);
-            css += ('.' + ch + ' { ' +
-	            '  stroke: ' + ACTIVE_COLOR + ' !important; ' +
-                    '  fill: ' + ACTIVE_COLOR + ' !important; ' +
-                    '} ');
+            css += `.${ch} {
+                stroke: ${ACTIVE_COLOR} !important;
+                fill: ${ACTIVE_COLOR} !important;
+            }`;
         }
 
         return css;
@@ -440,11 +442,11 @@ var PadDiagram = GObject.registerClass({
         let cr = this.get_context();
 
         cr.save();
-        cr.translate(width/2, height/2);
+        cr.translate(width / 2, height / 2);
         cr.scale(this._scale, this._scale);
         if (this._leftHanded)
             cr.rotate(Math.PI);
-        cr.translate(-dimensions.width/2, -dimensions.height/2);
+        cr.translate(-dimensions.width / 2, -dimensions.height / 2);
         this._handle.render_cairo(cr);
         cr.restore();
         cr.$dispose();
@@ -457,7 +459,7 @@ var PadDiagram = GObject.registerClass({
         // I miss Cairo.Matrix
         let dimensions = this._handle.get_dimensions();
         x = x * this._scale + this._actorWidth / 2 - dimensions.width / 2 * this._scale;
-        y = y * this._scale + this._actorHeight / 2 - dimensions.height / 2 * this._scale;;
+        y = y * this._scale + this._actorHeight / 2 - dimensions.height / 2 * this._scale;
         return [Math.round(x), Math.round(y)];
     }
 
@@ -468,12 +470,12 @@ var PadDiagram = GObject.registerClass({
         let leaderPos, leaderSize, pos;
         let found, direction;
 
-        [found, pos] = this._handle.get_position_sub('#' + labelName);
+        [found, pos] = this._handle.get_position_sub(`#${labelName}`);
         if (!found)
             return [false];
 
-        [found, leaderPos] = this._handle.get_position_sub('#' + leaderName);
-        [found, leaderSize] = this._handle.get_dimensions_sub('#' + leaderName);
+        [found, leaderPos] = this._handle.get_position_sub(`#${leaderName}`);
+        [found, leaderSize] = this._handle.get_dimensions_sub(`#${leaderName}`);
         if (!found)
             return [false];
 
@@ -488,15 +490,15 @@ var PadDiagram = GObject.registerClass({
             pos.y = this._imageHeight - pos.y;
         }
 
-        let [x, y] = this._transformPoint(pos.x, pos.y)
+        let [x, y] = this._transformPoint(pos.x, pos.y);
 
         return [true, x, y, direction];
     }
 
     getButtonLabelCoords(button) {
         let ch = String.fromCharCode('A'.charCodeAt() + button);
-        let labelName = 'Label' + ch;
-        let leaderName = 'Leader' + ch;
+        let labelName = `Label${ch}`;
+        let leaderName = `Leader${ch}`;
 
         return this._getItemLabelCoords(labelName, leaderName);
     }
@@ -504,8 +506,8 @@ var PadDiagram = GObject.registerClass({
     getRingLabelCoords(number, dir) {
         let numStr = number > 0 ? (number + 1).toString() : '';
         let dirStr = dir == CW ? 'CW' : 'CCW';
-        let labelName = 'LabelRing' + numStr + dirStr;
-        let leaderName = 'LeaderRing' + numStr + dirStr;
+        let labelName = `LabelRing${numStr}${dirStr}`;
+        let leaderName = `LeaderRing${numStr}${dirStr}`;
 
         return this._getItemLabelCoords(labelName, leaderName);
     }
@@ -513,8 +515,8 @@ var PadDiagram = GObject.registerClass({
     getStripLabelCoords(number, dir) {
         let numStr = number > 0 ? (number + 1).toString() : '';
         let dirStr = dir == UP ? 'Up' : 'Down';
-        let labelName = 'LabelStrip' + numStr + dirStr;
-        let leaderName = 'LeaderStrip' + numStr + dirStr;
+        let labelName = `LabelStrip${numStr}${dirStr}`;
+        let leaderName = `LeaderStrip${numStr}${dirStr}`;
 
         return this._getItemLabelCoords(labelName, leaderName);
     }
@@ -611,7 +613,7 @@ var PadDiagram = GObject.registerClass({
 var PadOsd = class {
     constructor(padDevice, settings, imagePath, editionMode, monitorIndex) {
         this.padDevice = padDevice;
-        this._groupPads = [ padDevice ];
+        this._groupPads = [padDevice];
         this._settings = settings;
         this._imagePath = imagePath;
         this._editionMode = editionMode;
@@ -630,7 +632,7 @@ var PadOsd = class {
             // If the device is being removed, destroy the padOsd.
             if (device == this.padDevice) {
                 this.destroy();
-            } else if (this._groupPads.indexOf(device) != -1) {
+            } else if (this._groupPads.includes(device)) {
                 // Or update the pad chooser if the device belongs to
                 // the same group.
                 this._groupPads.splice(this._groupPads.indexOf(device), 1);
@@ -714,9 +716,9 @@ var PadOsd = class {
         }
 
         let buttonBox = new St.Widget({ layout_manager: new Clutter.BinLayout(),
-                                         x_expand: true,
-                                         x_align: Clutter.ActorAlign.CENTER,
-                                         y_align: Clutter.ActorAlign.CENTER });
+                                        x_expand: true,
+                                        x_align: Clutter.ActorAlign.CENTER,
+                                        y_align: Clutter.ActorAlign.CENTER });
         this.actor.add_actor(buttonBox);
         this._editButton = new St.Button({ label: _("Edit…"),
                                            style_class: 'button',
@@ -734,7 +736,7 @@ var PadOsd = class {
     _updatePadChooser() {
         if (this._groupPads.length > 1) {
             if (this._padChooser == null) {
-                this._padChooser = new PadChooser(this.padDevice, this._groupPads)
+                this._padChooser = new PadChooser(this.padDevice, this._groupPads);
                 this._padChooser.connect('pad-selected', (chooser, pad) => {
                     this._requestForOtherPad(pad);
                 });
@@ -749,8 +751,7 @@ var PadOsd = class {
     }
 
     _requestForOtherPad(pad) {
-        if (pad == this.padDevice ||
-            this._groupPads.indexOf(pad) == -1)
+        if (pad == this.padDevice || !this._groupPads.includes(pad))
             return;
 
         let editionMode = this._editionMode;
@@ -801,7 +802,7 @@ var PadOsd = class {
 
         // If the event comes from another pad in the same group,
         // show the OSD for it.
-        if (this._groupPads.indexOf(event.get_source_device()) != -1) {
+        if (this._groupPads.includes(event.get_source_device())) {
             this._requestForOtherPad(event.get_source_device());
             return Clutter.EVENT_STOP;
         }
@@ -865,7 +866,7 @@ var PadOsd = class {
             if (this._followUpActionEdition(str))
                 return;
 
-            this._padDiagram.stopEdition(false, str ? str : _("None"))
+            this._padDiagram.stopEdition(false, str ? str : _("None"));
             this._editedAction = null;
         }
 
@@ -888,7 +889,7 @@ var PadOsd = class {
 
     _startButtonActionEdition(button) {
         let ch = String.fromCharCode('A'.charCodeAt() + button);
-        let key = 'button' + ch;
+        let key = `button${ch}`;
         this._startActionEdition(key, Meta.PadActionType.BUTTON, button);
     }
 

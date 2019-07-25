@@ -15,13 +15,13 @@ var AltSwitcher = class {
         this._standard.connect('notify::visible', this._sync.bind(this));
         if (this._standard instanceof St.Button)
             this._standard.connect('clicked',
-                                   () => { this._clickAction.release(); });
+                                   () => this._clickAction.release());
 
         this._alternate = alternate;
         this._alternate.connect('notify::visible', this._sync.bind(this));
         if (this._alternate instanceof St.Button)
             this._alternate.connect('clicked',
-                                    () => { this._clickAction.release(); });
+                                    () => this._clickAction.release());
 
         this._capturedEventId = global.stage.connect('captured-event', this._onCapturedEvent.bind(this));
 
@@ -32,7 +32,7 @@ var AltSwitcher = class {
 
         this.actor = new St.Bin();
         this.actor.connect('destroy', this._onDestroy.bind(this));
-        this.actor.connect('notify::mapped', () => { this._flipped = false; });
+        this.actor.connect('notify::mapped', () => this._flipped = false);
     }
 
     _sync() {
@@ -116,10 +116,10 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         this._createSubMenu();
 
-        this._loginScreenItem.actor.connect('notify::visible',
-                                            () => { this._updateMultiUser(); });
-        this._logoutItem.actor.connect('notify::visible',
-                                       () => { this._updateMultiUser(); });
+        this._loginScreenItem.connect('notify::visible',
+                                      () => this._updateMultiUser());
+        this._logoutItem.connect('notify::visible',
+                                 () => this._updateMultiUser());
         // Whether shutdown is available or not depends on both lockdown
         // settings (disable-log-out) and Polkit policy - the latter doesn't
         // notify, so we update the menu item each time the menu opens or
@@ -142,7 +142,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
                        this._lockScreenAction.visible ||
                        this._altSwitcher.actor.visible);
 
-        this._actionsItem.actor.visible = visible;
+        this.buttonGroup.visible = visible;
     }
 
     _sessionUpdated() {
@@ -150,10 +150,10 @@ var Indicator = class extends PanelMenu.SystemIndicator {
     }
 
     _updateMultiUser() {
-        let hasSwitchUser = this._loginScreenItem.actor.visible;
-        let hasLogout = this._logoutItem.actor.visible;
+        let hasSwitchUser = this._loginScreenItem.visible;
+        let hasLogout = this._logoutItem.visible;
 
-        this._switchUserSubMenu.actor.visible = hasSwitchUser || hasLogout;
+        this._switchUserSubMenu.visible = hasSwitchUser || hasLogout;
     }
 
     _updateSwitchUserSubMenu() {
@@ -186,10 +186,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         let item;
 
         this._switchUserSubMenu = new PopupMenu.PopupSubMenuMenuItem('', true);
-        this._switchUserSubMenu.icon.set({
-            icon_name: 'avatar-default-symbolic',
-            style_class: 'system-switch-user-submenu-icon'
-        });
+        this._switchUserSubMenu.icon.icon_name = 'avatar-default-symbolic';
 
         // Since the label of the switch user submenu depends on the width of
         // the popup menu, and we can't easily connect on allocation-changed
@@ -208,7 +205,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         this._switchUserSubMenu.menu.addMenuItem(item);
         this._loginScreenItem = item;
         this._systemActions.bind_property('can-switch-user',
-                                          this._loginScreenItem.actor,
+                                          this._loginScreenItem,
                                           'visible',
                                           bindFlags);
 
@@ -220,7 +217,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         this._switchUserSubMenu.menu.addMenuItem(item);
         this._logoutItem = item;
         this._systemActions.bind_property('can-logout',
-                                          this._logoutItem.actor,
+                                          this._logoutItem,
                                           'visible',
                                           bindFlags);
 
@@ -236,7 +233,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         item = new PopupMenu.PopupBaseMenuItem({ reactive: false,
                                                  can_focus: false });
-        this.buttonGroup = item.actor;
+        this.buttonGroup = item;
 
         let app = this._settingsApp = Shell.AppSystem.get_default().lookup_app(
             'gnome-control-center.desktop'
@@ -251,14 +248,14 @@ var Indicator = class extends PanelMenu.SystemIndicator {
             log('Missing required core component Settings, expect trouble…');
             this._settingsAction = new St.Widget();
         }
-        item.actor.add(this._settingsAction, { expand: true, x_fill: false });
+        item.add(this._settingsAction, { expand: true, x_fill: false });
 
         this._orientationLockAction = this._createActionButton('', _("Orientation Lock"));
         this._orientationLockAction.connect('clicked', () => {
             this.menu.itemActivated(BoxPointer.PopupAnimation.NONE),
             this._systemActions.activateLockOrientation();
         });
-        item.actor.add(this._orientationLockAction, { expand: true, x_fill: false });
+        item.add(this._orientationLockAction, { expand: true, x_fill: false });
         this._systemActions.bind_property('can-lock-orientation',
                                           this._orientationLockAction,
                                           'visible',
@@ -273,7 +270,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
             this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
             this._systemActions.activateLockScreen();
         });
-        item.actor.add(this._lockScreenAction, { expand: true, x_fill: false });
+        item.add(this._lockScreenAction, { expand: true, x_fill: false });
         this._systemActions.bind_property('can-lock-screen',
                                           this._lockScreenAction,
                                           'visible',
@@ -300,20 +297,19 @@ var Indicator = class extends PanelMenu.SystemIndicator {
                                           bindFlags);
 
         this._altSwitcher = new AltSwitcher(this._powerOffAction, this._suspendAction);
-        item.actor.add(this._altSwitcher.actor, { expand: true, x_fill: false });
+        item.add(this._altSwitcher.actor, { expand: true, x_fill: false });
 
-        this._actionsItem = item;
         this.menu.addMenuItem(item);
 
 
         this._settingsAction.connect('notify::visible',
-                                     () => { this._updateActionsVisibility(); });
+                                     () => this._updateActionsVisibility());
         this._orientationLockAction.connect('notify::visible',
-                                            () => { this._updateActionsVisibility(); });
+                                            () => this._updateActionsVisibility());
         this._lockScreenAction.connect('notify::visible',
-                                       () => { this._updateActionsVisibility(); });
+                                       () => this._updateActionsVisibility());
         this._altSwitcher.actor.connect('notify::visible',
-                                        () => { this._updateActionsVisibility(); });
+                                        () => this._updateActionsVisibility());
     }
 
     _onSettingsClicked() {

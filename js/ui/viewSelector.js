@@ -314,7 +314,7 @@ var ViewSelector = class {
                                               focusCallback: () => {
                                                   this._a11yFocusPage(page);
                                               }
-                                            });;
+                                            });
         page.hide();
         this.actor.add_actor(page);
         return page;
@@ -363,7 +363,7 @@ var ViewSelector = class {
             this._activePage == this._workspacesPage &&
             !Main.overview.animationInProgress) {
             this.appDisplay.animate(IconGrid.AnimationDirection.OUT, () => {
-                this._animateIn(oldPage)
+                this._animateIn(oldPage);
             });
         } else {
             this._fadePageOut(page);
@@ -382,7 +382,7 @@ var ViewSelector = class {
         this.emit('page-changed');
 
         if (oldPage)
-            this._animateOut(oldPage)
+            this._animateOut(oldPage);
         else
             this._animateIn();
     }
@@ -403,7 +403,6 @@ var ViewSelector = class {
         if (Main.modalCount > 1)
             return Clutter.EVENT_PROPAGATE;
 
-        let modifiers = event.get_state();
         let symbol = event.get_key_symbol();
 
         if (symbol == Clutter.Escape) {
@@ -472,7 +471,7 @@ var ViewSelector = class {
         if (this._entry.mapped) {
             // Enable 'find-as-you-type'
             this._capturedEventId = global.stage.connect('captured-event',
-                                 this._onCapturedEvent.bind(this));
+                                                         this._onCapturedEvent.bind(this));
             this._text.set_cursor_visible(true);
             this._text.set_selection(0, 0);
         } else {
@@ -526,7 +525,7 @@ var ViewSelector = class {
 
             if (this._iconClickedId == 0)
                 this._iconClickedId = this._entry.connect('secondary-icon-clicked',
-                    this.reset.bind(this));
+                                                          this.reset.bind(this));
         } else {
             if (this._iconClickedId > 0) {
                 this._entry.disconnect(this._iconClickedId);

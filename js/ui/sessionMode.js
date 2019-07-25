@@ -25,6 +25,7 @@ const _modes = {
         hasWorkspaces: false,
         hasWindows: false,
         hasNotifications: false,
+        hasWmMenus: false,
         isLocked: false,
         isGreeter: false,
         isPrimary: false,
@@ -47,7 +48,7 @@ const _modes = {
         panel: {
             left: [],
             center: ['dateMenu'],
-            right: ['a11y', 'keyboard', 'aggregateMenu']
+            right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu']
         },
         panelStyle: 'login-screen'
     },
@@ -72,7 +73,7 @@ const _modes = {
         panel: {
             left: [],
             center: [],
-            right: ['a11y', 'keyboard', 'aggregateMenu']
+            right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu']
         },
         panelStyle: 'unlock-screen'
     },
@@ -86,6 +87,7 @@ const _modes = {
         hasRunDialog: true,
         hasWorkspaces: true,
         hasWindows: true,
+        hasWmMenus: true,
         hasNotifications: true,
         isLocked: false,
         isPrimary: true,
@@ -99,7 +101,7 @@ const _modes = {
         panel: {
             left: ['activities', 'appMenu'],
             center: ['dateMenu'],
-            right: ['a11y', 'keyboard', 'aggregateMenu']
+            right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu']
         }
     }
 };
@@ -118,7 +120,7 @@ function _loadMode(file, info) {
         if (fileContent instanceof Uint8Array)
             fileContent = imports.byteArray.toString(fileContent);
         newMode = JSON.parse(fileContent);
-    } catch(e) {
+    } catch (e) {
         return;
     }
 
@@ -126,7 +128,7 @@ function _loadMode(file, info) {
     let propBlacklist = ['unlockDialog'];
     for (let prop in _modes[DEFAULT_MODE]) {
         if (newMode[prop] !== undefined &&
-            propBlacklist.indexOf(prop) == -1)
+            !propBlacklist.includes(prop))
             _modes[modeName][prop] = newMode[prop];
     }
     _modes[modeName]['isPrimary'] = true;

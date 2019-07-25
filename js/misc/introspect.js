@@ -42,17 +42,20 @@ var IntrospectService = class {
     }
 
     _isStandaloneApp(app) {
-        let windows = app.get_windows();
-
         return app.get_windows().some(w => w.transient_for == null);
     }
 
     _isIntrospectEnabled() {
-       return this._settings.get_boolean(INTROSPECT_KEY);
+        return this._settings.get_boolean(INTROSPECT_KEY);
     }
 
     _isSenderWhitelisted(sender) {
-       return APP_WHITELIST.includes(sender);
+        return APP_WHITELIST.includes(sender);
+    }
+
+    _getSandboxedAppId(app) {
+        let ids = app.get_windows().map(w => w.get_sandboxed_app_id());
+        return ids.find(id => id != null);
     }
 
     _syncRunningApplications() {
@@ -75,6 +78,10 @@ var IntrospectService = class {
                 appInfo['active-on-seats'] = new GLib.Variant('as', [seatName]);
                 newActiveApplication = app.get_id();
             }
+
+            let sandboxedAppId = this._getSandboxedAppId(app);
+            if (sandboxedAppId)
+                appInfo['sandboxed-app-id'] = new GLib.Variant('s', sandboxedAppId);
 
             newRunningApplications[app.get_id()] = appInfo;
         }
@@ -137,6 +144,7 @@ var IntrospectService = class {
                 let frameRect = window.get_frame_rect();
                 let title = window.get_title();
                 let wmClass = window.get_wm_class();
+                let sandboxedAppId = window.get_sandboxed_app_id();
 
                 windowsList[windowId] = {
                     'app-id': GLib.Variant.new('s', app.get_id()),
@@ -153,6 +161,10 @@ var IntrospectService = class {
 
                 if (wmClass != null)
                     windowsList[windowId]['wm-class'] = GLib.Variant.new('s', wmClass);
+
+                if (sandboxedAppId != null)
+                    windowsList[windowId]['sandboxed-app-id'] =
+                        GLib.Variant.new('s', sandboxedAppId);
             }
         }
         invocation.return_value(new GLib.Variant('(a{ta{sv}})', [windowsList]));

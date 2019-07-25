@@ -24,10 +24,10 @@ var ScreenshotService = class {
         Gio.DBus.session.own_name('org.gnome.Shell.Screenshot', Gio.BusNameOwnerFlags.REPLACE, null, null);
     }
 
-    _createScreenshot(invocation, needsDisk=true) {
+    _createScreenshot(invocation, needsDisk = true) {
         let lockedDown = false;
         if (needsDisk)
-            lockedDown = this._lockdownSettings.get_boolean('disable-save-to-disk')
+            lockedDown = this._lockdownSettings.get_boolean('disable-save-to-disk');
 
         let sender = invocation.get_sender();
         if (this._screenShooter.has(sender) || lockedDown) {
@@ -72,9 +72,9 @@ var ScreenshotService = class {
                 flashspot.fire(() => {
                     this._removeShooterForSender(invocation.get_sender());
                 });
-            }
-            else
+            } else {
                 this._removeShooterForSender(invocation.get_sender());
+            }
         }
 
         let retval = GLib.Variant.new('(bs)', [result, filenameUsed]);
@@ -125,11 +125,11 @@ var ScreenshotService = class {
     }
 
     ScreenshotWindowAsync(params, invocation) {
-        let [include_frame, include_cursor, flash, filename] = params;
+        let [includeFrame, includeCursor, flash, filename] = params;
         let screenshot = this._createScreenshot(invocation);
         if (!screenshot)
             return;
-        screenshot.screenshot_window (include_frame, include_cursor, filename,
+        screenshot.screenshot_window (includeFrame, includeCursor, filename,
             (o, res) => {
                 try {
                     let [result, area, filenameUsed] =
@@ -143,11 +143,11 @@ var ScreenshotService = class {
     }
 
     ScreenshotAsync(params, invocation) {
-        let [include_cursor, flash, filename] = params;
+        let [includeCursor, flash, filename] = params;
         let screenshot = this._createScreenshot(invocation);
         if (!screenshot)
             return;
-        screenshot.screenshot(include_cursor, filename,
+        screenshot.screenshot(includeCursor, filename,
             (o, res) => {
                 try {
                     let [result, area, filenameUsed] =
@@ -166,12 +166,12 @@ var ScreenshotService = class {
         selectArea.connect('finished', (selectArea, areaRectangle) => {
             if (areaRectangle) {
                 let retRectangle = this._unscaleArea(areaRectangle.x, areaRectangle.y,
-                    areaRectangle.width, areaRectangle.height);
+                                                     areaRectangle.width, areaRectangle.height);
                 let retval = GLib.Variant.new('(iiii)', retRectangle);
                 invocation.return_value(retval);
             } else {
                 invocation.return_error_literal(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
-                    "Operation was cancelled");
+                                                "Operation was cancelled");
             }
         });
     }
@@ -185,7 +185,7 @@ var ScreenshotService = class {
                                             "Invalid params");
             return;
         }
-        let flashspot = new Flashspot({ x : x, y : y, width: width, height: height});
+        let flashspot = new Flashspot({ x: x, y: y, width: width, height: height });
         flashspot.fire();
         invocation.return_value(null);
     }
@@ -213,7 +213,7 @@ var ScreenshotService = class {
                 });
             } else {
                 invocation.return_error_literal(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
-                    "Operation was cancelled");
+                                                "Operation was cancelled");
             }
         });
     }

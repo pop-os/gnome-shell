@@ -57,8 +57,8 @@ function _patchLayoutClass(layoutClass, styleProps) {
     };
 }
 
-function _loggingFunc() {
-    let fields = {'MESSAGE': [].join.call(arguments, ', ')};
+function _loggingFunc(...args) {
+    let fields = { 'MESSAGE': args.join(', ') };
     let domain = "GNOME Shell";
 
     // If the caller is an extension, add it as metadata
@@ -96,16 +96,25 @@ function init() {
     Clutter.Actor.prototype.toString = function() {
         return St.describe_actor(this);
     };
+    // Deprecation warning for former JS classes turned into an actor subclass
+    Object.defineProperty(Clutter.Actor.prototype, 'actor', {
+        get() {
+            let klass = this.constructor.name;
+            let { stack } = new Error();
+            log(`Usage of object.actor is deprecated for ${klass}\n${stack}`);
+            return this;
+        }
+    });
 
     let origToString = Object.prototype.toString;
     Object.prototype.toString = function() {
         let base = origToString.call(this);
         try {
             if ('actor' in this && this.actor instanceof Clutter.Actor)
-                return base.replace(/\]$/, ' delegate for ' + this.actor.toString().substring(1));
+                return base.replace(/\]$/, ` delegate for ${this.actor.toString().substring(1)}`);
             else
                 return base;
-        } catch(e) {
+        } catch (e) {
             return base;
         }
     };

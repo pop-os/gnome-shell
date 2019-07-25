@@ -218,17 +218,17 @@ class NotificationApplicationPolicy extends NotificationPolicy {
 
         this._masterSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.notifications' });
         this._settings = new Gio.Settings({ schema_id: 'org.gnome.desktop.notifications.application',
-                                            path: '/org/gnome/desktop/notifications/application/' + this._canonicalId + '/' });
+                                            path: `/org/gnome/desktop/notifications/application/${this._canonicalId}/` });
 
         this._masterSettings.connect('changed', this._changed.bind(this));
         this._settings.connect('changed', this._changed.bind(this));
     }
 
     store() {
-        this._settings.set_string('application-id', this.id + '.desktop');
+        this._settings.set_string('application-id', `${this.id}.desktop`);
 
         let apps = this._masterSettings.get_strv('application-children');
-        if (apps.indexOf(this._canonicalId) < 0) {
+        if (!apps.includes(this._canonicalId)) {
             apps.push(this._canonicalId);
             this._masterSettings.set_strv('application-children', apps);
         }
@@ -248,7 +248,7 @@ class NotificationApplicationPolicy extends NotificationPolicy {
     _canonicalizeId(id) {
         // Keys are restricted to lowercase alphanumeric characters and dash,
         // and two dashes cannot be in succession
-        return id.toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/--+/g, '-');
+        return id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
     }
 
     get enable() {
@@ -473,9 +473,7 @@ var Notification = class Notification {
             this.destroy();
     }
 
-    destroy(reason) {
-        if (!reason)
-            reason = NotificationDestroyedReason.DISMISSED;
+    destroy(reason = NotificationDestroyedReason.DISMISSED) {
         this.emit('destroy', reason);
     }
 };
@@ -584,18 +582,17 @@ class SourceActor extends St.Widget {
         this._source = source;
         this._size = size;
 
-        this.actor = this;
         this.connect('destroy', () => {
             this._source.disconnect(this._iconUpdatedId);
             this._actorDestroyed = true;
         });
         this._actorDestroyed = false;
 
-        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this._iconBin = new St.Bin({ x_fill: true,
                                      x_expand: true,
-                                     height: size * scale_factor,
-                                     width: size * scale_factor });
+                                     height: size * scaleFactor,
+                                     width: size * scaleFactor });
 
         this.add_actor(this._iconBin);
 
@@ -773,7 +770,7 @@ var Source = class Source {
     }
 
     pushNotification(notification) {
-        if (this.notifications.indexOf(notification) >= 0)
+        if (this.notifications.includes(notification))
             return;
 
         while (this.notifications.length >= MAX_NOTIFICATIONS_PER_SOURCE)
@@ -989,7 +986,7 @@ var MessageTray = class MessageTray {
 
     add(source) {
         if (this.contains(source)) {
-            log('Trying to re-add source ' + source.title);
+            log(`Trying to re-add source ${source.title}`);
             return;
         }
 
@@ -1070,7 +1067,7 @@ var MessageTray = class MessageTray {
             // If a new notification is updated while it is being hidden,
             // we stop hiding it and show it again.
             this._updateShowingNotification();
-        } else if (this._notificationQueue.indexOf(notification) < 0) {
+        } else if (!this._notificationQueue.includes(notification)) {
             // If the queue is "full", we skip banner mode and just show a small
             // indicator in the panel; however do make an exception for CRITICAL
             // notifications, as only banner mode allows expansion.
@@ -1168,7 +1165,7 @@ var MessageTray = class MessageTray {
             x > this._notificationLeftMouseX - MOUSE_LEFT_ACTOR_THRESHOLD) {
             this._notificationLeftMouseX = -1;
             this._notificationLeftTimeoutId = Mainloop.timeout_add(LONGER_HIDE_TIMEOUT * 1000,
-                                                             this._onNotificationLeftTimeout.bind(this));
+                                                                   this._onNotificationLeftTimeout.bind(this));
             GLib.Source.set_name_by_id(this._notificationLeftTimeoutId, '[gnome-shell] this._onNotificationLeftTimeout');
         } else {
             this._notificationLeftTimeoutId = 0;

@@ -75,12 +75,7 @@ void     shell_global_notify_error              (ShellGlobal  *global,
                                                  const char   *msg,
                                                  const char   *details);
 
-void     shell_global_init_xdnd                 (ShellGlobal  *global);
-
 void     shell_global_reexec_self               (ShellGlobal  *global);
-
-void     shell_global_log_structured            (const char *message,
-                                                 const char *const *keys);
 
 const char *     shell_global_get_session_mode  (ShellGlobal  *global);
 

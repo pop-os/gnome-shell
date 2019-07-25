@@ -108,7 +108,6 @@ const PRIMARY_COLOR_KEY = 'primary-color';
 const SECONDARY_COLOR_KEY = 'secondary-color';
 const COLOR_SHADING_TYPE_KEY = 'color-shading-type';
 const BACKGROUND_STYLE_KEY = 'picture-options';
-const PICTURE_OPACITY_KEY = 'picture-opacity';
 const PICTURE_URI_KEY = 'picture-uri';
 
 var FADE_ANIMATION_TIME = 1.0;
@@ -257,14 +256,15 @@ var Background = class Background {
                 this._refreshAnimation();
             });
 
-        this._settingsChangedSignalId = this._settings.connect('changed', () => {
-            this.emit('changed');
-        });
+        this._settingsChangedSignalId =
+            this._settings.connect('changed', this._emitChangedSignal.bind(this));
 
         this._load();
     }
 
     destroy() {
+        this.background = null;
+
         this._cancellable.cancel();
         this._removeAnimationTimeout();
 
@@ -288,6 +288,22 @@ var Background = class Background {
         if (this._settingsChangedSignalId != 0)
             this._settings.disconnect(this._settingsChangedSignalId);
         this._settingsChangedSignalId = 0;
+
+        if (this._changedIdleId) {
+            GLib.source_remove(this._changedIdleId);
+            this._changedIdleId = 0;
+        }
+    }
+
+    _emitChangedSignal() {
+        if (this._changedIdleId)
+            return;
+
+        this._changedIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._changedIdleId = 0;
+            this.emit('changed');
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     updateResolution() {
@@ -343,7 +359,7 @@ var Background = class Background {
                                                if (changedFile.equal(file)) {
                                                    let imageCache = Meta.BackgroundImageCache.get_default();
                                                    imageCache.purge(changedFile);
-                                                   this.emit('changed');
+                                                   this._emitChangedSignal();
                                                }
                                            });
         this._fileWatches[key] = signalId;
@@ -416,12 +432,12 @@ var Background = class Background {
             return;
 
         this._updateAnimationTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-                                                      interval,
-                                                      () => {
-                                                          this._updateAnimationTimeoutId = 0;
-                                                          this._updateAnimation();
-                                                          return GLib.SOURCE_REMOVE;
-                                                      });
+                                                          interval,
+                                                          () => {
+                                                              this._updateAnimationTimeoutId = 0;
+                                                              this._updateAnimation();
+                                                              return GLib.SOURCE_REMOVE;
+                                                          });
         GLib.Source.set_name_by_id(this._updateAnimationTimeoutId, '[gnome-shell] this._updateAnimation');
     }
 
@@ -448,9 +464,9 @@ var Background = class Background {
 
         let cache = Meta.BackgroundImageCache.get_default();
         let image = cache.load(file);
-        if (image.is_loaded())
+        if (image.is_loaded()) {
             this._setLoaded();
-        else {
+        } else {
             let id = image.connect('loaded', () => {
                 this._setLoaded();
                 image.disconnect(id);
@@ -617,7 +633,7 @@ var Animation = class Animation {
     }
 
     load(callback) {
-        this._show = new GnomeDesktop.BGSlideShow({ filename: this.file.get_path() });
+        this._show = new GnomeDesktop.BGSlideShow({ file: this.file });
 
         this._show.load_async(null, (object, result) => {
             this.loaded = true;
@@ -699,7 +715,6 @@ var BackgroundManager = class BackgroundManager {
                            time: FADE_ANIMATION_TIME,
                            transition: 'easeOutQuad',
                            onComplete() {
-                               oldBackgroundActor.background.run_dispose();
                                oldBackgroundActor.destroy();
                            }
                          });

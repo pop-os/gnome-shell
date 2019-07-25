@@ -14,8 +14,8 @@ const SEARCH_PROVIDERS_SCHEMA = 'org.gnome.desktop.search-providers';
 var MAX_LIST_SEARCH_RESULTS_ROWS = 5;
 var MAX_GRID_SEARCH_RESULTS_ROWS = 1;
 
-var MaxWidthBin = GObject.registerClass(
-class MaxWidthBin extends St.Bin {
+var MaxWidthBox = GObject.registerClass(
+class MaxWidthBox extends St.BoxLayout {
     vfunc_allocate(box, flags) {
         let themeNode = this.get_theme_node();
         let maxWidth = themeNode.get_max_width();
@@ -214,13 +214,13 @@ var SearchResultsBase = class {
                     return;
                 }
                 if (metas.length != metasNeeded.length) {
-                    log('Wrong number of result metas returned by search provider ' + this.provider.id +
-                        ': expected ' + metasNeeded.length + ' but got ' + metas.length);
+                    log(`Wrong number of result metas returned by search provider ${this.provider.id}: ` +
+                        `expected ${metasNeeded.length} but got ${metas.length}`);
                     callback(false);
                     return;
                 }
                 if (metas.some(meta => !meta.name || !meta.id)) {
-                    log('Invalid result meta returned from search provider ' + this.provider.id);
+                    log(`Invalid result meta returned from search provider ${this.provider.id}`);
                     callback(false);
                     return;
                 }
@@ -309,7 +309,7 @@ var ListSearchResults = class extends SearchResultsBase {
     }
 
     _createResultDisplay(meta) {
-        return super._createResultDisplay(meta, this._resultsView) ||
+        return super._createResultDisplay(meta) ||
                new ListSearchResult(this.provider, meta, this._resultsView);
     }
 
@@ -329,12 +329,6 @@ Signals.addSignalMethods(ListSearchResults.prototype);
 var GridSearchResults = class extends SearchResultsBase {
     constructor(provider, resultsView) {
         super(provider, resultsView);
-        // We need to use the parent container to know how much results we can show.
-        // None of the actors in this class can be used for that, since the main actor
-        // goes hidden when no results are displayed, and then it lost its allocation.
-        // Then on the next use of _getMaxDisplayedResults allocation is 0, en therefore
-        // it doesn't show any result although we have some.
-        this._parentContainer = resultsView.actor;
 
         this._grid = new IconGrid.IconGrid({ rowLimit: MAX_GRID_SEARCH_RESULTS_ROWS,
                                              xAlign: St.Align.START });
@@ -345,10 +339,23 @@ var GridSearchResults = class extends SearchResultsBase {
         this._resultDisplayBin.set_child(this._bin);
     }
 
+    updateSearch(...args) {
+        if (this._notifyAllocationId)
+            this.actor.disconnect(this._notifyAllocationId);
+
+        // Make sure the maximum number of results calculated by
+        // _getMaxDisplayedResults() is updated after width changes.
+        this._notifyAllocationId = this.actor.connect('notify::allocation', () => {
+            super.updateSearch(...args);
+        });
+
+        super.updateSearch(...args);
+    }
+
     _getMaxDisplayedResults() {
-        let parentThemeNode = this._parentContainer.get_theme_node();
-        let availableWidth = parentThemeNode.adjust_for_width(this._parentContainer.width);
-        return this._grid.columnsForWidth(availableWidth) * this._grid.getRowLimit();
+        let allocation = this.actor.allocation;
+        let nCols = this._grid.columnsForWidth(allocation.x2 - allocation.x1);
+        return nCols * this._grid.getRowLimit();
     }
 
     _clearResultDisplay() {
@@ -356,7 +363,7 @@ var GridSearchResults = class extends SearchResultsBase {
     }
 
     _createResultDisplay(meta) {
-        return super._createResultDisplay(meta, this._resultsView) ||
+        return super._createResultDisplay(meta) ||
                new GridSearchResult(this.provider, meta, this._resultsView);
     }
 
@@ -378,22 +385,16 @@ var SearchResults = class {
         this.actor = new St.BoxLayout({ name: 'searchResults',
                                         vertical: true });
 
-        this._content = new St.BoxLayout({ name: 'searchResultsContent',
-                                           vertical: true });
-        this._contentBin = new MaxWidthBin({ name: 'searchResultsBin',
-                                             x_fill: true,
-                                             y_fill: true,
-                                             child: this._content });
-
-        let scrollChild = new St.BoxLayout();
-        scrollChild.add(this._contentBin, { expand: true });
+        this._content = new MaxWidthBox({ name: 'searchResultsContent',
+                                          vertical: true });
 
         this._scrollView = new St.ScrollView({ x_fill: true,
                                                y_fill: false,
                                                overlay_scrollbars: true,
                                                style_class: 'search-display vfade' });
         this._scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
-        this._scrollView.add_actor(scrollChild);
+        this._scrollView.add_actor(this._content);
+
         let action = new Clutter.PanAction({ interpolate: true });
         action.connect('pan', this._onPan.bind(this));
         this._scrollView.add_action(action);
@@ -431,6 +432,9 @@ var SearchResults = class {
         this._cancellable = new Gio.Cancellable();
 
         this._registerProvider(new AppDisplay.AppSearchProvider());
+
+        let appSystem = Shell.AppSystem.get_default();
+        appSystem.connect('installed-changed', this._reloadRemoteProviders.bind(this));
         this._reloadRemoteProviders();
     }
 

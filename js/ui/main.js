@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Clutter, Gio, GLib, Meta, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
 
 const AccessDialog = imports.ui.accessDialog;
@@ -37,12 +37,16 @@ const WindowManager = imports.ui.windowManager;
 const Magnifier = imports.ui.magnifier;
 const XdndHandler = imports.ui.xdndHandler;
 const KbdA11yDialog = imports.ui.kbdA11yDialog;
+const LocatePointer = imports.ui.locatePointer;
+const PointerA11yTimeout = imports.ui.pointerA11yTimeout;
 
 const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
 const STICKY_KEYS_ENABLE = 'stickykeys-enable';
+const LOG_DOMAIN = 'GNOME Shell';
 const GNOMESHELL_STARTED_MESSAGE_ID = 'f3ea493c22934e26811cd62abe8e203a';
 
 var componentManager = null;
+var extensionManager = null;
 var panel = null;
 var overview = null;
 var runDialog = null;
@@ -74,6 +78,7 @@ var layoutManager = null;
 var kbdA11yDialog = null;
 var inputMethod = null;
 var introspectService = null;
+var locatePointer = null;
 let _startDate;
 let _defaultCssStylesheet = null;
 let _cssStylesheet = null;
@@ -91,6 +96,8 @@ function _sessionUpdated() {
                                   sessionMode.hasOverview ? overview.toggle.bind(overview) : null);
     wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL |
                                       Shell.ActionMode.OVERVIEW);
+
+    wm.allowKeybinding('locate-pointer-key', Shell.ActionMode.ALL);
 
     wm.setCustomKeybindingHandler('panel-run-dialog',
                                   Shell.ActionMode.NORMAL |
@@ -133,12 +140,12 @@ function start() {
 
 function _initializeUI() {
     // Ensure ShellWindowTracker and ShellAppUsage are initialized; this will
-    // also initialize ShellAppSystem first.  ShellAppSystem
+    // also initialize ShellAppSystem first. ShellAppSystem
     // needs to load all the .desktop files, and ShellWindowTracker
-    // will use those to associate with windows.  Right now
+    // will use those to associate with windows. Right now
     // the Monitor doesn't listen for installed app changes
     // and recalculate application associations, so to avoid
-    // races for now we initialize it here.  It's better to
+    // races for now we initialize it here. It's better to
     // be predictable anyways.
     Shell.WindowTracker.get_default();
     Shell.AppUsage.get_default();
@@ -150,8 +157,8 @@ function _initializeUI() {
     // Setup the stage hierarchy early
     layoutManager = new Layout.LayoutManager();
 
-    // Various parts of the codebase still refers to Main.uiGroup
-    // instead using the layoutManager.  This keeps that code
+    // Various parts of the codebase still refer to Main.uiGroup
+    // instead of using the layoutManager. This keeps that code
     // working until it's updated.
     uiGroup = layoutManager.uiGroup;
 
@@ -165,6 +172,8 @@ function _initializeUI() {
     kbdA11yDialog = new KbdA11yDialog.KbdA11yDialog();
     wm = new WindowManager.WindowManager();
     magnifier = new Magnifier.Magnifier();
+    locatePointer = new LocatePointer.LocatePointer();
+
     if (LoginManager.canLock())
         screenShield = new ScreenShield.ScreenShield();
 
@@ -183,11 +192,17 @@ function _initializeUI() {
     layoutManager.init();
     overview.init();
 
+    (new PointerA11yTimeout.PointerA11yTimeout());
+
     _a11ySettings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
 
     global.display.connect('overlay-key', () => {
         if (!_a11ySettings.get_boolean (STICKY_KEYS_ENABLE))
             overview.toggle();
+    });
+
+    global.connect('locate-pointer', () => {
+        locatePointer.show();
     });
 
     global.display.connect('show-restart-message', (display, message) => {
@@ -212,7 +227,8 @@ function _initializeUI() {
     _startDate = new Date();
 
     ExtensionDownloader.init();
-    ExtensionSystem.init();
+    extensionManager = new ExtensionSystem.ExtensionManager();
+    extensionManager.init();
 
     if (sessionMode.isGreeter && screenShield) {
         layoutManager.connect('startup-prepared', () => {
@@ -229,14 +245,18 @@ function _initializeUI() {
         }
         if (sessionMode.currentMode != 'gdm' &&
             sessionMode.currentMode != 'initial-setup') {
-            Shell.Global.log_structured('GNOME Shell started at ' + _startDate,
-                                        ['MESSAGE_ID=' + GNOMESHELL_STARTED_MESSAGE_ID]);
+            GLib.log_structured(LOG_DOMAIN, GLib.LogLevelFlags.LEVEL_MESSAGE, {
+                'MESSAGE': `GNOME Shell started at ${_startDate}`,
+                'MESSAGE_ID': GNOMESHELL_STARTED_MESSAGE_ID
+            });
         }
+
+        LoginManager.registerSessionWithGDM();
 
         let perfModuleName = GLib.getenv("SHELL_PERF_MODULE");
         if (perfModuleName) {
             let perfOutput = GLib.getenv("SHELL_PERF_OUTPUT");
-            let module = eval('imports.perf.' + perfModuleName + ';');
+            let module = eval(`imports.perf.${perfModuleName};`);
             Scripting.runPerfScript(module, perfOutput);
         }
     });
@@ -303,7 +323,7 @@ function getThemeStylesheet() {
 /**
  * setThemeStylesheet:
  * @cssStylesheet: A file path that contains the theme CSS,
- *                  set it to null to use the default
+ *                 set it to null to use the default
  *
  * Set the theme CSS file that the shell will load
  */
@@ -372,9 +392,9 @@ function notify(msg, details) {
 function notifyError(msg, details) {
     // Also print to stderr so it's logged somewhere
     if (details)
-        log('error: ' + msg + ': ' + details);
+        log(`error: ${msg}: ${details}`);
     else
-        log('error: ' + msg);
+        log(`error: ${msg}`);
 
     notify(msg, details);
 }
@@ -403,15 +423,15 @@ function _findModal(actor) {
  *
  * @params may be used to provide the following parameters:
  *  - timestamp: used to associate the call with a specific user initiated
- *               event.  If not provided then the value of
+ *               event. If not provided then the value of
  *               global.get_current_time() is assumed.
  *
  *  - options: Meta.ModalOptions flags to indicate that the pointer is
  *             already grabbed
  *
  *  - actionMode: used to set the current Shell.ActionMode to filter
- *                    global keybindings; the default of NONE will filter
- *                    out all keybindings
+ *                global keybindings; the default of NONE will filter
+ *                out all keybindings
  *
  * Returns: true iff we successfully acquired a grab or already had one
  */
@@ -457,15 +477,15 @@ function pushModal(actor, params) {
 
 /**
  * popModal:
- * @actor: #ClutterActor passed to original invocation of pushModal().
+ * @actor: #ClutterActor passed to original invocation of pushModal()
  * @timestamp: optional timestamp
  *
- * Reverse the effect of pushModal().  If this invocation is undoing
+ * Reverse the effect of pushModal(). If this invocation is undoing
  * the topmost invocation, then the focus will be restored to the
  * previous focus at the time when pushModal() was invoked.
  *
  * @timestamp is optionally used to associate the call with a specific user
- * initiated event.  If not provided then the value of
+ * initiated event. If not provided then the value of
  * global.get_current_time() is assumed.
  */
 function popModal(actor, timestamp) {
@@ -627,7 +647,7 @@ function _queueBeforeRedraw(workId) {
  *
  * This function sets up a callback to be invoked when either the
  * given actor is mapped, or after some period of time when the machine
- * is idle.  This is useful if your actor isn't always visible on the
+ * is idle. This is useful if your actor isn't always visible on the
  * screen (for example, all actors in the overview), and you don't want
  * to consume resources updating if the actor isn't actually going to be
  * displaying to the user.
@@ -636,15 +656,15 @@ function _queueBeforeRedraw(workId) {
  * initialization as well, under the assumption that new actors
  * will need it.
  *
- * Returns: A string work identifer
+ * Returns: A string work identifier
  */
 function initializeDeferredWork(actor, callback, props) {
     // Turn into a string so we can use as an object property
-    let workId = '' + (++_deferredWorkSequence);
+    let workId = `${(++_deferredWorkSequence)}`;
     _deferredWorkData[workId] = { 'actor': actor,
                                   'callback': callback };
     actor.connect('notify::mapped', () => {
-        if (!(actor.mapped && _deferredWorkQueue.indexOf(workId) >= 0))
+        if (!(actor.mapped && _deferredWorkQueue.includes(workId)))
             return;
         _queueBeforeRedraw(workId);
     });
@@ -663,7 +683,7 @@ function initializeDeferredWork(actor, callback, props) {
  * @workId: work identifier
  *
  * Ensure that the work identified by @workId will be
- * run on map or timeout.  You should call this function
+ * run on map or timeout. You should call this function
  * for example when data being displayed by the actor has
  * changed.
  */
@@ -674,7 +694,7 @@ function queueDeferredWork(workId) {
         logError(new Error(message), message);
         return;
     }
-    if (_deferredWorkQueue.indexOf(workId) < 0)
+    if (!_deferredWorkQueue.includes(workId))
         _deferredWorkQueue.push(workId);
     if (data.actor.mapped) {
         _queueBeforeRedraw(workId);
@@ -689,12 +709,13 @@ function queueDeferredWork(workId) {
     }
 }
 
-var RestartMessage = class extends ModalDialog.ModalDialog {
-    constructor(message) {
-        super({ shellReactive: true,
-                styleClass: 'restart-message headline',
-                shouldFadeIn: false,
-                destroyOnClose: true });
+var RestartMessage = GObject.registerClass(
+class RestartMessage extends ModalDialog.ModalDialog {
+    _init(message) {
+        super._init({ shellReactive: true,
+                      styleClass: 'restart-message headline',
+                      shouldFadeIn: false,
+                      destroyOnClose: true });
 
         let label = new St.Label({ text: message });
 
@@ -704,7 +725,7 @@ var RestartMessage = class extends ModalDialog.ModalDialog {
                                         y_align: St.Align.MIDDLE });
         this.buttonLayout.hide();
     }
-};
+});
 
 function showRestartMessage(message) {
     let restartMessage = new RestartMessage(message);

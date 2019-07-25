@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Clutter, GObject, Meta, Shell, St } = imports.gi;
+const { Clutter, GObject, Shell, St } = imports.gi;
 
 const Main = imports.ui.main;
 const Tweener = imports.ui.tweener;
@@ -33,8 +33,6 @@ var BoxPointer = GObject.registerClass({
     _init(arrowSide, binProperties) {
         super._init();
 
-        this.actor = this;
-
         this.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 
         this._arrowSide = arrowSide;
@@ -50,6 +48,15 @@ var BoxPointer = GObject.registerClass({
         this._sourceAlignment = 0.5;
         this._capturedEventId = 0;
         this._muteInput();
+
+        this.connect('destroy', this._onDestroy.bind(this));
+    }
+
+    _onDestroy() {
+        if (this._sourceActorDestroyId) {
+            this._sourceActor.disconnect(this._sourceActorDestroyId);
+            delete this._sourceActorDestroyId;
+        }
     }
 
     get arrowSide() {
@@ -69,36 +76,6 @@ var BoxPointer = GObject.registerClass({
         }
     }
 
-    // BoxPointer.show() and BoxPointer.hide() are here for only compatibility
-    // purposes, and will be removed in 3.32.
-    show(animate, onComplete) {
-        if (animate !== undefined) {
-            try {
-                throw new Error('BoxPointer.show() has been moved to BoxPointer.open(), this code will break in the future.');
-            } catch(e) {
-                logError(e);
-                this.open(animate, onComplete);
-                return;
-            }
-        }
-
-        this.visible = true;
-    }
-
-    hide(animate, onComplete) {
-        if (animate !== undefined) {
-            try {
-                throw new Error('BoxPointer.hide() has been moved to BoxPointer.close(), this code will break in the future.');
-            } catch(e) {
-                logError(e);
-                this.close(animate, onComplete);
-                return;
-            }
-        }
-
-        this.visible = false;
-    }
-
     open(animate, onComplete) {
         let themeNode = this.get_theme_node();
         let rise = themeNode.get_length('-arrow-rise');
@@ -113,18 +90,18 @@ var BoxPointer = GObject.registerClass({
 
         if (animate & PopupAnimation.SLIDE) {
             switch (this._arrowSide) {
-                case St.Side.TOP:
-                    this.translation_y = -rise;
-                    break;
-                case St.Side.BOTTOM:
-                    this.translation_y = rise;
-                    break;
-                case St.Side.LEFT:
-                    this.translation_x = -rise;
-                    break;
-                case St.Side.RIGHT:
-                    this.translation_x = rise;
-                    break;
+            case St.Side.TOP:
+                this.translation_y = -rise;
+                break;
+            case St.Side.BOTTOM:
+                this.translation_y = rise;
+                break;
+            case St.Side.LEFT:
+                this.translation_x = -rise;
+                break;
+            case St.Side.RIGHT:
+                this.translation_x = rise;
+                break;
             }
         }
 
@@ -153,18 +130,18 @@ var BoxPointer = GObject.registerClass({
 
         if (animate & PopupAnimation.SLIDE) {
             switch (this._arrowSide) {
-                case St.Side.TOP:
-                    translationY = rise;
-                    break;
-                case St.Side.BOTTOM:
-                    translationY = -rise;
-                    break;
-                case St.Side.LEFT:
-                    translationX = rise;
-                    break;
-                case St.Side.RIGHT:
-                    translationX = -rise;
-                    break;
+            case St.Side.TOP:
+                translationY = rise;
+                break;
+            case St.Side.BOTTOM:
+                translationY = -rise;
+                break;
+            case St.Side.LEFT:
+                translationX = rise;
+                break;
+            case St.Side.RIGHT:
+                translationX = -rise;
+                break;
             }
         }
 
@@ -227,13 +204,10 @@ var BoxPointer = GObject.registerClass({
         this.set_allocation(box, flags);
 
         let themeNode = this.get_theme_node();
-        box = themeNode.get_content_box(box);
-
         let borderWidth = themeNode.get_length('-arrow-border-width');
         let rise = themeNode.get_length('-arrow-rise');
         let childBox = new Clutter.ActorBox();
-        let availWidth = box.x2 - box.x1;
-        let availHeight = box.y2 - box.y1;
+        let [availWidth, availHeight] = themeNode.get_content_box(box).get_size();
 
         childBox.x1 = 0;
         childBox.y1 = 0;
@@ -246,24 +220,25 @@ var BoxPointer = GObject.registerClass({
         childBox.x2 = availWidth - borderWidth;
         childBox.y2 = availHeight - borderWidth;
         switch (this._arrowSide) {
-            case St.Side.TOP:
-                childBox.y1 += rise;
-                break;
-            case St.Side.BOTTOM:
-                childBox.y2 -= rise;
-                break;
-            case St.Side.LEFT:
-                childBox.x1 += rise;
-                break;
-            case St.Side.RIGHT:
-                childBox.x2 -= rise;
-                break;
+        case St.Side.TOP:
+            childBox.y1 += rise;
+            break;
+        case St.Side.BOTTOM:
+            childBox.y2 -= rise;
+            break;
+        case St.Side.LEFT:
+            childBox.x1 += rise;
+            break;
+        case St.Side.RIGHT:
+            childBox.x2 -= rise;
+            break;
         }
         this.bin.allocate(childBox, flags);
 
         if (this._sourceActor && this._sourceActor.mapped) {
-            this._reposition();
-            this._updateFlip();
+            this._reposition(box);
+            this._updateFlip(box);
+            this.set_allocation(box, flags);
         }
     }
 
@@ -289,7 +264,7 @@ var BoxPointer = GObject.registerClass({
         let borderRadius = themeNode.get_length('-arrow-border-radius');
 
         let halfBorder = borderWidth / 2;
-        let halfBase = Math.floor(base/2);
+        let halfBase = Math.floor(base / 2);
 
         let backgroundColor = themeNode.get_color('-arrow-background-color');
 
@@ -370,7 +345,7 @@ var BoxPointer = GObject.registerClass({
         if (!skipTopRight) {
             cr.lineTo(x2 - borderRadius, y1);
             cr.arc(x2 - borderRadius, y1 + borderRadius, borderRadius,
-                   3*Math.PI/2, Math.PI*2);
+                   3 * Math.PI / 2, Math.PI * 2);
         }
 
         if (this._arrowSide == St.Side.RIGHT && rise) {
@@ -391,7 +366,7 @@ var BoxPointer = GObject.registerClass({
         if (!skipBottomRight) {
             cr.lineTo(x2, y2 - borderRadius);
             cr.arc(x2 - borderRadius, y2 - borderRadius, borderRadius,
-                   0, Math.PI/2);
+                   0, Math.PI / 2);
         }
 
         if (this._arrowSide == St.Side.BOTTOM && rise) {
@@ -412,7 +387,7 @@ var BoxPointer = GObject.registerClass({
         if (!skipBottomLeft) {
             cr.lineTo(x1 + borderRadius, y2);
             cr.arc(x1 + borderRadius, y2 - borderRadius, borderRadius,
-                   Math.PI/2, Math.PI);
+                   Math.PI / 2, Math.PI);
         }
 
         if (this._arrowSide == St.Side.LEFT && rise) {
@@ -421,7 +396,7 @@ var BoxPointer = GObject.registerClass({
                 cr.lineTo(x1 - rise, y1);
                 cr.lineTo(x1 + borderRadius, y1);
             } else if (skipBottomLeft) {
-                cr.lineTo(x1 - rise, y2)
+                cr.lineTo(x1 - rise, y2);
                 cr.lineTo(x1 - rise, y2 - halfBase);
             } else {
                 cr.lineTo(x1, this._arrowOrigin + halfBase);
@@ -433,7 +408,7 @@ var BoxPointer = GObject.registerClass({
         if (!skipTopLeft) {
             cr.lineTo(x1, y1 + borderRadius);
             cr.arc(x1 + borderRadius, y1 + borderRadius, borderRadius,
-                   Math.PI, 3*Math.PI/2);
+                   Math.PI, 3 * Math.PI / 2);
         }
 
         Clutter.cairo_set_source_color(cr, backgroundColor);
@@ -450,15 +425,25 @@ var BoxPointer = GObject.registerClass({
     }
 
     setPosition(sourceActor, alignment) {
-        // We need to show it now to force an allocation,
-        // so that we can query the correct size.
-        this.show();
+        if (!this._sourceActor || sourceActor != this._sourceActor) {
+            if (this._sourceActorDestroyId) {
+                this._sourceActor.disconnect(this._sourceActorDestroyId);
+                delete this._sourceActorDestroyId;
+            }
 
-        this._sourceActor = sourceActor;
+            this._sourceActor = sourceActor;
+
+            if (this._sourceActor) {
+                this._sourceActorDestroyId = this._sourceActor.connect('destroy', () => {
+                    this._sourceActor = null;
+                    delete this._sourceActorDestroyId;
+                });
+            }
+        }
+
         this._arrowAlignment = alignment;
 
-        this._reposition();
-        this._updateFlip();
+        this.queue_relayout();
     }
 
     setSourceAlignment(alignment) {
@@ -470,7 +455,7 @@ var BoxPointer = GObject.registerClass({
         this.setPosition(this._sourceActor, this._arrowAlignment);
     }
 
-    _reposition() {
+    _reposition(allocationBox) {
         let sourceActor = this._sourceActor;
         let alignment = this._arrowAlignment;
         let monitorIndex = Main.layoutManager.findIndexForActor(sourceActor);
@@ -528,7 +513,7 @@ var BoxPointer = GObject.registerClass({
         //     of the box to maintain the arrow's accuracy.
 
         let arrowOrigin;
-        let halfBase = Math.floor(arrowBase/2);
+        let halfBase = Math.floor(arrowBase / 2);
         let halfBorder = borderWidth / 2;
         let halfMargin = margin / 2;
         let [x1, y1] = [halfBorder, halfBorder];
@@ -584,8 +569,7 @@ var BoxPointer = GObject.registerClass({
         }
 
         // Actually set the position
-        this.x = Math.floor(x);
-        this.y = Math.floor(y);
+        allocationBox.set_origin(Math.floor(x), Math.floor(y));
     }
 
     // @origin: Coordinate specifying middle of the arrow, along
@@ -639,15 +623,11 @@ var BoxPointer = GObject.registerClass({
         return arrowSide;
     }
 
-    _updateFlip() {
+    _updateFlip(allocationBox) {
         let arrowSide = this._calculateArrowSide(this._userArrowSide);
         if (this._arrowSide != arrowSide) {
             this._arrowSide = arrowSide;
-            this._reposition();
-            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
-                this.queue_relayout();
-                return false;
-            });
+            this._reposition(allocationBox);
 
             this.emit('arrow-side-changed');
         }

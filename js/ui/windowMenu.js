@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*
 
-const { Meta, St } = imports.gi;
+const { GLib, Meta, St } = imports.gi;
 
 const BoxPointer = imports.ui.boxpointer;
 const Main = imports.ui.main;
@@ -42,13 +42,13 @@ var WindowMenu = class extends PopupMenu.PopupMenu {
             item.setSensitive(false);
 
         item = this.addAction(_("Move"), event => {
-            window.begin_grab_op(Meta.GrabOp.KEYBOARD_MOVING, true, event.get_time());
+            this._grabAction(window, Meta.GrabOp.KEYBOARD_MOVING, event.get_time());
         });
         if (!window.allows_move())
             item.setSensitive(false);
 
         item = this.addAction(_("Resize"), event => {
-            window.begin_grab_op(Meta.GrabOp.KEYBOARD_RESIZING_UNKNOWN, true, event.get_time());
+            this._grabAction(window, Meta.GrabOp.KEYBOARD_RESIZING_UNKNOWN, event.get_time());
         });
         if (!window.allows_resize())
             item.setSensitive(false);
@@ -169,11 +169,31 @@ var WindowMenu = class extends PopupMenu.PopupMenu {
         if (!window.can_close())
             item.setSensitive(false);
     }
+
+    _grabAction(window, grabOp, time) {
+        if (global.display.get_grab_op() == Meta.GrabOp.NONE) {
+            window.begin_grab_op(grabOp, true, time);
+            return;
+        }
+
+        let waitId = 0;
+        let id = global.display.connect('grab-op-end', (display) => {
+            display.disconnect(id);
+            GLib.source_remove(waitId);
+
+            window.begin_grab_op(grabOp, true, time);
+        });
+
+        waitId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            global.display.disconnect(id);
+            return GLib.SOURCE_REMOVE;
+        });
+    }
 };
 
 var WindowMenuManager = class {
     constructor() {
-        this._manager = new PopupMenu.PopupMenuManager({ actor: Main.layoutManager.dummyCursor });
+        this._manager = new PopupMenu.PopupMenuManager(Main.layoutManager.dummyCursor);
 
         this._sourceActor = new St.Widget({ reactive: true, visible: false });
         this._sourceActor.connect('button-press-event', () => {
@@ -183,6 +203,9 @@ var WindowMenuManager = class {
     }
 
     showWindowMenuForWindow(window, type, rect) {
+        if (!Main.sessionMode.hasWmMenus)
+            return;
+
         if (type != Meta.WindowMenuType.WM)
             throw new Error('Unsupported window menu type');
         let menu = new WindowMenu(window, this._sourceActor);

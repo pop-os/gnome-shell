@@ -36,7 +36,7 @@ function _createWindowClone(window, size) {
                                // usual hack for the usual bug in ClutterBinLayout...
                                x_expand: true,
                                y_expand: true });
-};
+}
 
 function getWindows(workspace) {
     // We ignore skip-taskbar windows in switchers, but if they are attached
@@ -395,7 +395,7 @@ class AppSwitcherPopup extends SwitcherPopup.SwitcherPopup {
                          { opacity: 255,
                            time: THUMBNAIL_FADE_TIME,
                            transition: 'easeOutQuad',
-                           onComplete: () => { this.thumbnailsVisible = true; }
+                           onComplete: () => this.thumbnailsVisible = true
                          });
 
         this._switcherList._items[this._selectedIndex].add_accessible_state (Atk.StateType.EXPANDED);
@@ -459,7 +459,7 @@ class CyclerHighlight {
     _onDestroy() {
         this.window = null;
     }
-};
+}
 
 // We don't show an actual popup, so just provide what SwitcherPopup
 // expects instead of inheriting from SwitcherList
@@ -474,12 +474,10 @@ var CyclerList = GObject.registerClass({
     }
 });
 
-var CyclerPopup = GObject.registerClass(
-class CyclerPopup extends SwitcherPopup.SwitcherPopup {
+var CyclerPopup = GObject.registerClass({
+    GTypeFlags: GObject.TypeFlags.ABSTRACT
+}, class CyclerPopup extends SwitcherPopup.SwitcherPopup {
     _init() {
-        if (new.target === CyclerPopup)
-            throw new TypeError('Cannot instantiate abstract class ' + new.target.name);
-
         super._init();
 
         this._items = this._getWindows();
@@ -665,14 +663,6 @@ class AppIcon extends St.BoxLayout {
     set_size(size) {
         this.icon = this.app.create_icon_texture(size);
         this._iconBin.child = this.icon;
-        this._iconBin.set_size(size, size);
-    }
-
-    vfunc_get_preferred_width(forHeight) {
-        let [minWidth, ] = super.vfunc_get_preferred_width(forHeight);
-
-        minWidth = Math.max(minWidth, forHeight);
-        return [minWidth, minWidth];
     }
 });
 
@@ -726,15 +716,16 @@ class AppSwitcher extends SwitcherPopup.SwitcherList {
 
     _setIconSize() {
         let j = 0;
-        while(this._items.length > 1 && this._items[j].style_class != 'item-box') {
-                j++;
+        while (this._items.length > 1 && this._items[j].style_class != 'item-box') {
+            j++;
         }
         let themeNode = this._items[j].get_theme_node();
+        this._list.ensure_style();
 
         let iconPadding = themeNode.get_horizontal_padding();
         let iconBorder = themeNode.get_border_width(St.Side.LEFT) + themeNode.get_border_width(St.Side.RIGHT);
-        let [iconMinHeight, iconNaturalHeight] = this.icons[j].label.get_preferred_height(-1);
-        let iconSpacing = iconNaturalHeight + iconPadding + iconBorder;
+        let [, labelNaturalHeight] = this.icons[j].label.get_preferred_height(-1);
+        let iconSpacing = labelNaturalHeight + iconPadding + iconBorder;
         let totalSpacing = this._list.spacing * (this._items.length - 1);
 
         // We just assume the whole screen here due to weirdness happing with the passed width
@@ -747,7 +738,7 @@ class AppSwitcher extends SwitcherPopup.SwitcherList {
         let iconSize = baseIconSizes[0];
 
         if (this._items.length > 1) {
-            for(let i =  0; i < baseIconSizes.length; i++) {
+            for (let i =  0; i < baseIconSizes.length; i++) {
                 iconSize = baseIconSizes[i];
                 let height = iconSizes[i] + iconSpacing;
                 let w = height * this._items.length + totalSpacing;
@@ -758,7 +749,7 @@ class AppSwitcher extends SwitcherPopup.SwitcherList {
 
         this._iconSize = iconSize;
 
-        for(let i = 0; i < this.icons.length; i++) {
+        for (let i = 0; i < this.icons.length; i++) {
             if (this.icons[i].icon != null)
                 break;
             this.icons[i].set_size(iconSize);
@@ -804,8 +795,9 @@ class AppSwitcher extends SwitcherPopup.SwitcherList {
                                                             return GLib.SOURCE_REMOVE;
                                                         });
             GLib.Source.set_name_by_id(this._mouseTimeOutId, '[gnome-shell] this._enterItem');
-        } else
-           this._itemEntered(index);
+        } else {
+            this._itemEntered(index);
+        }
     }
 
     _enterItem(index) {
@@ -850,9 +842,8 @@ class AppSwitcher extends SwitcherPopup.SwitcherList {
                 this._removeIcon(app);
         });
 
-        let n = this._arrows.length;
         let arrow = new St.DrawingArea({ style_class: 'switcher-arrow' });
-        arrow.connect('repaint', () => { SwitcherPopup.drawArrow(arrow, St.Side.BOTTOM); });
+        arrow.connect('repaint', () => SwitcherPopup.drawArrow(arrow, St.Side.BOTTOM));
         this.add_actor(arrow);
         this._arrows.push(arrow);
 
@@ -993,23 +984,23 @@ class WindowIcon extends St.BoxLayout {
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
 
         switch (mode) {
-            case AppIconMode.THUMBNAIL_ONLY:
-                size = WINDOW_PREVIEW_SIZE;
-                this._icon.add_actor(_createWindowClone(mutterWindow, size * scaleFactor));
-                break;
+        case AppIconMode.THUMBNAIL_ONLY:
+            size = WINDOW_PREVIEW_SIZE;
+            this._icon.add_actor(_createWindowClone(mutterWindow, size * scaleFactor));
+            break;
 
-            case AppIconMode.BOTH:
-                size = WINDOW_PREVIEW_SIZE;
-                this._icon.add_actor(_createWindowClone(mutterWindow, size * scaleFactor));
+        case AppIconMode.BOTH:
+            size = WINDOW_PREVIEW_SIZE;
+            this._icon.add_actor(_createWindowClone(mutterWindow, size * scaleFactor));
 
-                if (this.app)
-                    this._icon.add_actor(this._createAppIcon(this.app,
-                                                             APP_ICON_SIZE_SMALL));
-                break;
+            if (this.app)
+                this._icon.add_actor(this._createAppIcon(this.app,
+                                                         APP_ICON_SIZE_SMALL));
+            break;
 
-            case AppIconMode.APP_ICON_ONLY:
-                size = APP_ICON_SIZE;
-                this._icon.add_actor(this._createAppIcon(this.app, size));
+        case AppIconMode.APP_ICON_ONLY:
+            size = APP_ICON_SIZE;
+            this._icon.add_actor(this._createAppIcon(this.app, size));
         }
 
         this._icon.set_size(size * scaleFactor, size * scaleFactor);
@@ -1046,7 +1037,7 @@ class WindowList extends SwitcherPopup.SwitcherList {
             this.icons.push(icon);
 
             icon._unmanagedSignalId = icon.window.connect('unmanaged', (window) => {
-                this._removeWindow(window)
+                this._removeWindow(window);
             });
         }
 
@@ -1082,7 +1073,7 @@ class WindowList extends SwitcherPopup.SwitcherList {
         childBox.y1 = childBox.y2 - this._label.height;
         this._label.allocate(childBox, flags);
 
-        let totalLabelHeight = this._label.height + themeNode.get_padding(St.Side.BOTTOM)
+        let totalLabelHeight = this._label.height + themeNode.get_padding(St.Side.BOTTOM);
         childBox.x1 = box.x1;
         childBox.x2 = box.x2;
         childBox.y1 = box.y1;

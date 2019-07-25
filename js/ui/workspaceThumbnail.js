@@ -12,7 +12,7 @@ const Workspace = imports.ui.workspace;
 const WorkspacesView = imports.ui.workspacesView;
 
 // The maximum size of a thumbnail is 1/10 the width and height of the screen
-let MAX_THUMBNAIL_SCALE = 1/10.;
+let MAX_THUMBNAIL_SCALE = 1 / 10.;
 
 var RESCALE_ANIMATION_TIME = 0.2;
 var SLIDE_ANIMATION_TIME = 0.2;
@@ -230,14 +230,14 @@ Signals.addSignalMethods(WindowClone.prototype);
 
 
 var ThumbnailState = {
-    NEW   :         0,
-    ANIMATING_IN :  1,
+    NEW:            0,
+    ANIMATING_IN:   1,
     NORMAL:         2,
-    REMOVING :      3,
-    ANIMATING_OUT : 4,
-    ANIMATED_OUT :  5,
-    COLLAPSING :    6,
-    DESTROYED :     7
+    REMOVING:       3,
+    ANIMATING_OUT:  4,
+    ANIMATED_OUT:   5,
+    COLLAPSING:     6,
+    DESTROYED:      7
 };
 
 /**
@@ -287,7 +287,7 @@ var WorkspaceThumbnail = class {
 
         // Track window changes
         this._windowAddedId = this.metaWorkspace.connect('window-added',
-                                                          this._windowAdded.bind(this));
+                                                         this._windowAdded.bind(this));
         this._windowRemovedId = this.metaWorkspace.connect('window-removed',
                                                            this._windowRemoved.bind(this));
         this._windowEnteredMonitorId = global.display.connect('window-entered-monitor',
@@ -324,7 +324,6 @@ var WorkspaceThumbnail = class {
 
         for (let i = 0; i < this._windows.length; i++) {
             let clone = this._windows[i];
-            let metaWindow = clone.metaWindow;
             if (i == 0) {
                 clone.setStackAbove(this._bgManager.backgroundActor);
             } else {
@@ -378,7 +377,7 @@ var WorkspaceThumbnail = class {
             return;
         }
 
-        if (this._allWindows.indexOf(metaWin) == -1) {
+        if (!this._allWindows.includes(metaWin)) {
             let minimizedChangedId = metaWin.connect('notify::minimized',
                                                      this._updateMinimized.bind(this));
             this._allWindows.push(metaWin);
@@ -448,7 +447,7 @@ var WorkspaceThumbnail = class {
 
     destroy() {
         if (this.actor)
-          this.actor.destroy();
+            this.actor.destroy();
     }
 
     workspaceRemoved() {
@@ -470,8 +469,8 @@ var WorkspaceThumbnail = class {
         this.workspaceRemoved();
 
         if (this._bgManager) {
-          this._bgManager.destroy();
-          this._bgManager = null;
+            this._bgManager.destroy();
+            this._bgManager = null;
         }
 
         this._windows = [];
@@ -601,8 +600,7 @@ class ThumbnailsBox extends St.Widget {
                       style_class: 'workspace-thumbnails',
                       request_mode: Clutter.RequestMode.WIDTH_FOR_HEIGHT });
 
-        this.actor = this;
-        this.actor._delegate = this;
+        this._delegate = this;
 
         let indicator = new St.Bin({ style_class: 'workspace-thumbnail-indicator' });
 
@@ -688,7 +686,7 @@ class ThumbnailsBox extends St.Widget {
         let [r, x, y] = this.transform_stage_point(stageX, stageY);
 
         for (let i = 0; i < this._thumbnails.length; i++) {
-            let thumbnail = this._thumbnails[i]
+            let thumbnail = this._thumbnails[i];
             let [w, h] = thumbnail.actor.get_transformed_size();
             if (y >= thumbnail.actor.y && y <= thumbnail.actor.y + h) {
                 thumbnail.activate(time);
@@ -780,7 +778,7 @@ class ThumbnailsBox extends St.Widget {
             let [w, h] = this._thumbnails[i].actor.get_transformed_size();
             let targetBottom = targetBase + WORKSPACE_CUT_SIZE;
             let nextTargetBase = targetBase + h + spacing;
-            let nextTargetTop =  nextTargetBase - spacing - ((i == length - 1) ? 0: WORKSPACE_CUT_SIZE);
+            let nextTargetTop =  nextTargetBase - spacing - ((i == length - 1) ? 0 : WORKSPACE_CUT_SIZE);
 
             // Expand the target to include the placeholder, if it exists.
             if (i == this._dropPlaceholderPos)
@@ -791,7 +789,7 @@ class ThumbnailsBox extends St.Widget {
                 break;
             } else if (y > targetBottom && y <= nextTargetTop) {
                 this._dropWorkspace = i;
-                break
+                break;
             }
 
             targetBase = nextTargetBase;
@@ -867,6 +865,13 @@ class ThumbnailsBox extends St.Widget {
         this._nWorkspacesNotifyId =
             workspaceManager.connect('notify::n-workspaces',
                                      this._workspacesChanged.bind(this));
+        this._workspacesReorderedId =
+            workspaceManager.connect('workspaces-reordered', () => {
+                this._thumbnails.sort((a, b) => {
+                    return a.metaWorkspace.index() - b.metaWorkspace.index();
+                });
+                this.queue_relayout();
+            });
         this._syncStackingId =
             Main.overview.connect('windows-restacked',
                                   this._syncStacking.bind(this));
@@ -898,6 +903,11 @@ class ThumbnailsBox extends St.Widget {
             workspaceManager.disconnect(this._nWorkspacesNotifyId);
             this._nWorkspacesNotifyId = 0;
         }
+        if (this._workspacesReorderedId > 0) {
+            let workspaceManager = global.workspace_manager;
+            workspaceManager.disconnect(this._workspacesReorderedId);
+            this._workspacesReorderedId = 0;
+        }
 
         if (this._syncStackingId > 0) {
             Main.overview.disconnect(this._syncStackingId);
@@ -915,7 +925,6 @@ class ThumbnailsBox extends St.Widget {
         let workspaceManager = global.workspace_manager;
         let oldNumWorkspaces = validThumbnails.length;
         let newNumWorkspaces = workspaceManager.n_workspaces;
-        let active = workspaceManager.get_active_workspace_index();
 
         if (newNumWorkspaces > oldNumWorkspaces) {
             this.addThumbnails(oldNumWorkspaces, newNumWorkspaces - oldNumWorkspaces);
@@ -1249,7 +1258,7 @@ class ThumbnailsBox extends St.Widget {
             if (i == this._dropPlaceholderPos) {
                 let [minHeight, placeholderHeight] = this._dropPlaceholder.get_preferred_height(-1);
                 childBox.x1 = x1;
-                childBox.x2 = x1 + thumbnailWidth;
+                childBox.x2 = x2;
                 childBox.y1 = Math.round(y);
                 childBox.y2 = Math.round(y + placeholderHeight);
                 this._dropPlaceholder.allocate(childBox, flags);
@@ -1321,11 +1330,10 @@ class ThumbnailsBox extends St.Widget {
                          { indicatorY: thumbnail.actor.allocation.y1,
                            time: WorkspacesView.WORKSPACE_SWITCH_TIME,
                            transition: 'easeOutQuad',
-                           onComplete() {
+                           onComplete: () => {
                                this._animatingIndicator = false;
                                this._queueUpdateStates();
-                           },
-                           onCompleteScope: this
+                           }
                          });
     }
 });

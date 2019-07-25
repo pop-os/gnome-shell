@@ -33,9 +33,7 @@ function _fixMarkup(text, allowMarkup) {
 }
 
 var URLHighlighter = class URLHighlighter {
-    constructor(text, lineWrap, allowMarkup) {
-        if (!text)
-            text = '';
+    constructor(text = '', lineWrap, allowMarkup) {
         this.actor = new St.Label({ reactive: true, style_class: 'url-highlighter',
                                     x_expand: true, x_align: Clutter.ActorAlign.START });
         this._linkColor = '#ccccff';
@@ -72,7 +70,7 @@ var URLHighlighter = class URLHighlighter {
             let urlId = this._findUrlAtPos(event);
             if (urlId != -1) {
                 let url = this._urls[urlId].url;
-                if (url.indexOf(':') == -1)
+                if (!url.includes(':'))
                     url = 'http://' + url;
 
                 Gio.app_info_launch_default_for_uri(url, global.create_app_launch_context(0, -1));
@@ -135,18 +133,18 @@ var URLHighlighter = class URLHighlighter {
         let success;
         let [x, y] = event.get_coords();
         [success, x, y] = this.actor.transform_stage_point(x, y);
-        let find_pos = -1;
+        let findPos = -1;
         for (let i = 0; i < this.actor.clutter_text.text.length; i++) {
-            let [success, px, py, line_height] = this.actor.clutter_text.position_to_coords(i);
-            if (py > y || py + line_height < y || x < px)
+            let [success, px, py, lineHeight] = this.actor.clutter_text.position_to_coords(i);
+            if (py > y || py + lineHeight < y || x < px)
                 continue;
-            find_pos = i;
+            findPos = i;
         }
-        if (find_pos != -1) {
+        if (findPos != -1) {
             for (let i = 0; i < this._urls.length; i++)
-            if (find_pos >= this._urls[i].pos &&
-                this._urls[i].pos + this._urls[i].url.length > find_pos)
-                return i;
+                if (findPos >= this._urls[i].pos &&
+                    this._urls[i].pos + this._urls[i].url.length > findPos)
+                    return i;
         }
         return -1;
     }
@@ -197,12 +195,14 @@ class ScaleLayout extends Clutter.BinLayout {
 });
 
 var LabelExpanderLayout = GObject.registerClass({
-    Properties: { 'expansion': GObject.ParamSpec.double('expansion',
-                                                        'Expansion',
-                                                        'Expansion of the layout, between 0 (collapsed) ' +
-                                                        'and 1 (fully expanded',
-                                                         GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                         0, 1, 0)},
+    Properties: {
+        'expansion': GObject.ParamSpec.double('expansion',
+                                              'Expansion',
+                                              'Expansion of the layout, between 0 (collapsed) ' +
+                                              'and 1 (fully expanded',
+                                              GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                              0, 1, 0)
+    },
 }, class LabelExpanderLayout extends Clutter.LayoutManager {
     _init(params) {
         this._expansion = 0;
@@ -467,11 +467,10 @@ var Message = class Message {
                              { scale_y: 0,
                                time: MessageTray.ANIMATION_TIME,
                                transition: 'easeOutQuad',
-                               onCompleteScope: this,
-                               onComplete() {
+                               onComplete: () => {
                                    this._actionBin.hide();
                                    this.expanded = false;
-                               }});
+                               } });
         } else {
             this._bodyStack.layout_manager.expansion = 0;
             this._actionBin.scale_y = 0;
@@ -626,7 +625,7 @@ var MessageListSection = class MessageListSection {
                                               onComplete() {
                                                   obj.container.destroy();
                                                   global.sync_pointer();
-                                              }});
+                                              } });
         } else {
             obj.container.destroy();
             global.sync_pointer();
@@ -656,7 +655,7 @@ var MessageListSection = class MessageListSection {
                                    transition: 'easeOutQuad',
                                    onComplete() {
                                        message.close();
-                                   }});
+                                   } });
             }
         }
     }
