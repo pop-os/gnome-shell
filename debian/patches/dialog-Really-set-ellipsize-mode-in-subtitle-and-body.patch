@@ -1,0 +1,36 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 3 May 2019 20:27:13 +0000
+Subject: dialog: Really set ellipsize mode in subtitle and body
+
+Dialog's subtitle or body could not be properly wrapped, while it's ellipsized
+when the text's width doesn't exceed the container size.
+
+Clutter text has an `ellipsize` property, however in dialog's subtitle and body
+we have been setting the `ellipsize-mode` property to Pango.EllipsizeMode.NONE
+that is not present in the underlying GObject.
+
+Not being an error in javascript, gjs didn't warn us about this, while at the
+same time the St.Label's default Pango.EllipsizeMode.END was used.
+
+(cherry picked from commit 3121c9aa29406ad85e949b697e90092f1fa6fc2e)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/922
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/531
+Origin: upstream, 3.30.3, commit:a8f6f01d678936ee96dd07647305b3c74fb1480e
+---
+ js/ui/dialog.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/dialog.js b/js/ui/dialog.js
+index 0dd3370..10a0aef 100644
+--- a/js/ui/dialog.js
++++ b/js/ui/dialog.js
+@@ -184,7 +184,7 @@ var MessageDialogContent = new Lang.Class({
+             this[`_${prop}`].add_style_class_name(`message-dialog-${prop}`);
+         });
+ 
+-        let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
++        let textProps = { ellipsize: Pango.EllipsizeMode.NONE,
+                           line_wrap: true };
+         Object.assign(this._subtitle.clutter_text, textProps);
+         Object.assign(this._body.clutter_text, textProps);

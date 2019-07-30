@@ -1,3 +1,16 @@
+gnome-shell (3.30.2-10) UNRELEASED; urgency=medium
+
+  * Update to upstream gnome-3-30 branch, commit 3.30.2-22-gd41669189
+    - d/p/dialog-Really-set-ellipsize-mode-in-subtitle-and-body.patch:
+      Fix truncation of long messages in Shell-modal dialogs
+      (LP: #1809788)
+    - d/p/osk-layouts-Fix-French-layout.patch:
+      Update metadata to reflect upstream backport (no functional changes)
+    - d/p/boxpointer-Unset-the-sourceActor-on-destruction.patch:
+      Avoid crash on reallocation of dead actors (LP: #1831555)
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 30 Jul 2019 09:03:15 +0100
+
 gnome-shell (3.30.2-9) unstable; urgency=medium
 
   * Team upload

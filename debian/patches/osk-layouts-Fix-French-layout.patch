@@ -1,13 +1,14 @@
 From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
-Date: Wed, 27 Feb 2019 20:11:35 +0100
+Date: Wed, 27 Feb 2019 19:11:35 +0000
 Subject: osk-layouts: Fix French layout
 
 The script to convert XML keyboard layouts to json has a small bug
 that causes the French-Canadian layout to end up as French.
 
+(cherry picked from commit 859aef78c4d2472b2545ce9ecc889c00b9893494)
+
 Bug: https://gitlab.gnome.org/GNOME/gnome-shell/issues/997
-Bug-Debian: https://bugs.debian.org/926452
-Origin: upstream, 3.31.92, commit:859aef78c4d2472b2545ce9ecc889c00b9893494
+Origin: upstream, 3.30.3, commit:7a6ed76a2096ce778107266d37e77febcbb9c04d
 ---
  data/gnome-shell-osk-layouts.gresource.xml |   1 +
  data/osk-layouts/ca.json                   | 599 +++++++++++++++++++++++++++++
