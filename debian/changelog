@@ -1,12 +1,60 @@
-gnome-shell (3.33.4-1) UNRELEASED; urgency=medium
+gnome-shell (3.33.4-1) experimental; urgency=medium
 
   [ Simon McVittie ]
   * d/gnome-shell.bug-control: Include related packages in bug reports
 
   [ Iain Lane ]
   * New upstream release
+    + Add option for disabling the hot corner
+    + Allow dragging unfocused tiled/maximized windows from top bar
+    + Allow to disable window menus via session mode
+    + Avoid unnecessary style changes when computing :first/:last-child
+    + Call GDM's RegisterSession() after startup (LP: #1798790)
+    + Disable emoji on-screen keyboard support on X11
+    + Don't crash for world clock locations with no timezone
+    + Don't leak old on-screen keyboard layout groups
+    + Fix alt-tab icon size on HiDPI
+    + Fix cursor visibility in screen recordings
+    + Fix distortion of some image contents
+    + Fix ellipsization in dialog subtitles/bodies
+    + Fix extended keys popups being hidden by on-screen keyboard
+    + Fix glitch of fullscreen window in workspace switch animation
+    + Fix keeping actors visible in scrollviews
+    + Fix opening window menu
+    + Fix style updates for non-background CSS properties
+    + Fix tablet button mapping overlay
+    + Fix the calculation of the maximum number of app search results
+    + Fix top bar being hidden by lock screen
+    + Fix unintentional interference between gestures
+    + Fix unintentional loop while polkit dialog is active
+    + Handle horizontal workspace layout with gestures/animations
+    + Handle network interface name changes
+    + Implement locate-pointer accessibility feature
+    + Implement mouse accessibility
+    + Improve handling of session mode extensions
+    + Include 'sandboxed-app-id' in winodw introspection info
+    + Move some chrome above popup windows
+    + Only emit ::style-changed on actual changes
+    + Port to libecal-2.0
+    + Prepare for optional X11
+    + Refine the app menu
+    + Refine window preview style
+    + Reload search providers when installed applications change
+    + Set up GJS profiler when GJS_TRACE_FD is set
+    + Style fixes and improvements
+    + Support TCRYPT in mount password dialog
+    + Update theme to better match GTK's Adwaita
+    + Use more fine-grained levels in battery indicator
+  * Refresh patches.
+    - boxpointer-Unset-the-sourceActor-on-destruction.patch: Drop,
+      upstream
+    - tweener-Save-handlers-on-target-and-remove-them-on-destro.patch:
+      Rebase
+  * build-Automatically-bump-mutter-API-version-each-cycle.patch: Cherry-pick.
+    Build against the right mutter version.
+  * Bump BDs per upstream
 
- -- Iain Lane <laney@debian.org>  Thu, 25 Jul 2019 01:26:22 +0100
+ -- Iain Lane <laney@debian.org>  Thu, 01 Aug 2019 17:36:06 +0100
 
 gnome-shell (3.32.2-2) experimental; urgency=medium
 
