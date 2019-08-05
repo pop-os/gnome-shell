@@ -10,11 +10,6 @@ party website.
 Also, that will enable us to upload newer versions on GNOME
 extension website while still letting older ubuntu release versions
 running expected extension version.
-Note that the patch set is simplified with a hardcoded extension list
-compared to https://bugzilla.gnome.org/show_bug.cgi?id=789852
-which tracked mode extensions.
-The patch set is too large otherwise to keep it maintainable as a distro
-patch.
 Origin: ubuntu
 Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
 ---
@@ -23,34 +18,6 @@ Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
  js/ui/extensionDownloader.js | 13 +++++++++++++
  3 files changed, 33 insertions(+)
 
-Index: gnome-shell-ubuntu/js/misc/desktop.js
-===================================================================
---- gnome-shell-ubuntu.orig/js/misc/desktop.js
-+++ gnome-shell-ubuntu/js/misc/desktop.js
-@@ -6,6 +6,8 @@ const GLib = imports.gi.GLib;
- // the env variable. It's safe to cache matching result
- let _currentDesktopsMatches = {};
- 
-+let ubuntuModeExtensions = ["ubuntu-dock@ubuntu.com", "ubuntu-appindicators@ubuntu.com", "desktop-icons@csoriano"]
-+
- // is:
- // @name: desktop string you want to assert if it matches the current desktop env
- //
-@@ -37,3 +39,14 @@ function is(name) {
-     _currentDesktopsMatches[name] = false;
-     return false;
- }
-+
-+// Compared to https://bugzilla.gnome.org/show_bug.cgi?id=789852,
-+// we can't now easily without having a dependency on
-+// main.session from misc packages. This prevents g-s-d-prefs from loading.
-+// Harcode the list for the ubuntu case until now.
-+function isSystemPinnedExtension(uuid) {
-+    if (!is("ubuntu"))
-+        return false;
-+
-+    return ubuntuModeExtensions.indexOf(uuid) !== -1;
-+}
 Index: gnome-shell-ubuntu/js/ui/extensionDownloader.js
 ===================================================================
 --- gnome-shell-ubuntu.orig/js/ui/extensionDownloader.js
@@ -67,7 +34,7 @@ Index: gnome-shell-ubuntu/js/ui/extensionDownloader.js
      let params = { uuid: uuid,
                     shell_version: Config.PACKAGE_VERSION };
  
-+    if (Desktop.isSystemPinnedExtension(uuid)) {
++    if (Desktop.is("ubuntu") && Main.extensionManager.isModeExtension(uuid)) {
 +        let title = _("Can't install “%s”:").format(uuid);
 +        let msg = _("This is an extension enabled by your current mode, you can't install manually any update in that session.");
 +        Main.notifyError(title, msg);
@@ -83,7 +50,7 @@ Index: gnome-shell-ubuntu/js/ui/extensionDownloader.js
      let metadatas = {};
      Main.extensionManager.getUuids().forEach(uuid => {
 +        // don't updates out of repository mode extension
-+        if (Desktop.isSystemPinnedExtension(uuid))
++        if (Desktop.is("ubuntu") && Main.extensionManager.isModeExtension(uuid))
 +            return;
          metadatas[uuid] = Main.extensionManager.extensions[uuid].metadata;
      });
@@ -100,11 +67,22 @@ Index: gnome-shell-ubuntu/js/ui/extensionSystem.js
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
  const Main = imports.ui.main;
-@@ -467,6 +468,10 @@ var ExtensionManager = class {
+@@ -302,6 +303,10 @@ var ExtensionManager = class {
+         this.loadExtension(newExtension);
+     }
+ 
++    isModeExtension(uuid) {
++        return this._getModeExtensions().indexOf(uuid) !== -1;
++    }
++
+     _callExtensionInit(uuid) {
+         let extension = this.lookup(uuid);
+         let dir = extension.dir;
+@@ -467,6 +472,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;
-+            if (Desktop.isSystemPinnedExtension(uuid) && type === ExtensionType.PER_USER) {
++            if (Desktop.is("ubuntu") && this.isModeExtension(uuid) && type === ExtensionType.PER_USER) {
 +                log(`Found user extension ${uuid}, but not loading from ${dir.get_path()} directory as part of session mode.`);
 +                return;
 +            }
