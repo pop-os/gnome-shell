@@ -1,5 +1,5 @@
 From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
-Date: Thu, 23 Aug 2018 13:00:57 -0500
+Date: Thu, 23 Aug 2018 20:00:57 +0200
 Subject: search: call XUbuntuCancel method on providers when no data is
  needed
 
@@ -54,10 +54,10 @@ index 9502340..8141bc0 100644
    </interface>
  </node>
 diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
-index 1b9186b..170f0f2 100644
+index b357aca..6149c30 100644
 --- a/js/ui/remoteSearch.js
 +++ b/js/ui/remoteSearch.js
-@@ -25,6 +25,7 @@ const SearchProviderIface = `
+@@ -26,6 +26,7 @@ const SearchProviderIface = `
  <method name="ActivateResult">
      <arg type="s" direction="in" />
  </method>
@@ -65,7 +65,7 @@ index 1b9186b..170f0f2 100644
  </interface>
  </node>`;
  
-@@ -53,6 +54,7 @@ const SearchProvider2Iface = `
+@@ -54,6 +55,7 @@ const SearchProvider2Iface = `
      <arg type="as" direction="in" />
      <arg type="u" direction="in" />
  </method>
@@ -73,7 +73,7 @@ index 1b9186b..170f0f2 100644
  </interface>
  </node>`;
  
-@@ -304,6 +306,19 @@ var RemoteSearchProvider = class {
+@@ -307,6 +309,19 @@ var RemoteSearchProvider = class {
                                          cancellable);
      }
  
@@ -94,7 +94,7 @@ index 1b9186b..170f0f2 100644
          this.proxy.ActivateResultRemote(id);
      }
 diff --git a/js/ui/search.js b/js/ui/search.js
-index fe4f616..c79161e 100644
+index d55021a..1adc19e 100644
 --- a/js/ui/search.js
 +++ b/js/ui/search.js
 @@ -206,7 +206,9 @@ var SearchResultsBase = class {
@@ -107,7 +107,7 @@ index fe4f616..c79161e 100644
                  if (this._cancellable.is_cancelled()) {
                      if (metas.length > 0)
                          log(`Search provider ${this.provider.id} returned results after the request was canceled`);
-@@ -429,6 +431,10 @@ var SearchResults = class {
+@@ -438,6 +440,10 @@ var SearchResults = class {
  
          this._searchTimeoutId = 0;
          this._cancellable = new Gio.Cancellable();
@@ -117,8 +117,8 @@ index fe4f616..c79161e 100644
 +        });
  
          this._registerProvider(new AppDisplay.AppSearchProvider());
-         this._reloadRemoteProviders();
-@@ -471,11 +477,32 @@ var SearchResults = class {
+ 
+@@ -483,11 +489,32 @@ var SearchResults = class {
          }
      }
  
@@ -151,7 +151,7 @@ index fe4f616..c79161e 100644
          this._defaultResult = null;
          this._startingSearch = false;
  
-@@ -542,6 +569,13 @@ var SearchResults = class {
+@@ -554,6 +581,13 @@ var SearchResults = class {
          if (this._terms.length > 0)
              isSubSearch = searchString.indexOf(previousSearchString) == 0;
  

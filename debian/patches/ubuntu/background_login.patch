@@ -19,7 +19,7 @@ Forwarded: not-needed
  1 file changed, 20 insertions(+)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index 06e0388..e402a4c 100644
+index babc1e4..ab1dba0 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
 @@ -96,6 +96,7 @@
@@ -30,7 +30,7 @@ index 06e0388..e402a4c 100644
  const LoginManager = imports.misc.loginManager;
  const Main = imports.ui.main;
  const Params = imports.misc.params;
-@@ -484,6 +485,25 @@ let _systemBackground;
+@@ -499,6 +500,25 @@ let _systemBackground;
  
  var SystemBackground = class SystemBackground {
      constructor() {

@@ -14,10 +14,10 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/190
  1 file changed, 2 insertions(+), 5 deletions(-)
 
 diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
-index c77633b..945119a 100644
+index d93e203..3cfbb19 100644
 --- a/src/st/st-scroll-view.c
 +++ b/src/st/st-scroll-view.c
-@@ -245,11 +245,8 @@ st_scroll_view_dispose (GObject *object)
+@@ -250,11 +250,8 @@ st_scroll_view_dispose (GObject *object)
        priv->fade_effect = NULL;
      }
  

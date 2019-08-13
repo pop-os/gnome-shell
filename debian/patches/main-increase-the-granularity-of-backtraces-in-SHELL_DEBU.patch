@@ -15,7 +15,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 66 insertions(+), 21 deletions(-)
 
 diff --git a/src/main.c b/src/main.c
-index f72cb93..4f341a9 100644
+index 6750586..732a780 100644
 --- a/src/main.c
 +++ b/src/main.c
 @@ -35,16 +35,26 @@ extern GType gnome_shell_plugin_get_type (void);
@@ -49,7 +49,7 @@ index f72cb93..4f341a9 100644
  
  static void
  shell_dbus_acquire_name (GDBusProxy  *bus,
-@@ -263,13 +273,23 @@ shell_a11y_init (void)
+@@ -319,13 +329,23 @@ shell_a11y_init (void)
  static void
  shell_update_debug (const char *debug_string)
  {
@@ -66,20 +66,20 @@ index f72cb93..4f341a9 100644
 +{
 +  gsize i, j;
 +  const char *enabled_flags[G_N_ELEMENTS (SHELL_DEBUG_KEYS) + 1] = { 0 };
- 
--  _shell_debug = g_parse_debug_string (debug_string, keys,
--                                       G_N_ELEMENTS (keys));
++
 +  for (i = 0, j = 0; i < G_N_ELEMENTS (SHELL_DEBUG_KEYS); ++i)
 +    {
 +      if ((_shell_debug & SHELL_DEBUG_KEYS[i].value))
 +        enabled_flags[j++] = SHELL_DEBUG_KEYS[i].key;
 +    }
-+
+ 
+-  _shell_debug = g_parse_debug_string (debug_string, keys,
+-                                       G_N_ELEMENTS (keys));
 +  return g_strjoinv (":", (char**) enabled_flags);
  }
  
  static void
-@@ -368,10 +388,23 @@ reset_signal_handler_to_default (int signo)
+@@ -420,10 +440,23 @@ reset_signal_handler_to_default (int signo)
  static void
  setup_debug_signal_listners (void)
  {
@@ -107,7 +107,7 @@ index f72cb93..4f341a9 100644
  
    if ((_shell_debug & SHELL_DEBUG_BACKTRACE_SEGFAULTS))
      {
-@@ -472,7 +505,8 @@ main (int argc, char **argv)
+@@ -524,7 +557,8 @@ main (int argc, char **argv)
  {
    GOptionContext *ctx;
    GError *error = NULL;
@@ -117,7 +117,7 @@ index f72cb93..4f341a9 100644
    int ecode;
  
    bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-@@ -508,8 +542,14 @@ main (int argc, char **argv)
+@@ -560,8 +594,14 @@ main (int argc, char **argv)
    g_setenv ("GJS_DEBUG_OUTPUT", "stderr", TRUE);
    g_setenv ("GJS_DEBUG_TOPICS", "JS ERROR;JS LOG", TRUE);
  
@@ -134,7 +134,7 @@ index f72cb93..4f341a9 100644
  
    shell_dbus_init (meta_get_replace_current_wm ());
    shell_a11y_init ();
-@@ -524,8 +564,9 @@ main (int argc, char **argv)
+@@ -576,8 +616,9 @@ main (int argc, char **argv)
      session_mode = is_gdm_mode ? (char *)"gdm" : (char *)"user";
  
    _shell_global_init ("session-mode", session_mode,
@@ -146,10 +146,10 @@ index f72cb93..4f341a9 100644
    g_signal_connect (shell_global_get (), "notify::debug-flags",
                      G_CALLBACK (global_notify_debug_flags), NULL);
 diff --git a/src/shell-global.c b/src/shell-global.c
-index 46507a1..2049ad6 100644
+index 1308c75..737af03 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
-@@ -1764,11 +1764,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
+@@ -1693,11 +1693,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
  /**
   * shell_global_set_debug_flags:
   * @global: a #ShellGlobal

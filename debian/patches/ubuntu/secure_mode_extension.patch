@@ -13,16 +13,15 @@ running expected extension version.
 Origin: ubuntu
 Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
 ---
- js/misc/desktop.js           | 13 +++++++++++++
- js/misc/extensionUtils.js    |  7 +++++++
- js/ui/extensionDownloader.js | 13 +++++++++++++
- 3 files changed, 33 insertions(+)
+ js/ui/extensionDownloader.js | 12 ++++++++++++
+ js/ui/extensionSystem.js     |  9 +++++++++
+ 2 files changed, 21 insertions(+)
 
-Index: gnome-shell-ubuntu/js/ui/extensionDownloader.js
-===================================================================
---- gnome-shell-ubuntu.orig/js/ui/extensionDownloader.js
-+++ gnome-shell-ubuntu/js/ui/extensionDownloader.js
-@@ -3,6 +3,7 @@
+diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
+index dc67909..9339ed1 100644
+--- a/js/ui/extensionDownloader.js
++++ b/js/ui/extensionDownloader.js
+@@ -5,6 +5,7 @@
  const { Clutter, Gio, GLib, GObject, Soup } = imports.gi;
  
  const Config = imports.misc.config;
@@ -30,7 +29,7 @@ Index: gnome-shell-ubuntu/js/ui/extensionDownloader.js
  const Dialog = imports.ui.dialog;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
-@@ -20,6 +21,14 @@ function installExtension(uuid, invocati
+@@ -22,6 +23,14 @@ function installExtension(uuid, invocation) {
      let params = { uuid: uuid,
                     shell_version: Config.PACKAGE_VERSION };
  
@@ -45,7 +44,7 @@ Index: gnome-shell-ubuntu/js/ui/extensionDownloader.js
      let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
  
      _httpSession.queue_message(message, (session, message) => {
-@@ -152,6 +161,9 @@ function updateExtension(uuid) {
+@@ -154,6 +163,9 @@ function updateExtension(uuid) {
  function checkForUpdates() {
      let metadatas = {};
      Main.extensionManager.getUuids().forEach(uuid => {
@@ -55,11 +54,11 @@ Index: gnome-shell-ubuntu/js/ui/extensionDownloader.js
          metadatas[uuid] = Main.extensionManager.extensions[uuid].metadata;
      });
  
-Index: gnome-shell-ubuntu/js/ui/extensionSystem.js
-===================================================================
---- gnome-shell-ubuntu.orig/js/ui/extensionSystem.js
-+++ gnome-shell-ubuntu/js/ui/extensionSystem.js
-@@ -3,6 +3,7 @@
+diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
+index fd71969..26b06fa 100644
+--- a/js/ui/extensionSystem.js
++++ b/js/ui/extensionSystem.js
+@@ -4,6 +4,7 @@
  const { Gio, St } = imports.gi;
  const Signals = imports.signals;
  
@@ -67,7 +66,7 @@ Index: gnome-shell-ubuntu/js/ui/extensionSystem.js
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
  const Main = imports.ui.main;
-@@ -302,6 +303,10 @@ var ExtensionManager = class {
+@@ -303,6 +304,10 @@ var ExtensionManager = class {
          this.loadExtension(newExtension);
      }
  
@@ -78,7 +77,7 @@ Index: gnome-shell-ubuntu/js/ui/extensionSystem.js
      _callExtensionInit(uuid) {
          let extension = this.lookup(uuid);
          let dir = extension.dir;
-@@ -467,6 +472,10 @@ var ExtensionManager = class {
+@@ -468,6 +473,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;

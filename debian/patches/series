@@ -4,8 +4,6 @@ ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
 ubuntu/background_login.patch
 ubuntu/gdm_alternatives.patch
-ubuntu/block_mode_extension_update.patch
-optional-hot-corner.patch
 volume-Add-back-sound-feedback-on-scroll.patch
 main-show-an-error-message-on-gnome-shell-crash.patch
 global-make-possible-to-set-debug-flags-dynamically.patch

@@ -11,10 +11,10 @@ Last-Update: 2017-09-08
  1 file changed, 1 insertion(+)
 
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index 25aa75a..d7aa23c 100644
+index f8b38f6..6bb4372 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -40,6 +40,7 @@ const _modes = {
+@@ -42,6 +42,7 @@ const _modes = {
  
      'gdm': {
          hasNotifications: true,

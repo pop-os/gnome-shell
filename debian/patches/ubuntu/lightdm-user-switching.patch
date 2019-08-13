@@ -8,14 +8,14 @@ switch to the lightdm greeter.
 
 https://bugzilla.gnome.org/show_bug.cgi?id=685794
 ---
- js/misc/systemActions.js | 34 +++++++++++++++++++++++++++-------
- 1 file changed, 27 insertions(+), 7 deletions(-)
+ js/misc/systemActions.js | 47 ++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 40 insertions(+), 7 deletions(-)
 
 diff --git a/js/misc/systemActions.js b/js/misc/systemActions.js
-index aa79bfe..0289add 100644
+index d86935f..27e4aa3 100644
 --- a/js/misc/systemActions.js
 +++ b/js/misc/systemActions.js
-@@ -207,6 +207,21 @@ const SystemActions = GObject.registerClass({
+@@ -231,6 +231,34 @@ const SystemActions = GObject.registerClass({
          return this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName;
      }
  
@@ -34,10 +34,23 @@ index aa79bfe..0289add 100644
 +        }
 +    }
 +
-     _sensorProxyAppeared() {
-         this._sensorProxy = new SensorProxy(Gio.DBus.system, SENSOR_BUS_NAME, SENSOR_OBJECT_PATH,
-             (proxy, error)  => {
-@@ -302,7 +317,7 @@ const SystemActions = GObject.registerClass({
++    _sensorProxyAppeared() {
++        this._sensorProxy = new SensorProxy(Gio.DBus.system, SENSOR_BUS_NAME, SENSOR_OBJECT_PATH,
++            (proxy, error)  => {
++                if (error) {
++                    log(error.message);
++                    return;
++                }
++                this._sensorProxy.connect('g-properties-changed',
++                                          () => { this._updateOrientationLock(); });
++                this._updateOrientationLock();
++            });
++    }
++
+     _updateOrientationLock() {
+         let available = false;
+         if (this._sensorProxy.g_name_owner)
+@@ -313,7 +341,7 @@ const SystemActions = GObject.registerClass({
      _updateLockScreen() {
          let showLock = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
          let allowLockScreen = !this._lockdownSettings.get_boolean(DISABLE_LOCK_SCREEN_KEY);
@@ -46,7 +59,7 @@ index aa79bfe..0289add 100644
          this.notify('can-lock-screen');
      }
  
-@@ -389,20 +404,25 @@ const SystemActions = GObject.registerClass({
+@@ -400,20 +428,25 @@ const SystemActions = GObject.registerClass({
          if (!this._actions.get(LOCK_SCREEN_ACTION_ID).available)
              throw new Error('The lock-screen action is not available!');
  
