@@ -1,4 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported PopupMenuItem, PopupSeparatorMenuItem, Switch, PopupSwitchMenuItem,
+            PopupImageMenuItem, PopupMenu, PopupDummyMenu, PopupSubMenu,
+            PopupMenuSection, PopupSubMenuMenuItem, PopupMenuManager */
 
 const { Atk, Clutter, Gio, GObject, Shell, St } = imports.gi;
 const Signals = imports.signals;
@@ -7,7 +10,6 @@ const BoxPointer = imports.ui.boxpointer;
 const GrabHelper = imports.ui.grabHelper;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 var Ornament = {
     NONE: 0,
@@ -122,7 +124,7 @@ var PopupBaseMenuItem = GObject.registerClass({
         this._parent = parent;
     }
 
-    _onButtonPressEvent(actor, event) {
+    _onButtonPressEvent() {
         // This is the CSS active state
         this.add_style_pseudo_class('active');
         return Clutter.EVENT_PROPAGATE;
@@ -571,7 +573,7 @@ var PopupMenuBase = class {
                     menuItem.actor.grab_key_focus();
             }
         });
-        menuItem._activateId = menuItem.connect_after('activate', (menuItem, event) => {
+        menuItem._activateId = menuItem.connect_after('activate', (menuItem, _event) => {
             this.emit('activate', menuItem);
             this.itemActivated(BoxPointer.PopupAnimation.FULL);
         });
@@ -958,7 +960,7 @@ var PopupSubMenu = class extends PopupMenuBase {
 
     _needsScrollbar() {
         let topMenu = this._getTopMenu();
-        let [topMinHeight, topNaturalHeight] = topMenu.actor.get_preferred_height(-1);
+        let [, topNaturalHeight] = topMenu.actor.get_preferred_height(-1);
         let topThemeNode = topMenu.actor.get_theme_node();
 
         let topMaxHeight = topThemeNode.get_max_height();
@@ -1008,20 +1010,19 @@ var PopupSubMenu = class extends PopupMenuBase {
         let targetAngle = this.actor.text_direction == Clutter.TextDirection.RTL ? -90 : 90;
 
         if (animate) {
-            let [minHeight, naturalHeight] = this.actor.get_preferred_height(-1);
+            let [, naturalHeight] = this.actor.get_preferred_height(-1);
             this.actor.height = 0;
-            this.actor._arrowRotation = this._arrow.rotation_angle_z;
-            Tweener.addTween(this.actor,
-                             { _arrowRotation: targetAngle,
-                               height: naturalHeight,
-                               time: 0.25,
-                               onUpdate: () => {
-                                   this._arrow.rotation_angle_z = this.actor._arrowRotation;
-                               },
-                               onComplete: () => {
-                                   this.actor.set_height(-1);
-                               }
-                             });
+            this.actor.ease({
+                height: naturalHeight,
+                duration: 250,
+                mode: Clutter.AnimationMode.EASE_OUT_EXPO,
+                onComplete: () => this.actor.set_height(-1)
+            });
+            this._arrow.ease({
+                rotation_angle_z: targetAngle,
+                duration: 250,
+                mode: Clutter.AnimationMode.EASE_OUT_EXPO
+            });
         } else {
             this._arrow.rotation_angle_z = targetAngle;
         }
@@ -1041,19 +1042,20 @@ var PopupSubMenu = class extends PopupMenuBase {
             animate = false;
 
         if (animate) {
-            this.actor._arrowRotation = this._arrow.rotation_angle_z;
-            Tweener.addTween(this.actor,
-                             { _arrowRotation: 0,
-                               height: 0,
-                               time: 0.25,
-                               onUpdate: () => {
-                                   this._arrow.rotation_angle_z = this.actor._arrowRotation;
-                               },
-                               onComplete: () => {
-                                   this.actor.hide();
-                                   this.actor.set_height(-1);
-                               },
-                             });
+            this.actor.ease({
+                height: 0,
+                duration: 250,
+                mode: Clutter.AnimationMode.EASE_OUT_EXPO,
+                onComplete: () => {
+                    this.actor.hide();
+                    this.actor.set_height(-1);
+                }
+            });
+            this._arrow.ease({
+                rotation_angle_z: 0,
+                duration: 250,
+                mode: Clutter.AnimationMode.EASE_OUT_EXPO
+            });
         } else {
             this._arrow.rotation_angle_z = 0;
             this.actor.hide();
@@ -1193,11 +1195,11 @@ class PopupSubMenuMenuItem extends PopupBaseMenuItem {
         return super._onKeyPressEvent(actor, event);
     }
 
-    activate(event) {
+    activate(_event) {
         this._setOpenState(true);
     }
 
-    _onButtonReleaseEvent(actor) {
+    _onButtonReleaseEvent() {
         // Since we override the parent, we need to manage what the parent does
         // with the active style class
         this.remove_style_pseudo_class('active');

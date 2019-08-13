@@ -99,7 +99,6 @@ const Signals = imports.signals;
 const LoginManager = imports.misc.loginManager;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
 
@@ -110,7 +109,7 @@ const COLOR_SHADING_TYPE_KEY = 'color-shading-type';
 const BACKGROUND_STYLE_KEY = 'picture-options';
 const PICTURE_URI_KEY = 'picture-uri';
 
-var FADE_ANIMATION_TIME = 1.0;
+var FADE_ANIMATION_TIME = 1000;
 
 // These parameters affect how often we redraw.
 // The first is how different (percent crossfaded) the slide show
@@ -333,12 +332,12 @@ var Background = class Background {
     }
 
     _loadPattern() {
-        let colorString, res, color, secondColor;
+        let colorString, res_, color, secondColor;
 
         colorString = this._settings.get_string(PRIMARY_COLOR_KEY);
-        [res, color] = Clutter.Color.from_string(colorString);
+        [res_, color] = Clutter.Color.from_string(colorString);
         colorString = this._settings.get_string(SECONDARY_COLOR_KEY);
-        [res, secondColor] = Clutter.Color.from_string(colorString);
+        [res_, secondColor] = Clutter.Color.from_string(colorString);
 
         let shadingType = this._settings.get_enum(COLOR_SHADING_TYPE_KEY);
 
@@ -635,7 +634,7 @@ var Animation = class Animation {
     load(callback) {
         this._show = new GnomeDesktop.BGSlideShow({ file: this.file });
 
-        this._show.load_async(null, (object, result) => {
+        this._show.load_async(null, () => {
             this.loaded = true;
             if (callback)
                 callback();
@@ -651,7 +650,7 @@ var Animation = class Animation {
         if (this._show.get_num_slides() < 1)
             return;
 
-        let [progress, duration, isFixed, filename1, filename2] = this._show.get_current_slide(monitor.width, monitor.height);
+        let [progress, duration, isFixed_, filename1, filename2] = this._show.get_current_slide(monitor.width, monitor.height);
 
         this.transitionDuration = duration;
         this.transitionProgress = progress;
@@ -710,14 +709,12 @@ var BackgroundManager = class BackgroundManager {
         this._newBackgroundActor = null;
         this.emit('changed');
 
-        Tweener.addTween(oldBackgroundActor,
-                         { opacity: 0,
-                           time: FADE_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete() {
-                               oldBackgroundActor.destroy();
-                           }
-                         });
+        oldBackgroundActor.ease({
+            opacity: 0,
+            duration: FADE_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => oldBackgroundActor.destroy()
+        });
     }
 
     _updateBackgroundActor() {

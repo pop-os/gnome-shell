@@ -1,12 +1,12 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported WorkspaceSwitcherPopup */
 
 const { Clutter, GLib, GObject, Meta, St } = imports.gi;
 const Mainloop = imports.mainloop;
 
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
-var ANIMATION_TIME = 0.1;
+var ANIMATION_TIME = 100;
 var DISPLAY_TIMEOUT = 600;
 
 var WorkspaceSwitcherPopupList = GObject.registerClass(
@@ -26,7 +26,7 @@ class WorkspaceSwitcherPopupList extends St.Widget {
         });
     }
 
-    _getPreferredSizeForOrientation(forSize) {
+    _getPreferredSizeForOrientation(_forSize) {
         let workArea = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
         let themeNode = this.get_theme_node();
 
@@ -38,7 +38,7 @@ class WorkspaceSwitcherPopupList extends St.Widget {
 
         let size = 0;
         for (let child of this.get_children()) {
-            let [childMinHeight, childNaturalHeight] = child.get_preferred_height(-1);
+            let [, childNaturalHeight] = child.get_preferred_height(-1);
             let height = childNaturalHeight * workArea.width / workArea.height;
 
             if (this._orientation == Clutter.Orientation.HORIZONTAL)
@@ -174,17 +174,18 @@ class WorkspaceSwitcherPopup extends St.Widget {
         }
 
         let workArea = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
-        let [containerMinHeight, containerNatHeight] = this._container.get_preferred_height(global.screen_width);
-        let [containerMinWidth, containerNatWidth] = this._container.get_preferred_width(containerNatHeight);
+        let [, containerNatHeight] = this._container.get_preferred_height(global.screen_width);
+        let [, containerNatWidth] = this._container.get_preferred_width(containerNatHeight);
         this._container.x = workArea.x + Math.floor((workArea.width - containerNatWidth) / 2);
         this._container.y = workArea.y + Math.floor((workArea.height - containerNatHeight) / 2);
     }
 
     _show() {
-        Tweener.addTween(this._container, { opacity: 255,
-                                            time: ANIMATION_TIME,
-                                            transition: 'easeOutQuad'
-                                           });
+        this._container.ease({
+            opacity: 255,
+            duration: ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
         this.show();
     }
 
@@ -203,11 +204,12 @@ class WorkspaceSwitcherPopup extends St.Widget {
     _onTimeout() {
         Mainloop.source_remove(this._timeoutId);
         this._timeoutId = 0;
-        Tweener.addTween(this._container, { opacity: 0.0,
-                                            time: ANIMATION_TIME,
-                                            transition: 'easeOutQuad',
-                                            onComplete: () => this.destroy()
-                                           });
+        this._container.ease({
+            opacity: 0.0,
+            duration: ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.destroy()
+        });
         return GLib.SOURCE_REMOVE;
     }
 

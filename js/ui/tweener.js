@@ -1,8 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported init, addCaller, addTween, getTweenCount, removeTweens,
+            pauseTweens, resumeTweens, registerSpecialProperty,
+            registerSpecialPropertyModifier, registerSpecialPropertySplitter */
 
-const { Clutter, GLib, Shell, St } = imports.gi;
+const { Clutter, GLib, Shell } = imports.gi;
 const Signals = imports.signals;
 const Tweener = imports.tweener.tweener;
+
+const { adjustAnimationTime } = imports.ui.environment;
 
 // This is a wrapper around imports.tweener.tweener that adds a bit of
 // Clutter integration. If the tweening target is a Clutter.Actor, then
@@ -47,10 +52,11 @@ function _wrapTweening(target, tweeningParameters) {
         }
     }
 
-    if (!St.Settings.get().enable_animations) {
-        tweeningParameters['time'] = 0.000001;
-        tweeningParameters['delay'] = 0.000001;
-    }
+    let { time, delay } = tweeningParameters;
+    if (!isNaN(time))
+        tweeningParameters['time'] = adjustAnimationTime(1000 * time) / 1000;
+    if (!isNaN(delay))
+        tweeningParameters['delay'] = adjustAnimationTime(1000 * delay) / 1000;
 
     _addHandler(target, tweeningParameters, 'onComplete', _tweenCompleted);
 }
@@ -169,8 +175,8 @@ var ClutterFrameTicker = class {
         this._startTime = -1;
         this._currentTime = -1;
 
-        this._timeline.connect('new-frame', (timeline, frame) => {
-            this._onNewFrame(frame);
+        this._timeline.connect('new-frame', () => {
+            this._onNewFrame();
         });
 
         let perfLog = Shell.PerfLog.get_default();
@@ -186,7 +192,7 @@ var ClutterFrameTicker = class {
         return 60;
     }
 
-    _onNewFrame(frame) {
+    _onNewFrame() {
         // If there is a lot of setup to start the animation, then
         // first frame number we get from clutter might be a long ways
         // into the animation (or the animation might even be done).
@@ -208,8 +214,6 @@ var ClutterFrameTicker = class {
     }
 
     start() {
-        if (St.get_slow_down_factor() > 0)
-            Tweener.setTimeScale(1 / St.get_slow_down_factor());
         this._timeline.start();
         global.begin_work();
     }

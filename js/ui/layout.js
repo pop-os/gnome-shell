@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported MonitorConstraint, LayoutManager */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
@@ -10,12 +11,11 @@ const LoginManager = imports.misc.loginManager;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 const Ripples = imports.ui.ripples;
 
-var STARTUP_ANIMATION_TIME = 0.5;
-var KEYBOARD_ANIMATION_TIME = 0.15;
-var BACKGROUND_FADE_ANIMATION_TIME = 1.0;
+var STARTUP_ANIMATION_TIME = 500;
+var KEYBOARD_ANIMATION_TIME = 150;
+var BACKGROUND_FADE_ANIMATION_TIME = 1000;
 
 var HOT_CORNER_PRESSURE_THRESHOLD = 100; // pixels
 var HOT_CORNER_PRESSURE_TIMEOUT = 1000; // ms
@@ -80,10 +80,12 @@ var MonitorConstraint = GObject.registerClass({
         this.notify('index');
     }
 
+    // eslint-disable-next-line camelcase
     get work_area() {
         return this._workArea;
     }
 
+    // eslint-disable-next-line camelcase
     set work_area(v) {
         if (v == this._workArea)
             return;
@@ -165,12 +167,12 @@ var Monitor = class Monitor {
 
 const UiActor = GObject.registerClass(
 class UiActor extends St.Widget {
-    vfunc_get_preferred_width (forHeight) {
+    vfunc_get_preferred_width (_forHeight) {
         let width = global.stage.width;
         return [width, width];
     }
 
-    vfunc_get_preferred_height (forWidth) {
+    vfunc_get_preferred_height (_forWidth) {
         let height = global.stage.height;
         return [height, height];
     }
@@ -461,10 +463,11 @@ var LayoutManager = GObject.registerClass({
                 let backgroundActor = this._bgManagers[i].backgroundActor;
                 backgroundActor.show();
                 backgroundActor.opacity = 0;
-                Tweener.addTween(backgroundActor,
-                                 { opacity: 255,
-                                   time: BACKGROUND_FADE_ANIMATION_TIME,
-                                   transition: 'easeOutQuad' });
+                backgroundActor.ease({
+                    opacity: 255,
+                    duration: BACKGROUND_FADE_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                });
             }
         }
     }
@@ -695,23 +698,23 @@ var LayoutManager = GObject.registerClass({
     }
 
     _startupAnimationGreeter() {
-        Tweener.addTween(this.panelBox,
-                         { translation_y: 0,
-                           time: STARTUP_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._startupAnimationComplete,
-                           onCompleteScope: this });
+        this.panelBox.ease({
+            translation_y: 0,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._startupAnimationComplete()
+        });
     }
 
     _startupAnimationSession() {
-        Tweener.addTween(this.uiGroup,
-                         { scale_x: 1,
-                           scale_y: 1,
-                           opacity: 255,
-                           time: STARTUP_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._startupAnimationComplete,
-                           onCompleteScope: this });
+        this.uiGroup.ease({
+            scale_x: 1,
+            scale_y: 1,
+            opacity: 255,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._startupAnimationComplete()
+        });
     }
 
     _startupAnimationComplete() {
@@ -737,14 +740,15 @@ var LayoutManager = GObject.registerClass({
 
     showKeyboard() {
         this.keyboardBox.show();
-        Tweener.addTween(this.keyboardBox,
-                         { anchor_y: this.keyboardBox.height,
-                           opacity: 255,
-                           time: KEYBOARD_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._showKeyboardComplete,
-                           onCompleteScope: this
-                         });
+        this.keyboardBox.ease({
+            anchor_y: this.keyboardBox.height,
+            opacity: 255,
+            duration: KEYBOARD_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._showKeyboardComplete();
+            }
+        });
         this.emit('keyboard-visible-changed', true);
     }
 
@@ -763,14 +767,16 @@ var LayoutManager = GObject.registerClass({
             this.keyboardBox.disconnect(this._keyboardHeightNotifyId);
             this._keyboardHeightNotifyId = 0;
         }
-        Tweener.addTween(this.keyboardBox,
-                         { anchor_y: 0,
-                           opacity: 0,
-                           time: immediate ? 0 : KEYBOARD_ANIMATION_TIME,
-                           transition: 'easeInQuad',
-                           onComplete: this._hideKeyboardComplete,
-                           onCompleteScope: this
-                         });
+        this.keyboardBox.ease({
+            anchor_y: 0,
+            opacity: 0,
+            duration: immediate ? 0
+                                : KEYBOARD_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onComplete: () => {
+                this._hideKeyboardComplete();
+            }
+        });
 
         this.emit('keyboard-visible-changed', false);
     }
@@ -1230,7 +1236,7 @@ var HotCorner = class HotCorner {
         }
     }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
@@ -1331,7 +1337,7 @@ var PressureBarrier = class PressureBarrier {
         let threshold = this._lastTime - this._timeout;
 
         while (i < this._barrierEvents.length) {
-            let [time, distance] = this._barrierEvents[i];
+            let [time, distance_] = this._barrierEvents[i];
             if (time >= threshold)
                 break;
             i++;
@@ -1340,14 +1346,14 @@ var PressureBarrier = class PressureBarrier {
         let firstNewEvent = i;
 
         for (i = 0; i < firstNewEvent; i++) {
-            let [time, distance] = this._barrierEvents[i];
+            let [time_, distance] = this._barrierEvents[i];
             this._currentPressure -= distance;
         }
 
         this._barrierEvents = this._barrierEvents.slice(firstNewEvent);
     }
 
-    _onBarrierLeft(barrier, event) {
+    _onBarrierLeft(barrier, _event) {
         barrier._isHit = false;
         if (this._barriers.every(b => !b._isHit)) {
             this._reset();

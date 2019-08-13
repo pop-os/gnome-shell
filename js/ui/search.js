@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Clutter, Gio, GLib, GObject, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const AppDisplay = imports.ui.appDisplay;
@@ -192,7 +192,7 @@ var SearchResultsBase = class {
         Main.overview.toggle();
     }
 
-    _setMoreCount(count) {
+    _setMoreCount(_count) {
     }
 
     _ensureResultActors(results, callback) {
@@ -245,7 +245,9 @@ var SearchResultsBase = class {
             callback();
         } else {
             let maxResults = this._getMaxDisplayedResults();
-            let results = this.provider.filterResults(providerResults, maxResults);
+            let results = maxResults > -1
+                ? this.provider.filterResults(providerResults, maxResults)
+                : providerResults;
             let moreCount = Math.max(providerResults.length - results.length, 0);
 
             this._ensureResultActors(results, successful => {
@@ -346,15 +348,21 @@ var GridSearchResults = class extends SearchResultsBase {
         // Make sure the maximum number of results calculated by
         // _getMaxDisplayedResults() is updated after width changes.
         this._notifyAllocationId = this.actor.connect('notify::allocation', () => {
-            super.updateSearch(...args);
+            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                super.updateSearch(...args);
+                return GLib.SOURCE_REMOVE;
+            });
         });
 
         super.updateSearch(...args);
     }
 
     _getMaxDisplayedResults() {
-        let allocation = this.actor.allocation;
-        let nCols = this._grid.columnsForWidth(allocation.x2 - allocation.x1);
+        let width = this.actor.allocation.x2 - this.actor.allocation.x1;
+        if (width == 0)
+            return -1;
+
+        let nCols = this._grid.columnsForWidth(width);
         return nCols * this._grid.getRowLimit();
     }
 
@@ -560,7 +568,7 @@ var SearchResults = class {
     }
 
     _onPan(action) {
-        let [dist, dx, dy] = action.get_motion_delta(0);
+        let [dist_, dx_, dy] = action.get_motion_delta(0);
         let adjustment = this._scrollView.vscroll.adjustment;
         adjustment.value -= (dy / this.actor.height) * adjustment.page_size;
         return false;

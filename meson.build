@@ -1,12 +1,17 @@
 project('gnome-shell', 'c',
-  version: '3.33.4',
+  version: '3.33.90',
   meson_version: '>= 0.47.0',
   license: 'GPLv2+'
 )
 
+split_version = meson.project_version().split('.')
+
 # We depend on a specific version of the libmutter API. The mutter variants of
 # the Cogl and Clutter libraries also use this API version.
-mutter_api_version = '4'
+# The API version is increased automatically each development cycle,
+# starting with 0 in 3.23.x
+api_version = (split_version[1].to_int() - 23) / 2
+mutter_api_version = '@0@'.format(api_version)
 
 clutter_pc = 'mutter-clutter-' + mutter_api_version
 cogl_pc = 'mutter-cogl-' + mutter_api_version
@@ -21,9 +26,9 @@ gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
 gjs_req = '>= 1.57.3'
 gtk_req = '>= 3.15.0'
-mutter_req = '>= 3.33.4'
+mutter_req = '>= 3.33.90'
 polkit_req = '>= 0.100'
-schemas_req = '>= 3.27.90'
+schemas_req = '>= 3.33.1'
 startup_req = '>= 0.11'
 ibus_req = '>= 1.5.2'
 
@@ -237,6 +242,8 @@ libgvc = subproject('gvc',
   ]
 )
 libgvc_gir = libgvc.get_variable('libgvc_gir')
+
+po_dir = join_paths(meson.current_source_dir(), 'po')
 
 subdir('js')
 subdir('src')

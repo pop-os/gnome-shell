@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported LookingGlass */
 
 const { Clutter, Cogl, Gio, GLib,
         GObject, Meta, Pango, Shell, St } = imports.gi;
@@ -9,7 +10,6 @@ const System = imports.system;
 const History = imports.misc.history;
 const ExtensionUtils = imports.misc.extensionUtils;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const Main = imports.ui.main;
 const JsParse = imports.misc.jsParse;
 
@@ -21,7 +21,6 @@ const CHEVRON = '>>> ';
 var commandHeader = 'const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi; ' +
                     'const Main = imports.ui.main; ' +
                     'const Mainloop = imports.mainloop; ' +
-                    'const Tweener = imports.ui.tweener; ' +
                     /* Utility functions...we should probably be able to use these
                      * in the shell core code too. */
                     'const stage = global.stage; ' +
@@ -33,8 +32,10 @@ var commandHeader = 'const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = im
 const HISTORY_KEY = 'looking-glass-history';
 // Time between tabs for them to count as a double-tab event
 var AUTO_COMPLETE_DOUBLE_TAB_DELAY = 500;
-var AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION = 0.2;
+var AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION = 200;
 var AUTO_COMPLETE_GLOBAL_KEYWORDS = _getAutoCompleteGlobalKeywords();
+
+const LG_ANIMATION_TIME = 500;
 
 function _getAutoCompleteGlobalKeywords() {
     const keywords = ['true', 'false', 'null', 'new'];
@@ -267,7 +268,7 @@ var ObjLink = class ObjLink {
         this._lookingGlass = lookingGlass;
     }
 
-    _onClicked(link) {
+    _onClicked() {
         this._lookingGlass.inspectObject(this._obj, this.actor);
     }
 };
@@ -418,9 +419,12 @@ var ObjInspector = class ObjInspector {
         this.actor.show();
         if (sourceActor) {
             this.actor.set_scale(0, 0);
-            Tweener.addTween(this.actor, { scale_x: 1, scale_y: 1,
-                                           transition: 'easeOutQuad',
-                                           time: 0.2 });
+            this.actor.ease({
+                scale_x: 1,
+                scale_y: 1,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                time: 200
+            });
         } else {
             this.actor.set_scale(1, 1);
         }
@@ -519,7 +523,7 @@ var Inspector = GObject.registerClass({
 
         let primary = Main.layoutManager.primaryMonitor;
 
-        let [minWidth, minHeight, natWidth, natHeight] =
+        let [, , natWidth, natHeight] =
             this._eventHandler.get_preferred_size();
 
         let childBox = new Clutter.ActorBox();
@@ -856,7 +860,7 @@ var LookingGlass = class LookingGlass {
         this._extensions = new Extensions(this);
         notebook.appendPage('Extensions', this._extensions.actor);
 
-        this._entry.clutter_text.connect('activate', (o, e) => {
+        this._entry.clutter_text.connect('activate', (o, _e) => {
             // Hide any completions we are currently showing
             this._hideCompletions();
 
@@ -940,35 +944,41 @@ var LookingGlass = class LookingGlass {
         this._completionActor.set_text(completions.join(', '));
 
         // Setting the height to -1 allows us to get its actual preferred height rather than
-        // whatever was last given in set_height by Tweener.
+        // whatever was last set when animating
         this._completionActor.set_height(-1);
-        let [minHeight, naturalHeight] = this._completionActor.get_preferred_height(this._resultsArea.get_width());
+        let [, naturalHeight] = this._completionActor.get_preferred_height(this._resultsArea.get_width());
 
         // Don't reanimate if we are already visible
         if (this._completionActor.visible) {
             this._completionActor.height = naturalHeight;
         } else {
+            let settings = St.Settings.get();
+            let duration = AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / settings.slow_down_factor;
             this._completionActor.show();
-            Tweener.removeTweens(this._completionActor);
-            Tweener.addTween(this._completionActor, { time: AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / St.get_slow_down_factor(),
-                                                      transition: 'easeOutQuad',
-                                                      height: naturalHeight,
-                                                      opacity: 255
-                                                    });
+            this._completionActor.remove_all_transitions();
+            this._completionActor.ease({
+                height: naturalHeight,
+                opacity: 255,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
     }
 
     _hideCompletions() {
         if (this._completionActor) {
-            Tweener.removeTweens(this._completionActor);
-            Tweener.addTween(this._completionActor, { time: AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / St.get_slow_down_factor(),
-                                                      transition: 'easeOutQuad',
-                                                      height: 0,
-                                                      opacity: 0,
-                                                      onComplete: () => {
-                                                          this._completionActor.hide();
-                                                      }
-                                                    });
+            let settings = St.Settings.get();
+            let duration = AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / settings.slow_down_factor;
+            this._completionActor.remove_all_transitions();
+            this._completionActor.ease({
+                height: 0,
+                opacity: 0,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._completionActor.hide();
+                }
+            });
         }
     }
 
@@ -1011,7 +1021,10 @@ var LookingGlass = class LookingGlass {
     }
 
     _queueResize() {
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => this._resize());
+        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._resize();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _resize() {
@@ -1074,14 +1087,16 @@ var LookingGlass = class LookingGlass {
         this._open = true;
         this._history.lastItem();
 
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         // We inverse compensate for the slow-down so you can change the factor
         // through LookingGlass without long waits.
-        Tweener.addTween(this.actor, { time: 0.5 / St.get_slow_down_factor(),
-                                       transition: 'easeOutQuad',
-                                       y: this._targetY
-                                     });
+        let duration = LG_ANIMATION_TIME / St.Settings.get().slow_down_factor;
+        this.actor.ease({
+            y: this._targetY,
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     close() {
@@ -1091,19 +1106,21 @@ var LookingGlass = class LookingGlass {
         this._objInspector.actor.hide();
 
         this._open = false;
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         this.setBorderPaintTarget(null);
 
         Main.popModal(this._entry);
 
-        Tweener.addTween(this.actor, { time: Math.min(0.5 / St.get_slow_down_factor(), 0.5),
-                                       transition: 'easeOutQuad',
-                                       y: this._hiddenY,
-                                       onComplete: () => {
-                                           this.actor.hide();
-                                       }
-                                     });
+        let settings = St.Settings.get();
+        let duration = Math.min(LG_ANIMATION_TIME / settings.slow_down_factor,
+                                LG_ANIMATION_TIME);
+        this.actor.ease({
+            y: this._hiddenY,
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.actor.hide()
+        });
     }
 };
 Signals.addSignalMethods(LookingGlass.prototype);
