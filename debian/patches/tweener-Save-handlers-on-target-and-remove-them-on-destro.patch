@@ -17,10 +17,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/4
  1 file changed, 49 insertions(+), 13 deletions(-)
 
 diff --git a/js/ui/tweener.js b/js/ui/tweener.js
-index f8baee1..58b7b08 100644
+index 221438c..dc1e9ad 100644
 --- a/js/ui/tweener.js
 +++ b/js/ui/tweener.js
-@@ -63,30 +63,66 @@ function _getTweenState(target) {
+@@ -69,30 +69,66 @@ function _getTweenState(target) {
      return target.__ShellTweenerState;
  }
  
