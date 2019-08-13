@@ -45,6 +45,8 @@ struct _StAdjustmentPrivate
    * not all properties may be set yet. */
   guint is_constructing : 1;
 
+  GHashTable *transitions;
+
   gdouble  lower;
   gdouble  upper;
   gdouble  value;
@@ -70,7 +72,11 @@ enum
   PROP_STEP_INC,
   PROP_PAGE_INC,
   PROP_PAGE_SIZE,
+
+  N_PROPS
 };
+
+static GParamSpec *props[N_PROPS] = { NULL, };
 
 enum
 {
@@ -80,6 +86,14 @@ enum
 };
 
 static guint signals[LAST_SIGNAL] = { 0, };
+
+typedef struct _TransitionClosure
+{
+  StAdjustment *adjustment;
+  ClutterTransition *transition;
+  char *name;
+  gulong completed_id;
+} TransitionClosure;
 
 static gboolean st_adjustment_set_lower          (StAdjustment *adjustment,
                                                   gdouble       lower);
@@ -198,6 +212,17 @@ st_adjustment_set_property (GObject      *gobject,
 }
 
 static void
+st_adjustment_dispose (GObject *object)
+{
+  StAdjustmentPrivate *priv;
+
+  priv = st_adjustment_get_instance_private (ST_ADJUSTMENT (object));
+  g_clear_pointer (&priv->transitions, g_hash_table_unref);
+
+  G_OBJECT_CLASS (st_adjustment_parent_class)->dispose (object);
+}
+
+static void
 st_adjustment_class_init (StAdjustmentClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -205,73 +230,52 @@ st_adjustment_class_init (StAdjustmentClass *klass)
   object_class->constructed = st_adjustment_constructed;
   object_class->get_property = st_adjustment_get_property;
   object_class->set_property = st_adjustment_set_property;
+  object_class->dispose = st_adjustment_dispose;
 
-  g_object_class_install_property (object_class,
-                                   PROP_LOWER,
-                                   g_param_spec_double ("lower",
-                                                        "Lower",
-                                                        "Lower bound",
-                                                        -G_MAXDOUBLE,
-                                                        G_MAXDOUBLE,
-                                                        0.0,
-                                                        ST_PARAM_READWRITE |
-                                                        G_PARAM_CONSTRUCT |
-                                                        G_PARAM_EXPLICIT_NOTIFY));
-  g_object_class_install_property (object_class,
-                                   PROP_UPPER,
-                                   g_param_spec_double ("upper",
-                                                        "Upper",
-                                                        "Upper bound",
-                                                        -G_MAXDOUBLE,
-                                                        G_MAXDOUBLE,
-                                                        0.0,
-                                                        ST_PARAM_READWRITE |
-                                                        G_PARAM_CONSTRUCT |
-                                                        G_PARAM_EXPLICIT_NOTIFY));
-  g_object_class_install_property (object_class,
-                                   PROP_VALUE,
-                                   g_param_spec_double ("value",
-                                                        "Value",
-                                                        "Current value",
-                                                        -G_MAXDOUBLE,
-                                                        G_MAXDOUBLE,
-                                                        0.0,
-                                                        ST_PARAM_READWRITE |
-                                                        G_PARAM_CONSTRUCT |
-                                                        G_PARAM_EXPLICIT_NOTIFY));
-  g_object_class_install_property (object_class,
-                                   PROP_STEP_INC,
-                                   g_param_spec_double ("step-increment",
-                                                        "Step Increment",
-                                                        "Step increment",
-                                                        0.0,
-                                                        G_MAXDOUBLE,
-                                                        0.0,
-                                                        ST_PARAM_READWRITE |
-                                                        G_PARAM_CONSTRUCT |
-                                                        G_PARAM_EXPLICIT_NOTIFY));
-  g_object_class_install_property (object_class,
-                                   PROP_PAGE_INC,
-                                   g_param_spec_double ("page-increment",
-                                                        "Page Increment",
-                                                        "Page increment",
-                                                        0.0,
-                                                        G_MAXDOUBLE,
-                                                        0.0,
-                                                        ST_PARAM_READWRITE |
-                                                        G_PARAM_CONSTRUCT |
-                                                        G_PARAM_EXPLICIT_NOTIFY));
-  g_object_class_install_property (object_class,
-                                   PROP_PAGE_SIZE,
-                                   g_param_spec_double ("page-size",
-                                                        "Page Size",
-                                                        "Page size",
-                                                        0.0,
-                                                        G_MAXDOUBLE,
-                                                        0.0,
-                                                        ST_PARAM_READWRITE |
-                                                        G_PARAM_CONSTRUCT |
-                                                        G_PARAM_EXPLICIT_NOTIFY));
+  props[PROP_LOWER] =
+    g_param_spec_double ("lower", "Lower", "Lower bound",
+                         -G_MAXDOUBLE,  G_MAXDOUBLE, 0.0,
+                         ST_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT |
+                         G_PARAM_EXPLICIT_NOTIFY);
+
+  props[PROP_UPPER] =
+    g_param_spec_double ("upper", "Upper", "Upper bound",
+                         -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+                         ST_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT |
+                         G_PARAM_EXPLICIT_NOTIFY);
+
+  props[PROP_VALUE] =
+    g_param_spec_double ("value", "Value", "Current value",
+                         -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+                         ST_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT |
+                         G_PARAM_EXPLICIT_NOTIFY);
+
+  props[PROP_STEP_INC] =
+    g_param_spec_double ("step-increment", "Step Increment", "Step increment",
+                         0.0, G_MAXDOUBLE, 0.0,
+                         ST_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT |
+                         G_PARAM_EXPLICIT_NOTIFY);
+
+  props[PROP_PAGE_INC] =
+    g_param_spec_double ("page-increment", "Page Increment", "Page increment",
+                         0.0, G_MAXDOUBLE, 0.0,
+                         ST_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT |
+                         G_PARAM_EXPLICIT_NOTIFY);
+
+  props[PROP_PAGE_SIZE] =
+    g_param_spec_double ("page-size", "Page Size", "Page size",
+                         0.0, G_MAXDOUBLE, 0.0,
+                         ST_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT |
+                         G_PARAM_EXPLICIT_NOTIFY);
+
+  g_object_class_install_properties (object_class, N_PROPS, props);
+
   /**
    * StAdjustment::changed:
    * @self: the #StAdjustment
@@ -342,7 +346,7 @@ st_adjustment_set_value (StAdjustment *adjustment,
     {
       priv->value = value;
 
-      g_object_notify (G_OBJECT (adjustment), "value");
+      g_object_notify_by_pspec (G_OBJECT (adjustment), props[PROP_VALUE]);
     }
 }
 
@@ -376,7 +380,7 @@ st_adjustment_clamp_page (StAdjustment *adjustment,
     }
 
   if (changed)
-    g_object_notify (G_OBJECT (adjustment), "value");
+    g_object_notify_by_pspec (G_OBJECT (adjustment), props[PROP_VALUE]);
 }
 
 static gboolean
@@ -391,7 +395,7 @@ st_adjustment_set_lower (StAdjustment *adjustment,
 
       g_signal_emit (adjustment, signals[CHANGED], 0);
 
-      g_object_notify (G_OBJECT (adjustment), "lower");
+      g_object_notify_by_pspec (G_OBJECT (adjustment), props[PROP_LOWER]);
 
       /* Defer clamp until after construction. */
       if (!priv->is_constructing)
@@ -415,7 +419,7 @@ st_adjustment_set_upper (StAdjustment *adjustment,
 
       g_signal_emit (adjustment, signals[CHANGED], 0);
 
-      g_object_notify (G_OBJECT (adjustment), "upper");
+      g_object_notify_by_pspec (G_OBJECT (adjustment), props[PROP_UPPER]);
 
       /* Defer clamp until after construction. */
       if (!priv->is_constructing)
@@ -439,7 +443,7 @@ st_adjustment_set_step_increment (StAdjustment *adjustment,
 
       g_signal_emit (adjustment, signals[CHANGED], 0);
 
-      g_object_notify (G_OBJECT (adjustment), "step-increment");
+      g_object_notify_by_pspec (G_OBJECT (adjustment), props[PROP_STEP_INC]);
 
       return TRUE;
     }
@@ -459,7 +463,7 @@ st_adjustment_set_page_increment (StAdjustment *adjustment,
 
       g_signal_emit (adjustment, signals[CHANGED], 0);
 
-      g_object_notify (G_OBJECT (adjustment), "page-increment");
+      g_object_notify_by_pspec (G_OBJECT (adjustment), props[PROP_PAGE_INC]);
 
       return TRUE;
     }
@@ -479,7 +483,7 @@ st_adjustment_set_page_size (StAdjustment *adjustment,
 
       g_signal_emit (adjustment, signals[CHANGED], 0);
 
-      g_object_notify (G_OBJECT (adjustment), "page_size");
+      g_object_notify_by_pspec (G_OBJECT (adjustment), props[PROP_PAGE_SIZE]);
 
       /* Well explicitely clamp after construction. */
       if (!priv->is_constructing)
@@ -605,4 +609,146 @@ st_adjustment_adjust_for_scroll_event (StAdjustment *adjustment,
 
   new_value = priv->value + delta * scroll_unit;
   st_adjustment_set_value (adjustment, new_value);
+}
+
+static void
+transition_closure_free (gpointer data)
+{
+  TransitionClosure *clos;
+  ClutterTimeline *timeline;
+
+  if (G_UNLIKELY (data == NULL))
+    return;
+
+  clos = data;
+  timeline = CLUTTER_TIMELINE (clos->transition);
+
+  g_signal_handler_disconnect (clos->transition, clos->completed_id);
+
+  if (clutter_timeline_is_playing (timeline))
+    clutter_timeline_stop (timeline);
+
+  g_object_unref (clos->transition);
+  g_free (clos->name);
+  g_free (clos);
+}
+
+static void
+remove_transition (StAdjustment *adjustment,
+                   const char   *name)
+{
+  StAdjustmentPrivate *priv = st_adjustment_get_instance_private (adjustment);
+
+  g_hash_table_remove (priv->transitions, name);
+
+  if (g_hash_table_size (priv->transitions) == 0)
+    g_clear_pointer (&priv->transitions, g_hash_table_unref);
+}
+
+static void
+on_transition_stopped (ClutterTransition *transition,
+                       gboolean           is_finished,
+                       TransitionClosure *clos)
+{
+  StAdjustment *adjustment = clos->adjustment;
+
+  if (!clutter_transition_get_remove_on_complete (transition))
+    return;
+
+  /* Take a reference, because removing the closure will
+   * release the reference on the transition, and we want
+   * it to survive the signal emission; ClutterTransition's
+   * own ::stopped signal closure will release it after all
+   * other handlers have run.
+   */
+  g_object_ref (transition);
+
+  remove_transition (adjustment, clos->name);
+}
+
+/**
+ * st_adjustment_get_transition:
+ * Returns: (transfer none) (nullable):
+ */
+ClutterTransition *
+st_adjustment_get_transition (StAdjustment *adjustment,
+                              const char   *name)
+{
+  StAdjustmentPrivate *priv;
+  TransitionClosure *clos;
+
+  g_return_val_if_fail (ST_IS_ADJUSTMENT (adjustment), NULL);
+
+  priv = st_adjustment_get_instance_private (adjustment);
+
+  if (priv->transitions == NULL)
+    return NULL;
+
+  clos = g_hash_table_lookup (priv->transitions, name);
+  if (clos == NULL)
+    return NULL;
+
+  return clos->transition;
+}
+
+void
+st_adjustment_add_transition (StAdjustment      *adjustment,
+                              const char        *name,
+                              ClutterTransition *transition)
+{
+  StAdjustmentPrivate *priv;
+  TransitionClosure *clos;
+
+  g_return_if_fail (ST_IS_ADJUSTMENT (adjustment));
+  g_return_if_fail (name != NULL);
+  g_return_if_fail (CLUTTER_IS_TRANSITION (transition));
+
+  priv = st_adjustment_get_instance_private (adjustment);
+
+  if (priv->transitions == NULL)
+    priv->transitions = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                               NULL,
+                                               transition_closure_free);
+
+  if (g_hash_table_lookup (priv->transitions, name) != NULL)
+    {
+      g_warning ("A transition with name '%s' already exists for "
+                 "adjustment '%p'", name, adjustment);
+      return;
+    }
+
+  clutter_transition_set_animatable (transition, CLUTTER_ANIMATABLE (adjustment));
+
+  clos = g_new (TransitionClosure, 1);
+  clos->adjustment = adjustment;
+  clos->transition = g_object_ref (transition);
+  clos->name = g_strdup (name);
+  clos->completed_id = g_signal_connect (transition, "stopped",
+                                         G_CALLBACK (on_transition_stopped),
+                                         clos);
+
+  g_hash_table_insert (priv->transitions, clos->name, clos);
+  clutter_timeline_start (CLUTTER_TIMELINE (transition));
+}
+
+void
+st_adjustment_remove_transition (StAdjustment *adjustment,
+                                 const char   *name)
+{
+  StAdjustmentPrivate *priv;
+  TransitionClosure *clos;
+
+  g_return_if_fail (ST_IS_ADJUSTMENT (adjustment));
+  g_return_if_fail (name != NULL);
+
+  priv = st_adjustment_get_instance_private (adjustment);
+
+  if (priv->transitions == NULL)
+    return;
+
+  clos = g_hash_table_lookup (priv->transitions, name);
+  if (clos == NULL)
+    return;
+
+  remove_transition (adjustment, name);
 }

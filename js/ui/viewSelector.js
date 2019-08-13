@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ViewSelector */
 
 const { Clutter, Gio, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
@@ -9,7 +10,6 @@ const OverviewControls = imports.ui.overviewControls;
 const Params = imports.misc.params;
 const Search = imports.ui.search;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const WorkspacesView = imports.ui.workspacesView;
 const EdgeDragAction = imports.ui.edgeDragAction;
 const IconGrid = imports.ui.iconGrid;
@@ -74,7 +74,7 @@ var ShowOverviewAction = GObject.registerClass({
         });
     }
 
-    vfunc_gesture_prepare(actor) {
+    vfunc_gesture_prepare(_actor) {
         return Main.actionMode == Shell.ActionMode.NORMAL &&
                this.get_n_current_points() == this.get_n_touch_points();
     }
@@ -108,12 +108,12 @@ var ShowOverviewAction = GObject.registerClass({
                                     height: maxY - minY });
     }
 
-    vfunc_gesture_begin(actor) {
+    vfunc_gesture_begin(_actor) {
         this._initialRect = this._getBoundingRect(false);
         return true;
     }
 
-    vfunc_gesture_end(actor) {
+    vfunc_gesture_end(_actor) {
         let rect = this._getBoundingRect(true);
         let oldArea = this._initialRect.width * this._initialRect.height;
         let newArea = rect.width * rect.height;
@@ -321,23 +321,21 @@ var ViewSelector = class {
     }
 
     _fadePageIn() {
-        Tweener.addTween(this._activePage,
-                         { opacity: 255,
-                           time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
-                           transition: 'easeOutQuad'
-                         });
+        this._activePage.ease({
+            opacity: 255,
+            duration: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     _fadePageOut(page) {
         let oldPage = page;
-        Tweener.addTween(page,
-                         { opacity: 0,
-                           time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this._animateIn(oldPage);
-                           }
-                         });
+        page.ease({
+            opacity: 0,
+            duration: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onStopped: () => this._animateIn(oldPage)
+        });
     }
 
     _animateIn(oldPage) {
@@ -512,7 +510,7 @@ var ViewSelector = class {
         return this._text.text == this._entry.get_text();
     }
 
-    _onTextChanged(se, prop) {
+    _onTextChanged() {
         let terms = getTermsForSearchString(this._entry.get_text());
 
         this._searchActive = (terms.length > 0);
@@ -600,22 +598,6 @@ var ViewSelector = class {
             return ViewPage.APPS;
         else
             return ViewPage.SEARCH;
-    }
-
-    fadeIn() {
-        let actor = this._activePage;
-        Tweener.addTween(actor, { opacity: 255,
-                                  time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME / 2,
-                                  transition: 'easeInQuad'
-                                });
-    }
-
-    fadeHalf() {
-        let actor = this._activePage;
-        Tweener.addTween(actor, { opacity: 128,
-                                  time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME / 2,
-                                  transition: 'easeOutQuad'
-                                });
     }
 };
 Signals.addSignalMethods(ViewSelector.prototype);

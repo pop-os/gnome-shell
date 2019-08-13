@@ -1,3 +1,4 @@
+/* exported AudioDeviceSelectionDBus */
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
 const Main = imports.ui.main;
@@ -34,7 +35,7 @@ var AudioDeviceSelectionDialog = GObject.registerClass({
             throw new Error('Too few devices for a selection');
     }
 
-    _buildLayout(devices) {
+    _buildLayout() {
         let title = new St.Label({ style_class: 'audio-selection-title',
                                    text: _("Select Audio Device"),
                                    x_align: Clutter.ActorAlign.CENTER });
@@ -85,6 +86,7 @@ var AudioDeviceSelectionDialog = GObject.registerClass({
         box.connect('notify::height', () => {
             Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
                 box.width = box.height;
+                return GLib.SOURCE_REMOVE;
             });
         });
 

@@ -1,4 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported BANNER_MESSAGE_KEY, BANNER_MESSAGE_TEXT_KEY, LOGO_KEY,
+            DISABLE_USER_LIST_KEY, fadeInActor, fadeOutActor, cloneAndFadeOutActor */
 
 const { Clutter, Gio, GLib } = imports.gi;
 const Signals = imports.signals;
@@ -9,14 +11,13 @@ const OVirt = imports.gdm.oVirt;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
 const SmartcardManager = imports.misc.smartcardManager;
-const Tweener = imports.ui.tweener;
 
 var PASSWORD_SERVICE_NAME = 'gdm-password';
 var FINGERPRINT_SERVICE_NAME = 'gdm-fingerprint';
 var SMARTCARD_SERVICE_NAME = 'gdm-smartcard';
 var OVIRT_SERVICE_NAME = 'gdm-ovirtcred';
-var FADE_ANIMATION_TIME = 0.16;
-var CLONE_FADE_ANIMATION_TIME = 0.25;
+var FADE_ANIMATION_TIME = 160;
+var CLONE_FADE_ANIMATION_TIME = 250;
 
 var LOGIN_SCREEN_SCHEMA = 'org.gnome.login-screen';
 var PASSWORD_AUTHENTICATION_KEY = 'enable-password-authentication';
@@ -45,20 +46,20 @@ function fadeInActor(actor) {
 
     let hold = new Batch.Hold();
     actor.show();
-    let [minHeight, naturalHeight] = actor.get_preferred_height(-1);
+    let [, naturalHeight] = actor.get_preferred_height(-1);
 
     actor.opacity = 0;
     actor.set_height(0);
-    Tweener.addTween(actor,
-                     { opacity: 255,
-                       height: naturalHeight,
-                       time: FADE_ANIMATION_TIME,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           this.set_height(-1);
-                           hold.release();
-                       },
-                     });
+    actor.ease({
+        opacity: 255,
+        height: naturalHeight,
+        duration: FADE_ANIMATION_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+            this.set_height(-1);
+            hold.release();
+        }
+    });
 
     return hold;
 }
@@ -71,17 +72,17 @@ function fadeOutActor(actor) {
     }
 
     let hold = new Batch.Hold();
-    Tweener.addTween(actor,
-                     { opacity: 0,
-                       height: 0,
-                       time: FADE_ANIMATION_TIME,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           this.hide();
-                           this.set_height(-1);
-                           hold.release();
-                       },
-                     });
+    actor.ease({
+        opacity: 0,
+        height: 0,
+        duration: FADE_ANIMATION_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+            this.hide();
+            this.set_height(-1);
+            hold.release();
+        }
+    });
     return hold;
 }
 
@@ -101,15 +102,15 @@ function cloneAndFadeOutActor(actor) {
     clone.set_position(x, y);
 
     let hold = new Batch.Hold();
-    Tweener.addTween(clone,
-                     { opacity: 0,
-                       time: CLONE_FADE_ANIMATION_TIME,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           clone.destroy();
-                           hold.release();
-                       }
-                     });
+    clone.ease({
+        opacity: 0,
+        duration: CLONE_FADE_ANIMATION_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+            clone.destroy();
+            hold.release();
+        }
+    });
     return hold;
 }
 
@@ -303,7 +304,7 @@ var ShellUserVerifier = class {
             });
     }
 
-    _oVirtUserAuthenticated(token) {
+    _oVirtUserAuthenticated(_token) {
         this._preemptingService = OVIRT_SERVICE_NAME;
         this.emit('ovirt-user-authenticated');
     }

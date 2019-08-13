@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Workspace */
 
 const { Atk, Clutter, GLib, GObject, Meta, Pango, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -7,14 +8,13 @@ const Signals = imports.signals;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
 const Overview = imports.ui.overview;
-const Tweener = imports.ui.tweener;
 
 var WINDOW_DND_SIZE = 256;
 
 var WINDOW_CLONE_MAXIMUM_SCALE = 1.0;
 
 var WINDOW_OVERLAY_IDLE_HIDE_TIMEOUT = 750;
-var WINDOW_OVERLAY_FADE_TIME = 0.1;
+var WINDOW_OVERLAY_FADE_TIME = 100;
 
 var WINDOW_REPOSITIONING_DELAY = 750;
 
@@ -72,11 +72,11 @@ class WindowCloneLayout extends Clutter.LayoutManager {
         return box;
     }
 
-    vfunc_get_preferred_height(container, forWidth) {
+    vfunc_get_preferred_height(_container, _forWidth) {
         return [this._boundingBox.height, this._boundingBox.height];
     }
 
-    vfunc_get_preferred_width(container, forHeight) {
+    vfunc_get_preferred_width(_container, _forHeight) {
         return [this._boundingBox.width, this._boundingBox.width];
     }
 
@@ -376,7 +376,7 @@ var WindowClone = GObject.registerClass({
         return false;
     }
 
-    _onClicked(action, actor) {
+    _onClicked() {
         this._activate();
     }
 
@@ -403,7 +403,7 @@ var WindowClone = GObject.registerClass({
         return true;
     }
 
-    _onDragBegin(draggable, time) {
+    _onDragBegin(_draggable, _time) {
         this._dragSlot = this._slot;
         [this.dragOrigX, this.dragOrigY] = this.get_position();
         this.dragOrigScale = this.scale_x;
@@ -419,11 +419,11 @@ var WindowClone = GObject.registerClass({
         this._workspace.acceptDrop(source, actor, x, y, time);
     }
 
-    _onDragCancelled(draggable, time) {
+    _onDragCancelled(_draggable, _time) {
         this.emit('drag-cancelled');
     }
 
-    _onDragEnd(draggable, time, snapback) {
+    _onDragEnd(_draggable, _time, _snapback) {
         this.inDrag = false;
 
         // We may not have a parent if DnD completed successfully, in
@@ -467,7 +467,7 @@ var WindowOverlay = class {
 
         this._maxTitleWidth = -1;
 
-        this._updateCaptionId = metaWindow.connect('notify::title', w => {
+        this._updateCaptionId = metaWindow.connect('notify::title', () => {
             this.title.text = this._getCaption();
             this.relayout(false);
         });
@@ -540,9 +540,9 @@ var WindowOverlay = class {
         let title = this.title;
         let border = this.border;
 
-        Tweener.removeTweens(button);
-        Tweener.removeTweens(border);
-        Tweener.removeTweens(title);
+        button.remove_all_transitions();
+        border.remove_all_transitions();
+        title.remove_all_transitions();
 
         let [cloneX, cloneY, cloneWidth, cloneHeight] = this._windowClone.slot;
 
@@ -609,16 +609,16 @@ var WindowOverlay = class {
     }
 
     _animateOverlayActor(actor, x, y, width, height) {
-        let params = { x: x,
-                       y: y,
-                       width: width,
-                       time: Overview.ANIMATION_TIME,
-                       transition: 'easeOutQuad' };
+        let params = {
+            x, y, width,
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        };
 
         if (height !== undefined)
             params.height = height;
 
-        Tweener.addTween(actor, params);
+        actor.ease(params);
     }
 
     _windowCanClose() {
@@ -647,20 +647,22 @@ var WindowOverlay = class {
         toAnimate.forEach(a => {
             a.show();
             a.opacity = 0;
-            Tweener.addTween(a,
-                             { opacity: 255,
-                               time: WINDOW_OVERLAY_FADE_TIME,
-                               transition: 'easeOutQuad' });
+            a.ease({
+                opacity: 255,
+                duration: WINDOW_OVERLAY_FADE_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         });
     }
 
     _animateInvisible() {
         [this.closeButton, this.border, this.title].forEach(a => {
             a.opacity = 255;
-            Tweener.addTween(a,
-                             { opacity: 0,
-                               time: WINDOW_OVERLAY_FADE_TIME,
-                               transition: 'easeInQuad' });
+            a.ease({
+                opacity: 0,
+                duration: WINDOW_OVERLAY_FADE_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD
+            });
         });
     }
 
@@ -733,10 +735,6 @@ var WindowPositionFlags = {
 // than the previous layout. A layout consists of which windows are in
 // which rows, row sizes and other general state tracking that would make
 // calculating window positions from this information fairly easy.
-//
-// We don't compute some global order of windows right now for optimal
-// travel when animating into the overview; windows are assumed to be
-// in some stable order.
 //
 // After a layout is computed that's considered the best layout, we
 // compute the layout scale to fit it in the area, and then compute
@@ -845,7 +843,7 @@ var LayoutStrategy = class {
     // row.width, row.height, row.fullWidth, row.fullHeight, and
     // (optionally) for each row in @layout.rows. This method is
     // intended to be called by subclasses.
-    _computeRowSizes(layout) {
+    _computeRowSizes(_layout) {
         throw new GObject.NotImplementedError(`_computeRowSizes in ${this.constructor.name}`);
     }
 
@@ -858,7 +856,7 @@ var LayoutStrategy = class {
     //  * gridWidth - The total width used by the grid, unscaled, unspaced.
     //  * gridHeight - The totial height used by the grid, unscaled, unspaced.
     //  * rows - A list of rows, which should be instantiated by _newRow.
-    computeLayout(windows, layout) {
+    computeLayout(_windows, _layout) {
         throw new GObject.NotImplementedError(`computeLayout in ${this.constructor.name}`);
     }
 
@@ -995,8 +993,13 @@ var UnalignedLayoutStrategy = class extends LayoutStrategy {
     }
 
     _sortRow(row) {
-        // Sort windows horizontally to minimize travel distance
-        row.windows.sort((a, b) => a.realWindow.x - b.realWindow.x);
+        // Sort windows horizontally to minimize travel distance.
+        // This affects in what order the windows end up in a row.
+        row.windows.sort((a, b) => {
+            let aCenter = a.realWindow.x + a.realWindow.width / 2;
+            let bCenter = b.realWindow.x + b.realWindow.width / 2;
+            return aCenter - bCenter;
+        });
     }
 
     computeLayout(windows, layout) {
@@ -1011,13 +1014,23 @@ var UnalignedLayoutStrategy = class extends LayoutStrategy {
         }
 
         let idealRowWidth = totalWidth / numRows;
+
+        // Sort windows vertically to minimize travel distance.
+        // This affects what rows the windows get placed in.
+        let sortedWindows = windows.slice();
+        sortedWindows.sort((a, b) => {
+            let aCenter = a.realWindow.y + a.realWindow.height / 2;
+            let bCenter = b.realWindow.y + b.realWindow.height / 2;
+            return aCenter - bCenter;
+        });
+
         let windowIdx = 0;
         for (let i = 0; i < numRows; i++) {
             let row = this._newRow();
             rows.push(row);
 
-            for (; windowIdx < windows.length; windowIdx++) {
-                let window = windows[windowIdx];
+            for (; windowIdx < sortedWindows.length; windowIdx++) {
+                let window = sortedWindows[windowIdx];
                 let s = this._computeWindowScale(window);
                 let width = window.width * s;
                 let height = window.height * s;
@@ -1343,17 +1356,17 @@ var Workspace = class {
                         clone.y = y;
                     }
 
-                    Tweener.addTween(clone,
-                                     { opacity: 255,
-                                       time: Overview.ANIMATION_TIME,
-                                       transition: 'easeInQuad'
-                                     });
+                    clone.ease({
+                        opacity: 255,
+                        mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                        duration: Overview.ANIMATION_TIME
+                    });
                 }
 
                 this._animateClone(clone, clone.overlay, x, y, scale);
             } else {
                 // cancel any active tweens (otherwise they might override our changes)
-                Tweener.removeTweens(clone);
+                clone.remove_all_transitions();
                 clone.set_position(x, y);
                 clone.set_scale(scale, scale);
                 clone.set_opacity(255);
@@ -1383,18 +1396,16 @@ var Workspace = class {
     }
 
     _animateClone(clone, overlay, x, y, scale) {
-        Tweener.addTween(clone,
-                         { x: x,
-                           y: y,
-                           scale_x: scale,
-                           scale_y: scale,
-                           time: Overview.ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this._showWindowOverlay(clone, overlay);
-                           }
-                         });
-
+        clone.ease({
+            x, y,
+            scale_x: scale,
+            scale_y: scale,
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._showWindowOverlay(clone, overlay);
+            }
+        });
         clone.overlay.relayout(true);
     }
 
@@ -1407,7 +1418,7 @@ var Workspace = class {
     }
 
     _delayedWindowRepositioning() {
-        let [x, y, mask] = global.get_pointer();
+        let [x, y] = global.get_pointer();
 
         let pointerHasMoved = (this._cursorX != x && this._cursorY != y);
         let inWorkspace = (this._fullGeometry.x < x && x < this._fullGeometry.x + this._fullGeometry.width &&
@@ -1445,7 +1456,7 @@ var Workspace = class {
             // this point.)
             if (win) {
                 let [stageX, stageY] = clone.get_transformed_position();
-                let [stageWidth, stageHeight] = clone.get_transformed_size();
+                let [stageWidth] = clone.get_transformed_size();
                 win._overviewHint = {
                     x: stageX,
                     y: stageY,
@@ -1467,7 +1478,7 @@ var Workspace = class {
         }
 
         // setup new handler
-        let [x, y, mask] = global.get_pointer();
+        let [x, y] = global.get_pointer();
         this._cursorX = x;
         this._cursorY = y;
 
@@ -1521,7 +1532,7 @@ var Workspace = class {
             return;
         }
 
-        let [clone, overlay] = this._addWindowClone(win, false);
+        let [clone, overlay_] = this._addWindowClone(win, false);
 
         if (win._overviewHint) {
             let x = win._overviewHint.x - this.actor.x;
@@ -1628,10 +1639,8 @@ var Workspace = class {
         if (this._windows.length == 0)
             return;
 
-        for (let i = 0; i < this._windows.length; i++) {
-            let clone = this._windows[i];
-            Tweener.removeTweens(clone);
-        }
+        for (let i = 0; i < this._windows.length; i++)
+            this._windows[i].remove_all_transitions();
 
         if (this._repositionWindowsId > 0) {
             Mainloop.source_remove(this._repositionWindowsId);
@@ -1680,7 +1689,7 @@ var Workspace = class {
         }
     }
 
-    _fadeWindow(index, time, opacity) {
+    _fadeWindow(index, duration, opacity) {
         let clone = this._windows[index];
         let overlay = this._windowOverlays[index];
 
@@ -1693,11 +1702,11 @@ var Workspace = class {
             clone.scale_y = 1;
             clone.x = origX;
             clone.y = origY;
-            Tweener.addTween(clone,
-                             { time: time,
-                               opacity: opacity,
-                               transition: 'easeOutQuad'
-                             });
+            clone.ease({
+                opacity,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         } else {
             // The window is hidden
             clone.opacity = 0;
@@ -1715,10 +1724,8 @@ var Workspace = class {
 
         this.leavingOverview = true;
 
-        for (let i = 0; i < this._windows.length; i++) {
-            let clone = this._windows[i];
-            Tweener.removeTweens(clone);
-        }
+        for (let i = 0; i < this._windows.length; i++)
+            this._windows[i].remove_all_transitions();
 
         if (this._repositionWindowsId > 0) {
             Mainloop.source_remove(this._repositionWindowsId);
@@ -1743,24 +1750,24 @@ var Workspace = class {
 
         if (clone.metaWindow.showing_on_its_workspace()) {
             let [origX, origY] = clone.getOriginalPosition();
-            Tweener.addTween(clone,
-                             { x: origX,
-                               y: origY,
-                               scale_x: 1.0,
-                               scale_y: 1.0,
-                               time: Overview.ANIMATION_TIME,
-                               opacity: 255,
-                               transition: 'easeOutQuad'
-                             });
+            clone.ease({
+                x: origX,
+                y: origY,
+                scale_x: 1,
+                scale_y: 1,
+                opacity: 255,
+                duration: Overview.ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         } else {
             // The window is hidden, make it shrink and fade it out
-            Tweener.addTween(clone,
-                             { scale_x: 0,
-                               scale_y: 0,
-                               opacity: 0,
-                               time: Overview.ANIMATION_TIME,
-                               transition: 'easeOutQuad'
-                             });
+            clone.ease({
+                scale_x: 0,
+                scale_y: 0,
+                opacity: 0,
+                duration: Overview.ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
     }
 
@@ -1768,12 +1775,11 @@ var Workspace = class {
         this.actor.destroy();
     }
 
-    _onDestroy(actor) {
+    _onDestroy() {
         if (this._overviewHiddenId) {
             Main.overview.disconnect(this._overviewHiddenId);
             this._overviewHiddenId = 0;
         }
-        Tweener.removeTweens(actor);
 
         if (this.metaWorkspace) {
             this.metaWorkspace.disconnect(this._windowAddedId);
@@ -1979,7 +1985,7 @@ var Workspace = class {
     }
 
     // Draggable target interface
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (source.realWindow && !this._isMyWindow(source.realWindow))
             return DND.DragMotionResult.MOVE_DROP;
         if (source.shellWorkspaceLaunch)

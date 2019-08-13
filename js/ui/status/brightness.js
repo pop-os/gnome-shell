@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Indicator */
 
 const { Gio, St } = imports.gi;
 
@@ -32,13 +33,13 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         this.menu.addMenuItem(this._item);
 
         this._slider = new Slider.Slider(0);
-        this._slider.connect('value-changed', this._sliderChanged.bind(this));
-        this._slider.actor.accessible_name = _("Brightness");
+        this._slider.connect('notify::value', this._sliderChanged.bind(this));
+        this._slider.accessible_name = _("Brightness");
 
         let icon = new St.Icon({ icon_name: 'display-brightness-symbolic',
                                  style_class: 'popup-menu-icon' });
         this._item.add(icon);
-        this._item.add(this._slider.actor, { expand: true });
+        this._item.add(this._slider, { expand: true });
         this._item.connect('button-press-event', (actor, event) => {
             return this._slider.startDragging(event);
         });
@@ -48,8 +49,8 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
     }
 
-    _sliderChanged(slider, value) {
-        let percent = value * 100;
+    _sliderChanged() {
+        let percent = this._slider.value * 100;
         this._proxy.Brightness = percent;
     }
 
@@ -57,6 +58,6 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         let visible = this._proxy.Brightness >= 0;
         this._item.visible = visible;
         if (visible)
-            this._slider.setValue(this._proxy.Brightness / 100.0);
+            this._slider.value = this._proxy.Brightness / 100.0;
     }
 };

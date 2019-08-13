@@ -150,11 +150,6 @@
         Keybinding to focus the active notification.
       </description>
     </key>
-    <key name="pause-resume-tweens" type="as">
-      <default>[]</default>
-      <summary>Keybinding that pauses and resumes all running tweens, for debugging purposes</summary>
-      <description></description>
-    </key>
     <key name="switch-to-application-1" type="as">
       <default>["&lt;Super&gt;1"]</default>
       <summary>Switch to application 1</summary>
@@ -230,6 +225,36 @@
 	If true, only windows from the current workspace are shown in the switcher.
 	Otherwise, all windows are included.
       </description>
+    </key>
+  </schema>
+
+  <schema id="org.gnome.shell.world-clocks" path="/org/gnome/shell/world-clocks/"
+          gettext-domain="@GETTEXT_PACKAGE@">
+    <key name="locations" type="av">
+      <summary>Locations</summary>
+      <description>
+        The locations to show in world clocks
+      </description>
+      <default>[]</default>
+    </key>
+  </schema>
+
+  <schema id="org.gnome.shell.weather" path="/org/gnome/shell/weather/"
+          gettext-domain="@GETTEXT_PACKAGE@">
+    <key name="automatic-location" type="b">
+      <summary>Automatic location</summary>
+      <description>
+        Whether to fetch the current location or not
+      </description>
+      <default>false</default>
+    </key>
+
+    <key name="locations" type="av">
+      <summary>Location</summary>
+      <description>
+        The location for which to show a forecast
+      </description>
+      <default>[]</default>
     </key>
   </schema>
 

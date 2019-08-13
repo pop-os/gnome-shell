@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Keyboard */
 
 const { Clutter, Gio, GLib, GObject, Meta, St } = imports.gi;
 const Signals = imports.signals;
@@ -10,11 +11,10 @@ const Layout = imports.ui.layout;
 const Main = imports.ui.main;
 const PageIndicators = imports.ui.pageIndicators;
 const PopupMenu = imports.ui.popupMenu;
-const Tweener = imports.ui.tweener;
 
-var KEYBOARD_REST_TIME = Layout.KEYBOARD_ANIMATION_TIME * 2 * 1000;
+var KEYBOARD_REST_TIME = Layout.KEYBOARD_ANIMATION_TIME * 2;
 var KEY_LONG_PRESS_TIME = 250;
-var PANEL_SWITCH_ANIMATION_TIME = 0.5;
+var PANEL_SWITCH_ANIMATION_TIME = 500;
 var PANEL_SWITCH_RELATIVE_DISTANCE = 1 / 3; /* A third of the actor width */
 
 const A11Y_APPLICATIONS_SCHEMA = 'org.gnome.desktop.a11y.applications';
@@ -100,7 +100,7 @@ class KeyContainer extends St.Widget {
         this._rows = [];
     }
 
-    appendRow(length) {
+    appendRow() {
         this._currentRow++;
         this._currentCol = 0;
 
@@ -474,7 +474,7 @@ var KeyboardModel = class {
 
     _loadModel(groupName) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/osk-layouts/%s.json'.format(groupName));
-        let [success, contents] = file.load_contents(null);
+        let [success_, contents] = file.load_contents(null);
         if (contents instanceof Uint8Array)
             contents = imports.byteArray.toString(contents);
 
@@ -569,11 +569,27 @@ var FocusTracker = class {
 };
 Signals.addSignalMethods(FocusTracker.prototype);
 
-var EmojiPager = class EmojiPager {
-    constructor(sections, nCols, nRows) {
-        this.actor = new St.Widget({ layout_manager: new Clutter.BinLayout(),
-                                     reactive: true,
-                                     clip_to_allocation: true });
+var EmojiPager = GObject.registerClass({
+    Properties: {
+        'delta': GObject.ParamSpec.int(
+            'delta', 'delta', 'delta',
+            GObject.ParamFlags.READWRITE,
+            0, GLib.MAXINT32, 0)
+    },
+    Signals: {
+        'emoji': { param_types: [GObject.TYPE_STRING] },
+        'page-changed': {
+            param_types: [GObject.TYPE_INT, GObject.TYPE_INT, GObject.TYPE_INT]
+        }
+    }
+}, class EmojiPager extends St.Widget {
+    _init(sections, nCols, nRows) {
+        super._init({
+            layout_manager: new Clutter.BinLayout(),
+            reactive: true,
+            clip_to_allocation: true
+        });
+
         this._sections = sections;
         this._nCols = nCols;
         this._nRows = nRows;
@@ -595,7 +611,7 @@ var EmojiPager = class EmojiPager {
         panAction.connect('gesture-cancel', this._onPanCancel.bind(this));
         panAction.connect('gesture-end', this._onPanEnd.bind(this));
         this._panAction = panAction;
-        this.actor.add_action(panAction);
+        this.add_action(panAction);
     }
 
     get delta() {
@@ -608,7 +624,11 @@ var EmojiPager = class EmojiPager {
         else if (value < -this._width)
             value = -this._width;
 
+        if (this._delta == value)
+            return;
+
         this._delta = value;
+        this.notify('delta');
 
         if (value == 0)
             return;
@@ -625,8 +645,8 @@ var EmojiPager = class EmojiPager {
             if (followingPage != null) {
                 this._followingPanel = this._generatePanel(followingPage);
                 this._followingPanel.set_pivot_point(0.5, 0.5);
-                this.actor.add_child(this._followingPanel);
-                this.actor.set_child_below_sibling(this._followingPanel, this._panel);
+                this.add_child(this._followingPanel);
+                this.set_child_below_sibling(this._followingPanel, this._panel);
             }
 
             this._followingPage = followingPage;
@@ -662,7 +682,7 @@ var EmojiPager = class EmojiPager {
     }
 
     _onPan(action) {
-        let [dist, dx, dy] = action.get_motion_delta(0);
+        let [dist_, dx, dy_] = action.get_motion_delta(0);
         this.delta = this.delta + dx;
 
         if (this._currentKey != null) {
@@ -674,12 +694,12 @@ var EmojiPager = class EmojiPager {
     }
 
     _onPanBegin() {
-        this._width = this.actor.width;
+        this._width = this.width;
         return true;
     }
 
     _onPanEnd() {
-        if (Math.abs(this._delta) < this.actor.width * PANEL_SWITCH_RELATIVE_DISTANCE) {
+        if (Math.abs(this._delta) < this.width * PANEL_SWITCH_RELATIVE_DISTANCE) {
             this._onPanCancel();
         } else {
             let value;
@@ -691,28 +711,24 @@ var EmojiPager = class EmojiPager {
             let relDelta = Math.abs(this._delta - value) / this._width;
             let time = PANEL_SWITCH_ANIMATION_TIME * Math.abs(relDelta);
 
-            Tweener.removeTweens(this);
-            Tweener.addTween(this,
-                             { delta: value,
-                               time: time,
-                               transition: 'easeInOutQuad',
-                               onComplete() {
-                                   this.setCurrentPage(this.getFollowingPage());
-                               }
-                             });
+            this.remove_all_transitions();
+            this.ease_property('delta', value, {
+                duration: time,
+                onComplete: () => {
+                    this.setCurrentPage(this.getFollowingPage());
+                }
+            });
         }
     }
 
     _onPanCancel() {
-        let relDelta = Math.abs(this._delta) / this.actor.width;
+        let relDelta = Math.abs(this._delta) / this.width;
         let time = PANEL_SWITCH_ANIMATION_TIME * Math.abs(relDelta);
 
-        Tweener.removeTweens(this);
-        Tweener.addTween(this,
-                         { delta: 0,
-                           time: time,
-                           transition: 'easeInOutQuad',
-                         });
+        this.remove_all_transitions();
+        this.ease_property('delta', 0, {
+            duration: time,
+        });
     }
 
     _initPagingInfo() {
@@ -822,7 +838,7 @@ var EmojiPager = class EmojiPager {
 
         if (!this._panel) {
             this._panel = this._generatePanel(nPage);
-            this.actor.add_child(this._panel);
+            this.add_child(this._panel);
         }
 
         let page = this._pages[nPage];
@@ -839,8 +855,7 @@ var EmojiPager = class EmojiPager {
             }
         }
     }
-};
-Signals.addSignalMethods(EmojiPager.prototype);
+});
 
 var EmojiSelection = class EmojiSelection {
     constructor() {
@@ -904,7 +919,7 @@ var EmojiSelection = class EmojiSelection {
 
     _populateSections() {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/osk-layouts/emoji.json');
-        let [success, contents] = file.load_contents(null);
+        let [success_, contents] = file.load_contents(null);
 
         if (contents instanceof Uint8Array)
             contents = imports.byteArray.toString(contents);
@@ -1171,7 +1186,7 @@ var Keyboard = class Keyboard {
 
         this._emojiSelection = new EmojiSelection();
         this._emojiSelection.connect('toggle', this._toggleEmoji.bind(this));
-        this._emojiSelection.connect('hide', (selection) => this.hide());
+        this._emojiSelection.connect('hide', () => this.hide());
         this._emojiSelection.connect('emoji-selected', (selection, emoji) => {
             this._keyboardController.commitString(emoji);
         });
@@ -1282,7 +1297,7 @@ var Keyboard = class Keyboard {
                     }
                 }
             });
-            button.connect('released', (actor, keyval, str) => {
+            button.connect('released', (actor, keyval, _str) => {
                 if (keyval != 0) {
                     if (button._keyvalPress)
                         this._keyboardController.keyvalRelease(keyval);
@@ -1467,7 +1482,7 @@ var Keyboard = class Keyboard {
         this._setActiveLayer(0);
     }
 
-    _onKeyboardGroupsChanged(keyboard) {
+    _onKeyboardGroupsChanged() {
         let nonGroupActors = [this._emojiSelection.actor, this._keypad.actor];
         this._aspectContainer.get_children().filter(c => !nonGroupActors.includes(c)).forEach(c => {
             c.destroy();
@@ -1653,19 +1668,23 @@ var Keyboard = class Keyboard {
             return;
 
         if (show) {
-            Tweener.addTween(windowActor,
-                             { y: windowActor.y - deltaY,
-                               time: Layout.KEYBOARD_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: this._windowSlideAnimationComplete,
-                               onCompleteParams: [window, -deltaY] });
+            windowActor.ease({
+                y: windowActor.y - deltaY,
+                duration: Layout.KEYBOARD_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._windowSlideAnimationComplete(window, -deltaY);
+                }
+            });
         } else {
-            Tweener.addTween(windowActor,
-                             { y: windowActor.y + deltaY,
-                               time: Layout.KEYBOARD_ANIMATION_TIME,
-                               transition: 'easeInQuad',
-                               onComplete: this._windowSlideAnimationComplete,
-                               onCompleteParams: [window, deltaY] });
+            windowActor.ease({
+                y: windowActor.y + deltaY,
+                duration: Layout.KEYBOARD_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => {
+                    this._windowSlideAnimationComplete(window, deltaY);
+                }
+            });
         }
     }
 
@@ -1729,7 +1748,7 @@ var KeyboardController = class {
         this.emit('groups-changed');
     }
 
-    _onSourceChanged(inputSourceManager, oldSource) {
+    _onSourceChanged(inputSourceManager, _oldSource) {
         let source = inputSourceManager.currentSource;
         this._currentSource = source;
         this.emit('active-group', source.id);

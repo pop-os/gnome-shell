@@ -1,9 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported BoxPointer */
 
 const { Clutter, GObject, Shell, St } = imports.gi;
 
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
 var PopupAnimation = {
     NONE:  0,
@@ -12,7 +12,7 @@ var PopupAnimation = {
     FULL:  ~0,
 };
 
-var POPUP_ANIMATION_TIME = 0.15;
+var POPUP_ANIMATION_TIME = 150;
 
 /**
  * BoxPointer:
@@ -105,16 +105,18 @@ var BoxPointer = GObject.registerClass({
             }
         }
 
-        Tweener.addTween(this, { opacity: 255,
-                                 translation_x: 0,
-                                 translation_y: 0,
-                                 transition: 'linear',
-                                 onComplete: () => {
-                                     this._unmuteInput();
-                                     if (onComplete)
-                                         onComplete();
-                                 },
-                                 time: animationTime });
+        this.ease({
+            opacity: 255,
+            translation_x: 0,
+            translation_y: 0,
+            duration: animationTime,
+            mode: Clutter.AnimationMode.LINEAR,
+            onComplete: () => {
+                this._unmuteInput();
+                if (onComplete)
+                    onComplete();
+            }
+        });
     }
 
     close(animate, onComplete) {
@@ -147,21 +149,22 @@ var BoxPointer = GObject.registerClass({
 
         this._muteInput();
 
-        Tweener.removeTweens(this);
-        Tweener.addTween(this, { opacity: fade ? 0 : 255,
-                                 translation_x: translationX,
-                                 translation_y: translationY,
-                                 transition: 'linear',
-                                 time: animationTime,
-                                 onComplete: () => {
-                                     this.hide();
-                                     this.opacity = 0;
-                                     this.translation_x = 0;
-                                     this.translation_y = 0;
-                                     if (onComplete)
-                                         onComplete();
-                                 }
-                               });
+        this.remove_all_transitions();
+        this.ease({
+            opacity: fade ? 0 : 255,
+            translation_x: translationX,
+            translation_y: translationY,
+            duration: animationTime,
+            mode: Clutter.AnimationMode.LINEAR,
+            onComplete: () => {
+                this.hide();
+                this.opacity = 0;
+                this.translation_x = 0;
+                this.translation_y = 0;
+                if (onComplete)
+                    onComplete();
+            }
+        });
     }
 
     _adjustAllocationForArrow(isWidth, minSize, natSize) {
@@ -469,7 +472,7 @@ var BoxPointer = GObject.registerClass({
         let sourceAllocation = this._sourceAllocation;
         let sourceCenterX = sourceAllocation.x1 + sourceContentBox.x1 + (sourceContentBox.x2 - sourceContentBox.x1) * this._sourceAlignment;
         let sourceCenterY = sourceAllocation.y1 + sourceContentBox.y1 + (sourceContentBox.y2 - sourceContentBox.y1) * this._sourceAlignment;
-        let [minWidth, minHeight, natWidth, natHeight] = this.get_preferred_size();
+        let [, , natWidth, natHeight] = this.get_preferred_size();
 
         // We also want to keep it onscreen, and separated from the
         // edge by the same distance as the main part of the box is
@@ -594,7 +597,7 @@ var BoxPointer = GObject.registerClass({
 
     _calculateArrowSide(arrowSide) {
         let sourceAllocation = this._sourceAllocation;
-        let [minWidth, minHeight, boxWidth, boxHeight] = this.get_preferred_size();
+        let [, , boxWidth, boxHeight] = this.get_preferred_size();
         let workarea = this._workArea;
 
         switch (arrowSide) {

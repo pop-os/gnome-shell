@@ -1,17 +1,17 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported BaseIcon, IconGrid, PaginatedIconGrid */
 
-const { Clutter, GObject, Meta, St } = imports.gi;
+const { Clutter, GLib, GObject, Meta, St } = imports.gi;
 
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 const Main = imports.ui.main;
 
 var ICON_SIZE = 96;
 var MIN_ICON_SIZE = 16;
 
-var EXTRA_SPACE_ANIMATION_TIME = 0.25;
+var EXTRA_SPACE_ANIMATION_TIME = 250;
 
-var ANIMATION_TIME_IN = 0.350;
+var ANIMATION_TIME_IN = 350;
 var ANIMATION_TIME_OUT = 1 / 2 * ANIMATION_TIME_IN;
 var ANIMATION_MAX_DELAY_FOR_ITEM = 2 / 3 * ANIMATION_TIME_IN;
 var ANIMATION_BASE_DELAY_FOR_ITEM = 1 / 4 * ANIMATION_MAX_DELAY_FOR_ITEM;
@@ -26,7 +26,7 @@ var AnimationDirection = {
 };
 
 var APPICON_ANIMATION_OUT_SCALE = 3;
-var APPICON_ANIMATION_OUT_TIME = 0.25;
+var APPICON_ANIMATION_OUT_TIME = 250;
 
 var BaseIcon = GObject.registerClass(
 class BaseIcon extends St.Bin {
@@ -56,6 +56,10 @@ class BaseIcon extends St.Bin {
 
         if (params.showLabel) {
             this.label = new St.Label({ text: label });
+            this.label.clutter_text.set({
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER
+            });
             this._box.add_actor(this.label);
         } else {
             this.label = null;
@@ -71,14 +75,14 @@ class BaseIcon extends St.Bin {
         this._iconThemeChangedId = cache.connect('icon-theme-changed', this._onIconThemeChanged.bind(this));
     }
 
-    vfunc_get_preferred_width(forHeight) {
+    vfunc_get_preferred_width(_forHeight) {
         // Return the actual height to keep the squared aspect
         return this.get_preferred_height(-1);
     }
 
     // This can be overridden by a subclass, or by the createIcon
     // parameter to _init()
-    createIcon(size) {
+    createIcon(_size) {
         throw new GObject.NotImplementedError(`createIcon in ${this.constructor.name}`);
     }
 
@@ -137,6 +141,10 @@ class BaseIcon extends St.Bin {
         // animating.
         zoomOutActor(this.child);
     }
+
+    update() {
+        this._createIconTexture(this.iconSize);
+    }
 });
 
 function clamp(value, min, max) {
@@ -164,18 +172,16 @@ function zoomOutActor(actor) {
     let containedX = clamp(scaledX, monitor.x, monitor.x + monitor.width - scaledWidth);
     let containedY = clamp(scaledY, monitor.y, monitor.y + monitor.height - scaledHeight);
 
-    Tweener.addTween(actorClone,
-                     { time: APPICON_ANIMATION_OUT_TIME,
-                       scale_x: APPICON_ANIMATION_OUT_SCALE,
-                       scale_y: APPICON_ANIMATION_OUT_SCALE,
-                       translation_x: containedX - scaledX,
-                       translation_y: containedY - scaledY,
-                       opacity: 0,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           actorClone.destroy();
-                       }
-                    });
+    actorClone.ease({
+        scale_x: APPICON_ANIMATION_OUT_SCALE,
+        scale_y: APPICON_ANIMATION_OUT_SCALE,
+        translation_x: containedX - scaledX,
+        translation_y: containedY - scaledY,
+        opacity: 0,
+        duration: APPICON_ANIMATION_OUT_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => actorClone.destroy()
+    });
 }
 
 var IconGrid = GObject.registerClass({
@@ -206,6 +212,8 @@ var IconGrid = GObject.registerClass({
         this.rightPadding = 0;
         this.leftPadding = 0;
 
+        this._updateIconSizesLaterId = 0;
+
         this._items = [];
         this._clonesAnimating = [];
         // Pulled from CSS, but hardcode some defaults here
@@ -223,6 +231,14 @@ var IconGrid = GObject.registerClass({
 
         this.connect('actor-added', this._childAdded.bind(this));
         this.connect('actor-removed', this._childRemoved.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
+    }
+
+    _onDestroy() {
+        if (this._updateIconSizesLaterId) {
+            Meta.later_remove (this._updateIconSizesLaterId);
+            this._updateIconSizesLaterId = 0;
+        }
     }
 
     _keyFocusIn(actor) {
@@ -237,7 +253,7 @@ var IconGrid = GObject.registerClass({
         child.disconnect(child._iconGridKeyFocusInId);
     }
 
-    vfunc_get_preferred_width(forHeight) {
+    vfunc_get_preferred_width(_forHeight) {
         if (this._fillParent)
             // Ignore all size requests of children and request a size of 0;
             // later we'll allocate as many children as fit the parent
@@ -444,25 +460,27 @@ var IconGrid = GObject.registerClass({
             let delay = index / actors.length * maxDelay;
             let bounceUpTime = ANIMATION_TIME_IN / 4;
             let isLastItem = index == actors.length - 1;
-            Tweener.addTween(actor,
-                             { time: bounceUpTime,
-                               transition: 'easeInOutQuad',
-                               delay: delay,
-                               scale_x: ANIMATION_BOUNCE_ICON_SCALE,
-                               scale_y: ANIMATION_BOUNCE_ICON_SCALE,
-                               onComplete: () => {
-                                   Tweener.addTween(actor,
-                                                    { time: ANIMATION_TIME_IN - bounceUpTime,
-                                                      transition: 'easeInOutQuad',
-                                                      scale_x: 1,
-                                                      scale_y: 1,
-                                                      onComplete: () => {
-                                                          if (isLastItem)
-                                                              this._animationDone();
-                                                      }
-                                                    });
-                               }
-                             });
+            actor.ease({
+                scale_x: ANIMATION_BOUNCE_ICON_SCALE,
+                scale_y: ANIMATION_BOUNCE_ICON_SCALE,
+                duration: bounceUpTime,
+                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                delay: delay,
+                onComplete: () => {
+                    let duration = ANIMATION_TIME_IN - bounceUpTime;
+                    actor.ease({
+                        scale_x: 1,
+                        scale_y: 1,
+                        duration,
+                        mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                        onComplete: () => {
+                            if (isLastItem)
+                                this._animationDone();
+                            actor.reactive = true;
+                        }
+                    });
+                }
+            });
         }
     }
 
@@ -521,21 +539,25 @@ var IconGrid = GObject.registerClass({
 
                 let delay = (1 - (actor._distance - minDist) / normalization) * ANIMATION_MAX_DELAY_FOR_ITEM;
                 let [finalX, finalY]  = actor._transformedPosition;
-                movementParams = { time: ANIMATION_TIME_IN,
-                                   transition: 'easeInOutQuad',
-                                   delay: delay,
-                                   x: finalX,
-                                   y: finalY,
-                                   scale_x: 1,
-                                   scale_y: 1,
-                                   onComplete: () => {
-                                       if (isLastItem)
-                                           this._animationDone();
-                                   } };
-                fadeParams = { time: ANIMATION_FADE_IN_TIME_FOR_ITEM,
-                               transition: 'easeInOutQuad',
-                               delay: delay,
-                               opacity: 255 };
+                movementParams = {
+                    x: finalX,
+                    y: finalY,
+                    scale_x: 1,
+                    scale_y: 1,
+                    duration: ANIMATION_TIME_IN,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay,
+                    onComplete: () => {
+                        if (isLastItem)
+                            this._animationDone();
+                    }
+                };
+                fadeParams = {
+                    opacity: 255,
+                    duration: ANIMATION_FADE_IN_TIME_FOR_ITEM,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay
+                };
             } else {
                 let isLastItem = actor._distance == maxDist;
 
@@ -543,26 +565,30 @@ var IconGrid = GObject.registerClass({
                 actorClone.set_position(startX, startY);
 
                 let delay = (actor._distance - minDist) / normalization * ANIMATION_MAX_DELAY_OUT_FOR_ITEM;
-                movementParams = { time: ANIMATION_TIME_OUT,
-                                   transition: 'easeInOutQuad',
-                                   delay: delay,
-                                   x: adjustedSourcePositionX,
-                                   y: adjustedSourcePositionY,
-                                   scale_x: scaleX,
-                                   scale_y: scaleY,
-                                   onComplete: () => {
-                                       if (isLastItem)
-                                           this._animationDone();
-                                   } };
-                fadeParams = { time: ANIMATION_FADE_IN_TIME_FOR_ITEM,
-                               transition: 'easeInOutQuad',
-                               delay: ANIMATION_TIME_OUT + delay - ANIMATION_FADE_IN_TIME_FOR_ITEM,
-                               opacity: 0 };
+                movementParams = {
+                    x: adjustedSourcePositionX,
+                    y: adjustedSourcePositionY,
+                    scale_x: scaleX,
+                    scale_y: scaleY,
+                    duration: ANIMATION_TIME_OUT,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay,
+                    onComplete: () => {
+                        if (isLastItem) {
+                            this._animationDone();
+                        }
+                    }
+                };
+                fadeParams = {
+                    opacity: 0,
+                    duration: ANIMATION_FADE_IN_TIME_FOR_ITEM,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay: ANIMATION_TIME_OUT + delay - ANIMATION_FADE_IN_TIME_FOR_ITEM
+                };
             }
 
-
-            Tweener.addTween(actorClone, movementParams);
-            Tweener.addTween(actorClone, fadeParams);
+            actorClone.ease(movementParams);
+            actorClone.ease(fadeParams);
         }
     }
 
@@ -757,17 +783,20 @@ var IconGrid = GObject.registerClass({
 
             this._updateSpacingForSize(availWidth, availHeight);
         }
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
-                       this._updateIconSizes.bind(this));
+        if (!this._updateIconSizesLaterId)
+            this._updateIconSizesLaterId = Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
+                                                          this._updateIconSizes.bind(this));
     }
 
     // Note that this is ICON_SIZE as used by BaseIcon, not elsewhere in IconGrid; it's a bit messed up
     _updateIconSizes() {
+        this._updateIconSizesLaterId = 0;
         let scale = Math.min(this._fixedHItemSize, this._fixedVItemSize) / Math.max(this._hItemSize, this._vItemSize);
         let newIconSize = Math.floor(ICON_SIZE * scale);
         for (let i in this._items) {
             this._items[i].icon.setIconSize(newIconSize);
         }
+        return GLib.SOURCE_REMOVE;
     }
 });
 
@@ -784,7 +813,7 @@ var PaginatedIconGrid = GObject.registerClass({
         this._childrenPerPage = 0;
     }
 
-    vfunc_get_preferred_height(forWidth) {
+    vfunc_get_preferred_height(_forWidth) {
         let height = (this._availableHeightPerPageForItems() + this.bottomPadding + this.topPadding) * this._nPages + this._spaceBetweenPages * this._nPages;
         return [height, height];
     }
@@ -852,7 +881,7 @@ var PaginatedIconGrid = GObject.registerClass({
     }
 
     _computePages(availWidthPerPage, availHeightPerPage) {
-        let [nColumns, usedWidth] = this._computeLayout(availWidthPerPage);
+        let [nColumns, usedWidth_] = this._computeLayout(availWidthPerPage);
         let nRows;
         let children = this._getVisibleChildren();
         if (nColumns > 0)
@@ -964,13 +993,14 @@ var PaginatedIconGrid = GObject.registerClass({
 
         for (let i = 0; i < children.length; i++) {
             children[i].translation_y = 0;
-            let params = { translation_y: translationY,
-                           time: EXTRA_SPACE_ANIMATION_TIME,
-                           transition: 'easeInOutQuad'
-                         };
+            let params = {
+                translation_y: translationY,
+                duration: EXTRA_SPACE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD
+            };
             if (i == (children.length - 1))
                 params.onComplete = () => this.emit('space-opened');
-            Tweener.addTween(children[i], params);
+            children[i].ease(params);
         }
     }
 
@@ -983,12 +1013,12 @@ var PaginatedIconGrid = GObject.registerClass({
         for (let i = 0; i < this._translatedChildren.length; i++) {
             if (!this._translatedChildren[i].translation_y)
                 continue;
-            Tweener.addTween(this._translatedChildren[i],
-                             { translation_y: 0,
-                               time: EXTRA_SPACE_ANIMATION_TIME,
-                               transition: 'easeInOutQuad',
-                               onComplete: () => this.emit('space-closed')
-                             });
+            this._translatedChildren[i].ease({
+                translation_y: 0,
+                duration: EXTRA_SPACE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                onComplete: () => this.emit('space-closed')
+            });
         }
     }
 });

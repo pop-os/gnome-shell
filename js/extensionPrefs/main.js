@@ -1,3 +1,4 @@
+/* exported main */
 const Gettext = imports.gettext;
 const { Gdk, GLib, Gio, GObject, Gtk, Pango } = imports.gi;
 const Format = imports.format;
@@ -78,6 +79,8 @@ var Application = GObject.registerClass({
         dialog.set_default_size(600, 400);
         dialog.add(widget);
         dialog.show();
+
+        return true;
     }
 
     _buildErrorUI(row, exc) {

@@ -601,6 +601,8 @@ shell_app_can_open_new_window (ShellApp *app)
 {
   ShellAppRunningState *state;
   MetaWindow *window;
+  GDesktopAppInfo *desktop_info;
+  const char * const *desktop_actions;
 
   /* Apps that are not running can always open new windows, because
      activating them would open the first one */
@@ -619,11 +621,17 @@ shell_app_can_open_new_window (ShellApp *app)
   if (!app->info)
     return FALSE;
 
+  desktop_info = G_DESKTOP_APP_INFO (app->info);
+
   /* If the app is explicitly telling us, then we know for sure */
-  if (g_desktop_app_info_has_key (G_DESKTOP_APP_INFO (app->info),
-                                  "X-GNOME-SingleWindow"))
-    return !g_desktop_app_info_get_boolean (G_DESKTOP_APP_INFO (app->info),
+  if (g_desktop_app_info_has_key (desktop_info, "X-GNOME-SingleWindow"))
+    return !g_desktop_app_info_get_boolean (desktop_info,
                                             "X-GNOME-SingleWindow");
+
+  /* If it has a new-window desktop action, it should be able to */
+  desktop_actions = g_desktop_app_info_list_actions (desktop_info);
+  if (desktop_actions && g_strv_contains (desktop_actions, "new-window"))
+    return TRUE;
 
   /* If this is a unique GtkApplication, and we don't have a new-window, then
      probably we can't
@@ -1533,7 +1541,7 @@ shell_app_class_init(ShellAppClass *klass)
                                                       "Application state",
                                                       SHELL_TYPE_APP_STATE,
                                                       SHELL_APP_STATE_STOPPED,
-                                                      G_PARAM_READABLE));
+                                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * ShellApp:busy:
@@ -1546,7 +1554,7 @@ shell_app_class_init(ShellAppClass *klass)
                                                          "Busy",
                                                          "Busy state",
                                                          FALSE,
-                                                         G_PARAM_READABLE));
+                                                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * ShellApp:id:

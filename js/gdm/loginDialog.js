@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported LoginDialog */
 /*
  * Copyright 2011 Red Hat, Inc
  *
@@ -30,11 +31,10 @@ const LoginManager = imports.misc.loginManager;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 const Realmd = imports.gdm.realmd;
-const Tweener = imports.ui.tweener;
 const UserWidget = imports.ui.userWidget;
 
-const _FADE_ANIMATION_TIME = 0.25;
-const _SCROLL_ANIMATION_TIME = 0.5;
+const _FADE_ANIMATION_TIME = 250;
+const _SCROLL_ANIMATION_TIME = 500;
 const _TIMED_LOGIN_IDLE_THRESHOLD = 5.0;
 const _LOGO_ICON_HEIGHT = 48;
 const _MAX_BOTTOM_MENU_ITEMS = 5;
@@ -204,11 +204,10 @@ var UserList = class {
         let adjustment = this.actor.get_vscroll_bar().get_adjustment();
 
         let value = (box.y1 + adjustment.step_increment / 2.0) - (adjustment.page_size / 2.0);
-        Tweener.removeTweens(adjustment);
-        Tweener.addTween (adjustment,
-                          { value: value,
-                            time: _SCROLL_ANIMATION_TIME,
-                            transition: 'easeOutQuad' });
+        adjustment.ease(value, {
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: _SCROLL_ANIMATION_TIME
+        });
     }
 
     jumpToItem(item) {
@@ -372,7 +371,7 @@ var SessionMenuButton = class {
         }
 
         for (let i = 0; i < ids.length; i++) {
-            let [sessionName, sessionDescription] = Gdm.get_session_name_and_description(ids[i]);
+            let [sessionName, sessionDescription_] = Gdm.get_session_name_and_description(ids[i]);
 
             let id = ids[i];
             let item = new PopupMenu.PopupMenuItem(sessionName);
@@ -518,7 +517,7 @@ var LoginDialog = GObject.registerClass({
     _getBannerAllocation(dialogBox) {
         let actorBox = new Clutter.ActorBox();
 
-        let [minWidth, minHeight, natWidth, natHeight] = this._bannerView.get_preferred_size();
+        let [, , natWidth, natHeight] = this._bannerView.get_preferred_size();
         let centerX = dialogBox.x1 + (dialogBox.x2 - dialogBox.x1) / 2;
 
         actorBox.x1 = Math.floor(centerX - natWidth / 2);
@@ -532,7 +531,7 @@ var LoginDialog = GObject.registerClass({
     _getLogoBinAllocation(dialogBox) {
         let actorBox = new Clutter.ActorBox();
 
-        let [minWidth, minHeight, natWidth, natHeight] = this._logoBin.get_preferred_size();
+        let [, , natWidth, natHeight] = this._logoBin.get_preferred_size();
         let centerX = dialogBox.x1 + (dialogBox.x2 - dialogBox.x1) / 2;
 
         actorBox.x1 = Math.floor(centerX - natWidth / 2);
@@ -546,7 +545,7 @@ var LoginDialog = GObject.registerClass({
     _getCenterActorAllocation(dialogBox, actor) {
         let actorBox = new Clutter.ActorBox();
 
-        let [minWidth, minHeight, natWidth, natHeight] = actor.get_preferred_size();
+        let [, , natWidth, natHeight] = actor.get_preferred_size();
         let centerX = dialogBox.x1 + (dialogBox.x2 - dialogBox.x1) / 2;
         let centerY = dialogBox.y1 + (dialogBox.y2 - dialogBox.y1) / 2;
 
@@ -648,7 +647,7 @@ var LoginDialog = GObject.registerClass({
 
                     // figure out how tall it would like to be and try to accommodate
                     // but don't let it get too close to the logo
-                    let [wideMinHeight, wideBannerHeight] = this._bannerView.get_preferred_height(wideBannerWidth);
+                    let [, wideBannerHeight] = this._bannerView.get_preferred_height(wideBannerWidth);
 
                     let maxWideHeight = dialogHeight - 3 * logoHeight;
                     wideBannerHeight = Math.min(maxWideHeight, wideBannerHeight);
@@ -758,14 +757,15 @@ var LoginDialog = GObject.registerClass({
 
     _fadeInBannerView() {
         this._bannerView.show();
-        Tweener.addTween(this._bannerView,
-                         { opacity: 255,
-                           time: _FADE_ANIMATION_TIME,
-                           transition: 'easeOutQuad' });
+        this._bannerView.ease({
+            opacity: 255,
+            duration: _FADE_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     _hideBannerView() {
-        Tweener.removeTweens(this._bannerView);
+        this._bannerView.remove_all_transitions();
         this._bannerView.opacity = 0;
         this._bannerView.hide();
     }
@@ -858,10 +858,11 @@ var LoginDialog = GObject.registerClass({
             return;
         this._authPrompt.actor.opacity = 0;
         this._authPrompt.actor.show();
-        Tweener.addTween(this._authPrompt.actor,
-                         { opacity: 255,
-                           time: _FADE_ANIMATION_TIME,
-                           transition: 'easeOutQuad' });
+        this._authPrompt.actor.ease({
+            opacity: 255,
+            duration: _FADE_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
         this._fadeInBannerView();
     }
 
@@ -905,26 +906,31 @@ var LoginDialog = GObject.registerClass({
         this._showPrompt();
     }
 
+    _bindOpacity() {
+        this._bindings = Main.layoutManager.uiGroup.get_children()
+            .filter(c => c != Main.layoutManager.screenShieldGroup)
+            .map(c => this.bind_property('opacity', c, 'opacity', 0));
+    }
+
+    _unbindOpacity() {
+        this._bindings.forEach(b => b.unbind());
+    }
+
     _loginScreenSessionActivated() {
         if (this.opacity == 255 && this._authPrompt.verificationStatus == AuthPrompt.AuthPromptStatus.NOT_VERIFYING)
             return;
 
-        Tweener.addTween(this,
-                         { opacity: 255,
-                           time: _FADE_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onUpdate: () => {
-                               let children = Main.layoutManager.uiGroup.get_children();
-
-                               for (let i = 0; i < children.length; i++) {
-                                   if (children[i] != Main.layoutManager.screenShieldGroup)
-                                       children[i].opacity = this.opacity;
-                               }
-                           },
-                           onComplete: () => {
-                               if (this._authPrompt.verificationStatus != AuthPrompt.AuthPromptStatus.NOT_VERIFYING)
-                                   this._authPrompt.reset();
-                           } });
+        this._bindOpacity();
+        this.actor.ease({
+            opacity: 255,
+            duration: _FADE_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (this._authPrompt.verificationStatus != AuthPrompt.AuthPromptStatus.NOT_VERIFYING)
+                    this._authPrompt.reset();
+                this._unbindOpacity();
+            }
+        });
     }
 
     _gotGreeterSessionProxy(proxy) {
@@ -937,21 +943,16 @@ var LoginDialog = GObject.registerClass({
     }
 
     _startSession(serviceName) {
-        Tweener.addTween(this,
-                         { opacity: 0,
-                           time: _FADE_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onUpdate: () => {
-                               let children = Main.layoutManager.uiGroup.get_children();
-
-                               for (let i = 0; i < children.length; i++) {
-                                   if (children[i] != Main.layoutManager.screenShieldGroup)
-                                       children[i].opacity = this.opacity;
-                               }
-                           },
-                           onComplete: () => {
-                               this._greeter.call_start_session_when_ready_sync(serviceName, true, null);
-                           } });
+        this._bindOpacity();
+        this.actor.ease({
+            opacity: 0,
+            duration: _FADE_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._greeter.call_start_session_when_ready_sync(serviceName, true, null);
+                this._unbindOpacity();
+            }
+        });
     }
 
     _onSessionOpened(client, serviceName) {
@@ -1224,10 +1225,11 @@ var LoginDialog = GObject.registerClass({
 
         Main.pushModal(this, { actionMode: Shell.ActionMode.LOGIN_SCREEN });
 
-        Tweener.addTween(this,
-                         { opacity: 255,
-                           time: 1,
-                           transition: 'easeInQuad' });
+        this.ease({
+            opacity: 255,
+            duration: 1000,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD
+        });
 
         return true;
     }
@@ -1241,7 +1243,7 @@ var LoginDialog = GObject.registerClass({
         this._authPrompt.cancel();
     }
 
-    addCharacter(unichar) {
+    addCharacter(_unichar) {
         // Don't allow type ahead at the login screen
     }
 

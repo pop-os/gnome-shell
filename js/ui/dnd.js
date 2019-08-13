@@ -1,18 +1,18 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported addDragMonitor, removeDragMonitor, makeDraggable */
 
 const { Clutter, GLib, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 // Time to scale down to maxDragActorSize
-var SCALE_ANIMATION_TIME = 0.25;
+var SCALE_ANIMATION_TIME = 250;
 // Time to animate to original position on cancel
-var SNAP_BACK_ANIMATION_TIME = 0.25;
+var SNAP_BACK_ANIMATION_TIME = 250;
 // Time to animate to original position on success
-var REVERT_ANIMATION_TIME = 0.75;
+var REVERT_ANIMATION_TIME = 750;
 
 var DragMotionResult = {
     NO_DROP:   0,
@@ -111,9 +111,6 @@ var _Draggable = class _Draggable {
         if (event.get_button() != 1)
             return Clutter.EVENT_PROPAGATE;
 
-        if (Tweener.getTweenCount(actor))
-            return Clutter.EVENT_PROPAGATE;
-
         this._buttonDown = true;
         this._grabActor(event.get_device());
 
@@ -137,9 +134,6 @@ var _Draggable = class _Draggable {
 
         if (event.type() != Clutter.EventType.TOUCH_BEGIN ||
             !global.display.is_pointer_emulating_sequence(event.get_event_sequence()))
-            return Clutter.EVENT_PROPAGATE;
-
-        if (Tweener.getTweenCount(actor))
             return Clutter.EVENT_PROPAGATE;
 
         this._buttonDown = true;
@@ -428,19 +422,22 @@ var _Draggable = class _Draggable {
                 // to the final position because that tween would
                 // fight with updates as the user continues dragging
                 // the mouse; instead we do the position computations in
-                // an onUpdate() function.
-                Tweener.addTween(this._dragActor,
-                                 { scale_x: scale * origScale,
-                                   scale_y: scale * origScale,
-                                   time: SCALE_ANIMATION_TIME,
-                                   transition: 'easeOutQuad',
-                                   onUpdate: () => {
-                                       let currentScale = this._dragActor.scale_x / origScale;
-                                       this._dragOffsetX = currentScale * origDragOffsetX;
-                                       this._dragOffsetY = currentScale * origDragOffsetY;
-                                       this._dragActor.set_position(this._dragX + this._dragOffsetX,
-                                                                    this._dragY + this._dragOffsetY);
-                                   } });
+                // a ::new-frame handler.
+                this._dragActor.ease({
+                    scale_x: scale * origScale,
+                    scale_y: scale * origScale,
+                    duration: SCALE_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                });
+
+                this._dragActor.get_transition('scale-x').connect('new-frame', () => {
+                    let currentScale = this._dragActor.scale_x / origScale;
+                    this._dragOffsetX = currentScale * origDragOffsetX;
+                    this._dragOffsetY = currentScale * origDragOffsetY;
+                    this._dragActor.set_position(
+                        this._dragX + this._dragOffsetX,
+                        this._dragY + this._dragOffsetY);
+                });
             }
         }
     }
@@ -503,7 +500,7 @@ var _Draggable = class _Draggable {
 
         while (target) {
             if (target._delegate && target._delegate.handleDragOver) {
-                let [r, targX, targY] = target.transform_stage_point(this._dragX, this._dragY);
+                let [r_, targX, targY] = target.transform_stage_point(this._dragX, this._dragY);
                 // We currently loop through all parents on drag-over even if one of the children has handled it.
                 // We can check the return value of the function and break the loop if it's true if we don't want
                 // to continue checking the parents.
@@ -575,7 +572,7 @@ var _Draggable = class _Draggable {
 
         while (target) {
             if (target._delegate && target._delegate.acceptDrop) {
-                let [r, targX, targY] = target.transform_stage_point(dropX, dropY);
+                let [r_, targX, targY] = target.transform_stage_point(dropX, dropY);
                 if (target._delegate.acceptDrop(this.actor._delegate,
                                                 this._dragActor,
                                                 targX,
@@ -613,15 +610,15 @@ var _Draggable = class _Draggable {
         if (this._dragActorSource && this._dragActorSource.visible) {
             // Snap the clone back to its source
             [x, y] = this._dragActorSource.get_transformed_position();
-            let [sourceScaledWidth, sourceScaledHeight] = this._dragActorSource.get_transformed_size();
-            scale = sourceScaledWidth ? this._dragActor.width / sourceScaledWidth : 0;
+            let [sourceScaledWidth] = this._dragActorSource.get_transformed_size();
+            scale = sourceScaledWidth ? sourceScaledWidth / this._dragActor.width : 0;
         } else if (this._dragOrigParent) {
             // Snap the actor back to its original position within
             // its parent, adjusting for the fact that the parent
             // may have been moved or scaled
             let [parentX, parentY] = this._dragOrigParent.get_transformed_position();
-            let [parentWidth, parentHeight] = this._dragOrigParent.get_size();
-            let [parentScaledWidth, parentScaledHeight] = this._dragOrigParent.get_transformed_size();
+            let [parentWidth] = this._dragOrigParent.get_size();
+            let [parentScaledWidth] = this._dragOrigParent.get_transformed_size();
             let parentScale = 1.0;
             if (parentWidth != 0)
                 parentScale = parentScaledWidth / parentWidth;
@@ -657,13 +654,13 @@ var _Draggable = class _Draggable {
 
         let [snapBackX, snapBackY, snapBackScale] = this._getRestoreLocation();
 
-        this._animateDragEnd(eventTime,
-                             { x: snapBackX,
-                               y: snapBackY,
-                               scale_x: snapBackScale,
-                               scale_y: snapBackScale,
-                               time: SNAP_BACK_ANIMATION_TIME,
-                             });
+        this._animateDragEnd(eventTime, {
+            x: snapBackX,
+            y: snapBackY,
+            scale_x: snapBackScale,
+            scale_y: snapBackScale,
+            duration: SNAP_BACK_ANIMATION_TIME
+        });
     }
 
     _restoreDragActor(eventTime) {
@@ -675,21 +672,22 @@ var _Draggable = class _Draggable {
         this._dragActor.set_scale(restoreScale, restoreScale);
         this._dragActor.opacity = 0;
 
-        this._animateDragEnd(eventTime,
-                             { time: REVERT_ANIMATION_TIME });
+        this._animateDragEnd(eventTime, {
+            duration: REVERT_ANIMATION_TIME
+        });
     }
 
     _animateDragEnd(eventTime, params) {
         this._animationInProgress = true;
 
-        params['opacity']          = this._dragOrigOpacity;
-        params['transition']       = 'easeOutQuad';
-        params['onComplete']       = this._onAnimationComplete;
-        params['onCompleteScope']  = this;
-        params['onCompleteParams'] = [this._dragActor, eventTime];
-
         // start the animation
-        Tweener.addTween(this._dragActor, params);
+        this._dragActor.ease(Object.assign(params, {
+            opacity: this._dragOrigOpacity,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._onAnimationComplete(this._dragActor, eventTime);
+            }
+        }));
     }
 
     _finishAnimation() {

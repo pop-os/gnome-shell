@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ScreenshotService */
 
 const { Clutter, Gio, GLib, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
@@ -6,7 +7,6 @@ const Signals = imports.signals;
 const GrabHelper = imports.ui.grabHelper;
 const Lightbox = imports.ui.lightbox;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
@@ -199,7 +199,7 @@ var ScreenshotService = class {
                 if (!screenshot)
                     return;
                 screenshot.pick_color(...coords, (o, res) => {
-                    let [success, color] = screenshot.pick_color_finish(res);
+                    let [success_, color] = screenshot.pick_color_finish(res);
                     let { red, green, blue } = color;
                     let retval = GLib.Variant.new('(a{sv})', [{
                         color: GLib.Variant.new('(ddd)', [
@@ -295,16 +295,14 @@ var SelectArea = class {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _onButtonRelease(actor, event) {
+    _onButtonRelease() {
         this._result = this._getGeometry();
-        Tweener.addTween(this._group,
-                         { opacity: 0,
-                           time: 0.2,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this._grabHelper.ungrab();
-                           }
-                         });
+        this._group.ease({
+            opacity: 0,
+            duration: 200,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._grabHelper.ungrab()
+        });
         return Clutter.EVENT_PROPAGATE;
     }
 
@@ -366,7 +364,7 @@ var PickPixel = class {
 };
 Signals.addSignalMethods(PickPixel.prototype);
 
-var FLASHSPOT_ANIMATION_OUT_TIME = 0.5; // seconds
+var FLASHSPOT_ANIMATION_OUT_TIME = 500; // milliseconds
 
 var Flashspot = class extends Lightbox.Lightbox {
     constructor(area) {
@@ -381,15 +379,15 @@ var Flashspot = class extends Lightbox.Lightbox {
     fire(doneCallback) {
         this.actor.show();
         this.actor.opacity = 255;
-        Tweener.addTween(this.actor,
-                         { opacity: 0,
-                           time: FLASHSPOT_ANIMATION_OUT_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               if (doneCallback)
-                                   doneCallback();
-                               this.destroy();
-                           }
-                         });
+        this.actor.ease({
+            opacity: 0,
+            duration: FLASHSPOT_ANIMATION_OUT_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (doneCallback)
+                    doneCallback();
+                this.destroy();
+            }
+        });
     }
 };
