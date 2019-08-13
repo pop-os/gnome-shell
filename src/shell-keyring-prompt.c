@@ -115,9 +115,10 @@ remove_mnemonics (const GValue *value)
   g_return_val_if_fail (G_VALUE_HOLDS_STRING (value), NULL);
 
   label = g_value_get_string (value);
-  g_return_val_if_fail (label != NULL, NULL);
+  if (!label)
+    return NULL;
 
-  /* Stripped label will have the original label lenght at most */
+  /* Stripped label will have the original label length at most */
   stripped_label = temp = g_new (gchar, strlen(label) + 1);
   g_assert (stripped_label != NULL);
 
@@ -346,7 +347,7 @@ shell_keyring_prompt_class_init (ShellKeyringPromptClass *klass)
    */
   g_object_class_install_property (gobject_class, PROP_PASSWORD_VISIBLE,
              g_param_spec_boolean ("password-visible", "Password visible", "Password field is visible",
-                                   FALSE, G_PARAM_READABLE));
+                                   FALSE, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
     * ShellKeyringPrompt:confirm-visible:
@@ -355,7 +356,7 @@ shell_keyring_prompt_class_init (ShellKeyringPromptClass *klass)
     */
   g_object_class_install_property (gobject_class, PROP_CONFIRM_VISIBLE,
              g_param_spec_boolean ("confirm-visible", "Confirm visible", "Confirm field is visible",
-                                   FALSE, G_PARAM_READABLE));
+                                   FALSE, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * ShellKeyringPrompt:warning-visible:
@@ -364,7 +365,7 @@ shell_keyring_prompt_class_init (ShellKeyringPromptClass *klass)
    */
   g_object_class_install_property (gobject_class, PROP_WARNING_VISIBLE,
              g_param_spec_boolean ("warning-visible", "Warning visible", "Warning is visible",
-                                   FALSE, G_PARAM_READABLE));
+                                   FALSE, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * ShellKeyringPrompt:choice-visible:
@@ -373,7 +374,7 @@ shell_keyring_prompt_class_init (ShellKeyringPromptClass *klass)
    */
   g_object_class_install_property (gobject_class, PROP_CHOICE_VISIBLE,
              g_param_spec_boolean ("choice-visible", "Choice visible", "Choice is visible",
-                                   FALSE, G_PARAM_READABLE));
+                                   FALSE, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * ShellKeyringPrompt:password-actor:
@@ -382,7 +383,7 @@ shell_keyring_prompt_class_init (ShellKeyringPromptClass *klass)
    */
   g_object_class_install_property (gobject_class, PROP_PASSWORD_ACTOR,
               g_param_spec_object ("password-actor", "Password actor", "Text field for password",
-                                   CLUTTER_TYPE_TEXT, G_PARAM_READWRITE));
+                                   CLUTTER_TYPE_TEXT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * ShellKeyringPrompt:confirm-actor:
@@ -391,7 +392,7 @@ shell_keyring_prompt_class_init (ShellKeyringPromptClass *klass)
    */
   g_object_class_install_property (gobject_class, PROP_CONFIRM_ACTOR,
               g_param_spec_object ("confirm-actor", "Confirm actor", "Text field for confirming password",
-                                   CLUTTER_TYPE_TEXT, G_PARAM_READWRITE));
+                                   CLUTTER_TYPE_TEXT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   signals[SIGNAL_SHOW_PASSWORD] = g_signal_new ("show-password", G_TYPE_FROM_CLASS (klass),
                                                 0, 0, NULL, NULL,

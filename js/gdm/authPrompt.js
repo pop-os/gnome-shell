@@ -8,14 +8,13 @@ const Batch = imports.gdm.batch;
 const GdmUtil = imports.gdm.util;
 const Params = imports.misc.params;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const UserWidget = imports.ui.userWidget;
 
 var DEFAULT_BUTTON_WELL_ICON_SIZE = 16;
-var DEFAULT_BUTTON_WELL_ANIMATION_DELAY = 1.0;
-var DEFAULT_BUTTON_WELL_ANIMATION_TIME = 0.3;
+var DEFAULT_BUTTON_WELL_ANIMATION_DELAY = 1000;
+var DEFAULT_BUTTON_WELL_ANIMATION_TIME = 300;
 
-var MESSAGE_FADE_OUT_ANIMATION_TIME = 0.5;
+var MESSAGE_FADE_OUT_ANIMATION_TIME = 500;
 
 var AuthPromptMode = {
     UNLOCK_ONLY: 0,
@@ -59,23 +58,23 @@ var AuthPrompt = class {
         this.smartcardDetected = this._userVerifier.smartcardDetected;
 
         this.connect('next', () => {
-                this.updateSensitivity(false);
-                this.startSpinning();
-                if (this._queryingService) {
-                    this._userVerifier.answerQuery(this._queryingService, this._entry.text);
-                } else {
-                    this._preemptiveAnswer = this._entry.text;
-                }
-            });
+            this.updateSensitivity(false);
+            this.startSpinning();
+            if (this._queryingService) {
+                this._userVerifier.answerQuery(this._queryingService, this._entry.text);
+            } else {
+                this._preemptiveAnswer = this._entry.text;
+            }
+        });
 
         this.actor = new St.BoxLayout({ style_class: 'login-dialog-prompt-layout',
                                         vertical: true });
         this.actor.connect('destroy', this._onDestroy.bind(this));
         this.actor.connect('key-press-event', (actor, event) => {
-                if (event.get_key_symbol() == Clutter.KEY_Escape)
-                    this.cancel();
-                return Clutter.EVENT_PROPAGATE;
-            });
+            if (event.get_key_symbol() == Clutter.KEY_Escape)
+                this.cancel();
+            return Clutter.EVENT_PROPAGATE;
+        });
 
         this._userWell = new St.Bin({ x_fill: true,
                                       x_align: St.Align.START });
@@ -112,7 +111,7 @@ var AuthPrompt = class {
         this._buttonBox = new St.BoxLayout({ style_class: 'login-dialog-button-box',
                                              vertical: false });
         this.actor.add(this._buttonBox,
-                       { expand:  true,
+                       { expand: true,
                          x_align: St.Align.MIDDLE,
                          y_align: St.Align.END });
 
@@ -138,7 +137,7 @@ var AuthPrompt = class {
                                             reactive: true,
                                             can_focus: true,
                                             label: _("Cancel") });
-        this.cancelButton.connect('clicked', () => { this.cancel(); });
+        this.cancelButton.connect('clicked', () => this.cancel());
         this._buttonBox.add(this.cancelButton,
                             { expand: false,
                               x_fill: false,
@@ -157,7 +156,7 @@ var AuthPrompt = class {
                                           reactive: true,
                                           can_focus: true,
                                           label: _("Next") });
-        this.nextButton.connect('clicked', () => { this.emit('next'); });
+        this.nextButton.connect('clicked', () => this.emit('next'));
         this.nextButton.add_style_pseudo_class('default');
         this._buttonBox.add(this.nextButton,
                             { expand: false,
@@ -267,7 +266,7 @@ var AuthPrompt = class {
         let oldActor = this._defaultButtonWellActor;
 
         if (oldActor)
-            Tweener.removeTweens(oldActor);
+            oldActor.remove_all_transitions();
 
         let wasSpinner;
         if (oldActor == this._spinner.actor)
@@ -290,19 +289,18 @@ var AuthPrompt = class {
                         this._spinner.stop();
                 }
             } else {
-                Tweener.addTween(oldActor,
-                                 { opacity: 0,
-                                   time: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
-                                   delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
-                                   transition: 'linear',
-                                   onCompleteScope: this,
-                                   onComplete() {
-                                      if (wasSpinner) {
-                                          if (this._spinner)
-                                              this._spinner.stop();
-                                      }
-                                   }
-                                 });
+                oldActor.ease({
+                    opacity: 0,
+                    duration: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
+                    delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
+                    mode: Clutter.AnimationMode.LINEAR,
+                    onComplete: () => {
+                        if (wasSpinner) {
+                            if (this._spinner)
+                                this._spinner.stop();
+                        }
+                    }
+                });
             }
         }
 
@@ -313,11 +311,12 @@ var AuthPrompt = class {
             if (!animate)
                 actor.opacity = 255;
             else
-                Tweener.addTween(actor,
-                                 { opacity: 255,
-                                   time: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
-                                   delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
-                                   transition: 'linear' });
+                actor.ease({
+                    opacity: 255,
+                    duration: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
+                    delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
+                    mode: Clutter.AnimationMode.LINEAR
+                });
         }
 
         this._defaultButtonWellActor = actor;
@@ -366,12 +365,12 @@ var AuthPrompt = class {
     _fadeOutMessage() {
         if (this._message.opacity == 0)
             return;
-        Tweener.removeTweens(this._message);
-        Tweener.addTween(this._message,
-                         { opacity: 0,
-                           time: MESSAGE_FADE_OUT_ANIMATION_TIME,
-                           transition: 'easeOutQuad'
-                         });
+        this._message.remove_all_transitions();
+        this._message.ease({
+            opacity: 0,
+            duration: MESSAGE_FADE_OUT_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     setMessage(message, type) {
@@ -386,7 +385,7 @@ var AuthPrompt = class {
             this._message.remove_style_class_name('login-dialog-message-hint');
 
         if (message) {
-            Tweener.removeTweens(this._message);
+            this._message.remove_all_transitions();
             this._message.text = message;
             this._message.opacity = 255;
         } else {

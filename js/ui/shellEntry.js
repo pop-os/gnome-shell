@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported addContextMenu */
 
 const { Clutter, Shell, St } = imports.gi;
 
@@ -115,30 +116,30 @@ var EntryMenu = class extends PopupMenu.PopupMenu {
 };
 
 function _setMenuAlignment(entry, stageX) {
-    let [success, entryX, entryY] = entry.transform_stage_point(stageX, 0);
+    let [success, entryX] = entry.transform_stage_point(stageX, 0);
     if (success)
         entry.menu.setSourceAlignment(entryX / entry.width);
-};
+}
 
 function _onButtonPressEvent(actor, event, entry) {
     if (entry.menu.isOpen) {
         entry.menu.close(BoxPointer.PopupAnimation.FULL);
         return Clutter.EVENT_STOP;
     } else if (event.get_button() == 3) {
-        let [stageX, stageY] = event.get_coords();
+        let [stageX] = event.get_coords();
         _setMenuAlignment(entry, stageX);
         entry.menu.open(BoxPointer.PopupAnimation.FULL);
         return Clutter.EVENT_STOP;
     }
     return Clutter.EVENT_PROPAGATE;
-};
+}
 
 function _onPopup(actor, entry) {
-    let [success, textX, textY, lineHeight] = entry.clutter_text.position_to_coords(-1);
+    let [success, textX, textY_, lineHeight_] = entry.clutter_text.position_to_coords(-1);
     if (success)
         entry.menu.setSourceAlignment(textX / entry.width);
     entry.menu.open(BoxPointer.PopupAnimation.FULL);
-};
+}
 
 function addContextMenu(entry, params) {
     if (entry.menu)
@@ -148,7 +149,7 @@ function addContextMenu(entry, params) {
 
     entry.menu = new EntryMenu(entry);
     entry.menu.isPassword = params.isPassword;
-    entry._menuManager = new PopupMenu.PopupMenuManager({ actor: entry },
+    entry._menuManager = new PopupMenu.PopupMenuManager(entry,
                                                         { actionMode: params.actionMode });
     entry._menuManager.addMenu(entry.menu);
 
@@ -162,7 +163,7 @@ function addContextMenu(entry, params) {
         _onButtonPressEvent(actor, event, entry);
     });
 
-    entry.connect('popup-menu', actor => { _onPopup(actor, entry); });
+    entry.connect('popup-menu', actor => _onPopup(actor, entry));
 
     entry.connect('destroy', () => {
         entry.menu.destroy();

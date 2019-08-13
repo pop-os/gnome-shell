@@ -1,15 +1,15 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ControlsManager */
 
 const { Clutter, GObject, Meta, St } = imports.gi;
 
 const Dash = imports.ui.dash;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 const ViewSelector = imports.ui.viewSelector;
 const WorkspaceThumbnail = imports.ui.workspaceThumbnail;
 
-var SIDE_CONTROLS_ANIMATION_TIME = 0.16;
+var SIDE_CONTROLS_ANIMATION_TIME = 160;
 
 function getRtlSlideDirection(direction, actor) {
     let rtl = (actor.text_direction == Clutter.TextDirection.RTL);
@@ -18,18 +18,28 @@ function getRtlSlideDirection(direction, actor) {
             SlideDirection.RIGHT : SlideDirection.LEFT;
 
     return direction;
-};
+}
 
 var SlideDirection = {
     LEFT: 0,
     RIGHT: 1
 };
 
-var SlideLayout = GObject.registerClass(
-class SlideLayout extends Clutter.FixedLayout {
+var SlideLayout = GObject.registerClass({
+    Properties: {
+        'slide-x': GObject.ParamSpec.double(
+            'slide-x', 'slide-x', 'slide-x',
+            GObject.ParamFlags.READWRITE,
+            0, 1, 1),
+        'translation-x': GObject.ParamSpec.double(
+            'translation-x', 'translation-x', 'translation-x',
+            GObject.ParamFlags.READWRITE,
+            -Infinity, Infinity, 0)
+    }
+}, class SlideLayout extends Clutter.FixedLayout {
     _init(params) {
         this._slideX = 1;
-        this._translationX = undefined;
+        this._translationX = 0;
         this._direction = SlideDirection.LEFT;
 
         super._init(params);
@@ -69,12 +79,17 @@ class SlideLayout extends Clutter.FixedLayout {
         child.allocate(actorBox, flags);
     }
 
-    set slideX(value) {
+    // eslint-disable-next-line camelcase
+    set slide_x(value) {
+        if (this._slideX == value)
+            return;
         this._slideX = value;
+        this.notify('slide-x');
         this.layout_changed();
     }
 
-    get slideX() {
+    // eslint-disable-next-line camelcase
+    get slide_x() {
         return this._slideX;
     }
 
@@ -87,12 +102,17 @@ class SlideLayout extends Clutter.FixedLayout {
         return this._direction;
     }
 
-    set translationX(value) {
+    // eslint-disable-next-line camelcase
+    set translation_x(value) {
+        if (this._translationX == value)
+            return;
         this._translationX = value;
+        this.notify('translation-x');
         this.layout_changed();
     }
 
-    get translationX() {
+    // eslint-disable-next-line camelcase
+    get translation_x() {
         return this._translationX;
     }
 });
@@ -122,18 +142,19 @@ var SlidingControl = class {
     }
 
     _getSlide() {
-        throw new Error('getSlide() must be overridden');
+        throw new GObject.NotImplementedError(`_getSlide in ${this.constructor.name}`);
     }
 
     _updateSlide() {
-        Tweener.addTween(this.layout, { slideX: this._getSlide(),
-                                        time: SIDE_CONTROLS_ANIMATION_TIME,
-                                        transition: 'easeOutQuad' });
+        this.actor.ease_property('@layout.slide-x', this._getSlide(), {
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: SIDE_CONTROLS_ANIMATION_TIME,
+        });
     }
 
     getVisibleWidth() {
         let child = this.actor.get_first_child();
-        let [, , natWidth, ] = child.get_preferred_size();
+        let [, , natWidth] = child.get_preferred_size();
         return natWidth;
     }
 
@@ -160,13 +181,14 @@ var SlidingControl = class {
             translationEnd = translation;
         }
 
-        if (this.layout.translationX == translationEnd)
+        if (this.layout.translation_x == translationEnd)
             return;
 
-        this.layout.translationX = translationStart;
-        Tweener.addTween(this.layout, { translationX: translationEnd,
-                                        time: SIDE_CONTROLS_ANIMATION_TIME,
-                                        transition: 'easeOutQuad' });
+        this.layout.translation_x = translationStart;
+        this.actor.ease_property('@layout.translation-x', translationEnd, {
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: SIDE_CONTROLS_ANIMATION_TIME,
+        });
     }
 
     _onOverviewHiding() {
@@ -195,28 +217,30 @@ var SlidingControl = class {
     }
 
     fadeIn() {
-        Tweener.addTween(this.actor, { opacity: 255,
-                                       time: SIDE_CONTROLS_ANIMATION_TIME / 2,
-                                       transition: 'easeInQuad'
-                                     });
+        this.actor.ease({
+            opacity: 255,
+            duration: SIDE_CONTROLS_ANIMATION_TIME / 2,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD
+        });
     }
 
     fadeHalf() {
-        Tweener.addTween(this.actor, { opacity: 128,
-                                       time: SIDE_CONTROLS_ANIMATION_TIME / 2,
-                                       transition: 'easeOutQuad'
-                                     });
+        this.actor.ease({
+            opacity: 128,
+            duration: SIDE_CONTROLS_ANIMATION_TIME / 2,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     slideIn() {
         this._visible = true;
-        // we will update slideX and the translation from pageEmpty
+        // we will update slide_x and the translation from pageEmpty
     }
 
     slideOut() {
         this._visible = false;
         this._updateTranslation();
-        // we will update slideX from pageEmpty
+        // we will update slide_x from pageEmpty
     }
 
     pageEmpty() {
@@ -224,7 +248,7 @@ var SlidingControl = class {
         // selector; this means we can now safely set the full slide for
         // the next page, since slideIn or slideOut might have been called,
         // changing the visiblity
-        this.layout.slideX = this._getSlide();
+        this.layout.slide_x = this._getSlide();
         this._updateTranslation();
     }
 };
@@ -410,7 +434,7 @@ var ControlsManager = class {
                                      x_expand: true, y_expand: true,
                                      clip_to_allocation: true });
         this._group = new St.BoxLayout({ name: 'overview-group',
-                                        x_expand: true, y_expand: true });
+                                         x_expand: true, y_expand: true });
         this.actor.add_actor(this._group);
 
         this.actor.add_actor(this._dashSlider.actor);
@@ -423,17 +447,6 @@ var ControlsManager = class {
         layout.connect('allocation-changed', this._updateWorkspacesGeometry.bind(this));
 
         Main.overview.connect('showing', this._updateSpacerVisibility.bind(this));
-        Main.overview.connect('item-drag-begin', () => {
-            let activePage = this.viewSelector.getActivePage();
-            if (activePage != ViewSelector.ViewPage.WINDOWS)
-                this.viewSelector.fadeHalf();
-        });
-        Main.overview.connect('item-drag-end', () => {
-            this.viewSelector.fadeIn();
-        });
-        Main.overview.connect('item-drag-cancelled', () => {
-            this.viewSelector.fadeIn();
-        });
     }
 
     _updateWorkspacesGeometry() {

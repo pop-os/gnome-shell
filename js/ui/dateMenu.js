@@ -1,6 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported DateMenuButton */
 
-const { Clutter, GLib, GnomeDesktop,
+const { Clutter, Gio, GLib, GnomeDesktop,
         GObject, GWeather, Shell, St } = imports.gi;
 
 const Util = imports.misc.util;
@@ -10,7 +11,12 @@ const Calendar = imports.ui.calendar;
 const Weather = imports.misc.weather;
 const System = imports.system;
 
+const { loadInterfaceXML } = imports.misc.fileUtils;
+
 const MAX_FORECASTS = 5;
+
+const ClocksIntegrationIface = loadInterfaceXML('org.gnome.Shell.ClocksIntegration');
+const ClocksProxy = Gio.DBusProxy.makeProxyWrapper(ClocksIntegrationIface);
 
 function _isToday(date) {
     let now = new Date();
@@ -47,7 +53,7 @@ var TodayButton = class TodayButton {
         this._calendar.connect('selected-date-changed', (calendar, date) => {
             // Make the button reactive only if the selected date is not the
             // current date.
-            this.actor.reactive = !_isToday(date)
+            this.actor.reactive = !_isToday(date);
         });
     }
 
@@ -82,7 +88,8 @@ var WorldClocksSection = class WorldClocksSection {
                                      x_fill: true,
                                      can_focus: true });
         this.actor.connect('clicked', () => {
-            this._clockAppMon.activateApp();
+            if (this._clocksApp)
+                this._clocksApp.activate();
 
             Main.overview.hide();
             Main.panel.closeCalendar();
@@ -95,29 +102,40 @@ var WorldClocksSection = class WorldClocksSection {
 
         this.actor.child = this._grid;
 
-        this._clockAppMon = new Util.AppSettingsMonitor('org.gnome.clocks.desktop',
-                                                        'org.gnome.clocks');
-        this._clockAppMon.connect('available-changed',
-                                  this._sync.bind(this));
-        this._clockAppMon.watchSetting('world-clocks',
-                                       this._clocksChanged.bind(this));
+        this._clocksApp = null;
+        this._clocksProxy = new ClocksProxy(
+            Gio.DBus.session,
+            'org.gnome.clocks',
+            '/org/gnome/clocks',
+            this._onProxyReady.bind(this),
+            null /* cancellable */,
+            Gio.DBusProxyFlags.DO_NOT_AUTO_START | Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES);
+
+        this._settings = new Gio.Settings({
+            schema_id: 'org.gnome.shell.world-clocks'
+        });
+        this._settings.connect('changed', this._clocksChanged.bind(this));
+        this._clocksChanged();
+
+        this._appSystem = Shell.AppSystem.get_default();
+        this._appSystem.connect('installed-changed',
+            this._sync.bind(this));
         this._sync();
     }
 
     _sync() {
-        this.actor.visible = this._clockAppMon.available;
+        this._clocksApp = this._appSystem.lookup_app('org.gnome.clocks.desktop');
+        this.actor.visible = this._clocksApp != null;
     }
 
-    _clocksChanged(settings) {
+    _clocksChanged() {
         this._grid.destroy_all_children();
         this._locations = [];
 
         let world = GWeather.Location.get_world();
-        let clocks = settings.get_value('world-clocks').deep_unpack();
+        let clocks = this._settings.get_value('locations').deep_unpack();
         for (let i = 0; i < clocks.length; i++) {
-            if (!clocks[i].location)
-                continue;
-            let l = world.deserialize(clocks[i].location);
+            let l = world.deserialize(clocks[i]);
             if (l && l.get_timezone() != null)
                 this._locations.push({ location: l });
         }
@@ -196,6 +214,25 @@ var WorldClocksSection = class WorldClocksSection {
             l.actor.text = Util.formatTime(now, { timeOnly: true });
         }
     }
+
+    _onProxyReady(proxy, error) {
+        if (error) {
+            log(`Failed to create GNOME Clocks proxy: ${error}`);
+            return;
+        }
+
+        this._clocksProxy.connect('g-properties-changed',
+            this._onClocksPropertiesChanged.bind(this));
+        this._onClocksPropertiesChanged();
+    }
+
+    _onClocksPropertiesChanged() {
+        if (this._clocksProxy.g_name_owner == null)
+            return;
+
+        this._settings.set_value('locations',
+            new GLib.Variant('av', this._clocksProxy.Locations));
+    }
 };
 
 var WeatherSection = class WeatherSection {
@@ -217,7 +254,7 @@ var WeatherSection = class WeatherSection {
         });
 
         let box = new St.BoxLayout({ style_class: 'weather-box',
-                                      vertical: true });
+                                     vertical: true });
 
         this.actor.child = box;
 
@@ -249,12 +286,12 @@ var WeatherSection = class WeatherSection {
         let current = info;
         let infos = [info];
         for (let i = 0; i < forecasts.length; i++) {
-            let [ok, timestamp] = forecasts[i].get_value_update();
+            let [ok_, timestamp] = forecasts[i].get_value_update();
             let datetime = new Date(timestamp * 1000);
             if (!_isToday(datetime))
                 continue; // Ignore forecasts from other days
 
-            [ok, timestamp] = current.get_value_update();
+            [ok_, timestamp] = current.get_value_update();
             let currenttime = new Date(timestamp * 1000);
             if (currenttime.getHours() == datetime.getHours())
                 continue; // Enforce a minimum interval of 1h
@@ -275,7 +312,7 @@ var WeatherSection = class WeatherSection {
 
         let col = 0;
         infos.forEach(fc => {
-            let [ok, timestamp] = fc.get_value_update();
+            let [ok_, timestamp] = fc.get_value_update();
             let timeStr = Util.formatTime(new Date(timestamp * 1000), {
                 timeOnly: true
             });
@@ -357,7 +394,7 @@ var MessagesIndicator = class MessagesIndicator {
         Main.messageTray.connect('queue-changed', this._updateCount.bind(this));
 
         let sources = Main.messageTray.getSources();
-        sources.forEach(source => { this._onSourceAdded(null, source); });
+        sources.forEach(source => this._onSourceAdded(null, source));
     }
 
     _onSourceAdded(tray, source) {
@@ -373,7 +410,7 @@ var MessagesIndicator = class MessagesIndicator {
 
     _updateCount() {
         let count = 0;
-        this._sources.forEach(source => { count += source.unseenCount; });
+        this._sources.forEach(source => count += source.unseenCount);
         count -= Main.messageTray.queueCount;
 
         this.actor.visible = (count > 0);
@@ -384,8 +421,8 @@ var IndicatorPad = GObject.registerClass(
 class IndicatorPad extends St.Widget {
     _init(actor) {
         this._source = actor;
-        this._source.connect('notify::visible', () => { this.queue_relayout(); });
-        this._source.connect('notify::size', () => { this.queue_relayout(); });
+        this._source.connect('notify::visible', () => this.queue_relayout());
+        this._source.connect('notify::size', () => this.queue_relayout());
         super._init();
     }
 
@@ -459,7 +496,6 @@ class CalendarColumnLayout extends Clutter.BoxLayout {
 var DateMenuButton = GObject.registerClass(
 class DateMenuButton extends PanelMenu.Button {
     _init() {
-        let item;
         let hbox;
         let vbox;
 
@@ -476,10 +512,9 @@ class DateMenuButton extends PanelMenu.Button {
         box.add_actor(this._clockDisplay);
         box.add_actor(this._indicator.actor);
 
-        this.actor.label_actor = this._clockDisplay;
-        this.actor.add_actor(box);
-        this.actor.add_style_class_name ('clock-display');
-
+        this.label_actor = this._clockDisplay;
+        this.add_actor(box);
+        this.add_style_class_name ('clock-display');
 
         let layout = new FreezableBinLayout();
         let bin = new St.Widget({ layout_manager: layout });

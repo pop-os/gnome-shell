@@ -1,4 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported NotificationPolicy, NotificationGenericPolicy,
+   NotificationApplicationPolicy, Source, SourceActor, SourceActorWithLabel,
+   SystemNotificationSource, MessageTray */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -9,15 +12,14 @@ const GnomeSession = imports.misc.gnomeSession;
 const Layout = imports.ui.layout;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 const SHELL_KEYBINDINGS_SCHEMA = 'org.gnome.shell.keybindings';
 
-var ANIMATION_TIME = 0.2;
-var NOTIFICATION_TIMEOUT = 4;
+var ANIMATION_TIME = 200;
+var NOTIFICATION_TIMEOUT = 4000;
 
-var HIDE_TIMEOUT = 0.2;
-var LONGER_HIDE_TIMEOUT = 0.6;
+var HIDE_TIMEOUT = 200;
+var LONGER_HIDE_TIMEOUT = 600;
 
 var MAX_NOTIFICATIONS_IN_QUEUE = 3;
 var MAX_NOTIFICATIONS_PER_SOURCE = 3;
@@ -218,17 +220,17 @@ class NotificationApplicationPolicy extends NotificationPolicy {
 
         this._masterSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.notifications' });
         this._settings = new Gio.Settings({ schema_id: 'org.gnome.desktop.notifications.application',
-                                            path: '/org/gnome/desktop/notifications/application/' + this._canonicalId + '/' });
+                                            path: `/org/gnome/desktop/notifications/application/${this._canonicalId}/` });
 
         this._masterSettings.connect('changed', this._changed.bind(this));
         this._settings.connect('changed', this._changed.bind(this));
     }
 
     store() {
-        this._settings.set_string('application-id', this.id + '.desktop');
+        this._settings.set_string('application-id', `${this.id}.desktop`);
 
         let apps = this._masterSettings.get_strv('application-children');
-        if (apps.indexOf(this._canonicalId) < 0) {
+        if (!apps.includes(this._canonicalId)) {
             apps.push(this._canonicalId);
             this._masterSettings.set_strv('application-children', apps);
         }
@@ -248,7 +250,7 @@ class NotificationApplicationPolicy extends NotificationPolicy {
     _canonicalizeId(id) {
         // Keys are restricted to lowercase alphanumeric characters and dash,
         // and two dashes cannot be in succession
-        return id.toLowerCase().replace(/[^a-z0-9\-]/g, '-').replace(/--+/g, '-');
+        return id.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
     }
 
     get enable() {
@@ -473,9 +475,7 @@ var Notification = class Notification {
             this.destroy();
     }
 
-    destroy(reason) {
-        if (!reason)
-            reason = NotificationDestroyedReason.DISMISSED;
+    destroy(reason = NotificationDestroyedReason.DISMISSED) {
         this.emit('destroy', reason);
     }
 };
@@ -584,18 +584,17 @@ class SourceActor extends St.Widget {
         this._source = source;
         this._size = size;
 
-        this.actor = this;
         this.connect('destroy', () => {
             this._source.disconnect(this._iconUpdatedId);
             this._actorDestroyed = true;
         });
         this._actorDestroyed = false;
 
-        let scale_factor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this._iconBin = new St.Bin({ x_fill: true,
                                      x_expand: true,
-                                     height: size * scale_factor,
-                                     width: size * scale_factor });
+                                     height: size * scaleFactor,
+                                     width: size * scaleFactor });
 
         this.add_actor(this._iconBin);
 
@@ -653,7 +652,7 @@ class SourceActorWithLabel extends SourceActor {
 
         let childBox = new Clutter.ActorBox();
 
-        let [minWidth, minHeight, naturalWidth, naturalHeight] = this._counterBin.get_preferred_size();
+        let [, , naturalWidth, naturalHeight] = this._counterBin.get_preferred_size();
         let direction = this.get_text_direction();
 
         if (direction == Clutter.TextDirection.LTR) {
@@ -773,7 +772,7 @@ var Source = class Source {
     }
 
     pushNotification(notification) {
-        if (this.notifications.indexOf(notification) >= 0)
+        if (this.notifications.includes(notification))
             return;
 
         while (this.notifications.length >= MAX_NOTIFICATIONS_PER_SOURCE)
@@ -830,7 +829,7 @@ Signals.addSignalMethods(Source.prototype);
 
 var MessageTray = class MessageTray {
     constructor() {
-        this._presence = new GnomeSession.Presence((proxy, error) => {
+        this._presence = new GnomeSession.Presence((proxy, _error) => {
             this._onStatusChanged(proxy.status);
         });
         this._busy = false;
@@ -989,7 +988,7 @@ var MessageTray = class MessageTray {
 
     add(source) {
         if (this.contains(source)) {
-            log('Trying to re-add source ' + source.title);
+            log(`Trying to re-add source ${source.title}`);
             return;
         }
 
@@ -1070,7 +1069,7 @@ var MessageTray = class MessageTray {
             // If a new notification is updated while it is being hidden,
             // we stop hiding it and show it again.
             this._updateShowingNotification();
-        } else if (this._notificationQueue.indexOf(notification) < 0) {
+        } else if (!this._notificationQueue.includes(notification)) {
             // If the queue is "full", we skip banner mode and just show a small
             // indicator in the panel; however do make an exception for CRITICAL
             // notifications, as only banner mode allows expansion.
@@ -1130,14 +1129,14 @@ var MessageTray = class MessageTray {
             // this._onNotificationLeftTimeout() to determine if the mouse has moved far enough during the initial timeout for us
             // to consider that the user intended to leave the tray and therefore hide the tray. If the mouse is still
             // close to its previous position, we extend the timeout once.
-            let [x, y, mods] = global.get_pointer();
+            let [x, y] = global.get_pointer();
             this._notificationLeftMouseX = x;
             this._notificationLeftMouseY = y;
 
             // We wait just a little before hiding the message tray in case the user quickly moves the mouse back into it.
             // We wait for a longer period if the notification popped up where the mouse pointer was already positioned.
             // That gives the user more time to mouse away from the notification and mouse back in in order to expand it.
-            let timeout = this._useLongerNotificationLeftTimeout ? LONGER_HIDE_TIMEOUT * 1000 : HIDE_TIMEOUT * 1000;
+            let timeout = this._useLongerNotificationLeftTimeout ? LONGER_HIDE_TIMEOUT : HIDE_TIMEOUT;
             this._notificationLeftTimeoutId = Mainloop.timeout_add(timeout, this._onNotificationLeftTimeout.bind(this));
             GLib.Source.set_name_by_id(this._notificationLeftTimeoutId, '[gnome-shell] this._onNotificationLeftTimeout');
         }
@@ -1159,7 +1158,7 @@ var MessageTray = class MessageTray {
     }
 
     _onNotificationLeftTimeout() {
-        let [x, y, mods] = global.get_pointer();
+        let [x, y] = global.get_pointer();
         // We extend the timeout once if the mouse moved no further than MOUSE_LEFT_ACTOR_THRESHOLD to either side.
         if (this._notificationLeftMouseX > -1 &&
             y < this._notificationLeftMouseY + MOUSE_LEFT_ACTOR_THRESHOLD &&
@@ -1167,8 +1166,8 @@ var MessageTray = class MessageTray {
             x < this._notificationLeftMouseX + MOUSE_LEFT_ACTOR_THRESHOLD &&
             x > this._notificationLeftMouseX - MOUSE_LEFT_ACTOR_THRESHOLD) {
             this._notificationLeftMouseX = -1;
-            this._notificationLeftTimeoutId = Mainloop.timeout_add(LONGER_HIDE_TIMEOUT * 1000,
-                                                             this._onNotificationLeftTimeout.bind(this));
+            this._notificationLeftTimeoutId = Mainloop.timeout_add(LONGER_HIDE_TIMEOUT,
+                                                                   this._onNotificationLeftTimeout.bind(this));
             GLib.Source.set_name_by_id(this._notificationLeftTimeoutId, '[gnome-shell] this._onNotificationLeftTimeout');
         } else {
             this._notificationLeftTimeoutId = 0;
@@ -1249,34 +1248,6 @@ var MessageTray = class MessageTray {
         this._notificationExpired = false;
     }
 
-    _tween(actor, statevar, value, params) {
-        let onComplete = params.onComplete;
-        let onCompleteScope = params.onCompleteScope;
-        let onCompleteParams = params.onCompleteParams;
-
-        params.onComplete = this._tweenComplete;
-        params.onCompleteScope = this;
-        params.onCompleteParams = [statevar, value, onComplete, onCompleteScope, onCompleteParams];
-
-        // Remove other tweens that could mess with the state machine
-        Tweener.removeTweens(actor);
-        Tweener.addTween(actor, params);
-
-        let valuing = (value == State.SHOWN) ? State.SHOWING : State.HIDING;
-        this[statevar] = valuing;
-    }
-
-    _tweenComplete(statevar, value, onComplete, onCompleteScope, onCompleteParams) {
-        this[statevar] = value;
-        if (onComplete)
-            onComplete.apply(onCompleteScope, onCompleteParams);
-        this._updateState();
-    }
-
-    _clampOpacity() {
-        this._bannerBin.opacity = Math.max(0, Math.min(this._bannerBin._opacity, 255));
-    }
-
     _onIdleMonitorBecameActive() {
         this._userActiveWhileNotificationShown = true;
         this._updateNotificationTimeout(2000);
@@ -1303,7 +1274,6 @@ var MessageTray = class MessageTray {
 
         this._bannerBin.add_actor(this._banner.actor);
 
-        this._bannerBin._opacity = 0;
         this._bannerBin.opacity = 0;
         this._bannerBin.y = -this._banner.actor.height;
         this.actor.show();
@@ -1311,7 +1281,7 @@ var MessageTray = class MessageTray {
         Meta.disable_unredirect_for_display(global.display);
         this._updateShowingNotification();
 
-        let [x, y, mods] = global.get_pointer();
+        let [x, y] = global.get_pointer();
         // We save the position of the mouse at the time when we started showing the notification
         // in order to determine if the notification popped up under it. We make that check if
         // the user starts moving the mouse and _onNotificationHoverChanged() gets called. We don't
@@ -1349,22 +1319,28 @@ var MessageTray = class MessageTray {
         // We use this._showNotificationCompleted() onComplete callback to extend the time the updated
         // notification is being shown.
 
-        let tweenParams = { y: 0,
-                            _opacity: 255,
-                            time: ANIMATION_TIME,
-                            transition: 'easeOutBack',
-                            onUpdate: this._clampOpacity,
-                            onUpdateScope: this,
-                            onComplete: this._showNotificationCompleted,
-                            onCompleteScope: this
-                          };
-
-        this._tween(this._bannerBin, '_notificationState', State.SHOWN, tweenParams);
+        this._notificationState = State.SHOWING;
+        this._bannerBin.remove_all_transitions();
+        this._bannerBin.ease({
+            opacity: 255,
+            duration: ANIMATION_TIME,
+            mode: Clutter.AnimationMode.LINEAR
+        });
+        this._bannerBin.ease({
+            y: 0,
+            duration: ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_BACK,
+            onComplete: () => {
+                this._notificationState = State.SHOWN;
+                this._showNotificationCompleted();
+                this._updateState();
+            }
+        });
     }
 
     _showNotificationCompleted() {
         if (this._notification.urgency != Urgency.CRITICAL)
-            this._updateNotificationTimeout(NOTIFICATION_TIMEOUT * 1000);
+            this._updateNotificationTimeout(NOTIFICATION_TIMEOUT);
     }
 
     _updateNotificationTimeout(timeout) {
@@ -1381,7 +1357,7 @@ var MessageTray = class MessageTray {
     }
 
     _notificationTimeout() {
-        let [x, y, mods] = global.get_pointer();
+        let [x, y] = global.get_pointer();
         if (y < this._lastSeenMouseY - 10 && !this._notificationHovered) {
             // The mouse is moving towards the notification, so don't
             // hide it yet. (We just create a new timeout (and destroy
@@ -1417,20 +1393,26 @@ var MessageTray = class MessageTray {
         }
 
         this._resetNotificationLeftTimeout();
+        this._bannerBin.remove_all_transitions();
 
         if (animate) {
-            this._tween(this._bannerBin, '_notificationState', State.HIDDEN,
-                        { y: -this._bannerBin.height,
-                          _opacity: 0,
-                          time: ANIMATION_TIME,
-                          transition: 'easeOutBack',
-                          onUpdate: this._clampOpacity,
-                          onUpdateScope: this,
-                          onComplete: this._hideNotificationCompleted,
-                          onCompleteScope: this
-                        });
+            this._notificationState = State.HIDING;
+            this._bannerBin.ease({
+                opacity: 0,
+                duration: ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_BACK
+            });
+            this._bannerBin.ease({
+                y: -this._bannerBin.height,
+                duration: ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_BACK,
+                onComplete: () => {
+                    this._notificationState = State.HIDDEN;
+                    this._hideNotificationCompleted();
+                    this._updateState();
+                }
+            });
         } else {
-            Tweener.removeTweens(this._bannerBin);
             this._bannerBin.y = -this._bannerBin.height;
             this._bannerBin.opacity = 0;
             this._notificationState = State.HIDDEN;

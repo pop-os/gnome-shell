@@ -29,12 +29,6 @@
 #include <meta/meta-workspace-manager.h>
 #include <meta/meta-x11-display.h>
 
-#ifdef HAVE_SYSTEMD
-#include <systemd/sd-journal.h>
-#include <errno.h>
-#include <unistd.h>
-#endif
-
 /* Memory report bits */
 #ifdef HAVE_MALLINFO
 #include <malloc.h>
@@ -57,12 +51,9 @@ struct _ShellGlobal {
   GObject parent;
 
   ClutterStage *stage;
-  Window stage_xwindow;
 
   MetaDisplay *meta_display;
   MetaWorkspaceManager *workspace_manager;
-  GdkDisplay *gdk_display;
-  MetaX11Display *x11_display;
   Display *xdisplay;
 
   char *session_mode;
@@ -117,6 +108,7 @@ enum {
 enum
 {
  NOTIFY_ERROR,
+ LOCATE_POINTER,
  LAST_SIGNAL
 };
 
@@ -359,6 +351,13 @@ shell_global_class_init (ShellGlobalClass *klass)
                     G_TYPE_NONE, 2,
                     G_TYPE_STRING,
                     G_TYPE_STRING);
+  shell_global_signals[LOCATE_POINTER] =
+      g_signal_new ("locate-pointer",
+                    G_TYPE_FROM_CLASS (klass),
+                    G_SIGNAL_RUN_LAST,
+                    0,
+                    NULL, NULL, NULL,
+                    G_TYPE_NONE, 0);
 
   g_object_class_install_property (gobject_class,
                                    PROP_SESSION_MODE,
@@ -366,7 +365,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Session Mode",
                                                         "The session mode to use",
                                                         "user",
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SCREEN_WIDTH,
@@ -374,7 +373,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                      "Screen Width",
                                                      "Screen width, in pixels",
                                                      0, G_MAXINT, 1,
-                                                     G_PARAM_READABLE));
+                                                     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SCREEN_HEIGHT,
@@ -382,14 +381,14 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                      "Screen Height",
                                                      "Screen height, in pixels",
                                                      0, G_MAXINT, 1,
-                                                     G_PARAM_READABLE));
+                                                     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_DISPLAY,
                                    g_param_spec_object ("display",
                                                         "Display",
                                                         "Metacity display object for the shell",
                                                         META_TYPE_DISPLAY,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_WORKSPACE_MANAGER,
@@ -397,7 +396,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Workspace manager",
                                                         "Workspace manager",
                                                         META_TYPE_WORKSPACE_MANAGER,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_STAGE,
@@ -405,14 +404,14 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Stage",
                                                         "Stage holding the desktop scene graph",
                                                         CLUTTER_TYPE_ACTOR,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_WINDOW_GROUP,
                                    g_param_spec_object ("window-group",
                                                         "Window Group",
                                                         "Actor holding window actors",
                                                         CLUTTER_TYPE_ACTOR,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                      PROP_TOP_WINDOW_GROUP,
@@ -420,7 +419,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                           "Top Window Group",
                                                           "Actor holding override-redirect windows",
                                                           CLUTTER_TYPE_ACTOR,
-                                                          G_PARAM_READABLE));
+                                                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_WINDOW_MANAGER,
@@ -428,56 +427,56 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Window Manager",
                                                         "Window management interface",
                                                         SHELL_TYPE_WM,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_SETTINGS,
                                    g_param_spec_object ("settings",
                                                         "Settings",
                                                         "GSettings instance for gnome-shell configuration",
                                                         G_TYPE_SETTINGS,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_DATADIR,
                                    g_param_spec_string ("datadir",
                                                         "Data directory",
                                                         "Directory containing gnome-shell data files",
                                                         NULL,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_IMAGEDIR,
                                    g_param_spec_string ("imagedir",
                                                         "Image directory",
                                                         "Directory containing gnome-shell image files",
                                                         NULL,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_USERDATADIR,
                                    g_param_spec_string ("userdatadir",
                                                         "User data directory",
                                                         "Directory containing gnome-shell user data",
                                                         NULL,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_FOCUS_MANAGER,
                                    g_param_spec_object ("focus-manager",
                                                         "Focus manager",
                                                         "The shell's StFocusManager",
                                                         ST_TYPE_FOCUS_MANAGER,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_FRAME_TIMESTAMPS,
                                    g_param_spec_boolean ("frame-timestamps",
                                                          "Frame Timestamps",
                                                          "Whether to log frame timestamps in the performance log",
                                                          FALSE,
-                                                         G_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_FRAME_FINISH_TIMESTAMP,
                                    g_param_spec_boolean ("frame-finish-timestamp",
                                                          "Frame Finish Timestamps",
                                                          "Whether at the end of a frame to call glFinish and log paintCompletedTimestamp",
                                                          FALSE,
-                                                         G_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 /*
@@ -641,6 +640,9 @@ shell_global_set_stage_input_region (ShellGlobal *global,
   GSList *r;
 
   g_return_if_fail (SHELL_IS_GLOBAL (global));
+
+  if (meta_is_wayland_compositor ())
+    return;
 
   nrects = g_slist_length (rectangles);
   rects = g_new (XRectangle, nrects);
@@ -846,23 +848,17 @@ _shell_global_set_plugin (ShellGlobal *global,
   display = meta_plugin_get_display (plugin);
   global->meta_display = display;
   global->workspace_manager = meta_display_get_workspace_manager (display);
-  global->x11_display = meta_display_get_x11_display (display);
-  global->xdisplay = meta_x11_display_get_xdisplay (global->x11_display);
-
-  global->gdk_display = gdk_x11_lookup_xdisplay (global->xdisplay);
 
   global->stage = CLUTTER_STAGE (meta_get_stage_for_display (display));
 
-  if (meta_is_wayland_compositor ())
+  if (!meta_is_wayland_compositor ())
     {
-      global->stage_xwindow = None;
-    }
-  else
-    {
-      global->stage_xwindow = clutter_x11_get_stage_window (global->stage);
+      MetaX11Display *x11_display = meta_display_get_x11_display (display);
+      global->xdisplay = meta_x11_display_get_xdisplay (x11_display);
     }
 
   st_entry_set_cursor_func (entry_cursor_func, global);
+  st_clipboard_set_selection (meta_display_get_selection (display));
 
   g_signal_connect (global->stage, "notify::width",
                     G_CALLBACK (global_stage_notify_width), global);
@@ -1164,52 +1160,6 @@ shell_global_reexec_self (ShellGlobal *global)
 }
 
 /**
- * shell_global_log_structured:
- * @message: A message to print
- * @keys: (allow-none) (array zero-terminated=1) (element-type utf8): Optional structured data
- *
- * Log structured data in an operating-system specific fashion.  The
- * parameter @opts should be an array of UTF-8 KEY=VALUE strings.
- * This function does not support binary data.  See
- * http://www.freedesktop.org/software/systemd/man/systemd.journal-fields.html
- * or more information about fields that can be used on a systemd
- * system.
- *
- */
-void
-shell_global_log_structured (const char *message,
-                             const char *const *keys)
-{
-#ifdef HAVE_SYSTEMD
-    const char *const*iter;
-    char *msgkey;
-    guint i, n_opts;
-    struct iovec *iovs;
-
-    for (n_opts = 0, iter = keys; *iter; iter++, n_opts++)
-        ;
-
-    n_opts++; /* Add one for MESSAGE= */
-    iovs = g_alloca (sizeof (struct iovec) * n_opts);
-
-    for (i = 0, iter = keys; *iter; iter++, i++) {
-        iovs[i].iov_base = (char*)keys[i];
-        iovs[i].iov_len = strlen (keys[i]);
-    }
-    g_assert(i == n_opts-1);
-    msgkey = g_strconcat ("MESSAGE=", message, NULL);
-    iovs[i].iov_base = msgkey;
-    iovs[i].iov_len = strlen (msgkey);
-
-    // The code location isn't useful since we're wrapping
-    sd_journal_sendv (iovs, n_opts);
-    g_free (msgkey);
-#else
-    g_print ("%s\n", message);
-#endif
-}
-
-/**
  * shell_global_notify_error:
  * @global: a #ShellGlobal
  * @msg: Error message
@@ -1226,34 +1176,6 @@ shell_global_notify_error (ShellGlobal  *global,
                            const char   *details)
 {
   g_signal_emit_by_name (global, "notify-error", msg, details);
-}
-
-/**
- * shell_global_init_xdnd:
- * @global: the #ShellGlobal
- *
- * Enables tracking of Xdnd events
- */
-void shell_global_init_xdnd (ShellGlobal *global)
-{
-  Window output_window = meta_get_overlay_window (global->meta_display);
-  long xdnd_version = 5;
-
-  XChangeProperty (global->xdisplay, global->stage_xwindow,
-                   gdk_x11_get_xatom_by_name ("XdndAware"), XA_ATOM,
-                   32, PropModeReplace, (const unsigned char *)&xdnd_version, 1);
-
-  XChangeProperty (global->xdisplay, output_window,
-                   gdk_x11_get_xatom_by_name ("XdndProxy"), XA_WINDOW,
-                   32, PropModeReplace, (const unsigned char *)&global->stage_xwindow, 1);
-
-  /*
-   * XdndProxy is additionally set on the proxy window as verification that the
-   * XdndProxy property on the target window isn't a left-over
-   */
-  XChangeProperty (global->xdisplay, global->stage_xwindow,
-                   gdk_x11_get_xatom_by_name ("XdndProxy"), XA_WINDOW,
-                   32, PropModeReplace, (const unsigned char *)&global->stage_xwindow, 1);
 }
 
 /**
@@ -1560,7 +1482,8 @@ delete_variant_cb (GObject      *object,
 
   if (!g_file_delete_finish (G_FILE (object), result, &error))
     {
-      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
+          !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
         {
           g_warning ("Could not delete runtime/persistent state file: %s\n",
                      error->message);
@@ -1730,4 +1653,10 @@ shell_global_get_persistent_state (ShellGlobal  *global,
                                    const char   *property_name)
 {
   return load_variant (global->userdatadir_path, property_type, property_name);
+}
+
+void
+_shell_global_locate_pointer (ShellGlobal *global)
+{
+  g_signal_emit (global, shell_global_signals[LOCATE_POINTER], 0);
 }

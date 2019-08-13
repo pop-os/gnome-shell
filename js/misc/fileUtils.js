@@ -1,4 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported collectFromDatadirs, deleteGFile, recursivelyDeleteDir,
+            recursivelyMoveDir, loadInterfaceXML */
 
 const { Gio, GLib } = imports.gi;
 const Config = imports.misc.config;
@@ -36,7 +38,7 @@ function recursivelyDeleteDir(dir, deleteParent) {
     let children = dir.enumerate_children('standard::name,standard::type',
                                           Gio.FileQueryInfoFlags.NONE, null);
 
-    let info, child;
+    let info;
     while ((info = children.next_file(null)) != null) {
         let type = info.get_file_type();
         let child = dir.get_child(info.get_name());
@@ -57,7 +59,7 @@ function recursivelyMoveDir(srcDir, destDir) {
     if (!destDir.query_exists(null))
         destDir.make_directory_with_parents(null);
 
-    let info, child;
+    let info;
     while ((info = children.next_file(null)) != null) {
         let type = info.get_file_type();
         let srcChild = srcDir.get_child(info.get_name());
@@ -84,13 +86,13 @@ function loadInterfaceXML(iface) {
     let f = Gio.File.new_for_uri(uri);
 
     try {
-        let [ok, bytes] = f.load_contents(null);
+        let [ok_, bytes] = f.load_contents(null);
         if (bytes instanceof Uint8Array)
-            xml = imports.byteArray.toString(bytes)
+            xml = imports.byteArray.toString(bytes);
         else
             xml = bytes.toString();
     } catch (e) {
-        log('Failed to load D-Bus interface ' + iface);
+        log(`Failed to load D-Bus interface ${iface}`);
     }
 
     return xml;

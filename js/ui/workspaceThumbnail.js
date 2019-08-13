@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported WorkspaceThumbnail, ThumbnailsBox */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -7,15 +8,14 @@ const Signals = imports.signals;
 const Background = imports.ui.background;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 const Workspace = imports.ui.workspace;
 const WorkspacesView = imports.ui.workspacesView;
 
 // The maximum size of a thumbnail is 1/10 the width and height of the screen
-let MAX_THUMBNAIL_SCALE = 1/10.;
+let MAX_THUMBNAIL_SCALE = 1 / 10.;
 
-var RESCALE_ANIMATION_TIME = 0.2;
-var SLIDE_ANIMATION_TIME = 0.2;
+var RESCALE_ANIMATION_TIME = 200;
+var SLIDE_ANIMATION_TIME = 200;
 
 // When we create workspaces by dragging, we add a "cut" into the top and
 // bottom of each workspace so that the user doesn't have to hit the
@@ -200,16 +200,16 @@ var WindowClone = class {
         return Clutter.EVENT_STOP;
     }
 
-    _onDragBegin(draggable, time) {
+    _onDragBegin(_draggable, _time) {
         this.inDrag = true;
         this.emit('drag-begin');
     }
 
-    _onDragCancelled(draggable, time) {
+    _onDragCancelled(_draggable, _time) {
         this.emit('drag-cancelled');
     }
 
-    _onDragEnd(draggable, time, snapback) {
+    _onDragEnd(_draggable, _time, _snapback) {
         this.inDrag = false;
 
         // We may not have a parent if DnD completed successfully, in
@@ -230,34 +230,47 @@ Signals.addSignalMethods(WindowClone.prototype);
 
 
 var ThumbnailState = {
-    NEW   :         0,
-    ANIMATING_IN :  1,
+    NEW:            0,
+    ANIMATING_IN:   1,
     NORMAL:         2,
-    REMOVING :      3,
-    ANIMATING_OUT : 4,
-    ANIMATED_OUT :  5,
-    COLLAPSING :    6,
-    DESTROYED :     7
+    REMOVING:       3,
+    ANIMATING_OUT:  4,
+    ANIMATED_OUT:   5,
+    COLLAPSING:     6,
+    DESTROYED:      7
 };
 
 /**
  * @metaWorkspace: a #Meta.Workspace
  */
-var WorkspaceThumbnail = class {
-    constructor(metaWorkspace) {
+var WorkspaceThumbnail = GObject.registerClass({
+    Properties: {
+        'collapse-fraction': GObject.ParamSpec.double(
+            'collapse-fraction', 'collapse-fraction', 'collapse-fraction',
+            GObject.ParamFlags.READWRITE,
+            0, 1, 0),
+        'slide-position': GObject.ParamSpec.double(
+            'slide-position', 'slide-position', 'slide-position',
+            GObject.ParamFlags.READWRITE,
+            0, 1, 0),
+    }
+}, class WorkspaceThumbnail extends St.Widget {
+    _init(metaWorkspace) {
+        super._init({
+            clip_to_allocation: true,
+            style_class: 'workspace-thumbnail'
+        });
+        this._delegate = this;
+
         this.metaWorkspace = metaWorkspace;
         this.monitorIndex = Main.layoutManager.primaryIndex;
 
         this._removed = false;
 
-        this.actor = new St.Widget({ clip_to_allocation: true,
-                                     style_class: 'workspace-thumbnail' });
-        this.actor._delegate = this;
-
         this._contents = new Clutter.Actor();
-        this.actor.add_child(this._contents);
+        this.add_child(this._contents);
 
-        this.actor.connect('destroy', this._onDestroy.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
 
         this._createBackground();
 
@@ -287,7 +300,7 @@ var WorkspaceThumbnail = class {
 
         // Track window changes
         this._windowAddedId = this.metaWorkspace.connect('window-added',
-                                                          this._windowAdded.bind(this));
+                                                         this._windowAdded.bind(this));
         this._windowRemovedId = this.metaWorkspace.connect('window-removed',
                                                            this._windowRemoved.bind(this));
         this._windowEnteredMonitorId = global.display.connect('window-entered-monitor',
@@ -307,7 +320,7 @@ var WorkspaceThumbnail = class {
     }
 
     setPorthole(x, y, width, height) {
-        this.actor.set_size(width, height);
+        this.set_size(width, height);
         this._contents.set_position(-x, -y);
     }
 
@@ -324,7 +337,6 @@ var WorkspaceThumbnail = class {
 
         for (let i = 0; i < this._windows.length; i++) {
             let clone = this._windows[i];
-            let metaWindow = clone.metaWindow;
             if (i == 0) {
                 clone.setStackAbove(this._bgManager.backgroundActor);
             } else {
@@ -334,21 +346,31 @@ var WorkspaceThumbnail = class {
         }
     }
 
-    set slidePosition(slidePosition) {
+    // eslint-disable-next-line camelcase
+    set slide_position(slidePosition) {
+        if (this._slidePosition == slidePosition)
+            return;
         this._slidePosition = slidePosition;
-        this.actor.queue_relayout();
+        this.notify('slide-position');
+        this.queue_relayout();
     }
 
-    get slidePosition() {
+    // eslint-disable-next-line camelcase
+    get slide_position() {
         return this._slidePosition;
     }
 
-    set collapseFraction(collapseFraction) {
+    // eslint-disable-next-line camelcase
+    set collapse_fraction(collapseFraction) {
+        if (this._collapseFraction == collapseFraction)
+            return;
         this._collapseFraction = collapseFraction;
-        this.actor.queue_relayout();
+        this.notify('collapse-fraction');
+        this.queue_relayout();
     }
 
-    get collapseFraction() {
+    // eslint-disable-next-line camelcase
+    get collapse_fraction() {
         return this._collapseFraction;
     }
 
@@ -378,7 +400,7 @@ var WorkspaceThumbnail = class {
             return;
         }
 
-        if (this._allWindows.indexOf(metaWin) == -1) {
+        if (!this._allWindows.includes(metaWin)) {
             let minimizedChangedId = metaWin.connect('notify::minimized',
                                                      this._updateMinimized.bind(this));
             this._allWindows.push(metaWin);
@@ -446,11 +468,6 @@ var WorkspaceThumbnail = class {
             this._doAddWindow(metaWin);
     }
 
-    destroy() {
-        if (this.actor)
-          this.actor.destroy();
-    }
-
     workspaceRemoved() {
         if (this._removed)
             return;
@@ -466,16 +483,15 @@ var WorkspaceThumbnail = class {
             this._allWindows[i].disconnect(this._minimizedChangedIds[i]);
     }
 
-    _onDestroy(actor) {
+    _onDestroy() {
         this.workspaceRemoved();
 
         if (this._bgManager) {
-          this._bgManager.destroy();
-          this._bgManager = null;
+            this._bgManager.destroy();
+            this._bgManager = null;
         }
 
         this._windows = [];
-        this.actor = null;
     }
 
     // Tests if @actor belongs to this workspace and monitor
@@ -590,19 +606,27 @@ var WorkspaceThumbnail = class {
 
         return false;
     }
-};
-Signals.addSignalMethods(WorkspaceThumbnail.prototype);
+});
 
 
-var ThumbnailsBox = GObject.registerClass(
-class ThumbnailsBox extends St.Widget {
+var ThumbnailsBox = GObject.registerClass({
+    Properties: {
+        'indicator-y': GObject.ParamSpec.double(
+            'indicator-y', 'indicator-y', 'indicator-y',
+            GObject.ParamFlags.READWRITE,
+            0, Infinity, 0),
+        'scale': GObject.ParamSpec.double(
+            'scale', 'scale', 'scale',
+            GObject.ParamFlags.READWRITE,
+            0, Infinity, 0)
+    }
+}, class ThumbnailsBox extends St.Widget {
     _init() {
         super._init({ reactive: true,
                       style_class: 'workspace-thumbnails',
                       request_mode: Clutter.RequestMode.WIDTH_FOR_HEIGHT });
 
-        this.actor = this;
-        this.actor._delegate = this;
+        this._delegate = this;
 
         let indicator = new St.Bin({ style_class: 'workspace-thumbnail-indicator' });
 
@@ -685,12 +709,12 @@ class ThumbnailsBox extends St.Widget {
     }
 
     _activateThumbnailAtPoint(stageX, stageY, time) {
-        let [r, x, y] = this.transform_stage_point(stageX, stageY);
+        let [r_, x_, y] = this.transform_stage_point(stageX, stageY);
 
         for (let i = 0; i < this._thumbnails.length; i++) {
-            let thumbnail = this._thumbnails[i]
-            let [w, h] = thumbnail.actor.get_transformed_size();
-            if (y >= thumbnail.actor.y && y <= thumbnail.actor.y + h) {
+            let thumbnail = this._thumbnails[i];
+            let [, h] = thumbnail.get_transformed_size();
+            if (y >= thumbnail.y && y <= thumbnail.y + h) {
                 thumbnail.activate(time);
                 break;
             }
@@ -770,17 +794,17 @@ class ThumbnailsBox extends St.Widget {
         if (this._dropPlaceholderPos == 0)
             targetBase = this._dropPlaceholder.y;
         else
-            targetBase = this._thumbnails[0].actor.y;
+            targetBase = this._thumbnails[0].y;
         let targetTop = targetBase - spacing - WORKSPACE_CUT_SIZE;
         let length = this._thumbnails.length;
         for (let i = 0; i < length; i ++) {
             // Allow the reorder target to have a 10px "cut" into
             // each side of the thumbnail, to make dragging onto the
             // placeholder easier
-            let [w, h] = this._thumbnails[i].actor.get_transformed_size();
+            let [, h] = this._thumbnails[i].get_transformed_size();
             let targetBottom = targetBase + WORKSPACE_CUT_SIZE;
             let nextTargetBase = targetBase + h + spacing;
-            let nextTargetTop =  nextTargetBase - spacing - ((i == length - 1) ? 0: WORKSPACE_CUT_SIZE);
+            let nextTargetTop =  nextTargetBase - spacing - ((i == length - 1) ? 0 : WORKSPACE_CUT_SIZE);
 
             // Expand the target to include the placeholder, if it exists.
             if (i == this._dropPlaceholderPos)
@@ -791,7 +815,7 @@ class ThumbnailsBox extends St.Widget {
                 break;
             } else if (y > targetBottom && y <= nextTargetTop) {
                 this._dropWorkspace = i;
-                break
+                break;
             }
 
             targetBase = nextTargetBase;
@@ -848,7 +872,7 @@ class ThumbnailsBox extends St.Widget {
             // an old one which just became empty)
             let thumbnail = this._thumbnails[newWorkspaceIndex];
             this._setThumbnailState(thumbnail, ThumbnailState.NEW);
-            thumbnail.slidePosition = 1;
+            thumbnail.slide_position = 1;
 
             this._queueUpdateStates();
 
@@ -867,6 +891,13 @@ class ThumbnailsBox extends St.Widget {
         this._nWorkspacesNotifyId =
             workspaceManager.connect('notify::n-workspaces',
                                      this._workspacesChanged.bind(this));
+        this._workspacesReorderedId =
+            workspaceManager.connect('workspaces-reordered', () => {
+                this._thumbnails.sort((a, b) => {
+                    return a.metaWorkspace.index() - b.metaWorkspace.index();
+                });
+                this.queue_relayout();
+            });
         this._syncStackingId =
             Main.overview.connect('windows-restacked',
                                   this._syncStacking.bind(this));
@@ -898,6 +929,11 @@ class ThumbnailsBox extends St.Widget {
             workspaceManager.disconnect(this._nWorkspacesNotifyId);
             this._nWorkspacesNotifyId = 0;
         }
+        if (this._workspacesReorderedId > 0) {
+            let workspaceManager = global.workspace_manager;
+            workspaceManager.disconnect(this._workspacesReorderedId);
+            this._workspacesReorderedId = 0;
+        }
 
         if (this._syncStackingId > 0) {
             Main.overview.disconnect(this._syncStackingId);
@@ -915,7 +951,6 @@ class ThumbnailsBox extends St.Widget {
         let workspaceManager = global.workspace_manager;
         let oldNumWorkspaces = validThumbnails.length;
         let newNumWorkspaces = workspaceManager.n_workspaces;
-        let active = workspaceManager.get_active_workspace_index();
 
         if (newNumWorkspaces > oldNumWorkspaces) {
             this.addThumbnails(oldNumWorkspaces, newNumWorkspaces - oldNumWorkspaces);
@@ -945,12 +980,12 @@ class ThumbnailsBox extends St.Widget {
             thumbnail.setPorthole(this._porthole.x, this._porthole.y,
                                   this._porthole.width, this._porthole.height);
             this._thumbnails.push(thumbnail);
-            this.add_actor(thumbnail.actor);
+            this.add_actor(thumbnail);
 
             if (start > 0 && this._spliceIndex == -1) {
                 // not the initial fill, and not splicing via DND
                 thumbnail.state = ThumbnailState.NEW;
-                thumbnail.slidePosition = 1; // start slid out
+                thumbnail.slide_position = 1; // start slid out
                 this._haveNewThumbnails = true;
             } else {
                 thumbnail.state = ThumbnailState.NORMAL;
@@ -993,7 +1028,11 @@ class ThumbnailsBox extends St.Widget {
     }
 
     set scale(scale) {
+        if (this._scale == scale)
+            return;
+
         this._scale = scale;
+        this.notify('scale');
         this.queue_relayout();
     }
 
@@ -1001,12 +1040,18 @@ class ThumbnailsBox extends St.Widget {
         return this._scale;
     }
 
-    set indicatorY(indicatorY) {
+    // eslint-disable-next-line camelcase
+    set indicator_y(indicatorY) {
+        if (this._indicatorY == indicatorY)
+            return;
+
         this._indicatorY = indicatorY;
+        this.notify('indicator-y');
         this.queue_relayout();
     }
 
-    get indicatorY() {
+    // eslint-disable-next-line camelcase
+    get indicator_y() {
         return this._indicatorY;
     }
 
@@ -1026,15 +1071,6 @@ class ThumbnailsBox extends St.Widget {
         }
     }
 
-    _tweenScale() {
-        Tweener.addTween(this,
-                         { scale: this._targetScale,
-                           time: RESCALE_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._queueUpdateStates,
-                           onCompleteScope: this });
-    }
-
     _updateStates() {
         this._stateUpdateQueued = false;
 
@@ -1046,15 +1082,14 @@ class ThumbnailsBox extends St.Widget {
         this._iterateStateThumbnails(ThumbnailState.REMOVING, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.ANIMATING_OUT);
 
-            Tweener.addTween(thumbnail,
-                             { slidePosition: 1,
-                               time: SLIDE_ANIMATION_TIME,
-                               transition: 'linear',
-                               onComplete: () => {
-                                   this._setThumbnailState(thumbnail, ThumbnailState.ANIMATED_OUT);
-                                   this._queueUpdateStates();
-                               }
-                             });
+            thumbnail.ease_property('slide-position', 1, {
+                duration: SLIDE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.LINEAR,
+                onComplete: () => {
+                    this._setThumbnailState(thumbnail, ThumbnailState.ANIMATED_OUT);
+                    this._queueUpdateStates();
+                }
+            });
         });
 
         // As long as things are sliding out, don't proceed
@@ -1064,25 +1099,28 @@ class ThumbnailsBox extends St.Widget {
         // Once that's complete, we can start scaling to the new size and collapse any removed thumbnails
         this._iterateStateThumbnails(ThumbnailState.ANIMATED_OUT, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.COLLAPSING);
-            Tweener.addTween(thumbnail,
-                             { collapseFraction: 1,
-                               time: RESCALE_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this._stateCounts[thumbnail.state]--;
-                                   thumbnail.state = ThumbnailState.DESTROYED;
+            thumbnail.ease_property('collapse-fraction', 1, {
+                duration: RESCALE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._stateCounts[thumbnail.state]--;
+                    thumbnail.state = ThumbnailState.DESTROYED;
 
-                                   let index = this._thumbnails.indexOf(thumbnail);
-                                   this._thumbnails.splice(index, 1);
-                                   thumbnail.destroy();
+                    let index = this._thumbnails.indexOf(thumbnail);
+                    this._thumbnails.splice(index, 1);
+                    thumbnail.destroy();
 
-                                   this._queueUpdateStates();
-                               }
-                             });
+                    this._queueUpdateStates();
+                }
+            });
         });
 
         if (this._pendingScaleUpdate) {
-            this._tweenScale();
+            this.ease_property('scale', this._targetScale, {
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                duration: RESCALE_ANIMATION_TIME,
+                onComplete: () => this._queueUpdateStates()
+            });
             this._pendingScaleUpdate = false;
         }
 
@@ -1093,14 +1131,13 @@ class ThumbnailsBox extends St.Widget {
         // And then slide in any new thumbnails
         this._iterateStateThumbnails(ThumbnailState.NEW, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.ANIMATING_IN);
-            Tweener.addTween(thumbnail,
-                             { slidePosition: 0,
-                               time: SLIDE_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this._setThumbnailState(thumbnail, ThumbnailState.NORMAL);
-                               }
-                             });
+            thumbnail.ease_property('slide-position', 0, {
+                duration: SLIDE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._setThumbnailState(thumbnail, ThumbnailState.NORMAL);
+                }
+            });
         });
     }
 
@@ -1114,7 +1151,7 @@ class ThumbnailsBox extends St.Widget {
         this._stateUpdateQueued = true;
     }
 
-    vfunc_get_preferred_height(forWidth) {
+    vfunc_get_preferred_height(_forWidth) {
         // Note that for getPreferredWidth/Height we cheat a bit and skip propagating
         // the size request to our children because we know how big they are and know
         // that the actors aren't depending on the virtual functions being called.
@@ -1235,21 +1272,21 @@ class ThumbnailsBox extends St.Widget {
             let thumbnail = this._thumbnails[i];
 
             if (i > 0)
-                y += spacing - Math.round(thumbnail.collapseFraction * spacing);
+                y += spacing - Math.round(thumbnail.collapse_fraction * spacing);
 
             let x1, x2;
             if (rtl) {
-                x1 = box.x1 + slideOffset * thumbnail.slidePosition;
+                x1 = box.x1 + slideOffset * thumbnail.slide_position;
                 x2 = x1 + thumbnailWidth;
             } else {
-                x1 = box.x2 - thumbnailWidth + slideOffset * thumbnail.slidePosition;
+                x1 = box.x2 - thumbnailWidth + slideOffset * thumbnail.slide_position;
                 x2 = x1 + thumbnailWidth;
             }
 
             if (i == this._dropPlaceholderPos) {
-                let [minHeight, placeholderHeight] = this._dropPlaceholder.get_preferred_height(-1);
+                let [, placeholderHeight] = this._dropPlaceholder.get_preferred_height(-1);
                 childBox.x1 = x1;
-                childBox.x2 = x1 + thumbnailWidth;
+                childBox.x2 = x2;
                 childBox.y1 = Math.round(y);
                 childBox.y2 = Math.round(y + placeholderHeight);
                 this._dropPlaceholder.allocate(childBox, flags);
@@ -1279,13 +1316,13 @@ class ThumbnailsBox extends St.Widget {
             childBox.y1 = y1;
             childBox.y2 = y1 + portholeHeight;
 
-            thumbnail.actor.set_scale(roundedHScale, roundedVScale);
-            thumbnail.actor.allocate(childBox, flags);
+            thumbnail.set_scale(roundedHScale, roundedVScale);
+            thumbnail.allocate(childBox, flags);
 
             // We round the collapsing portion so that we don't get thumbnails resizing
             // during an animation due to differences in rounded, but leave the uncollapsed
             // portion unrounded so that non-animating we end up with the right total
-            y += thumbnailHeight - Math.round(thumbnailHeight * thumbnail.collapseFraction);
+            y += thumbnailHeight - Math.round(thumbnailHeight * thumbnail.collapse_fraction);
         }
 
         if (rtl) {
@@ -1302,7 +1339,7 @@ class ThumbnailsBox extends St.Widget {
         this._indicator.allocate(childBox, flags);
     }
 
-    _activeWorkspaceChanged(wm, from, to, direction) {
+    _activeWorkspaceChanged(_wm, _from, _to, _direction) {
         let thumbnail;
         let workspaceManager = global.workspace_manager;
         let activeWorkspace = workspaceManager.get_active_workspace();
@@ -1316,16 +1353,14 @@ class ThumbnailsBox extends St.Widget {
         this._animatingIndicator = true;
         let indicatorThemeNode = this._indicator.get_theme_node();
         let indicatorTopFullBorder = indicatorThemeNode.get_padding(St.Side.TOP) + indicatorThemeNode.get_border_width(St.Side.TOP);
-        this.indicatorY = this._indicator.allocation.y1 + indicatorTopFullBorder;
-        Tweener.addTween(this,
-                         { indicatorY: thumbnail.actor.allocation.y1,
-                           time: WorkspacesView.WORKSPACE_SWITCH_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete() {
-                               this._animatingIndicator = false;
-                               this._queueUpdateStates();
-                           },
-                           onCompleteScope: this
-                         });
+        this.indicator_y = this._indicator.allocation.y1 + indicatorTopFullBorder;
+        this.ease_property('indicator-y', thumbnail.allocation.y1, {
+            progress_mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: WorkspacesView.WORKSPACE_SWITCH_TIME,
+            onComplete: () => {
+                this._animatingIndicator = false;
+                this._queueUpdateStates();
+            }
+        });
     }
 });

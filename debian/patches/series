@@ -1,5 +1,4 @@
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
-boxpointer-Unset-the-sourceActor-on-destruction.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch

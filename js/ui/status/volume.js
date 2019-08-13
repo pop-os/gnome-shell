@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Indicator */
 
 const { Clutter, Gio, Gvc, St } = imports.gi;
 const Signals = imports.signals;
@@ -9,8 +10,6 @@ const PopupMenu = imports.ui.popupMenu;
 const Slider = imports.ui.slider;
 
 const ALLOW_AMPLIFIED_VOLUME_KEY = 'allow-volume-above-100-percent';
-
-var VOLUME_NOTIFY_ID = 1;
 
 // Each Gvc.MixerControl is a connection to PulseAudio,
 // so it's better to make it a singleton
@@ -34,19 +33,19 @@ var StreamSlider = class {
         this._slider = new Slider.Slider(0);
 
         this._soundSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.sound' });
-        this._soundSettings.connect('changed::' + ALLOW_AMPLIFIED_VOLUME_KEY, this._amplifySettingsChanged.bind(this));
+        this._soundSettings.connect(`changed::${ALLOW_AMPLIFIED_VOLUME_KEY}`, this._amplifySettingsChanged.bind(this));
         this._amplifySettingsChanged();
 
-        this._slider.connect('value-changed', this._sliderChanged.bind(this));
+        this._slider.connect('notify::value', this._sliderChanged.bind(this));
         this._slider.connect('drag-end', this._notifyVolumeChange.bind(this));
 
         this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
-        this.item.actor.add(this._icon);
-        this.item.actor.add(this._slider.actor, { expand: true });
-        this.item.actor.connect('button-press-event', (actor, event) => {
+        this.item.add(this._icon);
+        this.item.add(this._slider, { expand: true });
+        this.item.connect('button-press-event', (actor, event) => {
             return this._slider.startDragging(event);
         });
-        this.item.actor.connect('key-press-event', (actor, event) => {
+        this.item.connect('key-press-event', (actor, event) => {
             return this._slider.onKeyPressEvent(actor, event);
         });
 
@@ -93,22 +92,18 @@ var StreamSlider = class {
 
     _updateVisibility() {
         let visible = this._shouldBeVisible();
-        this.item.actor.visible = visible;
+        this.item.visible = visible;
     }
 
     scroll(event) {
         return this._slider.scroll(event);
     }
 
-    setValue(value) {
-        // piggy-back off of sliderChanged
-        this._slider.setValue(value);
-    }
-
-    _sliderChanged(slider, value, property) {
+    _sliderChanged() {
         if (!this._stream)
             return;
 
+        let value = this._slider.value;
         let volume = value * this._control.get_vol_max_norm();
         let prevMuted = this._stream.is_muted;
         if (volume < 1) {
@@ -136,17 +131,16 @@ var StreamSlider = class {
 
     _updateVolume() {
         let muted = this._stream.is_muted;
-        this._slider.setValue(muted ? 0 : (this._stream.volume / this._control.get_vol_max_norm()));
+        this._slider.value = muted
+            ? 0 : (this._stream.volume / this._control.get_vol_max_norm());
         this.emit('stream-updated');
     }
 
     _amplifySettingsChanged() {
         this._allowAmplified = this._soundSettings.get_boolean(ALLOW_AMPLIFIED_VOLUME_KEY);
 
-        if (this._allowAmplified)
-            this._slider.setMaximumValue(this.getMaxLevel() / 100);
-        else
-            this._slider.setMaximumValue(1);
+        this._slider.maximum_value = this._allowAmplified
+            ? this.getMaxLevel() : 1;
 
         if (this._stream)
             this._updateVolume();
@@ -180,7 +174,7 @@ var StreamSlider = class {
         if (!this._stream)
             return null;
 
-        return 100 * this._stream.volume / this._control.get_vol_max_norm();
+        return this._stream.volume / this._control.get_vol_max_norm();
     }
 
     getMaxLevel() {
@@ -188,7 +182,7 @@ var StreamSlider = class {
         if (this._allowAmplified)
             maxVolume = this._control.get_vol_max_amplified();
 
-        return 100 * maxVolume / this._control.get_vol_max_norm();
+        return maxVolume / this._control.get_vol_max_norm();
     }
 };
 Signals.addSignalMethods(StreamSlider.prototype);
@@ -196,7 +190,7 @@ Signals.addSignalMethods(StreamSlider.prototype);
 var OutputStreamSlider = class extends StreamSlider {
     constructor(control) {
         super(control);
-        this._slider.actor.accessible_name = _("Volume");
+        this._slider.accessible_name = _("Volume");
     }
 
     _connectStream(stream) {
@@ -215,7 +209,7 @@ var OutputStreamSlider = class extends StreamSlider {
         // of different identifiers for headphones, and I could
         // not find the complete list
         if (sink.get_ports().length > 0)
-            return sink.get_port().port.indexOf('headphone') >= 0;
+            return sink.get_port().port.includes('headphone');
 
         return false;
     }
@@ -244,7 +238,7 @@ var OutputStreamSlider = class extends StreamSlider {
 var InputStreamSlider = class extends StreamSlider {
     constructor(control) {
         super(control);
-        this._slider.actor.accessible_name = _("Microphone");
+        this._slider.accessible_name = _("Microphone");
         this._control.connect('stream-added', this._maybeShowInput.bind(this));
         this._control.connect('stream-removed', this._maybeShowInput.bind(this));
         this._icon.icon_name = 'audio-input-microphone-symbolic';
@@ -348,7 +342,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         this._control = getMixerControl();
         this._volumeMenu = new VolumeMenu(this._control);
-        this._volumeMenu.connect('icon-changed', menu => {
+        this._volumeMenu.connect('icon-changed', () => {
             let icon = this._volumeMenu.getIcon();
 
             if (icon != null) {
@@ -370,8 +364,8 @@ var Indicator = class extends PanelMenu.SystemIndicator {
             return result;
 
         let gicon = new Gio.ThemedIcon({ name: this._volumeMenu.getIcon() });
-        let level = parseInt(this._volumeMenu.getLevel());
-        let maxLevel = parseInt(this._volumeMenu.getMaxLevel());
+        let level = this._volumeMenu.getLevel();
+        let maxLevel = this._volumeMenu.getMaxLevel();
         Main.osdWindowManager.show(-1, gicon, null, level, maxLevel);
         return result;
     }

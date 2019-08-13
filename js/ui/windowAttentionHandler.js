@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported WindowAttentionHandler */
 
 const Shell = imports.gi.Shell;
 
@@ -11,13 +12,13 @@ var WindowAttentionHandler = class {
         this._windowDemandsAttentionId = global.display.connect('window-demands-attention',
                                                                 this._onWindowDemandsAttention.bind(this));
         this._windowMarkedUrgentId = global.display.connect('window-marked-urgent',
-                                                                this._onWindowDemandsAttention.bind(this));
+                                                            this._onWindowDemandsAttention.bind(this));
     }
 
     _getTitleAndBanner(app, window) {
         let title = app.get_name();
         let banner = _("“%s” is ready").format(window.get_title());
-        return [title, banner]
+        return [title, banner];
     }
 
     _onWindowDemandsAttention(display, window) {
@@ -66,11 +67,9 @@ var Source = class WindowAttentionSource extends MessageTray.Source {
         this.signalIDs.push(this._window.connect('notify::urgent',
                                                  this._sync.bind(this)));
         this.signalIDs.push(this._window.connect('focus',
-                                                 () => { this.destroy(); }));
+                                                 () => this.destroy()));
         this.signalIDs.push(this._window.connect('unmanaged',
-                                                 () => { this.destroy(); }));
-
-        this.connect('destroy', this._onDestroy.bind(this));
+                                                 () => this.destroy()));
     }
 
     _sync() {
@@ -79,16 +78,9 @@ var Source = class WindowAttentionSource extends MessageTray.Source {
         this.destroy();
     }
 
-    _onDestroy() {
-        for(let i = 0; i < this.signalIDs.length; i++) {
-           this._window.disconnect(this.signalIDs[i]);
-        }
-        this.signalIDs = [];
-    }
-
     _createPolicy() {
         if (this._app && this._app.get_app_info()) {
-            let id = this._app.get_id().replace(/\.desktop$/,'');
+            let id = this._app.get_id().replace(/\.desktop$/, '');
             return new MessageTray.NotificationApplicationPolicy(id);
         } else {
             return new MessageTray.NotificationGenericPolicy();
@@ -97,6 +89,14 @@ var Source = class WindowAttentionSource extends MessageTray.Source {
 
     createIcon(size) {
         return this._app.create_icon_texture(size);
+    }
+
+    destroy(params) {
+        for (let i = 0; i < this.signalIDs.length; i++)
+            this._window.disconnect(this.signalIDs[i]);
+        this.signalIDs = [];
+
+        super.destroy(params);
     }
 
     open() {

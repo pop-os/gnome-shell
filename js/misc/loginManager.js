@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported canLock, getLoginManager, registerSessionWithGDM */
 
 const { GLib, Gio } = imports.gi;
 const Signals = imports.signals;
@@ -43,9 +44,31 @@ function canLock() {
 
         let version = result.deep_unpack()[0].deep_unpack();
         return haveSystemd() && versionCompare('3.5.91', version);
-    } catch(e) {
+    } catch (e) {
         return false;
     }
+}
+
+
+function registerSessionWithGDM() {
+    log("Registering session with GDM");
+    Gio.DBus.system.call('org.gnome.DisplayManager',
+                         '/org/gnome/DisplayManager/Manager',
+                         'org.gnome.DisplayManager.Manager',
+                         'RegisterSession',
+                         GLib.Variant.new('(a{sv})', [{}]), null,
+                         Gio.DBusCallFlags.NONE, -1, null,
+        (source, result) => {
+            try {
+                source.call_finish(result);
+            } catch (e) {
+                if (!e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+                    log(`Error registering session with GDM: ${e.message}`);
+                else
+                    log("Not calling RegisterSession(): method not exported, GDM too old?");
+            }
+        }
+    );
 }
 
 let _loginManager = null;
@@ -87,7 +110,7 @@ var LoginManagerSystemd = class {
         let sessionId = GLib.getenv('XDG_SESSION_ID');
         if (!sessionId) {
             log('Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.');
-            let [session, objectPath] = this._userProxy.Display;
+            let [session, objectPath_] = this._userProxy.Display;
             if (session) {
                 log(`Will monitor session ${session}`);
                 sessionId = session;
@@ -160,10 +183,10 @@ var LoginManagerSystemd = class {
             (proxy, result) => {
                 let fd = -1;
                 try {
-                    let [outVariant, fdList] = proxy.call_with_unix_fd_list_finish(result);
+                    let [outVariant_, fdList] = proxy.call_with_unix_fd_list_finish(result);
                     fd = fdList.steal_fds()[0];
                     callback(new Gio.UnixInputStream({ fd: fd }));
-                } catch(e) {
+                } catch (e) {
                     logError(e, "Error getting systemd inhibitor");
                     callback(null);
                 }
@@ -177,7 +200,7 @@ var LoginManagerSystemd = class {
 Signals.addSignalMethods(LoginManagerSystemd.prototype);
 
 var LoginManagerDummy = class {
-    getCurrentSessionProxy(callback) {
+    getCurrentSessionProxy(_callback) {
         // we could return a DummySession object that fakes whatever callers
         // expect (at the time of writing: connect() and connectSignal()
         // methods), but just never calling the callback should be safer

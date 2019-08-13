@@ -20,7 +20,7 @@
  * In order for transformation animations to look good, they need to be
  * incremental and have some order to them (e.g., fade out hidden items,
  * then shrink to close the void left over). Chaining animations in this way can
- * be error-prone and wordy using just Tweener callbacks.
+ * be error-prone and wordy using just ease() callbacks.
  *
  * The classes in this file help with this:
  *
@@ -44,6 +44,7 @@
  * replaced by something else.
  */
 
+const { GObject } = imports.gi;
 const Signals = imports.signals;
 
 var Task = class {
@@ -124,7 +125,7 @@ var Batch = class extends Task {
     }
 
     process() {
-        throw new Error('Not implemented');
+        throw new GObject.NotImplementedError(`process in ${this.constructor.name}`);
     }
 
     runTask() {
@@ -176,36 +177,36 @@ Signals.addSignalMethods(Batch.prototype);
 
 var ConcurrentBatch = class extends Batch {
     process() {
-       let hold = this.runTask();
+        let hold = this.runTask();
 
-       if (hold) {
-           this.hold.acquireUntilAfter(hold);
-       }
+        if (hold) {
+            this.hold.acquireUntilAfter(hold);
+        }
 
-       // Regardless of the state of the just run task,
-       // fire off the next one, so all the tasks can run
-       // concurrently.
-       this.nextTask();
+        // Regardless of the state of the just run task,
+        // fire off the next one, so all the tasks can run
+        // concurrently.
+        this.nextTask();
     }
 };
 Signals.addSignalMethods(ConcurrentBatch.prototype);
 
 var ConsecutiveBatch = class extends Batch {
     process() {
-       let hold = this.runTask();
+        let hold = this.runTask();
 
-       if (hold && hold.isAcquired()) {
-           // This task is inhibiting the batch. Wait on it
-           // before processing the next one.
-           let signalId = hold.connect('release', () => {
-               hold.disconnect(signalId);
-               this.nextTask();
-           });
-           return;
-       } else {
-           // This task finished, process the next one
-           this.nextTask();
-       }
+        if (hold && hold.isAcquired()) {
+            // This task is inhibiting the batch. Wait on it
+            // before processing the next one.
+            let signalId = hold.connect('release', () => {
+                hold.disconnect(signalId);
+                this.nextTask();
+            });
+            return;
+        } else {
+            // This task finished, process the next one
+            this.nextTask();
+        }
     }
 };
 Signals.addSignalMethods(ConsecutiveBatch.prototype);

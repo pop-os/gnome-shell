@@ -1,12 +1,17 @@
 project('gnome-shell', 'c',
-  version: '3.32.2',
+  version: '3.33.90',
   meson_version: '>= 0.47.0',
   license: 'GPLv2+'
 )
 
+split_version = meson.project_version().split('.')
+
 # We depend on a specific version of the libmutter API. The mutter variants of
 # the Cogl and Clutter libraries also use this API version.
-mutter_api_version = '4'
+# The API version is increased automatically each development cycle,
+# starting with 0 in 3.23.x
+api_version = (split_version[1].to_int() - 23) / 2
+mutter_api_version = '@0@'.format(api_version)
 
 clutter_pc = 'mutter-clutter-' + mutter_api_version
 cogl_pc = 'mutter-cogl-' + mutter_api_version
@@ -14,18 +19,16 @@ cogl_pango_pc = 'mutter-cogl-pango-' + mutter_api_version
 libmutter_pc = 'libmutter-' + mutter_api_version
 
 croco_req = '>= 0.6.8'
-ecal_req = '>= 3.5.3'
+ecal_req = '>= 3.33.1'
 eds_req = '>= 3.17.2'
 gcr_req = '>= 3.7.5'
-gdesktop_req = '>= 3.7.90'
 gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
-gjs_req = '>= 1.54.0'
+gjs_req = '>= 1.57.3'
 gtk_req = '>= 3.15.0'
-json_glib_req = '>= 0.13.2'
-mutter_req = '>= 3.32.0'
+mutter_req = '>= 3.33.90'
 polkit_req = '>= 0.100'
-schemas_req = '>= 3.27.90'
+schemas_req = '>= 3.33.1'
 startup_req = '>= 0.11'
 ibus_req = '>= 1.5.2'
 
@@ -73,7 +76,7 @@ else
 endif
 
 atk_bridge_dep = dependency('atk-bridge-2.0')
-ecal_dep = dependency('libecal-1.2', version: ecal_req)
+ecal_dep = dependency('libecal-2.0', version: ecal_req)
 eds_dep = dependency('libedataserver-1.2', version: eds_req)
 gcr_dep = dependency('gcr-base-3', version: gcr_req)
 gdk_x11_dep = dependency('gdk-x11-3.0')
@@ -167,6 +170,58 @@ cdata.set('HAVE_FDWALK',
           cc.has_function('fdwalk')
 )
 
+buildtype = get_option('buildtype')
+if buildtype != 'plain'
+  all_warnings = [
+    '-fno-strict-aliasing',
+    '-Wpointer-arith',
+    '-Wmissing-declarations',
+    '-Wimplicit-function-declaration',
+    '-Wformat=2',
+    '-Wformat-nonliteral',
+    '-Wformat-security',
+    '-Wstrict-prototypes',
+    '-Wmissing-prototypes',
+    '-Wnested-externs',
+    '-Wold-style-definition',
+    '-Wundef',
+    '-Wunused',
+    '-Wcast-align',
+    '-Wmissing-noreturn',
+    '-Wmissing-format-attribute',
+    '-Wmissing-include-dirs',
+    '-Wlogical-op',
+    '-Wignored-qualifiers',
+    '-Werror=redundant-decls',
+    '-Werror=implicit',
+    '-Werror=nonnull',
+    '-Werror=init-self',
+    '-Werror=main',
+    '-Werror=missing-braces',
+    '-Werror=sequence-point',
+    '-Werror=return-type',
+    '-Werror=trigraphs',
+    '-Werror=array-bounds',
+    '-Werror=write-strings',
+    '-Werror=address',
+    '-Werror=int-to-pointer-cast',
+    '-Werror=pointer-to-int-cast',
+    '-Werror=empty-body',
+    '-Werror=write-strings',
+  ]
+  supported_warnings = cc.get_supported_arguments(all_warnings)
+  add_project_arguments(supported_warnings, language: 'c')
+endif
+
+if get_option('debug')
+  debug_c_args = [
+    '-DG_ENABLE_DEBUG',
+    '-fno-omit-frame-pointer'
+  ]
+  supported_debug_c_args = cc.get_supported_arguments(debug_c_args)
+  add_project_arguments(supported_debug_c_args, language: 'c')
+endif
+
 config_h = configure_file(
   input: 'config.h.meson',
   output: 'config.h',
@@ -187,6 +242,8 @@ libgvc = subproject('gvc',
   ]
 )
 libgvc_gir = libgvc.get_variable('libgvc_gir')
+
+po_dir = join_paths(meson.current_source_dir(), 'po')
 
 subdir('js')
 subdir('src')

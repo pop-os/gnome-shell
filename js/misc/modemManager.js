@@ -26,33 +26,33 @@ function _getMobileProvidersDatabase() {
 }
 
 // _findProviderForMccMnc:
-// @operator_name: operator name
-// @operator_code: operator code
+// @operatorName: operator name
+// @operatorCode: operator code
 //
 // Given an operator name string (which may not be a real operator name) and an
 // operator code string, tries to find a proper operator name to display.
 //
-function _findProviderForMccMnc(operator_name, operator_code) {
-    if (operator_name) {
-        if (operator_name.length != 0 &&
-            (operator_name.length > 6 || operator_name.length < 5)) {
+function _findProviderForMccMnc(operatorName, operatorCode) {
+    if (operatorName) {
+        if (operatorName.length != 0 &&
+            (operatorName.length > 6 || operatorName.length < 5)) {
             // this looks like a valid name, i.e. not an MCCMNC (that some
             // devices return when not yet connected
-            return operator_name;
+            return operatorName;
         }
 
-        if (isNaN(parseInt(operator_name))) {
+        if (isNaN(parseInt(operatorName))) {
             // name is definitely not a MCCMNC, so it may be a name
             // after all; return that
-            return operator_name;
+            return operatorName;
         }
     }
 
     let needle;
-    if ((!operator_name || operator_name.length == 0) && operator_code)
-        needle = operator_code;
-    else if (operator_name && (operator_name.length == 6 || operator_name.length == 5))
-        needle = operator_name;
+    if ((!operatorName || operatorName.length == 0) && operatorCode)
+        needle = operatorCode;
+    else if (operatorName && (operatorName.length == 6 || operatorName.length == 5))
+        needle = operatorName;
     else // nothing to search
         return null;
 
@@ -71,7 +71,7 @@ function _findProviderForMccMnc(operator_name, operator_code) {
 // Tries to find the operator name corresponding to the given SID
 //
 function _findProviderForSid(sid) {
-    if (sid == 0)
+    if (!sid)
         return null;
 
     let mpd = _getMobileProvidersDatabase();
@@ -110,7 +110,7 @@ var ModemGsm = class {
             this.signal_quality = quality;
             this.emit('notify::signal-quality');
         });
-        this._proxy.connectSignal('RegistrationInfo', (proxy, sender, [status, code, name]) => {
+        this._proxy.connectSignal('RegistrationInfo', (proxy, sender, [_status, code, name]) => {
             this.operator_name = _findProviderForMccMnc(name, code);
             this.emit('notify::operator-name');
         });
@@ -120,7 +120,7 @@ var ModemGsm = class {
                 return;
             }
 
-            let [status, code, name] = result;
+            let [status_, code, name] = result;
             this.operator_name = _findProviderForMccMnc(name, code);
             this.emit('notify::operator-name');
         });
@@ -171,9 +171,9 @@ var ModemCdma = class {
                 // it will return an error if the device is not connected
                 this.operator_name = null;
             } else {
-                let [bandClass, band, sid] = result;
+                let [bandClass_, band_, sid] = result;
 
-                this.operator_name = _findProviderForSid(sid)
+                this.operator_name = _findProviderForSid(sid);
             }
             this.emit('notify::operator-name');
         });
@@ -224,23 +224,23 @@ var BroadbandModem = class {
     }
 
     _reloadSignalQuality() {
-        let [quality, recent] = this._proxy.SignalQuality;
+        let [quality, recent_] = this._proxy.SignalQuality;
         this.signal_quality = quality;
         this.emit('notify::signal-quality');
     }
 
     _reloadOperatorName() {
-        let new_name = "";
+        let newName = "";
         if (this.operator_name_3gpp && this.operator_name_3gpp.length > 0)
-            new_name += this.operator_name_3gpp;
+            newName += this.operator_name_3gpp;
 
         if (this.operator_name_cdma && this.operator_name_cdma.length > 0) {
-            if (new_name != "")
-                new_name += ", ";
-            new_name += this.operator_name_cdma;
+            if (newName != "")
+                newName += ", ";
+            newName += this.operator_name_cdma;
         }
 
-        this.operator_name = new_name;
+        this.operator_name = newName;
         this.emit('notify::operator-name');
     }
 

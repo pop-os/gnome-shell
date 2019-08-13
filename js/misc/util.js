@@ -1,15 +1,16 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported findUrls, spawn, spawnCommandLine, spawnApp, trySpawnCommandLine,
+            formatTime, formatTimeSpan, createTimeLabel, insertSorted,
+            makeCloseButton, ensureActorVisibleInScrollView */
 
 const { Clutter, Gio, GLib, GObject, Shell, St } = imports.gi;
 const Gettext = imports.gettext;
 const Mainloop = imports.mainloop;
-const Signals = imports.signals;
 
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 const Params = imports.misc.params;
 
-var SCROLL_TIME = 0.1;
+var SCROLL_TIME = 100;
 
 // http://daringfireball.net/2010/07/improved_regex_for_matching_urls
 const _balancedParens = '\\([^\\s()<>]+\\)';
@@ -17,7 +18,7 @@ const _leadingJunk = '[\\s`(\\[{\'\\"<\u00AB\u201C\u2018]';
 const _notTrailingJunk = '[^\\s`!()\\[\\]{};:\'\\".,<>?\u00AB\u00BB\u201C\u201D\u2018\u2019]';
 
 const _urlRegexp = new RegExp(
-    '(^|' + _leadingJunk + ')' +
+    `(^|${_leadingJunk})` +
     '(' +
         '(?:' +
             '(?:http|https|ftp)://' +             // scheme://
@@ -29,12 +30,12 @@ const _urlRegexp = new RegExp(
         '(?:' +                                   // one or more:
             '[^\\s()<>]+' +                       // run of non-space non-()
             '|' +                                 // or
-            _balancedParens +                     // balanced parens
+            `${_balancedParens}` +                // balanced parens
         ')+' +
         '(?:' +                                   // end with:
-            _balancedParens +                     // balanced parens
+            `${_balancedParens}` +                // balanced parens
             '|' +                                 // or
-            _notTrailingJunk +                    // last non-junk char
+            `${_notTrailingJunk}` +               // last non-junk char
         ')' +
     ')', 'gi');
 
@@ -69,16 +70,16 @@ function spawn(argv) {
 }
 
 // spawnCommandLine:
-// @command_line: a command line
+// @commandLine: a command line
 //
-// Runs @command_line in the background, handling any errors that
+// Runs @commandLine in the background, handling any errors that
 // occur when trying to parse or start the program.
-function spawnCommandLine(command_line) {
+function spawnCommandLine(commandLine) {
     try {
-        let [success, argv] = GLib.shell_parse_argv(command_line);
+        let [success_, argv] = GLib.shell_parse_argv(commandLine);
         trySpawn(argv);
     } catch (err) {
-        _handleSpawnError(command_line, err);
+        _handleSpawnError(commandLine, err);
     }
 }
 
@@ -93,7 +94,7 @@ function spawnApp(argv) {
 
         let context = global.create_app_launch_context(0, -1);
         app.launch([], context);
-    } catch(err) {
+    } catch (err) {
         _handleSpawnError(argv[0], err);
     }
 }
@@ -103,13 +104,12 @@ function spawnApp(argv) {
 //
 // Runs @argv in the background. If launching @argv fails,
 // this will throw an error.
-function trySpawn(argv)
-{
-    var success, pid;
+function trySpawn(argv) {
+    var success_, pid;
     try {
-        [success, pid] = GLib.spawn_async(null, argv, null,
-                                          GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-                                          null);
+        [success_, pid] = GLib.spawn_async(null, argv, null,
+                                           GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+                                           null);
     } catch (err) {
         /* Rewrite the error in case of ENOENT */
         if (err.matches(GLib.SpawnError, GLib.SpawnError.NOENT)) {
@@ -135,19 +135,19 @@ function trySpawn(argv)
 }
 
 // trySpawnCommandLine:
-// @command_line: a command line
+// @commandLine: a command line
 //
-// Runs @command_line in the background. If launching @command_line
+// Runs @commandLine in the background. If launching @commandLine
 // fails, this will throw an error.
-function trySpawnCommandLine(command_line) {
-    let success, argv;
+function trySpawnCommandLine(commandLine) {
+    let success_, argv;
 
     try {
-        [success, argv] = GLib.shell_parse_argv(command_line);
+        [success_, argv] = GLib.shell_parse_argv(commandLine);
     } catch (err) {
         // Replace "Error invoking GLib.shell_parse_argv: " with
         // something nicer
-        err.message = err.message.replace(/[^:]*: /, _("Could not parse command:") + "\n");
+        err.message = err.message.replace(/[^:]*: /, `${_("Could not parse command:")}\n`);
         throw err;
     }
 
@@ -222,7 +222,7 @@ function formatTime(time, params) {
             /* Translators: Time in 24h format */
             format = N_("%H\u2236%M");
         // Show the word "Yesterday" and time if date is on yesterday
-        else if (daysAgo <2)
+        else if (daysAgo < 2)
             /* Translators: this is the word "Yesterday" followed by a
              time string in 24h format. i.e. "Yesterday, 14:30" */
             // xgettext:no-c-format
@@ -251,7 +251,7 @@ function formatTime(time, params) {
             /* Translators: Time in 12h format */
             format = N_("%l\u2236%M %p");
         // Show the word "Yesterday" and time if date is on yesterday
-        else if (daysAgo <2)
+        else if (daysAgo < 2)
             /* Translators: this is the word "Yesterday" followed by a
              time string in 12h format. i.e. "Yesterday, 2:30 pm" */
             // xgettext:no-c-format
@@ -289,7 +289,7 @@ function createTimeLabel(date, params) {
     let id = _desktopSettings.connect('changed::clock-format', () => {
         label.text = formatTime(date, params);
     });
-    label.connect('destroy', () => { _desktopSettings.disconnect(id); });
+    label.connect('destroy', () => _desktopSettings.disconnect(id));
     return label;
 }
 
@@ -346,7 +346,7 @@ function insertSorted(array, val, cmp) {
 var CloseButton = GObject.registerClass(
 class CloseButton extends St.Button {
     _init(boxpointer) {
-        super._init({ style_class: 'notification-close'});
+        super._init({ style_class: 'notification-close' });
 
         // This is a bit tricky. St.Bin has its own x-align/y-align properties
         // that compete with Clutter's properties. This should be fixed for
@@ -366,7 +366,7 @@ class CloseButton extends St.Button {
     }
 
     _computeBoxPointerOffset() {
-        if (!this._boxPointer || !this._boxPointer.actor.get_stage())
+        if (!this._boxPointer || !this._boxPointer.get_stage())
             return 0;
 
         let side = this._boxPointer.arrowSide;
@@ -380,7 +380,7 @@ class CloseButton extends St.Button {
         let themeNode = this.get_theme_node();
 
         let offY = this._computeBoxPointerOffset();
-        this.translation_x = themeNode.get_length('-shell-close-overlap-x')
+        this.translation_x = themeNode.get_length('-shell-close-overlap-x');
         this.translation_y = themeNode.get_length('-shell-close-overlap-y') + offY;
     }
 
@@ -396,7 +396,7 @@ function makeCloseButton(boxpointer) {
 
 function ensureActorVisibleInScrollView(scrollView, actor) {
     let adjustment = scrollView.vscroll.adjustment;
-    let [value, lower, upper, stepIncrement, pageIncrement, pageSize] = adjustment.get_values();
+    let [value, lower_, upper, stepIncrement_, pageIncrement_, pageSize] = adjustment.get_values();
 
     let offset = 0;
     let vfade = scrollView.get_effect("fade");
@@ -424,97 +424,8 @@ function ensureActorVisibleInScrollView(scrollView, actor) {
     else
         return;
 
-    Tweener.addTween(adjustment,
-                     { value: value,
-                       time: SCROLL_TIME,
-                       transition: 'easeOutQuad' });
+    adjustment.ease(value, {
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        duration: SCROLL_TIME
+    });
 }
-
-var AppSettingsMonitor = class {
-    constructor(appId, schemaId) {
-        this._appId = appId;
-        this._schemaId = schemaId;
-
-        this._app = null;
-        this._settings = null;
-        this._handlers = [];
-
-        this._schemaSource = Gio.SettingsSchemaSource.get_default();
-
-        this._appSystem = Shell.AppSystem.get_default();
-        this._appSystem.connect('installed-changed',
-                                this._onInstalledChanged.bind(this));
-        this._onInstalledChanged();
-    }
-
-    get available() {
-        return this._app != null && this._settings != null;
-    }
-
-    activateApp() {
-        if (this._app)
-            this._app.activate();
-    }
-
-    watchSetting(key, callback) {
-        let handler = { id: 0, key: key, callback: callback };
-        this._handlers.push(handler);
-
-        this._connectHandler(handler);
-    }
-
-    _connectHandler(handler) {
-        if (!this._settings || handler.id > 0)
-            return;
-
-        handler.id = this._settings.connect('changed::' + handler.key,
-                                            handler.callback);
-        handler.callback(this._settings, handler.key);
-    }
-
-    _disconnectHandler(handler) {
-        if (this._settings && handler.id > 0)
-            this._settings.disconnect(handler.id);
-        handler.id = 0;
-    }
-
-    _onInstalledChanged() {
-        let hadApp = (this._app != null);
-        this._app = this._appSystem.lookup_app(this._appId);
-        let haveApp = (this._app != null);
-
-        if (hadApp == haveApp)
-            return;
-
-        if (haveApp)
-            this._checkSettings();
-        else
-            this._setSettings(null);
-    }
-
-    _setSettings(settings) {
-        this._handlers.forEach((handler) => { this._disconnectHandler(handler); });
-
-        let hadSettings = (this._settings != null);
-        this._settings = settings;
-        let haveSettings = (this._settings != null);
-
-        this._handlers.forEach((handler) => { this._connectHandler(handler); });
-
-        if (hadSettings != haveSettings)
-            this.emit('available-changed');
-    }
-
-    _checkSettings() {
-        let schema = this._schemaSource.lookup(this._schemaId, true);
-        if (schema) {
-            this._setSettings(new Gio.Settings({ settings_schema: schema }));
-        } else if (this._app) {
-            Mainloop.timeout_add_seconds(1, () => {
-                this._checkSettings();
-                return GLib.SOURCE_REMOVE;
-            });
-        }
-    }
-};
-Signals.addSignalMethods(AppSettingsMonitor.prototype);

@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Panel */
 
 const { Atk, Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Cairo = imports.cairo;
@@ -12,14 +13,11 @@ const Overview = imports.ui.overview;
 const PopupMenu = imports.ui.popupMenu;
 const PanelMenu = imports.ui.panelMenu;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
 var PANEL_ICON_SIZE = 16;
 var APP_MENU_ICON_MARGIN = 0;
 
 var BUTTON_DND_ACTIVATION_TIMEOUT = 250;
-
-var SPINNER_ANIMATION_TIME = 1.0;
 
 // To make sure the panel corners blend nicely with the panel,
 // we draw background and borders the same way, e.g. drawing
@@ -51,7 +49,7 @@ function _premultiply(color) {
                                green: _norm(color.green * color.alpha),
                                blue: _norm(color.blue * color.alpha),
                                alpha: color.alpha });
-};
+}
 
 function _unpremultiply(color) {
     if (color.alpha == 0)
@@ -62,11 +60,11 @@ function _unpremultiply(color) {
     let blue = Math.min((color.blue * 255 + 127) / color.alpha, 255);
     return new Clutter.Color({ red: red, green: green,
                                blue: blue, alpha: color.alpha });
-};
+}
 
 class AppMenu extends PopupMenu.PopupMenu {
     constructor(sourceActor) {
-        super(sourceActor, 0.0, St.Side.TOP);
+        super(sourceActor, 0.5, St.Side.TOP);
 
         this.actor.add_style_class_name('app-menu');
 
@@ -74,6 +72,9 @@ class AppMenu extends PopupMenu.PopupMenu {
         this._appSystem = Shell.AppSystem.get_default();
 
         this._windowsChangedId = 0;
+
+        /* Translators: This is the heading of a list of open windows */
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_("Open Windows")));
 
         this._windowSection = new PopupMenu.PopupMenuSection();
         this.addMenuItem(this._windowSection);
@@ -105,6 +106,8 @@ class AppMenu extends PopupMenu.PopupMenu {
             });
         });
 
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
         this.addAction(_("Quit"), () => {
             this._app.request_quit();
         });
@@ -117,7 +120,7 @@ class AppMenu extends PopupMenu.PopupMenu {
 
     _updateDetailsVisibility() {
         let sw = this._appSystem.lookup_app('org.gnome.Software.desktop');
-        this._detailsItem.actor.visible = (sw != null);
+        this._detailsItem.visible = (sw != null);
     }
 
     isEmpty() {
@@ -155,7 +158,7 @@ class AppMenu extends PopupMenu.PopupMenu {
             });
         });
 
-        this._newWindowItem.actor.visible =
+        this._newWindowItem.visible =
             app && app.can_open_new_window() && !actions.includes('new-window');
     }
 
@@ -172,13 +175,6 @@ class AppMenu extends PopupMenu.PopupMenu {
                 Main.activateWindow(window, event.get_time());
             });
         });
-
-        // Add separator between windows of the current desktop and other windows.
-        let workspaceManager = global.workspace_manager;
-        let activeWorkspace = workspaceManager.get_active_workspace();
-        let pos = windows.findIndex(w => w.get_workspace() != activeWorkspace);
-        if (pos >= 0)
-            this._windowSection.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(), pos);
     }
 }
 
@@ -191,12 +187,12 @@ class AppMenu extends PopupMenu.PopupMenu {
  * have an active startup notification, we switch modes to display that.
  */
 var AppMenuButton = GObject.registerClass({
-    Signals: {'changed': {}},
+    Signals: { 'changed': {} },
 }, class AppMenuButton extends PanelMenu.Button {
     _init(panel) {
         super._init(0.0, null, true);
 
-        this.actor.accessible_role = Atk.Role.MENU;
+        this.accessible_role = Atk.Role.MENU;
 
         this._startingApps = [];
 
@@ -205,11 +201,10 @@ var AppMenuButton = GObject.registerClass({
         this._busyNotifyId = 0;
 
         let bin = new St.Bin({ name: 'appMenu' });
-        bin.connect('style-changed', this._onStyleChanged.bind(this));
-        this.actor.add_actor(bin);
+        this.add_actor(bin);
 
-        this.actor.bind_property("reactive", this.actor, "can-focus", 0);
-        this.actor.reactive = false;
+        this.bind_property("reactive", this, "can-focus", 0);
+        this.reactive = false;
 
         this._container = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         bin.set_child(this._container);
@@ -240,9 +235,8 @@ var AppMenuButton = GObject.registerClass({
         this._overviewHidingId = Main.overview.connect('hiding', this._sync.bind(this));
         this._overviewShowingId = Main.overview.connect('showing', this._sync.bind(this));
 
-        this._stop = true;
-
-        this._spinner = null;
+        this._spinner = new Animation.Spinner(PANEL_ICON_SIZE, true);
+        this._container.add_actor(this._spinner.actor);
 
         let menu = new AppMenu(this);
         this.setMenu(menu);
@@ -265,13 +259,14 @@ var AppMenuButton = GObject.registerClass({
             return;
 
         this._visible = true;
-        this.actor.reactive = true;
+        this.reactive = true;
         this.show();
-        Tweener.removeTweens(this.actor);
-        Tweener.addTween(this.actor,
-                         { opacity: 255,
-                           time: Overview.ANIMATION_TIME,
-                           transition: 'easeOutQuad' });
+        this.remove_all_transitions();
+        this.ease({
+            opacity: 255,
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     fadeOut() {
@@ -279,27 +274,14 @@ var AppMenuButton = GObject.registerClass({
             return;
 
         this._visible = false;
-        this.actor.reactive = false;
-        Tweener.removeTweens(this.actor);
-        Tweener.addTween(this.actor,
-                         { opacity: 0,
-                           time: Overview.ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete() {
-                               this.hide();
-                           },
-                           onCompleteScope: this });
-    }
-
-    _onStyleChanged(actor) {
-        let node = actor.get_theme_node();
-        let [success, icon] = node.lookup_url('spinner-image', false);
-        if (!success || (this._spinnerIcon && this._spinnerIcon.equal(icon)))
-            return;
-        this._spinnerIcon = icon;
-        this._spinner = new Animation.AnimatedIcon(this._spinnerIcon, PANEL_ICON_SIZE);
-        this._container.add_actor(this._spinner.actor);
-        this._spinner.actor.hide();
+        this.reactive = false;
+        this.remove_all_transitions();
+        this.ease({
+            opacity: 0,
+            mode: Clutter.Animation.EASE_OUT_QUAD,
+            duration: Overview.ANIMATION_TIME,
+            onComplete: () => this.hide()
+        });
     }
 
     _syncIcon() {
@@ -318,35 +300,11 @@ var AppMenuButton = GObject.registerClass({
     }
 
     stopAnimation() {
-        if (this._stop)
-            return;
-
-        this._stop = true;
-
-        if (this._spinner == null)
-            return;
-
-        Tweener.addTween(this._spinner.actor,
-                         { opacity: 0,
-                           time: SPINNER_ANIMATION_TIME,
-                           transition: "easeOutQuad",
-                           onCompleteScope: this,
-                           onComplete() {
-                               this._spinner.stop();
-                               this._spinner.actor.opacity = 255;
-                               this._spinner.actor.hide();
-                           }
-                         });
+        this._spinner.stop();
     }
 
     startAnimation() {
-        this._stop = false;
-
-        if (this._spinner == null)
-            return;
-
         this._spinner.play();
-        this._spinner.actor.show();
     }
 
     _onAppStateChanged(appSys, app) {
@@ -404,7 +362,7 @@ var AppMenuButton = GObject.registerClass({
             if (this._targetApp) {
                 this._busyNotifyId = this._targetApp.connect('notify::busy', this._sync.bind(this));
                 this._label.set_text(this._targetApp.get_name());
-                this.actor.set_accessible_name(this._targetApp.get_name());
+                this.set_accessible_name(this._targetApp.get_name());
             }
         }
 
@@ -422,7 +380,7 @@ var AppMenuButton = GObject.registerClass({
         else
             this.stopAnimation();
 
-        this.actor.reactive = (visible && !isBusy);
+        this.reactive = (visible && !isBusy);
 
         this._syncIcon();
         this.menu.setApp(this._targetApp);
@@ -461,41 +419,41 @@ var ActivitiesButton = GObject.registerClass(
 class ActivitiesButton extends PanelMenu.Button {
     _init() {
         super._init(0.0, null, true);
-        this.actor.accessible_role = Atk.Role.TOGGLE_BUTTON;
+        this.accessible_role = Atk.Role.TOGGLE_BUTTON;
 
-        this.actor.name = 'panelActivities';
+        this.name = 'panelActivities';
 
         /* Translators: If there is no suitable word for "Activities"
            in your language, you can use the word for "Overview". */
         this._label = new St.Label({ text: _("Activities"),
                                      y_align: Clutter.ActorAlign.CENTER });
-        this.actor.add_actor(this._label);
+        this.add_actor(this._label);
 
-        this.actor.label_actor = this._label;
+        this.label_actor = this._label;
 
-        this.actor.connect('captured-event', this._onCapturedEvent.bind(this));
-        this.actor.connect_after('key-release-event', this._onKeyRelease.bind(this));
+        this.connect('captured-event', this._onCapturedEvent.bind(this));
+        this.connect_after('key-release-event', this._onKeyRelease.bind(this));
 
         Main.overview.connect('showing', () => {
-            this.actor.add_style_pseudo_class('overview');
-            this.actor.add_accessible_state (Atk.StateType.CHECKED);
+            this.add_style_pseudo_class('overview');
+            this.add_accessible_state (Atk.StateType.CHECKED);
         });
         Main.overview.connect('hiding', () => {
-            this.actor.remove_style_pseudo_class('overview');
-            this.actor.remove_accessible_state (Atk.StateType.CHECKED);
+            this.remove_style_pseudo_class('overview');
+            this.remove_accessible_state (Atk.StateType.CHECKED);
         });
 
         this._xdndTimeOut = 0;
     }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
         if (this._xdndTimeOut != 0)
             Mainloop.source_remove(this._xdndTimeOut);
         this._xdndTimeOut = Mainloop.timeout_add(BUTTON_DND_ACTIVATION_TIMEOUT, () => {
-            this._xdndToggleOverview(actor);
+            this._xdndToggleOverview();
         });
         GLib.Source.set_name_by_id(this._xdndTimeOut, '[gnome-shell] this._xdndToggleOverview');
 
@@ -531,11 +489,11 @@ class ActivitiesButton extends PanelMenu.Button {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _xdndToggleOverview(actor) {
-        let [x, y, mask] = global.get_pointer();
+    _xdndToggleOverview() {
+        let [x, y] = global.get_pointer();
         let pickedActor = global.stage.get_actor_at_pos(Clutter.PickMode.REACTIVE, x, y);
 
-        if (pickedActor == this.actor && Main.overview.shouldToggleByCornerOrButton())
+        if (pickedActor == this && Main.overview.shouldToggleByCornerOrButton())
             Main.overview.toggle();
 
         Mainloop.source_remove(this._xdndTimeOut);
@@ -638,7 +596,7 @@ var PanelCorner = class {
 
             // Synchronize the locate button's pseudo classes with this corner
             this._buttonStyleChangedSignalId = button.connect('style-changed',
-                actor => {
+                () => {
                     let pseudoClass = button.get_style_pseudo_class();
                     this.actor.set_style_pseudo_class(pseudoClass);
                 });
@@ -710,9 +668,7 @@ var PanelCorner = class {
 
 var AggregateLayout = GObject.registerClass(
 class AggregateLayout extends Clutter.BoxLayout {
-    _init(params) {
-        if (!params)
-            params = {};
+    _init(params = {}) {
         params['orientation'] = Clutter.Orientation.VERTICAL;
         super._init(params);
 
@@ -749,7 +705,7 @@ class AggregateMenu extends PanelMenu.Button {
         this.menu.box.set_layout_manager(menuLayout);
 
         this._indicators = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
-        this.actor.add_child(this._indicators);
+        this.add_child(this._indicators);
 
         if (Config.HAVE_NETWORKMANAGER) {
             this._network = new imports.ui.status.network.NMApplet();
@@ -819,6 +775,7 @@ const PANEL_ITEM_IMPLEMENTATIONS = {
     'dateMenu': imports.ui.dateMenu.DateMenuButton,
     'a11y': imports.ui.status.accessibility.ATIndicator,
     'keyboard': imports.ui.status.keyboard.InputSourceIndicator,
+    'dwellClick': imports.ui.status.dwellClick.DwellClickIndicator,
 };
 
 var Panel = GObject.registerClass(
@@ -827,9 +784,6 @@ class Panel extends St.Widget {
         super._init({ name: 'panel',
                       reactive: true });
 
-        // For compatibility with extensions that still use the
-        // this.actor field
-        this.actor = this;
         this.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 
         this._sessionStyle = null;
@@ -868,11 +822,11 @@ class Panel extends St.Widget {
 
         Main.sessionMode.connect('updated', this._updatePanel.bind(this));
 
-        global.display.connect('workareas-changed', () => { this.queue_relayout(); });
+        global.display.connect('workareas-changed', () => this.queue_relayout());
         this._updatePanel();
     }
 
-    vfunc_get_preferred_width(forHeight) {
+    vfunc_get_preferred_width(_forHeight) {
         let primaryMonitor = Main.layoutManager.primaryMonitor;
 
         if (primaryMonitor)
@@ -887,9 +841,9 @@ class Panel extends St.Widget {
         let allocWidth = box.x2 - box.x1;
         let allocHeight = box.y2 - box.y1;
 
-        let [leftMinWidth, leftNaturalWidth] = this._leftBox.get_preferred_width(-1);
-        let [centerMinWidth, centerNaturalWidth] = this._centerBox.get_preferred_width(-1);
-        let [rightMinWidth, rightNaturalWidth] = this._rightBox.get_preferred_width(-1);
+        let [, leftNaturalWidth] = this._leftBox.get_preferred_width(-1);
+        let [, centerNaturalWidth] = this._centerBox.get_preferred_width(-1);
+        let [, rightNaturalWidth] = this._rightBox.get_preferred_width(-1);
 
         let sideWidth, centerWidth;
         centerWidth = centerNaturalWidth;
@@ -940,19 +894,18 @@ class Panel extends St.Widget {
         }
         this._rightBox.allocate(childBox, flags);
 
-        let cornerMinWidth, cornerMinHeight;
         let cornerWidth, cornerHeight;
 
-        [cornerMinWidth, cornerWidth] = this._leftCorner.actor.get_preferred_width(-1);
-        [cornerMinHeight, cornerHeight] = this._leftCorner.actor.get_preferred_height(-1);
+        [, cornerWidth] = this._leftCorner.actor.get_preferred_width(-1);
+        [, cornerHeight] = this._leftCorner.actor.get_preferred_height(-1);
         childBox.x1 = 0;
         childBox.x2 = cornerWidth;
         childBox.y1 = allocHeight;
         childBox.y2 = allocHeight + cornerHeight;
         this._leftCorner.actor.allocate(childBox, flags);
 
-        [cornerMinWidth, cornerWidth] = this._rightCorner.actor.get_preferred_width(-1);
-        [cornerMinHeight, cornerHeight] = this._rightCorner.actor.get_preferred_height(-1);
+        [, cornerWidth] = this._rightCorner.actor.get_preferred_width(-1);
+        [, cornerHeight] = this._rightCorner.actor.get_preferred_height(-1);
         childBox.x1 = allocWidth - cornerWidth;
         childBox.x2 = allocWidth;
         childBox.y1 = allocHeight;
@@ -976,22 +929,11 @@ class Panel extends St.Widget {
         if (isPress && button != 1)
             return Clutter.EVENT_PROPAGATE;
 
-        let focusWindow = global.display.focus_window;
-        if (!focusWindow)
-            return Clutter.EVENT_PROPAGATE;
-
-        let dragWindow = focusWindow.is_attached_dialog() ? focusWindow.get_transient_for()
-                                                          : focusWindow;
-        if (!dragWindow)
-            return Clutter.EVENT_PROPAGATE;
-
-        let rect = dragWindow.get_frame_rect();
         let [stageX, stageY] = event.get_coords();
 
-        let allowDrag = dragWindow.maximized_vertically &&
-                        stageX > rect.x && stageX < rect.x + rect.width;
+        let dragWindow = this._getDraggableWindowForPosition(stageX);
 
-        if (!allowDrag)
+        if (!dragWindow)
             return Clutter.EVENT_PROPAGATE;
 
         global.display.begin_grab_op(dragWindow,
@@ -1021,7 +963,7 @@ class Panel extends St.Widget {
             return; // menu not supported by current session mode
 
         let menu = indicator.menu;
-        if (!indicator.actor.reactive)
+        if (!indicator.reactive)
             return;
 
         menu.toggle();
@@ -1043,7 +985,7 @@ class Panel extends St.Widget {
             return;
 
         let menu = indicator.menu;
-        if (!indicator.actor.reactive)
+        if (!indicator.reactive)
             return;
 
         menu.close();
@@ -1071,9 +1013,9 @@ class Panel extends St.Widget {
         this._updateBox(panel.center, this._centerBox);
         this._updateBox(panel.right, this._rightBox);
 
-        if (panel.left.indexOf('dateMenu') != -1)
+        if (panel.left.includes('dateMenu'))
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.START;
-        else if (panel.right.indexOf('dateMenu') != -1)
+        else if (panel.right.includes('dateMenu'))
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.END;
         // Default to center if there is no dateMenu
         else
@@ -1154,7 +1096,7 @@ class Panel extends St.Widget {
 
     addToStatusArea(role, indicator, position, box) {
         if (this.statusArea[role])
-            throw new Error('Extension point conflict: there is already a status indicator for role ' + role);
+            throw new Error(`Extension point conflict: there is already a status indicator for role ${role}`);
 
         if (!(indicator instanceof PanelMenu.Button))
             throw new TypeError('Status indicator must be an instance of PanelMenu.Button');
@@ -1184,7 +1126,7 @@ class Panel extends St.Widget {
     }
 
     _onMenuSet(indicator) {
-        if (!indicator.menu || indicator.menu.hasOwnProperty('_openChangedId'))
+        if (!indicator.menu || indicator.menu._openChangedId)
             return;
 
         indicator.menu._openChangedId = indicator.menu.connect('open-state-changed',
@@ -1200,5 +1142,22 @@ class Panel extends St.Widget {
                 if (boxAlignment == Main.messageTray.bannerAlignment)
                     Main.messageTray.bannerBlocked = isOpen;
             });
+    }
+
+    _getDraggableWindowForPosition(stageX) {
+        let workspaceManager = global.workspace_manager;
+        let workspace = workspaceManager.get_active_workspace();
+        let allWindowsByStacking = global.display.sort_windows_by_stacking(
+            workspace.list_windows()
+        ).reverse();
+
+        return allWindowsByStacking.find(metaWindow => {
+            let rect = metaWindow.get_frame_rect();
+            return metaWindow.is_on_primary_monitor() &&
+                   metaWindow.showing_on_its_workspace() &&
+                   metaWindow.get_window_type() != Meta.WindowType.DESKTOP &&
+                   metaWindow.maximized_vertically &&
+                   stageX > rect.x && stageX < rect.x + rect.width;
+        });
     }
 });

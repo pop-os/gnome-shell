@@ -21,6 +21,17 @@
         EnableExtension and DisableExtension D-Bus methods on org.gnome.Shell.
       </description>
     </key>
+    <key name="disabled-extensions" type="as">
+      <default>[]</default>
+      <summary>UUIDs of extensions to force disabling</summary>
+      <description>
+        GNOME Shell extensions have a UUID property; this key lists extensions
+        which should be disabled, even if loaded as part of the current mode.
+        You can also manipulate this list with the EnableExtension and
+        DisableExtension D-Bus methods on org.gnome.Shell.
+        This key takes precedence over the “enabled-extensions” setting.
+      </description>
+    </key>
     <key name="disable-user-extensions" type="b">
       <default>false</default>
       <summary>Disable user extensions</summary>
@@ -99,7 +110,6 @@
       </description>
     </key>
     <child name="keybindings" schema="org.gnome.shell.keybindings"/>
-    <child name="keyboard" schema="org.gnome.shell.keyboard"/>
   </schema>
 
   <schema id="org.gnome.shell.keybindings" path="/org/gnome/shell/keybindings/"
@@ -140,11 +150,6 @@
         Keybinding to focus the active notification.
       </description>
     </key>
-    <key name="pause-resume-tweens" type="as">
-      <default>[]</default>
-      <summary>Keybinding that pauses and resumes all running tweens, for debugging purposes</summary>
-      <description></description>
-    </key>
     <key name="switch-to-application-1" type="as">
       <default>["&lt;Super&gt;1"]</default>
       <summary>Switch to application 1</summary>
@@ -180,17 +185,6 @@
     <key name="switch-to-application-9" type="as">
       <default>["&lt;Super&gt;9"]</default>
       <summary>Switch to application 9</summary>
-    </key>
-  </schema>
-
-  <schema id="org.gnome.shell.keyboard" path="/org/gnome/shell/keyboard/"
-          gettext-domain="@GETTEXT_PACKAGE@">
-    <key name="keyboard-type" type="s">
-      <default>'touch'</default>
-      <summary>Which keyboard to use</summary>
-      <description>
-        The type of keyboard to use.
-      </description>
     </key>
   </schema>
 
@@ -231,6 +225,36 @@
 	If true, only windows from the current workspace are shown in the switcher.
 	Otherwise, all windows are included.
       </description>
+    </key>
+  </schema>
+
+  <schema id="org.gnome.shell.world-clocks" path="/org/gnome/shell/world-clocks/"
+          gettext-domain="@GETTEXT_PACKAGE@">
+    <key name="locations" type="av">
+      <summary>Locations</summary>
+      <description>
+        The locations to show in world clocks
+      </description>
+      <default>[]</default>
+    </key>
+  </schema>
+
+  <schema id="org.gnome.shell.weather" path="/org/gnome/shell/weather/"
+          gettext-domain="@GETTEXT_PACKAGE@">
+    <key name="automatic-location" type="b">
+      <summary>Automatic location</summary>
+      <description>
+        Whether to fetch the current location or not
+      </description>
+      <default>false</default>
+    </key>
+
+    <key name="locations" type="av">
+      <summary>Location</summary>
+      <description>
+        The location for which to show a forecast
+      </description>
+      <default>[]</default>
     </key>
   </schema>
 

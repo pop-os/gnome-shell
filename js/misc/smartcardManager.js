@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported getSmartcardManager */
 
 const Gio = imports.gi.Gio;
 const Signals = imports.signals;
@@ -29,7 +30,7 @@ var SmartcardManager = class {
         this._objectManager = new ObjectManager.ObjectManager({ connection: Gio.DBus.session,
                                                                 name: "org.gnome.SettingsDaemon.Smartcard",
                                                                 objectPath: '/org/gnome/SettingsDaemon/Smartcard',
-                                                                knownInterfaces: [ SmartcardTokenIface ],
+                                                                knownInterfaces: [SmartcardTokenIface],
                                                                 onLoaded: this._onLoaded.bind(this) });
         this._insertedTokens = {};
         this._loginToken = null;

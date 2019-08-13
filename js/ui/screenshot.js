@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ScreenshotService */
 
 const { Clutter, Gio, GLib, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
@@ -6,7 +7,6 @@ const Signals = imports.signals;
 const GrabHelper = imports.ui.grabHelper;
 const Lightbox = imports.ui.lightbox;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
@@ -24,10 +24,10 @@ var ScreenshotService = class {
         Gio.DBus.session.own_name('org.gnome.Shell.Screenshot', Gio.BusNameOwnerFlags.REPLACE, null, null);
     }
 
-    _createScreenshot(invocation, needsDisk=true) {
+    _createScreenshot(invocation, needsDisk = true) {
         let lockedDown = false;
         if (needsDisk)
-            lockedDown = this._lockdownSettings.get_boolean('disable-save-to-disk')
+            lockedDown = this._lockdownSettings.get_boolean('disable-save-to-disk');
 
         let sender = invocation.get_sender();
         if (this._screenShooter.has(sender) || lockedDown) {
@@ -72,9 +72,9 @@ var ScreenshotService = class {
                 flashspot.fire(() => {
                     this._removeShooterForSender(invocation.get_sender());
                 });
-            }
-            else
+            } else {
                 this._removeShooterForSender(invocation.get_sender());
+            }
         }
 
         let retval = GLib.Variant.new('(bs)', [result, filenameUsed]);
@@ -125,11 +125,11 @@ var ScreenshotService = class {
     }
 
     ScreenshotWindowAsync(params, invocation) {
-        let [include_frame, include_cursor, flash, filename] = params;
+        let [includeFrame, includeCursor, flash, filename] = params;
         let screenshot = this._createScreenshot(invocation);
         if (!screenshot)
             return;
-        screenshot.screenshot_window (include_frame, include_cursor, filename,
+        screenshot.screenshot_window (includeFrame, includeCursor, filename,
             (o, res) => {
                 try {
                     let [result, area, filenameUsed] =
@@ -143,11 +143,11 @@ var ScreenshotService = class {
     }
 
     ScreenshotAsync(params, invocation) {
-        let [include_cursor, flash, filename] = params;
+        let [includeCursor, flash, filename] = params;
         let screenshot = this._createScreenshot(invocation);
         if (!screenshot)
             return;
-        screenshot.screenshot(include_cursor, filename,
+        screenshot.screenshot(includeCursor, filename,
             (o, res) => {
                 try {
                     let [result, area, filenameUsed] =
@@ -166,12 +166,12 @@ var ScreenshotService = class {
         selectArea.connect('finished', (selectArea, areaRectangle) => {
             if (areaRectangle) {
                 let retRectangle = this._unscaleArea(areaRectangle.x, areaRectangle.y,
-                    areaRectangle.width, areaRectangle.height);
+                                                     areaRectangle.width, areaRectangle.height);
                 let retval = GLib.Variant.new('(iiii)', retRectangle);
                 invocation.return_value(retval);
             } else {
                 invocation.return_error_literal(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
-                    "Operation was cancelled");
+                                                "Operation was cancelled");
             }
         });
     }
@@ -185,7 +185,7 @@ var ScreenshotService = class {
                                             "Invalid params");
             return;
         }
-        let flashspot = new Flashspot({ x : x, y : y, width: width, height: height});
+        let flashspot = new Flashspot({ x: x, y: y, width: width, height: height });
         flashspot.fire();
         invocation.return_value(null);
     }
@@ -199,7 +199,7 @@ var ScreenshotService = class {
                 if (!screenshot)
                     return;
                 screenshot.pick_color(...coords, (o, res) => {
-                    let [success, color] = screenshot.pick_color_finish(res);
+                    let [success_, color] = screenshot.pick_color_finish(res);
                     let { red, green, blue } = color;
                     let retval = GLib.Variant.new('(a{sv})', [{
                         color: GLib.Variant.new('(ddd)', [
@@ -213,7 +213,7 @@ var ScreenshotService = class {
                 });
             } else {
                 invocation.return_error_literal(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
-                    "Operation was cancelled");
+                                                "Operation was cancelled");
             }
         });
     }
@@ -295,16 +295,14 @@ var SelectArea = class {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _onButtonRelease(actor, event) {
+    _onButtonRelease() {
         this._result = this._getGeometry();
-        Tweener.addTween(this._group,
-                         { opacity: 0,
-                           time: 0.2,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this._grabHelper.ungrab();
-                           }
-                         });
+        this._group.ease({
+            opacity: 0,
+            duration: 200,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._grabHelper.ungrab()
+        });
         return Clutter.EVENT_PROPAGATE;
     }
 
@@ -366,7 +364,7 @@ var PickPixel = class {
 };
 Signals.addSignalMethods(PickPixel.prototype);
 
-var FLASHSPOT_ANIMATION_OUT_TIME = 0.5; // seconds
+var FLASHSPOT_ANIMATION_OUT_TIME = 500; // milliseconds
 
 var Flashspot = class extends Lightbox.Lightbox {
     constructor(area) {
@@ -381,15 +379,15 @@ var Flashspot = class extends Lightbox.Lightbox {
     fire(doneCallback) {
         this.actor.show();
         this.actor.opacity = 255;
-        Tweener.addTween(this.actor,
-                         { opacity: 0,
-                           time: FLASHSPOT_ANIMATION_OUT_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               if (doneCallback)
-                                   doneCallback();
-                               this.destroy();
-                           }
-                         });
+        this.actor.ease({
+            opacity: 0,
+            duration: FLASHSPOT_ANIMATION_OUT_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (doneCallback)
+                    doneCallback();
+                this.destroy();
+            }
+        });
     }
 };

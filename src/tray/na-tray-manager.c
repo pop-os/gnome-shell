@@ -70,7 +70,7 @@ static guint manager_signals[LAST_SIGNAL];
 #define SYSTEM_TRAY_ORIENTATION_VERT 1
 
 #ifdef GDK_WINDOWING_X11
-static gboolean na_tray_manager_check_running_screen_x11 ();
+static gboolean na_tray_manager_check_running_screen_x11 (void);
 #endif
 
 static void na_tray_manager_finalize     (GObject      *object);
@@ -129,10 +129,8 @@ na_tray_manager_class_init (NaTrayManagerClass *klass)
 						      GTK_TYPE_ORIENTATION,
 						      GTK_ORIENTATION_HORIZONTAL,
 						      G_PARAM_READWRITE |
-						      G_PARAM_CONSTRUCT |
-						      G_PARAM_STATIC_NAME |
-						      G_PARAM_STATIC_NICK |
-						      G_PARAM_STATIC_BLURB));
+						      G_PARAM_STATIC_STRINGS |
+						      G_PARAM_CONSTRUCT));
   
   manager_signals[TRAY_ICON_ADDED] =
     g_signal_new ("tray_icon_added",
@@ -808,7 +806,7 @@ na_tray_manager_manage_screen (NaTrayManager *manager)
 #ifdef GDK_WINDOWING_X11
 
 static gboolean
-na_tray_manager_check_running_screen_x11 ()
+na_tray_manager_check_running_screen_x11 (void)
 {
   GdkDisplay *display;
   GdkScreen *screen;
@@ -833,7 +831,7 @@ na_tray_manager_check_running_screen_x11 ()
 #endif
 
 gboolean
-na_tray_manager_check_running ()
+na_tray_manager_check_running (void)
 {
 #ifdef GDK_WINDOWING_X11
   return na_tray_manager_check_running_screen_x11 ();

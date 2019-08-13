@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Dialog, MessageDialogContent */
 
 const { Clutter, Gio, GObject, Pango, St } = imports.gi;
 
@@ -25,9 +26,9 @@ class Dialog extends St.Widget {
 
     _createDialog() {
         this._dialog = new St.BoxLayout({ style_class: 'modal-dialog',
-                                          x_align:     Clutter.ActorAlign.CENTER,
-                                          y_align:     Clutter.ActorAlign.CENTER,
-                                          vertical:    true });
+                                          x_align: Clutter.ActorAlign.CENTER,
+                                          y_align: Clutter.ActorAlign.CENTER,
+                                          vertical: true });
 
         // modal dialogs are fixed width and grow vertically; set the request
         // mode accordingly so wrapped labels are handled correctly during
@@ -38,13 +39,13 @@ class Dialog extends St.Widget {
         this.contentLayout = new St.BoxLayout({ vertical: true,
                                                 style_class: "modal-dialog-content-box" });
         this._dialog.add(this.contentLayout,
-                         { expand:  true,
-                           x_fill:  true,
-                           y_fill:  true,
+                         { expand: true,
+                           x_fill: true,
+                           y_fill: true,
                            x_align: St.Align.MIDDLE,
                            y_align: St.Align.START });
 
-        this.buttonLayout = new St.Widget ({ layout_manager: new Clutter.BoxLayout({ homogeneous:true }) });
+        this.buttonLayout = new St.Widget ({ layout_manager: new Clutter.BoxLayout({ homogeneous: true }) });
         this._dialog.add(this.buttonLayout,
                          { x_align: St.Align.MIDDLE,
                            y_align: St.Align.START });
@@ -116,11 +117,11 @@ class Dialog extends St.Widget {
 
         let button = new St.Button({ style_class: 'modal-dialog-linked-button',
                                      button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
-                                     reactive:    true,
-                                     can_focus:   true,
-                                     x_expand:    true,
-                                     y_expand:    true,
-                                     label:       label });
+                                     reactive: true,
+                                     can_focus: true,
+                                     x_expand: true,
+                                     y_expand: true,
+                                     label: label });
         button.connect('clicked', action);
 
         buttonInfo['button'] = button;
@@ -177,13 +178,11 @@ var MessageDialogContent = GObject.registerClass({
 
         let textProps = { ellipsize: Pango.EllipsizeMode.NONE,
                           line_wrap: true };
-        Object.assign(this._subtitle.clutter_text, textProps);
-        Object.assign(this._body.clutter_text, textProps);
+        this._subtitle.clutter_text.set(textProps);
+        this._body.clutter_text.set(textProps);
 
-        if (!params.hasOwnProperty('style_class'))
-            params.style_class = 'message-dialog-main-layout';
-
-        super._init(params);
+        let defaultParams = { style_class: 'message-dialog-main-layout' };
+        super._init(Object.assign(defaultParams, params));
 
         this.messageBox = new St.BoxLayout({ style_class: 'message-dialog-content',
                                              x_expand: true,
@@ -214,7 +213,10 @@ var MessageDialogContent = GObject.registerClass({
     }
 
     set icon(icon) {
-        Object.assign(this._icon, { gicon: icon, visible: icon != null });
+        this._icon.set({
+            gicon: icon,
+            visible: icon != null
+        });
         this.notify('icon');
     }
 
@@ -231,7 +233,10 @@ var MessageDialogContent = GObject.registerClass({
     }
 
     _setLabel(label, prop, value) {
-        Object.assign(label, { text: value || '', visible: value != null });
+        label.set({
+            text: value || '',
+            visible: value != null
+        });
         this.notify(prop);
     }
 

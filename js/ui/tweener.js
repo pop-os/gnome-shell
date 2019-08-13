@@ -1,8 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported init, addCaller, addTween, getTweenCount, removeTweens,
+            pauseTweens, resumeTweens, registerSpecialProperty,
+            registerSpecialPropertyModifier, registerSpecialPropertySplitter */
 
-const { Clutter, GLib, Shell, St } = imports.gi;
+const { Clutter, GLib, Shell } = imports.gi;
 const Signals = imports.signals;
 const Tweener = imports.tweener.tweener;
+
+const { adjustAnimationTime } = imports.ui.environment;
 
 // This is a wrapper around imports.tweener.tweener that adds a bit of
 // Clutter integration. If the tweening target is a Clutter.Actor, then
@@ -43,14 +48,15 @@ function _wrapTweening(target, tweeningParameters) {
             state.destroyedId = target.connect('destroy', _actorDestroyed);
         } else if (target.actor && target.actor instanceof Clutter.Actor) {
             state.actor = target.actor;
-            state.destroyedId = target.actor.connect('destroy', () => { _actorDestroyed(target); });
+            state.destroyedId = target.actor.connect('destroy', () => _actorDestroyed(target));
         }
     }
 
-    if (!St.Settings.get().enable_animations) {
-        tweeningParameters['time'] = 0.000001;
-        tweeningParameters['delay'] = 0.000001;
-    }
+    let { time, delay } = tweeningParameters;
+    if (!isNaN(time))
+        tweeningParameters['time'] = adjustAnimationTime(1000 * time) / 1000;
+    if (!isNaN(delay))
+        tweeningParameters['delay'] = adjustAnimationTime(1000 * delay) / 1000;
 
     _addHandler(target, tweeningParameters, 'onComplete', _tweenCompleted);
 }
@@ -77,16 +83,17 @@ function _resetTweenState(target) {
 function _addHandler(target, params, name, handler) {
     if (params[name]) {
         let oldHandler = params[name];
-        let oldScope = params[name + 'Scope'];
-        let oldParams = params[name + 'Params'];
+        let oldScope = params[`${name}Scope`];
+        let oldParams = params[`${name}Params`];
         let eventScope = oldScope ? oldScope : target;
 
         params[name] = () => {
             oldHandler.apply(eventScope, oldParams);
             handler(target);
         };
-    } else
-        params[name] = () => { handler(target); };
+    } else {
+        params[name] = () => handler(target);
+    }
 }
 
 function _actorDestroyed(target) {
@@ -109,29 +116,29 @@ function isTweening(scope) {
     return Tweener.getTweenCount(scope) != 0;
 }
 
-function removeTweens(scope) {
-    if (Tweener.removeTweens.apply(null, arguments)) {
+function removeTweens(...args) {
+    if (Tweener.removeTweens(args)) {
+        let [scope] = args;
         // If we just removed the last active tween, clean up
         if (Tweener.getTweenCount(scope) == 0)
             _tweenCompleted(scope);
         return true;
-    } else
+    } else {
         return false;
+    }
 }
 
-function pauseTweens() {
-    return Tweener.pauseTweens.apply(null, arguments);
+function pauseTweens(...args) {
+    return Tweener.pauseTweens(...args);
 }
 
-function resumeTweens() {
-    return Tweener.resumeTweens.apply(null, arguments);
+function resumeTweens(...args) {
+    return Tweener.resumeTweens(...args);
 }
 
 
-function registerSpecialProperty(name, getFunction, setFunction,
-                                 parameters, preProcessFunction) {
-    Tweener.registerSpecialProperty(name, getFunction, setFunction,
-                                    parameters, preProcessFunction);
+function registerSpecialProperty(...args) {
+    Tweener.registerSpecialProperty(...args);
 }
 
 function registerSpecialPropertyModifier(name, modifyFunction, getFunction) {
@@ -152,7 +159,7 @@ function registerSpecialPropertySplitter(name, splitFunction, parameters) {
 // Tweener to a Clutter.TimeLine. Now, Clutter.Timeline itself isn't a
 // whole lot more sophisticated than a simple timeout at a fixed frame
 // rate, but at least it knows how to drop frames. (See
-// HippoAnimationManager for a more sophisticated view of continous
+// HippoAnimationManager for a more sophisticated view of continuous
 // time updates; even better is to pay attention to the vertical
 // vblank and sync to that when possible.)
 //
@@ -163,29 +170,29 @@ var ClutterFrameTicker = class {
         // set the timeline to loop. Doing this means we have to track
         // time ourselves, since clutter timeline's time will cycle
         // instead of strictly increase.
-        this._timeline = new Clutter.Timeline({ duration: 1000*1000 });
+        this._timeline = new Clutter.Timeline({ duration: 1000 * 1000 });
         this._timeline.set_loop(true);
         this._startTime = -1;
         this._currentTime = -1;
 
-        this._timeline.connect('new-frame', (timeline, frame) => {
-            this._onNewFrame(frame);
+        this._timeline.connect('new-frame', () => {
+            this._onNewFrame();
         });
 
-        let perf_log = Shell.PerfLog.get_default();
-        perf_log.define_event("tweener.framePrepareStart",
-                              "Start of a new animation frame",
-                              "");
-        perf_log.define_event("tweener.framePrepareDone",
-                              "Finished preparing frame",
-                              "");
+        let perfLog = Shell.PerfLog.get_default();
+        perfLog.define_event("tweener.framePrepareStart",
+                             "Start of a new animation frame",
+                             "");
+        perfLog.define_event("tweener.framePrepareDone",
+                             "Finished preparing frame",
+                             "");
     }
 
     get FRAME_RATE() {
         return 60;
     }
 
-    _onNewFrame(frame) {
+    _onNewFrame() {
         // If there is a lot of setup to start the animation, then
         // first frame number we get from clutter might be a long ways
         // into the animation (or the animation might even be done).
@@ -195,11 +202,11 @@ var ClutterFrameTicker = class {
             this._startTime = GLib.get_monotonic_time() / 1000.0;
 
         // currentTime is in milliseconds
-        let perf_log = Shell.PerfLog.get_default();
+        let perfLog = Shell.PerfLog.get_default();
         this._currentTime = GLib.get_monotonic_time() / 1000.0 - this._startTime;
-        perf_log.event("tweener.framePrepareStart");
+        perfLog.event("tweener.framePrepareStart");
         this.emit('prepare-frame');
-        perf_log.event("tweener.framePrepareDone");
+        perfLog.event("tweener.framePrepareDone");
     }
 
     getTime() {
@@ -207,8 +214,6 @@ var ClutterFrameTicker = class {
     }
 
     start() {
-        if (St.get_slow_down_factor() > 0)
-            Tweener.setTimeScale(1 / St.get_slow_down_factor());
         this._timeline.start();
         global.begin_work();
     }

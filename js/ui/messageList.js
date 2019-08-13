@@ -4,10 +4,9 @@ const MessageTray = imports.ui.messageTray;
 const Signals = imports.signals;
 
 const Calendar = imports.ui.calendar;
-const Tweener = imports.ui.tweener;
 const Util = imports.misc.util;
 
-var MESSAGE_ANIMATION_TIME = 0.1;
+var MESSAGE_ANIMATION_TIME = 100;
 
 var DEFAULT_EXPAND_LINES = 6;
 
@@ -33,9 +32,7 @@ function _fixMarkup(text, allowMarkup) {
 }
 
 var URLHighlighter = class URLHighlighter {
-    constructor(text, lineWrap, allowMarkup) {
-        if (!text)
-            text = '';
+    constructor(text = '', lineWrap, allowMarkup) {
         this.actor = new St.Label({ reactive: true, style_class: 'url-highlighter',
                                     x_expand: true, x_align: Clutter.ActorAlign.START });
         this._linkColor = '#ccccff';
@@ -72,7 +69,7 @@ var URLHighlighter = class URLHighlighter {
             let urlId = this._findUrlAtPos(event);
             if (urlId != -1) {
                 let url = this._urls[urlId].url;
-                if (url.indexOf(':') == -1)
+                if (!url.includes(':'))
                     url = 'http://' + url;
 
                 Gio.app_info_launch_default_for_uri(url, global.create_app_launch_context(0, -1));
@@ -132,21 +129,21 @@ var URLHighlighter = class URLHighlighter {
     }
 
     _findUrlAtPos(event) {
-        let success;
+        let success_;
         let [x, y] = event.get_coords();
-        [success, x, y] = this.actor.transform_stage_point(x, y);
-        let find_pos = -1;
+        [success_, x, y] = this.actor.transform_stage_point(x, y);
+        let findPos = -1;
         for (let i = 0; i < this.actor.clutter_text.text.length; i++) {
-            let [success, px, py, line_height] = this.actor.clutter_text.position_to_coords(i);
-            if (py > y || py + line_height < y || x < px)
+            let [success_, px, py, lineHeight] = this.actor.clutter_text.position_to_coords(i);
+            if (py > y || py + lineHeight < y || x < px)
                 continue;
-            find_pos = i;
+            findPos = i;
         }
-        if (find_pos != -1) {
+        if (findPos != -1) {
             for (let i = 0; i < this._urls.length; i++)
-            if (find_pos >= this._urls[i].pos &&
-                this._urls[i].pos + this._urls[i].url.length > find_pos)
-                return i;
+                if (findPos >= this._urls[i].pos &&
+                    this._urls[i].pos + this._urls[i].url.length > findPos)
+                    return i;
         }
         return -1;
     }
@@ -197,12 +194,14 @@ class ScaleLayout extends Clutter.BinLayout {
 });
 
 var LabelExpanderLayout = GObject.registerClass({
-    Properties: { 'expansion': GObject.ParamSpec.double('expansion',
-                                                        'Expansion',
-                                                        'Expansion of the layout, between 0 (collapsed) ' +
-                                                        'and 1 (fully expanded',
-                                                         GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                         0, 1, 0)},
+    Properties: {
+        'expansion': GObject.ParamSpec.double('expansion',
+                                              'Expansion',
+                                              'Expansion of the layout, between 0 (collapsed) ' +
+                                              'and 1 (fully expanded',
+                                              GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                              0, 1, 0)
+    },
 }, class LabelExpanderLayout extends Clutter.LayoutManager {
     _init(params) {
         this._expansion = 0;
@@ -440,15 +439,17 @@ var Message = class Message {
         }
 
         if (animate) {
-            Tweener.addTween(this._bodyStack.layout_manager,
-                             { expansion: 1,
-                               time: MessageTray.ANIMATION_TIME,
-                               transition: 'easeOutQuad' });
+            this._bodyStack.ease_property('@layout.expansion', 1, {
+                progress_mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                duration: MessageTray.ANIMATION_TIME,
+            });
+
             this._actionBin.scale_y = 0;
-            Tweener.addTween(this._actionBin,
-                             { scale_y: 1,
-                               time: MessageTray.ANIMATION_TIME,
-                               transition: 'easeOutQuad' });
+            this._actionBin.ease({
+                scale_y: 1,
+                duration: MessageTray.ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         } else {
             this._bodyStack.layout_manager.expansion = 1;
             this._actionBin.scale_y = 1;
@@ -459,19 +460,20 @@ var Message = class Message {
 
     unexpand(animate) {
         if (animate) {
-            Tweener.addTween(this._bodyStack.layout_manager,
-                             { expansion: 0,
-                               time: MessageTray.ANIMATION_TIME,
-                               transition: 'easeOutQuad' });
-            Tweener.addTween(this._actionBin,
-                             { scale_y: 0,
-                               time: MessageTray.ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onCompleteScope: this,
-                               onComplete() {
-                                   this._actionBin.hide();
-                                   this.expanded = false;
-                               }});
+            this._bodyStack.ease_property('@layout.expansion', 0, {
+                progress_mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                duration: MessageTray.ANIMATION_TIME,
+            });
+
+            this._actionBin.ease({
+                scale_y: 0,
+                duration: MessageTray.ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._actionBin.hide();
+                    this.expanded = false;
+                }
+            });
         } else {
             this._bodyStack.layout_manager.expansion = 0;
             this._actionBin.scale_y = 0;
@@ -582,10 +584,12 @@ var MessageListSection = class MessageListSection {
         this._list.insert_child_at_index(obj.container, index);
 
         if (animate)
-            Tweener.addTween(obj.container, { scale_x: 1,
-                                              scale_y: 1,
-                                              time: MESSAGE_ANIMATION_TIME,
-                                              transition: 'easeOutQuad' });
+            obj.container.ease({
+                scale_x: 1,
+                scale_y: 1,
+                duration: MESSAGE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
     }
 
     moveMessage(message, index, animate) {
@@ -598,16 +602,20 @@ var MessageListSection = class MessageListSection {
 
         let onComplete = () => {
             this._list.set_child_at_index(obj.container, index);
-            Tweener.addTween(obj.container, { scale_x: 1,
-                                              scale_y: 1,
-                                              time: MESSAGE_ANIMATION_TIME,
-                                              transition: 'easeOutQuad' });
+            obj.container.ease({
+                scale_x: 1,
+                scale_y: 1,
+                duration: MESSAGE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         };
-        Tweener.addTween(obj.container, { scale_x: 0,
-                                          scale_y: 0,
-                                          time: MESSAGE_ANIMATION_TIME,
-                                          transition: 'easeOutQuad',
-                                          onComplete: onComplete });
+        obj.container.ease({
+            scale_x: 0,
+            scale_y: 0,
+            duration: MESSAGE_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete
+        });
     }
 
     removeMessage(message, animate) {
@@ -620,13 +628,16 @@ var MessageListSection = class MessageListSection {
         this._messages.delete(message);
 
         if (animate) {
-            Tweener.addTween(obj.container, { scale_x: 0, scale_y: 0,
-                                              time: MESSAGE_ANIMATION_TIME,
-                                              transition: 'easeOutQuad',
-                                              onComplete() {
-                                                  obj.container.destroy();
-                                                  global.sync_pointer();
-                                              }});
+            obj.container.ease({
+                scale_x: 0,
+                scale_y: 0,
+                duration: MESSAGE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    obj.container.destroy();
+                    global.sync_pointer();
+                }
+            });
         } else {
             obj.container.destroy();
             global.sync_pointer();
@@ -648,15 +659,14 @@ var MessageListSection = class MessageListSection {
             for (let i = 0; i < messages.length; i++) {
                 let message = messages[i];
                 let obj = this._messages.get(message);
-                Tweener.addTween(obj.container,
-                                 { anchor_x: this._list.width,
-                                   opacity: 0,
-                                   time: MESSAGE_ANIMATION_TIME,
-                                   delay: i * delay,
-                                   transition: 'easeOutQuad',
-                                   onComplete() {
-                                       message.close();
-                                   }});
+                obj.container.ease({
+                    anchor_x: this._list.width,
+                    opacity: 0,
+                    duration: MESSAGE_ANIMATION_TIME,
+                    delay: i * delay,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    onComplete: () => message.close()
+                });
             }
         }
     }

@@ -1,4 +1,5 @@
-const { Clutter, Gio, GLib, Meta, Shell, St } = imports.gi;
+/* exported AudioDeviceSelectionDBus */
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
@@ -13,10 +14,11 @@ var AudioDevice = {
 
 const AudioDeviceSelectionIface = loadInterfaceXML('org.gnome.Shell.AudioDeviceSelection');
 
-var AudioDeviceSelectionDialog =
-class AudioDeviceSelectionDialog extends ModalDialog.ModalDialog {
-    constructor(devices) {
-        super({ styleClass: 'audio-device-selection-dialog' });
+var AudioDeviceSelectionDialog = GObject.registerClass({
+    Signals: { 'device-selected': { param_types: [GObject.TYPE_UINT] } }
+}, class AudioDeviceSelectionDialog extends ModalDialog.ModalDialog {
+    _init(devices) {
+        super._init({ styleClass: 'audio-device-selection-dialog' });
 
         this._deviceItems = {};
 
@@ -33,11 +35,7 @@ class AudioDeviceSelectionDialog extends ModalDialog.ModalDialog {
             throw new Error('Too few devices for a selection');
     }
 
-    destroy() {
-        super.destroy();
-    }
-
-    _buildLayout(devices) {
+    _buildLayout() {
         let title = new St.Label({ style_class: 'audio-selection-title',
                                    text: _("Select Audio Device"),
                                    x_align: Clutter.ActorAlign.CENTER });
@@ -57,28 +55,28 @@ class AudioDeviceSelectionDialog extends ModalDialog.ModalDialog {
     }
 
     _getDeviceLabel(device) {
-        switch(device) {
-            case AudioDevice.HEADPHONES:
-                return _("Headphones");
-            case AudioDevice.HEADSET:
-                return _("Headset");
-            case AudioDevice.MICROPHONE:
-                return _("Microphone");
-            default:
-                return null;
+        switch (device) {
+        case AudioDevice.HEADPHONES:
+            return _("Headphones");
+        case AudioDevice.HEADSET:
+            return _("Headset");
+        case AudioDevice.MICROPHONE:
+            return _("Microphone");
+        default:
+            return null;
         }
     }
 
     _getDeviceIcon(device) {
-        switch(device) {
-            case AudioDevice.HEADPHONES:
-                return 'audio-headphones-symbolic';
-            case AudioDevice.HEADSET:
-                return 'audio-headset-symbolic';
-            case AudioDevice.MICROPHONE:
-                return 'audio-input-microphone-symbolic';
-            default:
-                return null;
+        switch (device) {
+        case AudioDevice.HEADPHONES:
+            return 'audio-headphones-symbolic';
+        case AudioDevice.HEADSET:
+            return 'audio-headset-symbolic';
+        case AudioDevice.MICROPHONE:
+            return 'audio-input-microphone-symbolic';
+        default:
+            return null;
         }
     }
 
@@ -88,6 +86,7 @@ class AudioDeviceSelectionDialog extends ModalDialog.ModalDialog {
         box.connect('notify::height', () => {
             Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
                 box.width = box.height;
+                return GLib.SOURCE_REMOVE;
             });
         });
 
@@ -113,11 +112,11 @@ class AudioDeviceSelectionDialog extends ModalDialog.ModalDialog {
     }
 
     _openSettings() {
-        let desktopFile = 'gnome-sound-panel.desktop'
+        let desktopFile = 'gnome-sound-panel.desktop';
         let app = Shell.AppSystem.get_default().lookup_app(desktopFile);
 
         if (!app) {
-            log('Settings panel for desktop file ' + desktopFile + ' could not be loaded!');
+            log(`Settings panel for desktop file ${desktopFile} could not be loaded!`);
             return;
         }
 
@@ -125,7 +124,7 @@ class AudioDeviceSelectionDialog extends ModalDialog.ModalDialog {
         Main.overview.hide();
         app.activate();
     }
-};
+});
 
 var AudioDeviceSelectionDBus = class AudioDeviceSelectionDBus {
     constructor() {
@@ -162,12 +161,12 @@ var AudioDeviceSelectionDBus = class AudioDeviceSelectionDBus {
 
         let [deviceNames] = params;
         let devices = 0;
-        deviceNames.forEach(n => { devices |= AudioDevice[n.toUpperCase()]; });
+        deviceNames.forEach(n => devices |= AudioDevice[n.toUpperCase()]);
 
         let dialog;
         try {
             dialog = new AudioDeviceSelectionDialog(devices);
-        } catch(e) {
+        } catch (e) {
             invocation.return_value(null);
             return;
         }

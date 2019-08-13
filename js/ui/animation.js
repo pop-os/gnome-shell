@@ -1,13 +1,12 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Animation, AnimatedIcon, Spinner */
 
-const { GLib, Gio, St } = imports.gi;
+const { Clutter, GLib, Gio, St } = imports.gi;
 const Mainloop = imports.mainloop;
 
-const Tweener = imports.ui.tweener;
-
 var ANIMATED_ICON_UPDATE_TIMEOUT = 16;
-var SPINNER_ANIMATION_TIME = 0.3;
-var SPINNER_ANIMATION_DELAY = 1.0;
+var SPINNER_ANIMATION_TIME = 300;
+var SPINNER_ANIMATION_DELAY = 1000;
 
 var Animation = class {
     constructor(file, width, height, speed) {
@@ -62,11 +61,11 @@ var Animation = class {
         if (!validResourceScale)
             return;
 
-        let texture_cache = St.TextureCache.get_default();
+        let textureCache = St.TextureCache.get_default();
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        this._animations = texture_cache.load_sliced_image(file, width, height,
-                                                           scaleFactor, resourceScale,
-                                                           this._animationsLoaded.bind(this));
+        this._animations = textureCache.load_sliced_image(file, width, height,
+                                                          scaleFactor, resourceScale,
+                                                          this._animationsLoaded.bind(this));
         this.actor.set_child(this._animations);
     }
 
@@ -123,7 +122,7 @@ var AnimatedIcon = class extends Animation {
 };
 
 var Spinner = class extends AnimatedIcon {
-    constructor(size, animate=false) {
+    constructor(size, animate = false) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/process-working.svg');
         super(file, size);
 
@@ -137,15 +136,15 @@ var Spinner = class extends AnimatedIcon {
     }
 
     play() {
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         if (this._animate) {
             super.play();
-            Tweener.addTween(this.actor, {
+            this.actor.ease({
                 opacity: 255,
                 delay: SPINNER_ANIMATION_DELAY,
-                time: SPINNER_ANIMATION_TIME,
-                transition: 'linear'
+                duration: SPINNER_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.LINEAR
             });
         } else {
             this.actor.opacity = 255;
@@ -154,16 +153,14 @@ var Spinner = class extends AnimatedIcon {
     }
 
     stop() {
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         if (this._animate) {
-            Tweener.addTween(this.actor, {
+            this.actor.ease({
                 opacity: 0,
                 time: SPINNER_ANIMATION_TIME,
                 transition: 'linear',
-                onComplete: () => {
-                    this.stop(false);
-                }
+                onComplete: () => super.stop()
             });
         } else {
             this.actor.opacity = 0;

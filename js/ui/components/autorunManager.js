@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Component */
 
 const { Gio, St } = imports.gi;
 
@@ -40,7 +41,7 @@ function isMountRootHidden(root) {
     let path = root.get_path();
 
     // skip any mounts in hidden directory hierarchies
-    return (path.indexOf('/.') != -1);
+    return (path.includes('/.'));
 }
 
 function isMountNonLocal(mount) {
@@ -65,8 +66,7 @@ function startAppForMount(app, mount) {
         retval = app.launch(files, 
                             global.create_app_launch_context(0, -1));
     } catch (e) {
-        log('Unable to launch the application ' + app.get_name()
-            + ': ' + e.toString());
+        log(`Unable to launch the application ${app.get_name()}: ${e}`);
     }
 
     return retval;
@@ -107,8 +107,7 @@ var ContentTypeDiscoverer = class {
         try {
             contentTypes = mount.guess_content_type_finish(res);
         } catch (e) {
-            log('Unable to guess content types on added mount ' + mount.get_name()
-                + ': ' + e.toString());
+            log(`Unable to guess content types on added mount ${mount.get_name()}: ${e}`);
         }
 
         if (contentTypes.length) {
@@ -124,10 +123,7 @@ var ContentTypeDiscoverer = class {
         }
     }
 
-    _emitCallback(mount, contentTypes) {
-        if (!contentTypes)
-            contentTypes = [];
-
+    _emitCallback(mount, contentTypes = []) {
         // we're not interested in win32 software content types here
         contentTypes = contentTypes.filter(
             type => (type != 'x-content/win32-software')
@@ -192,15 +188,15 @@ var AutorunDispatcher = class {
 
     _getAutorunSettingForType(contentType) {
         let runApp = this._settings.get_strv(SETTING_START_APP);
-        if (runApp.indexOf(contentType) != -1)
+        if (runApp.includes(contentType))
             return AutorunSetting.RUN;
 
         let ignore = this._settings.get_strv(SETTING_IGNORE);
-        if (ignore.indexOf(contentType) != -1)
+        if (ignore.includes(contentType))
             return AutorunSetting.IGNORE;
 
         let openFiles = this._settings.get_strv(SETTING_OPEN_FOLDER);
-        if (openFiles.indexOf(contentType) != -1)
+        if (openFiles.includes(contentType))
             return AutorunSetting.FILES;
 
         return AutorunSetting.ASK;

@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported LookingGlass */
 
 const { Clutter, Cogl, Gio, GLib,
         GObject, Meta, Pango, Shell, St } = imports.gi;
@@ -7,12 +8,12 @@ const Signals = imports.signals;
 const System = imports.system;
 
 const History = imports.misc.history;
-const ExtensionSystem = imports.ui.extensionSystem;
 const ExtensionUtils = imports.misc.extensionUtils;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const Main = imports.ui.main;
 const JsParse = imports.misc.jsParse;
+
+const { ExtensionState } = ExtensionUtils;
 
 const CHEVRON = '>>> ';
 
@@ -20,7 +21,6 @@ const CHEVRON = '>>> ';
 var commandHeader = 'const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi; ' +
                     'const Main = imports.ui.main; ' +
                     'const Mainloop = imports.mainloop; ' +
-                    'const Tweener = imports.ui.tweener; ' +
                     /* Utility functions...we should probably be able to use these
                      * in the shell core code too. */
                     'const stage = global.stage; ' +
@@ -32,8 +32,10 @@ var commandHeader = 'const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = im
 const HISTORY_KEY = 'looking-glass-history';
 // Time between tabs for them to count as a double-tab event
 var AUTO_COMPLETE_DOUBLE_TAB_DELAY = 500;
-var AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION = 0.2;
+var AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION = 200;
 var AUTO_COMPLETE_GLOBAL_KEYWORDS = _getAutoCompleteGlobalKeywords();
+
+const LG_ANIMATION_TIME = 500;
 
 function _getAutoCompleteGlobalKeywords() {
     const keywords = ['true', 'false', 'null', 'new'];
@@ -68,10 +70,10 @@ var AutoComplete = class AutoComplete {
             if (commonPrefix.length > 0) {
                 this.additionalCompletionText(commonPrefix, event.attrHead);
                 this.emit('completion', { completion: commonPrefix, type: 'prefix' });
-                this.emit('suggest', { completions: event.completions});
+                this.emit('suggest', { completions: event.completions });
             }
         } else if (event.completions.length > 1 && event.tabType === 'double') {
-            this.emit('suggest', { completions: event.completions});
+            this.emit('suggest', { completions: event.completions });
         }
     }
 
@@ -146,8 +148,8 @@ var Notebook = class Notebook {
         this.actor.add(scrollview, { expand: true });
 
         let vAdjust = scrollview.vscroll.adjustment;
-        vAdjust.connect('changed', () => { this._onAdjustScopeChanged(tabData); });
-        vAdjust.connect('notify::value', () => { this._onAdjustValueChanged(tabData); });
+        vAdjust.connect('changed', () => this._onAdjustScopeChanged(tabData));
+        vAdjust.connect('notify::value', () => this._onAdjustValueChanged(tabData));
 
         if (this._selectedIndex == -1)
             this.selectIndex(0);
@@ -185,9 +187,9 @@ var Notebook = class Notebook {
     }
 
     selectChild(child) {
-        if (child == null)
+        if (child == null) {
             this.selectIndex(-1);
-        else {
+        } else {
             for (let i = 0; i < this._tabs.length; i++) {
                 let tabData = this._tabs[i];
                 if (tabData.child == child) {
@@ -242,7 +244,7 @@ function objectToString(o) {
         // special case this since the default is way, way too verbose
         return '<js function>';
     } else {
-        return '' + o;
+        return `${o}`;
     }
 }
 
@@ -266,7 +268,7 @@ var ObjLink = class ObjLink {
         this._lookingGlass = lookingGlass;
     }
 
-    _onClicked(link) {
+    _onClicked() {
         this._lookingGlass.inspectObject(this._obj, this.actor);
     }
 };
@@ -284,7 +286,7 @@ var Result = class Result {
         this.actor.add(cmdTxt);
         let box = new St.BoxLayout({});
         this.actor.add(box);
-        let resultTxt = new St.Label({ text: 'r(' + index + ') = ' });
+        let resultTxt = new St.Label({ text: `r(${index}) = ` });
         resultTxt.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         box.add(resultTxt);
         let objLink = new ObjLink(this._lookingGlass, o);
@@ -320,7 +322,7 @@ var WindowList = class WindowList {
             box.add(windowLink.actor, { x_align: St.Align.START, x_fill: false });
             let propsBox = new St.BoxLayout({ vertical: true, style: 'padding-left: 6px;' });
             box.add(propsBox);
-            propsBox.add(new St.Label({ text: 'wmclass: ' + metaWindow.get_wm_class() }));
+            propsBox.add(new St.Label({ text: `wmclass: ${metaWindow.get_wm_class()}` }));
             let app = tracker.get_window_app(metaWindow);
             if (app != null && !app.is_window_backed()) {
                 let icon = app.create_icon_texture(22);
@@ -394,7 +396,6 @@ var ObjInspector = class ObjInspector {
 
             for (let i = 0; i < properties.length; i++) {
                 let propName = properties[i];
-                let valueStr;
                 let link;
                 try {
                     let prop = obj[propName];
@@ -403,8 +404,7 @@ var ObjInspector = class ObjInspector {
                     link = new St.Label({ text: '<error>' });
                 }
                 let hbox = new St.BoxLayout();
-                let propText = propName + ': ' + valueStr;
-                hbox.add(new St.Label({ text: propName + ': ' }));
+                hbox.add(new St.Label({ text: `${propName}: ` }));
                 hbox.add(link);
                 this._container.add_actor(hbox);
             }
@@ -419,9 +419,12 @@ var ObjInspector = class ObjInspector {
         this.actor.show();
         if (sourceActor) {
             this.actor.set_scale(0, 0);
-            Tweener.addTween(this.actor, { scale_x: 1, scale_y: 1,
-                                           transition: 'easeOutQuad',
-                                           time: 0.2 });
+            this.actor.ease({
+                scale_x: 1,
+                scale_y: 1,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                time: 200
+            });
         } else {
             this.actor.set_scale(1, 1);
         }
@@ -493,8 +496,13 @@ var Inspector = GObject.registerClass({
         eventHandler.connect('button-press-event', this._onButtonPressEvent.bind(this));
         eventHandler.connect('scroll-event', this._onScrollEvent.bind(this));
         eventHandler.connect('motion-event', this._onMotionEvent.bind(this));
-        Clutter.grab_pointer(eventHandler);
-        Clutter.grab_keyboard(eventHandler);
+
+        let dm = Clutter.DeviceManager.get_default();
+        this._pointerDevice = dm.get_core_device(Clutter.InputDeviceType.POINTER_DEVICE);
+        this._keyboardDevice = dm.get_core_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+
+        this._pointerDevice.grab(eventHandler);
+        this._keyboardDevice.grab(eventHandler);
 
         // this._target is the actor currently shown by the inspector.
         // this._pointerTarget is the actor directly under the pointer.
@@ -515,7 +523,7 @@ var Inspector = GObject.registerClass({
 
         let primary = Main.layoutManager.primaryMonitor;
 
-        let [minWidth, minHeight, natWidth, natHeight] =
+        let [, , natWidth, natHeight] =
             this._eventHandler.get_preferred_size();
 
         let childBox = new Clutter.ActorBox();
@@ -527,8 +535,8 @@ var Inspector = GObject.registerClass({
     }
 
     _close() {
-        Clutter.ungrab_pointer();
-        Clutter.ungrab_keyboard();
+        this._pointerDevice.ungrab();
+        this._keyboardDevice.ungrab();
         this._eventHandler.destroy();
         this._eventHandler = null;
         this.emit('closed');
@@ -551,7 +559,7 @@ var Inspector = GObject.registerClass({
 
     _onScrollEvent(actor, event) {
         switch (event.get_scroll_direction()) {
-        case Clutter.ScrollDirection.UP:
+        case Clutter.ScrollDirection.UP: {
             // select parent
             let parent = this._target.get_parent();
             if (parent != null) {
@@ -559,6 +567,7 @@ var Inspector = GObject.registerClass({
                 this._update(event);
             }
             break;
+        }
 
         case Clutter.ScrollDirection.DOWN:
             // select child
@@ -598,9 +607,9 @@ var Inspector = GObject.registerClass({
             this._target = target;
         this._pointerTarget = target;
 
-        let position = '[inspect x: ' + stageX + ' y: ' + stageY + ']';
+        let position = `[inspect x: ${stageX} y: ${stageY}]`;
         this._displayText.text = '';
-        this._displayText.text = position + ' ' + this._target;
+        this._displayText.text = `${position} ${this._target}`;
 
         this._lookingGlass.setBorderPaintTarget(this._target);
     }
@@ -612,22 +621,23 @@ var Extensions = class Extensions {
         this.actor = new St.BoxLayout({ vertical: true,
                                         name: 'lookingGlassExtensions' });
         this._noExtensions = new St.Label({ style_class: 'lg-extensions-none',
-                                             text: _("No extensions installed") });
+                                            text: _("No extensions installed") });
         this._numExtensions = 0;
         this._extensionsList = new St.BoxLayout({ vertical: true,
                                                   style_class: 'lg-extensions-list' });
         this._extensionsList.add(this._noExtensions);
         this.actor.add(this._extensionsList);
 
-        for (let uuid in ExtensionUtils.extensions)
+        Main.extensionManager.getUuids().forEach(uuid => {
             this._loadExtension(null, uuid);
+        });
 
-        ExtensionSystem.connect('extension-loaded',
-                                this._loadExtension.bind(this));
+        Main.extensionManager.connect('extension-loaded',
+                                      this._loadExtension.bind(this));
     }
 
     _loadExtension(o, uuid) {
-        let extension = ExtensionUtils.extensions[uuid];
+        let extension = Main.extensionManager.lookup(uuid);
         // There can be cases where we create dummy extension metadata
         // that's not really a proper extension. Don't bother with these.
         if (!extension.metadata.name)
@@ -684,17 +694,17 @@ var Extensions = class Extensions {
 
     _stateToString(extensionState) {
         switch (extensionState) {
-            case ExtensionSystem.ExtensionState.ENABLED:
-                return _("Enabled");
-            case ExtensionSystem.ExtensionState.DISABLED:
-            case ExtensionSystem.ExtensionState.INITIALIZED:
-                return _("Disabled");
-            case ExtensionSystem.ExtensionState.ERROR:
-                return _("Error");
-            case ExtensionSystem.ExtensionState.OUT_OF_DATE:
-                return _("Out of date");
-            case ExtensionSystem.ExtensionState.DOWNLOADING:
-                return _("Downloading");
+        case ExtensionState.ENABLED:
+            return _("Enabled");
+        case ExtensionState.DISABLED:
+        case ExtensionState.INITIALIZED:
+            return _("Disabled");
+        case ExtensionState.ERROR:
+            return _("Error");
+        case ExtensionState.OUT_OF_DATE:
+            return _("Out of date");
+        case ExtensionState.DOWNLOADING:
+            return _("Downloading");
         }
         return 'Unknown'; // Not translated, shouldn't appear
     }
@@ -702,7 +712,7 @@ var Extensions = class Extensions {
     _createExtensionDisplay(extension) {
         let box = new St.BoxLayout({ style_class: 'lg-extension', vertical: true });
         let name = new St.Label({ style_class: 'lg-extension-name',
-                                   text: extension.metadata.name });
+                                  text: extension.metadata.name });
         box.add(name, { expand: true });
         let description = new St.Label({ style_class: 'lg-extension-description',
                                          text: extension.metadata.description || 'No description' });
@@ -710,7 +720,6 @@ var Extensions = class Extensions {
 
         let metaBox = new St.BoxLayout({ style_class: 'lg-extension-meta' });
         box.add(metaBox);
-        let stateString = this._stateToString(extension.state);
         let state = new St.Label({ style_class: 'lg-extension-state',
                                    text: this._stateToString(extension.state) });
         metaBox.add(state);
@@ -795,7 +804,7 @@ var LookingGlass = class LookingGlass {
         inspectIcon.connect('button-press-event', () => {
             let inspector = new Inspector(this);
             inspector.connect('target', (i, target, stageX, stageY) => {
-                this._pushResult('inspect(' + Math.round(stageX) + ', ' + Math.round(stageY) + ')', target);
+                this._pushResult(`inspect(${Math.round(stageX)}, ${Math.round(stageY)})`, target);
             });
             inspector.connect('closed', () => {
                 this.actor.show();
@@ -810,15 +819,15 @@ var LookingGlass = class LookingGlass {
         toolbar.add_actor(gcIcon);
         gcIcon.reactive = true;
         gcIcon.connect('button-press-event', () => {
-           gcIcon.icon_name = 'user-trash';
-           System.gc();
-           this._timeoutId = Mainloop.timeout_add(500, () => {
+            gcIcon.icon_name = 'user-trash';
+            System.gc();
+            this._timeoutId = Mainloop.timeout_add(500, () => {
                 gcIcon.icon_name = 'user-trash-full';
                 this._timeoutId = 0;
                 return GLib.SOURCE_REMOVE;
-           });
-           GLib.Source.set_name_by_id(this._timeoutId, '[gnome-shell] gcIcon.icon_name = \'user-trash-full\'');
-           return Clutter.EVENT_PROPAGATE;
+            });
+            GLib.Source.set_name_by_id(this._timeoutId, '[gnome-shell] gcIcon.icon_name = \'user-trash-full\'');
+            return Clutter.EVENT_PROPAGATE;
         });
 
         let notebook = new Notebook();
@@ -851,7 +860,7 @@ var LookingGlass = class LookingGlass {
         this._extensions = new Extensions(this);
         notebook.appendPage('Extensions', this._extensions.actor);
 
-        this._entry.clutter_text.connect('activate', (o, e) => {
+        this._entry.clutter_text.connect('activate', (o, _e) => {
             // Hide any completions we are currently showing
             this._hideCompletions();
 
@@ -889,9 +898,11 @@ var LookingGlass = class LookingGlass {
         let fontDesc = Pango.FontDescription.from_string(fontName);
         // We ignore everything but size and style; you'd be crazy to set your system-wide
         // monospace font to be bold/oblique/etc. Could easily be added here.
-        this.actor.style =
-            'font-size: ' + fontDesc.get_size() / 1024. + (fontDesc.get_size_is_absolute() ? 'px' : 'pt') + ';'
-            + 'font-family: "' + fontDesc.get_family() + '";';
+        let size = fontDesc.get_size() / 1024.;
+        let unit = fontDesc.get_size_is_absolute() ? 'px' : 'pt';
+        this.actor.style = `
+            font-size: ${size}${unit};
+            font-family: "${fontDesc.get_family()}";`;
     }
 
     setBorderPaintTarget(obj) {
@@ -933,35 +944,41 @@ var LookingGlass = class LookingGlass {
         this._completionActor.set_text(completions.join(', '));
 
         // Setting the height to -1 allows us to get its actual preferred height rather than
-        // whatever was last given in set_height by Tweener.
+        // whatever was last set when animating
         this._completionActor.set_height(-1);
-        let [minHeight, naturalHeight] = this._completionActor.get_preferred_height(this._resultsArea.get_width());
+        let [, naturalHeight] = this._completionActor.get_preferred_height(this._resultsArea.get_width());
 
         // Don't reanimate if we are already visible
         if (this._completionActor.visible) {
             this._completionActor.height = naturalHeight;
         } else {
+            let settings = St.Settings.get();
+            let duration = AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / settings.slow_down_factor;
             this._completionActor.show();
-            Tweener.removeTweens(this._completionActor);
-            Tweener.addTween(this._completionActor, { time: AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / St.get_slow_down_factor(),
-                                                      transition: 'easeOutQuad',
-                                                      height: naturalHeight,
-                                                      opacity: 255
-                                                    });
+            this._completionActor.remove_all_transitions();
+            this._completionActor.ease({
+                height: naturalHeight,
+                opacity: 255,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
     }
 
     _hideCompletions() {
         if (this._completionActor) {
-            Tweener.removeTweens(this._completionActor);
-            Tweener.addTween(this._completionActor, { time: AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / St.get_slow_down_factor(),
-                                                      transition: 'easeOutQuad',
-                                                      height: 0,
-                                                      opacity: 0,
-                                                      onComplete: () => {
-                                                          this._completionActor.hide();
-                                                      }
-                                                    });
+            let settings = St.Settings.get();
+            let duration = AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / settings.slow_down_factor;
+            this._completionActor.remove_all_transitions();
+            this._completionActor.ease({
+                height: 0,
+                opacity: 0,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._completionActor.hide();
+                }
+            });
         }
     }
 
@@ -977,7 +994,7 @@ var LookingGlass = class LookingGlass {
         try {
             resultObj = Function(fullCmd)();
         } catch (e) {
-            resultObj = '<exception ' + e + '>';
+            resultObj = `<exception ${e}>`;
         }
 
         this._pushResult(command, resultObj);
@@ -1004,7 +1021,10 @@ var LookingGlass = class LookingGlass {
     }
 
     _queueResize() {
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => { this._resize(); });
+        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._resize();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _resize() {
@@ -1067,14 +1087,16 @@ var LookingGlass = class LookingGlass {
         this._open = true;
         this._history.lastItem();
 
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         // We inverse compensate for the slow-down so you can change the factor
         // through LookingGlass without long waits.
-        Tweener.addTween(this.actor, { time: 0.5 / St.get_slow_down_factor(),
-                                       transition: 'easeOutQuad',
-                                       y: this._targetY
-                                     });
+        let duration = LG_ANIMATION_TIME / St.Settings.get().slow_down_factor;
+        this.actor.ease({
+            y: this._targetY,
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     close() {
@@ -1084,19 +1106,21 @@ var LookingGlass = class LookingGlass {
         this._objInspector.actor.hide();
 
         this._open = false;
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         this.setBorderPaintTarget(null);
 
         Main.popModal(this._entry);
 
-        Tweener.addTween(this.actor, { time: Math.min(0.5 / St.get_slow_down_factor(), 0.5),
-                                       transition: 'easeOutQuad',
-                                       y: this._hiddenY,
-                                       onComplete: () => {
-                                           this.actor.hide();
-                                       }
-                                     });
+        let settings = St.Settings.get();
+        let duration = Math.min(LG_ANIMATION_TIME / settings.slow_down_factor,
+                                LG_ANIMATION_TIME);
+        this.actor.ease({
+            y: this._hiddenY,
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.actor.hide()
+        });
     }
 };
 Signals.addSignalMethods(LookingGlass.prototype);

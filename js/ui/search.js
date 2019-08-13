@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Clutter, Gio, GLib, GObject, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const AppDisplay = imports.ui.appDisplay;
@@ -14,8 +14,8 @@ const SEARCH_PROVIDERS_SCHEMA = 'org.gnome.desktop.search-providers';
 var MAX_LIST_SEARCH_RESULTS_ROWS = 5;
 var MAX_GRID_SEARCH_RESULTS_ROWS = 1;
 
-var MaxWidthBin = GObject.registerClass(
-class MaxWidthBin extends St.Bin {
+var MaxWidthBox = GObject.registerClass(
+class MaxWidthBox extends St.BoxLayout {
     vfunc_allocate(box, flags) {
         let themeNode = this.get_theme_node();
         let maxWidth = themeNode.get_max_width();
@@ -192,7 +192,7 @@ var SearchResultsBase = class {
         Main.overview.toggle();
     }
 
-    _setMoreCount(count) {
+    _setMoreCount(_count) {
     }
 
     _ensureResultActors(results, callback) {
@@ -214,13 +214,13 @@ var SearchResultsBase = class {
                     return;
                 }
                 if (metas.length != metasNeeded.length) {
-                    log('Wrong number of result metas returned by search provider ' + this.provider.id +
-                        ': expected ' + metasNeeded.length + ' but got ' + metas.length);
+                    log(`Wrong number of result metas returned by search provider ${this.provider.id}: ` +
+                        `expected ${metasNeeded.length} but got ${metas.length}`);
                     callback(false);
                     return;
                 }
                 if (metas.some(meta => !meta.name || !meta.id)) {
-                    log('Invalid result meta returned from search provider ' + this.provider.id);
+                    log(`Invalid result meta returned from search provider ${this.provider.id}`);
                     callback(false);
                     return;
                 }
@@ -245,7 +245,9 @@ var SearchResultsBase = class {
             callback();
         } else {
             let maxResults = this._getMaxDisplayedResults();
-            let results = this.provider.filterResults(providerResults, maxResults);
+            let results = maxResults > -1
+                ? this.provider.filterResults(providerResults, maxResults)
+                : providerResults;
             let moreCount = Math.max(providerResults.length - results.length, 0);
 
             this._ensureResultActors(results, successful => {
@@ -309,7 +311,7 @@ var ListSearchResults = class extends SearchResultsBase {
     }
 
     _createResultDisplay(meta) {
-        return super._createResultDisplay(meta, this._resultsView) ||
+        return super._createResultDisplay(meta) ||
                new ListSearchResult(this.provider, meta, this._resultsView);
     }
 
@@ -329,12 +331,6 @@ Signals.addSignalMethods(ListSearchResults.prototype);
 var GridSearchResults = class extends SearchResultsBase {
     constructor(provider, resultsView) {
         super(provider, resultsView);
-        // We need to use the parent container to know how much results we can show.
-        // None of the actors in this class can be used for that, since the main actor
-        // goes hidden when no results are displayed, and then it lost its allocation.
-        // Then on the next use of _getMaxDisplayedResults allocation is 0, en therefore
-        // it doesn't show any result although we have some.
-        this._parentContainer = resultsView.actor;
 
         this._grid = new IconGrid.IconGrid({ rowLimit: MAX_GRID_SEARCH_RESULTS_ROWS,
                                              xAlign: St.Align.START });
@@ -345,10 +341,29 @@ var GridSearchResults = class extends SearchResultsBase {
         this._resultDisplayBin.set_child(this._bin);
     }
 
+    updateSearch(...args) {
+        if (this._notifyAllocationId)
+            this.actor.disconnect(this._notifyAllocationId);
+
+        // Make sure the maximum number of results calculated by
+        // _getMaxDisplayedResults() is updated after width changes.
+        this._notifyAllocationId = this.actor.connect('notify::allocation', () => {
+            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                super.updateSearch(...args);
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+
+        super.updateSearch(...args);
+    }
+
     _getMaxDisplayedResults() {
-        let parentThemeNode = this._parentContainer.get_theme_node();
-        let availableWidth = parentThemeNode.adjust_for_width(this._parentContainer.width);
-        return this._grid.columnsForWidth(availableWidth) * this._grid.getRowLimit();
+        let width = this.actor.allocation.x2 - this.actor.allocation.x1;
+        if (width == 0)
+            return -1;
+
+        let nCols = this._grid.columnsForWidth(width);
+        return nCols * this._grid.getRowLimit();
     }
 
     _clearResultDisplay() {
@@ -356,7 +371,7 @@ var GridSearchResults = class extends SearchResultsBase {
     }
 
     _createResultDisplay(meta) {
-        return super._createResultDisplay(meta, this._resultsView) ||
+        return super._createResultDisplay(meta) ||
                new GridSearchResult(this.provider, meta, this._resultsView);
     }
 
@@ -378,22 +393,16 @@ var SearchResults = class {
         this.actor = new St.BoxLayout({ name: 'searchResults',
                                         vertical: true });
 
-        this._content = new St.BoxLayout({ name: 'searchResultsContent',
-                                           vertical: true });
-        this._contentBin = new MaxWidthBin({ name: 'searchResultsBin',
-                                             x_fill: true,
-                                             y_fill: true,
-                                             child: this._content });
-
-        let scrollChild = new St.BoxLayout();
-        scrollChild.add(this._contentBin, { expand: true });
+        this._content = new MaxWidthBox({ name: 'searchResultsContent',
+                                          vertical: true });
 
         this._scrollView = new St.ScrollView({ x_fill: true,
                                                y_fill: false,
                                                overlay_scrollbars: true,
                                                style_class: 'search-display vfade' });
         this._scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
-        this._scrollView.add_actor(scrollChild);
+        this._scrollView.add_actor(this._content);
+
         let action = new Clutter.PanAction({ interpolate: true });
         action.connect('pan', this._onPan.bind(this));
         this._scrollView.add_action(action);
@@ -431,6 +440,9 @@ var SearchResults = class {
         this._cancellable = new Gio.Cancellable();
 
         this._registerProvider(new AppDisplay.AppSearchProvider());
+
+        let appSystem = Shell.AppSystem.get_default();
+        appSystem.connect('installed-changed', this._reloadRemoteProviders.bind(this));
         this._reloadRemoteProviders();
     }
 
@@ -556,7 +568,7 @@ var SearchResults = class {
     }
 
     _onPan(action) {
-        let [dist, dx, dy] = action.get_motion_delta(0);
+        let [dist_, dx_, dy] = action.get_motion_delta(0);
         let adjustment = this._scrollView.vscroll.adjustment;
         adjustment.value -= (dy / this.actor.height) * adjustment.page_size;
         return false;

@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Overview */
 
 const { Clutter, GLib, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -12,16 +13,15 @@ const Main = imports.ui.main;
 const MessageTray = imports.ui.messageTray;
 const OverviewControls = imports.ui.overviewControls;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 const WorkspaceThumbnail = imports.ui.workspaceThumbnail;
 
 // Time for initial animation going into Overview mode
-var ANIMATION_TIME = 0.25;
+var ANIMATION_TIME = 250;
 
 // Must be less than ANIMATION_TIME, since we switch to
 // or from the overview completely after ANIMATION_TIME,
 // and don't want the shading animation to get cut off
-var SHADE_ANIMATION_TIME = .20;
+var SHADE_ANIMATION_TIME = 200;
 
 var DND_WINDOW_SWITCH_TIMEOUT = 750;
 
@@ -173,24 +173,28 @@ var Overview = class {
     _unshadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
         for (let i = 0; i < backgrounds.length; i++) {
-            Tweener.addTween(backgrounds[i],
-                             { brightness: 1.0,
-                               vignette_sharpness: 0.0,
-                               time: SHADE_ANIMATION_TIME,
-                               transition: 'easeOutQuad'
-                             });
+            backgrounds[i].ease_property('brightness', 1.0, {
+                duration: SHADE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
+            backgrounds[i].ease_property('vignette-sharpness', 0.0, {
+                duration: SHADE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
     }
 
     _shadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
         for (let i = 0; i < backgrounds.length; i++) {
-            Tweener.addTween(backgrounds[i],
-                             { brightness: Lightbox.VIGNETTE_BRIGHTNESS,
-                               vignette_sharpness: Lightbox.VIGNETTE_SHARPNESS,
-                               time: SHADE_ANIMATION_TIME,
-                               transition: 'easeOutQuad'
-                             });
+            backgrounds[i].ease_property('brightness', Lightbox.VIGNETTE_BRIGHTNESS, {
+                duration: SHADE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
+            backgrounds[i].ease_property('vignette-sharpness', Lightbox.VIGNETTE_SHARPNESS, {
+                duration: SHADE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
     }
 
@@ -386,16 +390,16 @@ var Overview = class {
         this.emit('windows-restacked', stackIndices);
     }
 
-    beginItemDrag(source) {
+    beginItemDrag(_source) {
         this.emit('item-drag-begin');
         this._inItemDrag = true;
     }
 
-    cancelledItemDrag(source) {
+    cancelledItemDrag(_source) {
         this.emit('item-drag-cancelled');
     }
 
-    endItemDrag(source) {
+    endItemDrag(_source) {
         if (!this._inItemDrag)
             return;
         this.emit('item-drag-end');
@@ -424,12 +428,13 @@ var Overview = class {
     }
 
     fadeInDesktop() {
-            this._desktopFade.opacity = 0;
-            this._desktopFade.show();
-            Tweener.addTween(this._desktopFade,
-                             { opacity: 255,
-                               time: ANIMATION_TIME,
-                               transition: 'easeOutQuad' });
+        this._desktopFade.opacity = 0;
+        this._desktopFade.show();
+        this._desktopFade.ease({
+            opacity: 255,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: ANIMATION_TIME
+        });
     }
 
     fadeOutDesktop() {
@@ -443,11 +448,11 @@ var Overview = class {
 
         this._desktopFade.opacity = 255;
         this._desktopFade.show();
-        Tweener.addTween(this._desktopFade,
-                         { opacity: 0,
-                           time: ANIMATION_TIME,
-                           transition: 'easeOutQuad'
-                         });
+        this._desktopFade.ease({
+            opacity: 0,
+            mode: Clutter.Animates.EASE_OUT_QUAD,
+            duration: ANIMATION_TIME
+        });
     }
 
     // Checks if the Activities button is currently sensitive to
@@ -527,13 +532,12 @@ var Overview = class {
         this.viewSelector.show();
 
         this._overview.opacity = 0;
-        Tweener.addTween(this._overview,
-                         { opacity: 255,
-                           transition: 'easeOutQuad',
-                           time: ANIMATION_TIME,
-                           onComplete: this._showDone,
-                           onCompleteScope: this
-                         });
+        this._overview.ease({
+            opacity: 255,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: ANIMATION_TIME,
+            onComplete: () => this._showDone()
+        });
         this._shadeBackgrounds();
 
         this._coverPane.raise_top();
@@ -591,13 +595,12 @@ var Overview = class {
         this.viewSelector.animateFromOverview();
 
         // Make other elements fade out.
-        Tweener.addTween(this._overview,
-                         { opacity: 0,
-                           transition: 'easeOutQuad',
-                           time: ANIMATION_TIME,
-                           onComplete: this._hideDone,
-                           onCompleteScope: this
-                         });
+        this._overview.ease({
+            opacity: 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: ANIMATION_TIME,
+            onComplete: () => this._hideDone()
+        });
         this._unshadeBackgrounds();
 
         this._coverPane.raise_top();

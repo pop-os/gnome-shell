@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported WindowManager */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -11,7 +12,6 @@ const WorkspaceSwitcherPopup = imports.ui.workspaceSwitcherPopup;
 const InhibitShortcutsDialog = imports.ui.inhibitShortcutsDialog;
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
-const Tweener = imports.ui.tweener;
 const WindowMenu = imports.ui.windowMenu;
 const PadOsd = imports.ui.padOsd;
 const EdgeDragAction = imports.ui.edgeDragAction;
@@ -21,15 +21,15 @@ const SwitchMonitor = imports.ui.switchMonitor;
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
 var SHELL_KEYBINDINGS_SCHEMA = 'org.gnome.shell.keybindings';
-var MINIMIZE_WINDOW_ANIMATION_TIME = 0.2;
-var SHOW_WINDOW_ANIMATION_TIME = 0.15;
-var DIALOG_SHOW_WINDOW_ANIMATION_TIME = 0.1;
-var DESTROY_WINDOW_ANIMATION_TIME = 0.15;
-var DIALOG_DESTROY_WINDOW_ANIMATION_TIME = 0.1;
-var WINDOW_ANIMATION_TIME = 0.25;
+var MINIMIZE_WINDOW_ANIMATION_TIME = 200;
+var SHOW_WINDOW_ANIMATION_TIME = 150;
+var DIALOG_SHOW_WINDOW_ANIMATION_TIME = 100;
+var DESTROY_WINDOW_ANIMATION_TIME = 150;
+var DIALOG_DESTROY_WINDOW_ANIMATION_TIME = 100;
+var WINDOW_ANIMATION_TIME = 250;
 var DIM_BRIGHTNESS = -0.3;
-var DIM_TIME = 0.500;
-var UNDIM_TIME = 0.250;
+var DIM_TIME = 500;
+var UNDIM_TIME = 250;
 var MOTION_THRESHOLD = 100;
 
 var ONE_SECOND = 1000; // in ms
@@ -40,9 +40,10 @@ const GSD_WACOM_OBJECT_PATH = '/org/gnome/SettingsDaemon/Wacom';
 const GsdWacomIface = loadInterfaceXML('org.gnome.SettingsDaemon.Wacom');
 const GsdWacomProxy = Gio.DBusProxy.makeProxyWrapper(GsdWacomIface);
 
-var DisplayChangeDialog = class extends ModalDialog.ModalDialog {
-    constructor(wm) {
-        super({ styleClass: 'prompt-dialog' });
+var DisplayChangeDialog = GObject.registerClass(
+class DisplayChangeDialog extends ModalDialog.ModalDialog {
+    _init(wm) {
+        super._init({ styleClass: 'prompt-dialog' });
 
         this._wm = wm;
 
@@ -59,13 +60,13 @@ var DisplayChangeDialog = class extends ModalDialog.ModalDialog {
                                { x_fill: true,
                                  y_fill: true });
 
-        /* Translators: this and the following message should be limited in lenght,
+        /* Translators: this and the following message should be limited in length,
            to avoid ellipsizing the labels.
         */
         this._cancelButton = this.addButton({ label: _("Revert Settings"),
                                               action: this._onFailure.bind(this),
                                               key: Clutter.Escape });
-        this._okButton = this.addButton({ label:  _("Keep Changes"),
+        this._okButton = this.addButton({ label: _("Keep Changes"),
                                           action: this._onSuccess.bind(this),
                                           default: true });
 
@@ -111,20 +112,23 @@ var DisplayChangeDialog = class extends ModalDialog.ModalDialog {
         this._wm.complete_display_change(true);
         this.close();
     }
-};
+});
 
 var WindowDimmer = class {
     constructor(actor) {
-        this._brightnessEffect = new Clutter.BrightnessContrastEffect();
+        this._brightnessEffect = new Clutter.BrightnessContrastEffect({
+            name: 'dim',
+            enabled: false
+        });
         actor.add_effect(this._brightnessEffect);
         this.actor = actor;
         this._enabled = true;
-        this._dimFactor = 0.0;
-        this._syncEnabled();
     }
 
     _syncEnabled() {
-        this._brightnessEffect.enabled = (this._enabled && this._dimFactor > 0);
+        let animating = this.actor.get_transition('@effects.dim.brightness') != null;
+        let dimmed = this._brightnessEffect.brightness.red != 127;
+        this._brightnessEffect.enabled = this._enabled && (animating || dimmed);
     }
 
     setEnabled(enabled) {
@@ -132,14 +136,17 @@ var WindowDimmer = class {
         this._syncEnabled();
     }
 
-    set dimFactor(factor) {
-        this._dimFactor = factor;
-        this._brightnessEffect.set_brightness(factor * DIM_BRIGHTNESS);
-        this._syncEnabled();
-    }
+    setDimmed(dimmed, animate) {
+        let val = 127 * (1 + (dimmed ? 1 : 0) * DIM_BRIGHTNESS);
+        let color = Clutter.Color.new(val, val, val, 255);
 
-    get dimFactor() {
-        return this._dimFactor;
+        this.actor.ease_property('@effects.dim.brightness', color, {
+            mode: Clutter.AnimationMode.LINEAR,
+            duration: (dimmed ? DIM_TIME : UNDIM_TIME) * (animate ? 1 : 0),
+            onComplete: () => this._syncEnabled()
+        });
+
+        this._syncEnabled();
     }
 };
 
@@ -250,7 +257,7 @@ var WorkspaceTracker = class {
         }
 
         // If we don't have an empty workspace at the end, add one
-        if (!emptyWorkspaces[emptyWorkspaces.length -1]) {
+        if (!emptyWorkspaces[emptyWorkspaces.length - 1]) {
             workspaceManager.append_new_workspace(false, global.get_current_time());
             emptyWorkspaces.push(true);
         }
@@ -296,14 +303,14 @@ var WorkspaceTracker = class {
         GLib.Source.set_name_by_id(id, '[gnome-shell] this._queueCheckWorkspaces');
     }
 
-    _windowLeftMonitor(metaDisplay, monitorIndex, metaWin) {
+    _windowLeftMonitor(metaDisplay, monitorIndex, _metaWin) {
         // If the window left the primary monitor, that
         // might make that workspace empty
         if (monitorIndex == Main.layoutManager.primaryIndex)
             this._queueCheckWorkspaces();
     }
 
-    _windowEnteredMonitor(metaDisplay, monitorIndex, metaWin) {
+    _windowEnteredMonitor(metaDisplay, monitorIndex, _metaWin) {
         // If the window entered the primary monitor, that
         // might make that workspace non-empty
         if (monitorIndex == Main.layoutManager.primaryIndex)
@@ -330,7 +337,6 @@ var WorkspaceTracker = class {
         if (oldNumWorkspaces == newNumWorkspaces)
             return false;
 
-        let lostWorkspaces = [];
         if (newNumWorkspaces > oldNumWorkspaces) {
             let w;
 
@@ -412,15 +418,15 @@ var TilePreview = class {
 
         this._showing = true;
         this.actor.show();
-        Tweener.addTween(this.actor,
-                         { x: tileRect.x,
-                           y: tileRect.y,
-                           width: tileRect.width,
-                           height: tileRect.height,
-                           opacity: 255,
-                           time: WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad'
-                         });
+        this.actor.ease({
+            x: tileRect.x,
+            y: tileRect.y,
+            width: tileRect.width,
+            height: tileRect.height,
+            opacity: 255,
+            duration: WINDOW_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     hide() {
@@ -428,12 +434,12 @@ var TilePreview = class {
             return;
 
         this._showing = false;
-        Tweener.addTween(this.actor,
-                         { opacity: 0,
-                           time: WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._reset.bind(this)
-                         });
+        this.actor.ease({
+            opacity: 0,
+            duration: WINDOW_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._reset()
+        });
     }
 
     _reset() {
@@ -462,7 +468,7 @@ var TouchpadWorkspaceSwitchAction = class {
         this._dy = 0;
         this._enabled = true;
         actor.connect('captured-event', this._handleEvent.bind(this));
-	this._touchpadSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.peripherals.touchpad'});
+        this._touchpadSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.peripherals.touchpad' });
     }
 
     get enabled() {
@@ -514,11 +520,11 @@ var TouchpadWorkspaceSwitchAction = class {
 
             // Scale deltas up a bit to make it feel snappier
             this._dx += dx * 2;
-	    if(!(this._touchpadSettings.get_boolean('natural-scroll'))) 
-		this._dy -= dy * 2;
-	    else
-		this._dy += dy * 2;
-	    
+            if (!(this._touchpadSettings.get_boolean('natural-scroll')))
+                this._dy -= dy * 2;
+            else
+                this._dy += dy * 2;
+
             this.emit('motion', this._dx, this._dy);
         } else {
             if ((event.get_gesture_phase() == Clutter.TouchpadGesturePhase.END && ! this._checkActivated()) ||
@@ -537,7 +543,7 @@ Signals.addSignalMethods(TouchpadWorkspaceSwitchAction.prototype);
 var WorkspaceSwitchAction = GObject.registerClass({
     Signals: { 'activated': { param_types: [Meta.MotionDirection.$gtype] },
                'motion':    { param_types: [GObject.TYPE_DOUBLE, GObject.TYPE_DOUBLE] },
-               'cancel':    { param_types: [] }},
+               'cancel':    { param_types: [] } },
 }, class WorkspaceSwitchAction extends Clutter.SwipeAction {
     _init(allowedModes) {
         super._init();
@@ -559,14 +565,14 @@ var WorkspaceSwitchAction = GObject.registerClass({
         return (this._allowedModes & Main.actionMode);
     }
 
-    vfunc_gesture_progress(actor) {
+    vfunc_gesture_progress(_actor) {
         let [x, y] = this.get_motion_coords(0);
         let [xPress, yPress] = this.get_press_coords(0);
         this.emit('motion', x - xPress, y - yPress);
         return true;
     }
 
-    vfunc_gesture_cancel(actor) {
+    vfunc_gesture_cancel(_actor) {
         if (!this._swept)
             this.emit('cancel');
     }
@@ -608,7 +614,7 @@ var AppSwitchAction = GObject.registerClass({
         });
     }
 
-    vfunc_gesture_prepare(actor) {
+    vfunc_gesture_prepare(_actor) {
         if (Main.actionMode != Shell.ActionMode.NORMAL) {
             this.cancel();
             return false;
@@ -617,7 +623,7 @@ var AppSwitchAction = GObject.registerClass({
         return this.get_n_current_points() <= 4;
     }
 
-    vfunc_gesture_begin(actor) {
+    vfunc_gesture_begin(_actor) {
         // in milliseconds
         const LONG_PRESS_TIMEOUT = 250;
 
@@ -630,9 +636,9 @@ var AppSwitchAction = GObject.registerClass({
             // Check whether the 4th finger press happens after a 3-finger long press,
             // this only needs to be checked on the first 4th finger press
             if (this._longPressStartTime != null &&
-                event.get_time() < this._longPressStartTime + LONG_PRESS_TIMEOUT)
+                event.get_time() < this._longPressStartTime + LONG_PRESS_TIMEOUT) {
                 this.cancel();
-            else {
+            } else {
                 this._longPressStartTime = null;
                 this.emit('activated');
             }
@@ -641,7 +647,7 @@ var AppSwitchAction = GObject.registerClass({
         return this.get_n_current_points() <= 4;
     }
 
-    vfunc_gesture_progress(actor) {
+    vfunc_gesture_progress(_actor) {
         const MOTION_THRESHOLD = 30;
 
         if (this.get_n_current_points() == 3) {
@@ -926,12 +932,6 @@ var WindowManager = class {
                                         Shell.ActionMode.OVERVIEW,
                                         this._startSwitcher.bind(this));
 
-        this.addKeybinding('pause-resume-tweens',
-                           new Gio.Settings({ schema_id: SHELL_KEYBINDINGS_SCHEMA }),
-                           Meta.KeyBindingFlags.NONE,
-                           Shell.ActionMode.ALL,
-                           this._toggleTweens.bind(this));
-
         this.addKeybinding('open-application-menu',
                            new Gio.Settings({ schema_id: SHELL_KEYBINDINGS_SCHEMA }),
                            Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
@@ -1032,7 +1032,7 @@ var WindowManager = class {
             //FIXME: Fix num buttons
             for (let i = 0; i < 50; i++) {
                 let str = display.get_pad_action_label(pad, Meta.PadActionType.BUTTON, i);
-                labels.push(str ? str: '');
+                labels.push(str ? str : '');
             }
 
             if (this._gsdWacomProxy) {
@@ -1059,35 +1059,35 @@ var WindowManager = class {
                                                            false, -1, 1);
 
         let allowedModes = Shell.ActionMode.NORMAL;
-        let gesture = new WorkspaceSwitchAction(allowedModes);
-        gesture.connect('motion', this._switchWorkspaceMotion.bind(this));
-        gesture.connect('activated', this._actionSwitchWorkspace.bind(this));
-        gesture.connect('cancel', this._switchWorkspaceCancel.bind(this));
-        global.stage.add_action(gesture);
+        let workspaceSwitchAction = new WorkspaceSwitchAction(allowedModes);
+        workspaceSwitchAction.connect('motion', this._switchWorkspaceMotion.bind(this));
+        workspaceSwitchAction.connect('activated', this._actionSwitchWorkspace.bind(this));
+        workspaceSwitchAction.connect('cancel', this._switchWorkspaceCancel.bind(this));
+        global.stage.add_action(workspaceSwitchAction);
 
         // This is not a normal Clutter.GestureAction, doesn't need add_action()
-        gesture = new TouchpadWorkspaceSwitchAction(global.stage, allowedModes);
-        gesture.connect('motion', this._switchWorkspaceMotion.bind(this));
-        gesture.connect('activated', this._actionSwitchWorkspace.bind(this));
-        gesture.connect('cancel', this._switchWorkspaceCancel.bind(this));
+        let touchpadSwitchAction = new TouchpadWorkspaceSwitchAction(global.stage, allowedModes);
+        touchpadSwitchAction.connect('motion', this._switchWorkspaceMotion.bind(this));
+        touchpadSwitchAction.connect('activated', this._actionSwitchWorkspace.bind(this));
+        touchpadSwitchAction.connect('cancel', this._switchWorkspaceCancel.bind(this));
 
-        gesture = new AppSwitchAction();
-        gesture.connect('activated', this._switchApp.bind(this));
-        global.stage.add_action(gesture);
+        let appSwitchAction = new AppSwitchAction();
+        appSwitchAction.connect('activated', this._switchApp.bind(this));
+        global.stage.add_action(appSwitchAction);
 
         let mode = Shell.ActionMode.ALL & ~Shell.ActionMode.LOCK_SCREEN;
-        gesture = new EdgeDragAction.EdgeDragAction(St.Side.BOTTOM, mode);
-        gesture.connect('activated', () => {
+        let bottomDragAction = new EdgeDragAction.EdgeDragAction(St.Side.BOTTOM, mode);
+        bottomDragAction.connect('activated', () => {
             Main.keyboard.show(Main.layoutManager.bottomIndex);
         });
         Main.layoutManager.connect('keyboard-visible-changed', (manager, visible) => {
-            gesture.cancel();
-            gesture.set_enabled(!visible);
+            bottomDragAction.cancel();
+            bottomDragAction.set_enabled(!visible);
         });
-        global.stage.add_action(gesture);
+        global.stage.add_action(bottomDragAction);
 
-        gesture = new EdgeDragAction.EdgeDragAction(St.Side.TOP, mode);
-        gesture.connect('activated',  () => {
+        let topDragAction = new EdgeDragAction.EdgeDragAction(St.Side.TOP, mode);
+        topDragAction.connect('activated',  () => {
             let currentWindow = global.display.focus_window;
             if (currentWindow)
                 currentWindow.unmake_fullscreen();
@@ -1095,18 +1095,18 @@ var WindowManager = class {
 
         let updateUnfullscreenGesture = () => {
             let currentWindow = global.display.focus_window;
-            gesture.enabled = currentWindow && currentWindow.is_fullscreen();
-        }
+            topDragAction.enabled = currentWindow && currentWindow.is_fullscreen();
+        };
 
         global.display.connect('notify::focus-window', updateUnfullscreenGesture);
         global.display.connect('in-fullscreen-changed', updateUnfullscreenGesture);
 
-        global.stage.add_action(gesture);
+        global.stage.add_action(topDragAction);
     }
 
     _showPadOsd(display, device, settings, imagePath, editionMode, monitorIndex) {
         this._currentPadOsd = new PadOsd.PadOsd(device, settings, imagePath, editionMode, monitorIndex);
-        this._currentPadOsd.connect('closed', () => { this._currentPadOsd = null });
+        this._currentPadOsd.connect('closed', () => this._currentPadOsd = null);
 
         return this._currentPadOsd.actor;
     }
@@ -1135,15 +1135,13 @@ var WindowManager = class {
             return;
         let switchData = this._switchData;
         this._switchData = null;
-        Tweener.addTween(switchData.container,
-                         { x: 0,
-                           y: 0,
-                           time: WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._finishWorkspaceSwitch,
-                           onCompleteScope: this,
-                           onCompleteParams: [switchData],
-                         });
+        switchData.container.ease({
+            x: 0,
+            y: 0,
+            duration: WINDOW_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._finishWorkspaceSwitch(switchData)
+        });
     }
 
     _actionSwitchWorkspace(action, direction) {
@@ -1183,9 +1181,9 @@ var WindowManager = class {
         let focusWindow = global.display.focus_window;
         let nextWindow;
 
-        if (focusWindow == null)
+        if (focusWindow == null) {
             nextWindow = windows[0].metaWindow;
-        else {
+        } else {
             let index = this._lookupIndex (windows, focusWindow) + 1;
 
             if (index >= windows.length)
@@ -1203,41 +1201,9 @@ var WindowManager = class {
         if (!Meta.prefs_get_dynamic_workspaces())
             return;
 
-        workspaceManager.append_new_workspace(false, global.get_current_time());
-
-        let windows = global.get_window_actors().map(a => a.meta_window);
-
-        // To create a new workspace, we slide all the windows on workspaces
-        // below us to the next workspace, leaving a blank workspace for us
-        // to recycle.
-        windows.forEach(window => {
-            // If the window is attached to an ancestor, we don't need/want
-            // to move it
-            if (window.get_transient_for() != null)
-                return;
-            // Same for OR windows
-            if (window.is_override_redirect())
-                return;
-            // Sticky windows don't need moving, in fact moving would
-            // unstick them
-            if (window.on_all_workspaces)
-                return;
-            // Windows on workspaces below pos don't need moving
-            let index = window.get_workspace().index();
-            if (index < pos)
-                return;
-            window.change_workspace_by_index(index + 1, true);
-        });
-
-        // If the new workspace was inserted before the active workspace,
-        // activate the workspace to which its windows went
-        let activeIndex = workspaceManager.get_active_workspace_index();
-        if (activeIndex >= pos) {
-            let newWs = workspaceManager.get_workspace_by_index(activeIndex + 1);
-            this._blockAnimations = true;
-            newWs.activate(global.get_current_time());
-            this._blockAnimations = false;
-        }
+        let newWs = workspaceManager.append_new_workspace(
+            false, global.get_current_time());
+        workspaceManager.reorder_workspace(newWs, pos);
     }
 
     keepWorkspaceAlive(workspace, duration) {
@@ -1273,7 +1239,7 @@ var WindowManager = class {
     }
 
     _shouldAnimate() {
-        return !(Main.overview.visible || this._blockAnimations);
+        return !Main.overview.visible;
     }
 
     _shouldAnimateActor(actor, types) {
@@ -1287,7 +1253,7 @@ var WindowManager = class {
             return false;
 
         let type = actor.meta_window.get_window_type();
-        return types.indexOf(type) >= 0;
+        return types.includes(type);
     }
 
     _removeEffect(list, actor) {
@@ -1313,17 +1279,17 @@ var WindowManager = class {
         this._minimizing.push(actor);
 
         if (actor.meta_window.is_monitor_sized()) {
-            Tweener.addTween(actor,
-                         { opacity: 0,
-                           time: MINIMIZE_WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._minimizeWindowDone,
-                           onCompleteScope: this,
-                           onCompleteParams: [shellwm, actor],
-                           onOverwrite: this._minimizeWindowOverwritten,
-                           onOverwriteScope: this,
-                           onOverwriteParams: [shellwm, actor]
-                         });
+            actor.ease({
+                opacity: 0,
+                duration: MINIMIZE_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: isFinished => {
+                    if (isFinished)
+                        this._minimizeWindowDone(shellwm, actor);
+                    else
+                        this._minimizeWindowOverwritten(shellwm, actor);
+                }
+            });
         } else {
             let xDest, yDest, xScale, yScale;
             let [success, geom] = actor.meta_window.get_icon_geometry();
@@ -1346,26 +1312,26 @@ var WindowManager = class {
                 yScale = 0;
             }
 
-            Tweener.addTween(actor,
-                             { scale_x: xScale,
-                               scale_y: yScale,
-                               x: xDest,
-                               y: yDest,
-                               time: MINIMIZE_WINDOW_ANIMATION_TIME,
-                               transition: 'easeInExpo',
-                               onComplete: this._minimizeWindowDone,
-                               onCompleteScope: this,
-                               onCompleteParams: [shellwm, actor],
-                               onOverwrite: this._minimizeWindowOverwritten,
-                               onOverwriteScope: this,
-                               onOverwriteParams: [shellwm, actor]
-                             });
+            actor.ease({
+                scale_x: xScale,
+                scale_y: yScale,
+                x: xDest,
+                y: yDest,
+                duration: MINIMIZE_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_EXPO,
+                onStopped: isFinished => {
+                    if (isFinished)
+                        this._minimizeWindowDone(shellwm, actor);
+                    else
+                        this._minimizeWindowOverwritten(shellwm, actor);
+                }
+            });
         }
     }
 
     _minimizeWindowDone(shellwm, actor) {
         if (this._removeEffect(this._minimizing, actor)) {
-            Tweener.removeTweens(actor);
+            actor.remove_all_transitions();
             actor.set_scale(1.0, 1.0);
             actor.set_opacity(255);
             actor.set_pivot_point(0, 0);
@@ -1394,17 +1360,17 @@ var WindowManager = class {
         if (actor.meta_window.is_monitor_sized()) {
             actor.opacity = 0;
             actor.set_scale(1.0, 1.0);
-            Tweener.addTween(actor,
-                         { opacity: 255,
-                           time: MINIMIZE_WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._unminimizeWindowDone,
-                           onCompleteScope: this,
-                           onCompleteParams: [shellwm, actor],
-                           onOverwrite: this._unminimizeWindowOverwritten,
-                           onOverwriteScope: this,
-                           onOverwriteParams: [shellwm, actor]
-                         });
+            actor.ease({
+                opacity: 255,
+                duration: MINIMIZE_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: isFinished => {
+                    if (isFinished)
+                        this._unminimizeWindowDone(shellwm, actor);
+                    else
+                        this._unminimizeWindowOverwritten(shellwm, actor);
+                }
+            });
         } else {
             let [success, geom] = actor.meta_window.get_icon_geometry();
             if (success) {
@@ -1428,26 +1394,26 @@ var WindowManager = class {
             let [xDest, yDest] = [rect.x, rect.y];
 
             actor.show();
-            Tweener.addTween(actor,
-                             { scale_x: 1.0,
-                               scale_y: 1.0,
-                               x: xDest,
-                               y: yDest,
-                               time: MINIMIZE_WINDOW_ANIMATION_TIME,
-                               transition: 'easeInExpo',
-                               onComplete: this._unminimizeWindowDone,
-                               onCompleteScope: this,
-                               onCompleteParams: [shellwm, actor],
-                               onOverwrite: this._unminimizeWindowOverwritten,
-                               onOverwriteScope: this,
-                               onOverwriteParams: [shellwm, actor]
-                             });
+            actor.ease({
+                scale_x: 1,
+                scale_y: 1,
+                x: xDest,
+                y: yDest,
+                duration: MINIMIZE_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_EXPO,
+                onStopped: isFinished => {
+                    if (isFinished)
+                        this._unminimizeWindowDone(shellwm, actor);
+                    else
+                        this._unminimizeWindowOverwritten(shellwm, actor);
+                }
+            });
         }
     }
 
     _unminimizeWindowDone(shellwm, actor) {
         if (this._removeEffect(this._unminimizing, actor)) {
-            Tweener.removeTweens(actor);
+            actor.remove_all_transitions();
             actor.set_scale(1.0, 1.0);
             actor.set_opacity(255);
             actor.set_pivot_point(0, 0);
@@ -1462,7 +1428,7 @@ var WindowManager = class {
         }
     }
 
-    _sizeChangeWindow(shellwm, actor, whichChange, oldFrameRect, oldBufferRect) {
+    _sizeChangeWindow(shellwm, actor, whichChange, oldFrameRect, _oldBufferRect) {
         let types = [Meta.WindowType.NORMAL];
         if (!this._shouldAnimateActor(actor, types)) {
             shellwm.completed_size_change(actor);
@@ -1475,7 +1441,7 @@ var WindowManager = class {
             shellwm.completed_size_change(actor);
     }
 
-    _prepareAnimationInfo(shellwm, actor, oldFrameRect, change) {
+    _prepareAnimationInfo(shellwm, actor, oldFrameRect, _change) {
         // Position a clone of the window on top of the old position,
         // while actor updates are frozen.
         let actorContent = Shell.util_get_content_for_window_actor(actor, oldFrameRect);
@@ -1500,7 +1466,7 @@ var WindowManager = class {
     _sizeChangedWindow(shellwm, actor) {
         if (!actor.__animationInfo)
             return;
-        if (this._resizing.indexOf(actor) != -1)
+        if (this._resizing.includes(actor))
             return;
 
         let actorClone = actor.__animationInfo.clone;
@@ -1513,15 +1479,15 @@ var WindowManager = class {
         this._resizing.push(actor);
 
         // Now scale and fade out the clone
-        Tweener.addTween(actorClone,
-                         { x: targetRect.x,
-                           y: targetRect.y,
-                           scale_x: scaleX,
-                           scale_y: scaleY,
-                           opacity: 0,
-                           time: WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad'
-                         });
+        actorClone.ease({
+            x: targetRect.x,
+            y: targetRect.y,
+            scale_x: scaleX,
+            scale_y: scaleY,
+            opacity: 0,
+            duration: WINDOW_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
 
         actor.translation_x = -targetRect.x + sourceRect.x;
         actor.translation_y = -targetRect.y + sourceRect.y;
@@ -1531,20 +1497,20 @@ var WindowManager = class {
         actor.scale_y = 1 / scaleY;
 
         // Scale it to its actual new size
-        Tweener.addTween(actor,
-                         { scale_x: 1.0,
-                           scale_y: 1.0,
-                           translation_x: 0,
-                           translation_y: 0,
-                           time: WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._sizeChangeWindowDone,
-                           onCompleteScope: this,
-                           onCompleteParams: [shellwm, actor],
-                           onOverwrite: this._sizeChangeWindowOverwritten,
-                           onOverwriteScope: this,
-                           onOverwriteParams: [shellwm, actor]
-                         });
+        actor.ease({
+            scale_x: 1,
+            scale_y: 1,
+            translation_x: 0,
+            translation_y: 0,
+            duration: WINDOW_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onStopped: isFinished => {
+                if (isFinished)
+                    this._sizeChangeWindowDone(shellwm, actor);
+                else
+                    this._sizeChangeWindowOverwritten(shellwm, actor);
+            }
+        });
 
         // Now unfreeze actor updates, to get it to the new size.
         // It's important that we don't wait until the animation is completed to
@@ -1564,7 +1530,7 @@ var WindowManager = class {
 
     _sizeChangeWindowDone(shellwm, actor) {
         if (this._removeEffect(this._resizing, actor)) {
-            Tweener.removeTweens(actor);
+            actor.remove_all_transitions();
             actor.scale_x = 1.0;
             actor.scale_y = 1.0;
             actor.translation_x = 0;
@@ -1614,14 +1580,7 @@ var WindowManager = class {
         let dimmer = getWindowDimmer(actor);
         if (!dimmer)
             return;
-        if (this._shouldAnimate())
-            Tweener.addTween(dimmer,
-                             { dimFactor: 1.0,
-                               time: DIM_TIME,
-                               transition: 'linear'
-                             });
-        else
-            dimmer.dimFactor = 1.0;
+        dimmer.setDimmed(true, this._shouldAnimate());
     }
 
     _undimWindow(window) {
@@ -1631,13 +1590,7 @@ var WindowManager = class {
         let dimmer = getWindowDimmer(actor);
         if (!dimmer)
             return;
-        if (this._shouldAnimate())
-            Tweener.addTween(dimmer,
-                             { dimFactor: 0.0,
-                               time: UNDIM_TIME,
-                               transition: 'linear' });
-        else
-            dimmer.dimFactor = 0.0;
+        dimmer.setDimmed(false, this._shouldAnimate());
     }
 
     _mapWindow(shellwm, actor) {
@@ -1682,19 +1635,19 @@ var WindowManager = class {
             actor.show();
             this._mapping.push(actor);
 
-            Tweener.addTween(actor,
-                             { opacity: 255,
-                               scale_x: 1,
-                               scale_y: 1,
-                               time: SHOW_WINDOW_ANIMATION_TIME,
-                               transition: 'easeOutExpo',
-                               onComplete: this._mapWindowDone,
-                               onCompleteScope: this,
-                               onCompleteParams: [shellwm, actor],
-                               onOverwrite: this._mapWindowOverwrite,
-                               onOverwriteScope: this,
-                               onOverwriteParams: [shellwm, actor]
-                             });
+            actor.ease({
+                opacity: 255,
+                scale_x: 1,
+                scale_y: 1,
+                duration: SHOW_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_EXPO,
+                onStopped: isFinished => {
+                    if (isFinished)
+                        this._mapWindowDone(shellwm, actor);
+                    else
+                        this._mapWindowOverwrite(shellwm, actor);
+                }
+            });
             break;
         case Meta.WindowType.MODAL_DIALOG:
         case Meta.WindowType.DIALOG:
@@ -1704,19 +1657,19 @@ var WindowManager = class {
             actor.show();
             this._mapping.push(actor);
 
-            Tweener.addTween(actor,
-                             { opacity: 255,
-                               scale_x: 1,
-                               scale_y: 1,
-                               time: DIALOG_SHOW_WINDOW_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: this._mapWindowDone,
-                               onCompleteScope: this,
-                               onCompleteParams: [shellwm, actor],
-                               onOverwrite: this._mapWindowOverwrite,
-                               onOverwriteScope: this,
-                               onOverwriteParams: [shellwm, actor]
-                             });
+            actor.ease({
+                opacity: 255,
+                scale_x: 1,
+                scale_y: 1,
+                duration: DIALOG_SHOW_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: isFinished => {
+                    if (isFinished)
+                        this._mapWindowDone(shellwm, actor);
+                    else
+                        this._mapWindowOverwrite(shellwm, actor);
+                }
+            });
             break;
         default:
             shellwm.completed_map(actor);
@@ -1726,7 +1679,7 @@ var WindowManager = class {
 
     _mapWindowDone(shellwm, actor) {
         if (this._removeEffect(this._mapping, actor)) {
-            Tweener.removeTweens(actor);
+            actor.remove_all_transitions();
             actor.opacity = 255;
             actor.set_pivot_point(0, 0);
             actor.scale_y = 1;
@@ -1770,19 +1723,14 @@ var WindowManager = class {
             actor.set_pivot_point(0.5, 0.5);
             this._destroying.push(actor);
 
-            Tweener.addTween(actor,
-                             { opacity: 0,
-                               scale_x: 0.8,
-                               scale_y: 0.8,
-                               time: DESTROY_WINDOW_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: this._destroyWindowDone,
-                               onCompleteScope: this,
-                               onCompleteParams: [shellwm, actor],
-                               onOverwrite: this._destroyWindowDone,
-                               onOverwriteScope: this,
-                               onOverwriteParams: [shellwm, actor]
-                             });
+            actor.ease({
+                opacity: 0,
+                scale_x: 0.8,
+                scale_y: 0.8,
+                duration: DESTROY_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: () => this._destroyWindowDone(shellwm, actor)
+            });
             break;
         case Meta.WindowType.MODAL_DIALOG:
         case Meta.WindowType.DIALOG:
@@ -1792,22 +1740,17 @@ var WindowManager = class {
             if (window.is_attached_dialog()) {
                 let parent = window.get_transient_for();
                 actor._parentDestroyId = parent.connect('unmanaged', () => {
-                    Tweener.removeTweens(actor);
+                    actor.remove_all_transitions();
                     this._destroyWindowDone(shellwm, actor);
                 });
             }
 
-            Tweener.addTween(actor,
-                             { scale_y: 0,
-                               time: DIALOG_DESTROY_WINDOW_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: this._destroyWindowDone,
-                               onCompleteScope: this,
-                               onCompleteParams: [shellwm, actor],
-                               onOverwrite: this._destroyWindowDone,
-                               onOverwriteScope: this,
-                               onOverwriteParams: [shellwm, actor]
-                             });
+            actor.ease({
+                scale_y: 0,
+                duration: DIALOG_DESTROY_WINDOW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onStopped: () => this._destroyWindowDone(shellwm, actor)
+            });
             break;
         default:
             shellwm.completed_destroy(actor);
@@ -1870,17 +1813,25 @@ var WindowManager = class {
         }
     }
 
-    _getPositionForDirection(direction) {
+    _getPositionForDirection(direction, fromWs, toWs) {
         let xDest = 0, yDest = 0;
+
+        let oldWsIsFullscreen = fromWs.list_windows().some(w => w.is_fullscreen());
+        let newWsIsFullscreen = toWs.list_windows().some(w => w.is_fullscreen());
+
+        // We have to shift windows up or down by the height of the panel to prevent having a
+        // visible gap between the windows while switching workspaces. Since fullscreen windows
+        // hide the panel, they don't need to be shifted up or down.
+        let shiftHeight = Main.panel.height;
 
         if (direction == Meta.MotionDirection.UP ||
             direction == Meta.MotionDirection.UP_LEFT ||
             direction == Meta.MotionDirection.UP_RIGHT)
-            yDest = -global.screen_height + Main.panel.height;
+            yDest = -global.screen_height + (oldWsIsFullscreen ? 0 : shiftHeight);
         else if (direction == Meta.MotionDirection.DOWN ||
             direction == Meta.MotionDirection.DOWN_LEFT ||
             direction == Meta.MotionDirection.DOWN_RIGHT)
-            yDest = global.screen_height - Main.panel.height;
+            yDest = global.screen_height - (newWsIsFullscreen ? 0 : shiftHeight);
 
         if (direction == Meta.MotionDirection.LEFT ||
             direction == Meta.MotionDirection.UP_LEFT ||
@@ -1938,7 +1889,7 @@ var WindowManager = class {
             switchData.container.add_actor(info.actor);
             info.actor.raise_top();
 
-            let [x, y] = this._getPositionForDirection(dir);
+            let [x, y] = this._getPositionForDirection(dir, curWs, ws);
             info.actor.set_position(x, y);
         }
 
@@ -2004,7 +1955,6 @@ var WindowManager = class {
                 global.workspace_manager.get_active_workspace())
                 w.window.hide();
         }
-        Tweener.removeTweens(switchData.container);
         switchData.container.destroy();
         switchData.movingWindowBin.destroy();
 
@@ -2024,7 +1974,11 @@ var WindowManager = class {
 
         this._switchData.inProgress = true;
 
-        let [xDest, yDest] = this._getPositionForDirection(direction);
+        let workspaceManager = global.workspace_manager;
+        let fromWs = workspaceManager.get_workspace_by_index(from);
+        let toWs = workspaceManager.get_workspace_by_index(to);
+
+        let [xDest, yDest] = this._getPositionForDirection(direction, fromWs, toWs);
 
         /* @direction is the direction that the "camera" moves, so the
          * screen contents have to move one screen's worth in the
@@ -2033,15 +1987,13 @@ var WindowManager = class {
         xDest = -xDest;
         yDest = -yDest;
 
-        Tweener.addTween(this._switchData.container,
-                         { x: xDest,
-                           y: yDest,
-                           time: WINDOW_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._switchWorkspaceDone,
-                           onCompleteScope: this,
-                           onCompleteParams: [shellwm]
-                         });
+        this._switchData.container.ease({
+            x: xDest,
+            y: yDest,
+            duration: WINDOW_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._switchWorkspaceDone(shellwm)
+        });
     }
 
     _switchWorkspaceDone(shellwm) {
@@ -2055,7 +2007,7 @@ var WindowManager = class {
         this._tilePreview.show(window, tileRect, monitorIndex);
     }
 
-    _hideTilePreview(shellwm) {
+    _hideTilePreview() {
         if (!this._tilePreview)
             return;
         this._tilePreview.hide();
@@ -2068,27 +2020,27 @@ var WindowManager = class {
     _startSwitcher(display, window, binding) {
         let constructor = null;
         switch (binding.get_name()) {
-            case 'switch-applications':
-            case 'switch-applications-backward':
-            case 'switch-group':
-            case 'switch-group-backward':
-                constructor = AltTab.AppSwitcherPopup;
-                break;
-            case 'switch-windows':
-            case 'switch-windows-backward':
-                constructor = AltTab.WindowSwitcherPopup;
-                break;
-            case 'cycle-windows':
-            case 'cycle-windows-backward':
-                constructor = AltTab.WindowCyclerPopup;
-                break;
-            case 'cycle-group':
-            case 'cycle-group-backward':
-                constructor = AltTab.GroupCyclerPopup;
-                break;
-            case 'switch-monitor':
-                constructor = SwitchMonitor.SwitchMonitorPopup;
-                break;
+        case 'switch-applications':
+        case 'switch-applications-backward':
+        case 'switch-group':
+        case 'switch-group-backward':
+            constructor = AltTab.AppSwitcherPopup;
+            break;
+        case 'switch-windows':
+        case 'switch-windows-backward':
+            constructor = AltTab.WindowSwitcherPopup;
+            break;
+        case 'cycle-windows':
+        case 'cycle-windows-backward':
+            constructor = AltTab.WindowCyclerPopup;
+            break;
+        case 'cycle-group':
+        case 'cycle-group-backward':
+            constructor = AltTab.GroupCyclerPopup;
+            break;
+        case 'switch-monitor':
+            constructor = SwitchMonitor.SwitchMonitorPopup;
+            break;
         }
 
         if (!constructor)
@@ -2108,29 +2060,27 @@ var WindowManager = class {
         Main.ctrlAltTabManager.popup(binding.is_reversed(), binding.get_name(), binding.get_mask());
     }
 
+    _allowFavoriteShortcuts() {
+        return Main.sessionMode.hasOverview;
+    }
+
     _switchToApplication(display, window, binding) {
-        let [,,,target] = binding.get_name().split('-');
+        if (!this._allowFavoriteShortcuts())
+            return;
+
+        let [, , , target] = binding.get_name().split('-');
         let apps = AppFavorites.getAppFavorites().getFavorites();
         let app = apps[target - 1];
         if (app)
             app.activate();
     }
 
-    _toggleAppMenu(display, window, event, binding) {
+    _toggleAppMenu() {
         Main.panel.toggleAppMenu();
     }
 
-    _toggleCalendar(display, window, event, binding) {
+    _toggleCalendar() {
         Main.panel.toggleCalendar();
-    }
-
-    _toggleTweens() {
-        this._tweensPaused = !this._tweensPaused;
-        const OrigTweener = imports.tweener.tweener;
-        if (this._tweensPaused)
-            OrigTweener.pauseAllTweens();
-        else
-            OrigTweener.resumeAllTweens();
     }
 
     _showWorkspaceSwitcher(display, window, binding) {
@@ -2142,9 +2092,11 @@ var WindowManager = class {
         if (workspaceManager.n_workspaces == 1)
             return;
 
-        let [action,,,target] = binding.get_name().split('-');
+        let [action,,, target] = binding.get_name().split('-');
         let newWs;
         let direction;
+        let vertical = workspaceManager.layout_rows == -1;
+        let rtl = Clutter.get_default_text_direction() == Clutter.TextDirection.RTL;
 
         if (action == 'move') {
             // "Moving" a window to another workspace doesn't make sense when
@@ -2153,11 +2105,16 @@ var WindowManager = class {
             if (window.is_always_on_all_workspaces() ||
                 (Meta.prefs_get_workspaces_only_on_primary() &&
                  window.get_monitor() != Main.layoutManager.primaryIndex))
-              return;
+                return;
         }
 
         if (target == 'last') {
-            direction = Meta.MotionDirection.DOWN;
+            if (vertical)
+                direction = Meta.MotionDirection.DOWN;
+            else if (rtl)
+                direction = Meta.MotionDirection.LEFT;
+            else
+                direction = Meta.MotionDirection.RIGHT;
             newWs = workspaceManager.get_workspace_by_index(workspaceManager.n_workspaces - 1);
         } else if (isNaN(target)) {
             // Prepend a new workspace dynamically
@@ -2173,14 +2130,31 @@ var WindowManager = class {
             target--;
             newWs = workspaceManager.get_workspace_by_index(target);
 
-            if (workspaceManager.get_active_workspace().index() > target)
-                direction = Meta.MotionDirection.UP;
-            else
-                direction = Meta.MotionDirection.DOWN;
+            if (workspaceManager.get_active_workspace().index() > target) {
+                if (vertical)
+                    direction = Meta.MotionDirection.UP;
+                else if (rtl)
+                    direction = Meta.MotionDirection.RIGHT;
+                else
+                    direction = Meta.MotionDirection.LEFT;
+            } else {
+                if (vertical)
+                    direction = Meta.MotionDirection.DOWN;
+                else if (rtl)
+                    direction = Meta.MotionDirection.LEFT;
+                else
+                    direction = Meta.MotionDirection.RIGHT;
+            }
         }
 
-        if (direction != Meta.MotionDirection.UP &&
+        if (workspaceManager.layout_rows == -1 &&
+            direction != Meta.MotionDirection.UP &&
             direction != Meta.MotionDirection.DOWN)
+            return;
+
+        if (workspaceManager.layout_columns == -1 &&
+            direction != Meta.MotionDirection.LEFT &&
+            direction != Meta.MotionDirection.RIGHT)
             return;
 
         if (action == 'switch')

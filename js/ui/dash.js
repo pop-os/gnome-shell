@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Dash */
 
 const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -9,11 +10,10 @@ const AppFavorites = imports.ui.appFavorites;
 const DND = imports.ui.dnd;
 const IconGrid = imports.ui.iconGrid;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
-var DASH_ANIMATION_TIME = 0.2;
-var DASH_ITEM_LABEL_SHOW_TIME = 0.15;
-var DASH_ITEM_LABEL_HIDE_TIME = 0.1;
+var DASH_ANIMATION_TIME = 200;
+var DASH_ITEM_LABEL_SHOW_TIME = 150;
+var DASH_ITEM_LABEL_HIDE_TIME = 100;
 var DASH_ITEM_HOVER_TIMEOUT = 300;
 
 function getAppFromSource(source) {
@@ -24,6 +24,30 @@ function getAppFromSource(source) {
     }
 }
 
+var DashIcon = class DashIcon extends AppDisplay.AppIcon {
+    constructor(app) {
+        super(app, {
+            setSizeManually: true,
+            showLabel: false
+        });
+    }
+
+    // Disable all DnD methods
+    _onDragBegin() {
+    }
+
+    _onDragEnd() {
+    }
+
+    handleDragOver() {
+        return DND.DragMotionResult.CONTINUE;
+    }
+
+    acceptDrop() {
+        return false;
+    }
+};
+
 // A container like StBin, but taking the child's scale into account
 // when requesting a size
 var DashItemContainer = GObject.registerClass(
@@ -31,19 +55,23 @@ class DashItemContainer extends St.Widget {
     _init() {
         super._init({ style_class: 'dash-item-container',
                       pivot_point: new Clutter.Point({ x: .5, y: .5 }),
+                      scale_x: 0,
+                      scale_y: 0,
+                      opacity: 0,
                       x_expand: true,
                       x_align: Clutter.ActorAlign.CENTER });
 
         this._labelText = "";
-        this.label = new St.Label({ style_class: 'dash-label'});
+        this.label = new St.Label({ style_class: 'dash-label' });
         this.label.hide();
         Main.layoutManager.addChrome(this.label);
         this.label_actor = this.label;
 
         this.child = null;
-        this._childScale = 0;
-        this._childOpacity = 0;
         this.animatingOut = false;
+
+        this.connect('notify::scale-x', () => this.queue_relayout());
+        this.connect('notify::scale-y', () => this.queue_relayout());
 
         this.connect('destroy', () => {
             if (this.child != null)
@@ -81,7 +109,7 @@ class DashItemContainer extends St.Widget {
         let itemHeight = this.allocation.y2 - this.allocation.y1;
 
         let labelHeight = this.label.get_height();
-        let yOffset = Math.floor((itemHeight - labelHeight) / 2)
+        let yOffset = Math.floor((itemHeight - labelHeight) / 2);
 
         let y = stageY + yOffset;
 
@@ -95,11 +123,11 @@ class DashItemContainer extends St.Widget {
             x = stageX + this.get_width() + xOffset;
 
         this.label.set_position(x, y);
-        Tweener.addTween(this.label,
-                         { opacity: 255,
-                           time: DASH_ITEM_LABEL_SHOW_TIME,
-                           transition: 'easeOutQuad',
-                         });
+        this.label.ease({
+            opacity: 255,
+            duration: DASH_ITEM_LABEL_SHOW_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     setLabelText(text) {
@@ -108,14 +136,12 @@ class DashItemContainer extends St.Widget {
     }
 
     hideLabel() {
-        Tweener.addTween(this.label,
-                         { opacity: 0,
-                           time: DASH_ITEM_LABEL_HIDE_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this.label.hide();
-                           }
-                         });
+        this.label.ease({
+            opacity: 0,
+            duration: DASH_ITEM_LABEL_HIDE_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.label.hide()
+        });
     }
 
     setChild(actor) {
@@ -126,9 +152,6 @@ class DashItemContainer extends St.Widget {
 
         this.child = actor;
         this.add_actor(this.child);
-
-        this.set_scale(this._childScale, this._childScale);
-        this.set_opacity(this._childOpacity);
     }
 
     show(animate) {
@@ -136,12 +159,13 @@ class DashItemContainer extends St.Widget {
             return;
 
         let time = animate ? DASH_ANIMATION_TIME : 0;
-        Tweener.addTween(this,
-                         { childScale: 1.0,
-                           childOpacity: 255,
-                           time: time,
-                           transition: 'easeOutQuad'
-                         });
+        this.ease({
+            scale_x: 1,
+            scale_y: 1,
+            opacity: 255,
+            duration: time,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     animateOutAndDestroy() {
@@ -153,37 +177,14 @@ class DashItemContainer extends St.Widget {
         }
 
         this.animatingOut = true;
-        Tweener.addTween(this,
-                         { childScale: 0.0,
-                           childOpacity: 0,
-                           time: DASH_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this.destroy();
-                           }
-                         });
-    }
-
-    set childScale(scale) {
-        this._childScale = scale;
-
-        this.set_scale(scale, scale);
-        this.queue_relayout();
-    }
-
-    get childScale() {
-        return this._childScale;
-    }
-
-    set childOpacity(opacity) {
-        this._childOpacity = opacity;
-
-        this.set_opacity(opacity);
-        this.queue_redraw();
-    }
-
-    get childOpacity() {
-        return this._childOpacity;
+        this.ease({
+            scale_x: 0,
+            scale_y: 0,
+            opacity: 0,
+            duration: DASH_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.destroy()
+        });
     }
 });
 
@@ -198,9 +199,9 @@ class ShowAppsIcon extends DashItemContainer {
                                             toggle_mode: true });
         this._iconActor = null;
         this.icon = new IconGrid.BaseIcon(_("Show Applications"),
-                                           { setSizeManually: true,
-                                             showLabel: false,
-                                             createIcon: this._createIcon.bind(this) });
+                                          { setSizeManually: true,
+                                            showLabel: false,
+                                            createIcon: this._createIcon.bind(this) });
         this.toggleButton.add_actor(this.icon);
         this.toggleButton._delegate = this;
 
@@ -241,14 +242,14 @@ class ShowAppsIcon extends DashItemContainer {
             this.setLabelText(_("Show Applications"));
     }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (!this._canRemoveApp(getAppFromSource(source)))
             return DND.DragMotionResult.NO_DROP;
 
         return DND.DragMotionResult.MOVE_DROP;
     }
 
-    acceptDrop(source, actor, x, y, time) {
+    acceptDrop(source, _actor, _x, _y, _time) {
         let app = getAppFromSource(source);
         if (!this._canRemoveApp(app))
             return false;
@@ -296,7 +297,7 @@ class DashActor extends St.Widget {
         this.set_allocation(box, flags);
 
         let [appIcons, showAppsButton] = this.get_children();
-        let [showAppsMinHeight, showAppsNatHeight] = showAppsButton.get_preferred_height(availWidth);
+        let [, showAppsNatHeight] = showAppsButton.get_preferred_height(availWidth);
 
         let childBox = new Clutter.ActorBox();
         childBox.x1 = contentBox.x1;
@@ -321,14 +322,14 @@ class DashActor extends St.Widget {
         let themeNode = this.get_theme_node();
         let adjustedForWidth = themeNode.adjust_for_width(forWidth);
         let [, showAppsButton] = this.get_children();
-        let [minHeight, ] = showAppsButton.get_preferred_height(adjustedForWidth);
-        [minHeight, ] = themeNode.adjust_preferred_height(minHeight, natHeight);
+        let [minHeight] = showAppsButton.get_preferred_height(adjustedForWidth);
+        [minHeight] = themeNode.adjust_preferred_height(minHeight, natHeight);
 
         return [minHeight, natHeight];
     }
 });
 
-const baseIconSizes = [ 16, 22, 24, 32, 48, 64 ];
+const baseIconSizes = [16, 22, 24, 32, 48, 64];
 
 var Dash = class Dash {
     constructor() {
@@ -351,8 +352,7 @@ var Dash = class Dash {
         this._container.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 
         this._showAppsIcon = new ShowAppsIcon();
-        this._showAppsIcon.childScale = 1;
-        this._showAppsIcon.childOpacity = 255;
+        this._showAppsIcon.show(false);
         this._showAppsIcon.icon.setIconSize(this.iconSize);
         this._hookUpLabel(this._showAppsIcon);
 
@@ -474,19 +474,7 @@ var Dash = class Dash {
     }
 
     _createAppItem(app) {
-        let appIcon = new AppDisplay.AppIcon(app,
-                                             { setSizeManually: true,
-                                               showLabel: false });
-        if (appIcon._draggable) {
-            appIcon._draggable.connect('drag-begin',
-                                       () => {
-                                           appIcon.actor.opacity = 50;
-                                       });
-            appIcon._draggable.connect('drag-end',
-                                       () => {
-                                           appIcon.actor.opacity = 255;
-                                       });
-        }
+        let appIcon = new DashIcon(app);
 
         appIcon.connect('menu-state-changed',
                         (appIcon, opened) => {
@@ -633,12 +621,12 @@ var Dash = class Dash {
             icon.icon.set_size(icon.icon.width * scale,
                                icon.icon.height * scale);
 
-            Tweener.addTween(icon.icon,
-                             { width: targetWidth,
-                               height: targetHeight,
-                               time: DASH_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                             });
+            icon.icon.ease({
+                width: targetWidth,
+                height: targetHeight,
+                time: DASH_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
     }
 
@@ -648,10 +636,10 @@ var Dash = class Dash {
         let running = this._appSystem.get_running();
 
         let children = this._box.get_children().filter(actor => {
-                return actor.child &&
-                       actor.child._delegate &&
-                       actor.child._delegate.app;
-            });
+            return actor.child &&
+                   actor.child._delegate &&
+                   actor.child._delegate.app;
+        });
         // Apps currently in the dash
         let oldApps = children.map(actor => actor.child._delegate.app);
         // Apps supposed to be in the dash
@@ -700,14 +688,14 @@ var Dash = class Dash {
             }
 
             // App removed at oldIndex
-            if (oldApp && newApps.indexOf(oldApp) == -1) {
+            if (oldApp && !newApps.includes(oldApp)) {
                 removedActors.push(children[oldIndex]);
                 oldIndex++;
                 continue;
             }
 
             // App added at newIndex
-            if (newApp && oldApps.indexOf(newApp) == -1) {
+            if (newApp && !oldApps.includes(newApp)) {
                 addedItems.push({ app: newApp,
                                   item: this._createAppItem(newApp),
                                   pos: newIndex });
@@ -790,7 +778,7 @@ var Dash = class Dash {
         }
     }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, actor, x, y, _time) {
         let app = getAppFromSource(source);
 
         // Don't allow favoriting of transient apps
@@ -868,7 +856,7 @@ var Dash = class Dash {
     }
 
     // Draggable target interface
-    acceptDrop(source, actor, x, y, time) {
+    acceptDrop(source, _actor, _x, _y, _time) {
         let app = getAppFromSource(source);
 
         // Don't allow favoriting of transient apps
@@ -899,7 +887,7 @@ var Dash = class Dash {
                 favPos++;
         }
 
-        // No drag placeholder means we don't wan't to favorite the app
+        // No drag placeholder means we don't want to favorite the app
         // and we are dragging it to its original position
         if (!this._dragPlaceholder)
             return true;

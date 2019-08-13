@@ -151,6 +151,14 @@ on_icon_theme_changed (StSettings     *settings,
 }
 
 static void
+on_gtk_icon_theme_changed (GtkIconTheme   *icon_theme,
+                           StTextureCache *self)
+{
+  st_texture_cache_evict_icons (self);
+  g_signal_emit (self, signals[ICON_THEME_CHANGED], 0);
+}
+
+static void
 st_texture_cache_init (StTextureCache *self)
 {
   StSettings *settings;
@@ -160,6 +168,8 @@ st_texture_cache_init (StTextureCache *self)
   self->priv->icon_theme = gtk_icon_theme_new ();
   gtk_icon_theme_add_resource_path (self->priv->icon_theme,
                                     "/org/gnome/shell/theme/icons");
+  g_signal_connect (self->priv->icon_theme, "changed",
+                    G_CALLBACK (on_gtk_icon_theme_changed), self);
 
   settings = st_settings_get ();
   g_signal_connect (settings, "notify::gtk-icon-theme",
@@ -496,15 +506,31 @@ pixbuf_to_st_content_image (GdkPixbuf *pixbuf,
   ClutterContent *image;
   g_autoptr(GError) error = NULL;
 
-  if (width < 0)
-    width = ceilf (gdk_pixbuf_get_width (pixbuf) / resource_scale);
-  else
-    width *= paint_scale;
+  float native_width, native_height;
 
-  if (height < 0)
-    height = ceilf (gdk_pixbuf_get_height (pixbuf) / resource_scale);
+  native_width = ceilf (gdk_pixbuf_get_width (pixbuf) / resource_scale);
+  native_height = ceilf (gdk_pixbuf_get_height (pixbuf) / resource_scale);
+
+  if (width < 0 && height < 0)
+    {
+      width = native_width;
+      height = native_height;
+    }
+  else if (width < 0)
+    {
+      height *= paint_scale;
+      width = native_width * (height / native_height);
+    }
+  else if (height < 0)
+    {
+      width *= paint_scale;
+      height = native_height * (width / native_width);
+    }
   else
-    height *= paint_scale;
+    {
+      width *= paint_scale;
+      height *= paint_scale;
+    }
 
   image = st_image_content_new_with_preferred_size (width, height);
   clutter_image_set_data (CLUTTER_IMAGE (image),
@@ -1540,4 +1566,12 @@ st_texture_cache_get_default (void)
   if (instance == NULL)
     instance = g_object_new (ST_TYPE_TEXTURE_CACHE, NULL);
   return instance;
+}
+
+gboolean
+st_texture_cache_rescan_icon_theme (StTextureCache *cache)
+{
+  StTextureCachePrivate *priv = cache->priv;
+
+  return gtk_icon_theme_rescan_if_needed (priv->icon_theme);
 }

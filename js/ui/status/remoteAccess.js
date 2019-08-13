@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported RemoteAccessApplet */
 
 const Meta = imports.gi.Meta;
 
@@ -44,7 +45,7 @@ var RemoteAccessApplet = class extends PanelMenu.SystemIndicator {
         this._item.menu.addAction(_("Turn off"),
                                   () => {
                                       for (let handle of this._handles)
-                                            handle.stop();
+                                          handle.stop();
                                   });
         this._item.icon.icon_name = 'screen-shared-symbolic';
         this.menu.addMenuItem(this._item);
@@ -53,10 +54,10 @@ var RemoteAccessApplet = class extends PanelMenu.SystemIndicator {
     _sync() {
         if (this._handles.size == 0) {
             this._indicator.visible = false;
-            this._item.actor.visible = false;
+            this._item.visible = false;
         } else {
             this._indicator.visible = true;
-            this._item.actor.visible = true;
+            this._item.visible = true;
         }
     }
 

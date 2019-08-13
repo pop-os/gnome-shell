@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported OsdWindowManager */
 
 const { Clutter, GLib, GObject, Meta, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -6,44 +7,10 @@ const Mainloop = imports.mainloop;
 const BarLevel = imports.ui.barLevel;
 const Layout = imports.ui.layout;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
 var HIDE_TIMEOUT = 1500;
-var FADE_TIME = 0.1;
-var LEVEL_ANIMATION_TIME = 0.1;
-
-var LevelBar = class extends BarLevel.BarLevel {
-    constructor() {
-        super(0, { styleClass: 'level' });
-
-        this._level = 0;
-        this._maxLevel = 100;
-
-        this.actor.accessible_name = _("Volume");
-
-        this.actor.connect('notify::width', () => { this.level = this.level; });
-    }
-
-    get level() {
-        return this._level;
-    }
-
-    set level(value) {
-        this._level = Math.max(0, Math.min(value, this._maxLevel));
-
-        this.setValue(this._level / 100);
-    }
-
-    get maxLevel() {
-        return this._maxLevel;
-    }
-
-    set maxLevel(value) {
-        this._maxLevel = Math.max(100, value);
-
-        this.setMaximumValue(this._maxLevel / 100);
-    }
-};
+var FADE_TIME = 100;
+var LEVEL_ANIMATION_TIME = 100;
 
 var OsdWindowConstraint = GObject.registerClass(
 class OsdWindowConstraint extends Clutter.Constraint {
@@ -98,8 +65,11 @@ var OsdWindow = class {
         this._label = new St.Label();
         this._box.add(this._label);
 
-        this._level = new LevelBar();
-        this._box.add(this._level.actor);
+        this._level = new BarLevel.BarLevel({
+            style_class: 'level',
+            value: 0
+        });
+        this._box.add(this._level);
 
         this._hideTimeoutId = 0;
         this._reset();
@@ -138,23 +108,21 @@ var OsdWindow = class {
             this._label.text = label;
     }
 
-    setLevel(level) {
-        this._level.actor.visible = (level != undefined);
-        if (level != undefined) {
+    setLevel(value) {
+        this._level.visible = (value != undefined);
+        if (value != undefined) {
             if (this.actor.visible)
-                Tweener.addTween(this._level,
-                                 { level: level,
-                                   time: LEVEL_ANIMATION_TIME,
-                                   transition: 'easeOutQuad' });
+                this._level.ease_property('value', value, {
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    duration: LEVEL_ANIMATION_TIME
+                });
             else
-                this._level.level = level;
+                this._level.value = value;
         }
     }
 
-    setMaxLevel(maxLevel) {
-        if (maxLevel === undefined)
-            maxLevel = 100;
-        this._level.maxLevel = maxLevel;
+    setMaxLevel(maxLevel = 1) {
+        this._level.maximum_value = maxLevel;
     }
 
     show() {
@@ -167,10 +135,11 @@ var OsdWindow = class {
             this.actor.opacity = 0;
             this.actor.get_parent().set_child_above_sibling(this.actor, null);
 
-            Tweener.addTween(this.actor,
-                             { opacity: 255,
-                               time: FADE_TIME,
-                               transition: 'easeOutQuad' });
+            this.actor.ease({
+                opacity: 255,
+                duration: FADE_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
 
         if (this._hideTimeoutId)
@@ -190,15 +159,15 @@ var OsdWindow = class {
 
     _hide() {
         this._hideTimeoutId = 0;
-        Tweener.addTween(this.actor,
-                         { opacity: 0,
-                           time: FADE_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                              this._reset();
-                              Meta.enable_unredirect_for_display(global.display);
-                           }
-                         });
+        this.actor.ease({
+            opacity: 0,
+            duration: FADE_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._reset();
+                Meta.enable_unredirect_for_display(global.display);
+            }
+        });
         return GLib.SOURCE_REMOVE;
     }
 
@@ -231,7 +200,7 @@ var OsdWindowManager = class {
     constructor() {
         this._osdWindows = [];
         Main.layoutManager.connect('monitors-changed',
-                                    this._monitorsChanged.bind(this));
+                                   this._monitorsChanged.bind(this));
         this._monitorsChanged();
     }
 

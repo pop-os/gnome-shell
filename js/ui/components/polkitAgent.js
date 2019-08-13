@@ -1,8 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Component */
 
 const { AccountsService, Clutter, Gio, GLib,
-        Pango, PolkitAgent, Polkit, Shell, St } = imports.gi;
-const Signals = imports.signals;
+        GObject, Pango, PolkitAgent, Polkit, Shell, St } = imports.gi;
 
 const Animation = imports.ui.animation;
 const Dialog = imports.ui.dialog;
@@ -15,9 +15,11 @@ var DIALOG_ICON_SIZE = 48;
 
 var WORK_SPINNER_ICON_SIZE = 16;
 
-var AuthenticationDialog = class extends ModalDialog.ModalDialog {
-    constructor(actionId, body, cookie, userNames) {
-        super({ styleClass: 'prompt-dialog' });
+var AuthenticationDialog = GObject.registerClass({
+    Signals: { 'done': { param_types: [GObject.TYPE_BOOLEAN] } }
+}, class AuthenticationDialog extends ModalDialog.ModalDialog {
+    _init(actionId, body, cookie, userNames) {
+        super._init({ styleClass: 'prompt-dialog' });
 
         this.actionId = actionId;
         this.message = body;
@@ -25,7 +27,7 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
         this._wasDismissed = false;
 
         this._sessionUpdatedId = Main.sessionMode.connect('updated', () => {
-            this._group.visible = !Main.sessionMode.isLocked;
+            this.visible = !Main.sessionMode.isLocked;
         });
 
         this.connect('closed', this._onDialogClosed.bind(this));
@@ -37,19 +39,19 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
         this.contentLayout.add_actor(content);
 
         if (userNames.length > 1) {
-            log('polkitAuthenticationAgent: Received ' + userNames.length +
-                ' identities that can be used for authentication. Only ' +
+            log(`polkitAuthenticationAgent: Received ${userNames.length} ` +
+                'identities that can be used for authentication. Only ' +
                 'considering one.');
         }
 
         let userName = GLib.get_user_name();
-        if (userNames.indexOf(userName) < 0)
+        if (!userNames.includes(userName))
             userName = 'root';
-        if (userNames.indexOf(userName) < 0)
+        if (!userNames.includes(userName))
             userName = userNames[0];
 
         this._user = AccountsService.UserManager.get_default().get_user(userName);
-        let userRealName = this._user.get_real_name()
+        let userRealName = this._user.get_real_name();
         this._userLoadedId = this._user.connect('notify::is_loaded',
                                                 this._onUserChanged.bind(this));
         this._userChangedId = this._user.connect('changed',
@@ -76,15 +78,15 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
                                                        styleClass: 'polkit-dialog-user-icon' });
             this._userAvatar.actor.hide();
             userBox.add(this._userAvatar.actor,
-                        { x_fill:  true,
-                          y_fill:  false,
+                        { x_fill: true,
+                          y_fill: false,
                           x_align: St.Align.END,
                           y_align: St.Align.START });
             let userLabel = new St.Label(({ style_class: 'polkit-dialog-user-label',
                                             text: userRealName }));
             userBox.add(userLabel,
-                        { x_fill:  true,
-                          y_fill:  false,
+                        { x_fill: true,
+                          y_fill: false,
                           x_align: St.Align.END,
                           y_align: St.Align.MIDDLE });
         }
@@ -97,7 +99,7 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
         this._passwordBox.add(this._passwordLabel, { y_fill: false, y_align: St.Align.MIDDLE });
         this._passwordEntry = new St.Entry({ style_class: 'prompt-dialog-password-entry',
                                              text: "",
-                                             can_focus: true});
+                                             can_focus: true });
         ShellEntry.addContextMenu(this._passwordEntry, { isPassword: true });
         this._passwordEntry.clutter_text.connect('activate', this._onEntryActivate.bind(this));
         this._passwordBox.add(this._passwordEntry,
@@ -126,7 +128,7 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
          * gnome-shell.css sets the color to be transparent
          */
         this._nullMessageLabel = new St.Label({ style_class: 'prompt-dialog-null-label',
-                                                text: 'abc'});
+                                                text: 'abc' });
         this._nullMessageLabel.add_style_class_name('hidden');
         this._nullMessageLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         this._nullMessageLabel.clutter_text.line_wrap = true;
@@ -136,7 +138,7 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
         this._cancelButton = this.addButton({ label: _("Cancel"),
                                               action: this.cancel.bind(this),
                                               key: Clutter.Escape });
-        this._okButton = this.addButton({ label:  _("Authenticate"),
+        this._okButton = this.addButton({ label: _("Authenticate"),
                                           action: this._onAuthenticateButtonPressed.bind(this),
                                           default: true });
 
@@ -179,9 +181,9 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
             //
             // We could add retrying if this turns out to be a problem
 
-            log('polkitAuthenticationAgent: Failed to show modal dialog.' +
-                ' Dismissing authentication request for action-id ' + this.actionId +
-                ' cookie ' + this._cookie);
+            log('polkitAuthenticationAgent: Failed to show modal dialog. ' +
+                `Dismissing authentication request for action-id ${this.actionId} ` +
+                `cookie ${this._cookie}`);
             this._emitDone(true);
         }
     }
@@ -249,14 +251,14 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
         }
     }
 
-    _onSessionRequest(session, request, echo_on) {
+    _onSessionRequest(session, request, echoOn) {
         // Cheap localization trick
         if (request == 'Password:' || request == 'Password: ')
             this._passwordLabel.set_text(_("Password:"));
         else
             this._passwordLabel.set_text(request);
 
-        if (echo_on)
+        if (echoOn)
             this._passwordEntry.clutter_text.set_password_char('');
         else
             this._passwordEntry.clutter_text.set_password_char('\u25cf'); // ● U+25CF BLACK CIRCLE
@@ -326,8 +328,7 @@ var AuthenticationDialog = class extends ModalDialog.ModalDialog {
 
         this._destroySession();
     }
-};
-Signals.addSignalMethods(AuthenticationDialog.prototype);
+});
 
 var AuthenticationAgent = class {
     constructor() {
@@ -342,7 +343,7 @@ var AuthenticationAgent = class {
     enable() {
         try {
             this._native.register();
-        } catch(e) {
+        } catch (e) {
             log('Failed to register AuthenticationAgent');
         }
     }
@@ -350,7 +351,7 @@ var AuthenticationAgent = class {
     disable() {
         try {
             this._native.unregister();
-        } catch(e) {
+        } catch (e) {
             log('Failed to unregister AuthenticationAgent');
         }
     }
@@ -383,11 +384,11 @@ var AuthenticationAgent = class {
         this._currentDialog.performAuthentication();
     }
 
-    _onCancel(nativeAgent) {
+    _onCancel(_nativeAgent) {
         this._completeRequest(false);
     }
 
-    _onDialogDone(dialog, dismissed) {
+    _onDialogDone(_dialog, dismissed) {
         this._completeRequest(dismissed);
     }
 

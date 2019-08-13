@@ -1,3 +1,4 @@
+/* exported InhibitShortcutsDialog */
 const { Clutter, Gio, GLib, GObject, Gtk, Meta, Shell } = imports.gi;
 
 const Dialog = imports.ui.dialog;
@@ -111,7 +112,7 @@ var InhibitShortcutsDialog = GObject.registerClass({
     }
 
     vfunc_show() {
-        if (this._app && APP_WHITELIST.indexOf(this._app.get_id()) != -1) {
+        if (this._app && APP_WHITELIST.includes(this._app.get_id())) {
             this._emitResponse(DialogResponse.ALLOW);
             return;
         }
@@ -139,7 +140,7 @@ var InhibitShortcutsDialog = GObject.registerClass({
                         return;
                     }
 
-                    let [permissions, data] = res;
+                    let [permissions] = res;
                     if (permissions[appId] === undefined) // Not found
                         this._dialog.open();
                     else if (permissions[appId] == GRANTED)

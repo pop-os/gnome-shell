@@ -1,8 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 //
 // A widget showing the user avatar and name
+/* exported UserWidget */
 
-const { Clutter, Gio, GLib, GObject, St } = imports.gi;
+const { Clutter, GLib, GObject, St } = imports.gi;
 
 const Params = imports.misc.params;
 
@@ -44,11 +45,14 @@ var Avatar = class {
             iconFile = null;
 
         if (iconFile) {
-            let file = Gio.File.new_for_path(iconFile);
             this.actor.child = null;
+            let { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+            this.actor.set_size(
+                this._iconSize * scaleFactor,
+                this._iconSize * scaleFactor);
             this.actor.style = `
                 background-image: url("${iconFile}");
-                background-size: ${this._iconSize}px`;
+                background-size: cover;`;
         } else {
             this.actor.style = null;
             this.actor.child = new St.Icon({ icon_name: 'avatar-default-symbolic',
@@ -104,11 +108,7 @@ class UserWidgetLabel extends St.Widget {
         let availWidth = box.x2 - box.x1;
         let availHeight = box.y2 - box.y1;
 
-        let [minRealNameWidth, minRealNameHeight,
-             natRealNameWidth, natRealNameHeight] = this._realNameLabel.get_preferred_size();
-
-        let [minUserNameWidth, minUserNameHeight,
-             natUserNameWidth, natUserNameHeight] = this._userNameLabel.get_preferred_size();
+        let [, , natRealNameWidth] = this._realNameLabel.get_preferred_size();
 
         if (natRealNameWidth <= availWidth)
             this._currentLabel = this._realNameLabel;

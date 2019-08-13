@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Button, SystemIndicator */
 
 const { Atk, Clutter, GObject, St } = imports.gi;
 const Signals = imports.signals;
@@ -14,12 +15,11 @@ class ButtonBox extends St.Widget {
 
         super._init(params);
 
-        this.actor = this;
         this._delegate = this;
 
         this.container = new St.Bin({ y_fill: true,
                                       x_fill: true,
-                                      child: this.actor });
+                                      child: this });
 
         this.connect('style-changed', this._onStyleChanged.bind(this));
         this.connect('destroy', this._onDestroy.bind(this));
@@ -34,7 +34,7 @@ class ButtonBox extends St.Widget {
         this._natHPadding = themeNode.get_length('-natural-hpadding');
     }
 
-    vfunc_get_preferred_width(forHeight) {
+    vfunc_get_preferred_width(_forHeight) {
         let child = this.get_first_child();
         let minimumSize, naturalSize;
 
@@ -49,7 +49,7 @@ class ButtonBox extends St.Widget {
         return [minimumSize, naturalSize];
     }
 
-    vfunc_get_preferred_height(forWidth) {
+    vfunc_get_preferred_height(_forWidth) {
         let child = this.get_first_child();
 
         if (child)
@@ -65,7 +65,7 @@ class ButtonBox extends St.Widget {
         if (!child)
             return;
 
-        let [minWidth, natWidth] = child.get_preferred_width(-1);
+        let [, natWidth] = child.get_preferred_width(-1);
 
         let availWidth = box.x2 - box.x1;
         let availHeight = box.y2 - box.y1;
@@ -92,7 +92,7 @@ class ButtonBox extends St.Widget {
 });
 
 var Button = GObject.registerClass({
-    Signals: {'menu-set': {} },
+    Signals: { 'menu-set': {} },
 }, class PanelMenuButton extends ButtonBox {
     _init(menuAlignment, nameText, dontCreateMenu) {
         super._init({ reactive: true,
@@ -105,9 +105,9 @@ var Button = GObject.registerClass({
         this.connect('notify::visible', this._onVisibilityChanged.bind(this));
 
         if (dontCreateMenu)
-            this.menu = new PopupMenu.PopupDummyMenu(this.actor);
+            this.menu = new PopupMenu.PopupDummyMenu(this);
         else
-            this.setMenu(new PopupMenu.PopupMenu(this.actor, menuAlignment, St.Side.TOP, 0));
+            this.setMenu(new PopupMenu.PopupMenu(this, menuAlignment, St.Side.TOP, 0));
     }
 
     setSensitive(sensitive) {
@@ -145,7 +145,7 @@ var Button = GObject.registerClass({
         if (!this.menu)
             return;
 
-        if (!this.actor.visible)
+        if (!this.visible)
             this.menu.close();
     }
 
@@ -155,10 +155,10 @@ var Button = GObject.registerClass({
 
         let symbol = event.get_key_symbol();
         if (symbol == Clutter.KEY_Left || symbol == Clutter.KEY_Right) {
-            let group = global.focus_manager.get_group(this.actor);
+            let group = global.focus_manager.get_group(this);
             if (group) {
                 let direction = (symbol == Clutter.KEY_Left) ? St.DirectionType.LEFT : St.DirectionType.RIGHT;
-                group.navigate_focus(this.actor, direction, false);
+                group.navigate_focus(this, direction, false);
                 return Clutter.EVENT_STOP;
             }
         }
@@ -167,9 +167,9 @@ var Button = GObject.registerClass({
 
     _onOpenStateChanged(menu, open) {
         if (open)
-            this.actor.add_style_pseudo_class('active');
+            this.add_style_pseudo_class('active');
         else
-            this.actor.remove_style_pseudo_class('active');
+            this.remove_style_pseudo_class('active');
 
         // Setting the max-height won't do any good if the minimum height of the
         // menu is higher then the screen; it's useful if part of the menu is

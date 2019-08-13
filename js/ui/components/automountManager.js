@@ -1,10 +1,12 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Component */
 
 const { Gio, GLib } = imports.gi;
 const Mainloop = imports.mainloop;
 const Params = imports.misc.params;
 
 const GnomeSession = imports.misc.gnomeSession;
+const Main = imports.ui.main;
 const ShellMountOperation = imports.ui.shellMountOperation;
 
 var GNOME_SESSION_AUTOMOUNT_INHIBIT = 16;
@@ -54,7 +56,7 @@ var AutomountManager = class {
         }
     }
 
-    _InhibitorsChanged(object, senderName, [inhibtor]) {
+    _InhibitorsChanged(_object, _senderName, [_inhibitor]) {
         this._session.IsInhibitedRemote(GNOME_SESSION_AUTOMOUNT_INHIBIT,
             (result, error) => {
                 if (!error) {
@@ -108,25 +110,23 @@ var AutomountManager = class {
         // we force stop/eject in this case, so we don't have to pass a
         // mount operation object
         if (drive.can_stop()) {
-            drive.stop
-                (Gio.MountUnmountFlags.FORCE, null, null,
-                 (drive, res) => {
-                     try {
-                         drive.stop_finish(res);
-                     } catch (e) {
-                         log("Unable to stop the drive after drive-eject-button " + e.toString());
-                     }
-                 });
+            drive.stop(Gio.MountUnmountFlags.FORCE, null, null,
+                (drive, res) => {
+                    try {
+                        drive.stop_finish(res);
+                    } catch (e) {
+                        log(`Unable to stop the drive after drive-eject-button ${e.toString()}`);
+                    }
+                });
         } else if (drive.can_eject()) {
-            drive.eject_with_operation 
-                (Gio.MountUnmountFlags.FORCE, null, null,
-                 (drive, res) => {
-                     try {
-                         drive.eject_with_operation_finish(res);
-                     } catch (e) {
-                         log("Unable to eject the drive after drive-eject-button " + e.toString());
-                     }
-                 });
+            drive.eject_with_operation(Gio.MountUnmountFlags.FORCE, null, null,
+                (drive, res) => {
+                    try {
+                        drive.eject_with_operation_finish(res);
+                    } catch (e) {
+                        log(`Unable to eject the drive after drive-eject-button ${e.toString()}`);
+                    }
+                });
         }
     }
 
@@ -199,12 +199,20 @@ var AutomountManager = class {
             // error strings are not unique for the cases in the comments below.
             if (e.message.includes('No key available with this passphrase') || // cryptsetup
                 e.message.includes('No key available to unlock device') ||     // udisks (no password)
-                e.message.includes('Error unlocking')) {                       // udisks (wrong password)
+                // libblockdev wrong password opening LUKS device
+                e.message.includes('Failed to activate device: Incorrect passphrase') ||
+                // cryptsetup returns EINVAL in many cases, including wrong TCRYPT password/parameters
+                e.message.includes('Failed to load device\'s parameters: Invalid argument')) {
+
                 this._reaskPassword(volume);
             } else {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED_HANDLED))
-                    log('Unable to mount volume ' + volume.get_name() + ': ' + e.toString());
+                if (e.message.includes('Compiled against a version of libcryptsetup that does not support the VeraCrypt PIM setting')) {
+                    Main.notifyError(_("Unable to unlock volume"),
+                        _("The installed udisks version does not support the PIM setting"));
+                }
 
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED_HANDLED))
+                    log(`Unable to mount volume ${volume.get_name()}: ${e.toString()}`);
                 this._closeOperation(volume);
             }
         }

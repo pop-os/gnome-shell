@@ -1,21 +1,126 @@
-3.32.2
-======
-* Fix tablet button mapping overlay [Carlos; #1220]
-* Fix ellipsization in dialog subtitles/bodies [Marco; !531]
-* Don't crash for world clock locations with no timezone<Paste> [Florian; #1062]
-* Handle network interface name changes [Fabrice; !534]
-* Don't leak old on-screen keyboard layout groups [Carlos; mutter#556]
-* Avoid unnecessary style changes when computing :first/:last-child
-  [Florian; !529]
-* Misc. bug fixes [Simon, Carlos, Florian; #822, !551, !509,
-  !511, #1054, !506, #1065]
+3.33.90
+=======
+* Implement DND app picker folder management [Georges; !643, !645, !664, !671]
+* Make Clocks/Weather integration work with sandboxed apps [Florian; #1158]
+* Support startup via systemd user instance [Benjamin; !507]
+* Replace Tweener with Clutter animations [Florian; !663, !22, !666, !668, !669]
+* Minimize travel distance in overview animation [Sergey; !267]
+* Rescan icon theme when installed apps changed [Georges; !661]
+* Consistently animate new window actions [Jonas; !662, !673]
+* Misc. bug fixes and cleanups [Florian, Daniel, Ray, Bastien, Jonas, Niels,
+  Marco, Georges; !635, !636, !637, #1462, !628, !640, !641, !627, !644, !647,
+  !385, #1474, !651, #1144, !646, !653, !652, !655, #1482, !656, $654, !665,
+  !667, !670, #1357, !672, !657, #1507, !674, !677]
 
 Contributors:
-  Fabrice Bellet, Carlos Garnacho, Simon McVittie, Florian Müllner,
+  Benjamin Berg, Sergey Bugaev, Jonas Dreßler, Niels De Graef, Florian Müllner,
+  Georges Basile Stavracas Neto, Bastien Nocera, Ray Strode,
+  Marco Trevisan (Treviño), verdre, Daniel van Vugt
+
+Translators:
+  Asier Sarasua Garmendia [eu], Rafael Fontenelle [pt_BR],
+  Kristjan SCHMIDT [eo], Jor Teron [mjw], Daniel Mustieles [es],
+  Kukuh Syafaat [id], Jordi Mas [ca], Fabio Tomat [fur], Daniel Șerbănescu [ro],
+  Anders Jonsson [sv]
+
+3.33.4
+======
+* Fix unintentional interference between gestures [Jonas; !598]
+* Fix unintentional loop while polkit dialog is active [Ray; !602]
+* Fix alt-tab icon size on HiDPI [Jonas; !587]
+* Style fixes and improvements [Frederik, Jakub; !610, #1446, #1449]
+* Fix style updates for non-background CSS properties [Florian; #1212]
+* Fix cursor visibility in screen recordings [Illya; #1208]
+* Add option for disabling the hot corner [Florian; #688320]
+* Use more fine-grained levels in battery indicator [Florian; !561, #1442]
+* Fix the calculation of the maximum number of app search results [Jonas; !110]
+* Handle horizontal workspace layout with gestures/animations [Florian; !575]
+* Improve handling of session mode extensions [Florian, Didier; #789852]
+* Misc. bug fixes and cleanups [Jonas, Florian, Sonny, Carlos, Mario, Benjamin,
+  Marco, Ting-Wei; !599, !600, !591, !606, !152, !607, !604, !495, !608, !611,
+  !614, !612, !615, !618, #369, !620, #774, !621, !616, #1065, !609, !626,
+  !491, !631, !632, !633, #1457]
+
+Contributors:
+  Benjamin Berg, Jonas Dreßler, Frederik Feichtmeier, Carlos Garnacho,
+  Illya Klymov, Ting-Wei Lan, Florian Müllner, Sonny Piers, Mario Sanchez Prada,
+  Didier Roche, Jakub Steiner, Ray Strode, Jor Teron, Marco Trevisan (Treviño)
+
+Translators:
+  Jordi Mas [ca], Jor Teron [mjw]
+
+3.33.3
+======
+* Prepare for optional X11 [Carlos; !378]
+* Fix opening window menu [Marco; !557]
+* Reload search providers when installed applications change [Cosimo; !562]
+* Implement locate-pointer accessibility feature [Olivier; #981]
+* Allow to disable window menus via session mode [Cosimo; !569]
+* Implement mouse accessibility [Olivier; !474]
+* Call GDM's RegisterSession() after startup [Iain; !570]
+* Fix extended keys popups being hidden by on-screen keyboard [Marco; !583]
+* Fix top bar being hidden by lock screen [Jonas; !571]
+* Update theme to better match GTK's Adwaita [Frederik; #841]
+* Set up GJS profiler when GJS_TRACE_FD is set [Christian; !573]
+* Misc. bug fixes and cleanups [Jonas, Cosimo, Robert, Florian, Marco, Simon,
+  Laurent, Niels, Will; !551, !555, !464, #1333, !565, !572, !568, !558, #1205,
+  #1336, !579, !576, #1392, !582, !586, #1406, #1351]
+
+Contributors:
+  Laurent Bigonville, Cosimo Cecchi, Piotr Drąg, Jonas Dreßler,
+  Frederik Feichtmeier, Olivier Fourdan, Carlos Garnacho, Niels De Graef,
+  Christian Hergert, Iain Lane, Robert Mader, Florian Müllner, Simon Schampijer,
+  Jakub Steiner, Will Thompson, Marco Trevisan (Treviño)
+
+Translators:
+  Kukuh Syafaat [id], Balázs Meskó [hu], Daniel Mustieles [es],
+  Fabio Tomat [fur], Nathan Follens [nl], Goran Vidović [hr], Jordi Mas [ca]
+
+3.33.2
+======
+* Fix keeping actors visible in scrollviews [Marco; #1061]
+* Move some chrome above popup windows [Jonas D.; !358]
+* Include 'sandboxed-app-id' in winodw introspection info [Florian; #1289]
+* Port to libecal-2.0 [Milan; !501]
+* Support TCRYPT in mount password dialog [segfault; !126]
+* Misc. bug fixes and cleanups [Florian, Marco, Veerasamy; !517, #745, !499,
+  !510, !515, !546, !549]
+
+Contributors:
+  Cosimo Cecchi, Milan Crha, Jonas Dreßler, Florian Müllner, segfault,
+  Veerasamy Sevagen, Marco Trevisan (Treviño)
+
+Translators:
+  Daniel Mustieles [es]
+
+3.33.1
+======
+* Refine the app menu [Florian; #968]
+* Refine window preview style [Feichtmeier; !461]
+* Only emit ::style-changed on actual changes [Carlos; #1153]
+* Disable emoji on-screen keyboard support on X11 [Florian; #1172]
+* Fix tablet button mapping overlay [Carlos; #1220]
+* Don't crash for world clock locations with no timezone [Florian; #1062]
+* Don't leak old on-screen keyboard layout groups [Carlos; mutter#556]
+* Fix ellipsization in dialog subtitles/bodies [Marco; !531]
+* Fix glitch of fullscreen window in workspace switch animation [Jonas D.; !322]
+* Fix distortion of some image contents [Florian; !525]
+* Allow dragging unfocused tiled/maximized windows from top bar [Dylan; #679290]
+* Handle network interface name changes [Fabrice; !534]
+* Avoid unnecessary style changes when computing :first/:last-child
+  [Florian; !529]
+* Misc. bug fixes and cleanups [Florian, Marco, Robert, Georges, Carlos, Simon,
+  Jonas D.; !487, !441, !502, !503, !504, !506, #822, !551, !512, !509, !511,
+  #1054, !524, #1065, !331, !540]
+
+Contributors:
+  Fabrice Bellet, Jonas Dreßler, Feichtmeier, Carlos Garnacho, Robert Mader,
+  Dylan McCall, Simon McVittie, Florian Müllner, Georges Basile Stavracas Neto,
   Marco Trevisan (Treviño)
 
 Translators:
-  Dingzhong Chen [zh_CN], Tim Sabsch [de]
+  Daniel Mustieles [es], Kukuh Syafaat [id], Fabio Tomat [fur],
+  Carmen Bianca BAKKER [eo], Dingzhong Chen [zh_CN], Tim Sabsch [de]
 
 3.32.1
 ======

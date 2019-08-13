@@ -1,6 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Indicator */
 
-const { Clutter, Gio, GLib, Shell } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Shell } = imports.gi;
 
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
@@ -8,7 +9,6 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const ModalDialog = imports.ui.modalDialog;
 const PermissionStore = imports.misc.permissionStore;
-const Signals = imports.signals;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
@@ -47,9 +47,9 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         super();
 
         this._settings = new Gio.Settings({ schema_id: LOCATION_SCHEMA });
-        this._settings.connect('changed::' + ENABLED,
+        this._settings.connect(`changed::${ENABLED}`,
                                this._onMaxAccuracyLevelChanged.bind(this));
-        this._settings.connect('changed::' + MAX_ACCURACY_LEVEL,
+        this._settings.connect(`changed::${MAX_ACCURACY_LEVEL}`,
                                this._onMaxAccuracyLevelChanged.bind(this));
 
         this._indicator = this._addIndicator();
@@ -101,12 +101,12 @@ var Indicator = class extends PanelMenu.SystemIndicator {
     _syncIndicator() {
         if (this._managerProxy == null) {
             this._indicator.visible = false;
-            this._item.actor.visible = false;
+            this._item.visible = false;
             return;
         }
 
         this._indicator.visible = this._managerProxy.InUse;
-        this._item.actor.visible = this._indicator.visible;
+        this._item.visible = this._indicator.visible;
         this._updateMenuLabels();
     }
 
@@ -131,7 +131,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         this._managerProxy = proxy;
         this._propertiesChangedId = this._managerProxy.connect('g-properties-changed',
-                                                        this._onGeocluePropsChanged.bind(this));
+                                                               this._onGeocluePropsChanged.bind(this));
 
         this._syncIndicator();
 
@@ -242,7 +242,7 @@ var AppAuthorizer = class {
         this._onAuthDone = onAuthDone;
 
         let appSystem = Shell.AppSystem.get_default();
-        this._app = appSystem.lookup_app(this.desktopId + ".desktop");
+        this._app = appSystem.lookup_app(`${this.desktopId}.desktop`);
         if (this._app == null || this._permStoreProxy == null) {
             this._completeAuth();
 
@@ -335,16 +335,18 @@ var AppAuthorizer = class {
                                        APP_PERMISSIONS_ID,
                                        this._permissions,
                                        data,
-                                       (result, error) => {
-            if (error != null)
-                log(error.message);
-        });
+            (result, error) => {
+                if (error != null)
+                    log(error.message);
+            });
     }
 };
 
-var GeolocationDialog = class extends ModalDialog.ModalDialog {
-    constructor(name, subtitle, reqAccuracyLevel) {
-        super({ styleClass: 'geolocation-dialog' });
+var GeolocationDialog = GObject.registerClass({
+    Signals: { 'response': { param_types: [GObject.TYPE_UINT] } }
+}, class GeolocationDialog extends ModalDialog.ModalDialog {
+    _init(name, subtitle, reqAccuracyLevel) {
+        super._init({ styleClass: 'geolocation-dialog' });
         this.reqAccuracyLevel = reqAccuracyLevel;
 
         let icon = new Gio.ThemedIcon({ name: 'find-location-symbolic' });
@@ -375,5 +377,4 @@ var GeolocationDialog = class extends ModalDialog.ModalDialog {
         this.emit('response', GeoclueAccuracyLevel.NONE);
         this.close();
     }
-};
-Signals.addSignalMethods(GeolocationDialog.prototype);
+});

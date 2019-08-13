@@ -1,6 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported MonitorConstraint, LayoutManager */
 
-const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const Background = imports.ui.background;
@@ -10,17 +11,17 @@ const LoginManager = imports.misc.loginManager;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
+const Ripples = imports.ui.ripples;
 
-var STARTUP_ANIMATION_TIME = 0.5;
-var KEYBOARD_ANIMATION_TIME = 0.15;
-var BACKGROUND_FADE_ANIMATION_TIME = 1.0;
+var STARTUP_ANIMATION_TIME = 500;
+var KEYBOARD_ANIMATION_TIME = 150;
+var BACKGROUND_FADE_ANIMATION_TIME = 1000;
 
 var HOT_CORNER_PRESSURE_THRESHOLD = 100; // pixels
 var HOT_CORNER_PRESSURE_TIMEOUT = 1000; // ms
 
 function isPopupMetaWindow(actor) {
-    switch(actor.meta_window.get_window_type()) {
+    switch (actor.meta_window.get_window_type()) {
     case Meta.WindowType.DROPDOWN_MENU:
     case Meta.WindowType.POPUP_MENU:
     case Meta.WindowType.COMBO:
@@ -31,18 +32,20 @@ function isPopupMetaWindow(actor) {
 }
 
 var MonitorConstraint = GObject.registerClass({
-    Properties: {'primary': GObject.ParamSpec.boolean('primary', 
-                                                      'Primary', 'Track primary monitor',
-                                                      GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                      false),
-                 'index': GObject.ParamSpec.int('index',
-                                                'Monitor index', 'Track specific monitor',
-                                                GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                -1, 64, -1),
-                 'work-area': GObject.ParamSpec.boolean('work-area',
-                                                        'Work-area', 'Track monitor\'s work-area',
-                                                        GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                        false)},
+    Properties: {
+        'primary': GObject.ParamSpec.boolean('primary',
+                                             'Primary', 'Track primary monitor',
+                                             GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                             false),
+        'index': GObject.ParamSpec.int('index',
+                                       'Monitor index', 'Track specific monitor',
+                                       GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                       -1, 64, -1),
+        'work-area': GObject.ParamSpec.boolean('work-area',
+                                               'Work-area', 'Track monitor\'s work-area',
+                                               GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                               false)
+    },
 }, class MonitorConstraint extends Clutter.Constraint {
     _init(props) {
         this._primary = false;
@@ -77,10 +80,12 @@ var MonitorConstraint = GObject.registerClass({
         this.notify('index');
     }
 
+    // eslint-disable-next-line camelcase
     get work_area() {
         return this._workArea;
     }
 
+    // eslint-disable-next-line camelcase
     set work_area(v) {
         if (v == this._workArea)
             return;
@@ -146,13 +151,13 @@ var MonitorConstraint = GObject.registerClass({
 });
 
 var Monitor = class Monitor {
-    constructor(index, geometry, geometry_scale) {
+    constructor(index, geometry, geometryScale) {
         this.index = index;
         this.x = geometry.x;
         this.y = geometry.y;
         this.width = geometry.width;
         this.height = geometry.height;
-        this.geometry_scale = geometry_scale;
+        this.geometry_scale = geometryScale;
     }
 
     get inFullscreen() {
@@ -162,12 +167,12 @@ var Monitor = class Monitor {
 
 const UiActor = GObject.registerClass(
 class UiActor extends St.Widget {
-    vfunc_get_preferred_width (forHeight) {
+    vfunc_get_preferred_width (_forHeight) {
         let width = global.stage.width;
         return [width, width];
     }
 
-    vfunc_get_preferred_height (forWidth) {
+    vfunc_get_preferred_height (_forWidth) {
         let height = global.stage.height;
         return [height, height];
     }
@@ -216,10 +221,17 @@ var LayoutManager = GObject.registerClass({
         this.uiGroup = new UiActor({ name: 'uiGroup' });
         this.uiGroup.set_flags(Clutter.ActorFlags.NO_LAYOUT);
 
+        global.stage.add_child(this.uiGroup);
+
         global.stage.remove_actor(global.window_group);
         this.uiGroup.add_actor(global.window_group);
 
-        global.stage.add_child(this.uiGroup);
+        // Using addChrome() to add actors to uiGroup will position actors
+        // underneath the top_window_group.
+        // To insert actors at the top of uiGroup, we use addTopChrome() or
+        // add the actor directly using uiGroup.add_actor().
+        global.stage.remove_actor(global.top_window_group);
+        this.uiGroup.add_actor(global.top_window_group);
 
         this.overviewGroup = new St.Widget({ name: 'overviewGroup',
                                              visible: false,
@@ -247,16 +259,13 @@ var LayoutManager = GObject.registerClass({
         this.keyboardBox = new St.BoxLayout({ name: 'keyboardBox',
                                               reactive: true,
                                               track_hover: true });
-        this.addChrome(this.keyboardBox);
+        this.addTopChrome(this.keyboardBox);
         this._keyboardHeightNotifyId = 0;
 
         // A dummy actor that tracks the mouse or text cursor, based on the
         // position and size set in setDummyCursorGeometry.
         this.dummyCursor = new St.Widget({ width: 0, height: 0, opacity: 0 });
         this.uiGroup.add_actor(this.dummyCursor);
-
-        global.stage.remove_actor(global.top_window_group);
-        this.uiGroup.add_actor(global.top_window_group);
 
         let feedbackGroup = Meta.get_feedback_group_for_display(global.display);
         global.stage.remove_actor(feedbackGroup);
@@ -266,6 +275,13 @@ var LayoutManager = GObject.registerClass({
         global.window_group.add_child(this._backgroundGroup);
         this._backgroundGroup.lower_bottom();
         this._bgManagers = [];
+
+        this._interfaceSettings = new Gio.Settings({
+            schema_id: 'org.gnome.desktop.interface'
+        });
+
+        this._interfaceSettings.connect('changed::enable-hot-corners',
+                                        this._updateHotCorners.bind(this));
 
         // Need to update struts on new workspaces when they are added
         let workspaceManager = global.workspace_manager;
@@ -370,6 +386,11 @@ var LayoutManager = GObject.registerClass({
         });
         this.hotCorners = [];
 
+        if (!this._interfaceSettings.get_boolean('enable-hot-corners')) {
+            this.emit('hot-corners-changed');
+            return;
+        }
+
         let size = this.panelBox.height;
 
         // build new hot corners
@@ -442,10 +463,11 @@ var LayoutManager = GObject.registerClass({
                 let backgroundActor = this._bgManagers[i].backgroundActor;
                 backgroundActor.show();
                 backgroundActor.opacity = 0;
-                Tweener.addTween(backgroundActor,
-                                 { opacity: 255,
-                                   time: BACKGROUND_FADE_ANIMATION_TIME,
-                                   transition: 'easeOutQuad' });
+                backgroundActor.ease({
+                    opacity: 255,
+                    duration: BACKGROUND_FADE_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                });
             }
         }
     }
@@ -676,23 +698,23 @@ var LayoutManager = GObject.registerClass({
     }
 
     _startupAnimationGreeter() {
-        Tweener.addTween(this.panelBox,
-                         { translation_y: 0,
-                           time: STARTUP_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._startupAnimationComplete,
-                           onCompleteScope: this });
+        this.panelBox.ease({
+            translation_y: 0,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._startupAnimationComplete()
+        });
     }
 
     _startupAnimationSession() {
-        Tweener.addTween(this.uiGroup,
-                         { scale_x: 1,
-                           scale_y: 1,
-                           opacity: 255,
-                           time: STARTUP_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._startupAnimationComplete,
-                           onCompleteScope: this });
+        this.uiGroup.ease({
+            scale_x: 1,
+            scale_y: 1,
+            opacity: 255,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._startupAnimationComplete()
+        });
     }
 
     _startupAnimationComplete() {
@@ -718,14 +740,15 @@ var LayoutManager = GObject.registerClass({
 
     showKeyboard() {
         this.keyboardBox.show();
-        Tweener.addTween(this.keyboardBox,
-                         { anchor_y: this.keyboardBox.height,
-                           opacity: 255,
-                           time: KEYBOARD_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._showKeyboardComplete,
-                           onCompleteScope: this
-                         });
+        this.keyboardBox.ease({
+            anchor_y: this.keyboardBox.height,
+            opacity: 255,
+            duration: KEYBOARD_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._showKeyboardComplete();
+            }
+        });
         this.emit('keyboard-visible-changed', true);
     }
 
@@ -744,14 +767,16 @@ var LayoutManager = GObject.registerClass({
             this.keyboardBox.disconnect(this._keyboardHeightNotifyId);
             this._keyboardHeightNotifyId = 0;
         }
-        Tweener.addTween(this.keyboardBox,
-                         { anchor_y: 0,
-                           opacity: 0,
-                           time: immediate ? 0 : KEYBOARD_ANIMATION_TIME,
-                           transition: 'easeInQuad',
-                           onComplete: this._hideKeyboardComplete,
-                           onCompleteScope: this
-                         });
+        this.keyboardBox.ease({
+            anchor_y: 0,
+            opacity: 0,
+            duration: immediate ? 0
+                                : KEYBOARD_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onComplete: () => {
+                this._hideKeyboardComplete();
+            }
+        });
 
         this.emit('keyboard-visible-changed', false);
     }
@@ -802,6 +827,16 @@ var LayoutManager = GObject.registerClass({
         this._trackActor(actor, params);
     }
 
+    // addTopChrome:
+    // @actor: an actor to add to the chrome
+    // @params: (optional) additional params
+    //
+    // Like addChrome(), but adds @actor above all windows, including popups.
+    addTopChrome(actor, params) {
+        this.uiGroup.add_actor(actor);
+        this._trackActor(actor, params);
+    }
+
     // trackChrome:
     // @actor: a descendant of the chrome to begin tracking
     // @params: parameters describing how to track @actor
@@ -812,7 +847,7 @@ var LayoutManager = GObject.registerClass({
     // @params can have any of the same values as in addChrome(),
     // though some possibilities don't make sense. By default, @actor has
     // the same params as its chrome ancestor.
-    trackChrome(actor, params) {
+    trackChrome(actor, params = {}) {
         let ancestor = actor.get_parent();
         let index = this._findActor(ancestor);
         while (ancestor && index == -1) {
@@ -822,8 +857,6 @@ var LayoutManager = GObject.registerClass({
 
         let ancestorData = ancestor ? this._trackedActors[index]
                                     : defaultParams;
-        if (!params)
-            params = {};
         // We can't use Params.parse here because we want to drop
         // the extra values like ancestorData.actor
         for (let prop in defaultParams) {
@@ -1052,14 +1085,13 @@ var LayoutManager = GObject.registerClass({
                 else
                     continue;
 
-                let strutRect = new Meta.Rectangle({ x: x1, y: y1, width: x2 - x1, height: y2 - y1});
+                let strutRect = new Meta.Rectangle({ x: x1, y: y1, width: x2 - x1, height: y2 - y1 });
                 let strut = new Meta.Strut({ rect: strutRect, side: side });
                 struts.push(strut);
             }
         }
 
-        if (!Meta.is_wayland_compositor())
-            global.set_stage_input_region(rects);
+        global.set_stage_input_region(rects);
         this._isPopupWindowVisible = isPopupMenuVisible;
 
         let workspaceManager = global.workspace_manager;
@@ -1104,14 +1136,15 @@ var HotCorner = class HotCorner {
                                                     Shell.ActionMode.OVERVIEW);
         this._pressureBarrier.connect('trigger', this._toggleOverview.bind(this));
 
-        // Cache the three ripples instead of dynamically creating and destroying them.
-        this._ripple1 = new St.BoxLayout({ style_class: 'ripple-box', opacity: 0, visible: false });
-        this._ripple2 = new St.BoxLayout({ style_class: 'ripple-box', opacity: 0, visible: false });
-        this._ripple3 = new St.BoxLayout({ style_class: 'ripple-box', opacity: 0, visible: false });
+        let px = 0.0;
+        let py = 0.0;
+        if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL) {
+            px = 1.0;
+            py = 0.0;
+        }
 
-        layoutManager.uiGroup.add_actor(this._ripple1);
-        layoutManager.uiGroup.add_actor(this._ripple2);
-        layoutManager.uiGroup.add_actor(this._ripple3);
+        this._ripples = new Ripples.Ripples(px, py, 'ripple-box');
+        this._ripples.addTo(layoutManager.uiGroup);
     }
 
     setBarrierSize(size) {
@@ -1193,58 +1226,17 @@ var HotCorner = class HotCorner {
             this.actor.destroy();
     }
 
-    _animRipple(ripple, delay, time, startScale, startOpacity, finalScale) {
-        // We draw a ripple by using a source image and animating it scaling
-        // outwards and fading away. We want the ripples to move linearly
-        // or it looks unrealistic, but if the opacity of the ripple goes
-        // linearly to zero it fades away too quickly, so we use Tweener's
-        // 'onUpdate' to give a non-linear curve to the fade-away and make
-        // it more visible in the middle section.
-
-        ripple._opacity = startOpacity;
-
-        if (ripple.get_text_direction() == Clutter.TextDirection.RTL)
-            ripple.set_anchor_point_from_gravity(Clutter.Gravity.NORTH_EAST);
-
-        ripple.visible = true;
-        ripple.opacity = 255 * Math.sqrt(startOpacity);
-        ripple.scale_x = ripple.scale_y = startScale;
-
-        ripple.x = this._x;
-        ripple.y = this._y;
-
-        Tweener.addTween(ripple, { _opacity: 0,
-                                   scale_x: finalScale,
-                                   scale_y: finalScale,
-                                   delay: delay,
-                                   time: time,
-                                   transition: 'linear',
-                                   onUpdate() { ripple.opacity = 255 * Math.sqrt(ripple._opacity); },
-                                   onComplete() { ripple.visible = false; } });
-    }
-
-    _rippleAnimation() {
-        // Show three concentric ripples expanding outwards; the exact
-        // parameters were found by trial and error, so don't look
-        // for them to make perfect sense mathematically
-
-        //                              delay  time  scale opacity => scale
-        this._animRipple(this._ripple1, 0.0,   0.83,  0.25,  1.0,     1.5);
-        this._animRipple(this._ripple2, 0.05,  1.0,   0.0,   0.7,     1.25);
-        this._animRipple(this._ripple3, 0.35,  1.0,   0.0,   0.3,     1);
-    }
-
     _toggleOverview() {
         if (this._monitor.inFullscreen && !Main.overview.visible)
             return;
 
         if (Main.overview.shouldToggleByCornerOrButton()) {
-            this._rippleAnimation();
+            this._ripples.playAnimation(this._x, this._y);
             Main.overview.toggle();
         }
     }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
@@ -1345,7 +1337,7 @@ var PressureBarrier = class PressureBarrier {
         let threshold = this._lastTime - this._timeout;
 
         while (i < this._barrierEvents.length) {
-            let [time, distance] = this._barrierEvents[i];
+            let [time, distance_] = this._barrierEvents[i];
             if (time >= threshold)
                 break;
             i++;
@@ -1354,14 +1346,14 @@ var PressureBarrier = class PressureBarrier {
         let firstNewEvent = i;
 
         for (i = 0; i < firstNewEvent; i++) {
-            let [time, distance] = this._barrierEvents[i];
+            let [time_, distance] = this._barrierEvents[i];
             this._currentPressure -= distance;
         }
 
         this._barrierEvents = this._barrierEvents.slice(firstNewEvent);
     }
 
-    _onBarrierLeft(barrier, event) {
+    _onBarrierLeft(barrier, _event) {
         barrier._isHit = false;
         if (this._barriers.every(b => !b._isHit)) {
             this._reset();

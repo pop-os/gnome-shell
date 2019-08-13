@@ -1,10 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported OsdMonitorLabeler */
 
 const { Clutter, Gio, Meta, St } = imports.gi;
 
 const Main = imports.ui.main;
-
-var FADE_TIME = 0.1;
 
 var OsdMonitorLabel = class {
     constructor(monitor, label) {
@@ -53,7 +52,7 @@ var OsdMonitorLabeler = class {
         this._osdLabels = [];
         this._monitorLabels = null;
         Main.layoutManager.connect('monitors-changed',
-                                    this._reset.bind(this));
+                                   this._reset.bind(this));
         this._reset();
     }
 

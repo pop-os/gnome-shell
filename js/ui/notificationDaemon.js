@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported NotificationDaemon */
 
 const { GdkPixbuf, Gio, GLib, Shell, St } = imports.gi;
 const Mainloop = imports.mainloop;
@@ -64,7 +65,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
     _imageForNotificationData(hints) {
         if (hints['image-data']) {
             let [width, height, rowStride, hasAlpha,
-                 bitsPerSample, nChannels, data] = hints['image-data'];
+                 bitsPerSample, nChannels_, data] = hints['image-data'];
             return Shell.util_create_pixbuf_from_data(data, GdkPixbuf.Colorspace.RGB, hasAlpha,
                                                       bitsPerSample, width, height, rowStride);
         } else if (hints['image-path']) {
@@ -76,13 +77,13 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
     _fallbackIconForNotificationData(hints) {
         let stockIcon;
         switch (hints.urgency) {
-            case Urgency.LOW:
-            case Urgency.NORMAL:
-                stockIcon = 'dialog-information';
-                break;
-            case Urgency.CRITICAL:
-                stockIcon = 'dialog-error';
-                break;
+        case Urgency.LOW:
+        case Urgency.NORMAL:
+            stockIcon = 'dialog-information';
+            break;
+        case Urgency.CRITICAL:
+            stockIcon = 'dialog-error';
+            break;
         }
         return new Gio.ThemedIcon({ name: stockIcon });
     }
@@ -170,11 +171,11 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
             // Ignore replacesId since we already sent back a
             // NotificationClosed for that id.
             id = this._nextNotificationId++;
-            let idle_id = Mainloop.idle_add(() => {
+            let idleId = Mainloop.idle_add(() => {
                 this._emitNotificationClosed(id, NotificationClosedReason.DISMISSED);
                 return GLib.SOURCE_REMOVE;
             });
-            GLib.Source.set_name_by_id(idle_id, '[gnome-shell] this._emitNotificationClosed');
+            GLib.Source.set_name_by_id(idleId, '[gnome-shell] this._emitNotificationClosed');
             return invocation.return_value(GLib.Variant.new('(u)', [id]));
         }
 
@@ -231,7 +232,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
             // There's already a pending call to GetConnectionUnixProcessID,
             // which will see the new notification data when it finishes,
             // so we don't have to do anything.
-            return invocation.return_value(GLib.Variant.new('(u)', [id]));;
+            return invocation.return_value(GLib.Variant.new('(u)', [id]));
         }
 
         this._busProxy.GetConnectionUnixProcessIDRemote(sender, (result, excp) => {
@@ -259,7 +260,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
     }
 
     _notifyForSource(source, ndata) {
-        let [id, icon, summary, body, actions, hints, notification] =
+        let [id_, icon, summary, body, actions, hints, notification] =
             [ndata.id, ndata.icon, ndata.summary, ndata.body,
              ndata.actions, ndata.hints, ndata.notification];
 
@@ -270,15 +271,15 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
                 delete this._notifications[ndata.id];
                 let notificationClosedReason;
                 switch (reason) {
-                    case MessageTray.NotificationDestroyedReason.EXPIRED:
-                        notificationClosedReason = NotificationClosedReason.EXPIRED;
-                        break;
-                    case MessageTray.NotificationDestroyedReason.DISMISSED:
-                        notificationClosedReason = NotificationClosedReason.DISMISSED;
-                        break;
-                    case MessageTray.NotificationDestroyedReason.SOURCE_CLOSED:
-                        notificationClosedReason = NotificationClosedReason.APP_CLOSED;
-                        break;
+                case MessageTray.NotificationDestroyedReason.EXPIRED:
+                    notificationClosedReason = NotificationClosedReason.EXPIRED;
+                    break;
+                case MessageTray.NotificationDestroyedReason.DISMISSED:
+                    notificationClosedReason = NotificationClosedReason.DISMISSED;
+                    break;
+                case MessageTray.NotificationDestroyedReason.SOURCE_CLOSED:
+                    notificationClosedReason = NotificationClosedReason.APP_CLOSED;
+                    break;
                 }
                 this._emitNotificationClosed(ndata.id, notificationClosedReason);
             });
@@ -309,7 +310,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
 
         if (actions.length) {
             for (let i = 0; i < actions.length - 1; i += 2) {
-                let [actionId, label] = [actions[i], actions[i+1]];
+                let [actionId, label] = [actions[i], actions[i + 1]];
                 if (actionId == 'default')
                     hasDefaultAction = true;
                 else
@@ -330,15 +331,15 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         }
 
         switch (hints.urgency) {
-            case Urgency.LOW:
-                notification.setUrgency(MessageTray.Urgency.LOW);
-                break;
-            case Urgency.NORMAL:
-                notification.setUrgency(MessageTray.Urgency.NORMAL);
-                break;
-            case Urgency.CRITICAL:
-                notification.setUrgency(MessageTray.Urgency.CRITICAL);
-                break;
+        case Urgency.LOW:
+            notification.setUrgency(MessageTray.Urgency.LOW);
+            break;
+        case Urgency.NORMAL:
+            notification.setUrgency(MessageTray.Urgency.NORMAL);
+            break;
+        case Urgency.CRITICAL:
+            notification.setUrgency(MessageTray.Urgency.CRITICAL);
+            break;
         }
         notification.setResident(!!hints.resident);
         // 'transient' is a reserved keyword in JS, so we have to retrieve the value
@@ -437,7 +438,7 @@ class FdoNotificationDaemonSource extends MessageTray.Source {
 
     _createPolicy() {
         if (this.app && this.app.get_app_info()) {
-            let id = this.app.get_id().replace(/\.desktop$/,'');
+            let id = this.app.get_id().replace(/\.desktop$/, '');
             return new MessageTray.NotificationApplicationPolicy(id);
         } else {
             return new MessageTray.NotificationGenericPolicy();
@@ -474,7 +475,7 @@ class FdoNotificationDaemonSource extends MessageTray.Source {
             return app;
 
         if (appId) {
-            app = Shell.AppSystem.get_default().lookup_app(appId + '.desktop');
+            app = Shell.AppSystem.get_default().lookup_app(`${appId}.desktop`);
             if (app != null)
                 return app;
         }
@@ -573,7 +574,7 @@ class GtkNotificationDaemonNotification extends MessageTray.Notification {
 
         this.update(title.unpack(), body ? body.unpack() : null,
                     { gicon: gicon ? Gio.icon_deserialize(gicon) : null,
-                      datetime : time ? GLib.DateTime.new_from_unix_local(time.unpack()) : null });
+                      datetime: time ? GLib.DateTime.new_from_unix_local(time.unpack()) : null });
     }
 
     _activateAction(namespacedActionId, target) {
@@ -610,7 +611,7 @@ function objectPathFromAppId(appId) {
 }
 
 function getPlatformData() {
-    let startupId = GLib.Variant.new('s', '_TIME' + global.get_current_time());
+    let startupId = GLib.Variant.new('s', `_TIME${global.get_current_time()}`);
     return { "desktop-startup-id": startupId };
 }
 
@@ -623,7 +624,7 @@ class GtkNotificationDaemonAppSource extends MessageTray.Source {
         if (!GLib.Variant.is_object_path(objectPath))
             throw new InvalidAppError();
 
-        let app = Shell.AppSystem.get_default().lookup_app(appId + '.desktop');
+        let app = Shell.AppSystem.get_default().lookup_app(`${appId}.desktop`);
         if (!app)
             throw new InvalidAppError();
 
@@ -759,7 +760,7 @@ var GtkNotificationDaemon = class GtkNotificationDaemon {
                 let source;
                 try {
                     source = this._ensureAppSource(appId);
-                } catch(e) {
+                } catch (e) {
                     if (e instanceof InvalidAppError)
                         return;
                     throw e;
@@ -793,7 +794,7 @@ var GtkNotificationDaemon = class GtkNotificationDaemon {
         let source;
         try {
             source = this._ensureAppSource(appId);
-        } catch(e) {
+        } catch (e) {
             if (e instanceof InvalidAppError) {
                 invocation.return_dbus_error('org.gtk.Notifications.InvalidApp', 'The app by ID "%s" could not be found'.format(appId));
                 return;

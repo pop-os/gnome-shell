@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported loadRemoteSearchProviders */
 
 const { GdkPixbuf, Gio, GLib, Shell, St } = imports.gi;
 
@@ -69,7 +70,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {
 
         try {
             keyfile.load_from_file(path, 0);
-        } catch(e) {
+        } catch (e) {
             return;
         }
 
@@ -89,15 +90,17 @@ function loadRemoteSearchProviders(searchSettings, callback) {
             try {
                 let desktopId = keyfile.get_string(group, 'DesktopId');
                 appInfo = Gio.DesktopAppInfo.new(desktopId);
+                if (!appInfo.should_show())
+                    return;
             } catch (e) {
-                log('Ignoring search provider ' + path + ': missing DesktopId');
+                log(`Ignoring search provider ${path}: missing DesktopId`);
                 return;
             }
 
             let autoStart = true;
             try {
                 autoStart = keyfile.get_boolean(group, 'AutoStart');
-            } catch(e) {
+            } catch (e) {
                 // ignore error
             }
 
@@ -116,13 +119,13 @@ function loadRemoteSearchProviders(searchSettings, callback) {
             remoteProvider.defaultEnabled = true;
             try {
                 remoteProvider.defaultEnabled = !keyfile.get_boolean(group, 'DefaultDisabled');
-            } catch(e) {
+            } catch (e) {
                 // ignore error
             }
 
             objectPaths[objectPath] = remoteProvider;
             loadedProviders.push(remoteProvider);
-        } catch(e) {
+        } catch (e) {
             log('Failed to add search provider %s: %s'.format(path, e.toString()));
         }
     }
@@ -144,10 +147,10 @@ function loadRemoteSearchProviders(searchSettings, callback) {
 
         if (provider.defaultEnabled) {
             let disabled = searchSettings.get_strv('disabled');
-            return disabled.indexOf(appId) == -1;
+            return !disabled.includes(appId);
         } else {
             let enabled = searchSettings.get_strv('enabled');
-            return enabled.indexOf(appId) != -1;
+            return enabled.includes(appId);
         }
     });
 
@@ -189,18 +192,18 @@ var RemoteSearchProvider = class {
         if (!proxyInfo)
             proxyInfo = SearchProviderProxyInfo;
 
-        let g_flags = Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES;
+        let gFlags = Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES;
         if (autoStart)
-            g_flags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START_AT_CONSTRUCTION;
+            gFlags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START_AT_CONSTRUCTION;
         else
-            g_flags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START;
+            gFlags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START;
 
         this.proxy = new Gio.DBusProxy({ g_bus_type: Gio.BusType.SESSION,
                                          g_name: dbusName,
                                          g_object_path: dbusPath,
                                          g_interface_info: proxyInfo,
                                          g_interface_name: proxyInfo.name,
-                                         g_flags });
+                                         gFlags });
         this.proxy.init_async(GLib.PRIORITY_DEFAULT, null, null);
 
         this.appInfo = appInfo;
@@ -219,7 +222,7 @@ var RemoteSearchProvider = class {
             gicon = Gio.icon_new_for_string(meta['gicon']);
         } else if (meta['icon-data']) {
             let [width, height, rowStride, hasAlpha,
-                 bitsPerSample, nChannels, data] = meta['icon-data'];
+                 bitsPerSample, nChannels_, data] = meta['icon-data'];
             gicon = Shell.util_create_pixbuf_from_data(data, GdkPixbuf.Colorspace.RGB, hasAlpha,
                                                        bitsPerSample, width, height, rowStride);
         }
@@ -308,10 +311,10 @@ var RemoteSearchProvider = class {
         this.proxy.ActivateResultRemote(id);
     }
 
-    launchSearch(terms) {
+    launchSearch(_terms) {
         // the provider is not compatible with the new version of the interface, launch
         // the app itself but warn so we can catch the error in logs
-        log('Search provider ' + this.appInfo.get_id() + ' does not implement LaunchSearch');
+        log(`Search provider ${this.appInfo.get_id()} does not implement LaunchSearch`);
         this.appInfo.launch([], global.create_app_launch_context(0, -1));
     }
 };

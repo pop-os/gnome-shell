@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ViewSelector */
 
 const { Clutter, Gio, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
@@ -9,7 +10,6 @@ const OverviewControls = imports.ui.overviewControls;
 const Params = imports.misc.params;
 const Search = imports.ui.search;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const WorkspacesView = imports.ui.workspacesView;
 const EdgeDragAction = imports.ui.edgeDragAction;
 const IconGrid = imports.ui.iconGrid;
@@ -74,7 +74,7 @@ var ShowOverviewAction = GObject.registerClass({
         });
     }
 
-    vfunc_gesture_prepare(actor) {
+    vfunc_gesture_prepare(_actor) {
         return Main.actionMode == Shell.ActionMode.NORMAL &&
                this.get_n_current_points() == this.get_n_touch_points();
     }
@@ -108,12 +108,12 @@ var ShowOverviewAction = GObject.registerClass({
                                     height: maxY - minY });
     }
 
-    vfunc_gesture_begin(actor) {
+    vfunc_gesture_begin(_actor) {
         this._initialRect = this._getBoundingRect(false);
         return true;
     }
 
-    vfunc_gesture_end(actor) {
+    vfunc_gesture_end(_actor) {
         let rect = this._getBoundingRect(true);
         let oldArea = this._initialRect.width * this._initialRect.height;
         let newArea = rect.width * rect.height;
@@ -314,30 +314,28 @@ var ViewSelector = class {
                                               focusCallback: () => {
                                                   this._a11yFocusPage(page);
                                               }
-                                            });;
+                                            });
         page.hide();
         this.actor.add_actor(page);
         return page;
     }
 
     _fadePageIn() {
-        Tweener.addTween(this._activePage,
-                         { opacity: 255,
-                           time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
-                           transition: 'easeOutQuad'
-                         });
+        this._activePage.ease({
+            opacity: 255,
+            duration: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
     }
 
     _fadePageOut(page) {
         let oldPage = page;
-        Tweener.addTween(page,
-                         { opacity: 0,
-                           time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this._animateIn(oldPage);
-                           }
-                         });
+        page.ease({
+            opacity: 0,
+            duration: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onStopped: () => this._animateIn(oldPage)
+        });
     }
 
     _animateIn(oldPage) {
@@ -363,7 +361,7 @@ var ViewSelector = class {
             this._activePage == this._workspacesPage &&
             !Main.overview.animationInProgress) {
             this.appDisplay.animate(IconGrid.AnimationDirection.OUT, () => {
-                this._animateIn(oldPage)
+                this._animateIn(oldPage);
             });
         } else {
             this._fadePageOut(page);
@@ -382,7 +380,7 @@ var ViewSelector = class {
         this.emit('page-changed');
 
         if (oldPage)
-            this._animateOut(oldPage)
+            this._animateOut(oldPage);
         else
             this._animateIn();
     }
@@ -403,7 +401,6 @@ var ViewSelector = class {
         if (Main.modalCount > 1)
             return Clutter.EVENT_PROPAGATE;
 
-        let modifiers = event.get_state();
         let symbol = event.get_key_symbol();
 
         if (symbol == Clutter.Escape) {
@@ -472,7 +469,7 @@ var ViewSelector = class {
         if (this._entry.mapped) {
             // Enable 'find-as-you-type'
             this._capturedEventId = global.stage.connect('captured-event',
-                                 this._onCapturedEvent.bind(this));
+                                                         this._onCapturedEvent.bind(this));
             this._text.set_cursor_visible(true);
             this._text.set_selection(0, 0);
         } else {
@@ -513,7 +510,7 @@ var ViewSelector = class {
         return this._text.text == this._entry.get_text();
     }
 
-    _onTextChanged(se, prop) {
+    _onTextChanged() {
         let terms = getTermsForSearchString(this._entry.get_text());
 
         this._searchActive = (terms.length > 0);
@@ -526,7 +523,7 @@ var ViewSelector = class {
 
             if (this._iconClickedId == 0)
                 this._iconClickedId = this._entry.connect('secondary-icon-clicked',
-                    this.reset.bind(this));
+                                                          this.reset.bind(this));
         } else {
             if (this._iconClickedId > 0) {
                 this._entry.disconnect(this._iconClickedId);
@@ -601,22 +598,6 @@ var ViewSelector = class {
             return ViewPage.APPS;
         else
             return ViewPage.SEARCH;
-    }
-
-    fadeIn() {
-        let actor = this._activePage;
-        Tweener.addTween(actor, { opacity: 255,
-                                  time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME / 2,
-                                  transition: 'easeInQuad'
-                                });
-    }
-
-    fadeHalf() {
-        let actor = this._activePage;
-        Tweener.addTween(actor, { opacity: 128,
-                                  time: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME / 2,
-                                  transition: 'easeOutQuad'
-                                });
     }
 };
 Signals.addSignalMethods(ViewSelector.prototype);

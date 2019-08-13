@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Component */
 
 const { Clutter, Gcr, Gio, GObject, Pango, Shell, St } = imports.gi;
 
@@ -10,9 +11,10 @@ const CheckBox = imports.ui.checkBox;
 
 var WORK_SPINNER_ICON_SIZE = 16;
 
-var KeyringDialog = class extends ModalDialog.ModalDialog {
-    constructor() {
-        super({ styleClass: 'prompt-dialog' });
+var KeyringDialog = GObject.registerClass(
+class KeyringDialog extends ModalDialog.ModalDialog {
+    _init() {
+        super._init({ styleClass: 'prompt-dialog' });
 
         this.prompt = new Shell.KeyringPrompt();
         this.prompt.connect('show-password', this._onShowPassword.bind(this));
@@ -23,20 +25,8 @@ var KeyringDialog = class extends ModalDialog.ModalDialog {
         this._content = new Dialog.MessageDialogContent({ icon });
         this.contentLayout.add(this._content);
 
-        // FIXME: Why does this break now?
-        /*
         this.prompt.bind_property('message', this._content, 'title', GObject.BindingFlags.SYNC_CREATE);
         this.prompt.bind_property('description', this._content, 'body', GObject.BindingFlags.SYNC_CREATE);
-        */
-        this.prompt.connect('notify::message', () => {
-            this._content.title = this.prompt.message;
-        });
-        this._content.title = this.prompt.message;
-
-        this.prompt.connect('notify::description', () => {
-            this._content.body = this.prompt.description;
-        });
-        this._content.body = this.prompt.description;
 
         this._workSpinner = null;
         this._controlTable = null;
@@ -173,7 +163,7 @@ var KeyringDialog = class extends ModalDialog.ModalDialog {
         // NOTE: ModalDialog.open() is safe to call if the dialog is
         // already open - it just returns true without side-effects
         if (this.open())
-          return true;
+            return true;
 
         // The above fail if e.g. unable to get input grab
         //
@@ -183,25 +173,25 @@ var KeyringDialog = class extends ModalDialog.ModalDialog {
 
         log('keyringPrompt: Failed to show modal dialog.' +
             ' Dismissing prompt request');
-        this.prompt.cancel()
+        this.prompt.cancel();
         return false;
     }
 
-    _onShowPassword(prompt) {
+    _onShowPassword() {
         this._buildControlTable();
         this._ensureOpen();
         this._updateSensitivity(true);
         this._passwordEntry.grab_key_focus();
     }
 
-    _onShowConfirm(prompt) {
+    _onShowConfirm() {
         this._buildControlTable();
         this._ensureOpen();
         this._updateSensitivity(true);
         this._continueButton.grab_key_focus();
     }
 
-    _onHidePrompt(prompt) {
+    _onHidePrompt() {
         this.close();
     }
 
@@ -224,7 +214,7 @@ var KeyringDialog = class extends ModalDialog.ModalDialog {
     _onCancelButton() {
         this.prompt.cancel();
     }
-};
+});
 
 var KeyringDummyDialog = class {
     constructor() {

@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported CtrlAltTabManager */
 
 const { Clutter, GObject, Meta, Shell, St } = imports.gi;
 
@@ -7,7 +8,6 @@ const SwitcherPopup = imports.ui.switcherPopup;
 const Params = imports.misc.params;
 
 var POPUP_APPICON_SIZE = 96;
-var POPUP_FADE_TIME = 0.1; // seconds
 
 var SortGroup = {
     TOP:    0,
@@ -33,7 +33,7 @@ var CtrlAltTabManager = class CtrlAltTabManager {
         item.iconName = icon;
 
         this._items.push(item);
-        root.connect('destroy', () => { this.removeGroup(root); });
+        root.connect('destroy', () => this.removeGroup(root));
         if (root instanceof St.Widget)
             global.focus_manager.add_group(root);
     }
@@ -64,9 +64,8 @@ var CtrlAltTabManager = class CtrlAltTabManager {
         if (a.sortGroup != b.sortGroup)
             return a.sortGroup - b.sortGroup;
 
-        let ax, bx, y;
-        [ax, y] = a.proxy.get_transformed_position();
-        [bx, y] = b.proxy.get_transformed_position();
+        let [ax] = a.proxy.get_transformed_position();
+        let [bx] = b.proxy.get_transformed_position();
 
         return ax - bx;
     }

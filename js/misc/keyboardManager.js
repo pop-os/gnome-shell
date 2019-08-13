@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported getKeyboardManager, holdKeyboard, releaseKeyboard */
 
 const { GLib, GnomeDesktop, Meta } = imports.gi;
 
@@ -60,7 +61,7 @@ var KeyboardManager = class {
             this._currentKeymap.options == options)
             return;
 
-        this._currentKeymap = {layouts, variants, options};
+        this._currentKeymap = { layouts, variants, options };
         Meta.get_backend().set_keymap(layouts, variants, options);
     }
 
@@ -125,7 +126,7 @@ var KeyboardManager = class {
 
     _getLocaleLayout() {
         let locale = GLib.get_language_names()[0];
-        if (locale.indexOf('_') == -1)
+        if (!locale.includes('_'))
             locale = DEFAULT_LOCALE;
 
         let [found, , id] = GnomeDesktop.get_input_source_from_locale(locale);

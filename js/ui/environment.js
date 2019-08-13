@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported init */
 
 const Config = imports.misc.config;
 
@@ -57,8 +58,118 @@ function _patchLayoutClass(layoutClass, styleProps) {
     };
 }
 
-function _loggingFunc() {
-    let fields = {'MESSAGE': [].join.call(arguments, ', ')};
+function _makeEaseCallback(params) {
+    let onComplete = params.onComplete;
+    delete params.onComplete;
+
+    let onStopped = params.onStopped;
+    delete params.onStopped;
+
+    if (!onComplete && !onStopped)
+        return null;
+
+    return isFinished => {
+        if (onStopped)
+            onStopped(isFinished);
+        if (onComplete && isFinished)
+            onComplete();
+    };
+}
+
+function _getPropertyTarget(actor, propName) {
+    if (!propName.startsWith('@'))
+        return [actor, propName];
+
+    let [type, name, prop] = propName.split('.');
+    switch (type) {
+    case '@layout':
+        return [actor.layout_manager, name];
+    case '@actions':
+        return [actor.get_action(name), prop];
+    case '@constraints':
+        return [actor.get_constraint(name), prop];
+    case '@effects':
+        return [actor.get_effect(name), prop];
+    }
+
+    throw new Error(`Invalid property name ${propName}`);
+}
+
+function _easeActor(actor, params) {
+    actor.save_easing_state();
+
+    if (params.duration != undefined)
+        actor.set_easing_duration(params.duration);
+    delete params.duration;
+
+    if (params.delay != undefined)
+        actor.set_easing_delay(params.delay);
+    delete params.delay;
+
+    if (params.mode != undefined)
+        actor.set_easing_mode(params.mode);
+    delete params.mode;
+
+    let callback = _makeEaseCallback(params);
+
+    // cancel overwritten transitions
+    let animatedProps = Object.keys(params).map(p => p.replace('_', '-', 'g'));
+    animatedProps.forEach(p => actor.remove_transition(p));
+
+    actor.set(params);
+    actor.restore_easing_state();
+
+    if (callback) {
+        let transition = actor.get_transition(animatedProps[0]);
+
+        if (transition)
+            transition.connect('stopped', (t, finished) => callback(finished));
+        else
+            callback(true);
+    }
+}
+
+function _easeActorProperty(actor, propName, target, params) {
+    // Avoid pointless difference with ease()
+    if (params.mode)
+        params.progress_mode = params.mode;
+    delete params.mode;
+
+    if (params.duration)
+        params.duration = adjustAnimationTime(params.duration);
+    let duration = Math.floor(params.duration || 0);
+
+    let callback = _makeEaseCallback(params);
+
+    // cancel overwritten transition
+    actor.remove_transition(propName);
+
+    if (duration == 0) {
+        let [obj, prop] = _getPropertyTarget(actor, propName);
+        obj[prop] = target;
+
+        if (callback)
+            callback(true);
+
+        return;
+    }
+
+    let pspec = actor.find_property(propName);
+    let transition = new Clutter.PropertyTransition(Object.assign({
+        property_name: propName,
+        interval: new Clutter.Interval({ value_type: pspec.value_type }),
+        remove_on_complete: true
+    }, params));
+    actor.add_transition(propName, transition);
+
+    transition.set_to(target);
+
+    if (callback)
+        transition.connect('stopped', (t, finished) => callback(finished));
+}
+
+function _loggingFunc(...args) {
+    let fields = { 'MESSAGE': args.join(', ') };
     let domain = "GNOME Shell";
 
     // If the caller is an extension, add it as metadata
@@ -93,8 +204,44 @@ function init() {
                                             column_spacing: 'spacing-columns' });
     _patchLayoutClass(Clutter.BoxLayout, { spacing: 'spacing' });
 
+    let origSetEasingDuration = Clutter.Actor.prototype.set_easing_duration;
+    Clutter.Actor.prototype.set_easing_duration = function(msecs) {
+        origSetEasingDuration.call(this, adjustAnimationTime(msecs));
+    };
+    let origSetEasingDelay = Clutter.Actor.prototype.set_easing_delay;
+    Clutter.Actor.prototype.set_easing_delay = function(msecs) {
+        origSetEasingDelay.call(this, adjustAnimationTime(msecs));
+    };
+
+    Clutter.Actor.prototype.ease = function(props, easingParams) {
+        _easeActor(this, props, easingParams);
+    };
+    Clutter.Actor.prototype.ease_property = function(propName, target, params) {
+        _easeActorProperty(this, propName, target, params);
+    };
+    St.Adjustment.prototype.ease = function(target, params) {
+        // we're not an actor of course, but we implement the same
+        // transition API as Clutter.Actor, so this works anyway
+        _easeActorProperty(this, 'value', target, params);
+    };
+
     Clutter.Actor.prototype.toString = function() {
         return St.describe_actor(this);
+    };
+    // Deprecation warning for former JS classes turned into an actor subclass
+    Object.defineProperty(Clutter.Actor.prototype, 'actor', {
+        get() {
+            let klass = this.constructor.name;
+            let { stack } = new Error();
+            log(`Usage of object.actor is deprecated for ${klass}\n${stack}`);
+            return this;
+        }
+    });
+
+    St.set_slow_down_factor = function(factor) {
+        let { stack } = new Error();
+        log(`St.set_slow_down_factor() is deprecated, use St.Settings.slow_down_factor\n${stack}`);
+        St.Settings.get().slow_down_factor = factor;
     };
 
     let origToString = Object.prototype.toString;
@@ -102,10 +249,10 @@ function init() {
         let base = origToString.call(this);
         try {
             if ('actor' in this && this.actor instanceof Clutter.Actor)
-                return base.replace(/\]$/, ' delegate for ' + this.actor.toString().substring(1));
+                return base.replace(/\]$/, ` delegate for ${this.actor.toString().substring(1)}`);
             else
                 return base;
-        } catch(e) {
+        } catch (e) {
             return base;
         }
     };
@@ -119,7 +266,7 @@ function init() {
     if (slowdownEnv) {
         let factor = parseFloat(slowdownEnv);
         if (!isNaN(factor) && factor > 0.0)
-            St.set_slow_down_factor(factor);
+            St.Settings.get().slow_down_factor = factor;
     }
 
     // OK, now things are initialized enough that we can import shell JS
@@ -129,3 +276,17 @@ function init() {
     Tweener.init();
     String.prototype.format = Format.format;
 }
+
+// adjustAnimationTime:
+// @msecs: time in milliseconds
+//
+// Adjust @msecs to account for St's enable-animations
+// and slow-down-factor settings
+function adjustAnimationTime(msecs) {
+    let settings = St.Settings.get();
+
+    if (!settings.enable_animations)
+        return 1;
+    return settings.slow_down_factor * msecs;
+}
+

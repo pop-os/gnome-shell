@@ -1,19 +1,20 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported init, installExtension, uninstallExtension,
+            checkForUpdates, updateExtension */
 
-const { Clutter, Gio, GLib, Soup, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Soup } = imports.gi;
 
 const Config = imports.misc.config;
+const Dialog = imports.ui.dialog;
 const ExtensionUtils = imports.misc.extensionUtils;
-const ExtensionSystem = imports.ui.extensionSystem;
 const FileUtils = imports.misc.fileUtils;
+const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
 
-const _signals = ExtensionSystem._signals;
-
 var REPOSITORY_URL_BASE = 'https://extensions.gnome.org';
-var REPOSITORY_URL_DOWNLOAD = REPOSITORY_URL_BASE + '/download-extension/%s.shell-extension.zip';
-var REPOSITORY_URL_INFO     = REPOSITORY_URL_BASE + '/extension-info/';
-var REPOSITORY_URL_UPDATE   = REPOSITORY_URL_BASE + '/update-info/';
+var REPOSITORY_URL_DOWNLOAD = `${REPOSITORY_URL_BASE}/download-extension/%s.shell-extension.zip`;
+var REPOSITORY_URL_INFO     = `${REPOSITORY_URL_BASE}/extension-info/`;
+var REPOSITORY_URL_UPDATE   = `${REPOSITORY_URL_BASE}/update-info/`;
 
 let _httpSession;
 
@@ -25,7 +26,7 @@ function installExtension(uuid, invocation) {
 
     _httpSession.queue_message(message, (session, message) => {
         if (message.status_code != Soup.KnownStatusCode.OK) {
-            ExtensionSystem.logExtensionError(uuid, 'downloading info: ' + message.status_code);
+            Main.extensionManager.logExtensionError(uuid, `downloading info: ${message.status_code}`);
             invocation.return_dbus_error('org.gnome.Shell.DownloadInfoError', message.status_code.toString());
             return;
         }
@@ -34,7 +35,7 @@ function installExtension(uuid, invocation) {
         try {
             info = JSON.parse(message.response_body.data);
         } catch (e) {
-            ExtensionSystem.logExtensionError(uuid, 'parsing info: ' + e);
+            Main.extensionManager.logExtensionError(uuid, `parsing info: ${e}`);
             invocation.return_dbus_error('org.gnome.Shell.ParseInfoError', e.toString());
             return;
         }
@@ -45,7 +46,7 @@ function installExtension(uuid, invocation) {
 }
 
 function uninstallExtension(uuid) {
-    let extension = ExtensionUtils.extensions[uuid];
+    let extension = Main.extensionManager.lookup(uuid);
     if (!extension)
         return false;
 
@@ -53,7 +54,7 @@ function uninstallExtension(uuid) {
     if (extension.type != ExtensionUtils.ExtensionType.PER_USER)
         return false;
 
-    if (!ExtensionSystem.unloadExtension(extension))
+    if (!Main.extensionManager.unloadExtension(extension))
         return false;
 
     FileUtils.recursivelyDeleteDir(extension.dir, true);
@@ -114,10 +115,10 @@ function updateExtension(uuid) {
 
     _httpSession.queue_message(message, (session, message) => {
         gotExtensionZipFile(session, message, uuid, newExtensionTmpDir, () => {
-            let oldExtension = ExtensionUtils.extensions[uuid];
+            let oldExtension = Main.extensionManager.lookup(uuid);
             let extensionDir = oldExtension.dir;
 
-            if (!ExtensionSystem.unloadExtension(oldExtension))
+            if (!Main.extensionManager.unloadExtension(oldExtension))
                 return;
 
             FileUtils.recursivelyMoveDir(extensionDir, oldExtensionTmpDir);
@@ -126,11 +127,11 @@ function updateExtension(uuid) {
             let extension = null;
 
             try {
-                extension = ExtensionUtils.createExtensionObject(uuid, extensionDir, ExtensionUtils.ExtensionType.PER_USER);
-                ExtensionSystem.loadExtension(extension);
-            } catch(e) {
+                extension = Main.extensionManager.createExtensionObject(uuid, extensionDir, ExtensionUtils.ExtensionType.PER_USER);
+                Main.extensionManager.loadExtension(extension);
+            } catch (e) {
                 if (extension)
-                    ExtensionSystem.unloadExtension(extension);
+                    Main.extensionManager.unloadExtension(extension);
 
                 logError(e, 'Error loading extension %s'.format(uuid));
 
@@ -139,7 +140,7 @@ function updateExtension(uuid) {
 
                 // Restore what was there before. We can't do much if we
                 // fail here.
-                ExtensionSystem.loadExtension(oldExtension);
+                Main.extensionManager.loadExtension(oldExtension);
                 return;
             }
 
@@ -152,9 +153,9 @@ function updateExtension(uuid) {
 
 function checkForUpdates() {
     let metadatas = {};
-    for (let uuid in ExtensionUtils.extensions) {
-        metadatas[uuid] = ExtensionUtils.extensions[uuid].metadata;
-    }
+    Main.extensionManager.getUuids().forEach(uuid => {
+        metadatas[uuid] = Main.extensionManager.extensions[uuid].metadata;
+    });
 
     let params = { shell_version: Config.PACKAGE_VERSION,
                    installed: JSON.stringify(metadatas) };
@@ -176,10 +177,10 @@ function checkForUpdates() {
     });
 }
 
-var InstallExtensionDialog =
+var InstallExtensionDialog = GObject.registerClass(
 class InstallExtensionDialog extends ModalDialog.ModalDialog {
-    constructor(uuid, info, invocation) {
-        super({ styleClass: 'extension-dialog' });
+    _init(uuid, info, invocation) {
+        super._init({ styleClass: 'extension-dialog' });
 
         this._uuid = uuid;
         this._info = info;
@@ -187,34 +188,29 @@ class InstallExtensionDialog extends ModalDialog.ModalDialog {
 
         this.setButtons([{ label: _("Cancel"),
                            action: this._onCancelButtonPressed.bind(this),
-                           key:    Clutter.Escape
+                           key: Clutter.Escape
                          },
-                         { label:  _("Install"),
+                         { label: _("Install"),
                            action: this._onInstallButtonPressed.bind(this),
                            default: true
                          }]);
 
-        let message = _("Download and install “%s” from extensions.gnome.org?").format(info.name);
+        let content = new Dialog.MessageDialogContent({
+            title: _("Download and install “%s” from extensions.gnome.org?").format(info.name),
+            icon: new Gio.FileIcon({
+                file: Gio.File.new_for_uri(`${REPOSITORY_URL_BASE}${info.icon}`)
+            })
+        });
 
-        let box = new St.BoxLayout({ style_class: 'message-dialog-main-layout',
-                                     vertical: false });
-        this.contentLayout.add(box);
-
-        let gicon = new Gio.FileIcon({ file: Gio.File.new_for_uri(REPOSITORY_URL_BASE + info.icon) })
-        let icon = new St.Icon({ gicon: gicon });
-        box.add(icon);
-
-        let label = new St.Label({ style_class: 'message-dialog-title headline',
-                                   text: message });
-        box.add(label);
+        this.contentLayout.add(content);
     }
 
-    _onCancelButtonPressed(button, event) {
+    _onCancelButtonPressed() {
         this.close();
         this._invocation.return_value(GLib.Variant.new('(s)', ['cancelled']));
     }
 
-    _onInstallButtonPressed(button, event) {
+    _onInstallButtonPressed() {
         let params = { shell_version: Config.PACKAGE_VERSION };
 
         let url = REPOSITORY_URL_DOWNLOAD.format(this._uuid);
@@ -226,21 +222,16 @@ class InstallExtensionDialog extends ModalDialog.ModalDialog {
         function errback(code, message) {
             let msg = message ? message.toString() : '';
             log('Error while installing %s: %s (%s)'.format(uuid, code, msg));
-            invocation.return_dbus_error('org.gnome.Shell.' + code, msg);
+            invocation.return_dbus_error(`org.gnome.Shell.${code}`, msg);
         }
 
         function callback() {
-            // Add extension to 'enabled-extensions' for the user, always...
-            let enabledExtensions = global.settings.get_strv(ExtensionSystem.ENABLED_EXTENSIONS_KEY);
-            if (enabledExtensions.indexOf(uuid) == -1) {
-                enabledExtensions.push(uuid);
-                global.settings.set_strv(ExtensionSystem.ENABLED_EXTENSIONS_KEY, enabledExtensions);
-            }
-
             try {
-                let extension = ExtensionUtils.createExtensionObject(uuid, dir, ExtensionUtils.ExtensionType.PER_USER);
-                ExtensionSystem.loadExtension(extension);
-            } catch(e) {
+                let extension = Main.extensionManager.createExtensionObject(uuid, dir, ExtensionUtils.ExtensionType.PER_USER);
+                Main.extensionManager.loadExtension(extension);
+                if (!Main.extensionManager.enableExtension(uuid))
+                    throw new Error(`Cannot add ${uuid} to enabled extensions gsettings key`);
+            } catch (e) {
                 uninstallExtension(uuid);
                 errback('LoadExtensionError', e);
                 return;
@@ -255,7 +246,7 @@ class InstallExtensionDialog extends ModalDialog.ModalDialog {
 
         this.close();
     }
-};
+});
 
 function init() {
     _httpSession = new Soup.SessionAsync({ ssl_use_system_ca_file: true });

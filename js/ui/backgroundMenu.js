@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported addBackgroundMenu */
 
 const { Clutter, St } = imports.gi;
 
@@ -25,7 +26,7 @@ var BackgroundMenu = class BackgroundMenu extends PopupMenu.PopupMenu {
 function addBackgroundMenu(actor, layoutManager) {
     actor.reactive = true;
     actor._backgroundMenu = new BackgroundMenu(layoutManager);
-    actor._backgroundManager = new PopupMenu.PopupMenuManager({ actor: actor });
+    actor._backgroundManager = new PopupMenu.PopupMenuManager(actor);
     actor._backgroundManager.addMenu(actor._backgroundMenu);
 
     function openMenu(x, y) {

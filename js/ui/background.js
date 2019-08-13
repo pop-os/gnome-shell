@@ -99,7 +99,6 @@ const Signals = imports.signals;
 const LoginManager = imports.misc.loginManager;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
 
@@ -108,10 +107,9 @@ const PRIMARY_COLOR_KEY = 'primary-color';
 const SECONDARY_COLOR_KEY = 'secondary-color';
 const COLOR_SHADING_TYPE_KEY = 'color-shading-type';
 const BACKGROUND_STYLE_KEY = 'picture-options';
-const PICTURE_OPACITY_KEY = 'picture-opacity';
 const PICTURE_URI_KEY = 'picture-uri';
 
-var FADE_ANIMATION_TIME = 1.0;
+var FADE_ANIMATION_TIME = 1000;
 
 // These parameters affect how often we redraw.
 // The first is how different (percent crossfaded) the slide show
@@ -257,14 +255,15 @@ var Background = class Background {
                 this._refreshAnimation();
             });
 
-        this._settingsChangedSignalId = this._settings.connect('changed', () => {
-            this.emit('changed');
-        });
+        this._settingsChangedSignalId =
+            this._settings.connect('changed', this._emitChangedSignal.bind(this));
 
         this._load();
     }
 
     destroy() {
+        this.background = null;
+
         this._cancellable.cancel();
         this._removeAnimationTimeout();
 
@@ -288,6 +287,22 @@ var Background = class Background {
         if (this._settingsChangedSignalId != 0)
             this._settings.disconnect(this._settingsChangedSignalId);
         this._settingsChangedSignalId = 0;
+
+        if (this._changedIdleId) {
+            GLib.source_remove(this._changedIdleId);
+            this._changedIdleId = 0;
+        }
+    }
+
+    _emitChangedSignal() {
+        if (this._changedIdleId)
+            return;
+
+        this._changedIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._changedIdleId = 0;
+            this.emit('changed');
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     updateResolution() {
@@ -317,12 +332,12 @@ var Background = class Background {
     }
 
     _loadPattern() {
-        let colorString, res, color, secondColor;
+        let colorString, res_, color, secondColor;
 
         colorString = this._settings.get_string(PRIMARY_COLOR_KEY);
-        [res, color] = Clutter.Color.from_string(colorString);
+        [res_, color] = Clutter.Color.from_string(colorString);
         colorString = this._settings.get_string(SECONDARY_COLOR_KEY);
-        [res, secondColor] = Clutter.Color.from_string(colorString);
+        [res_, secondColor] = Clutter.Color.from_string(colorString);
 
         let shadingType = this._settings.get_enum(COLOR_SHADING_TYPE_KEY);
 
@@ -343,7 +358,7 @@ var Background = class Background {
                                                if (changedFile.equal(file)) {
                                                    let imageCache = Meta.BackgroundImageCache.get_default();
                                                    imageCache.purge(changedFile);
-                                                   this.emit('changed');
+                                                   this._emitChangedSignal();
                                                }
                                            });
         this._fileWatches[key] = signalId;
@@ -416,12 +431,12 @@ var Background = class Background {
             return;
 
         this._updateAnimationTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-                                                      interval,
-                                                      () => {
-                                                          this._updateAnimationTimeoutId = 0;
-                                                          this._updateAnimation();
-                                                          return GLib.SOURCE_REMOVE;
-                                                      });
+                                                          interval,
+                                                          () => {
+                                                              this._updateAnimationTimeoutId = 0;
+                                                              this._updateAnimation();
+                                                              return GLib.SOURCE_REMOVE;
+                                                          });
         GLib.Source.set_name_by_id(this._updateAnimationTimeoutId, '[gnome-shell] this._updateAnimation');
     }
 
@@ -448,9 +463,9 @@ var Background = class Background {
 
         let cache = Meta.BackgroundImageCache.get_default();
         let image = cache.load(file);
-        if (image.is_loaded())
+        if (image.is_loaded()) {
             this._setLoaded();
-        else {
+        } else {
             let id = image.connect('loaded', () => {
                 this._setLoaded();
                 image.disconnect(id);
@@ -617,9 +632,9 @@ var Animation = class Animation {
     }
 
     load(callback) {
-        this._show = new GnomeDesktop.BGSlideShow({ filename: this.file.get_path() });
+        this._show = new GnomeDesktop.BGSlideShow({ file: this.file });
 
-        this._show.load_async(null, (object, result) => {
+        this._show.load_async(null, () => {
             this.loaded = true;
             if (callback)
                 callback();
@@ -635,7 +650,7 @@ var Animation = class Animation {
         if (this._show.get_num_slides() < 1)
             return;
 
-        let [progress, duration, isFixed, filename1, filename2] = this._show.get_current_slide(monitor.width, monitor.height);
+        let [progress, duration, isFixed_, filename1, filename2] = this._show.get_current_slide(monitor.width, monitor.height);
 
         this.transitionDuration = duration;
         this.transitionProgress = progress;
@@ -694,15 +709,12 @@ var BackgroundManager = class BackgroundManager {
         this._newBackgroundActor = null;
         this.emit('changed');
 
-        Tweener.addTween(oldBackgroundActor,
-                         { opacity: 0,
-                           time: FADE_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete() {
-                               oldBackgroundActor.background.run_dispose();
-                               oldBackgroundActor.destroy();
-                           }
-                         });
+        oldBackgroundActor.ease({
+            opacity: 0,
+            duration: FADE_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => oldBackgroundActor.destroy()
+        });
     }
 
     _updateBackgroundActor() {

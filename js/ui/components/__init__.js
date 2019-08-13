@@ -1,3 +1,4 @@
+/* exported ComponentManager */
 const Main = imports.ui.main;
 
 var ComponentManager = class {
@@ -13,13 +14,13 @@ var ComponentManager = class {
         let newEnabledComponents = Main.sessionMode.components;
 
         newEnabledComponents.filter(
-            name => this._enabledComponents.indexOf(name) == -1
+            name => !this._enabledComponents.includes(name)
         ).forEach(name => {
             this._enableComponent(name);
         });
 
         this._enabledComponents.filter(
-            name => newEnabledComponents.indexOf(name) == -1
+            name => !newEnabledComponents.includes(name)
         ).forEach(name => {
             this._disableComponent(name);
         });
@@ -37,8 +38,8 @@ var ComponentManager = class {
         if (component)
             return component;
 
-	if (Main.sessionMode.isLocked)
-	    return null;
+        if (Main.sessionMode.isLocked)
+            return null;
 
         let constructor = this._importComponent(name);
         component = new constructor();
@@ -48,7 +49,7 @@ var ComponentManager = class {
 
     _enableComponent(name) {
         let component = this._ensureComponent(name);
-	if (component)
+        if (component)
             component.enable();
     }
 
