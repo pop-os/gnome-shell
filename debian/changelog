@@ -1,3 +1,16 @@
+gnome-shell (3.33.90-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+    + Implement DND app picker folder management
+    + Make Clocks/Weather integration work with sandboxed apps
+    + Support startup via systemd user instance
+    + Replace Tweener with Clutter animations
+    + Minimize travel distance in overview animation
+    + Rescan icon theme when installed apps changed
+    + Consistently animate new window actions
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 13 Aug 2019 03:35:25 +0200
+
 gnome-shell (3.33.4-1) experimental; urgency=medium
 
   [ Simon McVittie ]
