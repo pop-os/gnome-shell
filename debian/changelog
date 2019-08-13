@@ -1,4 +1,4 @@
-gnome-shell (3.33.90-1) UNRELEASED; urgency=medium
+gnome-shell (3.33.90-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New upstream release
@@ -56,7 +56,7 @@ gnome-shell (3.33.90-1) UNRELEASED; urgency=medium
   [ Simon McVittie ]
   * d/gnome-shell.bug-control: Include related packages in bug reports
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 13 Aug 2019 03:47:57 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 13 Aug 2019 11:12:43 +0100
 
 gnome-shell (3.32.2-2) experimental; urgency=medium
 
