@@ -127,7 +127,7 @@ Breaks: gdm3 (<< 3.19.92),
         gnome-shell-extension-workspaces-to-dock (<< 45-1.1~),
         gnome-shell-pomodoro (<< 0.13.4-2.1~),
         nautilus (<< 1:3.30),
-        yaru-theme (<< 18.10.1),
+        yaru-theme (<< 19.10.1),
 Conflicts: gnome-screensaver (<< 3.6)
 Provides: notification-daemon,
           polkit-1-auth-agent
