@@ -1,4 +1,4 @@
-gnome-shell (3.33.90-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.33.90-1ubuntu1) eoan; urgency=medium
 
   [ Didier Roche ]
   * Read mode extension update and load
@@ -60,7 +60,11 @@ gnome-shell (3.33.90-1ubuntu1) UNRELEASED; urgency=medium
   * optional-hot-corner.patch:
     - Dropped as similar implementation is included upstream
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 13 Aug 2019 13:30:33 +0200
+  [ Iain Lane ]
+  * Bump yaru-theme Breaks. We need an updated version, otherwise (at least)
+    the Activities search is broken.
+
+ -- Iain Lane <iain.lane@canonical.com>  Tue, 20 Aug 2019 17:47:08 +0100
 
 gnome-shell (3.33.90-1) experimental; urgency=medium
 
