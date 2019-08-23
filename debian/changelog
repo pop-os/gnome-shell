@@ -1,4 +1,4 @@
-gnome-shell (3.33.91-1) UNRELEASED; urgency=medium
+gnome-shell (3.33.91-1) experimental; urgency=medium
 
   * New upstream release
     + Fix regression when adjusting brightness
@@ -7,7 +7,7 @@ gnome-shell (3.33.91-1) UNRELEASED; urgency=medium
     + Only track top-level windows
   * control: Bump BDs per upstream, & add BDs for the extension tool
 
- -- Iain Lane <laney@debian.org>  Fri, 23 Aug 2019 13:29:05 +0100
+ -- Iain Lane <laney@debian.org>  Fri, 23 Aug 2019 21:05:26 +0100
 
 gnome-shell (3.33.90-1) experimental; urgency=medium
 
