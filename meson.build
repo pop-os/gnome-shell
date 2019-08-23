@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '3.33.90',
+  version: '3.33.91',
   meson_version: '>= 0.47.0',
   license: 'GPLv2+'
 )
@@ -26,7 +26,7 @@ gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
 gjs_req = '>= 1.57.3'
 gtk_req = '>= 3.15.0'
-mutter_req = '>= 3.33.90'
+mutter_req = '>= 3.33.91'
 polkit_req = '>= 0.100'
 schemas_req = '>= 3.33.1'
 startup_req = '>= 0.11'
@@ -132,8 +132,19 @@ else
   have_systemd = false
 endif
 
+if get_option('extensions_tool')
+  autoar_dep = dependency('gnome-autoar-0')
+  json_dep = dependency('json-glib-1.0')
+endif
+
+bash_completion = dependency('bash-completion', required: false)
+
 if get_option('man')
   xsltproc = find_program('xsltproc')
+
+  if get_option('extensions_tool')
+    a2x = find_program('a2x')
+  endif
 
   subdir('man')
 endif
