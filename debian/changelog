@@ -1,21 +1,4 @@
-gnome-shell (3.33.91-1) experimental; urgency=medium
-
-  * New upstream release
-    + Fix regression when adjusting brightness
-    + Fix pointer a11y timeout animation
-    + Add new extensions CLI tool
-    + Only track top-level windows
-  * control: Bump BDs per upstream, & add BDs for the extension tool
-
- -- Iain Lane <laney@debian.org>  Fri, 23 Aug 2019 21:05:26 +0100
-
-gnome-shell (3.33.90-1ubuntu2) eoan; urgency=medium
-
-  * Bump Breaks on default shell extensions
-
- -- Iain Lane <laney@debian.org>  Thu, 22 Aug 2019 19:23:36 +0100
-
-gnome-shell (3.33.90-1ubuntu1) eoan; urgency=medium
+gnome-shell (3.33.91-1ubuntu1) UNRELEASED; urgency=medium
 
   [ Didier Roche ]
   * Read mode extension update and load
@@ -80,8 +63,20 @@ gnome-shell (3.33.90-1ubuntu1) eoan; urgency=medium
   [ Iain Lane ]
   * Bump yaru-theme Breaks. We need an updated version, otherwise (at least)
     the Activities search is broken.
+  * Bump Breaks on default shell extensions
 
- -- Iain Lane <iain.lane@canonical.com>  Tue, 20 Aug 2019 17:47:08 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Sat, 24 Aug 2019 09:07:44 +0100
+
+gnome-shell (3.33.91-1) experimental; urgency=medium
+
+  * New upstream release
+    + Fix regression when adjusting brightness
+    + Fix pointer a11y timeout animation
+    + Add new extensions CLI tool
+    + Only track top-level windows
+  * control: Bump BDs per upstream, & add BDs for the extension tool
+
+ -- Iain Lane <laney@debian.org>  Fri, 23 Aug 2019 21:05:26 +0100
 
 gnome-shell (3.33.90-1) experimental; urgency=medium
 
