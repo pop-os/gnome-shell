@@ -1,4 +1,4 @@
-gnome-shell (3.33.91-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.33.91-1ubuntu1) eoan; urgency=medium
 
   [ Didier Roche ]
   * Read mode extension update and load
@@ -65,7 +65,7 @@ gnome-shell (3.33.91-1ubuntu1) UNRELEASED; urgency=medium
     the Activities search is broken.
   * Bump Breaks on default shell extensions
 
- -- Iain Lane <iain.lane@canonical.com>  Sat, 24 Aug 2019 09:07:44 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Sat, 24 Aug 2019 09:08:42 +0100
 
 gnome-shell (3.33.91-1) experimental; urgency=medium
 
