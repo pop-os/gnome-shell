@@ -33,24 +33,24 @@ https://gitlab.gnome.org/GNOME/gnome-shell/issues/53
 Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/53
 Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/51
 ---
- js/ui/status/volume.js | 21 +++++++++++++++++++--
- 1 file changed, 19 insertions(+), 2 deletions(-)
+ js/ui/status/volume.js | 20 +++++++++++++++++++-
+ 1 file changed, 19 insertions(+), 1 deletion(-)
 
 diff --git a/js/ui/status/volume.js b/js/ui/status/volume.js
-index 470e1f7..31dbb6c 100644
+index 75ad2ca..385d563 100644
 --- a/js/ui/status/volume.js
 +++ b/js/ui/status/volume.js
 @@ -1,7 +1,8 @@
  // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
  /* exported Indicator */
  
--const { Clutter, Gio, Gvc, St } = imports.gi;
-+const { Clutter, Gio, GLib, Gvc, St } = imports.gi;
+-const { Clutter, Gio, GObject, Gvc, St } = imports.gi;
++const { Clutter, Gio, GLib, GObject, Gvc, St } = imports.gi;
 +const Mainloop = imports.mainloop;
  const Signals = imports.signals;
  
  const Main = imports.ui.main;
-@@ -30,14 +31,21 @@ var StreamSlider = class {
+@@ -30,15 +31,23 @@ var StreamSlider = class {
  
          this.item = new PopupMenu.PopupBaseMenuItem({ activate: false });
  
@@ -64,8 +64,9 @@ index 470e1f7..31dbb6c 100644
          this._amplifySettingsChanged();
  
 +        this._slider.connect('drag-begin', () => this._inDrag = true);
-         this._slider.connect('notify::value', this._sliderChanged.bind(this));
--        this._slider.connect('drag-end', this._notifyVolumeChange.bind(this));
+         this._sliderChangedId = this._slider.connect('notify::value',
+                                                      this._sliderChanged.bind(this));
+         this._slider.connect('drag-end', this._notifyVolumeChange.bind(this));
 +        this._slider.connect('drag-end', () => {
 +            this._inDrag = false;
 +            this._notifyVolumeChange.bind(this)
@@ -73,7 +74,7 @@ index 470e1f7..31dbb6c 100644
  
          this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
          this.item.add(this._icon);
-@@ -106,6 +114,7 @@ var StreamSlider = class {
+@@ -107,6 +116,7 @@ var StreamSlider = class {
          let value = this._slider.value;
          let volume = value * this._control.get_vol_max_norm();
          let prevMuted = this._stream.is_muted;
@@ -81,7 +82,7 @@ index 470e1f7..31dbb6c 100644
          if (volume < 1) {
              this._stream.volume = 0;
              if (!prevMuted)
-@@ -116,6 +125,14 @@ var StreamSlider = class {
+@@ -117,6 +127,14 @@ var StreamSlider = class {
                  this._stream.change_is_muted(false);
          }
          this._stream.push_volume();

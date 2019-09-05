@@ -21,10 +21,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  3 files changed, 102 insertions(+), 13 deletions(-)
 
 diff --git a/src/main.c b/src/main.c
-index f4440bf..6750586 100644
+index 6b06f31..a14815c 100644
 --- a/src/main.c
 +++ b/src/main.c
-@@ -317,14 +317,14 @@ shell_a11y_init (void)
+@@ -325,14 +325,14 @@ shell_a11y_init (void)
  }
  
  static void
@@ -41,7 +41,7 @@ index f4440bf..6750586 100644
                                         G_N_ELEMENTS (keys));
  }
  
-@@ -410,6 +410,42 @@ dump_gjs_stack_on_signal (int signo)
+@@ -418,6 +418,42 @@ dump_gjs_stack_on_signal (int signo)
    _tracked_signals[signo] = TRUE;
  }
  
@@ -84,7 +84,7 @@ index f4440bf..6750586 100644
  static gboolean
  list_modes (const char  *option_name,
              const char  *value,
-@@ -488,6 +524,7 @@ main (int argc, char **argv)
+@@ -496,6 +532,7 @@ main (int argc, char **argv)
  {
    GOptionContext *ctx;
    GError *error = NULL;
@@ -92,7 +92,7 @@ index f4440bf..6750586 100644
    int ecode;
  
    bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-@@ -523,7 +560,8 @@ main (int argc, char **argv)
+@@ -531,7 +568,8 @@ main (int argc, char **argv)
    g_setenv ("GJS_DEBUG_OUTPUT", "stderr", TRUE);
    g_setenv ("GJS_DEBUG_TOPICS", "JS ERROR;JS LOG", TRUE);
  
@@ -101,8 +101,8 @@ index f4440bf..6750586 100644
 +  shell_update_debug (debug_flags);
  
    shell_dbus_init (meta_get_replace_current_wm ());
-   shell_a11y_init ();
-@@ -537,18 +575,14 @@ main (int argc, char **argv)
+   sd_notify (0, "READY=1");
+@@ -546,18 +584,14 @@ main (int argc, char **argv)
    if (session_mode == NULL)
      session_mode = is_gdm_mode ? (char *)"gdm" : (char *)"user";
  
@@ -128,7 +128,7 @@ index f4440bf..6750586 100644
    shell_profiler_init ();
    ecode = meta_run ();
 diff --git a/src/shell-global.c b/src/shell-global.c
-index ca43257..1308c75 100644
+index 80f2512..3a55dbd 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
 @@ -57,6 +57,7 @@ struct _ShellGlobal {
@@ -181,7 +181,7 @@ index ca43257..1308c75 100644
  }
  
  /*
-@@ -1660,3 +1675,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
+@@ -1663,3 +1678,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
  {
    g_signal_emit (global, shell_global_signals[LOCATE_POINTER], 0);
  }
