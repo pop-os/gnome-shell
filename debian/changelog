@@ -1,3 +1,24 @@
+gnome-shell (3.33.92-1) experimental; urgency=medium
+
+  * New upstream release
+    + Animate pointer a11y pie timer
+    + Fix restarting shell in systemd user session
+  * volume-Ignore-slider-changes-we-initiated-ourselves.patch: Cherry-pick.
+    volume: Ignore slider changes we initiated ourselves Commit
+    21e14bd46f9774e6c0146cb2169d938e782dba3c fixed this for the brightness
+    slider, but we have the same problem for volume too. When the volume is
+    muted - for example in Settings or via a media key, we update the slider
+    to '0' to indicate this visually. But we also actually invoke the slider's
+    callback to *set* the volume to zero. That means that the previous level
+    is overwritten so it can't be restored when unmuting.  The fix is the same
+    - when we update the slider internally ourselves, don't call the signal
+    handler.
+  * Bump mutter BD to 3.33.92, corresponding to the shell's version
+  * control: BD on xwayland <!nocheck>, required for the testsuite
+  * control, rules: Run a session bus for the testsuite
+
+ -- Iain Lane <laney@debian.org>  Thu, 05 Sep 2019 18:15:19 +0100
+
 gnome-shell (3.33.91-1ubuntu1) eoan; urgency=medium
 
   [ Didier Roche ]
