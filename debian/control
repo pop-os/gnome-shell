@@ -8,6 +8,7 @@ Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: Iain Lane <laney@debian.org>, Jeremy Bicha <jbicha@debian.org>, Laurent Bigonville <bigon@debian.org>
 Build-Depends: asciidoc-base,
+               dbus <!nocheck>,
                debhelper-compat (= 12),
                dh-sequence-gir,
                dh-sequence-gnome,

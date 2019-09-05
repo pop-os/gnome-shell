@@ -43,5 +43,5 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 		-u XDG_DATA_HOME \
 		HOME=$(CURDIR)/debian/home \
 		XDG_RUNTIME_DIR=$(CURDIR)/debian/home/run \
-		xvfb-run -a dh_auto_test
+		dbus-run-session xvfb-run -a dh_auto_test
 endif
