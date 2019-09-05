@@ -51,7 +51,8 @@ Build-Depends: asciidoc-base,
                pkg-config (>= 0.22),
                sassc,
                xauth <!nocheck>,
-               xvfb <!nocheck>
+               xvfb <!nocheck>,
+               xwayland <!nocheck>
 Rules-Requires-Root: no
 Standards-Version: 4.3.0
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
