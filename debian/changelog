@@ -1,4 +1,4 @@
-gnome-shell (3.33.92-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.33.92-1ubuntu1) eoan; urgency=medium
 
   [ Iain Lane ]
   * Merge with Debian. Remaining changes:
@@ -58,7 +58,7 @@ gnome-shell (3.33.92-1ubuntu1) UNRELEASED; urgency=medium
     This way the login animation will appear to expand over the login screen
     (system background) instead of suddenly replacing it.
 
- -- Iain Lane <iain.lane@canonical.com>  Thu, 05 Sep 2019 18:31:24 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Thu, 05 Sep 2019 18:31:55 +0100
 
 gnome-shell (3.33.92-1) experimental; urgency=medium
 
