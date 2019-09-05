@@ -1,4 +1,4 @@
-gnome-shell (3.33.92-1) UNRELEASED; urgency=medium
+gnome-shell (3.33.92-1) experimental; urgency=medium
 
   * New upstream release
     + Animate pointer a11y pie timer
@@ -17,7 +17,7 @@ gnome-shell (3.33.92-1) UNRELEASED; urgency=medium
   * control: BD on xwayland <!nocheck>, required for the testsuite
   * control, rules: Run a session bus for the testsuite
 
- -- Iain Lane <laney@debian.org>  Thu, 05 Sep 2019 18:07:11 +0100
+ -- Iain Lane <laney@debian.org>  Thu, 05 Sep 2019 18:15:19 +0100
 
 gnome-shell (3.33.91-1) experimental; urgency=medium
 
