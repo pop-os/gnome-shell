@@ -1,3 +1,15 @@
+gnome-shell (3.34.0-1) experimental; urgency=medium
+
+  * New upstream release
+    + Handle startup/shutdown of misc X11 services
+    + Fix sound volume mute/unmute
+    + Correctly terminate pasted text
+  * d/p/volume-Ignore-slider-changes-we-initiated-ourselves.patch: Drop,
+    upstream
+  * control: Bump mutter Build-Depends and Depends to 3.34.0
+
+ -- Iain Lane <laney@debian.org>  Tue, 10 Sep 2019 10:51:44 +0100
+
 gnome-shell (3.33.92-1ubuntu1) eoan; urgency=medium
 
   [ Iain Lane ]
