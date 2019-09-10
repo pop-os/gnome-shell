@@ -1,15 +1,26 @@
-Description: js/ui/background.js: Match 19.10 Yaru purple login screen with noise.
- This way the login animation will appear to expand over the login
- screen (system background) instead of suddenly replacing it.
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Tue, 10 Sep 2019 13:13:14 +0100
+Subject: js/ui/background.js: Match 19.10 Yaru purple login screen with
+ noise.
+
+Original author: Didier Roche <didrocks@ubuntu.com>
+Last-Update: 2019-08-30
+Forwarded: not-needed
+
+This way the login animation will appear to expand over the login
+screen (system background) instead of suddenly replacing it.
 Original author: Didier Roche <didrocks@ubuntu.com>
 Author: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Last-Update: 2019-08-30
 Forwarded: not-needed
+---
+ js/ui/background.js | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
 
-Index: gnome-shell/js/ui/background.js
-===================================================================
---- gnome-shell.orig/js/ui/background.js
-+++ gnome-shell/js/ui/background.js
+diff --git a/js/ui/background.js b/js/ui/background.js
+index babc1e4..58e48bf 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
 @@ -96,6 +96,7 @@
  const { Clutter, GDesktopEnums, Gio, GLib, GnomeDesktop, Meta } = imports.gi;
  const Signals = imports.signals;
@@ -18,7 +29,7 @@ Index: gnome-shell/js/ui/background.js
  const LoginManager = imports.misc.loginManager;
  const Main = imports.ui.main;
  const Params = imports.misc.params;
-@@ -501,6 +502,27 @@ var SystemBackground = class SystemBackg
+@@ -501,6 +502,27 @@ var SystemBackground = class SystemBackground {
      constructor() {
          let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/noise-texture.png');
  
