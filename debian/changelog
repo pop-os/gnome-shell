@@ -1,3 +1,10 @@
+gnome-shell (3.34.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Upload to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 30 Sep 2019 14:29:53 +0200
+
 gnome-shell (3.34.0-1) experimental; urgency=medium
 
   * New upstream release
