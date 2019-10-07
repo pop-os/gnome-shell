@@ -33,3 +33,8 @@ ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
 ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
+
+sched-rr.patch
+pop-dark-theme.patch
+#TODO ignore-nvidia-only.patch
+#TODO always-launch-on-dgpu.patch
