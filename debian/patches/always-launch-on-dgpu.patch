@@ -1,0 +1,95 @@
+Index: gnome-shell/js/ui/appDisplay.js
+===================================================================
+--- gnome-shell.orig/js/ui/appDisplay.js	2020-05-04 08:03:18.103905856 -0600
++++ gnome-shell/js/ui/appDisplay.js	2020-05-04 08:14:02.561328622 -0600
+@@ -2509,10 +2509,17 @@
+                 vendor != "NVIDIA Corporation" &&
+                 vendor != "nouveau" &&
+                 this._source.app.state == Shell.AppState.STOPPED) {
+-                this._onDiscreteGpuMenuItem = this._appendMenuItem(_("Launch using Dedicated Graphics Card"));
+-                this._onDiscreteGpuMenuItem.connect('activate', () => {
++                let appPrefersNonDefaultGPU = appInfo.get_boolean('PrefersNonDefaultGPU');
++                let gpuPref = appPrefersNonDefaultGPU
++                    ? Shell.AppLaunchGpu.DEFAULT
++                    : Shell.AppLaunchGpu.DISCRETE;
++                this._onGpuMenuItem = this._appendMenuItem(appPrefersNonDefaultGPU
++                    ? _('Launch using Integrated Graphics Card')
++                    : _('Launch using Dedicated Graphics Card'));
++
++                this._onGpuMenuItem.connect('activate', () => {
+                     this._source.animateLaunch();
+-                    this._source.app.launch(0, -1, true);
++                    this._source.app.launch_gpu(0, -1, gpuPref);
+                     this.emit('activate-window', null);
+                 });
+             }
+Index: gnome-shell/src/shell-app.c
+===================================================================
+--- gnome-shell.orig/src/shell-app.c	2020-05-04 08:03:17.391917641 -0600
++++ gnome-shell/src/shell-app.c	2020-05-04 08:10:59.480377032 -0600
+@@ -1345,10 +1345,23 @@
+                   gboolean      discrete_gpu,
+                   GError      **error)
+ {
++  if (discrete_gpu)
++    return shell_app_launch_gpu (app, timestamp, workspace, SHELL_APP_LAUNCH_GPU_DISCRETE, error);
++  return shell_app_launch_gpu (app, timestamp, workspace, SHELL_APP_LAUNCH_GPU_APP_PREF, error);
++}
++
++gboolean
++shell_app_launch_gpu (ShellApp           *app,
++                      guint               timestamp,
++                      int                 workspace,
++                      ShellAppLaunchGpu   gpu_pref,
++                      GError            **error)
++{
+   ShellGlobal *global;
+   GAppLaunchContext *context;
+   gboolean ret;
+   GSpawnFlags flags;
++  gboolean discrete_gpu = FALSE;
+ 
+   if (app->info == NULL)
+     {
+@@ -1365,6 +1378,11 @@
+ 
+   global = shell_global_get ();
+   context = shell_global_create_app_launch_context (global, timestamp, workspace);
++  if (gpu_pref == SHELL_APP_LAUNCH_GPU_APP_PREF)
++    discrete_gpu = g_desktop_app_info_get_boolean (app->info, "PrefersNonDefaultGPU");
++  else
++    discrete_gpu = (gpu_pref == SHELL_APP_LAUNCH_GPU_DISCRETE);
++
+   if (discrete_gpu)
+     apply_discrete_gpu_env (context, global);
+ 
+Index: gnome-shell/src/shell-app.h
+===================================================================
+--- gnome-shell.orig/src/shell-app.h	2020-05-04 08:02:45.716442665 -0600
++++ gnome-shell/src/shell-app.h	2020-05-04 08:06:48.888442984 -0600
+@@ -18,6 +18,12 @@
+   SHELL_APP_STATE_RUNNING
+ } ShellAppState;
+ 
++typedef enum {
++  SHELL_APP_LAUNCH_GPU_APP_PREF = 0,
++  SHELL_APP_LAUNCH_GPU_DISCRETE,
++  SHELL_APP_LAUNCH_GPU_DEFAULT
++} ShellAppLaunchGpu;
++
+ const char *shell_app_get_id (ShellApp *app);
+ 
+ GDesktopAppInfo *shell_app_get_app_info (ShellApp *app);
+@@ -57,6 +63,12 @@
+                            gboolean      discrete_gpu,
+                            GError      **error);
+ 
++gboolean shell_app_launch_gpu (ShellApp           *app,
++                               guint               timestamp,
++                               int                 workspace,
++                               ShellAppLaunchGpu   discrete_gpu,
++                               GError            **error);
++
+ void shell_app_launch_action (ShellApp        *app,
+                               const char      *action_name,
+                               guint            timestamp,
