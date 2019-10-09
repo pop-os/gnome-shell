@@ -1,10 +1,14 @@
-gnome-shell (3.34.0-3) UNRELEASED; urgency=medium
+gnome-shell (3.34.1-1) UNRELEASED; urgency=medium
 
+  [ Simon McVittie ]
   * d/p/overview-Fix-fading-out-desktop-icons.patch:
     Add patch from upstream to fix a potential hang when the Activities
     Overview is triggered (Closes: #940612)
 
- -- Simon McVittie <smcv@debian.org>  Mon, 07 Oct 2019 20:57:20 +0100
+  [ Iain Lane ]
+  * New upstream release
+
+ -- Iain Lane <laney@debian.org>  Wed, 09 Oct 2019 10:11:18 +0100
 
 gnome-shell (3.34.0-2) unstable; urgency=medium
 
