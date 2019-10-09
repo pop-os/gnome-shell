@@ -1,7 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported NMApplet */
 const { Clutter, Gio, GLib, GObject, NM, St } = imports.gi;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const Animation = imports.ui.animation;
@@ -719,7 +718,7 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         this._updateSensitivity();
         this._syncView();
 
-        this._scanTimeoutId = Mainloop.timeout_add_seconds(15, this._onScanTimeout.bind(this));
+        this._scanTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 15, this._onScanTimeout.bind(this));
         GLib.Source.set_name_by_id(this._scanTimeoutId, '[gnome-shell] this._onScanTimeout');
         this._onScanTimeout();
 
@@ -757,7 +756,7 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         }
 
         if (this._scanTimeoutId) {
-            Mainloop.source_remove(this._scanTimeoutId);
+            GLib.source_remove(this._scanTimeoutId);
             this._scanTimeoutId = 0;
         }
     }
@@ -874,7 +873,7 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         this._airplaneHeadline = new St.Label({ style_class: 'nm-dialog-airplane-headline headline' });
         this._airplaneText = new St.Label({ style_class: 'nm-dialog-airplane-text' });
 
-        let airplaneSubStack = new St.Widget({ layout_manager: new Clutter.BinLayout });
+        let airplaneSubStack = new St.Widget({ layout_manager: new Clutter.BinLayout() });
         this._airplaneButton = new St.Button({ style_class: 'modal-dialog-button button' });
         this._airplaneButton.connect('clicked', () => {
             if (this._rfkill.airplaneMode)
@@ -910,8 +909,8 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
             this._client.activate_connection_async(connection, this._device, null, null, null);
         } else {
             let accessPoints = network.accessPoints;
-            if ((accessPoints[0]._secType == NMAccessPointSecurity.WPA2_ENT)
-                || (accessPoints[0]._secType == NMAccessPointSecurity.WPA_ENT)) {
+            if ((accessPoints[0]._secType == NMAccessPointSecurity.WPA2_ENT) ||
+                (accessPoints[0]._secType == NMAccessPointSecurity.WPA_ENT)) {
                 // 802.1x-enabled APs require further configuration, so they're
                 // handled in gnome-control-center
                 Util.spawn(['gnome-control-center', 'wifi', 'connect-8021x-wifi',
@@ -1074,13 +1073,14 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
 
             this._resortItems();
         } else {
-            network = { ssid: accessPoint.get_ssid(),
-                        mode: accessPoint.mode,
-                        security: this._getApSecurityType(accessPoint),
-                        connections: [],
-                        item: null,
-                        accessPoints: [accessPoint]
-                      };
+            network = {
+                ssid: accessPoint.get_ssid(),
+                mode: accessPoint.mode,
+                security: this._getApSecurityType(accessPoint),
+                connections: [],
+                item: null,
+                accessPoints: [accessPoint],
+            };
             network.ssidText = ssidToLabel(network.ssid);
             this._checkConnections(network, accessPoint);
 
@@ -1676,7 +1676,7 @@ var NMApplet = class extends PanelMenu.SystemIndicator {
                                                   'network-transmit-receive');
             this._source.policy = new MessageTray.NotificationApplicationPolicy('gnome-network-panel');
 
-            this._source.connect('destroy', () => this._source = null);
+            this._source.connect('destroy', () => (this._source = null));
             Main.messageTray.add(this._source);
         }
     }
@@ -1976,7 +1976,6 @@ var NMApplet = class extends PanelMenu.SystemIndicator {
             // or we get to full connectivity through other means
         } else if (result == PortalHelperResult.COMPLETED) {
             this._closeConnectivityCheck(path);
-            return;
         } else if (result == PortalHelperResult.RECHECK) {
             this._client.check_connectivity_async(null, (client, result) => {
                 try {

@@ -2,7 +2,6 @@
 /* exported Workspace */
 
 const { Atk, Clutter, GLib, GObject, Meta, Pango, Shell, St } = imports.gi;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const DND = imports.ui.dnd;
@@ -57,17 +56,16 @@ class WindowCloneLayout extends Clutter.LayoutManager {
         // has an extra set of "padding" around it that we need to trim
         // down.
 
-        // The outer rect (from which we compute the bounding box)
-        // paradoxically is the smaller rectangle, containing the positions
-        // of the visible frame. The input rect contains everything,
-        // including the invisible border padding.
-        let inputRect = window.get_buffer_rect();
+        // The bounding box is based on the (visible) frame rect, while
+        // the buffer rect contains everything, including the invisible
+        // border padding.
+        let bufferRect = window.get_buffer_rect();
 
         let box = new Clutter.ActorBox();
 
-        box.set_origin(inputRect.x - this._boundingBox.x,
-                       inputRect.y - this._boundingBox.y);
-        box.set_size(inputRect.width, inputRect.height);
+        box.set_origin(bufferRect.x - this._boundingBox.x,
+                       bufferRect.y - this._boundingBox.y);
+        box.set_size(bufferRect.width, bufferRect.height);
 
         return box;
     }
@@ -83,8 +81,8 @@ class WindowCloneLayout extends Clutter.LayoutManager {
     vfunc_allocate(container, box, flags) {
         container.get_children().forEach(child => {
             let realWindow;
-            if (child == container._delegate._windowClone)
-                realWindow = container._delegate.realWindow;
+            if (child == container._windowClone)
+                realWindow = container.realWindow;
             else
                 realWindow = child.source;
 
@@ -104,7 +102,7 @@ var WindowClone = GObject.registerClass({
         'show-chrome': {},
         'size-changed': {}
     },
-}, class WindowClone extends St.Widget {
+}, class WorkspaceWindowClone extends St.Widget {
     _init(realWindow, workspace) {
         this.realWindow = realWindow;
         this.metaWindow = realWindow.meta_window;
@@ -354,6 +352,11 @@ var WindowClone = GObject.registerClass({
         this.metaWindow._delegate = null;
         this._delegate = null;
 
+        if (this._longPressLater) {
+            Meta.later_remove(this._longPressLater);
+            delete this._longPressLater;
+        }
+
         if (this.inDrag) {
             this.emit('drag-end');
             this.inDrag = false;
@@ -388,9 +391,13 @@ var WindowClone = GObject.registerClass({
             let event = Clutter.get_current_event();
             this._dragTouchSequence = event.get_event_sequence();
 
+            if (this._longPressLater)
+                return true;
+
             // A click cancels a long-press before any click handler is
             // run - make sure to not start a drag in that case
-            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._longPressLater = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                delete this._longPressLater;
                 if (this._selected)
                     return;
                 let [x, y] = action.get_coords();
@@ -405,8 +412,6 @@ var WindowClone = GObject.registerClass({
 
     _onDragBegin(_draggable, _time) {
         this._dragSlot = this._slot;
-        [this.dragOrigX, this.dragOrigY] = this.get_position();
-        this.dragOrigScale = this.scale_x;
         this.inDrag = true;
         this.emit('drag-begin');
     }
@@ -416,7 +421,7 @@ var WindowClone = GObject.registerClass({
     }
 
     acceptDrop(source, actor, x, y, time) {
-        this._workspace.acceptDrop(source, actor, x, y, time);
+        return this._workspace.acceptDrop(source, actor, x, y, time);
     }
 
     _onDragCancelled(_draggable, _time) {
@@ -461,7 +466,8 @@ var WindowOverlay = class {
         this.border = new St.Bin({ style_class: 'window-clone-border' });
 
         this.title = new St.Label({ style_class: 'window-caption',
-                                    text: this._getCaption() });
+                                    text: this._getCaption(),
+                                    reactive: true });
         this.title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         windowClone.label_actor = this.title;
 
@@ -486,7 +492,6 @@ var WindowOverlay = class {
         this.closeButton.hide();
 
         // Don't block drop targets
-        Shell.util_set_hidden_from_pick(this.title, true);
         Shell.util_set_hidden_from_pick(this.border, true);
 
         parentActor.add_actor(this.border);
@@ -628,7 +633,7 @@ var WindowOverlay = class {
 
     _onDestroy() {
         if (this._idleHideOverlayId > 0) {
-            Mainloop.source_remove(this._idleHideOverlayId);
+            GLib.source_remove(this._idleHideOverlayId);
             this._idleHideOverlayId = 0;
         }
         this._windowClone.metaWindow.disconnect(this._updateCaptionId);
@@ -679,25 +684,28 @@ var WindowOverlay = class {
     }
 
     _onHideChrome() {
-        if (this._idleHideOverlayId == 0) {
-            this._idleHideOverlayId = Mainloop.timeout_add(WINDOW_OVERLAY_IDLE_HIDE_TIMEOUT, this._idleHideOverlay.bind(this));
-            GLib.Source.set_name_by_id(this._idleHideOverlayId, '[gnome-shell] this._idleHideOverlay');
-        }
+        if (this._idleHideOverlayId > 0)
+            GLib.source_remove(this._idleHideOverlayId);
+
+        this._idleHideOverlayId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, WINDOW_OVERLAY_IDLE_HIDE_TIMEOUT, this._idleHideOverlay.bind(this));
+        GLib.Source.set_name_by_id(this._idleHideOverlayId, '[gnome-shell] this._idleHideOverlay');
     }
 
     _idleHideOverlay() {
-        this._idleHideOverlayId = 0;
+        if (this.closeButton['has-pointer'] ||
+            this.title['has-pointer'])
+            return GLib.SOURCE_CONTINUE;
 
-        if (!this._windowClone['has-pointer'] &&
-            !this.closeButton['has-pointer'])
+        if (!this._windowClone['has-pointer'])
             this._animateInvisible();
 
+        this._idleHideOverlayId = 0;
         return GLib.SOURCE_REMOVE;
     }
 
     hideOverlay() {
         if (this._idleHideOverlayId > 0) {
-            Mainloop.source_remove(this._idleHideOverlayId);
+            GLib.source_remove(this._idleHideOverlayId);
             this._idleHideOverlayId = 0;
         }
         this.closeButton.hide();
@@ -896,7 +904,7 @@ var LayoutStrategy = class {
     computeWindowSlots(layout, area) {
         this._computeRowSizes(layout);
 
-        let { rows: rows, scale: scale } = layout;
+        let { rows, scale } = layout;
 
         let slots = [];
 
@@ -939,7 +947,7 @@ var LayoutStrategy = class {
             y += row.height * row.additionalScale + this._rowSpacing;
         }
 
-        compensation = compensation / 2;
+        compensation /= 2;
 
         for (let i = 0; i < rows.length; i++) {
             let row = rows[i];
@@ -971,7 +979,7 @@ var LayoutStrategy = class {
 
 var UnalignedLayoutStrategy = class extends LayoutStrategy {
     _computeRowSizes(layout) {
-        let { rows: rows, scale: scale } = layout;
+        let { rows, scale } = layout;
         for (let i = 0; i < rows.length; i++) {
             let row = rows[i];
             row.width = row.fullWidth * scale + (row.windows.length - 1) * this._columnSpacing;
@@ -1090,10 +1098,8 @@ const WorkspaceActor = GObject.registerClass(
 class WorkspaceActor extends St.Widget {
     vfunc_get_focus_chain() {
         return this.get_children().filter(c => c.visible).sort((a, b) => {
-            let cloneA = (a._delegate && a._delegate instanceof WindowClone) ? a._delegate : null;
-            let cloneB = (b._delegate && b._delegate instanceof WindowClone) ? b._delegate : null;
-            if (cloneA && cloneB)
-                return cloneA.slotId - cloneB.slotId;
+            if (a instanceof WindowClone && b instanceof WindowClone)
+                return a.slotId - b.slotId;
 
             return 0;
         });
@@ -1263,7 +1269,7 @@ var Workspace = class {
 
     _realRecalculateWindowPositions(flags) {
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
@@ -1473,7 +1479,7 @@ var Workspace = class {
 
         // remove old handler
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
@@ -1483,7 +1489,7 @@ var Workspace = class {
         this._cursorY = y;
 
         this._currentLayout = null;
-        this._repositionWindowsId = Mainloop.timeout_add(WINDOW_REPOSITIONING_DELAY,
+        this._repositionWindowsId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, WINDOW_REPOSITIONING_DELAY,
             this._delayedWindowRepositioning.bind(this));
         GLib.Source.set_name_by_id(this._repositionWindowsId, '[gnome-shell] this._delayedWindowRepositioning');
     }
@@ -1497,7 +1503,7 @@ var Workspace = class {
         if (!win) {
             // Newly-created windows are added to a workspace before
             // the compositor finds out about them...
-            let id = Mainloop.idle_add(() => {
+            let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 if (this.actor &&
                     metaWin.get_compositor_private() &&
                     metaWin.get_workspace() == this.metaWorkspace)
@@ -1643,7 +1649,7 @@ var Workspace = class {
             this._windows[i].remove_all_transitions();
 
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
@@ -1728,7 +1734,7 @@ var Workspace = class {
             this._windows[i].remove_all_transitions();
 
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
         this._overviewHiddenId = Main.overview.connect('hidden', this._doneLeavingOverview.bind(this));
@@ -1789,7 +1795,7 @@ var Workspace = class {
         global.display.disconnect(this._windowLeftMonitorId);
 
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
@@ -1978,7 +1984,7 @@ var Workspace = class {
     }
 
     _onCloneSelected(clone, time) {
-        let wsIndex = undefined;
+        let wsIndex;
         if (this.metaWorkspace)
             wsIndex = this.metaWorkspace.index();
         Main.activateWindow(clone.metaWindow, time, wsIndex);
@@ -1988,13 +1994,20 @@ var Workspace = class {
     handleDragOver(source, _actor, _x, _y, _time) {
         if (source.realWindow && !this._isMyWindow(source.realWindow))
             return DND.DragMotionResult.MOVE_DROP;
-        if (source.shellWorkspaceLaunch)
+        if (source.app && source.app.can_open_new_window())
+            return DND.DragMotionResult.COPY_DROP;
+        if (!source.app && source.shellWorkspaceLaunch)
             return DND.DragMotionResult.COPY_DROP;
 
         return DND.DragMotionResult.CONTINUE;
     }
 
     acceptDrop(source, actor, x, y, time) {
+        let workspaceManager = global.workspace_manager;
+        let workspaceIndex = this.metaWorkspace
+            ? this.metaWorkspace.index()
+            : workspaceManager.get_active_workspace_index();
+
         if (source.realWindow) {
             let win = source.realWindow;
             if (this._isMyWindow(win))
@@ -2016,12 +2029,18 @@ var Workspace = class {
             if (metaWindow.get_monitor() != this.monitorIndex)
                 metaWindow.move_to_monitor(this.monitorIndex);
 
-            let workspaceManager = global.workspace_manager;
-            let index = this.metaWorkspace ? this.metaWorkspace.index() : workspaceManager.get_active_workspace_index();
-            metaWindow.change_workspace_by_index(index, false);
+            metaWindow.change_workspace_by_index(workspaceIndex, false);
             return true;
-        } else if (source.shellWorkspaceLaunch) {
-            source.shellWorkspaceLaunch({ workspace: this.metaWorkspace ? this.metaWorkspace.index() : -1,
+        } else if (source.app && source.app.can_open_new_window()) {
+            if (source.animateLaunchAtPos)
+                source.animateLaunchAtPos(actor.x, actor.y);
+
+            source.app.open_new_window(workspaceIndex);
+            return true;
+        } else if (!source.app && source.shellWorkspaceLaunch) {
+            // While unused in our own drag sources, shellWorkspaceLaunch allows
+            // extensions to define custom actions for their drag sources.
+            source.shellWorkspaceLaunch({ workspace: workspaceIndex,
                                           timestamp: time });
             return true;
         }

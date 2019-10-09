@@ -116,8 +116,8 @@ var ScreenshotService = class {
                 try {
                     let [result, area, filenameUsed] =
                         screenshot.screenshot_area_finish(res);
-                    this._onScreenshotComplete(result, area, filenameUsed,
-                                               flash, invocation);
+                    this._onScreenshotComplete(
+                        result, area, filenameUsed, flash, invocation);
                 } catch (e) {
                     invocation.return_gerror (e);
                 }
@@ -134,8 +134,8 @@ var ScreenshotService = class {
                 try {
                     let [result, area, filenameUsed] =
                         screenshot.screenshot_window_finish(res);
-                    this._onScreenshotComplete(result, area, filenameUsed,
-                                               flash, invocation);
+                    this._onScreenshotComplete(
+                        result, area, filenameUsed, flash, invocation);
                 } catch (e) {
                     invocation.return_gerror (e);
                 }
@@ -152,8 +152,8 @@ var ScreenshotService = class {
                 try {
                     let [result, area, filenameUsed] =
                         screenshot.screenshot_finish(res);
-                    this._onScreenshotComplete(result, area, filenameUsed,
-                                               flash, invocation);
+                    this._onScreenshotComplete(
+                        result, area, filenameUsed, flash, invocation);
                 } catch (e) {
                     invocation.return_gerror (e);
                 }
@@ -271,7 +271,7 @@ var SelectArea = class {
     }
 
     _onMotionEvent(actor, event) {
-        if (this._startX == -1 || this._startY == -1)
+        if (this._startX == -1 || this._startY == -1 || this._result)
             return Clutter.EVENT_PROPAGATE;
 
         [this._lastX, this._lastY] = event.get_coords();

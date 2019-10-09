@@ -2,7 +2,6 @@
 /* exported SessionMode, listModes */
 
 const GLib = imports.gi.GLib;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const FileUtils = imports.misc.fileUtils;
@@ -93,11 +92,11 @@ const _modes = {
         isLocked: false,
         isPrimary: true,
         unlockDialog: imports.ui.unlockDialog.UnlockDialog,
-        components: Config.HAVE_NETWORKMANAGER ?
-                    ['networkAgent', 'polkitAgent', 'telepathyClient',
-                     'keyring', 'autorunManager', 'automountManager'] :
-                    ['polkitAgent', 'telepathyClient',
-                     'keyring', 'autorunManager', 'automountManager'],
+        components: Config.HAVE_NETWORKMANAGER
+            ? ['networkAgent', 'polkitAgent', 'telepathyClient',
+               'keyring', 'autorunManager', 'automountManager']
+            : ['polkitAgent', 'telepathyClient',
+               'keyring', 'autorunManager', 'automountManager'],
 
         panel: {
             left: ['activities', 'appMenu'],
@@ -112,7 +111,7 @@ function _loadMode(file, info) {
     let suffix = name.indexOf('.json');
     let modeName = suffix == -1 ? name : name.slice(name, suffix);
 
-    if (_modes.hasOwnProperty(modeName))
+    if (Object.prototype.hasOwnProperty.call(_modes, modeName))
         return;
 
     let fileContent, success_, newMode;
@@ -141,15 +140,16 @@ function _loadModes() {
 
 function listModes() {
     _loadModes();
-    let id = Mainloop.idle_add(() => {
+    let loop = new GLib.MainLoop(null, false);
+    let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
         let names = Object.getOwnPropertyNames(_modes);
         for (let i = 0; i < names.length; i++)
             if (_modes[names[i]].isPrimary)
                 print(names[i]);
-        Mainloop.quit('listModes');
+        loop.quit();
     });
     GLib.Source.set_name_by_id(id, '[gnome-shell] listModes');
-    Mainloop.run('listModes');
+    loop.run();
 }
 
 var SessionMode = class {

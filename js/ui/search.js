@@ -158,10 +158,15 @@ var SearchResultsBase = class {
         this._clipboard = St.Clipboard.get_default();
 
         this._cancellable = new Gio.Cancellable();
+
+        this.actor.connect('destroy', this._onDestroy.bind(this));
     }
 
     destroy() {
         this.actor.destroy();
+    }
+
+    _onDestroy() {
         this._terms = [];
     }
 
@@ -341,14 +346,30 @@ var GridSearchResults = class extends SearchResultsBase {
         this._resultDisplayBin.set_child(this._bin);
     }
 
+    _onDestroy() {
+        if (this._updateSearchLater) {
+            Meta.later_remove(this._updateSearchLater);
+            delete this._updateSearchLater;
+        }
+
+        super._onDestroy();
+    }
+
     updateSearch(...args) {
         if (this._notifyAllocationId)
             this.actor.disconnect(this._notifyAllocationId);
+        if (this._updateSearchLater) {
+            Meta.later_remove(this._updateSearchLater);
+            delete this._updateSearchLater;
+        }
 
         // Make sure the maximum number of results calculated by
         // _getMaxDisplayedResults() is updated after width changes.
         this._notifyAllocationId = this.actor.connect('notify::allocation', () => {
-            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            if (this._updateSearchLater)
+                return;
+            this._updateSearchLater = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                delete this._updateSearchLater;
                 super.updateSearch(...args);
                 return GLib.SOURCE_REMOVE;
             });
@@ -689,8 +710,9 @@ var SearchResults = class {
     navigateFocus(direction) {
         let rtl = this.actor.get_text_direction() == Clutter.TextDirection.RTL;
         if (direction == St.DirectionType.TAB_BACKWARD ||
-            direction == (rtl ? St.DirectionType.RIGHT
-                              : St.DirectionType.LEFT) ||
+            direction == (rtl
+                ? St.DirectionType.RIGHT
+                : St.DirectionType.LEFT) ||
             direction == St.DirectionType.UP) {
             this.actor.navigate_focus(null, direction, false);
             return;

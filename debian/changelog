@@ -1,3 +1,36 @@
+gnome-shell (3.34.1-1) unstable; urgency=medium
+
+  * New upstream release
+    + Allow editing app folder names
+    + Do not notify systemd before initialization is complete
+    + Don't leak NOTIFY_SOCKET environment variable to applications
+    + Fix accidentally skipped animations
+    + Fix box-shadow glitch with prerendered resources
+    + Fix desktop right click menu appearing in the wrong place if a Terminal
+      window is open (LP: #1842910)
+    + Fix extra icons appearing in "Frequent" view animation
+    + Fix fading out desktop icons (Closes: #940612)
+    + Fix "Frequent" view icons disappearing on hover (LP: #1846083)
+    + Fix lock-up on X11 when ibus is already running on startup (LP:
+      #1845198)
+    + Fix screen dimming on idle (LP: #1846941)
+    + Fix screenshots and window animations when scaled
+    + Fix various regressions with dynamic workspaces
+    + Improve performance when enabling/disabling all extensions
+    + Make menu animations more consistent
+    + Skip property transitions while hidden
+    + Support SAE secrets in network agent (LP: #1844422)
+  * control: Require mutter 3.34.1
+
+ -- Iain Lane <laney@debian.org>  Wed, 09 Oct 2019 11:20:28 +0100
+
+gnome-shell (3.34.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Upload to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 30 Sep 2019 14:29:53 +0200
+
 gnome-shell (3.34.0-1ubuntu1) eoan; urgency=medium
 
   * Merge with Debian. Remaining changes:

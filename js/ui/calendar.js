@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Calendar, CalendarMessageList */
 
-const { Clutter, Gio, GLib, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
@@ -581,8 +581,9 @@ var Calendar = class Calendar {
             if (row == 2)
                 styleClass = `calendar-day-top ${styleClass}`;
 
-            let leftMost = rtl ? iter.getDay() == (this._weekStart + 6) % 7
-                               : iter.getDay() == this._weekStart;
+            let leftMost = rtl
+                ? iter.getDay() == (this._weekStart + 6) % 7
+                : iter.getDay() == this._weekStart;
             if (leftMost)
                 styleClass = `calendar-day-left ${styleClass}`;
 
@@ -680,23 +681,24 @@ var EventMessage = class EventMessage extends MessageList.Message {
              */
             title = C_("event list time", "All Day");
         } else {
-            let date = this._event.date >= periodBegin ? this._event.date
-                                                       : this._event.end;
+            let date = this._event.date >= periodBegin
+                ? this._event.date
+                : this._event.end;
             title = Util.formatTime(date, { timeOnly: true });
         }
 
         let rtl = Clutter.get_default_text_direction() == Clutter.TextDirection.RTL;
         if (this._event.date < periodBegin && !this._event.allDay) {
             if (rtl)
-                title = title + ELLIPSIS_CHAR;
+                title = `${title}${ELLIPSIS_CHAR}`;
             else
-                title = ELLIPSIS_CHAR + title;
+                title = `${ELLIPSIS_CHAR}${title}`;
         }
         if (this._event.end > periodEnd && !this._event.allDay) {
             if (rtl)
-                title = ELLIPSIS_CHAR + title;
+                title = `${ELLIPSIS_CHAR}${title}`;
             else
-                title = title + ELLIPSIS_CHAR;
+                title = `${title}${ELLIPSIS_CHAR}`;
         }
         return title;
     }
@@ -1071,9 +1073,13 @@ var CalendarMessageList = class CalendarMessageList {
         this._clearButton.set_x_align(Clutter.ActorAlign.END);
         this._clearButton.connect('clicked', () => {
             let sections = [...this._sections.keys()];
-            sections.forEach((s) => s.clear());
+            sections.forEach(s => s.clear());
         });
         box.add_actor(this._clearButton);
+
+        this._placeholder.actor.bind_property('visible',
+            this._clearButton, 'visible',
+            GObject.BindingFlags.INVERT_BOOLEAN);
 
         this._sectionList = new St.BoxLayout({ style_class: 'message-list-sections',
                                                vertical: true,
@@ -1145,7 +1151,6 @@ var CalendarMessageList = class CalendarMessageList {
 
         let empty = sections.every(s => s.empty || !s.actor.visible);
         this._placeholder.actor.visible = empty;
-        this._clearButton.visible = !empty;
 
         let canClear = sections.some(s => s.canClear && s.actor.visible);
         this._clearButton.reactive = canClear;

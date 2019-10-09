@@ -3,7 +3,6 @@
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const Mainloop = imports.mainloop;
 
 const AppFavorites = imports.ui.appFavorites;
 const BoxPointer = imports.ui.boxpointer;
@@ -506,7 +505,7 @@ var AllView = class AllView extends BaseAppView {
                 opacity: 0,
                 duration: VIEWS_SWITCH_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onComplete: () => this.opacity = 255
+                onComplete: () => (this.opacity = 255)
             });
 
         if (animationDirection == IconGrid.AnimationDirection.OUT)
@@ -753,7 +752,6 @@ var AllView = class AllView extends BaseAppView {
         let maxY = this._adjustment.upper - this._adjustment.page_size;
         if (dragEvent.y >= gridBottom && currentY < maxY) {
             this.goToPage(this._grid.currentPage + 1);
-            return;
         }
     }
 
@@ -1108,8 +1106,9 @@ var AppDisplay = class AppDisplay {
             else
                 this._views[i].control.remove_style_pseudo_class('checked');
 
-            let animationDirection = i == activeIndex ? IconGrid.AnimationDirection.IN :
-                                                        IconGrid.AnimationDirection.OUT;
+            let animationDirection = i == activeIndex
+                ? IconGrid.AnimationDirection.IN
+                : IconGrid.AnimationDirection.OUT;
             this._views[i].view.animateSwitch(animationDirection);
         }
     }
@@ -1159,11 +1158,10 @@ var AppSearchProvider = class AppSearchProvider {
             if (id.endsWith('.desktop')) {
                 let app = this._appSys.lookup_app(id);
 
-                metas.push({ 'id': app.get_id(),
-                             'name': app.get_name(),
-                             'createIcon'(size) {
-                                 return app.create_icon_texture(size);
-                             }
+                metas.push({
+                    id: app.get_id(),
+                    name: app.get_name(),
+                    createIcon: size => app.create_icon_texture(size),
                 });
             } else {
                 let name = this._systemActions.getName(id);
@@ -1438,6 +1436,13 @@ var FolderIcon = class FolderIcon {
         this._itemDragEndId = Main.overview.connect(
             'item-drag-end', this._onDragEnd.bind(this));
 
+        this._popupTimeoutId = 0;
+
+        this.actor.connect('leave-event', this._onLeaveEvent.bind(this));
+        this.actor.connect('button-press-event', this._onButtonPress.bind(this));
+        this.actor.connect('touch-event', this._onTouchEvent.bind(this));
+        this.actor.connect('popup-menu', this._popupRenamePopup.bind(this));
+
         this.actor.connect('clicked', this.open.bind(this));
         this.actor.connect('destroy', this.onDestroy.bind(this));
         this.actor.connect('notify::mapped', () => {
@@ -1462,9 +1467,12 @@ var FolderIcon = class FolderIcon {
 
         if (this._popup)
             this._popup.actor.destroy();
+
+        this._removeMenuTimeout();
     }
 
     open() {
+        this._removeMenuTimeout();
         this._ensurePopup();
         this.view.actor.vscroll.adjustment.value = 0;
         this._openSpaceForPopup();
@@ -1627,6 +1635,74 @@ var FolderIcon = class FolderIcon {
         this._popupInvalidated = false;
     }
 
+    _removeMenuTimeout() {
+        if (this._popupTimeoutId > 0) {
+            GLib.source_remove(this._popupTimeoutId);
+            this._popupTimeoutId = 0;
+        }
+    }
+
+    _setPopupTimeout() {
+        this._removeMenuTimeout();
+        this._popupTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, MENU_POPUP_TIMEOUT, () => {
+            this._popupTimeoutId = 0;
+            this._popupRenamePopup();
+            return GLib.SOURCE_REMOVE;
+        });
+        GLib.Source.set_name_by_id(this._popupTimeoutId,
+                                   '[gnome-shell] this._popupRenamePopup');
+    }
+
+    _onLeaveEvent(_actor, _event) {
+        this.actor.fake_release();
+        this._removeMenuTimeout();
+    }
+
+    _onButtonPress(_actor, event) {
+        let button = event.get_button();
+        if (button == 1) {
+            this._setPopupTimeout();
+        } else if (button == 3) {
+            this._popupRenamePopup();
+            return Clutter.EVENT_STOP;
+        }
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _onTouchEvent(actor, event) {
+        if (event.type() == Clutter.EventType.TOUCH_BEGIN)
+            this._setPopupTimeout();
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _popupRenamePopup() {
+        this._removeMenuTimeout();
+        this.actor.fake_release();
+
+        if (!this._menu) {
+            this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
+
+            this._menu = new RenameFolderMenu(this, this._folder);
+            this._menuManager.addMenu(this._menu);
+
+            this._menu.connect('open-state-changed', (menu, isPoppedUp) => {
+                if (!isPoppedUp)
+                    this.actor.sync_hover();
+            });
+            let id = Main.overview.connect('hiding', () => {
+                this._menu.close();
+            });
+            this.actor.connect('destroy', () => {
+                Main.overview.disconnect(id);
+            });
+        }
+
+        this.actor.set_hover(true);
+        this._menu.open();
+        this._menuManager.ignoreRelease();
+    }
+
     adaptToSize(width, height) {
         this._parentAvailableWidth = width;
         this._parentAvailableHeight = height;
@@ -1636,6 +1712,106 @@ var FolderIcon = class FolderIcon {
     }
 };
 Signals.addSignalMethods(FolderIcon.prototype);
+
+var RenameFolderMenuItem = GObject.registerClass(
+class RenameFolderMenuItem extends PopupMenu.PopupBaseMenuItem {
+    _init(folder) {
+        super._init({
+            style_class: 'rename-folder-popup-item',
+            reactive: false,
+        });
+        this.setOrnament(PopupMenu.Ornament.HIDDEN);
+
+        this._folder = folder;
+
+        // Entry
+        this._entry = new St.Entry({
+            x_expand: true,
+            width: 200,
+        });
+        this.add_child(this._entry);
+
+        this._entry.clutter_text.connect(
+            'notify::text', this._validate.bind(this));
+        this._entry.clutter_text.connect(
+            'activate', this._updateFolderName.bind(this));
+
+        // Rename button
+        this._button = new St.Button({
+            style_class: 'button',
+            reactive: true,
+            button_mask: St.ButtonMask.ONE | St.ButtonMask.TWO,
+            can_focus: true,
+            label: _('Rename'),
+        });
+        this.add_child(this._button);
+
+        this._button.connect('clicked', this._updateFolderName.bind(this));
+    }
+
+    vfunc_map() {
+        this._entry.text = _getFolderName(this._folder);
+        this._entry.clutter_text.set_selection(0, -1);
+        super.vfunc_map();
+    }
+
+    vfunc_key_focus_in() {
+        super.vfunc_key_focus_in();
+        this._entry.clutter_text.grab_key_focus();
+    }
+
+    _isValidFolderName() {
+        let folderName = _getFolderName(this._folder);
+        let newFolderName = this._entry.text.trim();
+
+        return newFolderName.length > 0 && newFolderName != folderName;
+    }
+
+    _validate() {
+        let isValid = this._isValidFolderName();
+
+        this._button.reactive = isValid;
+    }
+
+    _updateFolderName() {
+        if (!this._isValidFolderName())
+            return;
+
+        let newFolderName = this._entry.text.trim();
+        this._folder.set_string('name', newFolderName);
+        this._folder.set_boolean('translate', false);
+        this.activate(Clutter.get_current_event());
+    }
+});
+
+var RenameFolderMenu = class RenameFolderMenu extends PopupMenu.PopupMenu {
+    constructor(source, folder) {
+        super(source.actor, 0.5, St.Side.BOTTOM);
+        this.actor.add_style_class_name('rename-folder-popup');
+
+        // We want to keep the item hovered while the menu is up
+        this.blockSourceEvents = true;
+
+        let menuItem = new RenameFolderMenuItem(folder);
+        this.addMenuItem(menuItem);
+
+        // Focus the text entry on menu pop-up
+        this.focusActor = menuItem;
+
+        // Chain our visibility and lifecycle to that of the source
+        this._sourceMappedId = source.actor.connect('notify::mapped', () => {
+            if (!source.actor.mapped)
+                this.close();
+        });
+        source.actor.connect('destroy', () => {
+            source.actor.disconnect(this._sourceMappedId);
+            this.destroy();
+        });
+
+        Main.uiGroup.add_actor(this.actor);
+    }
+};
+Signals.addSignalMethods(RenameFolderMenu.prototype);
 
 var AppFolderPopup = class AppFolderPopup {
     constructor(source, side) {
@@ -1722,15 +1898,17 @@ var AppFolderPopup = class AppFolderPopup {
             direction = St.DirectionType.TAB_FORWARD;
             break;
         case Clutter.Right:
-            direction = isLtr ? St.DirectionType.TAB_FORWARD :
-                                    St.DirectionType.TAB_BACKWARD;
+            direction = isLtr
+                ? St.DirectionType.TAB_FORWARD
+                : St.DirectionType.TAB_BACKWARD;
             break;
         case Clutter.Up:
             direction = St.DirectionType.TAB_BACKWARD;
             break;
         case Clutter.Left:
-            direction = isLtr ? St.DirectionType.TAB_BACKWARD :
-                                    St.DirectionType.TAB_FORWARD;
+            direction = isLtr
+                ? St.DirectionType.TAB_BACKWARD
+                : St.DirectionType.TAB_FORWARD;
             break;
         default:
             return Clutter.EVENT_PROPAGATE;
@@ -1912,7 +2090,7 @@ var AppIcon = class AppIcon {
 
     _removeMenuTimeout() {
         if (this._menuTimeoutId > 0) {
-            Mainloop.source_remove(this._menuTimeoutId);
+            GLib.source_remove(this._menuTimeoutId);
             this._menuTimeoutId = 0;
         }
     }
@@ -1926,7 +2104,7 @@ var AppIcon = class AppIcon {
 
     _setPopupTimeout() {
         this._removeMenuTimeout();
-        this._menuTimeoutId = Mainloop.timeout_add(MENU_POPUP_TIMEOUT, () => {
+        this._menuTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, MENU_POPUP_TIMEOUT, () => {
             this._menuTimeoutId = 0;
             this.popupMenu();
             return GLib.SOURCE_REMOVE;
@@ -2044,6 +2222,10 @@ var AppIcon = class AppIcon {
         this.icon.animateZoomOut();
     }
 
+    animateLaunchAtPos(x, y) {
+        this.icon.animateZoomOutAtPos(x, y);
+    }
+
     scaleIn() {
         this.actor.scale_x = 0;
         this.actor.scale_y = 0;
@@ -2058,6 +2240,9 @@ var AppIcon = class AppIcon {
     }
 
     shellWorkspaceLaunch(params) {
+        let { stack } = new Error();
+        log(`shellWorkspaceLaunch is deprecated, use app.open_new_window() instead\n${stack}`);
+
         params = Params.parse(params, { workspace: -1,
                                         timestamp: 0 });
 
@@ -2234,8 +2419,8 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
             );
 
         windows.forEach(window => {
-            let title = window.title ? window.title
-                                     : this._source.app.get_name();
+            let title = window.title
+                ? window.title : this._source.app.get_name();
             let item = this._appendMenuItem(title);
             item.connect('activate', () => {
                 this.emit('activate-window', window);

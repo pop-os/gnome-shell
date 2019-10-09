@@ -15,6 +15,7 @@ var Ornament = {
     NONE: 0,
     DOT: 1,
     CHECK: 2,
+    HIDDEN: 3,
 };
 
 function isPopupMenuItemVisible(child) {
@@ -57,11 +58,9 @@ var PopupBaseMenuItem = GObject.registerClass({
     Properties: {
         'active': GObject.ParamSpec.boolean('active', 'active', 'active',
                                             GObject.ParamFlags.READWRITE,
-                                            GObject.TYPE_BOOLEAN,
                                             false),
         'sensitive': GObject.ParamSpec.boolean('sensitive', 'sensitive', 'sensitive',
                                                GObject.ParamFlags.READWRITE,
-                                               GObject.TYPE_BOOLEAN,
                                                true),
     },
     Signals: {
@@ -69,12 +68,13 @@ var PopupBaseMenuItem = GObject.registerClass({
     }
 }, class PopupBaseMenuItem extends St.BoxLayout {
     _init(params) {
-        params = Params.parse (params, { reactive: true,
-                                         activate: true,
-                                         hover: true,
-                                         style_class: null,
-                                         can_focus: true
-                                       });
+        params = Params.parse (params, {
+            reactive: true,
+            activate: true,
+            hover: true,
+            style_class: null,
+            can_focus: true,
+        });
         super._init({ style_class: 'popup-menu-item',
                       reactive: params.reactive,
                       track_hover: params.reactive,
@@ -249,10 +249,12 @@ var PopupBaseMenuItem = GObject.registerClass({
         } else if (ornament == Ornament.CHECK) {
             this._ornamentLabel.text = '\u2713';
             this.add_accessible_state(Atk.StateType.CHECKED);
-        } else if (ornament == Ornament.NONE) {
+        } else if (ornament == Ornament.NONE || ornament == Ornament.HIDDEN) {
             this._ornamentLabel.text = '';
             this.remove_accessible_state(Atk.StateType.CHECKED);
         }
+
+        this._ornamentLabel.visible = ornament != Ornament.HIDDEN;
     }
 });
 
@@ -333,9 +335,10 @@ var PopupSwitchMenuItem = GObject.registerClass({
         this._statusBin = new St.Bin({ x_align: St.Align.END });
         this.add(this._statusBin, { expand: true, x_align: St.Align.END });
 
-        this._statusLabel = new St.Label({ text: '',
-                                           style_class: 'popup-status-menu-item'
-                                         });
+        this._statusLabel = new St.Label({
+            text: '',
+            style_class: 'popup-status-menu-item',
+        });
         this._statusBin.child = this._switch;
     }
 
@@ -425,6 +428,7 @@ var PopupMenuBase = class {
             throw new TypeError(`Cannot instantiate abstract class ${this.constructor.name}`);
 
         this.sourceActor = sourceActor;
+        this.focusActor = sourceActor;
         this._parent = null;
 
         if (styleClass !== undefined) {
@@ -549,7 +553,7 @@ var PopupMenuBase = class {
     }
 
     _connectItemSignals(menuItem) {
-        menuItem._activeChangeId = menuItem.connect('notify::active', (menuItem) => {
+        menuItem._activeChangeId = menuItem.connect('notify::active', menuItem => {
             let active = menuItem.active;
             if (active && this._activeMenuItem != menuItem) {
                 if (this._activeMenuItem)
@@ -613,8 +617,8 @@ var PopupMenuBase = class {
         while (childBeforeIndex >= 0 && !isPopupMenuItemVisible(children[childBeforeIndex]))
             childBeforeIndex--;
 
-        if (childBeforeIndex < 0
-            || children[childBeforeIndex]._delegate instanceof PopupSeparatorMenuItem) {
+        if (childBeforeIndex < 0 ||
+            children[childBeforeIndex]._delegate instanceof PopupSeparatorMenuItem) {
             menuItem.actor.hide();
             return;
         }
@@ -624,8 +628,8 @@ var PopupMenuBase = class {
         while (childAfterIndex < children.length && !isPopupMenuItemVisible(children[childAfterIndex]))
             childAfterIndex++;
 
-        if (childAfterIndex >= children.length
-            || children[childAfterIndex]._delegate instanceof PopupSeparatorMenuItem) {
+        if (childAfterIndex >= children.length ||
+            children[childAfterIndex]._delegate instanceof PopupSeparatorMenuItem) {
             menuItem.actor.hide();
             return;
         }
@@ -718,10 +722,11 @@ var PopupMenuBase = class {
                 this.disconnect(openStateChangeId);
                 menuItem.disconnect(destroyId);
             });
-        } else if (menuItem instanceof PopupBaseMenuItem)
+        } else if (menuItem instanceof PopupBaseMenuItem) {
             this._connectItemSignals(menuItem);
-        else
+        } else {
             throw TypeError("Invalid argument to PopupMenuBase.addMenuItem()");
+        }
 
         menuItem._setParent(this);
 
@@ -1296,18 +1301,20 @@ var PopupMenuManager = class {
         if (open) {
             if (this.activeMenu)
                 this.activeMenu.close(BoxPointer.PopupAnimation.FADE);
-            this._grabHelper.grab({ actor: menu.actor, focus: menu.sourceActor,
-                                    onUngrab: isUser => {
-                                        this._closeMenu(isUser, menu);
-                                    } });
+            this._grabHelper.grab({
+                actor: menu.actor,
+                focus: menu.focusActor,
+                onUngrab: isUser => this._closeMenu(isUser, menu),
+            });
         } else {
             this._grabHelper.ungrab({ actor: menu.actor });
         }
     }
 
     _changeMenu(newMenu) {
-        newMenu.open(this.activeMenu ? BoxPointer.PopupAnimation.FADE
-                                     : BoxPointer.PopupAnimation.FULL);
+        newMenu.open(this.activeMenu
+            ? BoxPointer.PopupAnimation.FADE
+            : BoxPointer.PopupAnimation.FULL);
     }
 
     _onMenuSourceEnter(menu) {
