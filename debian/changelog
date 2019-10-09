@@ -1,4 +1,4 @@
-gnome-shell (3.34.1-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.34.1-1ubuntu1) eoan; urgency=medium
 
   * Merge with Debian. Remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -52,7 +52,7 @@ gnome-shell (3.34.1-1ubuntu1) UNRELEASED; urgency=medium
       - Show monitor scaled cursor when magnifier is enabled
   * Refresh patches through gbp-pq
 
- -- Iain Lane <iain.lane@canonical.com>  Wed, 09 Oct 2019 11:52:01 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Wed, 09 Oct 2019 12:18:14 +0100
 
 gnome-shell (3.34.1-1) unstable; urgency=medium
 
