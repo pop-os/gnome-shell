@@ -18,7 +18,7 @@ Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
  2 files changed, 21 insertions(+)
 
 diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
-index dc67909..9339ed1 100644
+index dc3f1d5..4158a18 100644
 --- a/js/ui/extensionDownloader.js
 +++ b/js/ui/extensionDownloader.js
 @@ -5,6 +5,7 @@
@@ -55,7 +55,7 @@ index dc67909..9339ed1 100644
      });
  
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
-index fd71969..26b06fa 100644
+index 7c36d70..7077f80 100644
 --- a/js/ui/extensionSystem.js
 +++ b/js/ui/extensionSystem.js
 @@ -4,6 +4,7 @@
@@ -75,9 +75,9 @@ index fd71969..26b06fa 100644
 +    }
 +
      _callExtensionInit(uuid) {
-         let extension = this.lookup(uuid);
-         let dir = extension.dir;
-@@ -468,6 +473,10 @@ var ExtensionManager = class {
+         if (!Main.sessionMode.allowExtensions)
+             return false;
+@@ -464,6 +469,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;

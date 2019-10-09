@@ -15,10 +15,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 66 insertions(+), 21 deletions(-)
 
 diff --git a/src/main.c b/src/main.c
-index a14815c..83f6cdd 100644
+index 6750586..732a780 100644
 --- a/src/main.c
 +++ b/src/main.c
-@@ -43,16 +43,26 @@ extern GType gnome_shell_plugin_get_type (void);
+@@ -35,16 +35,26 @@ extern GType gnome_shell_plugin_get_type (void);
  static gboolean is_gdm_mode = FALSE;
  static char *session_mode = NULL;
  static int caught_signal = 0;
@@ -49,7 +49,7 @@ index a14815c..83f6cdd 100644
  
  static void
  shell_dbus_acquire_name (GDBusProxy  *bus,
-@@ -327,13 +337,23 @@ shell_a11y_init (void)
+@@ -319,13 +329,23 @@ shell_a11y_init (void)
  static void
  shell_update_debug (const char *debug_string)
  {
@@ -79,7 +79,7 @@ index a14815c..83f6cdd 100644
  }
  
  static void
-@@ -428,10 +448,23 @@ reset_signal_handler_to_default (int signo)
+@@ -420,10 +440,23 @@ reset_signal_handler_to_default (int signo)
  static void
  setup_debug_signal_listners (void)
  {
@@ -107,7 +107,7 @@ index a14815c..83f6cdd 100644
  
    if ((_shell_debug & SHELL_DEBUG_BACKTRACE_SEGFAULTS))
      {
-@@ -532,7 +565,8 @@ main (int argc, char **argv)
+@@ -524,7 +557,8 @@ main (int argc, char **argv)
  {
    GOptionContext *ctx;
    GError *error = NULL;
@@ -117,7 +117,7 @@ index a14815c..83f6cdd 100644
    int ecode;
  
    bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-@@ -568,8 +602,14 @@ main (int argc, char **argv)
+@@ -560,8 +594,14 @@ main (int argc, char **argv)
    g_setenv ("GJS_DEBUG_OUTPUT", "stderr", TRUE);
    g_setenv ("GJS_DEBUG_TOPICS", "JS ERROR;JS LOG", TRUE);
  
@@ -133,8 +133,8 @@ index a14815c..83f6cdd 100644
 +  debug_flags_string = debug_flags_to_string ();
  
    shell_dbus_init (meta_get_replace_current_wm ());
-   sd_notify (0, "READY=1");
-@@ -585,8 +625,9 @@ main (int argc, char **argv)
+   shell_a11y_init ();
+@@ -576,8 +616,9 @@ main (int argc, char **argv)
      session_mode = is_gdm_mode ? (char *)"gdm" : (char *)"user";
  
    _shell_global_init ("session-mode", session_mode,
@@ -146,10 +146,10 @@ index a14815c..83f6cdd 100644
    g_signal_connect (shell_global_get (), "notify::debug-flags",
                      G_CALLBACK (global_notify_debug_flags), NULL);
 diff --git a/src/shell-global.c b/src/shell-global.c
-index 3a55dbd..298fa58 100644
+index aded90a..2446806 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
-@@ -1696,11 +1696,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
+@@ -1713,11 +1713,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
  /**
   * shell_global_set_debug_flags:
   * @global: a #ShellGlobal

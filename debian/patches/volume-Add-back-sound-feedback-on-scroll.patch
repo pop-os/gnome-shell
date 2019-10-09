@@ -37,7 +37,7 @@ Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/51
  1 file changed, 19 insertions(+), 1 deletion(-)
 
 diff --git a/js/ui/status/volume.js b/js/ui/status/volume.js
-index 75ad2ca..385d563 100644
+index db8e5a1..be64542 100644
 --- a/js/ui/status/volume.js
 +++ b/js/ui/status/volume.js
 @@ -1,7 +1,8 @@

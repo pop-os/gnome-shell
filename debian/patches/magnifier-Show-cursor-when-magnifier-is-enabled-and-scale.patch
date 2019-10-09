@@ -16,10 +16,10 @@ Forwarded: yes
  2 files changed, 73 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index fe42487..dddf054 100644
+index 744a8f1..8f09d15 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -955,22 +955,38 @@ var LayoutManager = GObject.registerClass({
+@@ -956,22 +956,38 @@ var LayoutManager = GObject.registerClass({
          return ws.get_work_area_for_monitor(monitorIndex);
      }
  
@@ -63,10 +63,10 @@ index fe42487..dddf054 100644
          if (this._startingUp)
              return;
 diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
-index 379ff5b..0fb6618 100644
+index 0ec30ee..5b2a071 100644
 --- a/js/ui/magnifier.js
 +++ b/js/ui/magnifier.js
-@@ -46,6 +46,8 @@ var MouseSpriteContent = GObject.registerClass({
+@@ -45,6 +45,8 @@ var MouseSpriteContent = GObject.registerClass({
  }, class MouseSpriteContent extends GObject.Object {
      _init() {
          super._init();
@@ -75,7 +75,7 @@ index 379ff5b..0fb6618 100644
          this._texture = null;
      }
  
-@@ -53,7 +55,10 @@ var MouseSpriteContent = GObject.registerClass({
+@@ -52,7 +54,10 @@ var MouseSpriteContent = GObject.registerClass({
          if (!this._texture)
              return [false, 0, 0];
  
@@ -87,7 +87,7 @@ index 379ff5b..0fb6618 100644
      }
  
      vfunc_paint_content(actor, node) {
-@@ -70,6 +75,29 @@ var MouseSpriteContent = GObject.registerClass({
+@@ -69,6 +74,29 @@ var MouseSpriteContent = GObject.registerClass({
          textureNode.add_rectangle(actor.get_content_box());
      }
  
@@ -117,7 +117,7 @@ index 379ff5b..0fb6618 100644
      get texture() {
          return this._texture;
      }
-@@ -84,7 +112,19 @@ var MouseSpriteContent = GObject.registerClass({
+@@ -83,7 +111,19 @@ var MouseSpriteContent = GObject.registerClass({
  
          if (!oldTexture || !coglTexture ||
              oldTexture.get_width() != coglTexture.get_width() ||
@@ -138,7 +138,7 @@ index 379ff5b..0fb6618 100644
              this.invalidate_size();
      }
  });
-@@ -114,6 +154,8 @@ var Magnifier = class Magnifier {
+@@ -113,6 +153,8 @@ var Magnifier = class Magnifier {
          this._settingsInit(aZoomRegion);
          aZoomRegion.scrollContentsTo(this.xMouse, this.yMouse);
  
@@ -147,7 +147,7 @@ index 379ff5b..0fb6618 100644
          St.Settings.get().connect('notify::magnifier-active', () => {
              this.setActive(St.Settings.get().magnifier_active);
          });
-@@ -123,6 +165,13 @@ var Magnifier = class Magnifier {
+@@ -122,6 +164,13 @@ var Magnifier = class Magnifier {
          this.setActive(St.Settings.get().magnifier_active);
      }
  
@@ -161,7 +161,7 @@ index 379ff5b..0fb6618 100644
      /**
       * showSystemCursor:
       * Show the system mouse pointer.
-@@ -232,6 +281,8 @@ var Magnifier = class Magnifier {
+@@ -231,6 +280,8 @@ var Magnifier = class Magnifier {
              this.xMouse = xMouse;
              this.yMouse = yMouse;
  

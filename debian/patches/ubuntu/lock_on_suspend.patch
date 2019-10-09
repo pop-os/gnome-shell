@@ -8,10 +8,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 8e4fba1..bb1ae2f 100644
+index 2e2e95a..90244ad 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
-@@ -21,6 +21,7 @@ const SmartcardManager = imports.misc.smartcardManager;
+@@ -20,6 +20,7 @@ const SmartcardManager = imports.misc.smartcardManager;
  const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
  const LOCK_ENABLED_KEY = 'lock-enabled';
  const LOCK_DELAY_KEY = 'lock-delay';
@@ -19,7 +19,7 @@ index 8e4fba1..bb1ae2f 100644
  
  const LOCKDOWN_SCHEMA = 'org.gnome.desktop.lockdown';
  const DISABLE_LOCK_KEY = 'disable-lock-screen';
-@@ -536,6 +537,7 @@ var ScreenShield = class {
+@@ -537,6 +538,7 @@ var ScreenShield = class {
  
          this._settings = new Gio.Settings({ schema_id: SCREENSAVER_SCHEMA });
          this._settings.connect(`changed::${LOCK_ENABLED_KEY}`, this._syncInhibitor.bind(this));
@@ -27,7 +27,7 @@ index 8e4fba1..bb1ae2f 100644
  
          this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
          this._lockSettings.connect(`changed::${DISABLE_LOCK_KEY}`, this._syncInhibitor.bind(this));
-@@ -700,7 +702,8 @@ var ScreenShield = class {
+@@ -701,7 +703,8 @@ var ScreenShield = class {
      }
  
      _syncInhibitor() {
@@ -37,7 +37,7 @@ index 8e4fba1..bb1ae2f 100644
          let lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
          let inhibit = (this._loginSession && this._loginSession.Active &&
                         !this._isActive && lockEnabled && !lockLocked);
-@@ -720,7 +723,7 @@ var ScreenShield = class {
+@@ -721,7 +724,7 @@ var ScreenShield = class {
  
      _prepareForSleep(loginManager, aboutToSuspend) {
          if (aboutToSuspend) {

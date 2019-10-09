@@ -18,7 +18,7 @@ Forwarded: not-needed
  1 file changed, 22 insertions(+)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index babc1e4..58e48bf 100644
+index 8432abc..2ca0f68 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
 @@ -96,6 +96,7 @@
@@ -29,7 +29,7 @@ index babc1e4..58e48bf 100644
  const LoginManager = imports.misc.loginManager;
  const Main = imports.ui.main;
  const Params = imports.misc.params;
-@@ -501,6 +502,27 @@ var SystemBackground = class SystemBackground {
+@@ -502,6 +503,27 @@ var SystemBackground = class SystemBackground {
      constructor() {
          let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/noise-texture.png');
  
