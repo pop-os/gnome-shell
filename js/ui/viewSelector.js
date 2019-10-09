@@ -309,12 +309,10 @@ var ViewSelector = class {
         if (params.a11yFocus)
             Main.ctrlAltTabManager.addGroup(params.a11yFocus, name, a11yIcon);
         else
-            Main.ctrlAltTabManager.addGroup(actor, name, a11yIcon,
-                                            { proxy: this.actor,
-                                              focusCallback: () => {
-                                                  this._a11yFocusPage(page);
-                                              }
-                                            });
+            Main.ctrlAltTabManager.addGroup(actor, name, a11yIcon, {
+                proxy: this.actor,
+                focusCallback: () => this._a11yFocusPage(page),
+            });
         page.hide();
         this.actor.add_actor(page);
         return page;
@@ -391,8 +389,8 @@ var ViewSelector = class {
     }
 
     _onShowAppsButtonToggled() {
-        this._showPage(this._showAppsButton.checked ?
-                       this._appsPage : this._workspacesPage);
+        this._showPage(this._showAppsButton.checked
+            ? this._appsPage : this._workspacesPage);
     }
 
     _onStageKeyPress(actor, event) {
@@ -426,8 +424,9 @@ var ViewSelector = class {
     }
 
     _searchCancelled() {
-        this._showPage(this._showAppsButton.checked ? this._appsPage
-                                                    : this._workspacesPage);
+        this._showPage(this._showAppsButton.checked
+            ? this._appsPage
+            : this._workspacesPage);
 
         // Leave the entry focused when it doesn't have any text;
         // when replacing a selected search term, Clutter emits
@@ -578,6 +577,7 @@ var ViewSelector = class {
         if (event.type() == Clutter.EventType.BUTTON_PRESS) {
             let source = event.get_source();
             if (source != this._text &&
+                this._text.has_key_focus() &&
                 this._text.text == '' &&
                 !this._text.has_preedit () &&
                 !Main.layoutManager.keyboardBox.contains(source)) {

@@ -26,6 +26,14 @@
 #include <langinfo.h>
 #endif
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#else
+/* So we don't need to add ifdef's everywhere */
+#define sd_notify(u, m)            do {} while (0)
+#define sd_notifyf(u, m, ...)      do {} while (0)
+#endif
+
 static void
 stop_pick (ClutterActor       *actor,
            const ClutterColor *color)
@@ -144,13 +152,9 @@ shell_util_format_date (const char *format,
                         gint64      time_ms)
 {
   GDateTime *datetime;
-  GTimeVal tv;
   char *result;
 
-  tv.tv_sec = time_ms / 1000;
-  tv.tv_usec = (time_ms % 1000) * 1000;
-
-  datetime = g_date_time_new_from_timeval_local (&tv);
+  datetime = g_date_time_new_from_unix_local (time_ms / 1000);
   if (!datetime) /* time_ms is out of range of GDateTime */
     return g_strdup ("");
 
@@ -423,7 +427,7 @@ canvas_draw_cb (ClutterContent *content,
  * @window_actor: a #MetaWindowActor
  * @window_rect: a #MetaRectangle
  *
- * Returns: (transfer full): a new #ClutterContent
+ * Returns: (transfer full) (nullable): a new #ClutterContent
  */
 ClutterContent *
 shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
@@ -433,28 +437,23 @@ shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
   cairo_surface_t *surface;
   cairo_rectangle_int_t clip;
   gfloat actor_x, actor_y;
-  gfloat resource_scale;
 
   clutter_actor_get_position (CLUTTER_ACTOR (window_actor), &actor_x, &actor_y);
 
-  if (!clutter_actor_get_resource_scale (CLUTTER_ACTOR (window_actor),
-                                         &resource_scale))
-    {
-      resource_scale = 1.0;
-      g_warning ("Actor resource scale is not know at this point, "
-                 "falling back to default 1.0");
-    }
-
   clip.x = window_rect->x - (gint) actor_x;
   clip.y = window_rect->y - (gint) actor_y;
-  clip.width = ceilf (window_rect->width * resource_scale);
-  clip.height = ceilf (window_rect->height * resource_scale);
+  clip.width = window_rect->width;
+  clip.height = window_rect->height;
 
   surface = meta_window_actor_get_image (window_actor, &clip);
 
+  if (!surface)
+    return NULL;
+
   content = clutter_canvas_new ();
   clutter_canvas_set_size (CLUTTER_CANVAS (content),
-                           clip.width, clip.height);
+                           cairo_image_surface_get_width (surface),
+                           cairo_image_surface_get_height (surface));
   g_signal_connect (content, "draw",
                     G_CALLBACK (canvas_draw_cb), surface);
   clutter_content_invalidate (content);
@@ -667,4 +666,12 @@ shell_util_stop_systemd_unit (const char  *unit,
                               GError     **error)
 {
   return shell_util_systemd_call ("StopUnit", unit, mode, error);
+}
+
+void
+shell_util_sd_notify (void)
+{
+  /* We only use NOTIFY_SOCKET exactly once; unset it so it doesn't remain in
+   * our environment. */
+  sd_notify (1, "READY=1");
 }

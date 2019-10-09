@@ -238,11 +238,12 @@ var LayoutManager = GObject.registerClass({
                                              reactive: true });
         this.addChrome(this.overviewGroup);
 
-        this.screenShieldGroup = new St.Widget({ name: 'screenShieldGroup',
-                                                 visible: false,
-                                                 clip_to_allocation: true,
-                                                 layout_manager: new Clutter.BinLayout(),
-                                               });
+        this.screenShieldGroup = new St.Widget({
+            name: 'screenShieldGroup',
+            visible: false,
+            clip_to_allocation: true,
+            layout_manager: new Clutter.BinLayout(),
+        });
         this.addChrome(this.screenShieldGroup);
 
         this.panelBox = new St.BoxLayout({ name: 'panelBox',
@@ -770,8 +771,7 @@ var LayoutManager = GObject.registerClass({
         this.keyboardBox.ease({
             anchor_y: 0,
             opacity: 0,
-            duration: immediate ? 0
-                                : KEYBOARD_ANIMATION_TIME,
+            duration: immediate ? 0 : KEYBOARD_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_IN_QUAD,
             onComplete: () => {
                 this._hideKeyboardComplete();
@@ -855,12 +855,13 @@ var LayoutManager = GObject.registerClass({
             index = this._findActor(ancestor);
         }
 
-        let ancestorData = ancestor ? this._trackedActors[index]
-                                    : defaultParams;
+        let ancestorData = ancestor
+            ? this._trackedActors[index]
+            : defaultParams;
         // We can't use Params.parse here because we want to drop
         // the extra values like ancestorData.actor
         for (let prop in defaultParams) {
-            if (!params.hasOwnProperty(prop))
+            if (!Object.prototype.hasOwnProperty.call(params, prop))
                 params[prop] = ancestorData[prop];
         }
 
@@ -1014,11 +1015,6 @@ var LayoutManager = GObject.registerClass({
         if (Main.modalCount > 0)
             return GLib.SOURCE_REMOVE;
 
-        // Bug workaround - get_transformed_position()/get_transformed_size() don't work after
-        // a change in stage size until the first pick or paint.
-        // https://bugzilla.gnome.org/show_bug.cgi?id=761565
-        global.stage.get_actor_at_pos(Clutter.PickMode.ALL, 0, 0);
-
         let rects = [], struts = [], i;
         let isPopupMenuVisible = global.top_window_group.get_children().some(isPopupMetaWindow);
         let wantsInputRegion = !isPopupMenuVisible;
@@ -1074,16 +1070,17 @@ var LayoutManager = GObject.registerClass({
                         side = Meta.Side.RIGHT;
                     else
                         continue;
-                } else if (x1 <= monitor.x)
+                } else if (x1 <= monitor.x) {
                     side = Meta.Side.LEFT;
-                else if (y1 <= monitor.y)
+                } else if (y1 <= monitor.y) {
                     side = Meta.Side.TOP;
-                else if (x2 >= monitor.x + monitor.width)
+                } else if (x2 >= monitor.x + monitor.width) {
                     side = Meta.Side.RIGHT;
-                else if (y2 >= monitor.y + monitor.height)
+                } else if (y2 >= monitor.y + monitor.height) {
                     side = Meta.Side.BOTTOM;
-                else
+                } else {
                     continue;
+                }
 
                 let strutRect = new Meta.Rectangle({ x: x1, y: y1, width: x2 - x1, height: y2 - y1 });
                 let strut = new Meta.Strut({ rect: strutRect, side: side });
@@ -1224,6 +1221,8 @@ var HotCorner = class HotCorner {
 
         if (this.actor)
             this.actor.destroy();
+
+        this._ripples.destroy();
     }
 
     _toggleOverview() {

@@ -108,12 +108,13 @@ var RadialShaderEffect = GObject.registerClass({
  */
 var Lightbox = class Lightbox {
     constructor(container, params) {
-        params = Params.parse(params, { inhibitEvents: false,
-                                        width: null,
-                                        height: null,
-                                        fadeFactor: DEFAULT_FADE_FACTOR,
-                                        radialEffect: false,
-                                      });
+        params = Params.parse(params, {
+            inhibitEvents: false,
+            width: null,
+            height: null,
+            fadeFactor: DEFAULT_FADE_FACTOR,
+            radialEffect: false,
+        });
 
         this._container = container;
         this._children = container.get_children();
@@ -172,66 +173,52 @@ var Lightbox = class Lightbox {
     }
 
     show(fadeInTime) {
-        fadeInTime = fadeInTime || 0;
-
         this.actor.remove_all_transitions();
+
+        let easeProps = {
+            duration: fadeInTime || 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        };
 
         let onComplete = () => {
             this.shown = true;
             this.emit('shown');
         };
 
+        this.actor.show();
+
         if (this._radialEffect) {
             this.actor.ease_property(
-                '@effects.radial.brightness', VIGNETTE_BRIGHTNESS, {
-                    duration: fadeInTime,
-                    mode: Clutter.AnimationMode.EASE_OUT_QUAD
-                });
+                '@effects.radial.brightness', VIGNETTE_BRIGHTNESS, easeProps);
             this.actor.ease_property(
-                '@effects.radial.sharpness', VIGNETTE_SHARPNESS, {
-                    duration: fadeInTime,
-                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                    onComplete
-                });
+                '@effects.radial.sharpness', VIGNETTE_SHARPNESS,
+                Object.assign({ onComplete }, easeProps));
         } else {
-            this.actor.ease({
+            this.actor.ease(Object.assign(easeProps, {
                 opacity: 255 * this._fadeFactor,
-                duration: fadeInTime,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
                 onComplete
-            });
+            }));
         }
-
-        this.actor.show();
     }
 
     hide(fadeOutTime) {
-        fadeOutTime = fadeOutTime || 0;
-
         this.shown = false;
         this.actor.remove_all_transitions();
+
+        let easeProps = {
+            duration: fadeOutTime || 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        };
 
         let onComplete = () => this.actor.hide();
 
         if (this._radialEffect) {
             this.actor.ease_property(
-                '@effects.radial.brightness', 1.0, {
-                    duration: fadeOutTime,
-                    mode: Clutter.AnimationMode.EASE_OUT_QUAD
-                });
+                '@effects.radial.brightness', 1.0, easeProps);
             this.actor.ease_property(
-                '@effects.radial.sharpness', 0.0, {
-                    duration: fadeOutTime,
-                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                    onComplete
-                });
+                '@effects.radial.sharpness', 0.0, Object.assign({ onComplete }, easeProps));
         } else {
-            this.actor.ease({
-                opacity: 0,
-                duration: fadeOutTime,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onComplete
-            });
+            this.actor.ease(Object.assign(easeProps, { opacity: 0, onComplete }));
         }
     }
 

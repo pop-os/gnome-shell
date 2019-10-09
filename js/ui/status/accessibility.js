@@ -2,7 +2,6 @@
 /* exported ATIndicator */
 
 const { Gio, GLib, GObject, St } = imports.gi;
-const Mainloop = imports.mainloop;
 
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
@@ -96,7 +95,7 @@ class ATIndicator extends PanelMenu.Button {
         if (this._syncMenuVisibilityIdle)
             return;
 
-        this._syncMenuVisibilityIdle = Mainloop.idle_add(this._syncMenuVisibility.bind(this));
+        this._syncMenuVisibilityIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT, this._syncMenuVisibility.bind(this));
         GLib.Source.set_name_by_id(this._syncMenuVisibilityIdle, '[gnome-shell] this._syncMenuVisibility');
     }
 
@@ -180,8 +179,8 @@ class ATIndicator extends PanelMenu.Button {
             settings.is_writable(KEY_TEXT_SCALING_FACTOR),
             enabled => {
                 if (enabled)
-                    settings.set_double(KEY_TEXT_SCALING_FACTOR,
-                                        DPI_FACTOR_LARGE);
+                    settings.set_double(
+                        KEY_TEXT_SCALING_FACTOR, DPI_FACTOR_LARGE);
                 else
                     settings.reset(KEY_TEXT_SCALING_FACTOR);
             });

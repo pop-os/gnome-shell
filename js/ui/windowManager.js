@@ -2,7 +2,6 @@
 /* exported WindowManager */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const AltTab = imports.ui.altTab;
@@ -71,13 +70,13 @@ class DisplayChangeDialog extends ModalDialog.ModalDialog {
                                           action: this._onSuccess.bind(this),
                                           default: true });
 
-        this._timeoutId = Mainloop.timeout_add(ONE_SECOND, this._tick.bind(this));
+        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ONE_SECOND, this._tick.bind(this));
         GLib.Source.set_name_by_id(this._timeoutId, '[gnome-shell] this._tick');
     }
 
     close(timestamp) {
         if (this._timeoutId > 0) {
-            Mainloop.source_remove(this._timeoutId);
+            GLib.source_remove(this._timeoutId);
             this._timeoutId = 0;
         }
 
@@ -188,6 +187,9 @@ var WorkspaceTracker = class {
         let workspaceManager = global.workspace_manager;
         workspaceManager.connect('notify::n-workspaces',
                                  this._nWorkspacesChanged.bind(this));
+        workspaceManager.connect('workspaces-reordered', () => {
+            this._workspaces.sort((a, b) => a.index() - b.index());
+        });
         global.window_manager.connect('switch-workspace',
                                       this._queueCheckWorkspaces.bind(this));
 
@@ -281,9 +283,9 @@ var WorkspaceTracker = class {
 
     keepWorkspaceAlive(workspace, duration) {
         if (workspace._keepAliveId)
-            Mainloop.source_remove(workspace._keepAliveId);
+            GLib.source_remove(workspace._keepAliveId);
 
-        workspace._keepAliveId = Mainloop.timeout_add(duration, () => {
+        workspace._keepAliveId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, duration, () => {
             workspace._keepAliveId = 0;
             this._queueCheckWorkspaces();
             return GLib.SOURCE_REMOVE;
@@ -294,7 +296,7 @@ var WorkspaceTracker = class {
     _windowRemoved(workspace, window) {
         workspace._lastRemovedWindow = window;
         this._queueCheckWorkspaces();
-        let id = Mainloop.timeout_add(LAST_WINDOW_GRACE_TIME, () => {
+        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, LAST_WINDOW_GRACE_TIME, () => {
             if (workspace._lastRemovedWindow == window) {
                 workspace._lastRemovedWindow = null;
                 this._queueCheckWorkspaces();
@@ -631,9 +633,9 @@ var AppSwitchAction = GObject.registerClass({
         let nPoints = this.get_n_current_points();
         let event = this.get_last_event (nPoints - 1);
 
-        if (nPoints == 3)
+        if (nPoints == 3) {
             this._longPressStartTime = event.get_time();
-        else if (nPoints == 4) {
+        } else if (nPoints == 4) {
             // Check whether the 4th finger press happens after a 3-finger long press,
             // this only needs to be checked on the first 4th finger press
             if (this._longPressStartTime != null &&
@@ -714,7 +716,7 @@ var WindowManager = class {
         this._isWorkspacePrepended = false;
 
         this._switchData = null;
-        this._shellwm.connect('kill-switch-workspace', (shellwm) => {
+        this._shellwm.connect('kill-switch-workspace', shellwm => {
             if (this._switchData) {
                 if (this._switchData.inProgress)
                     this._switchWorkspaceDone(shellwm);
@@ -1023,7 +1025,6 @@ var WindowManager = class {
                                                 (proxy, error) => {
                                                     if (error) {
                                                         log(error.message);
-                                                        return;
                                                     }
                                                 });
 
@@ -1116,7 +1117,7 @@ var WindowManager = class {
 
     _showPadOsd(display, device, settings, imagePath, editionMode, monitorIndex) {
         this._currentPadOsd = new PadOsd.PadOsd(device, settings, imagePath, editionMode, monitorIndex);
-        this._currentPadOsd.connect('closed', () => this._currentPadOsd = null);
+        this._currentPadOsd.connect('closed', () => (this._currentPadOsd = null));
 
         return this._currentPadOsd.actor;
     }
@@ -1211,9 +1212,41 @@ var WindowManager = class {
         if (!Meta.prefs_get_dynamic_workspaces())
             return;
 
-        let newWs = workspaceManager.append_new_workspace(
-            false, global.get_current_time());
-        workspaceManager.reorder_workspace(newWs, pos);
+        workspaceManager.append_new_workspace(false, global.get_current_time());
+
+        let windows = global.get_window_actors().map(a => a.meta_window);
+
+        // To create a new workspace, we slide all the windows on workspaces
+        // below us to the next workspace, leaving a blank workspace for us
+        // to recycle.
+        windows.forEach(window => {
+            // If the window is attached to an ancestor, we don't need/want
+            // to move it
+            if (window.get_transient_for() != null)
+                return;
+            // Same for OR windows
+            if (window.is_override_redirect())
+                return;
+            // Sticky windows don't need moving, in fact moving would
+            // unstick them
+            if (window.on_all_workspaces)
+                return;
+            // Windows on workspaces below pos don't need moving
+            let index = window.get_workspace().index();
+            if (index < pos)
+                return;
+            window.change_workspace_by_index(index + 1, true);
+        });
+
+        // If the new workspace was inserted before the active workspace,
+        // activate the workspace to which its windows went
+        let activeIndex = workspaceManager.get_active_workspace_index();
+        if (activeIndex >= pos) {
+            let newWs = workspaceManager.get_workspace_by_index(activeIndex + 1);
+            this._blockAnimations = true;
+            newWs.activate(global.get_current_time());
+            this._blockAnimations = false;
+        }
     }
 
     keepWorkspaceAlive(workspace, duration) {
@@ -1683,7 +1716,6 @@ var WindowManager = class {
             break;
         default:
             shellwm.completed_map(actor);
-            return;
         }
     }
 
@@ -1764,7 +1796,6 @@ var WindowManager = class {
             break;
         default:
             shellwm.completed_destroy(actor);
-            return;
         }
     }
 

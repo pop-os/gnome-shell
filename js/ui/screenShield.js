@@ -3,7 +3,6 @@
 const { AccountsService, Clutter, Cogl, Gio, GLib,
         GnomeDesktop, GObject, Meta, Shell, St } = imports.gi;
 const Cairo = imports.cairo;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const Background = imports.ui.background;
@@ -174,8 +173,9 @@ var NotificationsBox = class {
 
             let body = '';
             if (n.bannerBodyText) {
-                body = n.bannerBodyMarkup ? n.bannerBodyText
-                                          : GLib.markup_escape_text(n.bannerBodyText, -1);
+                body = n.bannerBodyMarkup
+                    ? n.bannerBodyText
+                    : GLib.markup_escape_text(n.bannerBodyText, -1);
             }
 
             let label = new St.Label({ style_class: 'screen-shield-notification-count-text' });
@@ -430,13 +430,14 @@ var ScreenShield = class {
         this.actor = Main.layoutManager.screenShieldGroup;
 
         this._lockScreenState = MessageTray.State.HIDDEN;
-        this._lockScreenGroup = new St.Widget({ x_expand: true,
-                                                y_expand: true,
-                                                reactive: true,
-                                                can_focus: true,
-                                                name: 'lockScreenGroup',
-                                                visible: false,
-                                              });
+        this._lockScreenGroup = new St.Widget({
+            x_expand: true,
+            y_expand: true,
+            reactive: true,
+            can_focus: true,
+            name: 'lockScreenGroup',
+            visible: false,
+        });
         this._lockScreenGroup.connect('key-press-event',
                                       this._onLockScreenKeyPress.bind(this));
         this._lockScreenGroup.connect('scroll-event',
@@ -833,12 +834,14 @@ var ScreenShield = class {
             let lockTimeout = Math.max(
                 STANDARD_FADE_TIME,
                 this._settings.get_uint(LOCK_DELAY_KEY) * 1000);
-            this._lockTimeoutId = Mainloop.timeout_add(lockTimeout,
-                                                       () => {
-                                                           this._lockTimeoutId = 0;
-                                                           this.lock(false);
-                                                           return GLib.SOURCE_REMOVE;
-                                                       });
+            this._lockTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                lockTimeout,
+                () => {
+                    this._lockTimeoutId = 0;
+                    this.lock(false);
+                    return GLib.SOURCE_REMOVE;
+                });
             GLib.Source.set_name_by_id(this._lockTimeoutId, '[gnome-shell] this.lock');
         }
 
@@ -913,8 +916,8 @@ var ScreenShield = class {
         this._lockScreenGroup.hide();
 
         if (this._dialog) {
-            this._dialog.actor.grab_key_focus();
-            this._dialog.actor.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
+            this._dialog.grab_key_focus();
+            this._dialog.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
         }
     }
 
@@ -1028,7 +1031,7 @@ var ScreenShield = class {
         this._arrowActiveWatchId = 0;
 
         if (!this._arrowAnimationId) {
-            this._arrowAnimationId = Mainloop.timeout_add(6000, this._animateArrows.bind(this));
+            this._arrowAnimationId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 6000, this._animateArrows.bind(this));
             GLib.Source.set_name_by_id(this._arrowAnimationId, '[gnome-shell] this._animateArrows');
             this._animateArrows();
         }
@@ -1040,7 +1043,7 @@ var ScreenShield = class {
 
     _pauseArrowAnimation() {
         if (this._arrowAnimationId) {
-            Mainloop.source_remove(this._arrowAnimationId);
+            GLib.source_remove(this._arrowAnimationId);
             this._arrowAnimationId = 0;
         }
 
@@ -1050,7 +1053,7 @@ var ScreenShield = class {
 
     _stopArrowAnimation() {
         if (this._arrowAnimationId) {
-            Mainloop.source_remove(this._arrowAnimationId);
+            GLib.source_remove(this._arrowAnimationId);
             this._arrowAnimationId = 0;
         }
         if (this._arrowActiveWatchId) {
@@ -1097,7 +1100,7 @@ var ScreenShield = class {
         if (params.fadeToBlack && params.animateFade) {
             // Take a beat
 
-            let id = Mainloop.timeout_add(MANUAL_FADE_TIME, () => {
+            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, MANUAL_FADE_TIME, () => {
                 this._activateFade(this._shortLightbox, MANUAL_FADE_TIME);
                 return GLib.SOURCE_REMOVE;
             });
@@ -1240,7 +1243,7 @@ var ScreenShield = class {
         }
 
         if (this._lockTimeoutId != 0) {
-            Mainloop.source_remove(this._lockTimeoutId);
+            GLib.source_remove(this._lockTimeoutId);
             this._lockTimeoutId = 0;
         }
 

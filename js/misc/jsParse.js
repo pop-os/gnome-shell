@@ -172,7 +172,7 @@ function getPropertyNamesFromExpression(expr, commandHeader = '') {
 
         // Make sure propsUnique contains one key for every
         // property so we end up with a unique list of properties
-        allProps.map(p => propsUnique[p] = null);
+        allProps.map(p => (propsUnique[p] = null));
     }
     return Object.keys(propsUnique).sort();
 }
@@ -217,7 +217,7 @@ function isUnsafeExpression(str) {
     prunedStr = prunedStr.replace(/[=!]==/g, '');    //replace === and !== with nothing
     prunedStr = prunedStr.replace(/[=<>!]=/g, '');    //replace ==, <=, >=, != with nothing
 
-    if (prunedStr.match(/=/)) {
+    if (prunedStr.match(/[=]/)) {
         return true;
     } else if (prunedStr.match(/;/)) {
         // If we contain a semicolon not inside of a quote/regex, assume we're unsafe as well

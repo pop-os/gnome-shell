@@ -178,7 +178,7 @@ var WindowMenu = class extends PopupMenu.PopupMenu {
         }
 
         let waitId = 0;
-        let id = global.display.connect('grab-op-end', (display) => {
+        let id = global.display.connect('grab-op-end', display => {
             display.disconnect(id);
             GLib.source_remove(waitId);
 
@@ -224,7 +224,7 @@ var WindowMenuManager = class {
         this._sourceActor.set_position(rect.x, rect.y);
         this._sourceActor.show();
 
-        menu.open(BoxPointer.PopupAnimation.NONE);
+        menu.open(BoxPointer.PopupAnimation.FADE);
         menu.actor.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
         menu.connect('open-state-changed', (menu_, isOpen) => {
             if (isOpen)
