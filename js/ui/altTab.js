@@ -3,7 +3,6 @@
             WindowCyclerPopup */
 
 const { Atk, Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
-const Mainloop = imports.mainloop;
 
 const Main = imports.ui.main;
 const SwitcherPopup = imports.ui.switcherPopup;
@@ -292,7 +291,7 @@ class AppSwitcherPopup extends SwitcherPopup.SwitcherPopup {
         if (this._thumbnails)
             this._destroyThumbnails();
         if (this._thumbnailTimeoutId != 0)
-            Mainloop.source_remove(this._thumbnailTimeoutId);
+            GLib.source_remove(this._thumbnailTimeoutId);
     }
 
     /**
@@ -327,7 +326,7 @@ class AppSwitcherPopup extends SwitcherPopup.SwitcherPopup {
         }
 
         if (this._thumbnailTimeoutId != 0) {
-            Mainloop.source_remove(this._thumbnailTimeoutId);
+            GLib.source_remove(this._thumbnailTimeoutId);
             this._thumbnailTimeoutId = 0;
         }
 
@@ -344,7 +343,8 @@ class AppSwitcherPopup extends SwitcherPopup.SwitcherPopup {
             this._thumbnails.highlight(window, forceAppFocus);
         } else if (this._items[this._selectedIndex].cachedWindows.length > 1 &&
                    !forceAppFocus) {
-            this._thumbnailTimeoutId = Mainloop.timeout_add (
+            this._thumbnailTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
                 THUMBNAIL_POPUP_TIME,
                 this._timeoutPopupThumbnails.bind(this));
             GLib.Source.set_name_by_id(this._thumbnailTimeoutId, '[gnome-shell] this._timeoutPopupThumbnails');
@@ -437,8 +437,8 @@ class CyclerHighlight {
         if (this._clone.source)
             this._clone.source.sync_visibility();
 
-        let windowActor = this._window ? this._window.get_compositor_private()
-                                       : null;
+        let windowActor = this._window
+            ? this._window.get_compositor_private() : null;
 
         if (windowActor)
             windowActor.hide();
@@ -648,8 +648,9 @@ class WindowCyclerPopup extends CyclerPopup {
     }
 });
 
-var AppIcon = GObject.registerClass(
-class AppIcon extends St.BoxLayout {
+var AppIcon = GObject.registerClass({
+    GTypeName: 'AltTab_AppIcon'
+}, class AppIcon extends St.BoxLayout {
     _init(app) {
         super._init({ style_class: 'alt-tab-app',
                       vertical: true });
@@ -711,7 +712,7 @@ class AppSwitcher extends SwitcherPopup.SwitcherList {
 
     _onDestroy() {
         if (this._mouseTimeOutId != 0)
-            Mainloop.source_remove(this._mouseTimeOutId);
+            GLib.source_remove(this._mouseTimeOutId);
 
         this.icons.forEach(icon => {
             icon.app.disconnect(icon._stateChangedId);
@@ -790,14 +791,16 @@ class AppSwitcher extends SwitcherPopup.SwitcherList {
     // activation when the thumbnail list is open
     _onItemEnter(index) {
         if (this._mouseTimeOutId != 0)
-            Mainloop.source_remove(this._mouseTimeOutId);
+            GLib.source_remove(this._mouseTimeOutId);
         if (this._altTabPopup.thumbnailsVisible) {
-            this._mouseTimeOutId = Mainloop.timeout_add(APP_ICON_HOVER_TIMEOUT,
-                                                        () => {
-                                                            this._enterItem(index);
-                                                            this._mouseTimeOutId = 0;
-                                                            return GLib.SOURCE_REMOVE;
-                                                        });
+            this._mouseTimeOutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                APP_ICON_HOVER_TIMEOUT,
+                () => {
+                    this._enterItem(index);
+                    this._mouseTimeOutId = 0;
+                    return GLib.SOURCE_REMOVE;
+                });
             GLib.Source.set_name_by_id(this._mouseTimeOutId, '[gnome-shell] this._enterItem');
         } else {
             this._itemEntered(index);
@@ -874,9 +877,9 @@ class ThumbnailList extends SwitcherPopup.SwitcherList {
     _init(windows) {
         super._init(false);
 
-        this._labels = new Array();
-        this._thumbnailBins = new Array();
-        this._clones = new Array();
+        this._labels = [];
+        this._thumbnailBins = [];
+        this._clones = [];
         this._windows = windows;
 
         for (let i = 0; i < windows.length; i++) {
@@ -937,7 +940,7 @@ class ThumbnailList extends SwitcherPopup.SwitcherList {
         }
 
         // Make sure we only do this once
-        this._thumbnailBins = new Array();
+        this._thumbnailBins = [];
     }
 
     _removeThumbnail(source, clone) {
@@ -1011,9 +1014,9 @@ class WindowIcon extends St.BoxLayout {
     }
 
     _createAppIcon(app, size) {
-        let appIcon = app ? app.create_icon_texture(size)
-                          : new St.Icon({ icon_name: 'icon-missing',
-                                          icon_size: size });
+        let appIcon = app
+            ? app.create_icon_texture(size)
+            : new St.Icon({ icon_name: 'icon-missing', icon_size: size });
         appIcon.x_expand = appIcon.y_expand = true;
         appIcon.x_align = appIcon.y_align = Clutter.ActorAlign.END;
 
@@ -1040,7 +1043,7 @@ class WindowList extends SwitcherPopup.SwitcherList {
             this.addItem(icon, icon.label);
             this.icons.push(icon);
 
-            icon._unmanagedSignalId = icon.window.connect('unmanaged', (window) => {
+            icon._unmanagedSignalId = icon.window.connect('unmanaged', window => {
                 this._removeWindow(window);
             });
         }

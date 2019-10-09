@@ -33,7 +33,7 @@ var AltSwitcher = class {
 
         this.actor = new St.Bin();
         this.actor.connect('destroy', this._onDestroy.bind(this));
-        this.actor.connect('notify::mapped', () => this._flipped = false);
+        this.actor.connect('notify::mapped', () => (this._flipped = false));
     }
 
     _sync() {
@@ -135,15 +135,6 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
-    }
-
-    _updateActionsVisibility() {
-        let visible = (this._settingsAction.visible ||
-                       this._orientationLockAction.visible ||
-                       this._lockScreenAction.visible ||
-                       this._altSwitcher.actor.visible);
-
-        this.buttonGroup.visible = visible;
     }
 
     _sessionUpdated() {
@@ -253,7 +244,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         this._orientationLockAction = this._createActionButton('', _("Orientation Lock"));
         this._orientationLockAction.connect('clicked', () => {
-            this.menu.itemActivated(BoxPointer.PopupAnimation.NONE),
+            this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
             this._systemActions.activateLockOrientation();
         });
         item.add(this._orientationLockAction, { expand: true, x_fill: false });
@@ -302,15 +293,18 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         this.menu.addMenuItem(item);
 
+        let visibilityGroup = [
+            this._settingsAction,
+            this._orientationLockAction,
+            this._lockScreenAction,
+            this._altSwitcher.actor,
+        ];
 
-        this._settingsAction.connect('notify::visible',
-                                     () => this._updateActionsVisibility());
-        this._orientationLockAction.connect('notify::visible',
-                                            () => this._updateActionsVisibility());
-        this._lockScreenAction.connect('notify::visible',
-                                       () => this._updateActionsVisibility());
-        this._altSwitcher.actor.connect('notify::visible',
-                                        () => this._updateActionsVisibility());
+        for (let actor of visibilityGroup) {
+            actor.connect('notify::visible', () => {
+                this.buttonGroup.visible = visibilityGroup.some(a => a.visible);
+            });
+        }
     }
 
     _onSettingsClicked() {

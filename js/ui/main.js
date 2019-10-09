@@ -9,7 +9,6 @@
             initializeDeferredWork, getThemeStylesheet, setThemeStylesheet */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
-const Mainloop = imports.mainloop;
 
 const AccessDialog = imports.ui.accessDialog;
 const AudioDeviceSelection = imports.ui.audioDeviceSelection;
@@ -230,7 +229,11 @@ function _initializeUI() {
     EndSessionDialog.init();
 
     // We're ready for the session manager to move to the next phase
-    Meta.register_with_session();
+    GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+        Shell.util_sd_notify();
+        Meta.register_with_session();
+        return GLib.SOURCE_REMOVE;
+    });
 
     _startDate = new Date();
 
@@ -620,7 +623,7 @@ function _runDeferredWork(workId) {
     _deferredWorkQueue.splice(index, 1);
     _deferredWorkData[workId].callback();
     if (_deferredWorkQueue.length == 0 && _deferredTimeoutId > 0) {
-        Mainloop.source_remove(_deferredTimeoutId);
+        GLib.source_remove(_deferredTimeoutId);
         _deferredTimeoutId = 0;
     }
 }
@@ -706,9 +709,8 @@ function queueDeferredWork(workId) {
         _deferredWorkQueue.push(workId);
     if (data.actor.mapped) {
         _queueBeforeRedraw(workId);
-        return;
     } else if (_deferredTimeoutId == 0) {
-        _deferredTimeoutId = Mainloop.timeout_add_seconds(DEFERRED_TIMEOUT_SECONDS, () => {
+        _deferredTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, DEFERRED_TIMEOUT_SECONDS, () => {
             _runAllDeferredWork();
             _deferredTimeoutId = 0;
             return GLib.SOURCE_REMOVE;

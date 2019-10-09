@@ -5,7 +5,6 @@
 
 const { Clutter, Gio, GLib, GObject, Shell, St } = imports.gi;
 const Gettext = imports.gettext;
-const Mainloop = imports.mainloop;
 
 const Main = imports.ui.main;
 const Params = imports.misc.params;
@@ -15,7 +14,7 @@ var SCROLL_TIME = 100;
 // http://daringfireball.net/2010/07/improved_regex_for_matching_urls
 const _balancedParens = '\\([^\\s()<>]+\\)';
 const _leadingJunk = '[\\s`(\\[{\'\\"<\u00AB\u201C\u2018]';
-const _notTrailingJunk = '[^\\s`!()\\[\\]{};:\'\\".,<>?\u00AB\u00BB\u201C\u201D\u2018\u2019]';
+const _notTrailingJunk = '[^\\s`!()\\[\\]{};:\'\\".,<>?\u00AB\u00BB\u200E\u200F\u201C\u201D\u2018\u2019\u202A\u202C]';
 
 const _urlRegexp = new RegExp(
     `(^|${_leadingJunk})` +
@@ -314,7 +313,8 @@ function lowerBound(array, val, cmp) {
     if (array.length == 0)
         return 0;
 
-    min = 0; max = array.length;
+    min = 0;
+    max = array.length;
     while (min < (max - 1)) {
         mid = Math.floor((min + max) / 2);
         v = cmp(array[mid], val);

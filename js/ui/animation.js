@@ -2,7 +2,6 @@
 /* exported Animation, AnimatedIcon, Spinner */
 
 const { Clutter, GLib, Gio, St } = imports.gi;
-const Mainloop = imports.mainloop;
 
 var ANIMATED_ICON_UPDATE_TIMEOUT = 16;
 var SPINNER_ANIMATION_TIME = 300;
@@ -45,7 +44,7 @@ var Animation = class {
 
     stop() {
         if (this._timeoutId > 0) {
-            Mainloop.source_remove(this._timeoutId);
+            GLib.source_remove(this._timeoutId);
             this._timeoutId = 0;
         }
 
@@ -54,12 +53,19 @@ var Animation = class {
 
     _loadFile(file, width, height) {
         let [validResourceScale, resourceScale] = this.actor.get_resource_scale();
+        let wasPlaying = this._isPlaying;
+
+        if (this._isPlaying)
+            this.stop();
 
         this._isLoaded = false;
         this.actor.destroy_all_children();
 
-        if (!validResourceScale)
+        if (!validResourceScale) {
+            if (wasPlaying)
+                this.play();
             return;
+        }
 
         let textureCache = St.TextureCache.get_default();
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
@@ -67,6 +73,9 @@ var Animation = class {
                                                           scaleFactor, resourceScale,
                                                           this._animationsLoaded.bind(this));
         this.actor.set_child(this._animations);
+
+        if (wasPlaying)
+            this.play();
     }
 
     _showFrame(frame) {

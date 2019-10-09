@@ -30,11 +30,13 @@ var TodayButton = class TodayButton {
         // Having the ability to go to the current date if the user is already
         // on the current date can be confusing. So don't make the button reactive
         // until the selected date changes.
-        this.actor = new St.Button({ style_class: 'datemenu-today-button',
-                                     x_expand: true, x_align: St.Align.START,
-                                     can_focus: true,
-                                     reactive: false
-                                   });
+        this.actor = new St.Button({
+            style_class: 'datemenu-today-button',
+            x_align: St.Align.START,
+            x_expand: true,
+            can_focus: true,
+            reactive: false,
+        });
         this.actor.connect('clicked', () => {
             this._calendar.setDate(new Date(), false);
         });
@@ -146,8 +148,9 @@ var WorldClocksSection = class WorldClocksSection {
         });
 
         let layout = this._grid.layout_manager;
-        let title = (this._locations.length == 0) ? _("Add world clocks…")
-                                                  : _("World Clocks");
+        let title = (this._locations.length == 0)
+            ? _("Add world clocks…")
+            : _("World Clocks");
         let header = new St.Label({ style_class: 'world-clocks-header',
                                     x_align: Clutter.ActorAlign.START,
                                     text: title });
@@ -410,7 +413,7 @@ var MessagesIndicator = class MessagesIndicator {
 
     _updateCount() {
         let count = 0;
-        this._sources.forEach(source => count += source.unseenCount);
+        this._sources.forEach(source => (count += source.unseenCount));
         count -= Main.messageTray.queueCount;
 
         this.actor.visible = (count > 0);

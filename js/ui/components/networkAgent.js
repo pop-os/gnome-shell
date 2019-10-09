@@ -112,16 +112,17 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
                                         expand: true });
         }
 
-        this._okButton = { label: _("Connect"),
-                           action: this._onOk.bind(this),
-                           default: true
-                         };
+        this._okButton = {
+            label: _("Connect"),
+            action: this._onOk.bind(this),
+            default: true,
+        };
 
-        this.setButtons([{ label: _("Cancel"),
-                           action: this.cancel.bind(this),
-                           key: Clutter.KEY_Escape,
-                         },
-                         this._okButton]);
+        this.setButtons([{
+            label: _("Cancel"),
+            action: this.cancel.bind(this),
+            key: Clutter.KEY_Escape,
+        }, this._okButton]);
 
         this._updateOkButton();
     }
@@ -163,9 +164,9 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
         if (value.length == 64) {
             // must be composed of hexadecimal digits only
             for (let i = 0; i < 64; i++) {
-                if (!((value[i] >= 'a' && value[i] <= 'f')
-                      || (value[i] >= 'A' && value[i] <= 'F')
-                      || (value[i] >= '0' && value[i] <= '9')))
+                if (!((value[i] >= 'a' && value[i] <= 'f') ||
+                      (value[i] >= 'A' && value[i] <= 'F') ||
+                      (value[i] >= '0' && value[i] <= '9')))
                     return false;
             }
             return true;
@@ -179,15 +180,15 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
         if (secret.wep_key_type == NM.WepKeyType.KEY) {
             if (value.length == 10 || value.length == 26) {
                 for (let i = 0; i < value.length; i++) {
-                    if (!((value[i] >= 'a' && value[i] <= 'f')
-                          || (value[i] >= 'A' && value[i] <= 'F')
-                          || (value[i] >= '0' && value[i] <= '9')))
+                    if (!((value[i] >= 'a' && value[i] <= 'f') ||
+                          (value[i] >= 'A' && value[i] <= 'F') ||
+                          (value[i] >= '0' && value[i] <= '9')))
                         return false;
                 }
             } else if (value.length == 5 || value.length == 13) {
                 for (let i = 0; i < value.length; i++) {
-                    if (!((value[i] >= 'a' && value[i] <= 'z')
-                          || (value[i] >= 'A' && value[i] <= 'Z')))
+                    if (!((value[i] >= 'a' && value[i] <= 'z') ||
+                          (value[i] >= 'A' && value[i] <= 'Z')))
                         return false;
                 }
             } else {
@@ -212,6 +213,7 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
         // First the easy ones
         case 'wpa-none':
         case 'wpa-psk':
+        case 'sae':
             secrets.push({ label: _("Password: "), key: 'psk',
                            value: wirelessSecuritySetting.psk || '',
                            validate: this._validateWpaPsk, password: true });
@@ -551,11 +553,12 @@ var VPNRequestHandler = class {
                 let shouldAsk = keyfile.get_boolean(groups[i], 'ShouldAsk');
 
                 if (shouldAsk) {
-                    contentOverride.secrets.push({ label: keyfile.get_string(groups[i], 'Label'),
-                                                   key: groups[i],
-                                                   value: value,
-                                                   password: keyfile.get_boolean(groups[i], 'IsSecret')
-                                                 });
+                    contentOverride.secrets.push({
+                        label: keyfile.get_string(groups[i], 'Label'),
+                        key: groups[i],
+                        value: value,
+                        password: keyfile.get_boolean(groups[i], 'IsSecret'),
+                    });
                 } else {
                     if (!value.length) // Ignore empty secrets
                         continue;
@@ -609,10 +612,11 @@ Signals.addSignalMethods(VPNRequestHandler.prototype);
 
 var NetworkAgent = class {
     constructor() {
-        this._native = new Shell.NetworkAgent({ identifier: 'org.gnome.Shell.NetworkAgent',
-                                                capabilities: NM.SecretAgentCapabilities.VPN_HINTS,
-                                                auto_register: false
-                                              });
+        this._native = new Shell.NetworkAgent({
+            identifier: 'org.gnome.Shell.NetworkAgent',
+            capabilities: NM.SecretAgentCapabilities.VPN_HINTS,
+            auto_register: false,
+        });
 
         this._dialogs = { };
         this._vpnRequests = { };
@@ -621,7 +625,7 @@ var NetworkAgent = class {
         this._pluginDir = Gio.file_new_for_path(Config.VPNDIR);
         try {
             let monitor = this._pluginDir.monitor(Gio.FileMonitorFlags.NONE, null);
-            monitor.connect('changed', () => this._vpnCacheBuilt = false);
+            monitor.connect('changed', () => (this._vpnCacheBuilt = false));
         } catch (e) {
             log(`Failed to create monitor for VPN plugin dir: ${e.message}`);
         }

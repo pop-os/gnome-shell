@@ -3,7 +3,6 @@
 
 const { Clutter, Gio, GLib, GObject, St } = imports.gi;
 const Lang = imports.lang;
-const Mainloop = imports.mainloop;
 
 var Tpl = null;
 var Tp = null;
@@ -546,8 +545,8 @@ var ChatSource = class extends MessageTray.Source {
         // Wait a bit before notifying for the received message, a handler
         // could ack it in the meantime.
         if (this._notifyTimeoutId != 0)
-            Mainloop.source_remove(this._notifyTimeoutId);
-        this._notifyTimeoutId = Mainloop.timeout_add(500,
+            GLib.source_remove(this._notifyTimeoutId);
+        this._notifyTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500,
             this._notifyTimeout.bind(this));
         GLib.Source.set_name_by_id(this._notifyTimeoutId, '[gnome-shell] this._notifyTimeout');
     }
@@ -584,7 +583,7 @@ var ChatSource = class extends MessageTray.Source {
 
         let msg = Tp.ClientMessage.new_text(type, text);
         this._channel.send_message_async(msg, 0, (src, result) => {
-            this._channel.send_message_finish(result); 
+            this._channel.send_message_finish(result);
         });
     }
 
@@ -641,7 +640,7 @@ var ChatNotification = class extends MessageTray.Notification {
 
     destroy(reason) {
         if (this._timestampTimeoutId)
-            Mainloop.source_remove(this._timestampTimeoutId);
+            GLib.source_remove(this._timestampTimeoutId);
         this._timestampTimeoutId = 0;
         super.destroy(reason);
     }
@@ -654,7 +653,7 @@ var ChatNotification = class extends MessageTray.Notification {
      *   sender: the name of the sender,
      *   timestamp: the time the message was sent
      *   direction: a #NotificationDirection
-     * 
+     *
      * @noTimestamp: Whether to add a timestamp. If %true, no timestamp
      *   will be added, regardless of the difference since the
      *   last timestamp
@@ -674,8 +673,8 @@ var ChatNotification = class extends MessageTray.Notification {
                         { datetime: GLib.DateTime.new_from_unix_local (message.timestamp),
                           bannerMarkup: true });
 
-        let group = (message.direction == NotificationDirection.RECEIVED ?
-                     'received' : 'sent');
+        let group = (message.direction == NotificationDirection.RECEIVED
+            ? 'received' : 'sent');
 
         this._append({ body: messageBody,
                        group: group,
@@ -697,8 +696,8 @@ var ChatNotification = class extends MessageTray.Notification {
         // SCROLLBACK_RECENT_LENGTH previous messages. Otherwise
         // we'll keep SCROLLBACK_IDLE_LENGTH messages.
 
-        let maxLength = (lastMessageTime < currentTime - SCROLLBACK_RECENT_TIME) ?
-            SCROLLBACK_IDLE_LENGTH : SCROLLBACK_RECENT_LENGTH;
+        let maxLength = (lastMessageTime < currentTime - SCROLLBACK_RECENT_TIME)
+            ? SCROLLBACK_IDLE_LENGTH : SCROLLBACK_RECENT_LENGTH;
 
         let filteredHistory = this.messages.filter(item => item.realMessage);
         if (filteredHistory.length > maxLength) {
@@ -729,7 +728,7 @@ var ChatNotification = class extends MessageTray.Notification {
 
         // Reset the old message timeout
         if (this._timestampTimeoutId)
-            Mainloop.source_remove(this._timestampTimeoutId);
+            GLib.source_remove(this._timestampTimeoutId);
         this._timestampTimeoutId = 0;
 
         let message = { realMessage: props.group != 'meta',
@@ -747,7 +746,8 @@ var ChatNotification = class extends MessageTray.Notification {
             } else {
                 // Schedule a new timestamp in SCROLLBACK_IMMEDIATE_TIME
                 // from the timestamp of the message.
-                this._timestampTimeoutId = Mainloop.timeout_add_seconds(
+                this._timestampTimeoutId = GLib.timeout_add_seconds(
+                    GLib.PRIORITY_DEFAULT,
                     SCROLLBACK_IMMEDIATE_TIME - (currentTime - timestamp),
                     this.appendTimestamp.bind(this));
                 GLib.Source.set_name_by_id(this._timestampTimeoutId, '[gnome-shell] this.appendTimestamp');
@@ -952,14 +952,15 @@ var ChatNotificationBanner = class extends MessageTray.NotificationBanner {
 
         // Remove composing timeout.
         if (this._composingTimeoutId > 0) {
-            Mainloop.source_remove(this._composingTimeoutId);
+            GLib.source_remove(this._composingTimeoutId);
             this._composingTimeoutId = 0;
         }
 
         if (text != '') {
             this.notification.source.setChatState(Tp.ChannelChatState.COMPOSING);
 
-            this._composingTimeoutId = Mainloop.timeout_add_seconds(
+            this._composingTimeoutId = GLib.timeout_add_seconds(
+                GLib.PRIORITY_DEFAULT,
                 COMPOSING_STOP_TIMEOUT,
                 this._composingStopTimeout.bind(this));
             GLib.Source.set_name_by_id(this._composingTimeoutId, '[gnome-shell] this._composingStopTimeout');

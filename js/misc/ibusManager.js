@@ -2,7 +2,6 @@
 /* exported getIBusManager */
 
 const { Gio, GLib, IBus } = imports.gi;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const IBusCandidatePopup = imports.ui.ibusCandidatePopup;
@@ -19,9 +18,9 @@ function _checkIBusVersion(requiredMajor, requiredMinor, requiredMicro) {
          IBus.MICRO_VERSION >= requiredMicro))
         return;
 
-    throw "Found IBus version %d.%d.%d but required is %d.%d.%d".
-        format(IBus.MAJOR_VERSION, IBus.MINOR_VERSION, IBus.MINOR_VERSION,
-               requiredMajor, requiredMinor, requiredMicro);
+    throw "Found IBus version %d.%d.%d but required is %d.%d.%d"
+        .format(IBus.MAJOR_VERSION, IBus.MINOR_VERSION, IBus.MINOR_VERSION,
+                requiredMajor, requiredMinor, requiredMicro);
 }
 
 function getIBusManager() {
@@ -73,6 +72,16 @@ var IBusManager = class {
     }
 
     _clear() {
+        if (this._cancellable) {
+            this._cancellable.cancel();
+            this._cancellable = null;
+        }
+
+        if (this._preloadEnginesId) {
+            GLib.source_remove(this._preloadEnginesId);
+            this._preloadEnginesId = 0;
+        }
+
         if (this._panelService)
             this._panelService.destroy();
 
@@ -87,28 +96,41 @@ var IBusManager = class {
     }
 
     _onConnected() {
-        this._ibus.list_engines_async(-1, null, this._initEngines.bind(this));
+        this._cancellable = new Gio.Cancellable();
+        this._ibus.list_engines_async(-1, this._cancellable,
+            this._initEngines.bind(this));
         this._ibus.request_name_async(IBus.SERVICE_PANEL,
-                                      IBus.BusNameFlag.REPLACE_EXISTING,
-                                      -1, null,
-                                      this._initPanelService.bind(this));
+            IBus.BusNameFlag.REPLACE_EXISTING, -1, this._cancellable,
+            this._initPanelService.bind(this));
     }
 
     _initEngines(ibus, result) {
-        let enginesList = this._ibus.list_engines_async_finish(result);
-        if (enginesList) {
+        try {
+            let enginesList = this._ibus.list_engines_async_finish(result);
             for (let i = 0; i < enginesList.length; ++i) {
                 let name = enginesList[i].get_name();
                 this._engines.set(name, enginesList[i]);
             }
             this._updateReadiness();
-        } else {
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+
+            logError(e);
             this._clear();
         }
     }
 
     _initPanelService(ibus, result) {
-        let success = this._ibus.request_name_async_finish(result);
+        let success = false;
+        try {
+            success = !!this._ibus.request_name_async_finish(result);
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+            logError(e);
+        }
+
         if (success) {
             this._panelService = new IBus.PanelService({ connection: this._ibus.get_connection(),
                                                          object_path: IBus.PATH_PANEL });
@@ -135,7 +157,7 @@ var IBusManager = class {
             } catch (e) {
             }
             // If an engine is already active we need to get its properties
-            this._ibus.get_global_engine_async(-1, null, (i, result) => {
+            this._ibus.get_global_engine_async(-1, this._cancellable, (_bus, result) => {
                 let engine;
                 try {
                     engine = this._ibus.get_global_engine_async_finish(result);
@@ -207,8 +229,18 @@ var IBusManager = class {
             return;
         }
 
-        this._ibus.set_global_engine_async(id, this._MAX_INPUT_SOURCE_ACTIVATION_TIME,
-                                           null, callback || null);
+        this._ibus.set_global_engine_async(id,
+            this._MAX_INPUT_SOURCE_ACTIVATION_TIME,
+            this._cancellable, (_bus, res) => {
+                try {
+                    this._ibus.set_global_engine_async_finish(res);
+                } catch (e) {
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        logError(e);
+                }
+                if (callback)
+                    callback();
+            });
     }
 
     preloadEngines(ids) {
@@ -216,21 +248,23 @@ var IBusManager = class {
             return;
 
         if (this._preloadEnginesId != 0) {
-            Mainloop.source_remove(this._preloadEnginesId);
+            GLib.source_remove(this._preloadEnginesId);
             this._preloadEnginesId = 0;
         }
 
         this._preloadEnginesId =
-            Mainloop.timeout_add_seconds(this._PRELOAD_ENGINES_DELAY_TIME,
-                                         () => {
-                                             this._ibus.preload_engines_async(
-                                                 ids,
-                                                 -1,
-                                                 null,
-                                                 null);
-                                             this._preloadEnginesId = 0;
-                                             return GLib.SOURCE_REMOVE;
-                                         });
+            GLib.timeout_add_seconds(
+                GLib.PRIORITY_DEFAULT,
+                this._PRELOAD_ENGINES_DELAY_TIME,
+                () => {
+                    this._ibus.preload_engines_async(
+                        ids,
+                        -1,
+                        this._cancellable,
+                        null);
+                    this._preloadEnginesId = 0;
+                    return GLib.SOURCE_REMOVE;
+                });
     }
 };
 Signals.addSignalMethods(IBusManager.prototype);

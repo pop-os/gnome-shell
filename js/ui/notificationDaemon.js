@@ -2,7 +2,6 @@
 /* exported NotificationDaemon */
 
 const { GdkPixbuf, Gio, GLib, Shell, St } = imports.gi;
-const Mainloop = imports.mainloop;
 
 const Config = imports.misc.config;
 const Main = imports.ui.main;
@@ -171,7 +170,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
             // Ignore replacesId since we already sent back a
             // NotificationClosed for that id.
             id = this._nextNotificationId++;
-            let idleId = Mainloop.idle_add(() => {
+            let idleId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 this._emitNotificationClosed(id, NotificationClosedReason.DISMISSED);
                 return GLib.SOURCE_REMOVE;
             });
@@ -347,8 +346,9 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         notification.setTransient(!!hints['transient']);
 
         let privacyScope = (hints['x-gnome-privacy-scope'] || 'user');
-        notification.setPrivacyScope(privacyScope == 'system' ? MessageTray.PrivacyScope.SYSTEM
-                                                              : MessageTray.PrivacyScope.USER);
+        notification.setPrivacyScope(privacyScope == 'system'
+            ? MessageTray.PrivacyScope.SYSTEM
+            : MessageTray.PrivacyScope.USER);
 
         let sourceGIcon = source.useNotificationIcon ? gicon : null;
         source.processNotification(notification, sourceGIcon);
@@ -541,22 +541,23 @@ class GtkNotificationDaemonNotification extends MessageTray.Notification {
         super(source);
         this._serialized = GLib.Variant.new('a{sv}', notification);
 
-        let { "title": title,
-              "body": body,
-              "icon": gicon,
-              "urgent": urgent,
-              "priority": priority,
-              "buttons": buttons,
+        let { title,
+              body,
+              icon: gicon,
+              urgent,
+              priority,
+              buttons,
               "default-action": defaultAction,
               "default-action-target": defaultActionTarget,
-              "timestamp": time } = notification;
+              timestamp: time } = notification;
 
         if (priority) {
             let urgency = PRIORITY_URGENCY_MAP[priority.unpack()];
             this.setUrgency(urgency != undefined ? urgency : MessageTray.Urgency.NORMAL);
         } else if (urgent) {
-            this.setUrgency(urgent.unpack() ? MessageTray.Urgency.CRITICAL
-                            : MessageTray.Urgency.NORMAL);
+            this.setUrgency(urgent.unpack()
+                ? MessageTray.Urgency.CRITICAL
+                : MessageTray.Urgency.NORMAL);
         } else {
             this.setUrgency(MessageTray.Urgency.NORMAL);
         }
@@ -589,8 +590,8 @@ class GtkNotificationDaemonNotification extends MessageTray.Notification {
     }
 
     _onButtonClicked(button) {
-        let { 'action': action, 'target': actionTarget } = button;
-        this._activateAction(action.unpack(), actionTarget);
+        let { action, target } = button;
+        this._activateAction(action.unpack(), target);
     }
 
     activate() {
@@ -617,7 +618,7 @@ function getPlatformData() {
 
 function InvalidAppError() {}
 
-var GtkNotificationDaemonAppSource = 
+var GtkNotificationDaemonAppSource =
 class GtkNotificationDaemonAppSource extends MessageTray.Source {
     constructor(appId) {
         let objectPath = objectPathFromAppId(appId);

@@ -2,7 +2,6 @@
 /* exported Overview */
 
 const { Clutter, GLib, Meta, Shell, St } = imports.gi;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const Background = imports.ui.background;
@@ -43,9 +42,10 @@ var ShellInfo = class {
     }
 
     setMessage(text, options) {
-        options = Params.parse(options, { undoCallback: null,
-                                          forFeedback: false
-                                        });
+        options = Params.parse(options, {
+            undoCallback: null,
+            forFeedback: false,
+        });
 
         let undoCallback = options.undoCallback;
         let forFeedback = options.forFeedback;
@@ -300,7 +300,7 @@ var Overview = class {
 
     _resetWindowSwitchTimeout() {
         if (this._windowSwitchTimeoutId != 0) {
-            Mainloop.source_remove(this._windowSwitchTimeoutId);
+            GLib.source_remove(this._windowSwitchTimeoutId);
             this._windowSwitchTimeoutId = 0;
         }
     }
@@ -323,7 +323,9 @@ var Overview = class {
 
         if (targetIsWindow) {
             this._lastHoveredWindow = dragEvent.targetActor._delegate.metaWindow;
-            this._windowSwitchTimeoutId = Mainloop.timeout_add(DND_WINDOW_SWITCH_TIMEOUT,
+            this._windowSwitchTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                DND_WINDOW_SWITCH_TIMEOUT,
                 () => {
                     this._windowSwitchTimeoutId = 0;
                     Main.activateWindow(dragEvent.targetActor._delegate.metaWindow,
@@ -450,7 +452,7 @@ var Overview = class {
         this._desktopFade.show();
         this._desktopFade.ease({
             opacity: 0,
-            mode: Clutter.Animates.EASE_OUT_QUAD,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             duration: ANIMATION_TIME
         });
     }
@@ -481,15 +483,13 @@ var Overview = class {
 
         if (this._shown) {
             let shouldBeModal = !this._inXdndDrag;
-            if (shouldBeModal) {
-                if (!this._modal) {
-                    if (Main.pushModal(this._overview,
-                                       { actionMode: Shell.ActionMode.OVERVIEW })) {
-                        this._modal = true;
-                    } else {
-                        this.hide();
-                        return false;
-                    }
+            if (shouldBeModal && !this._modal) {
+                let actionMode = Shell.ActionMode.OVERVIEW;
+                if (Main.pushModal(this._overview, { actionMode })) {
+                    this._modal = true;
+                } else {
+                    this.hide();
+                    return false;
                 }
             }
         } else {

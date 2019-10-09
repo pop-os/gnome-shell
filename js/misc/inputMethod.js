@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported InputMethod */
-const { Clutter, GLib, GObject, IBus } = imports.gi;
+const { Clutter, GLib, Gio, GObject, IBus } = imports.gi;
 
 const Keyboard = imports.ui.status.keyboard;
 
@@ -36,15 +36,7 @@ class InputMethod extends Clutter.InputMethod {
     }
 
     _updateCapabilities() {
-        let caps = 0;
-
-        if (this.can_show_preedit)
-            caps |= IBus.Capabilite.PREEDIT_TEXT;
-
-        if (this._currentFocus)
-            caps |= IBus.Capabilite.FOCUS | IBus.Capabilite.SURROUNDING_TEXT;
-        else
-            caps |= IBus.Capabilite.PREEDIT_TEXT | IBus.Capabilite.AUXILIARY_TEXT | IBus.Capabilite.LOOKUP_TABLE | IBus.Capabilite.PROPERTY;
+        let caps = IBus.Capabilite.PREEDIT_TEXT | IBus.Capabilite.FOCUS | IBus.Capabilite.SURROUNDING_TEXT;
 
         if (this._context)
             this._context.set_capabilities(caps);
@@ -55,12 +47,22 @@ class InputMethod extends Clutter.InputMethod {
     }
 
     _onConnected() {
-        this._ibus.create_input_context_async ('gnome-shell', -1, null,
-                                               this._setContext.bind(this));
+        this._cancellable = new Gio.Cancellable();
+        this._ibus.create_input_context_async ('gnome-shell', -1,
+            this._cancellable, this._setContext.bind(this));
     }
 
     _setContext(bus, res) {
-        this._context = this._ibus.create_input_context_async_finish(res);
+        try {
+            this._context = this._ibus.create_input_context_async_finish(res);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                logError(e);
+                this._clear();
+            }
+            return;
+        }
+
         this._context.connect('commit-text', this._onCommitText.bind(this));
         this._context.connect('delete-surrounding-text', this._onDeleteSurroundingText.bind(this));
         this._context.connect('update-preedit-text', this._onUpdatePreeditText.bind(this));
@@ -72,6 +74,11 @@ class InputMethod extends Clutter.InputMethod {
     }
 
     _clear() {
+        if (this._cancellable) {
+            this._cancellable.cancel();
+            this._cancellable = null;
+        }
+
         this._context = null;
         this._hints = 0;
         this._purpose = 0;
@@ -137,7 +144,6 @@ class InputMethod extends Clutter.InputMethod {
         this._currentFocus = focus;
         if (this._context) {
             this._context.focus_in();
-            this._updateCapabilities();
             this._emitRequestSurrounding();
         }
 
@@ -149,10 +155,8 @@ class InputMethod extends Clutter.InputMethod {
 
     vfunc_focus_out() {
         this._currentFocus = null;
-        if (this._context) {
+        if (this._context)
             this._context.focus_out();
-            this._updateCapabilities();
-        }
 
         if (this._preeditStr) {
             // Unset any preedit text
@@ -255,17 +259,19 @@ class InputMethod extends Clutter.InputMethod {
         if (event.type() == Clutter.EventType.KEY_RELEASE)
             state |= IBus.ModifierType.RELEASE_MASK;
 
-        this._context.process_key_event_async(event.get_key_symbol(),
-                                              event.get_key_code() - 8, // Convert XKB keycodes to evcodes
-                                              state, -1, null,
-                                              (context, res) => {
-                                                  try {
-                                                      let retval = context.process_key_event_async_finish(res);
-                                                      this.notify_key_event(event, retval);
-                                                  } catch (e) {
-                                                      log(`Error processing key on IM: ${e.message}`);
-                                                  }
-                                              });
+        this._context.process_key_event_async(
+            event.get_key_symbol(),
+            event.get_key_code() - 8, // Convert XKB keycodes to evcodes
+            state, -1, this._cancellable,
+            (context, res) => {
+                try {
+                    let retval = context.process_key_event_async_finish(res);
+                    this.notify_key_event(event, retval);
+                } catch (e) {
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        log(`Error processing key on IM: ${e.message}`);
+                }
+            });
         return true;
     }
 });

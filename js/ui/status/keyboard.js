@@ -13,8 +13,8 @@ const PanelMenu = imports.ui.panelMenu;
 const SwitcherPopup = imports.ui.switcherPopup;
 const Util = imports.misc.util;
 
-const INPUT_SOURCE_TYPE_XKB = 'xkb';
-const INPUT_SOURCE_TYPE_IBUS = 'ibus';
+var INPUT_SOURCE_TYPE_XKB = 'xkb';
+var INPUT_SOURCE_TYPE_IBUS = 'ibus';
 
 var LayoutMenuItem = GObject.registerClass(
 class LayoutMenuItem extends PopupMenu.PopupBaseMenuItem {
@@ -976,8 +976,8 @@ class InputSourceIndicator extends PanelMenu.Button {
                 item.prop = prop;
                 radioGroup.push(item);
                 item.radioGroup = radioGroup;
-                item.setOrnament(prop.get_state() == IBus.PropState.CHECKED ?
-                                 PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
+                item.setOrnament(prop.get_state() == IBus.PropState.CHECKED
+                    ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
                 item.connect('activate', () => {
                     if (item.prop.get_state() == IBus.PropState.CHECKED)
                         return;
