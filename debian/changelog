@@ -1,4 +1,4 @@
-gnome-shell (3.34.1-1) UNRELEASED; urgency=medium
+gnome-shell (3.34.1-1) unstable; urgency=medium
 
   * New upstream release
     + Allow editing app folder names
@@ -22,7 +22,7 @@ gnome-shell (3.34.1-1) UNRELEASED; urgency=medium
     + Support SAE secrets in network agent (LP: #1844422)
   * control: Require mutter 3.34.1
 
- -- Iain Lane <laney@debian.org>  Wed, 09 Oct 2019 10:45:43 +0100
+ -- Iain Lane <laney@debian.org>  Wed, 09 Oct 2019 11:20:28 +0100
 
 gnome-shell (3.34.0-2) unstable; urgency=medium
 
