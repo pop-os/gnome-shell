@@ -1,0 +1,6 @@
+# there rpaths are needed to find mutters private clutter fork, mutter-clutter.
+gnome-shell: binary-or-shlib-defines-rpath usr/bin/gnome-shell /usr/lib/*/mutter-*
+gnome-shell: binary-or-shlib-defines-rpath usr/lib/gnome-shell/libgnome-shell-menu.so /usr/lib/*/mutter-*
+gnome-shell: binary-or-shlib-defines-rpath usr/lib/gnome-shell/libgnome-shell.so /usr/lib/*/mutter-*
+gnome-shell: binary-or-shlib-defines-rpath usr/lib/gnome-shell/libgvc.so /usr/share/gnome-shell
+gnome-shell: binary-or-shlib-defines-rpath usr/lib/gnome-shell/libst-1.0.so /usr/lib/*/mutter-*

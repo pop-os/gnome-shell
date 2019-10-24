@@ -1,0 +1,2 @@
+report-with: gnome-session gnome-settings-daemon libgjs0g libmutter-4-0
+package-status: libegl-vendor libglx-vendor libgl1-mesa-dri
