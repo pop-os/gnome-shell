@@ -1,4 +1,4 @@
-gnome-shell (3.34.1+git20191024-1) UNRELEASED; urgency=medium
+gnome-shell (3.34.1+git20191024-1) unstable; urgency=medium
 
   * New upstream snapshot release
     + Fix some animations using invalid parameters
@@ -6,7 +6,7 @@ gnome-shell (3.34.1+git20191024-1) UNRELEASED; urgency=medium
     + Ensure unredirection is disabled after animations
     + Speed-up overview opening using windows cached centers (LP: #1848009)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 25 Oct 2019 01:12:52 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 25 Oct 2019 13:36:08 +0100
 
 gnome-shell (3.34.1-1) unstable; urgency=medium
 
