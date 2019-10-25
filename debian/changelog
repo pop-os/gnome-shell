@@ -1,3 +1,10 @@
+gnome-shell (3.34.1+git20191024-1ubuntu1~19.04.1) UNRELEASED; urgency=medium
+
+  * Backport to eoan.
+  * debian/control, gbp.conf: Update for ubuntu/eoan branch
+
+ -- Iain Lane <iain.lane@canonical.com>  Fri, 25 Oct 2019 17:22:11 +0100
+
 gnome-shell (3.34.1+git20191024-1ubuntu1) focal; urgency=medium
 
   * Merge with Debian. Remaining changes:
