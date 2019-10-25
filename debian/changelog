@@ -2,7 +2,7 @@ gnome-shell (3.34.1+git20191024-1) UNRELEASED; urgency=medium
 
   * New upstream snapshot release
     + Fix some animations using invalid parameters
-    + Compute lock timeout fade duration using aninmations parameters
+    + Compute lock timeout fade duration using animations parameters
     + Ensure unredirection is disabled after animations
     + Speed-up overview opening using windows cached centers (LP: #1848009)
 
