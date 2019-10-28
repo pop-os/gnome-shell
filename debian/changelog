@@ -1,4 +1,4 @@
-gnome-shell (3.34.1+git20191024-1ubuntu1~19.04.1) eoan; urgency=medium
+gnome-shell (3.34.1+git20191024-1ubuntu1~19.10.1) eoan; urgency=medium
 
   * Backport to eoan.
   * debian/control, gbp.conf: Update for ubuntu/eoan branch
