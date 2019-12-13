@@ -20,3 +20,4 @@ ubuntu/secure_mode_extension.patch
 # Pop!_OS
 pop-dark-theme.patch
 sched-rr.patch
+nvidia-offloading.patch

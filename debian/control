@@ -111,7 +111,7 @@ Recommends: bolt (>= 0.3),
             gnome-user-docs,
             ibus,
             iio-sensor-proxy,
-            switcheroo-control,
+            switcheroo-control (>= 2.0),
             ubuntu-session | gnome-session,
             xserver-xorg-legacy,
             unzip
