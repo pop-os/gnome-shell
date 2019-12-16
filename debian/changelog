@@ -8,6 +8,7 @@ gnome-shell (3.34.2-1) UNRELEASED; urgency=medium
   [ Simon McVittie ]
   * d/watch: Only watch for stable releases
   * New upstream release
+  * d/gbp.conf: Use upstream/3.34.x branch
 
  -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 14:29:40 +0000
 
