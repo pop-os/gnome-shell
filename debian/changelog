@@ -9,6 +9,8 @@ gnome-shell (3.34.2-1) UNRELEASED; urgency=medium
   * d/watch: Only watch for stable releases
   * New upstream release
   * d/gbp.conf: Use upstream/3.34.x branch
+  * Add build-dependency on libgnome-desktop-3-dev (>= 3.34.2) for new
+    systemd scope functionality
 
  -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 14:29:40 +0000
 
