@@ -1,4 +1,6 @@
-gnome-shell (3.34.2-1) UNRELEASED; urgency=medium
+gnome-shell (3.34.2-1) unstable; urgency=medium
+
+  * Team upload
 
   [ Georges Basile Stavracas Neto ]
   * Add gnome-menus to Recommends.
@@ -15,7 +17,7 @@ gnome-shell (3.34.2-1) UNRELEASED; urgency=medium
   * Remove unused Lintian override
   * Bump Standards-Version to 4.4.1
 
- -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 14:29:40 +0000
+ -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 16:55:02 +0000
 
 gnome-shell (3.34.1+git20191024-1) unstable; urgency=medium
 
