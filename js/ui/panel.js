@@ -170,9 +170,13 @@ class AppMenu extends PopupMenu.PopupMenu {
         let windows = this._app.get_windows();
         windows.forEach(window => {
             let title = window.title || this._app.get_name();
-            this._windowSection.addAction(title, event => {
+            let item = this._windowSection.addAction(title, event => {
                 Main.activateWindow(window, event.get_time());
             });
+            let id = window.connect('notify::title', () => {
+                item.label.text = window.title || this._app.get_name();
+            });
+            item.connect('destroy', () => window.disconnect(id));
         });
     }
 }
@@ -234,7 +238,10 @@ var AppMenuButton = GObject.registerClass({
         this._overviewHidingId = Main.overview.connect('hiding', this._sync.bind(this));
         this._overviewShowingId = Main.overview.connect('showing', this._sync.bind(this));
 
-        this._spinner = new Animation.Spinner(PANEL_ICON_SIZE, true);
+        this._spinner = new Animation.Spinner(PANEL_ICON_SIZE, {
+            animate: true,
+            hideOnStop: true,
+        });
         this._container.add_actor(this._spinner.actor);
 
         let menu = new AppMenu(this);
