@@ -12,6 +12,7 @@ gnome-shell (3.34.2-1) UNRELEASED; urgency=medium
   * Add build-dependency on libgnome-desktop-3-dev (>= 3.34.2) for new
     systemd scope functionality
   * Remove Breaks/Conflicts on packages older than Debian 9 (oldstable)
+  * Remove unused Lintian override
 
  -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 14:29:40 +0000
 
