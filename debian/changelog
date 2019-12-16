@@ -5,6 +5,9 @@ gnome-shell (3.34.1+git20191024-2) UNRELEASED; urgency=medium
     The files installed by gnome-menus are needed for the functionality of
     suggesting a name for a new folder to work.
 
+  [ Simon McVittie ]
+  * d/watch: Only watch for stable releases
+
  -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 14:28:19 +0000
 
 gnome-shell (3.34.1+git20191024-1) unstable; urgency=medium
