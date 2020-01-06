@@ -1,11 +1,11 @@
-gnome-shell (3.34.3-1) UNRELEASED; urgency=medium
+gnome-shell (3.34.3-1) unstable; urgency=medium
 
   * New upstream release
     + polkitAgent: Fix confirming via keyboard when password-less
   * control: Bump mutter BD to 3.34.3. This probably isn't *strictly*
     required, but nevertheless let's keep them in sync.
 
- -- Iain Lane <laney@debian.org>  Mon, 06 Jan 2020 12:59:47 +0000
+ -- Iain Lane <laney@debian.org>  Mon, 06 Jan 2020 13:40:57 +0000
 
 gnome-shell (3.34.2-1) unstable; urgency=medium
 
