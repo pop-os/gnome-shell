@@ -55,18 +55,18 @@ index dc3f1d5..4158a18 100644
      });
  
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
-index 7c36d70..7077f80 100644
+index a7a3869..f182b9d 100644
 --- a/js/ui/extensionSystem.js
 +++ b/js/ui/extensionSystem.js
 @@ -4,6 +4,7 @@
- const { Gio, St } = imports.gi;
+ const { GLib, Gio, St } = imports.gi;
  const Signals = imports.signals;
  
 +const Desktop = imports.misc.desktop;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
  const Main = imports.ui.main;
-@@ -303,6 +304,10 @@ var ExtensionManager = class {
+@@ -320,6 +321,10 @@ var ExtensionManager = class {
          this.loadExtension(newExtension);
      }
  
@@ -77,7 +77,7 @@ index 7c36d70..7077f80 100644
      _callExtensionInit(uuid) {
          if (!Main.sessionMode.allowExtensions)
              return false;
-@@ -464,6 +469,10 @@ var ExtensionManager = class {
+@@ -481,6 +486,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;
