@@ -1,3 +1,33 @@
+gnome-shell (3.34.3-1) unstable; urgency=medium
+
+  * New upstream release
+    + polkitAgent: Fix confirming via keyboard when password-less
+  * control: Bump mutter BD to 3.34.3. This probably isn't *strictly*
+    required, but nevertheless let's keep them in sync.
+
+ -- Iain Lane <laney@debian.org>  Mon, 06 Jan 2020 13:40:57 +0000
+
+gnome-shell (3.34.2-1) unstable; urgency=medium
+
+  * Team upload
+
+  [ Georges Basile Stavracas Neto ]
+  * Add gnome-menus to Recommends.
+    The files installed by gnome-menus are needed for the functionality of
+    suggesting a name for a new folder to work.
+
+  [ Simon McVittie ]
+  * d/watch: Only watch for stable releases
+  * New upstream release
+  * d/gbp.conf: Use upstream/3.34.x branch
+  * Add build-dependency on libgnome-desktop-3-dev (>= 3.34.2) for new
+    systemd scope functionality
+  * Remove Breaks/Conflicts on packages older than Debian 9 (oldstable)
+  * Remove unused Lintian override
+  * Bump Standards-Version to 4.4.1
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 16:55:02 +0000
+
 gnome-shell (3.34.1+git20191024-1ubuntu1) focal; urgency=medium
 
   * Merge with Debian. Remaining changes:

@@ -40,6 +40,9 @@ var PAGE_SWITCH_TIME = 300;
 var APP_ICON_SCALE_IN_TIME = 500;
 var APP_ICON_SCALE_IN_DELAY = 700;
 
+const OVERSHOOT_THRESHOLD = 20;
+const OVERSHOOT_TIMEOUT = 1000;
+
 const SWITCHEROO_BUS_NAME = 'net.hadess.SwitcherooControl';
 const SWITCHEROO_OBJECT_PATH = '/net/hadess/SwitcherooControl';
 
@@ -97,7 +100,10 @@ function _findBestFolderName(apps) {
     let commonCategories = [];
 
     appInfos.reduce((categories, appInfo) => {
-        for (let category of appInfo.get_categories().split(';')) {
+        const appCategories = appInfo.get_categories();
+        if (!appCategories)
+            return categories;
+        for (let category of appCategories.split(';')) {
             if (!(category in categoryCounter))
                 categoryCounter[category] = 0;
 
@@ -173,10 +179,11 @@ class BaseAppView {
         // Remove old app icons
         removedApps.forEach(icon => {
             let iconIndex = this._allItems.indexOf(icon);
+            let id = icon.id;
 
             this._allItems.splice(iconIndex, 1);
-            this._grid.removeItem(icon);
-            delete this._items[icon.id];
+            icon.actor.destroy();
+            delete this._items[id];
         });
 
         // Add new app icons
@@ -308,7 +315,12 @@ var AllView = class AllView extends BaseAppView {
 
         this._grid.currentPage = 0;
         this._stack.add_actor(this._grid);
-        this._eventBlocker = new St.Widget({ x_expand: true, y_expand: true });
+        this._eventBlocker = new St.Widget({
+            x_expand: true,
+            y_expand: true,
+            reactive: true,
+            visible: false,
+        });
         this._stack.add_actor(this._eventBlocker);
 
         box.add_actor(this._stack);
@@ -335,11 +347,15 @@ var AllView = class AllView extends BaseAppView {
         });
         this._eventBlocker.add_action(this._clickAction);
 
+        this._currentPopup = null;
         this._displayingPopup = false;
         this._currentPopupDestroyId = 0;
 
         this._availWidth = 0;
         this._availHeight = 0;
+
+        this._lastOvershootY = -1;
+        this._lastOvershootTimeoutId = 0;
 
         Main.overview.connect('hidden', () => this.goToPage(0));
         this._grid.connect('space-opened', () => {
@@ -377,8 +393,6 @@ var AllView = class AllView extends BaseAppView {
 
         Main.overview.connect('item-drag-begin', this._onDragBegin.bind(this));
         Main.overview.connect('item-drag-end', this._onDragEnd.bind(this));
-
-        this._nEventBlockerInhibits = 0;
     }
 
     _redisplay() {
@@ -425,7 +439,7 @@ var AllView = class AllView extends BaseAppView {
     }
 
     _loadApps() {
-        let newApps = [];
+        let appIcons = [];
         this._appInfoList = Shell.AppSystem.get_default().get_installed().filter(appInfo => {
             try {
                 (appInfo.get_id()); // catch invalid file encodings
@@ -450,7 +464,7 @@ var AllView = class AllView extends BaseAppView {
                 icon.connect('name-changed', this._itemNameChanged.bind(this));
                 icon.connect('apps-changed', this._redisplay.bind(this));
             }
-            newApps.push(icon);
+            appIcons.push(icon);
             this.folderIcons.push(icon);
         });
 
@@ -463,14 +477,19 @@ var AllView = class AllView extends BaseAppView {
         let favoritesWritable = global.settings.is_writable('favorite-apps');
 
         apps.forEach(appId => {
-            let app = appSys.lookup_app(appId);
+            let icon = this._items[appId];
+            if (!icon) {
+                let app = appSys.lookup_app(appId);
 
-            let icon = new AppIcon(app,
-                                   { isDraggable: favoritesWritable });
-            newApps.push(icon);
+                icon = new AppIcon(app, {
+                    isDraggable: favoritesWritable,
+                });
+            }
+
+            appIcons.push(icon);
         });
 
-        return newApps;
+        return appIcons;
     }
 
     // Overridden from BaseAppView
@@ -648,7 +667,7 @@ var AllView = class AllView extends BaseAppView {
     addFolderPopup(popup) {
         this._stack.add_actor(popup.actor);
         popup.connect('open-state-changed', (popup, isOpen) => {
-            this._eventBlocker.reactive = isOpen;
+            this._eventBlocker.visible = isOpen;
 
             if (this._currentPopup) {
                 this._currentPopup.actor.disconnect(this._currentPopupDestroyId);
@@ -662,7 +681,7 @@ var AllView = class AllView extends BaseAppView {
                 this._currentPopupDestroyId = popup.actor.connect('destroy', () => {
                     this._currentPopup = null;
                     this._currentPopupDestroyId = 0;
-                    this._eventBlocker.reactive = false;
+                    this._eventBlocker.visible = false;
                 });
             }
             this._updateIconOpacities(isOpen);
@@ -730,29 +749,58 @@ var AllView = class AllView extends BaseAppView {
             this.folderIcons[i].adaptToSize(availWidth, availHeight);
     }
 
+    _resetOvershoot() {
+        if (this._lastOvershootTimeoutId)
+            GLib.source_remove(this._lastOvershootTimeoutId);
+        this._lastOvershootTimeoutId = 0;
+        this._lastOvershootY = -1;
+    }
+
     _handleDragOvershoot(dragEvent) {
         let [, gridY] = this.actor.get_transformed_position();
         let [, gridHeight] = this.actor.get_transformed_size();
         let gridBottom = gridY + gridHeight;
 
-        // Within the grid boundaries, or already animating
-        if (dragEvent.y > gridY && dragEvent.y < gridBottom ||
-            this._adjustment.get_transition('value') != null) {
+        // Already animating
+        if (this._adjustment.get_transition('value') !== null)
+            return;
+
+        // Within the grid boundaries
+        if (dragEvent.y > gridY && dragEvent.y < gridBottom) {
+            // Check whether we moved out the area of the last switch
+            if (Math.abs(this._lastOvershootY - dragEvent.y) > OVERSHOOT_THRESHOLD)
+                this._resetOvershoot();
+
             return;
         }
 
-        // Moving above the grid
+        // Still in the area of the previous page switch
+        if (this._lastOvershootY >= 0)
+            return;
+
         let currentY = this._adjustment.value;
-        if (dragEvent.y <= gridY && currentY > 0) {
-            this.goToPage(this._grid.currentPage - 1);
-            return;
-        }
-
-        // Moving below the grid
         let maxY = this._adjustment.upper - this._adjustment.page_size;
-        if (dragEvent.y >= gridBottom && currentY < maxY) {
+
+        if (dragEvent.y <= gridY && currentY > 0)
+            this.goToPage(this._grid.currentPage - 1);
+        else if (dragEvent.y >= gridBottom && currentY < maxY)
             this.goToPage(this._grid.currentPage + 1);
-        }
+        else
+            return; // don't go beyond first/last page
+
+        this._lastOvershootY = dragEvent.y;
+
+        if (this._lastOvershootTimeoutId > 0)
+            GLib.source_remove(this._lastOvershootTimeoutId);
+
+        this._lastOvershootTimeoutId =
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, OVERSHOOT_TIMEOUT, () => {
+                this._resetOvershoot();
+                this._handleDragOvershoot(dragEvent);
+                return GLib.SOURCE_REMOVE;
+            });
+        GLib.Source.set_name_by_id(this._lastOvershootTimeoutId,
+            '[gnome-shell] this._lastOvershootTimeoutId');
     }
 
     _onDragBegin() {
@@ -760,6 +808,8 @@ var AllView = class AllView extends BaseAppView {
             dragMotion: this._onDragMotion.bind(this)
         };
         DND.addDragMonitor(this._dragMonitor);
+
+        this._eventBlocker.visible = false;
     }
 
     _onDragMotion(dragEvent) {
@@ -782,6 +832,9 @@ var AllView = class AllView extends BaseAppView {
             DND.removeDragMonitor(this._dragMonitor);
             this._dragMonitor = null;
         }
+
+        this._eventBlocker.visible = this._currentPopup !== null;
+        this._resetOvershoot();
     }
 
     _canAccept(source) {
@@ -813,19 +866,6 @@ var AllView = class AllView extends BaseAppView {
             this._currentPopup.popdown();
 
         return true;
-    }
-
-    inhibitEventBlocker() {
-        this._nEventBlockerInhibits++;
-        this._eventBlocker.visible = this._nEventBlockerInhibits == 0;
-    }
-
-    uninhibitEventBlocker() {
-        if (this._nEventBlockerInhibits === 0)
-            throw new Error('Not inhibited');
-
-        this._nEventBlockerInhibits--;
-        this._eventBlocker.visible = this._nEventBlockerInhibits == 0;
     }
 
     createFolder(apps) {
@@ -918,8 +958,12 @@ var FrequentView = class FrequentView extends BaseAppView {
         for (let i = 0; i < mostUsed.length; i++) {
             if (!mostUsed[i].get_app_info().should_show())
                 continue;
-            let appIcon = new AppIcon(mostUsed[i],
-                                      { isDraggable: favoritesWritable });
+            let appIcon = this._items[mostUsed[i].get_id()];
+            if (!appIcon) {
+                appIcon = new AppIcon(mostUsed[i], {
+                    isDraggable: favoritesWritable,
+                });
+            }
             apps.push(appIcon);
         }
 
@@ -1349,7 +1393,10 @@ var FolderView = class FolderView extends BaseAppView {
             if (apps.some(appIcon => appIcon.id == appId))
                 return;
 
-            let icon = new AppIcon(app);
+            let icon = this._items[appId];
+            if (!icon)
+                icon = new AppIcon(app);
+
             apps.push(icon);
         };
 
@@ -1387,15 +1434,15 @@ var FolderView = class FolderView extends BaseAppView {
         // Remove the folder if this is the last app icon; otherwise,
         // just remove the icon
         if (folderApps.length == 0) {
-            let settings = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders' });
-            let folders = settings.get_strv('folder-children');
-            folders.splice(folders.indexOf(this._id), 1);
-            settings.set_strv('folder-children', folders);
-
             // Resetting all keys deletes the relocatable schema
             let keys = this._folder.settings_schema.list_keys();
             for (let key of keys)
                 this._folder.reset(key);
+
+            let settings = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders' });
+            let folders = settings.get_strv('folder-children');
+            folders.splice(folders.indexOf(this._id), 1);
+            settings.set_strv('folder-children', folders);
         } else {
             this._folder.set_strv('apps', folderApps);
         }
@@ -1487,8 +1534,6 @@ var FolderIcon = class FolderIcon {
             dragMotion: this._onDragMotion.bind(this),
         };
         DND.addDragMonitor(this._dragMonitor);
-
-        this._parentView.inhibitEventBlocker();
     }
 
     _onDragMotion(dragEvent) {
@@ -1504,7 +1549,6 @@ var FolderIcon = class FolderIcon {
 
     _onDragEnd() {
         this.actor.remove_style_pseudo_class('drop');
-        this._parentView.uninhibitEventBlocker();
         DND.removeDragMonitor(this._dragMonitor);
     }
 
@@ -1994,17 +2038,10 @@ var AppIcon = class AppIcon {
                                      x_fill: true,
                                      y_fill: true });
 
-        this._dot = new St.Widget({ style_class: 'app-well-app-running-dot',
-                                    layout_manager: new Clutter.BinLayout(),
-                                    x_expand: true, y_expand: true,
-                                    x_align: Clutter.ActorAlign.CENTER,
-                                    y_align: Clutter.ActorAlign.END });
-
         this._iconContainer = new St.Widget({ layout_manager: new Clutter.BinLayout(),
                                               x_expand: true, y_expand: true });
 
         this.actor.set_child(this._iconContainer);
-        this._iconContainer.add_child(this._dot);
 
         this.actor._delegate = this;
 
@@ -2020,6 +2057,16 @@ var AppIcon = class AppIcon {
         iconParams['setSizeManually'] = true;
         this.icon = new IconGrid.BaseIcon(app.get_name(), iconParams);
         this._iconContainer.add_child(this.icon);
+
+        this._dot = new St.Widget({
+            style_class: 'app-well-app-running-dot',
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.END,
+        });
+        this._iconContainer.add_child(this._dot);
 
         this.actor.label_actor = this.icon.label;
 
@@ -2051,6 +2098,7 @@ var AppIcon = class AppIcon {
             });
         }
 
+        this._dragMonitor = null;
         this._itemDragBeginId = Main.overview.connect(
             'item-drag-begin', this._onDragBegin.bind(this));
         this._itemDragEndId = Main.overview.connect(
@@ -2075,6 +2123,12 @@ var AppIcon = class AppIcon {
         }
         if (this._stateChangedId > 0)
             this.app.disconnect(this._stateChangedId);
+
+        if (this._dragMonitor) {
+            DND.removeDragMonitor(this._dragMonitor);
+            this._dragMonitor = null;
+        }
+
         if (this._draggable) {
             if (this._dragging)
                 Main.overview.endItemDrag(this);

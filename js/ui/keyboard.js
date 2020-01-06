@@ -466,10 +466,17 @@ Signals.addSignalMethods(Key.prototype);
 
 var KeyboardModel = class {
     constructor(groupName) {
-        try {
-            this._model = this._loadModel(groupName);
-        } catch (e) {
-            this._model = this._loadModel('us');
+        let names = [groupName];
+        if (names.includes('+'))
+            names.push(groupName.replace(/\+.*/, ''));
+        names.push('us');
+
+        for (let i = 0; i < names.length; i++) {
+            try {
+                this._model = this._loadModel(names[i]);
+                break;
+            } catch (e) {
+            }
         }
     }
 
@@ -887,7 +894,7 @@ var EmojiSelection = class EmojiSelection {
         this._emojiPager.connect('emoji', (pager, str) => {
             this.emit('emoji-selected', str);
         });
-        this.actor.add(this._emojiPager.actor, { expand: true });
+        this.actor.add(this._emojiPager, { expand: true });
 
         this._pageIndicator = new PageIndicators.PageIndicators(false);
         this.actor.add(this._pageIndicator, { expand: true, x_fill: false, y_fill: false });
