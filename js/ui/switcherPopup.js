@@ -46,6 +46,9 @@ var SwitcherPopup = GObject.registerClass({
 
         Main.uiGroup.add_actor(this);
 
+        this._systemModalOpenedId =
+            Main.layoutManager.connect('system-modal-opened', () => this.destroy());
+
         this._haveModal = false;
         this._modifierMask = 0;
 
@@ -180,6 +183,14 @@ var SwitcherPopup = GObject.registerClass({
         if (keysym == Clutter.Escape || keysym == Clutter.Tab)
             this.fadeAndDestroy();
 
+        // Allow to explicitly select the current item; this is particularly
+        // useful for no-modifier popups
+        if (keysym === Clutter.KEY_space ||
+            keysym === Clutter.KEY_Return ||
+            keysym === Clutter.KEY_KP_Enter ||
+            keysym === Clutter.KEY_ISO_Enter)
+            this._finish(event.get_time());
+
         return Clutter.EVENT_STOP;
     }
 
@@ -270,7 +281,7 @@ var SwitcherPopup = GObject.registerClass({
             GLib.PRIORITY_DEFAULT,
             NO_MODS_TIMEOUT,
             () => {
-                this._finish(global.get_current_time());
+                this._finish(global.display.get_current_time_roundtrip());
                 this._noModsTimeoutId = 0;
                 return GLib.SOURCE_REMOVE;
             });
@@ -303,6 +314,8 @@ var SwitcherPopup = GObject.registerClass({
 
     _onDestroy() {
         this._popModal();
+
+        Main.layoutManager.disconnect(this._systemModalOpenedId);
 
         if (this._motionTimeoutId != 0)
             GLib.source_remove(this._motionTimeoutId);
@@ -560,10 +573,10 @@ var SwitcherList = GObject.registerClass({
         let leftPadding = this.get_theme_node().get_padding(St.Side.LEFT);
         let rightPadding = this.get_theme_node().get_padding(St.Side.RIGHT);
 
-        let [, natScrollViewWidth] = this._scrollView.get_preferred_width(height);
+        let [minListWidth] = this._list.get_preferred_width(height);
 
         let childBox = new Clutter.ActorBox();
-        let scrollable = natScrollViewWidth > width;
+        let scrollable = minListWidth > width;
 
         this._scrollView.allocate(contentBox, flags);
 
