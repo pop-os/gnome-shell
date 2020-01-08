@@ -1,4 +1,4 @@
-gnome-shell (3.34.3-1ubuntu1~19.10.1) UNRELEASED; urgency=medium
+gnome-shell (3.34.3-1ubuntu1~19.10.1) eoan; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * Backport to eoan (LP: #1857037, LP: #1858683):
@@ -13,7 +13,7 @@ gnome-shell (3.34.3-1ubuntu1~19.10.1) UNRELEASED; urgency=medium
   * control: Bump yaru-theme Breaks to 19.10.5. This version has some updates
     for gnome-shell 3.34.2 compatibility
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 07 Jan 2020 21:21:10 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 08 Jan 2020 14:14:52 +0000
 
 gnome-shell (3.34.3-1ubuntu1) focal; urgency=medium
 
