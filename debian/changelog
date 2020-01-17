@@ -1,3 +1,10 @@
+gnome-shell (3.34.3-2) UNRELEASED; urgency=medium
+
+  * debian/rules: Do not override libexecdir so things are installed in
+    /usr/libexec now that's allowed by the policy
+
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 17 Jan 2020 15:56:39 +0100
+
 gnome-shell (3.34.3-1) unstable; urgency=medium
 
   * New upstream release
