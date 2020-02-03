@@ -1,3 +1,9 @@
+gnome-shell (3.34.3-1ubuntu1~19.10.1pop1) eoan; urgency=medium
+
+  * New upstream release 
+
+ -- Michael Aaron Murphy <michael@system76.com>  Mon, 03 Feb 2020 10:15:59 -0700
+
 gnome-shell (3.34.3-1ubuntu1~19.10.1) eoan; urgency=medium
 
   [ Marco Trevisan (Treviño) ]

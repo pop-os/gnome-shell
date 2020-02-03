@@ -16,3 +16,7 @@ magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch
 ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
 ubuntu/secure_mode_extension.patch
+
+# Pop!_OS
+pop-dark-theme.patch
+sched-rr.patch

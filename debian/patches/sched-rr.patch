@@ -1,0 +1,36 @@
+Index: gnome-shell/src/main.c
+===================================================================
+--- gnome-shell.orig/src/main.c
++++ gnome-shell/src/main.c
+@@ -5,9 +5,14 @@
+ #ifdef HAVE_MALLINFO
+ #include <malloc.h>
+ #endif
++#include <sched.h>
+ #include <stdlib.h>
+ #include <string.h>
+ 
++#ifndef SCHED_RESET_ON_FORK
++#define SCHED_RESET_ON_FORK 0x40000000
++#endif
++
+ #include <cogl-pango/cogl-pango.h>
+ #include <clutter/clutter.h>
+ #include <clutter/x11/clutter-x11.h>
+@@ -516,6 +521,16 @@ main (int argc, char **argv)
+   char *debug_flags_string;
+   int ecode;
+ 
++  int retval;
++  struct sched_param sp = {
++    .sched_priority = sched_get_priority_min (SCHED_RR)
++  };
++
++  retval = sched_setscheduler (0, SCHED_RR | SCHED_RESET_ON_FORK, &sp);
++
++  if (retval != 0)
++    g_warning ("Failed to set RT scheduler: %m");
++
+   bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+   bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+   textdomain (GETTEXT_PACKAGE);
