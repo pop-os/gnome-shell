@@ -250,11 +250,8 @@ st_scroll_view_dispose (GObject *object)
       priv->fade_effect = NULL;
     }
 
-  if (priv->vscroll)
-    clutter_actor_destroy (priv->vscroll);
-
-  if (priv->hscroll)
-    clutter_actor_destroy (priv->hscroll);
+  g_clear_pointer (&priv->vscroll, clutter_actor_destroy);
+  g_clear_pointer (&priv->hscroll, clutter_actor_destroy);
 
   /* For most reliable freeing of memory, an object with signals
    * like StAdjustment should be explicitly disposed. Since we own
@@ -279,35 +276,36 @@ st_scroll_view_dispose (GObject *object)
 }
 
 static void
-st_scroll_view_paint (ClutterActor *actor)
+st_scroll_view_paint (ClutterActor        *actor,
+                      ClutterPaintContext *paint_context)
 {
   StScrollViewPrivate *priv = ST_SCROLL_VIEW (actor)->priv;
 
-  st_widget_paint_background (ST_WIDGET (actor));
+  st_widget_paint_background (ST_WIDGET (actor), paint_context);
 
   if (priv->child)
-    clutter_actor_paint (priv->child);
+    clutter_actor_paint (priv->child, paint_context);
   if (priv->hscrollbar_visible)
-    clutter_actor_paint (priv->hscroll);
+    clutter_actor_paint (priv->hscroll, paint_context);
   if (priv->vscrollbar_visible)
-    clutter_actor_paint (priv->vscroll);
+    clutter_actor_paint (priv->vscroll, paint_context);
 }
 
 static void
 st_scroll_view_pick (ClutterActor       *actor,
-                     const ClutterColor *color)
+                     ClutterPickContext *pick_context)
 {
   StScrollViewPrivate *priv = ST_SCROLL_VIEW (actor)->priv;
 
   /* Chain up so we get a bounding box pained (if we are reactive) */
-  CLUTTER_ACTOR_CLASS (st_scroll_view_parent_class)->pick (actor, color);
+  CLUTTER_ACTOR_CLASS (st_scroll_view_parent_class)->pick (actor, pick_context);
 
   if (priv->child)
-    clutter_actor_paint (priv->child);
+    clutter_actor_pick (priv->child, pick_context);
   if (priv->hscrollbar_visible)
-    clutter_actor_paint (priv->hscroll);
+    clutter_actor_pick (priv->hscroll, pick_context);
   if (priv->vscrollbar_visible)
-    clutter_actor_paint (priv->vscroll);
+    clutter_actor_pick (priv->vscroll, pick_context);
 }
 
 static gboolean
@@ -964,23 +962,6 @@ st_scroll_view_remove (ClutterContainer *container,
 }
 
 static void
-st_scroll_view_foreach_with_internals (ClutterContainer *container,
-                                       ClutterCallback   callback,
-                                       gpointer          user_data)
-{
-  StScrollViewPrivate *priv = ST_SCROLL_VIEW (container)->priv;
-
-  if (priv->child != NULL)
-    callback (priv->child, user_data);
-
-  if (priv->hscroll != NULL)
-    callback (priv->hscroll, user_data);
-
-  if (priv->vscroll != NULL)
-    callback (priv->vscroll, user_data);
-}
-
-static void
 clutter_container_iface_init (ClutterContainerIface *iface)
 {
   /* store a pointer to the StBin implementation of
@@ -991,7 +972,6 @@ clutter_container_iface_init (ClutterContainerIface *iface)
 
   iface->add = st_scroll_view_add;
   iface->remove = st_scroll_view_remove;
-  iface->foreach_with_internals = st_scroll_view_foreach_with_internals;
 }
 
 StWidget *

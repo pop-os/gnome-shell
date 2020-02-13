@@ -12,17 +12,17 @@ const WorkspaceThumbnail = imports.ui.workspaceThumbnail;
 var SIDE_CONTROLS_ANIMATION_TIME = 160;
 
 function getRtlSlideDirection(direction, actor) {
-    let rtl = (actor.text_direction == Clutter.TextDirection.RTL);
-    if (rtl)
-        direction = (direction == SlideDirection.LEFT)
+    let rtl = actor.text_direction == Clutter.TextDirection.RTL;
+    if (rtl) {
+        direction = direction == SlideDirection.LEFT
             ? SlideDirection.RIGHT : SlideDirection.LEFT;
-
+    }
     return direction;
 }
 
 var SlideDirection = {
     LEFT: 0,
-    RIGHT: 1
+    RIGHT: 1,
 };
 
 var SlideLayout = GObject.registerClass({
@@ -31,15 +31,10 @@ var SlideLayout = GObject.registerClass({
             'slide-x', 'slide-x', 'slide-x',
             GObject.ParamFlags.READWRITE,
             0, 1, 1),
-        'translation-x': GObject.ParamSpec.double(
-            'translation-x', 'translation-x', 'translation-x',
-            GObject.ParamFlags.READWRITE,
-            -Infinity, Infinity, 0)
-    }
+    },
 }, class SlideLayout extends Clutter.FixedLayout {
     _init(params) {
         this._slideX = 1;
-        this._translationX = 0;
         this._direction = SlideDirection.LEFT;
 
         super._init(params);
@@ -67,12 +62,12 @@ var SlideLayout = GObject.registerClass({
         // flags only determine what to do if the allocated box is bigger
         // than the actor's box.
         let realDirection = getRtlSlideDirection(this._direction, child);
-        let alignX = (realDirection == SlideDirection.LEFT)
+        let alignX = realDirection == SlideDirection.LEFT
             ? availWidth - natWidth
             : availWidth - natWidth * this._slideX;
 
         let actorBox = new Clutter.ActorBox();
-        actorBox.x1 = box.x1 + alignX + this._translationX;
+        actorBox.x1 = box.x1 + alignX;
         actorBox.x2 = actorBox.x1 + (child.x_expand ? availWidth : natWidth);
         actorBox.y1 = box.y1;
         actorBox.y2 = actorBox.y1 + availHeight;
@@ -102,34 +97,23 @@ var SlideLayout = GObject.registerClass({
     get slideDirection() {
         return this._direction;
     }
-
-    // eslint-disable-next-line camelcase
-    set translation_x(value) {
-        if (this._translationX == value)
-            return;
-        this._translationX = value;
-        this.notify('translation-x');
-        this.layout_changed();
-    }
-
-    // eslint-disable-next-line camelcase
-    get translation_x() {
-        return this._translationX;
-    }
 });
 
-var SlidingControl = class {
-    constructor(params) {
+var SlidingControl = GObject.registerClass(
+class SlidingControl extends St.Widget {
+    _init(params) {
         params = Params.parse(params, { slideDirection: SlideDirection.LEFT });
-
-        this._visible = true;
-        this._inDrag = false;
 
         this.layout = new SlideLayout();
         this.layout.slideDirection = params.slideDirection;
-        this.actor = new St.Widget({ layout_manager: this.layout,
-                                     style_class: 'overview-controls',
-                                     clip_to_allocation: true });
+        super._init({
+            layout_manager: this.layout,
+            style_class: 'overview-controls',
+            clip_to_allocation: true,
+        });
+
+        this._visible = true;
+        this._inDrag = false;
 
         Main.overview.connect('hiding', this._onOverviewHiding.bind(this));
 
@@ -147,25 +131,25 @@ var SlidingControl = class {
     }
 
     _updateSlide() {
-        this.actor.ease_property('@layout.slide-x', this._getSlide(), {
+        this.ease_property('@layout.slide-x', this._getSlide(), {
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             duration: SIDE_CONTROLS_ANIMATION_TIME,
         });
     }
 
     getVisibleWidth() {
-        let child = this.actor.get_first_child();
+        let child = this.get_first_child();
         let [, , natWidth] = child.get_preferred_size();
         return natWidth;
     }
 
     _getTranslation() {
-        let child = this.actor.get_first_child();
+        let child = this.get_first_child();
         let direction = getRtlSlideDirection(this.layout.slideDirection, child);
         let visibleWidth = this.getVisibleWidth();
 
         if (direction == SlideDirection.LEFT)
-            return - visibleWidth;
+            return -visibleWidth;
         else
             return visibleWidth;
     }
@@ -175,18 +159,18 @@ var SlidingControl = class {
         let translationEnd = 0;
         let translation = this._getTranslation();
 
-        let shouldShow = (this._getSlide() > 0);
-        if (shouldShow) {
+        let shouldShow = this._getSlide() > 0;
+        if (shouldShow)
             translationStart = translation;
-        } else {
+        else
             translationEnd = translation;
-        }
 
-        if (this.layout.translation_x == translationEnd)
+        if (this.translation_x === translationEnd)
             return;
 
-        this.layout.translation_x = translationStart;
-        this.actor.ease_property('@layout.translation-x', translationEnd, {
+        this.translation_x = translationStart;
+        this.ease({
+            translation_x: translationEnd,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             duration: SIDE_CONTROLS_ANIMATION_TIME,
         });
@@ -218,18 +202,18 @@ var SlidingControl = class {
     }
 
     fadeIn() {
-        this.actor.ease({
+        this.ease({
             opacity: 255,
             duration: SIDE_CONTROLS_ANIMATION_TIME / 2,
-            mode: Clutter.AnimationMode.EASE_IN_QUAD
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
         });
     }
 
     fadeHalf() {
-        this.actor.ease({
+        this.ease({
             opacity: 128,
             duration: SIDE_CONTROLS_ANIMATION_TIME / 2,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
@@ -249,37 +233,38 @@ var SlidingControl = class {
         // selector; this means we can now safely set the full slide for
         // the next page, since slideIn or slideOut might have been called,
         // changing the visiblity
-        this.actor.remove_transition('@layout.slide-x');
+        this.remove_transition('@layout.slide-x');
         this.layout.slide_x = this._getSlide();
         this._updateTranslation();
     }
-};
+});
 
-var ThumbnailsSlider = class extends SlidingControl {
-    constructor(thumbnailsBox) {
-        super({ slideDirection: SlideDirection.RIGHT });
+var ThumbnailsSlider = GObject.registerClass(
+class ThumbnailsSlider extends SlidingControl {
+    _init(thumbnailsBox) {
+        super._init({ slideDirection: SlideDirection.RIGHT });
 
         this._thumbnailsBox = thumbnailsBox;
 
-        this.actor.request_mode = Clutter.RequestMode.WIDTH_FOR_HEIGHT;
-        this.actor.reactive = true;
-        this.actor.track_hover = true;
-        this.actor.add_actor(this._thumbnailsBox);
+        this.request_mode = Clutter.RequestMode.WIDTH_FOR_HEIGHT;
+        this.reactive = true;
+        this.track_hover = true;
+        this.add_actor(this._thumbnailsBox);
 
         Main.layoutManager.connect('monitors-changed', this._updateSlide.bind(this));
         global.workspace_manager.connect('active-workspace-changed',
                                          this._updateSlide.bind(this));
         global.workspace_manager.connect('notify::n-workspaces',
                                          this._updateSlide.bind(this));
-        this.actor.connect('notify::hover', this._updateSlide.bind(this));
-        this._thumbnailsBox.bind_property('visible', this.actor, 'visible', GObject.BindingFlags.SYNC_CREATE);
+        this.connect('notify::hover', this._updateSlide.bind(this));
+        this._thumbnailsBox.bind_property('visible', this, 'visible', GObject.BindingFlags.SYNC_CREATE);
     }
 
     _getAlwaysZoomOut() {
         // Always show the pager on hover, during a drag, or if workspaces are
         // actually used, e.g. there are windows on any non-active workspace
         let workspaceManager = global.workspace_manager;
-        let alwaysZoomOut = this.actor.hover ||
+        let alwaysZoomOut = this.hover ||
                             this._inDrag ||
                             !Meta.prefs_get_dynamic_workspaces() ||
                             workspaceManager.n_workspaces > 2 ||
@@ -304,12 +289,12 @@ var ThumbnailsSlider = class extends SlidingControl {
     }
 
     getNonExpandedWidth() {
-        let child = this.actor.get_first_child();
+        let child = this.get_first_child();
         return child.get_theme_node().get_length('visible-width');
     }
 
     _onDragEnd() {
-        this.actor.sync_hover();
+        this.sync_hover();
         super._onDragEnd();
     }
 
@@ -321,7 +306,7 @@ var ThumbnailsSlider = class extends SlidingControl {
         if (alwaysZoomOut)
             return 1;
 
-        let child = this.actor.get_first_child();
+        let child = this.get_first_child();
         let preferredHeight = child.get_preferred_height(-1)[1];
         let expandedWidth = child.get_preferred_width(preferredHeight)[1];
 
@@ -335,24 +320,25 @@ var ThumbnailsSlider = class extends SlidingControl {
         else
             return this.getNonExpandedWidth();
     }
-};
+});
 
-var DashSlider = class extends SlidingControl {
-    constructor(dash) {
-        super({ slideDirection: SlideDirection.LEFT });
+var DashSlider = GObject.registerClass(
+class DashSlider extends SlidingControl {
+    _init(dash) {
+        super._init({ slideDirection: SlideDirection.LEFT });
 
         this._dash = dash;
 
         // SlideLayout reads the actor's expand flags to decide
         // whether to allocate the natural size to its child, or the whole
         // available allocation
-        this._dash.actor.x_expand = true;
+        this._dash.x_expand = true;
 
-        this.actor.x_expand = true;
-        this.actor.x_align = Clutter.ActorAlign.START;
-        this.actor.y_expand = true;
+        this.x_expand = true;
+        this.x_align = Clutter.ActorAlign.START;
+        this.y_expand = true;
 
-        this.actor.add_actor(this._dash.actor);
+        this.add_actor(this._dash);
 
         this._dash.connect('icon-size-changed', this._updateSlide.bind(this));
     }
@@ -371,7 +357,7 @@ var DashSlider = class extends SlidingControl {
     _onWindowDragEnd() {
         this.fadeIn();
     }
-};
+});
 
 var DashSpacer = GObject.registerClass(
 class DashSpacer extends St.Widget {
@@ -416,54 +402,93 @@ var ControlsLayout = GObject.registerClass({
     }
 });
 
-var ControlsManager = class {
-    constructor(searchEntry) {
+var ControlsManager = GObject.registerClass(
+class ControlsManager extends St.Widget {
+    _init(searchEntry) {
+        let layout = new ControlsLayout();
+        super._init({
+            layout_manager: layout,
+            x_expand: true,
+            y_expand: true,
+            clip_to_allocation: true,
+        });
+
         this.dash = new Dash.Dash();
         this._dashSlider = new DashSlider(this.dash);
         this._dashSpacer = new DashSpacer();
-        this._dashSpacer.setDashActor(this._dashSlider.actor);
+        this._dashSpacer.setDashActor(this._dashSlider);
 
-        this._thumbnailsBox = new WorkspaceThumbnail.ThumbnailsBox();
+        let workspaceManager = global.workspace_manager;
+        let activeWorkspaceIndex = workspaceManager.get_active_workspace_index();
+
+        this._workspaceAdjustment = new St.Adjustment({
+            value: activeWorkspaceIndex,
+            lower: 0,
+            page_increment: 1,
+            page_size: 1,
+            step_increment: 0,
+            upper: workspaceManager.n_workspaces,
+        });
+
+        this._nWorkspacesNotifyId =
+            workspaceManager.connect('notify::n-workspaces',
+                this._updateAdjustment.bind(this));
+
+        this._thumbnailsBox =
+            new WorkspaceThumbnail.ThumbnailsBox(this._workspaceAdjustment);
         this._thumbnailsSlider = new ThumbnailsSlider(this._thumbnailsBox);
 
         this.viewSelector = new ViewSelector.ViewSelector(searchEntry,
-                                                          this.dash.showAppsButton);
+            this._workspaceAdjustment, this.dash.showAppsButton);
         this.viewSelector.connect('page-changed', this._setVisibility.bind(this));
         this.viewSelector.connect('page-empty', this._onPageEmpty.bind(this));
 
-        let layout = new ControlsLayout();
-        this.actor = new St.Widget({ layout_manager: layout,
-                                     x_expand: true, y_expand: true,
-                                     clip_to_allocation: true });
         this._group = new St.BoxLayout({ name: 'overview-group',
                                          x_expand: true, y_expand: true });
-        this.actor.add_actor(this._group);
+        this.add_actor(this._group);
 
-        this.actor.add_actor(this._dashSlider.actor);
+        this.add_actor(this._dashSlider);
 
         this._group.add_actor(this._dashSpacer);
-        this._group.add(this.viewSelector.actor, { x_fill: true,
-                                                   expand: true });
-        this._group.add_actor(this._thumbnailsSlider.actor);
+        this._group.add_child(this.viewSelector);
+        this._group.add_actor(this._thumbnailsSlider);
 
         layout.connect('allocation-changed', this._updateWorkspacesGeometry.bind(this));
 
         Main.overview.connect('showing', this._updateSpacerVisibility.bind(this));
+
+        this.connect('destroy', this._onDestroy.bind(this));
+    }
+
+    _onDestroy() {
+        global.workspace_manager.disconnect(this._nWorkspacesNotifyId);
+    }
+
+    _updateAdjustment() {
+        let workspaceManager = global.workspace_manager;
+        let newNumWorkspaces = workspaceManager.n_workspaces;
+        let activeIndex = workspaceManager.get_active_workspace_index();
+
+        this._workspaceAdjustment.upper = newNumWorkspaces;
+
+        // A workspace might have been inserted or removed before the active
+        // one, causing the adjustment to go out of sync, so update the value
+        this._workspaceAdjustment.value = activeIndex;
     }
 
     _updateWorkspacesGeometry() {
-        let [x, y] = this.actor.get_transformed_position();
-        let [width, height] = this.actor.get_transformed_size();
-        let geometry = { x: x, y: y, width: width, height: height };
+        let [x, y] = this.get_transformed_position();
+        let [width, height] = this.get_transformed_size();
+        let geometry = { x, y, width, height };
 
-        let spacing = this.actor.get_theme_node().get_length('spacing');
+        let spacing = this.get_theme_node().get_length('spacing');
         let dashWidth = this._dashSlider.getVisibleWidth() + spacing;
         let thumbnailsWidth = this._thumbnailsSlider.getNonExpandedWidth() + spacing;
 
         geometry.width -= dashWidth;
         geometry.width -= thumbnailsWidth;
 
-        if (this.actor.get_text_direction() == Clutter.TextDirection.LTR)
+        if (this.get_text_direction() == Clutter.TextDirection.LTR)
             geometry.x += dashWidth;
         else
             geometry.x += thumbnailsWidth;
@@ -481,9 +506,9 @@ var ControlsManager = class {
             return;
 
         let activePage = this.viewSelector.getActivePage();
-        let dashVisible = (activePage == ViewSelector.ViewPage.WINDOWS ||
-                           activePage == ViewSelector.ViewPage.APPS);
-        let thumbnailsVisible = (activePage == ViewSelector.ViewPage.WINDOWS);
+        let dashVisible = activePage == ViewSelector.ViewPage.WINDOWS ||
+                           activePage == ViewSelector.ViewPage.APPS;
+        let thumbnailsVisible = activePage == ViewSelector.ViewPage.WINDOWS;
 
         if (dashVisible)
             this._dashSlider.slideIn();
@@ -501,7 +526,7 @@ var ControlsManager = class {
             return;
 
         let activePage = this.viewSelector.getActivePage();
-        this._dashSpacer.visible = (activePage == ViewSelector.ViewPage.WINDOWS);
+        this._dashSpacer.visible = activePage == ViewSelector.ViewPage.WINDOWS;
     }
 
     _onPageEmpty() {
@@ -510,4 +535,4 @@ var ControlsManager = class {
 
         this._updateSpacerVisibility();
     }
-};
+});

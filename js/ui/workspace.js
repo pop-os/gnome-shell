@@ -1,7 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Workspace */
 
-const { Atk, Clutter, GLib, GObject, Meta, Pango, Shell, St } = imports.gi;
+const { Atk, Clutter, GLib, GObject,
+        Graphene, Meta, Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const DND = imports.ui.dnd;
@@ -100,9 +101,9 @@ var WindowClone = GObject.registerClass({
         'hide-chrome': {},
         'selected': { param_types: [GObject.TYPE_UINT] },
         'show-chrome': {},
-        'size-changed': {}
+        'size-changed': {},
     },
-}, class WorkspaceWindowClone extends St.Widget {
+}, class WindowClone extends St.Widget {
     _init(realWindow, workspace) {
         this.realWindow = realWindow;
         this.metaWindow = realWindow.meta_window;
@@ -125,7 +126,7 @@ var WindowClone = GObject.registerClass({
             reactive: true,
             can_focus: true,
             accessible_role: Atk.Role.PUSH_BUTTON,
-            layout_manager: new WindowCloneLayout()
+            layout_manager: new WindowCloneLayout(),
         });
 
         this.set_offscreen_redirect(Clutter.OffscreenRedirect.AUTOMATIC_FOR_OPACITY);
@@ -164,13 +165,6 @@ var WindowClone = GObject.registerClass({
         clickAction.connect('long-press', this._onLongPress.bind(this));
         this.add_action(clickAction);
         this.connect('destroy', this._onDestroy.bind(this));
-        this.connect('key-press-event', this._onKeyPress.bind(this));
-
-        this.connect('enter-event', () => this.emit('show-chrome'));
-        this.connect('key-focus-in', () => this.emit('show-chrome'));
-
-        this.connect('leave-event', () => this.emit('hide-chrome'));
-        this.connect('key-focus-out', () => this.emit('hide-chrome'));
 
         this._draggable = DND.makeDraggable(this,
                                             { restoreOnSuccess: true,
@@ -307,7 +301,7 @@ var WindowClone = GObject.registerClass({
 
     _computeWindowCenter() {
         let box = this.realWindow.get_allocation_box();
-        this._windowCenter = new Clutter.Point({
+        this._windowCenter = new Graphene.Point({
             x: box.get_x() + box.get_width() / 2,
             y: box.get_y() + box.get_height() / 2,
         });
@@ -334,11 +328,12 @@ var WindowClone = GObject.registerClass({
             // We'll fix up the stack after the drag
             return;
 
+        let parent = this.get_parent();
         let actualAbove = this.getActualStackAbove();
         if (actualAbove == null)
-            this.lower_bottom();
+            parent.set_child_below_sibling(this, null);
         else
-            this.raise(actualAbove);
+            parent.set_child_above_sibling(this, actualAbove);
     }
 
     _disconnectSignals() {
@@ -382,9 +377,29 @@ var WindowClone = GObject.registerClass({
         this.emit('selected', global.get_current_time());
     }
 
-    _onKeyPress(actor, event) {
-        let symbol = event.get_key_symbol();
-        let isEnter = (symbol == Clutter.KEY_Return || symbol == Clutter.KEY_KP_Enter);
+    vfunc_enter_event(crossingEvent) {
+        this.emit('show-chrome');
+        return super.vfunc_enter_event(crossingEvent);
+    }
+
+    vfunc_leave_event(crossingEvent) {
+        this.emit('hide-chrome');
+        return super.vfunc_leave_event(crossingEvent);
+    }
+
+    vfunc_key_focus_in() {
+        super.vfunc_key_focus_in();
+        this.emit('show-chrome');
+    }
+
+    vfunc_key_focus_out() {
+        super.vfunc_key_focus_out();
+        this.emit('hide-chrome');
+    }
+
+    vfunc_key_press_event(keyEvent) {
+        let symbol = keyEvent.keyval;
+        let isEnter = symbol == Clutter.KEY_Return || symbol == Clutter.KEY_KP_Enter;
         if (isEnter) {
             this._activate();
             return true;
@@ -416,7 +431,7 @@ var WindowClone = GObject.registerClass({
                     return;
                 let [x, y] = action.get_coords();
                 action.release();
-                this._draggable.startDrag(x, y, global.get_current_time(), this._dragTouchSequence);
+                this._draggable.startDrag(x, y, global.get_current_time(), this._dragTouchSequence, event.get_device());
             });
         } else {
             this.emit('show-chrome');
@@ -448,11 +463,12 @@ var WindowClone = GObject.registerClass({
         // We may not have a parent if DnD completed successfully, in
         // which case our clone will shortly be destroyed and replaced
         // with a new one on the target workspace.
-        if (this.get_parent() != null) {
+        let parent = this.get_parent();
+        if (parent !== null) {
             if (this._stackAbove == null)
-                this.lower_bottom();
+                parent.set_child_below_sibling(this, null);
             else
-                this.raise(this._stackAbove);
+                parent.set_child_above_sibling(this, this._stackAbove);
         }
 
 
@@ -631,7 +647,7 @@ var WindowOverlay = class {
         let params = {
             x, y, width,
             duration: Overview.ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         };
 
         if (height !== undefined)
@@ -657,7 +673,8 @@ var WindowOverlay = class {
     }
 
     _animateVisible() {
-        this._parentActor.raise_top();
+        this._parentActor.get_parent().set_child_above_sibling(
+            this._parentActor, null);
 
         let toAnimate = [this.border, this.title];
         if (this._windowCanClose())
@@ -669,7 +686,7 @@ var WindowOverlay = class {
             a.ease({
                 opacity: 255,
                 duration: WINDOW_OVERLAY_FADE_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
         });
     }
@@ -680,7 +697,7 @@ var WindowOverlay = class {
             a.ease({
                 opacity: 0,
                 duration: WINDOW_OVERLAY_FADE_TIME,
-                mode: Clutter.AnimationMode.EASE_IN_QUAD
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
             });
         });
     }
@@ -742,7 +759,7 @@ Signals.addSignalMethods(WindowOverlay.prototype);
 var WindowPositionFlags = {
     NONE: 0,
     INITIAL: 1 << 0,
-    ANIMATE: 1 << 1
+    ANIMATE: 1 << 1,
 };
 
 // Window Thumbnail Layout Algorithm
@@ -1094,29 +1111,20 @@ function rectEqual(one, two) {
     if (!one || !two)
         return false;
 
-    return (one.x == two.x &&
+    return one.x == two.x &&
             one.y == two.y &&
             one.width == two.width &&
-            one.height == two.height);
+            one.height == two.height;
 }
-
-const WorkspaceActor = GObject.registerClass(
-class WorkspaceActor extends St.Widget {
-    vfunc_get_focus_chain() {
-        return this.get_children().filter(c => c.visible).sort((a, b) => {
-            if (a instanceof WindowClone && b instanceof WindowClone)
-                return a.slotId - b.slotId;
-
-            return 0;
-        });
-    }
-});
 
 /**
  * @metaWorkspace: a #Meta.Workspace, or null
  */
-var Workspace = class {
-    constructor(metaWorkspace, monitorIndex) {
+var Workspace = GObject.registerClass(
+class Workspace extends St.Widget {
+    _init(metaWorkspace, monitorIndex) {
+        super._init({ style_class: 'window-picker' });
+
         // When dragging a window, we use this slot for reserve space.
         this._reservedSlot = null;
         this._reservedSlotWindow = null;
@@ -1142,18 +1150,17 @@ var Workspace = class {
         // Without this the drop area will be overlapped.
         this._windowOverlaysGroup.set_size(0, 0);
 
-        this.actor = new WorkspaceActor({ style_class: 'window-picker' });
         if (monitorIndex != Main.layoutManager.primaryIndex)
-            this.actor.add_style_class_name('external-monitor');
-        this.actor.set_size(0, 0);
+            this.add_style_class_name('external-monitor');
+        this.set_size(0, 0);
 
         this._dropRect = new Clutter.Actor({ opacity: 0 });
         this._dropRect._delegate = this;
 
-        this.actor.add_actor(this._dropRect);
-        this.actor.add_actor(this._windowOverlaysGroup);
+        this.add_actor(this._dropRect);
+        this.add_actor(this._windowOverlaysGroup);
 
-        this.actor.connect('destroy', this._onDestroy.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
 
         let windows = global.get_window_actors().filter(this._isMyWindow, this);
 
@@ -1183,10 +1190,19 @@ var Workspace = class {
 
         this._positionWindowsFlags = 0;
         this._positionWindowsId = 0;
+    }
 
-        this.actor.connect('notify::mapped', () => {
-            if (this.actor.mapped)
-                this._syncActualGeometry();
+    vfunc_map() {
+        super.vfunc_map();
+        this._syncActualGeometry();
+    }
+
+    vfunc_get_focus_chain() {
+        return this.get_children().filter(c => c.visible).sort((a, b) => {
+            if (a instanceof WindowClone && b instanceof WindowClone)
+                return a.slotId - b.slotId;
+
+            return 0;
         });
     }
 
@@ -1196,7 +1212,7 @@ var Workspace = class {
 
         this._fullGeometry = geom;
 
-        if (this.actor.mapped)
+        if (this.mapped)
             this._recalculateWindowPositions(WindowPositionFlags.NONE);
     }
 
@@ -1207,7 +1223,7 @@ var Workspace = class {
         this._actualGeometry = geom;
         this._actualGeometryDirty = true;
 
-        if (this.actor.mapped)
+        if (this.mapped)
             this._syncActualGeometry();
     }
 
@@ -1219,7 +1235,7 @@ var Workspace = class {
 
         this._actualGeometryLater = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
             this._actualGeometryLater = 0;
-            if (!this.actor.mapped)
+            if (!this.mapped)
                 return false;
 
             let geom = this._actualGeometry;
@@ -1371,7 +1387,7 @@ var Workspace = class {
                     clone.ease({
                         opacity: 255,
                         mode: Clutter.AnimationMode.EASE_IN_QUAD,
-                        duration: Overview.ANIMATION_TIME
+                        duration: Overview.ANIMATION_TIME,
                     });
                 }
 
@@ -1416,7 +1432,7 @@ var Workspace = class {
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
                 this._showWindowOverlay(clone, overlay);
-            }
+            },
         });
         clone.overlay.relayout(true);
     }
@@ -1432,9 +1448,9 @@ var Workspace = class {
     _delayedWindowRepositioning() {
         let [x, y] = global.get_pointer();
 
-        let pointerHasMoved = (this._cursorX != x && this._cursorY != y);
-        let inWorkspace = (this._fullGeometry.x < x && x < this._fullGeometry.x + this._fullGeometry.width &&
-                           this._fullGeometry.y < y && y < this._fullGeometry.y + this._fullGeometry.height);
+        let pointerHasMoved = this._cursorX != x && this._cursorY != y;
+        let inWorkspace = this._fullGeometry.x < x && x < this._fullGeometry.x + this._fullGeometry.width &&
+                           this._fullGeometry.y < y && y < this._fullGeometry.y + this._fullGeometry.height;
 
         if (pointerHasMoved && inWorkspace) {
             // store current cursor position
@@ -1472,7 +1488,7 @@ var Workspace = class {
                 win._overviewHint = {
                     x: stageX,
                     y: stageY,
-                    scale: stageWidth / clone.width
+                    scale: stageWidth / clone.width,
                 };
             }
             clone.destroy();
@@ -1510,8 +1526,7 @@ var Workspace = class {
             // Newly-created windows are added to a workspace before
             // the compositor finds out about them...
             let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                if (this.actor &&
-                    metaWin.get_compositor_private() &&
+                if (metaWin.get_compositor_private() &&
                     metaWin.get_workspace() == this.metaWorkspace)
                     this._doAddWindow(metaWin);
                 return GLib.SOURCE_REMOVE;
@@ -1547,8 +1562,8 @@ var Workspace = class {
         let [clone, overlay_] = this._addWindowClone(win, false);
 
         if (win._overviewHint) {
-            let x = win._overviewHint.x - this.actor.x;
-            let y = win._overviewHint.y - this.actor.y;
+            let x = win._overviewHint.x - this.x;
+            let y = win._overviewHint.y - this.y;
             let scale = win._overviewHint.scale;
             delete win._overviewHint;
 
@@ -1573,15 +1588,13 @@ var Workspace = class {
     }
 
     _windowEnteredMonitor(metaDisplay, monitorIndex, metaWin) {
-        if (monitorIndex == this.monitorIndex) {
+        if (monitorIndex == this.monitorIndex)
             this._doAddWindow(metaWin);
-        }
     }
 
     _windowLeftMonitor(metaDisplay, monitorIndex, metaWin) {
-        if (monitorIndex == this.monitorIndex) {
+        if (monitorIndex == this.monitorIndex)
             this._doRemoveWindow(metaWin);
-        }
     }
 
     // check for maximized windows on the workspace
@@ -1717,7 +1730,7 @@ var Workspace = class {
             clone.ease({
                 opacity,
                 duration,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
         } else {
             // The window is hidden
@@ -1769,7 +1782,7 @@ var Workspace = class {
                 scale_y: 1,
                 opacity: 255,
                 duration: Overview.ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
         } else {
             // The window is hidden, make it shrink and fade it out
@@ -1778,13 +1791,9 @@ var Workspace = class {
                 scale_y: 0,
                 opacity: 0,
                 duration: Overview.ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
         }
-    }
-
-    destroy() {
-        this.actor.destroy();
     }
 
     _onDestroy() {
@@ -1867,11 +1876,11 @@ var Workspace = class {
             this._removeWindowClone(clone.metaWindow);
         });
 
-        this.actor.add_actor(clone);
+        this.add_actor(clone);
 
         overlay.connect('chrome-visible', () => {
             let focus = global.stage.key_focus;
-            if (focus == null || this.actor.contains(focus))
+            if (focus == null || this.contains(focus))
                 clone.grab_key_focus();
 
             this._windowOverlays.forEach(o => {
@@ -1941,7 +1950,7 @@ var Workspace = class {
             if (numColumns == lastLayout.numColumns)
                 break;
 
-            let layout = { area: area, strategy: strategy, numRows: numRows, numColumns: numColumns };
+            let layout = { area, strategy, numRows, numColumns };
             strategy.computeLayout(windows, layout);
             strategy.computeScaleAndSpace(layout);
 
@@ -1955,7 +1964,7 @@ var Workspace = class {
     }
 
     _getSpacingAndPadding() {
-        let node = this.actor.get_theme_node();
+        let node = this.get_theme_node();
 
         // Window grid spacing
         let columnSpacing = node.get_length('-horizontal-spacing');
@@ -2024,7 +2033,7 @@ var Workspace = class {
             win._overviewHint = {
                 x: actor.x,
                 y: actor.y,
-                scale: actor.scale_x
+                scale: actor.scale_x,
             };
 
             let metaWindow = win.get_meta_window();
@@ -2053,5 +2062,4 @@ var Workspace = class {
 
         return false;
     }
-};
-Signals.addSignalMethods(Workspace.prototype);
+});

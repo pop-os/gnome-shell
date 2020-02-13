@@ -12,7 +12,7 @@ var POPUP_APPICON_SIZE = 96;
 var SortGroup = {
     TOP:    0,
     MIDDLE: 1,
-    BOTTOM: 2
+    BOTTOM: 2,
 };
 
 var CtrlAltTabManager = class CtrlAltTabManager {
@@ -86,25 +86,26 @@ var CtrlAltTabManager = class CtrlAltTabManager {
             for (let i = 0; i < windows.length; i++) {
                 let icon = null;
                 let iconName = null;
-                if (windows[i].get_window_type () == Meta.WindowType.DESKTOP) {
+                if (windows[i].get_window_type() == Meta.WindowType.DESKTOP) {
                     iconName = 'video-display-symbolic';
                 } else {
                     let app = windowTracker.get_window_app(windows[i]);
-                    if (app)
+                    if (app) {
                         icon = app.create_icon_texture(POPUP_APPICON_SIZE);
-                    else
+                    } else {
                         icon = textureCache.bind_cairo_surface_property(windows[i],
                                                                         'icon',
                                                                         POPUP_APPICON_SIZE);
+                    }
                 }
 
                 items.push({ name: windows[i].title,
                              proxy: windows[i].get_compositor_private(),
-                             focusCallback: function(timestamp) {
-                                 Main.activateWindow(this, timestamp);
-                             }.bind(windows[i]),
+                             focusCallback: timestamp => {
+                                 Main.activateWindow(windows[i], timestamp);
+                             },
                              iconActor: icon,
-                             iconName: iconName,
+                             iconName,
                              sortGroup: SortGroup.MIDDLE });
             }
         }
@@ -143,9 +144,9 @@ class CtrlAltTabPopup extends SwitcherPopup.SwitcherPopup {
             this._select(this._next());
         else if (action == Meta.KeyBindingAction.SWITCH_PANELS_BACKWARD)
             this._select(this._previous());
-        else if (keysym == Clutter.Left)
+        else if (keysym == Clutter.KEY_Left)
             this._select(this._previous());
-        else if (keysym == Clutter.Right)
+        else if (keysym == Clutter.KEY_Right)
             this._select(this._next());
         else
             return Clutter.EVENT_PROPAGATE;
@@ -177,10 +178,13 @@ class CtrlAltTabSwitcher extends SwitcherPopup.SwitcherList {
             icon = new St.Icon({ icon_name: item.iconName,
                                  icon_size: POPUP_APPICON_SIZE });
         }
-        box.add(icon, { x_fill: false, y_fill: false } );
+        box.add_child(icon);
 
-        let text = new St.Label({ text: item.name });
-        box.add(text, { x_fill: false });
+        let text = new St.Label({
+            text: item.name,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        box.add_child(text);
 
         this.addItem(box, text);
     }

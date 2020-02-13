@@ -77,15 +77,12 @@ maybe_free_properties (StThemeNode *node)
     }
 }
 
-static void
-on_custom_stylesheets_changed (StTheme *theme,
-                               gpointer data)
+void
+_st_theme_node_reset_for_stylesheet_change (StThemeNode *node)
 {
-  StThemeNode *node = data;
   maybe_free_properties (node);
   node->properties_computed = FALSE;
 }
-
 
 static void
 st_theme_node_dispose (GObject *gobject)
@@ -108,12 +105,6 @@ st_theme_node_dispose (GObject *gobject)
     {
       st_icon_colors_unref (node->icon_colors);
       node->icon_colors = NULL;
-    }
-
-  if (node->theme && node->stylesheets_changed_id)
-    {
-      g_signal_handler_disconnect (node->theme, node->stylesheets_changed_id);
-      node->stylesheets_changed_id = 0;
     }
 
   st_theme_node_paint_state_free (&node->cached_state);
@@ -228,14 +219,7 @@ st_theme_node_new (StThemeContext    *context,
   if (theme == NULL && parent_node != NULL)
     theme = parent_node->theme;
 
-  if (theme != NULL)
-    {
-      node->theme = g_object_ref (theme);
-      node->stylesheets_changed_id =
-        g_signal_connect (node->theme, "custom-stylesheets-changed",
-                          G_CALLBACK (on_custom_stylesheets_changed), node);
-    }
-
+  g_set_object (&node->theme, theme);
   node->element_type = element_type;
   node->element_id = g_strdup (element_id);
   node->element_classes = split_on_whitespace (element_class);
@@ -597,10 +581,14 @@ get_color_from_term (StThemeNode  *node,
   CRRgb rgb;
   enum CRStatus status;
 
+  if (term_is_inherit (term))
+    {
+      return VALUE_INHERIT;
+    }
   /* Since libcroco doesn't know about rgba colors, it can't handle
    * the transparent keyword
    */
-  if (term_is_transparent (term))
+  else if (term_is_transparent (term))
     {
       *color = TRANSPARENT_COLOR;
       return VALUE_FOUND;
@@ -621,9 +609,6 @@ get_color_from_term (StThemeNode  *node,
   status = cr_rgb_set_from_term (&rgb, term);
   if (status != CR_OK)
     return VALUE_NOT_FOUND;
-
-  if (rgb.inherit)
-    return VALUE_INHERIT;
 
   if (rgb.is_percentage)
     cr_rgb_compute_from_percentage (&rgb);
@@ -1152,7 +1137,6 @@ get_length_from_term_int (StThemeNode *node,
 static GetFromTermResult
 get_length_internal (StThemeNode *node,
                      const char  *property_name,
-                     const char  *suffixed,
                      gdouble     *length)
 {
   int i;
@@ -1163,8 +1147,7 @@ get_length_internal (StThemeNode *node,
     {
       CRDeclaration *decl = node->properties[i];
 
-      if (strcmp (decl->property->stryng->str, property_name) == 0 ||
-          (suffixed != NULL && strcmp (decl->property->stryng->str, suffixed) == 0))
+      if (strcmp (decl->property->stryng->str, property_name) == 0)
         {
           GetFromTermResult result = get_length_from_term (node, decl->value, FALSE, length);
           if (result != VALUE_NOT_FOUND)
@@ -1205,17 +1188,16 @@ st_theme_node_lookup_length (StThemeNode *node,
                              gboolean     inherit,
                              gdouble     *length)
 {
-  GetFromTermResult result = get_length_internal (node, property_name, NULL, length);
+  GetFromTermResult result = get_length_internal (node, property_name, length);
   if (result == VALUE_FOUND)
     return TRUE;
   else if (result == VALUE_INHERIT)
     inherit = TRUE;
 
-  if (inherit && node->parent_node &&
-      st_theme_node_lookup_length (node->parent_node, property_name, inherit, length))
-    return TRUE;
-  else
-    return FALSE;
+  if (inherit && node->parent_node)
+    return st_theme_node_lookup_length (node->parent_node, property_name, inherit, length);
+
+  return FALSE;
 }
 
 /**
@@ -1725,7 +1707,13 @@ do_size_property (StThemeNode   *node,
                   CRDeclaration *decl,
                   int           *node_value)
 {
-  get_length_from_term_int (node, decl->value, FALSE, node_value);
+  CRTerm *term = decl->value;
+
+  if (term->type == TERM_IDENT &&
+      strcmp (term->content.str->stryng->str, "auto") == 0)
+    *node_value = -1;
+  else
+    get_length_from_term_int (node, term, FALSE, node_value);
 }
 
 void
@@ -1935,24 +1923,6 @@ st_theme_node_get_max_height (StThemeNode *node)
   return node->max_height;
 }
 
-static GetFromTermResult
-get_background_color_from_term (StThemeNode  *node,
-                                CRTerm       *term,
-                                ClutterColor *color)
-{
-  GetFromTermResult result = get_color_from_term (node, term, color);
-  if (result == VALUE_NOT_FOUND)
-    {
-      if (term_is_transparent (term))
-        {
-          *color = TRANSPARENT_COLOR;
-          return VALUE_FOUND;
-        }
-    }
-
-  return result;
-}
-
 void
 _st_theme_node_ensure_background (StThemeNode *node)
 {
@@ -1997,7 +1967,7 @@ _st_theme_node_ensure_background (StThemeNode *node)
 
           for (term = decl->value; term; term = term->next)
             {
-              GetFromTermResult result = get_background_color_from_term (node, term, &node->background_color);
+              GetFromTermResult result = get_color_from_term (node, term, &node->background_color);
               if (result == VALUE_FOUND)
                 {
                   /* color stored in node->background_color */
@@ -2106,7 +2076,7 @@ _st_theme_node_ensure_background (StThemeNode *node)
           if (decl->value == NULL || decl->value->next != NULL)
             continue;
 
-          result = get_background_color_from_term (node, decl->value, &node->background_color);
+          result = get_color_from_term (node, decl->value, &node->background_color);
           if (result == VALUE_FOUND)
             {
               /* color stored in node->background_color */

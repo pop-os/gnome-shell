@@ -114,7 +114,7 @@ function *run() {
     Scripting.scriptEvent('desktopShown');
 
     let interfaceSettings = new Gio.Settings({
-        schema_id: 'org.gnome.desktop.interface'
+        schema_id: 'org.gnome.desktop.interface',
     });
     interfaceSettings.set_boolean('enable-animations', false);
 
@@ -127,7 +127,7 @@ function *run() {
 
     Scripting.scriptEvent('applicationsShowStart');
     // eslint-disable-next-line require-atomic-updates
-    Main.overview._dash.showAppsButton.checked = true;
+    Main.overview.dash.showAppsButton.checked = true;
 
     yield Scripting.waitLeisure();
     Scripting.scriptEvent('applicationsShowDone');

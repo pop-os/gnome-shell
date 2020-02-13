@@ -15,14 +15,14 @@ class KbdA11yDialog extends GObject.Object {
 
         this._a11ySettings = new Gio.Settings({ schema_id: KEYBOARD_A11Y_SCHEMA });
 
-        let deviceManager = Clutter.DeviceManager.get_default();
-        deviceManager.connect('kbd-a11y-flags-changed',
-                              this._showKbdA11yDialog.bind(this));
+        let seat = Clutter.get_default_backend().get_default_seat();
+        seat.connect('kbd-a11y-flags-changed',
+                     this._showKbdA11yDialog.bind(this));
     }
 
-    _showKbdA11yDialog(deviceManager, newFlags, whatChanged) {
+    _showKbdA11yDialog(seat, newFlags, whatChanged) {
         let dialog = new ModalDialog.ModalDialog();
-        let title, body;
+        let title, description;
         let key, enabled;
 
         if (whatChanged & Clutter.KeyboardA11yFlags.SLOW_KEYS_ENABLED) {
@@ -31,8 +31,8 @@ class KbdA11yDialog extends GObject.Object {
             title = enabled
                 ? _("Slow Keys Turned On")
                 : _("Slow Keys Turned Off");
-            body = _("You just held down the Shift key for 8 seconds. This is the shortcut " +
-                     "for the Slow Keys feature, which affects the way your keyboard works.");
+            description = _('You just held down the Shift key for 8 seconds. This is the shortcut ' +
+                            'for the Slow Keys feature, which affects the way your keyboard works.');
 
         } else  if (whatChanged & Clutter.KeyboardA11yFlags.STICKY_KEYS_ENABLED) {
             key = KEY_STICKY_KEYS_ENABLED;
@@ -40,7 +40,7 @@ class KbdA11yDialog extends GObject.Object {
             title = enabled
                 ? _("Sticky Keys Turned On")
                 : _("Sticky Keys Turned Off");
-            body = enabled
+            description = enabled
                 ? _("You just pressed the Shift key 5 times in a row. This is the shortcut " +
                   "for the Sticky Keys feature, which affects the way your keyboard works.")
                 : _("You just pressed two keys at once, or pressed the Shift key 5 times in a row. " +
@@ -49,11 +49,8 @@ class KbdA11yDialog extends GObject.Object {
             return;
         }
 
-        let icon = new Gio.ThemedIcon({ name: 'preferences-desktop-accessibility-symbolic' });
-        let contentParams = { icon, title, body, styleClass: 'access-dialog' };
-        let content = new Dialog.MessageDialogContent(contentParams);
-
-        dialog.contentLayout.add_actor(content);
+        let content = new Dialog.MessageDialogContent({ title, description });
+        dialog.contentLayout.add_child(content);
 
         dialog.addButton({ label: enabled ? _("Leave On") : _("Turn On"),
                            action: () => {
@@ -61,7 +58,7 @@ class KbdA11yDialog extends GObject.Object {
                                dialog.close();
                            },
                            default: enabled,
-                           key: !enabled ? Clutter.Escape : null });
+                           key: !enabled ? Clutter.KEY_Escape : null });
 
         dialog.addButton({ label: enabled ? _("Turn Off") : _("Leave Off"),
                            action: () => {
@@ -69,7 +66,7 @@ class KbdA11yDialog extends GObject.Object {
                                dialog.close();
                            },
                            default: !enabled,
-                           key: enabled ? Clutter.Escape : null });
+                           key: enabled ? Clutter.KEY_Escape : null });
 
         dialog.open();
     }

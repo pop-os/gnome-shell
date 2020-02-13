@@ -29,10 +29,8 @@
 #include <meta/meta-workspace-manager.h>
 #include <meta/meta-x11-display.h>
 
-#ifdef HAVE_GNOME_SYSTEMD
 #define GNOME_DESKTOP_USE_UNSTABLE_API
 #include <libgnome-desktop/gnome-systemd.h>
-#endif
 
 /* Memory report bits */
 #ifdef HAVE_MALLINFO
@@ -50,6 +48,7 @@
 #include "shell-wm.h"
 #include "shell-util.h"
 #include "st.h"
+#include "switcheroo-control.h"
 
 static ShellGlobal *the_object = NULL;
 
@@ -87,6 +86,9 @@ struct _ShellGlobal {
   gboolean has_modal;
   gboolean frame_timestamps;
   gboolean frame_finish_timestamp;
+
+  GDBusProxy *switcheroo_control;
+  GCancellable *switcheroo_cancellable;
 };
 
 enum {
@@ -108,6 +110,7 @@ enum {
   PROP_FOCUS_MANAGER,
   PROP_FRAME_TIMESTAMPS,
   PROP_FRAME_FINISH_TIMESTAMP,
+  PROP_SWITCHEROO_CONTROL,
 };
 
 /* Signals */
@@ -121,6 +124,72 @@ enum
 G_DEFINE_TYPE(ShellGlobal, shell_global, G_TYPE_OBJECT);
 
 static guint shell_global_signals [LAST_SIGNAL] = { 0 };
+
+static void
+got_switcheroo_control_gpus_property_cb (GObject      *source_object,
+                                         GAsyncResult *res,
+                                         gpointer      user_data)
+{
+  ShellGlobal *global;
+  GError *error = NULL;
+  GVariant *gpus;
+
+  gpus = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source_object),
+                                        res, &error);
+  if (!gpus)
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        g_debug ("Could not get GPUs property from switcheroo-control: %s", error->message);
+      g_clear_error (&error);
+      return;
+    }
+
+  global = user_data;
+  g_dbus_proxy_set_cached_property (global->switcheroo_control, "GPUs", gpus);
+}
+
+static void
+switcheroo_control_ready_cb (GObject      *source_object,
+                             GAsyncResult *res,
+                             gpointer      user_data)
+{
+  ShellGlobal *global;
+  GError *error = NULL;
+  ShellNetHadessSwitcherooControl *control;
+  g_auto(GStrv) cached_props = NULL;
+
+  control = shell_net_hadess_switcheroo_control_proxy_new_for_bus_finish (res, &error);
+  if (!control)
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        g_debug ("Could not get switcheroo-control GDBusProxy: %s", error->message);
+      g_clear_error (&error);
+      return;
+    }
+
+  global = user_data;
+  global->switcheroo_control = G_DBUS_PROXY (control);
+  g_debug ("Got switcheroo-control proxy successfully");
+
+  cached_props = g_dbus_proxy_get_cached_property_names (global->switcheroo_control);
+  if (cached_props != NULL && g_strv_contains ((const gchar * const *) cached_props, "GPUs"))
+    return;
+
+  g_dbus_connection_call (g_dbus_proxy_get_connection (global->switcheroo_control),
+                          g_dbus_proxy_get_name (global->switcheroo_control),
+                          g_dbus_proxy_get_object_path (global->switcheroo_control),
+                          "org.freedesktop.DBus.Properties",
+                          "Get",
+                          g_variant_new ("(ss)",
+                                         g_dbus_proxy_get_interface_name (global->switcheroo_control),
+                                         "GPUs"),
+                          NULL,
+                          G_DBUS_CALL_FLAGS_NONE,
+                          -1,
+                          global->switcheroo_cancellable,
+                          got_switcheroo_control_gpus_property_cb,
+                          user_data);
+}
 
 static void
 shell_global_set_property(GObject         *object,
@@ -215,6 +284,9 @@ shell_global_get_property(GObject         *object,
       break;
     case PROP_FRAME_FINISH_TIMESTAMP:
       g_value_set_boolean (value, global->frame_finish_timestamp);
+      break;
+    case PROP_SWITCHEROO_CONTROL:
+      g_value_set_object (value, global->switcheroo_control);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -315,6 +387,15 @@ shell_global_init (ShellGlobal *global)
   global->save_ops = g_hash_table_new_full (g_file_hash,
                                             (GEqualFunc) g_file_equal,
                                             g_object_unref, g_object_unref);
+
+  global->switcheroo_cancellable = g_cancellable_new ();
+  shell_net_hadess_switcheroo_control_proxy_new_for_bus (G_BUS_TYPE_SYSTEM,
+                                                         G_DBUS_PROXY_FLAGS_NONE,
+                                                         "net.hadess.SwitcherooControl",
+                                                         "/net/hadess/SwitcherooControl",
+                                                         global->switcheroo_cancellable,
+                                                         switcheroo_control_ready_cb,
+                                                         global);
 }
 
 static void
@@ -326,6 +407,9 @@ shell_global_finalize (GObject *object)
   g_object_unref (global->settings);
 
   the_object = NULL;
+
+  g_cancellable_cancel (global->switcheroo_cancellable);
+  g_clear_object (&global->switcheroo_cancellable);
 
   g_clear_object (&global->userdatadir_path);
   g_clear_object (&global->runtime_state_path);
@@ -483,6 +567,13 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                          "Whether at the end of a frame to call glFinish and log paintCompletedTimestamp",
                                                          FALSE,
                                                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class,
+                                   PROP_SWITCHEROO_CONTROL,
+                                   g_param_spec_object ("switcheroo-control",
+                                                        "switcheroo-control",
+                                                        "D-Bus Proxy for switcheroo-control daemon",
+                                                        G_TYPE_DBUS_PROXY,
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 }
 
 /*
@@ -1242,8 +1333,11 @@ shell_global_sync_pointer (ShellGlobal *global)
   int x, y;
   ClutterModifierType mods;
   ClutterMotionEvent event;
+  ClutterSeat *seat;
 
   shell_global_get_pointer (global, &x, &y, &mods);
+
+  seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
 
   event.type = CLUTTER_MOTION;
   event.time = shell_global_get_current_time (global);
@@ -1253,8 +1347,7 @@ shell_global_sync_pointer (ShellGlobal *global)
   event.y = y;
   event.modifier_state = mods;
   event.axes = NULL;
-  event.device = clutter_device_manager_get_device (clutter_device_manager_get_default (),
-                                                    META_VIRTUAL_CORE_POINTER_ID);
+  event.device = clutter_seat_get_pointer (seat);
 
   /* Leaving event.source NULL will force clutter to look it up, which
    * will generate enter/leave events as a side effect, if they are
@@ -1264,6 +1357,22 @@ shell_global_sync_pointer (ShellGlobal *global)
   event.source = NULL;
 
   clutter_event_put ((ClutterEvent *)&event);
+}
+
+/**
+ * _shell_global_get_switcheroo_control: (skip)
+ * @global: A #ShellGlobal
+ *
+ * Get the global #GDBusProxy instance for the switcheroo-control
+ * daemon.
+ *
+ * Return value: (transfer none): the #GDBusProxy for the daemon,
+ *   or %NULL on error.
+ */
+GDBusProxy *
+_shell_global_get_switcheroo_control    (ShellGlobal  *global)
+{
+  return global->switcheroo_control;
 }
 
 /**
@@ -1314,7 +1423,6 @@ shell_global_get_current_time (ShellGlobal *global)
   return clutter_get_current_event_time ();
 }
 
-#ifdef HAVE_GNOME_SYSTEMD
 static void
 shell_global_app_launched_cb (GAppLaunchContext *context,
                               GAppInfo          *info,
@@ -1338,7 +1446,6 @@ shell_global_app_launched_cb (GAppLaunchContext *context,
                              NULL,
                              NULL, NULL, NULL);
 }
-#endif
 
 /**
  * shell_global_create_app_launch_context:
@@ -1375,12 +1482,10 @@ shell_global_create_app_launch_context (ShellGlobal *global,
 
   meta_launch_context_set_workspace (context, ws);
 
-#ifdef HAVE_GNOME_SYSTEMD
   g_signal_connect (context,
                     "launched",
                     G_CALLBACK (shell_global_app_launched_cb),
                     NULL);
-#endif
 
   return (GAppLaunchContext *) context;
 }

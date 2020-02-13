@@ -1,8 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Dash */
 
-const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
-const Signals = imports.signals;
+const { Clutter, GLib, GObject,
+        Graphene, Meta, Shell, St } = imports.gi;
 
 const AppDisplay = imports.ui.appDisplay;
 const AppFavorites = imports.ui.appFavorites;
@@ -16,18 +16,18 @@ var DASH_ITEM_LABEL_HIDE_TIME = 100;
 var DASH_ITEM_HOVER_TIMEOUT = 300;
 
 function getAppFromSource(source) {
-    if (source instanceof AppDisplay.AppIcon) {
+    if (source instanceof AppDisplay.AppIcon)
         return source.app;
-    } else {
+    else
         return null;
-    }
 }
 
-var DashIcon = class DashIcon extends AppDisplay.AppIcon {
-    constructor(app) {
-        super(app, {
+var DashIcon = GObject.registerClass(
+class DashIcon extends AppDisplay.AppIcon {
+    _init(app) {
+        super._init(app, {
             setSizeManually: true,
-            showLabel: false
+            showLabel: false,
         });
     }
 
@@ -45,7 +45,7 @@ var DashIcon = class DashIcon extends AppDisplay.AppIcon {
     acceptDrop() {
         return false;
     }
-};
+});
 
 // A container like StBin, but taking the child's scale into account
 // when requesting a size
@@ -53,7 +53,7 @@ var DashItemContainer = GObject.registerClass(
 class DashItemContainer extends St.Widget {
     _init() {
         super._init({ style_class: 'dash-item-container',
-                      pivot_point: new Clutter.Point({ x: .5, y: .5 }),
+                      pivot_point: new Graphene.Point({ x: .5, y: .5 }),
                       scale_x: 0,
                       scale_y: 0,
                       opacity: 0,
@@ -125,7 +125,7 @@ class DashItemContainer extends St.Widget {
         this.label.ease({
             opacity: 255,
             duration: DASH_ITEM_LABEL_SHOW_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
@@ -139,7 +139,7 @@ class DashItemContainer extends St.Widget {
             opacity: 0,
             duration: DASH_ITEM_LABEL_HIDE_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this.label.hide()
+            onComplete: () => this.label.hide(),
         });
     }
 
@@ -163,7 +163,7 @@ class DashItemContainer extends St.Widget {
             scale_y: 1,
             opacity: 255,
             duration: time,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
@@ -182,7 +182,7 @@ class DashItemContainer extends St.Widget {
             opacity: 0,
             duration: DASH_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this.destroy()
+            onComplete: () => this.destroy(),
         });
     }
 });
@@ -284,9 +284,12 @@ var DashActor = GObject.registerClass(
 class DashActor extends St.Widget {
     _init() {
         let layout = new Clutter.BoxLayout({ orientation: Clutter.Orientation.VERTICAL });
-        super._init({ name: 'dash',
-                      layout_manager: layout,
-                      clip_to_allocation: true });
+        super._init({
+            name: 'dash',
+            layout_manager: layout,
+            clip_to_allocation: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
     }
 
     vfunc_allocate(box, flags) {
@@ -330,8 +333,10 @@ class DashActor extends St.Widget {
 
 const baseIconSizes = [16, 22, 24, 32, 48, 64];
 
-var Dash = class Dash {
-    constructor() {
+var Dash = GObject.registerClass({
+    Signals: { 'icon-size-changed': {} },
+}, class Dash extends St.Bin {
+    _init() {
         this._maxHeight = -1;
         this.iconSize = 64;
         this._shownInitially = false;
@@ -359,11 +364,11 @@ var Dash = class Dash {
 
         this._container.add_actor(this._showAppsIcon);
 
-        this.actor = new St.Bin({ child: this._container });
-        this.actor.connect('notify::height', () => {
-            if (this._maxHeight != this.actor.height)
+        super._init({ child: this._container });
+        this.connect('notify::height', () => {
+            if (this._maxHeight != this.height)
                 this._queueRedisplay();
-            this._maxHeight = this.actor.height;
+            this._maxHeight = this.height;
         });
 
         this._workId = Main.initializeDeferredWork(this._box, this._redisplay.bind(this));
@@ -386,13 +391,13 @@ var Dash = class Dash {
 
         // Translators: this is the name of the dock/favorites area on
         // the left of the overview
-        Main.ctrlAltTabManager.addGroup(this.actor, _("Dash"), 'user-bookmarks-symbolic');
+        Main.ctrlAltTabManager.addGroup(this, _("Dash"), 'user-bookmarks-symbolic');
     }
 
     _onDragBegin() {
         this._dragCancelled = false;
         this._dragMonitor = {
-            dragMotion: this._onDragMotion.bind(this)
+            dragMotion: this._onDragMotion.bind(this),
         };
         DND.addDragMonitor(this._dragMonitor);
 
@@ -476,16 +481,16 @@ var Dash = class Dash {
         let appIcon = new DashIcon(app);
 
         appIcon.connect('menu-state-changed',
-                        (appIcon, opened) => {
+                        (o, opened) => {
                             this._itemMenuStateChanged(item, opened);
                         });
 
         let item = new DashItemContainer();
-        item.setChild(appIcon.actor);
+        item.setChild(appIcon);
 
         // Override default AppIcon label_actor, now the
         // accessible_name is set at DashItemContainer.setLabelText
-        appIcon.actor.label_actor = null;
+        appIcon.label_actor = null;
         item.setLabelText(app.get_name());
 
         appIcon.icon.setIconSize(this.iconSize);
@@ -624,7 +629,7 @@ var Dash = class Dash {
                 width: targetWidth,
                 height: targetHeight,
                 duration: DASH_ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
         }
     }
@@ -723,9 +728,10 @@ var Dash = class Dash {
             }
         }
 
-        for (let i = 0; i < addedItems.length; i++)
+        for (let i = 0; i < addedItems.length; i++) {
             this._box.insert_child_at_index(addedItems[i].item,
                                             addedItems[i].pos);
+        }
 
         for (let i = 0; i < removedActors.length; i++) {
             let item = removedActors[i];
@@ -749,9 +755,8 @@ var Dash = class Dash {
         if (!this._shownInitially)
             this._shownInitially = true;
 
-        for (let i = 0; i < addedItems.length; i++) {
+        for (let i = 0; i < addedItems.length; i++)
             addedItems[i].item.show(animate);
-        }
 
         // Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=692744
         // Without it, StBoxLayout may use a stale size cache
@@ -831,8 +836,8 @@ var Dash = class Dash {
             }
 
             this._dragPlaceholder = new DragPlaceholderItem();
-            this._dragPlaceholder.child.set_width (this.iconSize);
-            this._dragPlaceholder.child.set_height (this.iconSize / 2);
+            this._dragPlaceholder.child.set_width(this.iconSize);
+            this._dragPlaceholder.child.set_height(this.iconSize / 2);
             this._box.insert_child_at_index(this._dragPlaceholder,
                                             this._dragPlaceholderPos);
             this._dragPlaceholder.show(fadeIn);
@@ -846,7 +851,7 @@ var Dash = class Dash {
         if (!this._dragPlaceholder)
             return DND.DragMotionResult.NO_DROP;
 
-        let srcIsFavorite = (favPos != -1);
+        let srcIsFavorite = favPos != -1;
 
         if (srcIsFavorite)
             return DND.DragMotionResult.MOVE_DROP;
@@ -859,9 +864,8 @@ var Dash = class Dash {
         let app = getAppFromSource(source);
 
         // Don't allow favoriting of transient apps
-        if (app == null || app.is_window_backed()) {
+        if (app == null || app.is_window_backed())
             return false;
-        }
 
         if (!global.settings.is_writable('favorite-apps'))
             return false;
@@ -870,7 +874,7 @@ var Dash = class Dash {
 
         let favorites = AppFavorites.getAppFavorites().getFavoriteMap();
 
-        let srcIsFavorite = (id in favorites);
+        let srcIsFavorite = id in favorites;
 
         let favPos = 0;
         let children = this._box.get_children();
@@ -902,5 +906,4 @@ var Dash = class Dash {
 
         return true;
     }
-};
-Signals.addSignalMethods(Dash.prototype);
+});

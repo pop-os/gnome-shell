@@ -17,7 +17,7 @@ var State = {
     CLOSED: 1,
     OPENING: 2,
     CLOSING: 3,
-    FADED_OUT: 4
+    FADED_OUT: 4,
 };
 
 var ModalDialog = GObject.registerClass({
@@ -26,9 +26,9 @@ var ModalDialog = GObject.registerClass({
                                        GObject.ParamFlags.READABLE,
                                        Math.min(...Object.values(State)),
                                        Math.max(...Object.values(State)),
-                                       State.CLOSED)
+                                       State.CLOSED),
     },
-    Signals: { 'opened': {}, 'closed': {} }
+    Signals: { 'opened': {}, 'closed': {} },
 }, class ModalDialog extends St.Widget {
     _init(params) {
         super._init({ visible: false,
@@ -57,9 +57,12 @@ var ModalDialog = GObject.registerClass({
                                                       coordinate: Clutter.BindCoordinate.ALL });
         this.add_constraint(constraint);
 
-        this.backgroundStack = new St.Widget({ layout_manager: new Clutter.BinLayout() });
-        this._backgroundBin = new St.Bin({ child: this.backgroundStack,
-                                           x_fill: true, y_fill: true });
+        this.backgroundStack = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
+        this._backgroundBin = new St.Bin({ child: this.backgroundStack });
         this._monitorConstraint = new Layout.MonitorConstraint();
         this._backgroundBin.add_constraint(this._monitorConstraint);
         this.add_actor(this._backgroundBin);
@@ -121,7 +124,7 @@ var ModalDialog = GObject.registerClass({
 
         this.dialogLayout.opacity = 255;
         if (this._lightbox)
-            this._lightbox.show();
+            this._lightbox.lightOn();
         this.opacity = 0;
         this.show();
         this.ease({
@@ -131,7 +134,7 @@ var ModalDialog = GObject.registerClass({
             onComplete: () => {
                 this._setState(State.OPENED);
                 this.emit('opened');
-            }
+            },
         });
     }
 
@@ -180,7 +183,7 @@ var ModalDialog = GObject.registerClass({
                 opacity: 0,
                 duration: OPEN_AND_CLOSE_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onComplete: () => this._closeComplete()
+                onComplete: () => this._closeComplete(),
             });
         } else {
             this._closeComplete();
@@ -203,7 +206,7 @@ var ModalDialog = GObject.registerClass({
         this._hasModal = false;
 
         if (!this._shellReactive)
-            this._eventBlocker.raise_top();
+            this.backgroundStack.set_child_above_sibling(this._eventBlocker, null);
     }
 
     pushModal(timestamp) {
@@ -228,7 +231,7 @@ var ModalDialog = GObject.registerClass({
         }
 
         if (!this._shellReactive)
-            this._eventBlocker.lower_bottom();
+            this.backgroundStack.set_child_below_sibling(this._eventBlocker, null);
         return true;
     }
 
@@ -255,7 +258,7 @@ var ModalDialog = GObject.registerClass({
             opacity: 0,
             duration: FADE_OUT_DIALOG_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => (this.state = State.FADED_OUT)
+            onComplete: () => (this.state = State.FADED_OUT),
         });
     }
 });

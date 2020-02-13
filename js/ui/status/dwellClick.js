@@ -12,23 +12,23 @@ const DWELL_CLICK_MODES = {
     primary: {
         name: _("Single Click"),
         icon: 'pointer-primary-click-symbolic',
-        type: Clutter.PointerA11yDwellClickType.PRIMARY
+        type: Clutter.PointerA11yDwellClickType.PRIMARY,
     },
     double: {
         name: _("Double Click"),
         icon: 'pointer-double-click-symbolic',
-        type: Clutter.PointerA11yDwellClickType.DOUBLE
+        type: Clutter.PointerA11yDwellClickType.DOUBLE,
     },
     drag: {
         name: _("Drag"),
         icon: 'pointer-drag-symbolic',
-        type: Clutter.PointerA11yDwellClickType.DRAG
+        type: Clutter.PointerA11yDwellClickType.DRAG,
     },
     secondary: {
         name: _("Secondary Click"),
         icon: 'pointer-secondary-click-symbolic',
-        type: Clutter.PointerA11yDwellClickType.SECONDARY
-    }
+        type: Clutter.PointerA11yDwellClickType.SECONDARY,
+    },
 };
 
 var DwellClickIndicator = GObject.registerClass(
@@ -48,8 +48,8 @@ class DwellClickIndicator extends PanelMenu.Button {
         this._a11ySettings.connect(`changed::${KEY_DWELL_CLICK_ENABLED}`, this._syncMenuVisibility.bind(this));
         this._a11ySettings.connect(`changed::${KEY_DWELL_MODE}`, this._syncMenuVisibility.bind(this));
 
-        this._deviceManager = Clutter.DeviceManager.get_default();
-        this._deviceManager.connect('ptr-a11y-dwell-click-type-changed', this._updateClickType.bind(this));
+        this._seat = Clutter.get_default_backend().get_default_seat();
+        this._seat.connect('ptr-a11y-dwell-click-type-changed', this._updateClickType.bind(this));
 
         this._addDwellAction(DWELL_CLICK_MODES.primary);
         this._addDwellAction(DWELL_CLICK_MODES.double);
@@ -62,8 +62,8 @@ class DwellClickIndicator extends PanelMenu.Button {
 
     _syncMenuVisibility() {
         this.visible =
-          (this._a11ySettings.get_boolean(KEY_DWELL_CLICK_ENABLED) &&
-           this._a11ySettings.get_string(KEY_DWELL_MODE) == DWELL_MODE_WINDOW);
+          this._a11ySettings.get_boolean(KEY_DWELL_CLICK_ENABLED) &&
+           this._a11ySettings.get_string(KEY_DWELL_MODE) == DWELL_MODE_WINDOW;
 
         return GLib.SOURCE_REMOVE;
     }
@@ -80,7 +80,7 @@ class DwellClickIndicator extends PanelMenu.Button {
     }
 
     _setClickType(mode) {
-        this._deviceManager.set_pointer_a11y_dwell_click_type(mode.type);
+        this._seat.set_pointer_a11y_dwell_click_type(mode.type);
         this._icon.icon_name = mode.icon;
     }
 });

@@ -39,7 +39,8 @@ var GnomeShell = class {
 
     /**
      * Eval:
-     * @code: A string containing JavaScript code
+     * @param {string} code: A string containing JavaScript code
+     * @returns {Array}
      *
      * This function executes arbitrary code in the main
      * loop, and returns a boolean success and
@@ -301,10 +302,10 @@ var GnomeShellExtensions = class {
 
     LaunchExtensionPrefs(uuid) {
         let appSys = Shell.AppSystem.get_default();
-        let app = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
+        let app = appSys.lookup_app('org.gnome.Extensions.desktop');
         let info = app.get_app_info();
         let timestamp = global.display.get_current_time_roundtrip();
-        info.launch_uris(['extension:///' + uuid],
+        info.launch_uris([`extension:///${uuid}`],
                          global.create_app_launch_context(timestamp, -1));
     }
 

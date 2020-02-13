@@ -44,12 +44,18 @@ var BoxPointer = GObject.registerClass({
         this._border = new St.DrawingArea();
         this._border.connect('repaint', this._drawBorder.bind(this));
         this.add_actor(this._border);
-        this.bin.raise(this._border);
+        this.set_child_above_sibling(this.bin, this._border);
         this._sourceAlignment = 0.5;
-        this._capturedEventId = 0;
-        this._muteInput();
+        this._muteInput = true;
 
         this.connect('destroy', this._onDestroy.bind(this));
+    }
+
+    vfunc_captured_event() {
+        if (this._muteInput)
+            return Clutter.EVENT_STOP;
+
+        return Clutter.EVENT_PROPAGATE;
     }
 
     _onDestroy() {
@@ -63,23 +69,10 @@ var BoxPointer = GObject.registerClass({
         return this._arrowSide;
     }
 
-    _muteInput() {
-        if (this._capturedEventId == 0)
-            this._capturedEventId = this.connect('captured-event',
-                                                 () => Clutter.EVENT_STOP);
-    }
-
-    _unmuteInput() {
-        if (this._capturedEventId != 0) {
-            this.disconnect(this._capturedEventId);
-            this._capturedEventId = 0;
-        }
-    }
-
     open(animate, onComplete) {
         let themeNode = this.get_theme_node();
         let rise = themeNode.get_length('-arrow-rise');
-        let animationTime = (animate & PopupAnimation.FULL) ? POPUP_ANIMATION_TIME : 0;
+        let animationTime = animate & PopupAnimation.FULL ? POPUP_ANIMATION_TIME : 0;
 
         if (animate & PopupAnimation.FADE)
             this.opacity = 0;
@@ -112,10 +105,10 @@ var BoxPointer = GObject.registerClass({
             duration: animationTime,
             mode: Clutter.AnimationMode.LINEAR,
             onComplete: () => {
-                this._unmuteInput();
+                this._muteInput = false;
                 if (onComplete)
                     onComplete();
-            }
+            },
         });
     }
 
@@ -127,8 +120,8 @@ var BoxPointer = GObject.registerClass({
         let translationY = 0;
         let themeNode = this.get_theme_node();
         let rise = themeNode.get_length('-arrow-rise');
-        let fade = (animate & PopupAnimation.FADE);
-        let animationTime = (animate & PopupAnimation.FULL) ? POPUP_ANIMATION_TIME : 0;
+        let fade = animate & PopupAnimation.FADE;
+        let animationTime = animate & PopupAnimation.FULL ? POPUP_ANIMATION_TIME : 0;
 
         if (animate & PopupAnimation.SLIDE) {
             switch (this._arrowSide) {
@@ -147,7 +140,7 @@ var BoxPointer = GObject.registerClass({
             }
         }
 
-        this._muteInput();
+        this._muteInput = true;
 
         this.remove_all_transitions();
         this.ease({
@@ -163,7 +156,7 @@ var BoxPointer = GObject.registerClass({
                 this.translation_y = 0;
                 if (onComplete)
                     onComplete();
-            }
+            },
         });
     }
 
@@ -254,11 +247,10 @@ var BoxPointer = GObject.registerClass({
             let [absX, absY] = this.get_transformed_position();
 
             if (this._arrowSide == St.Side.TOP ||
-                this._arrowSide == St.Side.BOTTOM) {
+                this._arrowSide == St.Side.BOTTOM)
                 this._arrowOrigin = sourceX - absX + sourceWidth / 2;
-            } else {
+            else
                 this._arrowOrigin = sourceY - absY + sourceHeight / 2;
-            }
         }
 
         let borderWidth = themeNode.get_length('-arrow-border-width');
@@ -273,20 +265,19 @@ var BoxPointer = GObject.registerClass({
 
         let [width, height] = area.get_surface_size();
         let [boxWidth, boxHeight] = [width, height];
-        if (this._arrowSide == St.Side.TOP || this._arrowSide == St.Side.BOTTOM) {
+        if (this._arrowSide == St.Side.TOP || this._arrowSide == St.Side.BOTTOM)
             boxHeight -= rise;
-        } else {
+        else
             boxWidth -= rise;
-        }
+
         let cr = area.get_context();
 
         // Translate so that box goes from 0,0 to boxWidth,boxHeight,
         // with the arrow poking out of that
-        if (this._arrowSide == St.Side.TOP) {
+        if (this._arrowSide == St.Side.TOP)
             cr.translate(0, rise);
-        } else if (this._arrowSide == St.Side.LEFT) {
+        else if (this._arrowSide == St.Side.LEFT)
             cr.translate(rise, 0);
-        }
 
         let [x1, y1] = [halfBorder, halfBorder];
         let [x2, y2] = [boxWidth - halfBorder, boxHeight - halfBorder];
@@ -482,7 +473,7 @@ var BoxPointer = GObject.registerClass({
         let borderWidth = themeNode.get_length('-arrow-border-width');
         let arrowBase = themeNode.get_length('-arrow-base');
         let borderRadius = themeNode.get_length('-arrow-border-radius');
-        let margin = (4 * borderRadius + borderWidth + arrowBase);
+        let margin = 4 * borderRadius + borderWidth + arrowBase;
 
         let gap = themeNode.get_length('-boxpointer-gap');
         let padding = themeNode.get_length('-arrow-rise');
@@ -533,11 +524,11 @@ var BoxPointer = GObject.registerClass({
             arrowOrigin = sourceCenterX - resX;
             if (arrowOrigin <= (x1 + (borderRadius + halfBase))) {
                 if (arrowOrigin > x1)
-                    resX += (arrowOrigin - x1);
+                    resX += arrowOrigin - x1;
                 arrowOrigin = x1;
             } else if (arrowOrigin >= (x2 - (borderRadius + halfBase))) {
                 if (arrowOrigin < x2)
-                    resX -= (x2 - arrowOrigin);
+                    resX -= x2 - arrowOrigin;
                 arrowOrigin = x2;
             }
             break;
@@ -552,11 +543,11 @@ var BoxPointer = GObject.registerClass({
             arrowOrigin = sourceCenterY - resY;
             if (arrowOrigin <= (y1 + (borderRadius + halfBase))) {
                 if (arrowOrigin > y1)
-                    resY += (arrowOrigin - y1);
+                    resY += arrowOrigin - y1;
                 arrowOrigin = y1;
             } else if (arrowOrigin >= (y2 - (borderRadius + halfBase))) {
                 if (arrowOrigin < y2)
-                    resX -= (y2 - arrowOrigin);
+                    resX -= y2 - arrowOrigin;
                 arrowOrigin = y2;
             }
             break;

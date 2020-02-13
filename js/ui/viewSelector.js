@@ -20,7 +20,7 @@ var PINCH_GESTURE_THRESHOLD = 0.7;
 var ViewPage = {
     WINDOWS: 1,
     APPS: 2,
-    SEARCH: 3
+    SEARCH: 3,
 };
 
 var FocusTrap = GObject.registerClass(
@@ -55,7 +55,7 @@ var TouchpadShowOverviewAction = class {
             return Clutter.EVENT_PROPAGATE;
 
         if (event.get_gesture_phase() == Clutter.TouchpadGesturePhase.END)
-            this.emit('activated', event.get_gesture_pinch_scale ());
+            this.emit('activated', event.get_gesture_pinch_scale());
 
         return Clutter.EVENT_STOP;
     }
@@ -85,11 +85,10 @@ var ShowOverviewAction = GObject.registerClass({
         for (let i = 0; i < this.get_n_current_points(); i++) {
             let x, y;
 
-            if (motion == true) {
+            if (motion == true)
                 [x, y] = this.get_motion_coords(i);
-            } else {
+            else
                 [x, y] = this.get_press_coords(i);
-            }
 
             if (i == 0) {
                 minX = maxX = x;
@@ -123,9 +122,17 @@ var ShowOverviewAction = GObject.registerClass({
     }
 });
 
-var ViewSelector = class {
-    constructor(searchEntry, showAppsButton) {
-        this.actor = new Shell.Stack({ name: 'viewSelector' });
+var ViewSelector = GObject.registerClass({
+    Signals: {
+        'page-changed': {},
+        'page-empty': {},
+    },
+}, class ViewSelector extends Shell.Stack {
+    _init(searchEntry, workspaceAdjustment, showAppsButton) {
+        super._init({
+            name: 'viewSelector',
+            x_expand: true,
+        });
 
         this._showAppsButton = showAppsButton;
         this._showAppsButton.connect('notify::checked', this._onShowAppsButtonToggled.bind(this));
@@ -164,16 +171,17 @@ var ViewSelector = class {
         this._iconClickedId = 0;
         this._capturedEventId = 0;
 
-        this._workspacesDisplay = new WorkspacesView.WorkspacesDisplay();
-        this._workspacesPage = this._addPage(this._workspacesDisplay.actor,
+        this._workspacesDisplay =
+            new WorkspacesView.WorkspacesDisplay(workspaceAdjustment);
+        this._workspacesPage = this._addPage(this._workspacesDisplay,
                                              _("Windows"), 'focus-windows-symbolic');
 
         this.appDisplay = new AppDisplay.AppDisplay();
-        this._appsPage = this._addPage(this.appDisplay.actor,
+        this._appsPage = this._addPage(this.appDisplay,
                                        _("Applications"), 'view-app-grid-symbolic');
 
-        this._searchResults = new Search.SearchResults();
-        this._searchPage = this._addPage(this._searchResults.actor,
+        this._searchResults = new Search.SearchResultsView();
+        this._searchPage = this._addPage(this._searchResults,
                                          _("Search"), 'edit-find-symbolic',
                                          { a11yFocus: this._entry });
 
@@ -184,9 +192,9 @@ var ViewSelector = class {
         this._focusTrap.connect('key-focus-in', () => {
             this._entry.grab_key_focus();
         });
-        this._searchResults.actor.add_actor(this._focusTrap);
+        this._searchResults.add_actor(this._focusTrap);
 
-        global.focus_manager.add_group(this._searchResults.actor);
+        global.focus_manager.add_group(this._searchResults);
 
         this._stageKeyPressId = 0;
         Main.overview.connect('showing', () => {
@@ -301,20 +309,18 @@ var ViewSelector = class {
     _addPage(actor, name, a11yIcon, params) {
         params = Params.parse(params, { a11yFocus: null });
 
-        let page = new St.Bin({ child: actor,
-                                x_align: St.Align.START,
-                                y_align: St.Align.START,
-                                x_fill: true,
-                                y_fill: true });
-        if (params.a11yFocus)
+        let page = new St.Bin({ child: actor });
+
+        if (params.a11yFocus) {
             Main.ctrlAltTabManager.addGroup(params.a11yFocus, name, a11yIcon);
-        else
+        } else {
             Main.ctrlAltTabManager.addGroup(actor, name, a11yIcon, {
-                proxy: this.actor,
+                proxy: this,
                 focusCallback: () => this._a11yFocusPage(page),
             });
+        }
         page.hide();
-        this.actor.add_actor(page);
+        this.add_actor(page);
         return page;
     }
 
@@ -322,7 +328,7 @@ var ViewSelector = class {
         this._activePage.ease({
             opacity: 255,
             duration: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
@@ -332,7 +338,7 @@ var ViewSelector = class {
             opacity: 0,
             duration: OverviewControls.SIDE_CONTROLS_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onStopped: () => this._animateIn(oldPage)
+            onStopped: () => this._animateIn(oldPage),
         });
     }
 
@@ -401,7 +407,7 @@ var ViewSelector = class {
 
         let symbol = event.get_key_symbol();
 
-        if (symbol == Clutter.Escape) {
+        if (symbol === Clutter.KEY_Escape) {
             if (this._searchActive)
                 this.reset();
             else if (this._showAppsButton.checked)
@@ -412,10 +418,10 @@ var ViewSelector = class {
         } else if (this._shouldTriggerSearch(symbol)) {
             this.startSearch(event);
         } else if (!this._searchActive && !global.stage.key_focus) {
-            if (symbol == Clutter.Tab || symbol == Clutter.Down) {
+            if (symbol === Clutter.KEY_Tab || symbol === Clutter.KEY_Down) {
                 this._activePage.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
                 return Clutter.EVENT_STOP;
-            } else if (symbol == Clutter.ISO_Left_Tab) {
+            } else if (symbol === Clutter.KEY_ISO_Left_Tab) {
                 this._activePage.navigate_focus(null, St.DirectionType.TAB_BACKWARD, false);
                 return Clutter.EVENT_STOP;
             }
@@ -453,8 +459,8 @@ var ViewSelector = class {
 
     _onStageKeyFocusChanged() {
         let focus = global.stage.get_key_focus();
-        let appearFocused = (this._entry.contains(focus) ||
-                             this._searchResults.actor.contains(focus));
+        let appearFocused = this._entry.contains(focus) ||
+                             this._searchResults.contains(focus);
 
         this._text.set_cursor_visible(appearFocused);
 
@@ -480,10 +486,10 @@ var ViewSelector = class {
     }
 
     _shouldTriggerSearch(symbol) {
-        if (symbol == Clutter.Multi_key)
+        if (symbol === Clutter.KEY_Multi_key)
             return true;
 
-        if (symbol == Clutter.BackSpace && this._searchActive)
+        if (symbol === Clutter.KEY_BackSpace && this._searchActive)
             return true;
 
         let unicode = Clutter.keysym_to_unicode(symbol);
@@ -512,7 +518,7 @@ var ViewSelector = class {
     _onTextChanged() {
         let terms = getTermsForSearchString(this._entry.get_text());
 
-        this._searchActive = (terms.length > 0);
+        this._searchActive = terms.length > 0;
         this._searchResults.setTerms(terms);
 
         if (this._searchActive) {
@@ -520,9 +526,10 @@ var ViewSelector = class {
 
             this._entry.set_secondary_icon(this._clearIcon);
 
-            if (this._iconClickedId == 0)
+            if (this._iconClickedId == 0) {
                 this._iconClickedId = this._entry.connect('secondary-icon-clicked',
                                                           this.reset.bind(this));
+            }
         } else {
             if (this._iconClickedId > 0) {
                 this._entry.disconnect(this._iconClickedId);
@@ -536,7 +543,7 @@ var ViewSelector = class {
 
     _onKeyPress(entry, event) {
         let symbol = event.get_key_symbol();
-        if (symbol == Clutter.Escape) {
+        if (symbol === Clutter.KEY_Escape) {
             if (this._isActivated()) {
                 this.reset();
                 return Clutter.EVENT_STOP;
@@ -544,28 +551,28 @@ var ViewSelector = class {
         } else if (this._searchActive) {
             let arrowNext, nextDirection;
             if (entry.get_text_direction() == Clutter.TextDirection.RTL) {
-                arrowNext = Clutter.Left;
+                arrowNext = Clutter.KEY_Left;
                 nextDirection = St.DirectionType.LEFT;
             } else {
-                arrowNext = Clutter.Right;
+                arrowNext = Clutter.KEY_Right;
                 nextDirection = St.DirectionType.RIGHT;
             }
 
-            if (symbol == Clutter.Tab) {
+            if (symbol === Clutter.KEY_Tab) {
                 this._searchResults.navigateFocus(St.DirectionType.TAB_FORWARD);
                 return Clutter.EVENT_STOP;
-            } else if (symbol == Clutter.ISO_Left_Tab) {
+            } else if (symbol === Clutter.KEY_ISO_Left_Tab) {
                 this._focusTrap.can_focus = false;
                 this._searchResults.navigateFocus(St.DirectionType.TAB_BACKWARD);
                 this._focusTrap.can_focus = true;
                 return Clutter.EVENT_STOP;
-            } else if (symbol == Clutter.Down) {
+            } else if (symbol === Clutter.KEY_Down) {
                 this._searchResults.navigateFocus(St.DirectionType.DOWN);
                 return Clutter.EVENT_STOP;
             } else if (symbol == arrowNext && this._text.position == -1) {
                 this._searchResults.navigateFocus(nextDirection);
                 return Clutter.EVENT_STOP;
-            } else if (symbol == Clutter.Return || symbol == Clutter.KP_Enter) {
+            } else if (symbol === Clutter.KEY_Return || symbol === Clutter.KEY_KP_Enter) {
                 this._searchResults.activateDefault();
                 return Clutter.EVENT_STOP;
             }
@@ -579,7 +586,7 @@ var ViewSelector = class {
             if (source != this._text &&
                 this._text.has_key_focus() &&
                 this._text.text == '' &&
-                !this._text.has_preedit () &&
+                !this._text.has_preedit() &&
                 !Main.layoutManager.keyboardBox.contains(source)) {
                 // the user clicked outside after activating the entry, but
                 // with no search term entered and no keyboard button pressed
@@ -599,5 +606,4 @@ var ViewSelector = class {
         else
             return ViewPage.SEARCH;
     }
-};
-Signals.addSignalMethods(ViewSelector.prototype);
+});

@@ -1,4 +1,6 @@
 /* exported main */
+imports.gi.versions.Gtk = '3.0';
+
 const Format = imports.format;
 const Gettext = imports.gettext;
 const { Gio, GLib, GObject, Gtk, Pango, Soup, WebKit2: WebKit } = imports.gi;
@@ -11,17 +13,17 @@ const { loadInterfaceXML } = imports.misc.fileUtils;
 const PortalHelperResult = {
     CANCELLED: 0,
     COMPLETED: 1,
-    RECHECK: 2
+    RECHECK: 2,
 };
 
 const PortalHelperSecurityLevel = {
     NOT_YET_DETERMINED: 0,
     SECURE: 1,
-    INSECURE: 2
+    INSECURE: 2,
 };
 
 const CONNECTIVITY_CHECK_HOST = 'nmcheck.gnome.org';
-const CONNECTIVITY_CHECK_URI = 'http://' + CONNECTIVITY_CHECK_HOST;
+const CONNECTIVITY_CHECK_URI = `http://${CONNECTIVITY_CHECK_HOST}`;
 const CONNECTIVITY_RECHECK_RATELIMIT_TIMEOUT = 30 * GLib.USEC_PER_SEC;
 
 const HelperDBusInterface = loadInterfaceXML('org.gnome.Shell.PortalHelper');
@@ -92,7 +94,7 @@ class PortalHeaderBar extends Gtk.HeaderBar {
 var PortalWindow = GObject.registerClass(
 class PortalWindow extends Gtk.ApplicationWindow {
     _init(application, url, timestamp, doneCallback) {
-        super._init({ application: application });
+        super._init({ application });
 
         this.connect('delete-event', this.destroyWindow.bind(this));
         this._headerBar = new PortalHeaderBar();
@@ -116,6 +118,10 @@ class PortalWindow extends Gtk.ApplicationWindow {
         this._webContext = WebKit.WebContext.new_ephemeral();
         this._webContext.set_cache_model(WebKit.CacheModel.DOCUMENT_VIEWER);
         this._webContext.set_network_proxy_settings(WebKit.NetworkProxyMode.NO_PROXY, null);
+        if (this._webContext.set_sandbox_enabled) {
+            // We have WebKitGTK 2.26 or newer.
+            this._webContext.set_sandbox_enabled(true);
+        }
 
         this._webView = WebKit.WebView.new_with_context(this._webContext);
         this._webView.connect('decide-policy', this._onDecidePolicy.bind(this));
@@ -287,7 +293,7 @@ class WebPortalHelper extends Gtk.Application {
     }
 
     Authenticate(connection, url, timestamp) {
-        this._queue.push({ connection: connection, url: url, timestamp: timestamp });
+        this._queue.push({ connection, url, timestamp });
 
         this._processQueue();
     }
