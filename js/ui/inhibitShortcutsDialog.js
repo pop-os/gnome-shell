@@ -1,5 +1,5 @@
 /* exported InhibitShortcutsDialog */
-const { Clutter, Gio, GLib, GObject, Gtk, Meta, Shell } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Gtk, Meta, Shell, St } = imports.gi;
 
 const Dialog = imports.ui.dialog;
 const ModalDialog = imports.ui.modalDialog;
@@ -18,8 +18,8 @@ var DialogResponse = Meta.InhibitShortcutsDialogResponse;
 var InhibitShortcutsDialog = GObject.registerClass({
     Implements: [Meta.InhibitShortcutsDialog],
     Properties: {
-        'window': GObject.ParamSpec.override('window', Meta.InhibitShortcutsDialog)
-    }
+        'window': GObject.ParamSpec.override('window', Meta.InhibitShortcutsDialog),
+    },
 }, class InhibitShortcutsDialog extends GObject.Object {
     _init(window) {
         super._init();
@@ -75,22 +75,25 @@ var InhibitShortcutsDialog = GObject.registerClass({
     _buildLayout() {
         let name = this._app ? this._app.get_name() : this._window.title;
 
-        /* Translators: %s is an application name like "Settings" */
-        let title = name
-            ? _("%s wants to inhibit shortcuts").format(name)
-            : _("Application wants to inhibit shortcuts");
-        let icon = new Gio.ThemedIcon({ name: 'dialog-warning-symbolic' });
-
-        let contentParams = { icon, title };
+        let content = new Dialog.MessageDialogContent({
+            title: _('Allow inhibiting shortcuts'),
+            description: name
+                /* Translators: %s is an application name like "Settings" */
+                ? _('The application %s wants to inhibit shortcuts').format(name)
+                : _('An application wants to inhibit shortcuts'),
+        });
 
         let restoreAccel = this._getRestoreAccel();
-        if (restoreAccel)
-            contentParams.subtitle =
+        if (restoreAccel) {
+            let restoreLabel = new St.Label({
                 /* Translators: %s is a keyboard shortcut like "Super+x" */
-                _("You can restore shortcuts by pressing %s.").format(restoreAccel);
+                text: _('You can restore shortcuts by pressing %s.').format(restoreAccel),
+                style_class: 'message-dialog-description',
+            });
+            content.add_child(restoreLabel);
+        }
 
-        let content = new Dialog.MessageDialogContent(contentParams);
-        this._dialog.contentLayout.add_actor(content);
+        this._dialog.contentLayout.add_child(content);
 
         this._dialog.addButton({ label: _("Deny"),
                                  action: () => {
@@ -134,10 +137,10 @@ var InhibitShortcutsDialog = GObject.registerClass({
 
             this._permStore.LookupRemote(APP_PERMISSIONS_TABLE,
                                          APP_PERMISSIONS_ID,
-                (res, error) => {
-                    if (error) {
+                (res, err) => {
+                    if (err) {
                         this._dialog.open();
-                        log(error.message);
+                        log(err.message);
                         return;
                     }
 

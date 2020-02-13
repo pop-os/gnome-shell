@@ -68,10 +68,11 @@ var XdndHandler = class {
             // Make sure that the clone has the same position as the source
             this._cursorWindowClone.add_constraint(constraintPosition);
         } else {
-            if (this._cursorWindowClone) {
-                this._cursorWindowClone.destroy();
-                this._cursorWindowClone = null;
-            }
+            if (!this._cursorWindowClone)
+                return;
+
+            this._cursorWindowClone.destroy();
+            this._cursorWindowClone = null;
         }
     }
 
@@ -80,14 +81,14 @@ var XdndHandler = class {
 
         // Make sure that the cursor window is on top
         if (this._cursorWindowClone)
-            this._cursorWindowClone.raise_top();
+            Main.uiGroup.set_child_above_sibling(this._cursorWindowClone, null);
 
         let dragEvent = {
-            x: x,
-            y: y,
+            x,
+            y,
             dragActor: this._cursorWindowClone ? this._cursorWindowClone : this._dummy,
             source: this,
-            targetActor: pickedActor
+            targetActor: pickedActor,
         };
 
         for (let i = 0; i < DND.dragMonitors.length; i++) {

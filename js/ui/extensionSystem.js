@@ -1,12 +1,14 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported init connect disconnect */
 
-const { GLib, Gio, St } = imports.gi;
+const { GLib, Gio, GObject, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
+const ExtensionDownloader = imports.ui.extensionDownloader;
 const ExtensionUtils = imports.misc.extensionUtils;
 const FileUtils = imports.misc.fileUtils;
 const Main = imports.ui.main;
+const MessageTray = imports.ui.messageTray;
 
 const { ExtensionState, ExtensionType } = ExtensionUtils;
 
@@ -15,10 +17,13 @@ const DISABLED_EXTENSIONS_KEY = 'disabled-extensions';
 const DISABLE_USER_EXTENSIONS_KEY = 'disable-user-extensions';
 const EXTENSION_DISABLE_VERSION_CHECK_KEY = 'disable-extension-version-validation';
 
+const UPDATE_CHECK_TIMEOUT = 24 * 60 * 60; // 1 day in seconds
+
 var ExtensionManager = class {
     constructor() {
         this._initialized = false;
         this._enabled = false;
+        this._updateNotified = false;
 
         this._extensions = new Map();
         this._enabledExtensions = [];
@@ -41,11 +46,18 @@ var ExtensionManager = class {
         }
 
         GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 60, () => {
-            FileUtils.deleteGFile(disableFile);
+            disableFile.delete(null);
             return GLib.SOURCE_REMOVE;
         });
 
+        this._installExtensionUpdates();
         this._sessionUpdated();
+
+        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, UPDATE_CHECK_TIMEOUT, () => {
+            ExtensionDownloader.checkForUpdates();
+            return GLib.SOURCE_CONTINUE;
+        });
+        ExtensionDownloader.checkForUpdates();
     }
 
     lookup(uuid) {
@@ -77,11 +89,11 @@ var ExtensionManager = class {
         let orderReversed = order.slice().reverse();
 
         for (let i = 0; i < orderReversed.length; i++) {
-            let uuid = orderReversed[i];
+            let otherUuid = orderReversed[i];
             try {
-                this.lookup(uuid).stateObj.disable();
+                this.lookup(otherUuid).stateObj.disable();
             } catch (e) {
-                this.logExtensionError(uuid, e);
+                this.logExtensionError(otherUuid, e);
             }
         }
 
@@ -98,11 +110,11 @@ var ExtensionManager = class {
         }
 
         for (let i = 0; i < order.length; i++) {
-            let uuid = order[i];
+            let otherUuid = order[i];
             try {
-                this.lookup(uuid).stateObj.enable();
+                this.lookup(otherUuid).stateObj.enable();
             } catch (e) {
-                this.logExtensionError(uuid, e);
+                this.logExtensionError(otherUuid, e);
             }
         }
 
@@ -198,6 +210,27 @@ var ExtensionManager = class {
         return true;
     }
 
+    notifyExtensionUpdate(uuid) {
+        let extension = this.lookup(uuid);
+        if (!extension)
+            return;
+
+        extension.hasUpdate = true;
+        this.emit('extension-state-changed', extension);
+
+        if (!this._updateNotified) {
+            this._updateNotified = true;
+
+            let source = new ExtensionUpdateSource();
+            Main.messageTray.add(source);
+
+            let notification = new MessageTray.Notification(source,
+                _('Extension Updates Available'),
+                _('Extension updates are ready to be installed.'));
+            source.showNotification(notification);
+        }
+    }
+
     logExtensionError(uuid, error) {
         let extension = this.lookup(uuid);
         if (!extension)
@@ -217,9 +250,8 @@ var ExtensionManager = class {
 
     createExtensionObject(uuid, dir, type) {
         let metadataFile = dir.get_child('metadata.json');
-        if (!metadataFile.query_exists(null)) {
+        if (!metadataFile.query_exists(null))
             throw new Error('Missing metadata.json');
-        }
 
         let metadataContents, success_;
         try {
@@ -239,14 +271,12 @@ var ExtensionManager = class {
         let requiredProperties = ['uuid', 'name', 'description', 'shell-version'];
         for (let i = 0; i < requiredProperties.length; i++) {
             let prop = requiredProperties[i];
-            if (!meta[prop]) {
+            if (!meta[prop])
                 throw new Error(`missing "${prop}" property in metadata.json`);
-            }
         }
 
-        if (uuid != meta.uuid) {
+        if (uuid != meta.uuid)
             throw new Error(`uuid "${meta.uuid}" from metadata.json does not match directory name "${uuid}"`);
-        }
 
         let extension = {
             metadata: meta,
@@ -256,7 +286,8 @@ var ExtensionManager = class {
             path: dir.get_path(),
             error: '',
             hasPrefs: dir.get_child('prefs.js').query_exists(null),
-            canChange: false
+            hasUpdate: false,
+            canChange: false,
         };
         this._extensions.set(uuid, extension);
 
@@ -449,6 +480,21 @@ var ExtensionManager = class {
         }).forEach(extension => this.reloadExtension(extension));
     }
 
+    _installExtensionUpdates() {
+        FileUtils.collectFromDatadirs('extension-updates', true, (dir, info) => {
+            let fileType = info.get_file_type();
+            if (fileType !== Gio.FileType.DIRECTORY)
+                return;
+            let uuid = info.get_name();
+            let extensionDir = Gio.File.new_for_path(
+                GLib.build_filenamev([global.userdatadir, 'extensions', uuid]));
+
+            FileUtils.recursivelyDeleteDir(extensionDir, false);
+            FileUtils.recursivelyMoveDir(dir, extensionDir);
+            FileUtils.recursivelyDeleteDir(dir, true);
+        });
+    }
+
     _loadExtensions() {
         global.settings.connect(`changed::${ENABLED_EXTENSIONS_KEY}`,
             this._onEnabledExtensionsChanged.bind(this));
@@ -534,3 +580,27 @@ var ExtensionManager = class {
     }
 };
 Signals.addSignalMethods(ExtensionManager.prototype);
+
+const ExtensionUpdateSource = GObject.registerClass(
+class ExtensionUpdateSource extends MessageTray.Source {
+    _init() {
+        let appSys = Shell.AppSystem.get_default();
+        this._app = appSys.lookup_app('org.gnome.Extensions.desktop');
+
+        super._init(this._app.get_name());
+    }
+
+    getIcon() {
+        return this._app.app_info.get_icon();
+    }
+
+    _createPolicy() {
+        return new MessageTray.NotificationApplicationPolicy(this._app.id);
+    }
+
+    open() {
+        this._app.activate();
+        Main.overview.hide();
+        Main.panel.closeCalendar();
+    }
+});

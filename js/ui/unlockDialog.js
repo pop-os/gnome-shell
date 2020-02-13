@@ -41,10 +41,9 @@ var UnlockDialog = GObject.registerClass({
         this._authPrompt.connect('failed', this._fail.bind(this));
         this._authPrompt.connect('cancelled', this._fail.bind(this));
         this._authPrompt.connect('reset', this._onReset.bind(this));
-        this._authPrompt.setPasswordChar('\u25cf');
         this._authPrompt.nextButton.label = _("Unlock");
 
-        this._promptBox.add_child(this._authPrompt.actor);
+        this._promptBox.add_child(this._authPrompt);
 
         this.allowCancel = false;
 
@@ -55,9 +54,7 @@ var UnlockDialog = GObject.registerClass({
             this._otherUserButton = new St.Button({ style_class: 'login-dialog-not-listed-button',
                                                     can_focus: true,
                                                     child: otherUserLabel,
-                                                    reactive: true,
-                                                    x_align: St.Align.START,
-                                                    x_fill: false });
+                                                    reactive: true });
             this._otherUserButton.connect('clicked', this._otherUserClicked.bind(this));
             this._promptBox.add_child(this._otherUserButton);
         } else {
@@ -97,7 +94,7 @@ var UnlockDialog = GObject.registerClass({
             userName = null;
         }
 
-        this._authPrompt.begin({ userName: userName });
+        this._authPrompt.begin({ userName });
     }
 
     _escape() {

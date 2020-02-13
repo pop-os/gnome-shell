@@ -194,8 +194,17 @@ var GrabHelper = class GrabHelper {
         return true;
     }
 
+    grabAsync(params) {
+        return new Promise((resolve, reject) => {
+            params.onUngrab = resolve;
+
+            if (!this.grab(params))
+                reject(new Error('Grab failed'));
+        });
+    }
+
     _takeModalGrab() {
-        let firstGrab = (this._modalCount == 0);
+        let firstGrab = this._modalCount == 0;
         if (firstGrab) {
             if (!Main.pushModal(this._owner, this._modalParams))
                 return false;
@@ -292,7 +301,7 @@ var GrabHelper = class GrabHelper {
         let touchEnd = type == Clutter.EventType.TOUCH_END;
         let touch = touchUpdate || touchBegin || touchEnd;
 
-        if (touch && !global.display.is_pointer_emulating_sequence (event.get_event_sequence()))
+        if (touch && !global.display.is_pointer_emulating_sequence(event.get_event_sequence()))
             return Clutter.EVENT_PROPAGATE;
 
         if (this._ignoreUntilRelease && (motion || release || touch)) {

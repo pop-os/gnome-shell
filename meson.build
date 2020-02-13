@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '3.34.3',
+  version: '3.35.90',
   meson_version: '>= 0.47.0',
   license: 'GPLv2+'
 )
@@ -18,20 +18,19 @@ cogl_pc = 'mutter-cogl-' + mutter_api_version
 cogl_pango_pc = 'mutter-cogl-pango-' + mutter_api_version
 libmutter_pc = 'libmutter-' + mutter_api_version
 
-croco_req = '>= 0.6.8'
 ecal_req = '>= 3.33.1'
 eds_req = '>= 3.17.2'
 gcr_req = '>= 3.7.5'
 gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
-gjs_req = '>= 1.57.3'
+gjs_req = '>= 1.63.2'
 gtk_req = '>= 3.15.0'
-mutter_req = '>= 3.34.0'
+mutter_req = '>= 3.35.90'
 polkit_req = '>= 0.100'
 schemas_req = '>= 3.33.1'
 startup_req = '>= 0.11'
 ibus_req = '>= 1.5.2'
-gnome_desktop_req = '>= 3.32'
+gnome_desktop_req = '>= 3.34.2'
 
 bt_req = '>= 3.9.0'
 gst_req = '>= 0.11.92'
@@ -56,6 +55,7 @@ pkglibdir = join_paths(libdir, meson.project_name())
 autostartdir = join_paths(sysconfdir, 'xdg', 'autostart')
 convertdir = join_paths(datadir, 'GConf', 'gsettings')
 desktopdir = join_paths(datadir, 'applications')
+icondir = join_paths(datadir, 'icons')
 ifacedir = join_paths(datadir, 'dbus-1', 'interfaces')
 localedir = join_paths(datadir, 'locale')
 portaldir = join_paths(datadir, 'xdg-desktop-portal', 'portals')
@@ -88,7 +88,6 @@ gio_unix_dep = dependency('gio-unix-2.0', version: gio_req)
 gjs_dep = dependency('gjs-1.0', version: gjs_req)
 gtk_dep = dependency('gtk+-3.0', version: gtk_req)
 libxml_dep = dependency('libxml-2.0')
-croco_dep = dependency('libcroco-0.6', version: croco_req)
 clutter_dep = dependency(clutter_pc, version: mutter_req)
 cogl_dep = dependency(cogl_pc, version: mutter_req)
 cogl_pango_dep = dependency(cogl_pango_pc, version: mutter_req)
@@ -134,19 +133,8 @@ else
   have_systemd = false
 endif
 
-if get_option('extensions_tool')
-  autoar_dep = dependency('gnome-autoar-0')
-  json_dep = dependency('json-glib-1.0')
-endif
-
-bash_completion = dependency('bash-completion', required: false)
-
 if get_option('man')
   xsltproc = find_program('xsltproc')
-
-  if get_option('extensions_tool')
-    a2x = find_program('a2x')
-  endif
 
   subdir('man')
 endif
@@ -177,11 +165,6 @@ cdata.set('HAVE_MALLINFO', cc.has_function('mallinfo'))
 cdata.set('HAVE_SYS_RESOURCE_H', cc.has_header('sys/resource.h'))
 cdata.set('HAVE__NL_TIME_FIRST_WEEKDAY',
   cc.has_header_symbol('langinfo.h', '_NL_TIME_FIRST_WEEKDAY')
-)
-
-# New API added in gnome-desktop3 3.34.2/3.35.2
-cdata.set('HAVE_GNOME_SYSTEMD',
-  cc.has_header('libgnome-desktop/gnome-systemd.h', dependencies: gnome_desktop_dep)
 )
 
 cdata.set('HAVE_FDWALK',
@@ -261,6 +244,16 @@ libgvc = subproject('gvc',
 )
 libgvc_gir = libgvc.get_variable('libgvc_gir')
 
+if get_option('extensions_tool')
+  subproject('extensions-tool',
+    default_options: [
+      'man=@0@'.format(get_option('man')),
+      'package_name=@0@'.format(meson.project_name()),
+    ]
+  )
+endif
+
+
 po_dir = join_paths(meson.current_source_dir(), 'po')
 
 subdir('js')
@@ -274,4 +267,4 @@ if get_option('gtk_doc')
   subdir('docs/reference')
 endif
 
-meson.add_install_script('meson/meson-postinstall.sh')
+meson.add_install_script('meson/postinstall.py')

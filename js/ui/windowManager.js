@@ -2,7 +2,6 @@
 /* exported WindowManager */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
-const Signals = imports.signals;
 
 const AltTab = imports.ui.altTab;
 const AppFavorites = imports.ui.appFavorites;
@@ -15,6 +14,7 @@ const WindowMenu = imports.ui.windowMenu;
 const PadOsd = imports.ui.padOsd;
 const EdgeDragAction = imports.ui.edgeDragAction;
 const CloseDialog = imports.ui.closeDialog;
+const SwipeTracker = imports.ui.swipeTracker;
 const SwitchMonitor = imports.ui.switchMonitor;
 const IBusManager = imports.misc.ibusManager;
 
@@ -30,7 +30,7 @@ var WINDOW_ANIMATION_TIME = 250;
 var DIM_BRIGHTNESS = -0.3;
 var DIM_TIME = 500;
 var UNDIM_TIME = 250;
-var MOTION_THRESHOLD = 100;
+var APP_MOTION_THRESHOLD = 30;
 
 var ONE_SECOND = 1000; // in ms
 
@@ -40,32 +40,30 @@ const GSD_WACOM_OBJECT_PATH = '/org/gnome/SettingsDaemon/Wacom';
 const GsdWacomIface = loadInterfaceXML('org.gnome.SettingsDaemon.Wacom');
 const GsdWacomProxy = Gio.DBusProxy.makeProxyWrapper(GsdWacomIface);
 
+const WINDOW_DIMMER_EFFECT_NAME = "gnome-shell-window-dimmer";
+
 var DisplayChangeDialog = GObject.registerClass(
 class DisplayChangeDialog extends ModalDialog.ModalDialog {
     _init(wm) {
-        super._init({ styleClass: 'prompt-dialog' });
+        super._init();
 
         this._wm = wm;
 
         this._countDown = Meta.MonitorManager.get_display_configuration_timeout();
 
-        let iconName = 'preferences-desktop-display-symbolic';
-        let icon = new Gio.ThemedIcon({ name: iconName });
-        let title = _("Do you want to keep these display settings?");
-        let body = this._formatCountDown();
+        // Translators: This string should be shorter than 30 characters
+        let title = _('Keep these display settings?');
+        let description = this._formatCountDown();
 
-        this._content = new Dialog.MessageDialogContent({ icon, title, body });
-
-        this.contentLayout.add(this._content,
-                               { x_fill: true,
-                                 y_fill: true });
+        this._content = new Dialog.MessageDialogContent({ title, description });
+        this.contentLayout.add_child(this._content);
 
         /* Translators: this and the following message should be limited in length,
            to avoid ellipsizing the labels.
         */
         this._cancelButton = this.addButton({ label: _("Revert Settings"),
                                               action: this._onFailure.bind(this),
-                                              key: Clutter.Escape });
+                                              key: Clutter.KEY_Escape });
         this._okButton = this.addButton({ label: _("Keep Changes"),
                                           action: this._onSuccess.bind(this),
                                           default: true });
@@ -99,7 +97,7 @@ class DisplayChangeDialog extends ModalDialog.ModalDialog {
             return GLib.SOURCE_REMOVE;
         }
 
-        this._content.body = this._formatCountDown();
+        this._content.description = this._formatCountDown();
         return GLib.SOURCE_CONTINUE;
     }
 
@@ -114,21 +112,20 @@ class DisplayChangeDialog extends ModalDialog.ModalDialog {
     }
 });
 
-var WindowDimmer = class {
-    constructor(actor) {
-        this._brightnessEffect = new Clutter.BrightnessContrastEffect({
-            name: 'dim',
-            enabled: false
+var WindowDimmer = GObject.registerClass(
+class WindowDimmer extends Clutter.BrightnessContrastEffect {
+    _init() {
+        super._init({
+            name: WINDOW_DIMMER_EFFECT_NAME,
+            enabled: false,
         });
-        actor.add_effect(this._brightnessEffect);
-        this.actor = actor;
         this._enabled = true;
     }
 
     _syncEnabled() {
-        let animating = this.actor.get_transition('@effects.dim.brightness') != null;
-        let dimmed = this._brightnessEffect.brightness.red != 127;
-        this._brightnessEffect.enabled = this._enabled && (animating || dimmed);
+        let animating = this.actor.get_transition(`@effects.${this.name}.brightness`) != null;
+        let dimmed = this.brightness.red != 127;
+        this.enabled = this._enabled && (animating || dimmed);
     }
 
     setEnabled(enabled) {
@@ -140,28 +137,27 @@ var WindowDimmer = class {
         let val = 127 * (1 + (dimmed ? 1 : 0) * DIM_BRIGHTNESS);
         let color = Clutter.Color.new(val, val, val, 255);
 
-        this.actor.ease_property('@effects.dim.brightness', color, {
+        this.actor.ease_property(`@effects.${this.name}.brightness`, color, {
             mode: Clutter.AnimationMode.LINEAR,
             duration: (dimmed ? DIM_TIME : UNDIM_TIME) * (animate ? 1 : 0),
-            onComplete: () => this._syncEnabled()
+            onComplete: () => this._syncEnabled(),
         });
 
         this._syncEnabled();
     }
-};
+});
 
 function getWindowDimmer(actor) {
     let enabled = Meta.prefs_get_attach_modal_dialogs();
-    if (actor._windowDimmer)
-        actor._windowDimmer.setEnabled(enabled);
+    let effect = actor.get_effect(WINDOW_DIMMER_EFFECT_NAME);
 
-    if (enabled) {
-        if (!actor._windowDimmer)
-            actor._windowDimmer = new WindowDimmer(actor);
-        return actor._windowDimmer;
-    } else {
-        return null;
+    if (effect) {
+        effect.setEnabled(enabled);
+    } else if (enabled) {
+        effect = new WindowDimmer();
+        actor.add_effect(effect);
     }
+    return effect;
 }
 
 /*
@@ -379,27 +375,28 @@ var WorkspaceTracker = class {
     }
 };
 
-var TilePreview = class {
-    constructor() {
-        this.actor = new St.Widget();
-        global.window_group.add_actor(this.actor);
+var TilePreview = GObject.registerClass(
+class TilePreview extends St.Widget {
+    _init() {
+        super._init();
+        global.window_group.add_actor(this);
 
         this._reset();
         this._showing = false;
     }
 
-    show(window, tileRect, monitorIndex) {
+    open(window, tileRect, monitorIndex) {
         let windowActor = window.get_compositor_private();
         if (!windowActor)
             return;
 
-        global.window_group.set_child_below_sibling(this.actor, windowActor);
+        global.window_group.set_child_below_sibling(this, windowActor);
 
         if (this._rect && this._rect.equal(tileRect))
             return;
 
-        let changeMonitor = (this._monitorIndex == -1 ||
-                             this._monitorIndex != monitorIndex);
+        let changeMonitor = this._monitorIndex == -1 ||
+                             this._monitorIndex != monitorIndex;
 
         this._monitorIndex = monitorIndex;
         this._rect = tileRect;
@@ -414,39 +411,39 @@ var TilePreview = class {
                                                    width: monitor.width,
                                                    height: monitor.height });
             let [, rect] = window.get_frame_rect().intersect(monitorRect);
-            this.actor.set_size(rect.width, rect.height);
-            this.actor.set_position(rect.x, rect.y);
-            this.actor.opacity = 0;
+            this.set_size(rect.width, rect.height);
+            this.set_position(rect.x, rect.y);
+            this.opacity = 0;
         }
 
         this._showing = true;
-        this.actor.show();
-        this.actor.ease({
+        this.show();
+        this.ease({
             x: tileRect.x,
             y: tileRect.y,
             width: tileRect.width,
             height: tileRect.height,
             opacity: 255,
             duration: WINDOW_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
-    hide() {
+    close() {
         if (!this._showing)
             return;
 
         this._showing = false;
-        this.actor.ease({
+        this.ease({
             opacity: 0,
             duration: WINDOW_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this._reset()
+            onComplete: () => this._reset(),
         });
     }
 
     _reset() {
-        this.actor.hide();
+        this.hide();
         this._rect = null;
         this._monitorIndex = -1;
     }
@@ -460,148 +457,7 @@ var TilePreview = class {
         if (this._rect.x + this._rect.width == monitor.x + monitor.width)
             styles.push('tile-preview-right');
 
-        this.actor.style_class = styles.join(' ');
-    }
-};
-
-var TouchpadWorkspaceSwitchAction = class {
-    constructor(actor, allowedModes) {
-        this._allowedModes = allowedModes;
-        this._dx = 0;
-        this._dy = 0;
-        this._enabled = true;
-        actor.connect('captured-event', this._handleEvent.bind(this));
-        this._touchpadSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.peripherals.touchpad' });
-    }
-
-    get enabled() {
-        return this._enabled;
-    }
-
-    set enabled(enabled) {
-        if (this._enabled == enabled)
-            return;
-
-        this._enabled = enabled;
-        if (!enabled)
-            this.emit('cancel');
-    }
-
-    _checkActivated() {
-        let dir;
-
-        if (this._dy < -MOTION_THRESHOLD)
-            dir = Meta.MotionDirection.DOWN;
-        else if (this._dy > MOTION_THRESHOLD)
-            dir = Meta.MotionDirection.UP;
-        else if (this._dx < -MOTION_THRESHOLD)
-            dir = Meta.MotionDirection.RIGHT;
-        else if (this._dx > MOTION_THRESHOLD)
-            dir = Meta.MotionDirection.LEFT;
-        else
-            return false;
-
-        this.emit('activated', dir);
-        return true;
-    }
-
-    _handleEvent(actor, event) {
-        if (event.type() != Clutter.EventType.TOUCHPAD_SWIPE)
-            return Clutter.EVENT_PROPAGATE;
-
-        if (event.get_touchpad_gesture_finger_count() != 4)
-            return Clutter.EVENT_PROPAGATE;
-
-        if ((this._allowedModes & Main.actionMode) == 0)
-            return Clutter.EVENT_PROPAGATE;
-
-        if (!this._enabled)
-            return Clutter.EVENT_PROPAGATE;
-
-        if (event.get_gesture_phase() == Clutter.TouchpadGesturePhase.UPDATE) {
-            let [dx, dy] = event.get_gesture_motion_delta();
-
-            // Scale deltas up a bit to make it feel snappier
-            this._dx += dx * 2;
-            if (!(this._touchpadSettings.get_boolean('natural-scroll')))
-                this._dy -= dy * 2;
-            else
-                this._dy += dy * 2;
-
-            this.emit('motion', this._dx, this._dy);
-        } else {
-            if ((event.get_gesture_phase() == Clutter.TouchpadGesturePhase.END && ! this._checkActivated()) ||
-                event.get_gesture_phase() == Clutter.TouchpadGesturePhase.CANCEL)
-                this.emit('cancel');
-
-            this._dx = 0;
-            this._dy = 0;
-        }
-
-        return Clutter.EVENT_STOP;
-    }
-};
-Signals.addSignalMethods(TouchpadWorkspaceSwitchAction.prototype);
-
-var WorkspaceSwitchAction = GObject.registerClass({
-    Signals: { 'activated': { param_types: [Meta.MotionDirection.$gtype] },
-               'motion':    { param_types: [GObject.TYPE_DOUBLE, GObject.TYPE_DOUBLE] },
-               'cancel':    { param_types: [] } },
-}, class WorkspaceSwitchAction extends Clutter.SwipeAction {
-    _init(allowedModes) {
-        super._init();
-        this.set_n_touch_points(4);
-        this._swept = false;
-        this._allowedModes = allowedModes;
-
-        global.display.connect('grab-op-begin', () => {
-            this.cancel();
-        });
-    }
-
-    vfunc_gesture_prepare(actor) {
-        this._swept = false;
-
-        if (!super.vfunc_gesture_prepare(actor))
-            return false;
-
-        return (this._allowedModes & Main.actionMode);
-    }
-
-    vfunc_gesture_progress(_actor) {
-        let [x, y] = this.get_motion_coords(0);
-        let [xPress, yPress] = this.get_press_coords(0);
-        this.emit('motion', x - xPress, y - yPress);
-        return true;
-    }
-
-    vfunc_gesture_cancel(_actor) {
-        if (!this._swept)
-            this.emit('cancel');
-    }
-
-    vfunc_swipe(actor, direction) {
-        let [x, y] = this.get_motion_coords(0);
-        let [xPress, yPress] = this.get_press_coords(0);
-        if (Math.abs(x - xPress) < MOTION_THRESHOLD &&
-            Math.abs(y - yPress) < MOTION_THRESHOLD) {
-            this.emit('cancel');
-            return;
-        }
-
-        let dir;
-
-        if (direction & Clutter.SwipeDirection.UP)
-            dir = Meta.MotionDirection.DOWN;
-        else if (direction & Clutter.SwipeDirection.DOWN)
-            dir = Meta.MotionDirection.UP;
-        else if (direction & Clutter.SwipeDirection.LEFT)
-            dir = Meta.MotionDirection.RIGHT;
-        else if (direction & Clutter.SwipeDirection.RIGHT)
-            dir = Meta.MotionDirection.LEFT;
-
-        this._swept = true;
-        this.emit('activated', dir);
+        this.style_class = styles.join(' ');
     }
 });
 
@@ -631,7 +487,7 @@ var AppSwitchAction = GObject.registerClass({
         const LONG_PRESS_TIMEOUT = 250;
 
         let nPoints = this.get_n_current_points();
-        let event = this.get_last_event (nPoints - 1);
+        let event = this.get_last_event(nPoints - 1);
 
         if (nPoints == 3) {
             this._longPressStartTime = event.get_time();
@@ -651,15 +507,14 @@ var AppSwitchAction = GObject.registerClass({
     }
 
     vfunc_gesture_progress(_actor) {
-        const MOTION_THRESHOLD = 30;
 
         if (this.get_n_current_points() == 3) {
             for (let i = 0; i < this.get_n_current_points(); i++) {
                 let [startX, startY] = this.get_press_coords(i);
                 let [x, y] = this.get_motion_coords(i);
 
-                if (Math.abs(x - startX) > MOTION_THRESHOLD ||
-                    Math.abs(y - startY) > MOTION_THRESHOLD)
+                if (Math.abs(x - startX) > APP_MOTION_THRESHOLD ||
+                    Math.abs(y - startY) > APP_MOTION_THRESHOLD)
                     return false;
             }
 
@@ -669,15 +524,16 @@ var AppSwitchAction = GObject.registerClass({
     }
 });
 
-var ResizePopup = class {
-    constructor() {
-        this._widget = new St.Widget({ layout_manager: new Clutter.BinLayout() });
+var ResizePopup = GObject.registerClass(
+class ResizePopup extends St.Widget {
+    _init() {
+        super._init({ layout_manager: new Clutter.BinLayout() });
         this._label = new St.Label({ style_class: 'resize-popup',
                                      x_align: Clutter.ActorAlign.CENTER,
                                      y_align: Clutter.ActorAlign.CENTER,
                                      x_expand: true, y_expand: true });
-        this._widget.add_child(this._label);
-        Main.uiGroup.add_actor(this._widget);
+        this.add_child(this._label);
+        Main.uiGroup.add_actor(this);
     }
 
     set(rect, displayW, displayH) {
@@ -686,15 +542,10 @@ var ResizePopup = class {
         let text = _("%d × %d").format(displayW, displayH);
         this._label.set_text(text);
 
-        this._widget.set_position(rect.x, rect.y);
-        this._widget.set_size(rect.width, rect.height);
+        this.set_position(rect.x, rect.y);
+        this.set_size(rect.width, rect.height);
     }
-
-    destroy() {
-        this._widget.destroy();
-        this._widget = null;
-    }
-};
+});
 
 var WindowManager = class {
     constructor() {
@@ -1024,15 +875,14 @@ var WindowManager = class {
         this._gsdWacomProxy = new GsdWacomProxy(Gio.DBus.session, GSD_WACOM_BUS_NAME,
                                                 GSD_WACOM_OBJECT_PATH,
                                                 (proxy, error) => {
-                                                    if (error) {
+                                                    if (error)
                                                         log(error.message);
-                                                    }
                                                 });
 
         global.display.connect('pad-mode-switch', (display, pad, group, mode) => {
             let labels = [];
 
-            //FIXME: Fix num buttons
+            // FIXME: Fix num buttons
             for (let i = 0; i < 50; i++) {
                 let str = display.get_pad_action_label(pad, Meta.PadActionType.BUTTON, i);
                 labels.push(str ? str : '');
@@ -1056,10 +906,17 @@ var WindowManager = class {
         Main.overview.connect('showing', () => {
             for (let i = 0; i < this._dimmedWindows.length; i++)
                 this._undimWindow(this._dimmedWindows[i]);
+
+            if (this._switchData) {
+                if (this._switchData.gestureActivated)
+                    this._switchWorkspaceStop();
+                this._swipeTracker.enabled = false;
+            }
         });
         Main.overview.connect('hiding', () => {
             for (let i = 0; i < this._dimmedWindows.length; i++)
                 this._dimWindow(this._dimmedWindows[i]);
+            this._swipeTracker.enabled = true;
         });
 
         this._windowMenuManager = new WindowMenu.WindowMenuManager();
@@ -1070,18 +927,12 @@ var WindowManager = class {
         global.workspace_manager.override_workspace_layout(Meta.DisplayCorner.TOPLEFT,
                                                            false, -1, 1);
 
-        let allowedModes = Shell.ActionMode.NORMAL;
-        let workspaceSwitchAction = new WorkspaceSwitchAction(allowedModes);
-        workspaceSwitchAction.connect('motion', this._switchWorkspaceMotion.bind(this));
-        workspaceSwitchAction.connect('activated', this._actionSwitchWorkspace.bind(this));
-        workspaceSwitchAction.connect('cancel', this._switchWorkspaceCancel.bind(this));
-        global.stage.add_action(workspaceSwitchAction);
-
-        // This is not a normal Clutter.GestureAction, doesn't need add_action()
-        let touchpadSwitchAction = new TouchpadWorkspaceSwitchAction(global.stage, allowedModes);
-        touchpadSwitchAction.connect('motion', this._switchWorkspaceMotion.bind(this));
-        touchpadSwitchAction.connect('activated', this._actionSwitchWorkspace.bind(this));
-        touchpadSwitchAction.connect('cancel', this._switchWorkspaceCancel.bind(this));
+        let swipeTracker = new SwipeTracker.SwipeTracker(global.stage,
+            Shell.ActionMode.NORMAL, { allowDrag: false, allowScroll: false });
+        swipeTracker.connect('begin', this._switchWorkspaceBegin.bind(this));
+        swipeTracker.connect('update', this._switchWorkspaceUpdate.bind(this));
+        swipeTracker.connect('end', this._switchWorkspaceEnd.bind(this));
+        this._swipeTracker = swipeTracker;
 
         let appSwitchAction = new AppSwitchAction();
         appSwitchAction.connect('activated', this._switchApp.bind(this));
@@ -1090,7 +941,7 @@ var WindowManager = class {
         let mode = Shell.ActionMode.ALL & ~Shell.ActionMode.LOCK_SCREEN;
         let bottomDragAction = new EdgeDragAction.EdgeDragAction(St.Side.BOTTOM, mode);
         bottomDragAction.connect('activated', () => {
-            Main.keyboard.show(Main.layoutManager.bottomIndex);
+            Main.keyboard.open(Main.layoutManager.bottomIndex);
         });
         Main.layoutManager.connect('keyboard-visible-changed', (manager, visible) => {
             bottomDragAction.cancel();
@@ -1120,60 +971,13 @@ var WindowManager = class {
         this._currentPadOsd = new PadOsd.PadOsd(device, settings, imagePath, editionMode, monitorIndex);
         this._currentPadOsd.connect('closed', () => (this._currentPadOsd = null));
 
-        return this._currentPadOsd.actor;
-    }
-
-    _switchWorkspaceMotion(action, xRel, yRel) {
-        let workspaceManager = global.workspace_manager;
-        let activeWorkspace = workspaceManager.get_active_workspace();
-
-        if (!this._switchData)
-            this._prepareWorkspaceSwitch(activeWorkspace.index(), -1);
-
-        if (yRel < 0 && !this._switchData.surroundings[Meta.MotionDirection.DOWN])
-            yRel = 0;
-        if (yRel > 0 && !this._switchData.surroundings[Meta.MotionDirection.UP])
-            yRel = 0;
-        if (xRel < 0 && !this._switchData.surroundings[Meta.MotionDirection.RIGHT])
-            xRel = 0;
-        if (xRel > 0 && !this._switchData.surroundings[Meta.MotionDirection.LEFT])
-            xRel = 0;
-
-        this._switchData.container.set_position(xRel, yRel);
-    }
-
-    _switchWorkspaceCancel() {
-        if (!this._switchData || this._switchData.inProgress)
-            return;
-        let switchData = this._switchData;
-        this._switchData = null;
-        switchData.container.ease({
-            x: 0,
-            y: 0,
-            duration: WINDOW_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this._finishWorkspaceSwitch(switchData)
-        });
-    }
-
-    _actionSwitchWorkspace(action, direction) {
-        let workspaceManager = global.workspace_manager;
-        let activeWorkspace = workspaceManager.get_active_workspace();
-        let newWs = activeWorkspace.get_neighbor(direction);
-
-        if (newWs == activeWorkspace) {
-            this._switchWorkspaceCancel();
-        } else {
-            this._switchData.gestureActivated = true;
-            this.actionMoveWorkspace(newWs);
-        }
+        return this._currentPadOsd;
     }
 
     _lookupIndex(windows, metaWindow) {
         for (let i = 0; i < windows.length; i++) {
-            if (windows[i].metaWindow == metaWindow) {
+            if (windows[i].metaWindow == metaWindow)
                 return i;
-            }
         }
         return -1;
     }
@@ -1183,8 +987,8 @@ var WindowManager = class {
             let win = actor.metaWindow;
             let workspaceManager = global.workspace_manager;
             let activeWorkspace = workspaceManager.get_active_workspace();
-            return (!win.is_override_redirect() &&
-                    win.located_on_workspace(activeWorkspace));
+            return !win.is_override_redirect() &&
+                    win.located_on_workspace(activeWorkspace);
         });
 
         if (windows.length == 0)
@@ -1196,7 +1000,7 @@ var WindowManager = class {
         if (focusWindow == null) {
             nextWindow = windows[0].metaWindow;
         } else {
-            let index = this._lookupIndex (windows, focusWindow) + 1;
+            let index = this._lookupIndex(windows, focusWindow) + 1;
 
             if (index >= windows.length)
                 index = 0;
@@ -1283,7 +1087,8 @@ var WindowManager = class {
     }
 
     _shouldAnimate() {
-        return !Main.overview.visible;
+        return !(Main.overview.visible ||
+            (this._switchData && this._switchData.gestureActivated));
     }
 
     _shouldAnimateActor(actor, types) {
@@ -1318,12 +1123,7 @@ var WindowManager = class {
                 opacity: 0,
                 duration: MINIMIZE_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: isFinished => {
-                    if (isFinished)
-                        this._minimizeWindowDone(shellwm, actor);
-                    else
-                        this._minimizeWindowOverwritten(shellwm, actor);
-                }
+                onStopped: () => this._minimizeWindowDone(shellwm, actor),
             });
         } else {
             let xDest, yDest, xScale, yScale;
@@ -1354,12 +1154,7 @@ var WindowManager = class {
                 y: yDest,
                 duration: MINIMIZE_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_IN_EXPO,
-                onStopped: isFinished => {
-                    if (isFinished)
-                        this._minimizeWindowDone(shellwm, actor);
-                    else
-                        this._minimizeWindowOverwritten(shellwm, actor);
-                }
+                onStopped: () => this._minimizeWindowDone(shellwm, actor),
             });
         }
     }
@@ -1371,12 +1166,6 @@ var WindowManager = class {
             actor.set_opacity(255);
             actor.set_pivot_point(0, 0);
 
-            shellwm.completed_minimize(actor);
-        }
-    }
-
-    _minimizeWindowOverwritten(shellwm, actor) {
-        if (this._minimizing.delete(actor)) {
             shellwm.completed_minimize(actor);
         }
     }
@@ -1399,12 +1188,7 @@ var WindowManager = class {
                 opacity: 255,
                 duration: MINIMIZE_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: isFinished => {
-                    if (isFinished)
-                        this._unminimizeWindowDone(shellwm, actor);
-                    else
-                        this._unminimizeWindowOverwritten(shellwm, actor);
-                }
+                onStopped: () => this._unminimizeWindowDone(shellwm, actor),
             });
         } else {
             let [success, geom] = actor.meta_window.get_icon_geometry();
@@ -1436,12 +1220,7 @@ var WindowManager = class {
                 y: yDest,
                 duration: MINIMIZE_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_IN_EXPO,
-                onStopped: isFinished => {
-                    if (isFinished)
-                        this._unminimizeWindowDone(shellwm, actor);
-                    else
-                        this._unminimizeWindowOverwritten(shellwm, actor);
-                }
+                onStopped: () => this._unminimizeWindowDone(shellwm, actor),
             });
         }
     }
@@ -1453,12 +1232,6 @@ var WindowManager = class {
             actor.set_opacity(255);
             actor.set_pivot_point(0, 0);
 
-            shellwm.completed_unminimize(actor);
-        }
-    }
-
-    _unminimizeWindowOverwritten(shellwm, actor) {
-        if (this._unminimizing.delete(actor)) {
             shellwm.completed_unminimize(actor);
         }
     }
@@ -1496,7 +1269,7 @@ var WindowManager = class {
         this._resizePending.add(actor);
         actor.__animationInfo = { clone: actorClone,
                                   oldRect: oldFrameRect,
-                                  destroyId: destroyId };
+                                  destroyId };
     }
 
     _sizeChangedWindow(shellwm, actor) {
@@ -1523,7 +1296,7 @@ var WindowManager = class {
             scale_y: scaleY,
             opacity: 0,
             duration: WINDOW_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
 
         actor.translation_x = -targetRect.x + sourceRect.x;
@@ -1541,12 +1314,7 @@ var WindowManager = class {
             translation_y: 0,
             duration: WINDOW_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onStopped: isFinished => {
-                if (isFinished)
-                    this._sizeChangeWindowDone(shellwm, actor);
-                else
-                    this._sizeChangeWindowOverwritten(shellwm, actor);
-            }
+            onStopped: () => this._sizeChangeWindowDone(shellwm, actor),
         });
 
         // Now unfreeze actor updates, to get it to the new size.
@@ -1577,11 +1345,6 @@ var WindowManager = class {
 
         if (this._resizePending.delete(actor))
             this._shellwm.completed_size_change(actor);
-    }
-
-    _sizeChangeWindowOverwritten(shellwm, actor) {
-        if (this._resizing.delete(actor))
-            this._clearAnimationInfo(actor);
     }
 
     _hasAttachedDialogs(window, ignoreWindow) {
@@ -1681,12 +1444,7 @@ var WindowManager = class {
                 scale_y: 1,
                 duration: SHOW_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_EXPO,
-                onStopped: isFinished => {
-                    if (isFinished)
-                        this._mapWindowDone(shellwm, actor);
-                    else
-                        this._mapWindowOverwrite(shellwm, actor);
-                }
+                onStopped: () => this._mapWindowDone(shellwm, actor),
             });
             break;
         case Meta.WindowType.MODAL_DIALOG:
@@ -1703,12 +1461,7 @@ var WindowManager = class {
                 scale_y: 1,
                 duration: DIALOG_SHOW_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: isFinished => {
-                    if (isFinished)
-                        this._mapWindowDone(shellwm, actor);
-                    else
-                        this._mapWindowOverwrite(shellwm, actor);
-                }
+                onStopped: () => this._mapWindowDone(shellwm, actor),
             });
             break;
         default:
@@ -1725,12 +1478,6 @@ var WindowManager = class {
             actor.scale_x = 1;
             actor.translation_y = 0;
             actor.translation_x = 0;
-            shellwm.completed_map(actor);
-        }
-    }
-
-    _mapWindowOverwrite(shellwm, actor) {
-        if (this._mapping.delete(actor)) {
             shellwm.completed_map(actor);
         }
     }
@@ -1768,7 +1515,7 @@ var WindowManager = class {
                 scale_y: 0.8,
                 duration: DESTROY_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: () => this._destroyWindowDone(shellwm, actor)
+                onStopped: () => this._destroyWindowDone(shellwm, actor),
             });
             break;
         case Meta.WindowType.MODAL_DIALOG:
@@ -1788,7 +1535,7 @@ var WindowManager = class {
                 scale_y: 0,
                 duration: DIALOG_DESTROY_WINDOW_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onStopped: () => this._destroyWindowDone(shellwm, actor)
+                onStopped: () => this._destroyWindowDone(shellwm, actor),
             });
             break;
         default:
@@ -1906,7 +1653,7 @@ var WindowManager = class {
         wgroup.add_actor(switchData.container);
 
         let workspaceManager = global.workspace_manager;
-        let curWs = workspaceManager.get_workspace_by_index (from);
+        let curWs = workspaceManager.get_workspace_by_index(from);
 
         for (let dir of Object.values(Meta.MotionDirection)) {
             let ws = null;
@@ -1921,17 +1668,21 @@ var WindowManager = class {
                 continue;
             }
 
-            let info = { index: ws.index(),
-                         actor: new Clutter.Actor() };
+            let [x, y] = this._getPositionForDirection(dir, curWs, ws);
+            let info = {
+                index: ws.index(),
+                actor: new Clutter.Actor(),
+                xDest: x,
+                yDest: y,
+            };
             switchData.surroundings[dir] = info;
             switchData.container.add_actor(info.actor);
-            info.actor.raise_top();
+            switchData.container.set_child_above_sibling(info.actor, null);
 
-            let [x, y] = this._getPositionForDirection(dir, curWs, ws);
             info.actor.set_position(x, y);
         }
 
-        switchData.movingWindowBin.raise_top();
+        wgroup.set_child_above_sibling(switchData.movingWindowBin, null);
 
         for (let i = 0; i < windows.length; i++) {
             let actor = windows[i];
@@ -1947,12 +1698,14 @@ var WindowManager = class {
                            parent: actor.get_parent() };
 
             if (this._movingWindow && window == this._movingWindow) {
+                record.parent.remove_child(actor);
                 switchData.movingWindow = record;
                 switchData.windows.push(switchData.movingWindow);
-                actor.reparent(switchData.movingWindowBin);
+                switchData.movingWindowBin.add_child(actor);
             } else if (window.get_workspace().index() == from) {
+                record.parent.remove_child(actor);
                 switchData.windows.push(record);
-                actor.reparent(switchData.curGroup);
+                switchData.curGroup.add_child(actor);
             } else {
                 let visible = false;
                 for (let dir of Object.values(Meta.MotionDirection)) {
@@ -1961,8 +1714,9 @@ var WindowManager = class {
                     if (!info || info.index != window.get_workspace().index())
                         continue;
 
+                    record.parent.remove_child(actor);
                     switchData.windows.push(record);
-                    actor.reparent(info.actor);
+                    info.actor.add_child(actor);
                     visible = true;
                     break;
                 }
@@ -1987,7 +1741,8 @@ var WindowManager = class {
             let w = switchData.windows[i];
 
             w.window.disconnect(w.windowDestroyId);
-            w.window.reparent(w.parent);
+            w.window.get_parent().remove_child(w.window);
+            w.parent.add_child(w.window);
 
             if (w.window.get_meta_window().get_workspace() !=
                 global.workspace_manager.get_active_workspace())
@@ -2005,11 +1760,7 @@ var WindowManager = class {
             return;
         }
 
-        // If we come from a gesture, switchData will already be set,
-        // and we don't want to overwrite it.
-        if (!this._switchData)
-            this._prepareWorkspaceSwitch(from, to, direction);
-
+        this._prepareWorkspaceSwitch(from, to, direction);
         this._switchData.inProgress = true;
 
         let workspaceManager = global.workspace_manager;
@@ -2029,8 +1780,8 @@ var WindowManager = class {
             x: xDest,
             y: yDest,
             duration: WINDOW_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this._switchWorkspaceDone(shellwm)
+            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+            onComplete: () => this._switchWorkspaceDone(shellwm),
         });
     }
 
@@ -2039,16 +1790,168 @@ var WindowManager = class {
         shellwm.completed_switch_workspace();
     }
 
+    _directionForProgress(progress) {
+        if (global.workspace_manager.layout_rows === -1) {
+            return progress > 0
+                ? Meta.MotionDirection.DOWN
+                : Meta.MotionDirection.UP;
+        } else if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL) {
+            return progress > 0
+                ? Meta.MotionDirection.LEFT
+                : Meta.MotionDirection.RIGHT;
+        } else {
+            return progress > 0
+                ? Meta.MotionDirection.RIGHT
+                : Meta.MotionDirection.LEFT;
+        }
+    }
+
+    _getProgressRange() {
+        if (!this._switchData)
+            return [0, 0];
+
+        let lower = 0;
+        let upper = 0;
+
+        let horiz = global.workspace_manager.layout_rows !== -1;
+        let baseDistance;
+        if (horiz)
+            baseDistance = global.screen_width;
+        else
+            baseDistance = global.screen_height;
+
+        let direction = this._directionForProgress(-1);
+        let info = this._switchData.surroundings[direction];
+        if (info !== null) {
+            let distance = horiz ? info.xDest : info.yDest;
+            lower = -Math.abs(distance) / baseDistance;
+        }
+
+        direction = this._directionForProgress(1);
+        info = this._switchData.surroundings[direction];
+        if (info !== null) {
+            let distance = horiz ? info.xDest : info.yDest;
+            upper = Math.abs(distance) / baseDistance;
+        }
+
+        return [lower, upper];
+    }
+
+    _switchWorkspaceBegin(tracker, monitor) {
+        if (Meta.prefs_get_workspaces_only_on_primary() &&
+            monitor !== Main.layoutManager.primaryIndex)
+            return;
+
+        let workspaceManager = global.workspace_manager;
+        let horiz = workspaceManager.layout_rows !== -1;
+        tracker.orientation = horiz
+            ? Clutter.Orientation.HORIZONTAL
+            : Clutter.Orientation.VERTICAL;
+
+        let activeWorkspace = workspaceManager.get_active_workspace();
+
+        let baseDistance;
+        if (horiz)
+            baseDistance = global.screen_width;
+        else
+            baseDistance = global.screen_height;
+
+        let progress;
+        if (this._switchData && this._switchData.gestureActivated) {
+            this._switchData.container.remove_all_transitions();
+            if (!horiz)
+                progress = -this._switchData.container.y / baseDistance;
+            else if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL)
+                progress = this._switchData.container.x / baseDistance;
+            else
+                progress = -this._switchData.container.x / baseDistance;
+        } else {
+            this._prepareWorkspaceSwitch(activeWorkspace.index(), -1);
+            progress = 0;
+        }
+
+        let points = [];
+        let [lower, upper] = this._getProgressRange();
+
+        if (lower !== 0)
+            points.push(lower);
+
+        points.push(0);
+
+        if (upper !== 0)
+            points.push(upper);
+
+        tracker.confirmSwipe(baseDistance, points, progress, 0);
+    }
+
+    _switchWorkspaceUpdate(tracker, progress) {
+        if (!this._switchData)
+            return;
+
+        let direction = this._directionForProgress(progress);
+        let info = this._switchData.surroundings[direction];
+        let xPos = 0;
+        let yPos = 0;
+        if (info) {
+            if (global.workspace_manager.layout_rows === -1)
+                yPos = -Math.round(progress * global.screen_height);
+            else if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL)
+                xPos = Math.round(progress * global.screen_width);
+            else
+                xPos = -Math.round(progress * global.screen_width);
+        }
+
+        this._switchData.container.set_position(xPos, yPos);
+    }
+
+    _switchWorkspaceEnd(tracker, duration, endProgress) {
+        if (!this._switchData)
+            return;
+
+        let workspaceManager = global.workspace_manager;
+        let activeWorkspace = workspaceManager.get_active_workspace();
+        let newWs = activeWorkspace;
+        let xDest = 0;
+        let yDest = 0;
+        if (endProgress !== 0) {
+            let direction = this._directionForProgress(endProgress);
+            newWs = activeWorkspace.get_neighbor(direction);
+            xDest = -this._switchData.surroundings[direction].xDest;
+            yDest = -this._switchData.surroundings[direction].yDest;
+        }
+
+        let switchData = this._switchData;
+        switchData.gestureActivated = true;
+
+        this._switchData.container.ease({
+            x: xDest,
+            y: yDest,
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+            onComplete: () => {
+                if (newWs !== activeWorkspace)
+                    this.actionMoveWorkspace(newWs);
+                this._finishWorkspaceSwitch(switchData);
+            },
+        });
+    }
+
+    _switchWorkspaceStop() {
+        this._switchData.container.x = 0;
+        this._switchData.container.y = 0;
+        this._finishWorkspaceSwitch(this._switchData);
+    }
+
     _showTilePreview(shellwm, window, tileRect, monitorIndex) {
         if (!this._tilePreview)
             this._tilePreview = new TilePreview();
-        this._tilePreview.show(window, tileRect, monitorIndex);
+        this._tilePreview.open(window, tileRect, monitorIndex);
     }
 
     _hideTilePreview() {
         if (!this._tilePreview)
             return;
-        this._tilePreview.hide();
+        this._tilePreview.close();
     }
 
     _showWindowMenu(shellwm, window, menu, rect) {
@@ -2176,7 +2079,7 @@ var WindowManager = class {
                 else
                     direction = Meta.MotionDirection.LEFT;
             } else {
-                if (vertical)
+                if (vertical) // eslint-disable-line no-lonely-if
                     direction = Meta.MotionDirection.DOWN;
                 else if (rtl)
                     direction = Meta.MotionDirection.LEFT;
@@ -2240,7 +2143,7 @@ var WindowManager = class {
             window.change_workspace(workspace);
 
             global.display.clear_mouse_mode();
-            workspace.activate_with_focus (window, global.get_current_time());
+            workspace.activate_with_focus(window, global.get_current_time());
         }
     }
 
@@ -2264,10 +2167,11 @@ var WindowManager = class {
 
             this._resizePopup.set(rect, displayW, displayH);
         } else {
-            if (this._resizePopup) {
-                this._resizePopup.destroy();
-                this._resizePopup = null;
-            }
+            if (!this._resizePopup)
+                return;
+
+            this._resizePopup.destroy();
+            this._resizePopup = null;
         }
     }
 };

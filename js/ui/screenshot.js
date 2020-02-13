@@ -1,8 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported ScreenshotService */
 
-const { Clutter, Gio, GLib, Meta, Shell, St } = imports.gi;
-const Signals = imports.signals;
+const { Clutter, Graphene, Gio, GObject, GLib, Meta, Shell, St } = imports.gi;
 
 const GrabHelper = imports.ui.grabHelper;
 const Lightbox = imports.ui.lightbox;
@@ -65,7 +64,54 @@ var ScreenshotService = class {
                y + height <= global.screen_height;
     }
 
-    _onScreenshotComplete(result, area, filenameUsed, flash, invocation) {
+    *_resolveRelativeFilename(filename) {
+        filename = filename.replace(/\.png$/, '');
+
+        let path = [
+            GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES),
+            GLib.get_home_dir(),
+        ].find(p => GLib.file_test(p, GLib.FileTest.EXISTS));
+
+        if (!path)
+            return null;
+
+        yield Gio.File.new_for_path(
+            GLib.build_filenamev([path, `${filename}.png`]));
+
+        for (let idx = 1; ; idx++) {
+            yield Gio.File.new_for_path(
+                GLib.build_filenamev([path, `${filename}-${idx}.png`]));
+        }
+    }
+
+    _createStream(filename) {
+        if (filename == '')
+            return [Gio.MemoryOutputStream.new_resizable(), null];
+
+        if (GLib.path_is_absolute(filename)) {
+            try {
+                let file = Gio.File.new_for_path(filename);
+                let stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
+                return [stream, file];
+            } catch (e) {
+                return [null, null];
+            }
+        }
+
+        for (let file of this._resolveRelativeFilename(filename)) {
+            try {
+                let stream = file.create(Gio.FileCreateFlags.NONE, null);
+                return [stream, file];
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.EXISTS))
+                    return [null, null];
+            }
+        }
+
+        return [null, null];
+    }
+
+    _onScreenshotComplete(result, area, stream, file, flash, invocation) {
         if (result) {
             if (flash) {
                 let flashspot = new Flashspot(area);
@@ -75,6 +121,17 @@ var ScreenshotService = class {
             } else {
                 this._removeShooterForSender(invocation.get_sender());
             }
+        }
+
+        stream.close(null);
+
+        let filenameUsed = '';
+        if (file) {
+            filenameUsed = file.get_path();
+        } else {
+            let bytes = stream.steal_as_bytes();
+            let clipboard = St.Clipboard.get_default();
+            clipboard.set_content(St.ClipboardType.CLIPBOARD, 'image/png', bytes);
         }
 
         let retval = GLib.Variant.new('(bs)', [result, filenameUsed]);
@@ -111,15 +168,18 @@ var ScreenshotService = class {
         let screenshot = this._createScreenshot(invocation);
         if (!screenshot)
             return;
-        screenshot.screenshot_area (x, y, width, height, filename,
+
+        let [stream, file] = this._createStream(filename);
+
+        screenshot.screenshot_area(x, y, width, height, stream,
             (o, res) => {
                 try {
-                    let [result, area, filenameUsed] =
+                    let [result, area] =
                         screenshot.screenshot_area_finish(res);
                     this._onScreenshotComplete(
-                        result, area, filenameUsed, flash, invocation);
+                        result, area, stream, file, flash, invocation);
                 } catch (e) {
-                    invocation.return_gerror (e);
+                    invocation.return_gerror(e);
                 }
             });
     }
@@ -129,15 +189,18 @@ var ScreenshotService = class {
         let screenshot = this._createScreenshot(invocation);
         if (!screenshot)
             return;
-        screenshot.screenshot_window (includeFrame, includeCursor, filename,
+
+        let [stream, file] = this._createStream(filename);
+
+        screenshot.screenshot_window(includeFrame, includeCursor, stream,
             (o, res) => {
                 try {
-                    let [result, area, filenameUsed] =
+                    let [result, area] =
                         screenshot.screenshot_window_finish(res);
                     this._onScreenshotComplete(
-                        result, area, filenameUsed, flash, invocation);
+                        result, area, stream, file, flash, invocation);
                 } catch (e) {
-                    invocation.return_gerror (e);
+                    invocation.return_gerror(e);
                 }
             });
     }
@@ -147,33 +210,35 @@ var ScreenshotService = class {
         let screenshot = this._createScreenshot(invocation);
         if (!screenshot)
             return;
-        screenshot.screenshot(includeCursor, filename,
+
+        let [stream, file] = this._createStream(filename);
+
+        screenshot.screenshot(includeCursor, stream,
             (o, res) => {
                 try {
-                    let [result, area, filenameUsed] =
+                    let [result, area] =
                         screenshot.screenshot_finish(res);
                     this._onScreenshotComplete(
-                        result, area, filenameUsed, flash, invocation);
+                        result, area, stream, file, flash, invocation);
                 } catch (e) {
-                    invocation.return_gerror (e);
+                    invocation.return_gerror(e);
                 }
             });
     }
 
-    SelectAreaAsync(params, invocation) {
+    async SelectAreaAsync(params, invocation) {
         let selectArea = new SelectArea();
-        selectArea.show();
-        selectArea.connect('finished', (selectArea, areaRectangle) => {
-            if (areaRectangle) {
-                let retRectangle = this._unscaleArea(areaRectangle.x, areaRectangle.y,
-                                                     areaRectangle.width, areaRectangle.height);
-                let retval = GLib.Variant.new('(iiii)', retRectangle);
-                invocation.return_value(retval);
-            } else {
-                invocation.return_error_literal(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
-                                                "Operation was cancelled");
-            }
-        });
+        try {
+            let areaRectangle = await selectArea.selectAsync();
+            let retRectangle = this._unscaleArea(
+                areaRectangle.x, areaRectangle.y,
+                areaRectangle.width, areaRectangle.height);
+            invocation.return_value(GLib.Variant.new('(iiii)', retRectangle));
+        } catch (e) {
+            invocation.return_error_literal(
+                Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
+                'Operation was cancelled');
+        }
     }
 
     FlashAreaAsync(params, invocation) {
@@ -185,96 +250,102 @@ var ScreenshotService = class {
                                             "Invalid params");
             return;
         }
-        let flashspot = new Flashspot({ x: x, y: y, width: width, height: height });
+        let flashspot = new Flashspot({ x, y, width, height });
         flashspot.fire();
         invocation.return_value(null);
     }
 
-    PickColorAsync(params, invocation) {
+    async PickColorAsync(params, invocation) {
         let pickPixel = new PickPixel();
-        pickPixel.show();
-        pickPixel.connect('finished', (pickPixel, coords) => {
-            if (coords) {
-                let screenshot = this._createScreenshot(invocation, false);
-                if (!screenshot)
-                    return;
-                screenshot.pick_color(...coords, (o, res) => {
-                    let [success_, color] = screenshot.pick_color_finish(res);
-                    let { red, green, blue } = color;
-                    let retval = GLib.Variant.new('(a{sv})', [{
-                        color: GLib.Variant.new('(ddd)', [
-                            red / 255.0,
-                            green / 255.0,
-                            blue / 255.0
-                        ])
-                    }]);
-                    this._removeShooterForSender(invocation.get_sender());
-                    invocation.return_value(retval);
-                });
-            } else {
-                invocation.return_error_literal(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
-                                                "Operation was cancelled");
-            }
-        });
+        try {
+            const coords = await pickPixel.pickAsync();
+
+            let screenshot = this._createScreenshot(invocation, false);
+            if (!screenshot)
+                return;
+
+            screenshot.pick_color(coords.x, coords.y, (_o, res) => {
+                let [success_, color] = screenshot.pick_color_finish(res);
+                let { red, green, blue } = color;
+                let retval = GLib.Variant.new('(a{sv})', [{
+                    color: GLib.Variant.new('(ddd)', [
+                        red / 255.0,
+                        green / 255.0,
+                        blue / 255.0,
+                    ]),
+                }]);
+                this._removeShooterForSender(invocation.get_sender());
+                invocation.return_value(retval);
+            });
+        } catch (e) {
+            invocation.return_error_literal(
+                Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED,
+                'Operation was cancelled');
+        }
     }
 };
 
-var SelectArea = class {
-    constructor() {
+var SelectArea = GObject.registerClass(
+class SelectArea extends St.Widget {
+    _init() {
         this._startX = -1;
         this._startY = -1;
         this._lastX = 0;
         this._lastY = 0;
         this._result = null;
 
-        this._group = new St.Widget({ visible: false,
-                                      reactive: true,
-                                      x: 0,
-                                      y: 0 });
-        Main.uiGroup.add_actor(this._group);
+        super._init({
+            visible: false,
+            reactive: true,
+            x: 0,
+            y: 0,
+        });
+        Main.uiGroup.add_actor(this);
 
-        this._grabHelper = new GrabHelper.GrabHelper(this._group);
-
-        this._group.connect('button-press-event',
-                            this._onButtonPress.bind(this));
-        this._group.connect('button-release-event',
-                            this._onButtonRelease.bind(this));
-        this._group.connect('motion-event',
-                            this._onMotionEvent.bind(this));
+        this._grabHelper = new GrabHelper.GrabHelper(this);
 
         let constraint = new Clutter.BindConstraint({ source: global.stage,
                                                       coordinate: Clutter.BindCoordinate.ALL });
-        this._group.add_constraint(constraint);
+        this.add_constraint(constraint);
 
         this._rubberband = new St.Widget({
             style_class: 'select-area-rubberband',
-            visible: false
+            visible: false,
         });
-        this._group.add_actor(this._rubberband);
+        this.add_actor(this._rubberband);
     }
 
-    show() {
-        if (!this._grabHelper.grab({ actor: this._group,
-                                     onUngrab: this._onUngrab.bind(this) }))
-            return;
-
+    async selectAsync() {
         global.display.set_cursor(Meta.Cursor.CROSSHAIR);
-        Main.uiGroup.set_child_above_sibling(this._group, null);
-        this._group.visible = true;
+        Main.uiGroup.set_child_above_sibling(this, null);
+        this.show();
+
+        await this._grabHelper.grabAsync({ actor: this });
+
+        global.display.set_cursor(Meta.Cursor.DEFAULT);
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this.destroy();
+            return GLib.SOURCE_REMOVE;
+        });
+
+        return this._result;
     }
 
     _getGeometry() {
-        return { x: Math.min(this._startX, this._lastX),
-                 y: Math.min(this._startY, this._lastY),
-                 width: Math.abs(this._startX - this._lastX) + 1,
-                 height: Math.abs(this._startY - this._lastY) + 1 };
+        return new Meta.Rectangle({
+            x: Math.min(this._startX, this._lastX),
+            y: Math.min(this._startY, this._lastY),
+            width: Math.abs(this._startX - this._lastX) + 1,
+            height: Math.abs(this._startY - this._lastY) + 1,
+        });
     }
 
-    _onMotionEvent(actor, event) {
+    vfunc_motion_event(motionEvent) {
         if (this._startX == -1 || this._startY == -1 || this._result)
             return Clutter.EVENT_PROPAGATE;
 
-        [this._lastX, this._lastY] = event.get_coords();
+        [this._lastX, this._lastY] = [motionEvent.x, motionEvent.y];
         this._lastX = Math.floor(this._lastX);
         this._lastY = Math.floor(this._lastY);
         let geometry = this._getGeometry();
@@ -286,8 +357,8 @@ var SelectArea = class {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _onButtonPress(actor, event) {
-        [this._startX, this._startY] = event.get_coords();
+    vfunc_button_press_event(buttonEvent) {
+        [this._startX, this._startY] = [buttonEvent.x, buttonEvent.y];
         this._startX = Math.floor(this._startX);
         this._startY = Math.floor(this._startY);
         this._rubberband.set_position(this._startX, this._startY);
@@ -295,91 +366,76 @@ var SelectArea = class {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _onButtonRelease() {
+    vfunc_button_release_event() {
         this._result = this._getGeometry();
-        this._group.ease({
+        this.ease({
             opacity: 0,
             duration: 200,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this._grabHelper.ungrab()
+            onComplete: () => this._grabHelper.ungrab(),
         });
         return Clutter.EVENT_PROPAGATE;
     }
+});
 
-    _onUngrab() {
-        global.display.set_cursor(Meta.Cursor.DEFAULT);
-        this.emit('finished', this._result);
+var PickPixel = GObject.registerClass(
+class PickPixel extends St.Widget {
+    _init() {
+        super._init({ visible: false, reactive: true });
 
-        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-            this._group.destroy();
-            return GLib.SOURCE_REMOVE;
-        });
-    }
-};
-Signals.addSignalMethods(SelectArea.prototype);
-
-var PickPixel = class {
-    constructor() {
         this._result = null;
 
-        this._group = new St.Widget({ visible: false,
-                                      reactive: true });
-        Main.uiGroup.add_actor(this._group);
+        Main.uiGroup.add_actor(this);
 
-        this._grabHelper = new GrabHelper.GrabHelper(this._group);
-
-        this._group.connect('button-release-event',
-                            this._onButtonRelease.bind(this));
+        this._grabHelper = new GrabHelper.GrabHelper(this);
 
         let constraint = new Clutter.BindConstraint({ source: global.stage,
                                                       coordinate: Clutter.BindCoordinate.ALL });
-        this._group.add_constraint(constraint);
+        this.add_constraint(constraint);
     }
 
-    show() {
-        if (!this._grabHelper.grab({ actor: this._group,
-                                     onUngrab: this._onUngrab.bind(this) }))
-            return;
-
+    async pickAsync() {
         global.display.set_cursor(Meta.Cursor.CROSSHAIR);
-        Main.uiGroup.set_child_above_sibling(this._group, null);
-        this._group.visible = true;
+        Main.uiGroup.set_child_above_sibling(this, null);
+        this.show();
+
+        await this._grabHelper.grabAsync({ actor: this });
+
+        global.display.set_cursor(Meta.Cursor.DEFAULT);
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this.destroy();
+            return GLib.SOURCE_REMOVE;
+        });
+
+        return this._result;
     }
 
-    _onButtonRelease(actor, event) {
-        this._result = event.get_coords();
+    vfunc_button_release_event(buttonEvent) {
+        let { x, y } = buttonEvent;
+        this._result = new Graphene.Point({ x, y });
         this._grabHelper.ungrab();
         return Clutter.EVENT_PROPAGATE;
     }
-
-    _onUngrab() {
-        global.display.set_cursor(Meta.Cursor.DEFAULT);
-        this.emit('finished', this._result);
-
-        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-            this._group.destroy();
-            return GLib.SOURCE_REMOVE;
-        });
-    }
-};
-Signals.addSignalMethods(PickPixel.prototype);
+});
 
 var FLASHSPOT_ANIMATION_OUT_TIME = 500; // milliseconds
 
-var Flashspot = class extends Lightbox.Lightbox {
-    constructor(area) {
-        super(Main.uiGroup, { inhibitEvents: true,
-                              width: area.width,
-                              height: area.height });
-
-        this.actor.style_class = 'flashspot';
-        this.actor.set_position(area.x, area.y);
+var Flashspot = GObject.registerClass(
+class Flashspot extends Lightbox.Lightbox {
+    _init(area) {
+        super._init(Main.uiGroup, {
+            inhibitEvents: true,
+            width: area.width,
+            height: area.height,
+        });
+        this.style_class = 'flashspot';
+        this.set_position(area.x, area.y);
     }
 
     fire(doneCallback) {
-        this.actor.show();
-        this.actor.opacity = 255;
-        this.actor.ease({
+        this.set({ visible: true, opacity: 255 });
+        this.ease({
             opacity: 0,
             duration: FLASHSPOT_ANIMATION_OUT_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
@@ -387,7 +443,7 @@ var Flashspot = class extends Lightbox.Lightbox {
                 if (doneCallback)
                     doneCallback();
                 this.destroy();
-            }
+            },
         });
     }
-};
+});

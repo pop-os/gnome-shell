@@ -74,8 +74,8 @@ const SystemActions = GObject.registerClass({
                                                           'orientation-lock-icon',
                                                           'orientation-lock-icon',
                                                           GObject.ParamFlags.READWRITE,
-                                                          null)
-    }
+                                                          null),
+    },
 }, class SystemActions extends GObject.Object {
     _init() {
         super._init();
@@ -89,8 +89,8 @@ const SystemActions = GObject.registerClass({
             name: C_("search-result", "Power Off"),
             iconName: 'system-shutdown-symbolic',
             // Translators: A list of keywords that match the power-off action, separated by semicolons
-            keywords: _("power off;shutdown;reboot;restart").split(/[; ]/),
-            available: false
+            keywords: _('power off;shutdown;reboot;restart;halt;stop').split(/[; ]/),
+            available: false,
         });
         this._actions.set(LOCK_SCREEN_ACTION_ID, {
             // Translators: The name of the lock screen action in search
@@ -98,7 +98,7 @@ const SystemActions = GObject.registerClass({
             iconName: 'system-lock-screen-symbolic',
             // Translators: A list of keywords that match the lock screen action, separated by semicolons
             keywords: _("lock screen").split(/[; ]/),
-            available: false
+            available: false,
         });
         this._actions.set(LOGOUT_ACTION_ID, {
             // Translators: The name of the logout action in search
@@ -106,7 +106,7 @@ const SystemActions = GObject.registerClass({
             iconName: 'application-exit-symbolic',
             // Translators: A list of keywords that match the logout action, separated by semicolons
             keywords: _("logout;log out;sign off").split(/[; ]/),
-            available: false
+            available: false,
         });
         this._actions.set(SUSPEND_ACTION_ID, {
             // Translators: The name of the suspend action in search
@@ -114,7 +114,7 @@ const SystemActions = GObject.registerClass({
             iconName: 'media-playback-pause-symbolic',
             // Translators: A list of keywords that match the suspend action, separated by semicolons
             keywords: _("suspend;sleep").split(/[; ]/),
-            available: false
+            available: false,
         });
         this._actions.set(SWITCH_USER_ACTION_ID, {
             // Translators: The name of the switch user action in search
@@ -122,15 +122,14 @@ const SystemActions = GObject.registerClass({
             iconName: 'system-switch-user-symbolic',
             // Translators: A list of keywords that match the switch user action, separated by semicolons
             keywords: _("switch user").split(/[; ]/),
-            available: false
+            available: false,
         });
         this._actions.set(LOCK_ORIENTATION_ACTION_ID, {
-            // Translators: The name of the lock orientation action in search
-            name: C_("search-result", "Lock Orientation"),
+            name: '',
             iconName: '',
             // Translators: A list of keywords that match the lock orientation action, separated by semicolons
-            keywords: _("lock orientation;screen;rotation").split(/[; ]/),
-            available: false
+            keywords: _("lock orientation;unlock orientation;screen;rotation").split(/[; ]/),
+            available: false,
         });
 
         this._loginScreenSettings = new Gio.Settings({ schema_id: LOGIN_SCREEN_SCHEMA });
@@ -167,11 +166,10 @@ const SystemActions = GObject.registerClass({
 
         this.forceUpdate();
 
-        this._orientationSettings.connect('changed::orientation-lock',
-                                          () => {
-                                              this._updateOrientationLock();
-                                              this._updateOrientationLockIcon();
-                                          });
+        this._orientationSettings.connect('changed::orientation-lock', () => {
+            this._updateOrientationLock();
+            this._updateOrientationLockStatus();
+        });
         Main.layoutManager.connect('monitors-changed',
                                    () => this._updateOrientationLock());
         this._sensorProxy = new SensorProxy(Gio.DBus.system,
@@ -190,7 +188,7 @@ const SystemActions = GObject.registerClass({
             this._updateOrientationLock();
         });
         this._updateOrientationLock();
-        this._updateOrientationLockIcon();
+        this._updateOrientationLockStatus();
 
         Main.sessionMode.connect('updated', () => this._sessionUpdated());
         this._sessionUpdated();
@@ -233,21 +231,31 @@ const SystemActions = GObject.registerClass({
 
     _updateOrientationLock() {
         let available = false;
-        if (this._sensorProxy.g_name_owner)
+        if (this._sensorProxy.g_name_owner) {
             available = this._sensorProxy.HasAccelerometer &&
                         this._monitorManager.get_is_builtin_display_on();
+        }
 
         this._actions.get(LOCK_ORIENTATION_ACTION_ID).available = available;
 
         this.notify('can-lock-orientation');
     }
 
-    _updateOrientationLockIcon() {
+    _updateOrientationLockStatus() {
         let locked = this._orientationSettings.get_boolean('orientation-lock');
+        let action = this._actions.get(LOCK_ORIENTATION_ACTION_ID);
+
+        // Translators: The name of the lock orientation action in search
+        // and in the system status menu
+        let name = locked
+            ? C_('search-result', 'Unlock Screen Rotation')
+            : C_('search-result', 'Lock Screen Rotation');
         let iconName = locked
             ? 'rotation-locked-symbolic'
             : 'rotation-allowed-symbolic';
-        this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName = iconName;
+
+        action.name = name;
+        action.iconName = iconName;
 
         this.notify('orientation-lock-icon');
     }
@@ -273,9 +281,10 @@ const SystemActions = GObject.registerClass({
 
         let results = [];
 
-        for (let [key, { available, keywords }] of this._actions)
+        for (let [key, { available, keywords }] of this._actions) {
             if (available && terms.every(t => keywords.some(k => k.startsWith(t))))
                 results.push(key);
+        }
 
         return results;
     }

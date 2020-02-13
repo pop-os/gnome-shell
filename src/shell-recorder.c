@@ -146,7 +146,7 @@ G_DEFINE_TYPE(ShellRecorder, shell_recorder, G_TYPE_OBJECT);
 
 /* The default pipeline.
  */
-#define DEFAULT_PIPELINE "vp9enc min_quantizer=13 max_quantizer=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! webmmux"
+#define DEFAULT_PIPELINE "vp8enc min_quantizer=13 max_quantizer=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! webmmux"
 
 /* If we can find the amount of memory on the machine, we use half
  * of that for memory_target, otherwise, we use this value, in kB.
@@ -220,8 +220,7 @@ shell_recorder_finalize (GObject  *object)
 {
   ShellRecorder *recorder = SHELL_RECORDER (object);
 
-  if (recorder->update_memory_used_timeout)
-    g_source_remove (recorder->update_memory_used_timeout);
+  g_clear_handle_id (&recorder->update_memory_used_timeout, g_source_remove);
 
   if (recorder->cursor_image)
     cairo_surface_destroy (recorder->cursor_image);
@@ -298,11 +297,7 @@ recorder_add_redraw_timeout (ShellRecorder *recorder)
 static void
 recorder_remove_redraw_timeout (ShellRecorder *recorder)
 {
-  if (recorder->redraw_timeout != 0)
-    {
-      g_source_remove (recorder->redraw_timeout);
-      recorder->redraw_timeout = 0;
-    }
+  g_clear_handle_id (&recorder->redraw_timeout, g_source_remove);
 }
 
 static void
@@ -481,8 +476,9 @@ recorder_record_frame (ShellRecorder *recorder,
  * by clutter before glSwapBuffers() makes it visible to the user.
  */
 static void
-recorder_on_stage_paint (ClutterActor  *actor,
-                         ShellRecorder *recorder)
+recorder_on_stage_paint (ClutterActor        *actor,
+                         ClutterPaintContext *paint_context,
+                         ShellRecorder       *recorder)
 {
   if (recorder->state == RECORDER_STATE_RECORDING)
     recorder_record_frame (recorder, FALSE);
@@ -608,11 +604,7 @@ recorder_add_update_pointer_timeout (ShellRecorder *recorder)
 static void
 recorder_remove_update_pointer_timeout (ShellRecorder *recorder)
 {
-  if (recorder->update_pointer_timeout)
-    {
-      g_source_remove (recorder->update_pointer_timeout);
-      recorder->update_pointer_timeout = 0;
-    }
+  g_clear_handle_id (&recorder->update_pointer_timeout, g_source_remove);
 }
 
 static void
@@ -648,11 +640,7 @@ recorder_disconnect_stage_callbacks (ShellRecorder *recorder)
    * us the events is close to free in any case.
    */
 
-  if (recorder->redraw_idle)
-    {
-      g_source_remove (recorder->redraw_idle);
-      recorder->redraw_idle = 0;
-    }
+  g_clear_handle_id (&recorder->redraw_idle, g_source_remove);
 }
 
 static void
@@ -1479,7 +1467,7 @@ shell_recorder_set_draw_cursor (ShellRecorder *recorder,
  * might be used to send the output to an icecast server
  * via shout2send or similar.
  *
- * The default value is 'vp9enc min_quantizer=13 max_quantizer=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! webmmux'
+ * The default value is 'vp8enc min_quantizer=13 max_quantizer=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! webmmux'
  */
 void
 shell_recorder_set_pipeline (ShellRecorder *recorder,

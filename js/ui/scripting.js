@@ -5,8 +5,10 @@
 
 const { Gio, GLib, Meta, Shell } = imports.gi;
 
+const Config = imports.misc.config;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
+const Util = imports.misc.util;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
@@ -32,7 +34,8 @@ const { loadInterfaceXML } = imports.misc.fileUtils;
 
 /**
  * sleep:
- * @milliseconds: number of milliseconds to wait
+ * @param {number} milliseconds - number of milliseconds to wait
+ * @returns {Promise} that resolves after @milliseconds ms
  *
  * Used within an automation script to pause the the execution of the
  * current script for the specified amount of time. Use as
@@ -50,6 +53,7 @@ function sleep(milliseconds) {
 
 /**
  * waitLeisure:
+ * @returns {Promise} that resolves when the shell is idle
  *
  * Used within an automation script to pause the the execution of the
  * current script until the shell is completely idle. Use as
@@ -75,6 +79,12 @@ function _getPerfHelper() {
     return _perfHelper;
 }
 
+function _spawnPerfHelper() {
+    let path = Config.LIBEXECDIR;
+    let command = `${path}/gnome-shell-perf-helper`;
+    Util.trySpawnCommandLine(command);
+}
+
 function _callRemote(obj, method, ...args) {
     return new Promise((resolve, reject) => {
         args.push((result, excp) => {
@@ -90,13 +100,13 @@ function _callRemote(obj, method, ...args) {
 
 /**
  * createTestWindow:
- * @params: options for window creation.
- *   width - width of window, in pixels (default 640)
- *   height - height of window, in pixels (default 480)
- *   alpha - whether the window should have an alpha channel (default false)
- *   maximized - whether the window should be created maximized (default false)
- *   redraws - whether the window should continually redraw itself (default false)
- * @maximized: whethe the window should be created maximized
+ * @param {Object} params: options for window creation.
+ *   {number} [params.width=640] - width of window, in pixels
+ *   {number} [params.height=480] - height of window, in pixels
+ *   {bool} [params.alpha=false] - whether the window should have an alpha channel
+ *   {bool} [params.maximized=false] - whether the window should be created maximized
+ *   {bool} [params.redraws=false] - whether the window should continually redraw itself
+ * @returns {Promise}
  *
  * Creates a window using gnome-shell-perf-helper for testing purposes.
  * While this function can be used with yield in an automation
@@ -119,6 +129,7 @@ function createTestWindow(params) {
 
 /**
  * waitTestWindows:
+ * @returns {Promise}
  *
  * Used within an automation script to pause until all windows previously
  * created with createTestWindow have been mapped and exposed.
@@ -130,6 +141,7 @@ function waitTestWindows() {
 
 /**
  * destroyTestWindows:
+ * @returns {Promise}
  *
  * Destroys all windows previously created with createTestWindow().
  * While this function can be used with yield in an automation
@@ -144,8 +156,8 @@ function destroyTestWindows() {
 
 /**
  * defineScriptEvent
- * @name: The event will be called script.<name>
- * @description: Short human-readable description of the event
+ * @param {string} name: The event will be called script.<name>
+ * @param {string} description: Short human-readable description of the event
  *
  * Convenience function to define a zero-argument performance event
  * within the 'script' namespace that is reserved for events defined locally
@@ -159,7 +171,7 @@ function defineScriptEvent(name, description) {
 
 /**
  * scriptEvent
- * @name: Name registered with defineScriptEvent()
+ * @param {string} name: Name registered with defineScriptEvent()
  *
  * Convenience function to record a script-local performance event
  * previously defined with defineScriptEvent
@@ -200,8 +212,8 @@ function _collect(scriptModule, outputFile) {
         let raw = f.replace(null, false,
                             Gio.FileCreateFlags.NONE,
                             null);
-        let out = Gio.BufferedOutputStream.new_sized (raw, 4096);
-        Shell.write_string_to_stream (out, "{\n");
+        let out = Gio.BufferedOutputStream.new_sized(raw, 4096);
+        Shell.write_string_to_stream(out, "{\n");
 
         Shell.write_string_to_stream(out, '"events":\n');
         Shell.PerfLog.get_default().dump_events(out);
@@ -250,10 +262,10 @@ function _collect(scriptModule, outputFile) {
         }
         Shell.write_string_to_stream(out, ' ]');
 
-        Shell.write_string_to_stream (out, ',\n"log":\n');
+        Shell.write_string_to_stream(out, ',\n"log":\n');
         Shell.PerfLog.get_default().dump_log(out);
 
-        Shell.write_string_to_stream (out, '\n}\n');
+        Shell.write_string_to_stream(out, '\n}\n');
         out.close(null);
     } else {
         let metrics = [];
@@ -262,20 +274,40 @@ function _collect(scriptModule, outputFile) {
 
         metrics.sort();
 
-        print ('------------------------------------------------------------');
+        print('------------------------------------------------------------');
         for (let i = 0; i < metrics.length; i++) {
             let metric = metrics[i];
-            print (`# ${scriptModule.METRICS[metric].description}`);
-            print (`${metric}: ${scriptModule.METRICS[metric].value}${scriptModule.METRICS[metric].units}`);
+            print(`# ${scriptModule.METRICS[metric].description}`);
+            print(`${metric}: ${scriptModule.METRICS[metric].value}${scriptModule.METRICS[metric].units}`);
         }
-        print ('------------------------------------------------------------');
+        print('------------------------------------------------------------');
     }
+}
+
+async function _runPerfScript(scriptModule, outputFile) {
+    for (let step of scriptModule.run()) {
+        try {
+            await step; // eslint-disable-line no-await-in-loop
+        } catch (err) {
+            log(`Script failed: ${err}\n${err.stack}`);
+            Meta.exit(Meta.ExitCode.ERROR);
+        }
+    }
+
+    try {
+        _collect(scriptModule, outputFile);
+    } catch (err) {
+        log(`Script failed: ${err}\n${err.stack}`);
+        Meta.exit(Meta.ExitCode.ERROR);
+    }
+    Meta.exit(Meta.ExitCode.SUCCESS);
 }
 
 /**
  * runPerfScript
- * @scriptModule: module object with run and finish functions
- *    and event handlers
+ * @param {Object} scriptModule: module object with run and finish
+ *    functions and event handlers
+ * @param {string} outputFile: path to write output to
  *
  * Runs a script for automated collection of performance data. The
  * script is defined as a Javascript module with specified contents.
@@ -312,23 +344,13 @@ function _collect(scriptModule, outputFile) {
  * After running the script and collecting statistics from the
  * event log, GNOME Shell will exit.
  **/
-async function runPerfScript(scriptModule, outputFile) {
+function runPerfScript(scriptModule, outputFile) {
     Shell.PerfLog.get_default().set_enabled(true);
+    _spawnPerfHelper();
 
-    for (let step of scriptModule.run()) {
-        try {
-            await step; // eslint-disable-line no-await-in-loop
-        } catch (err) {
-            log(`Script failed: ${err}\n${err.stack}`);
-            Meta.exit(Meta.ExitCode.ERROR);
-        }
-    }
-
-    try {
-        _collect(scriptModule, outputFile);
-    } catch (err) {
-        log(`Script failed: ${err}\n${err.stack}`);
-        Meta.exit(Meta.ExitCode.ERROR);
-    }
-    Meta.exit(Meta.ExitCode.SUCCESS);
+    Gio.bus_watch_name(Gio.BusType.SESSION,
+        'org.gnome.Shell.PerfHelper',
+        Gio.BusNameWatcherFlags.NONE,
+        () => _runPerfScript(scriptModule, outputFile),
+        null);
 }

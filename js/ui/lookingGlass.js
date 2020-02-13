@@ -1,8 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported LookingGlass */
 
-const { Clutter, Cogl, Gio, GLib,
-        GObject, Meta, Pango, Shell, St } = imports.gi;
+const { Clutter, Cogl, Gio, GLib, GObject,
+        Graphene, Meta, Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
 const System = imports.system;
 
@@ -54,9 +54,9 @@ var AutoComplete = class AutoComplete {
     }
 
     _processCompletionRequest(event) {
-        if (event.completions.length == 0) {
+        if (event.completions.length == 0)
             return;
-        }
+
         // Unique match = go ahead and complete; multiple matches + single tab = complete the common starting string;
         // multiple matches + double tab = emit a suggest event with all possible options
         if (event.completions.length == 1) {
@@ -78,20 +78,20 @@ var AutoComplete = class AutoComplete {
     _entryKeyPressEvent(actor, event) {
         let cursorPos = this._entry.clutter_text.get_cursor_position();
         let text = this._entry.get_text();
-        if (cursorPos != -1) {
+        if (cursorPos != -1)
             text = text.slice(0, cursorPos);
-        }
-        if (event.get_key_symbol() == Clutter.Tab) {
+
+        if (event.get_key_symbol() == Clutter.KEY_Tab) {
             let [completions, attrHead] = JsParse.getCompletions(text, commandHeader, AUTO_COMPLETE_GLOBAL_KEYWORDS);
             let currTime = global.get_current_time();
             if ((currTime - this._lastTabTime) < AUTO_COMPLETE_DOUBLE_TAB_DELAY) {
                 this._processCompletionRequest({ tabType: 'double',
-                                                 completions: completions,
-                                                 attrHead: attrHead });
+                                                 completions,
+                                                 attrHead });
             } else {
                 this._processCompletionRequest({ tabType: 'single',
-                                                 completions: completions,
-                                                 attrHead: attrHead });
+                                                 completions,
+                                                 attrHead });
             }
             this._lastTabTime = currTime;
         }
@@ -110,9 +110,14 @@ var AutoComplete = class AutoComplete {
 Signals.addSignalMethods(AutoComplete.prototype);
 
 
-var Notebook = class Notebook {
-    constructor() {
-        this.actor = new St.BoxLayout({ vertical: true });
+var Notebook = GObject.registerClass({
+    Signals: { 'selection': { param_types: [Clutter.Actor.$gtype] } },
+}, class Notebook extends St.BoxLayout {
+    _init() {
+        super._init({
+            vertical: true,
+            y_expand: true,
+        });
 
         this.tabControls = new St.BoxLayout({ style_class: 'labels' });
 
@@ -129,21 +134,21 @@ var Notebook = class Notebook {
             this.selectChild(child);
             return true;
         });
-        labelBox.add(label, { expand: true });
+        labelBox.add_child(label);
         this.tabControls.add(labelBox);
 
-        let scrollview = new St.ScrollView({ x_fill: true, y_fill: true });
+        let scrollview = new St.ScrollView({ y_expand: true });
         scrollview.get_hscroll_bar().hide();
         scrollview.add_actor(child);
 
-        let tabData = { child: child,
-                        labelBox: labelBox,
-                        label: label,
+        let tabData = { child,
+                        labelBox,
+                        label,
                         scrollView: scrollview,
                         _scrollToBottom: false };
         this._tabs.push(tabData);
         scrollview.hide();
-        this.actor.add(scrollview, { expand: true });
+        this.add_child(scrollview);
 
         let vAdjust = scrollview.vscroll.adjustment;
         vAdjust.connect('changed', () => this._onAdjustScopeChanged(tabData));
@@ -174,7 +179,7 @@ var Notebook = class Notebook {
         // Focus the new tab before unmapping the old one
         let tabData = this._tabs[index];
         if (!tabData.scrollView.navigate_focus(null, St.DirectionType.TAB_FORWARD, false))
-            this.actor.grab_key_focus();
+            this.grab_key_focus();
 
         this._unselect();
 
@@ -219,23 +224,20 @@ var Notebook = class Notebook {
 
     nextTab() {
         let nextIndex = this._selectedIndex;
-        if (nextIndex < this._tabs.length - 1) {
+        if (nextIndex < this._tabs.length - 1)
             ++nextIndex;
-        }
 
         this.selectIndex(nextIndex);
     }
 
     prevTab() {
         let prevIndex = this._selectedIndex;
-        if (prevIndex > 0) {
+        if (prevIndex > 0)
             --prevIndex;
-        }
 
         this.selectIndex(prevIndex);
     }
-};
-Signals.addSignalMethods(Notebook.prototype);
+});
 
 function objectToString(o) {
     if (typeof o == typeof objectToString) {
@@ -246,57 +248,63 @@ function objectToString(o) {
     }
 }
 
-var ObjLink = class ObjLink {
-    constructor(lookingGlass, o, title) {
+var ObjLink = GObject.registerClass(
+class ObjLink extends St.Button {
+    _init(lookingGlass, o, title) {
         let text;
         if (title)
             text = title;
         else
             text = objectToString(o);
         text = GLib.markup_escape_text(text, -1);
+
+        super._init({
+            reactive: true,
+            track_hover: true,
+            style_class: 'shell-link',
+            label: text,
+            x_align: Clutter.ActorAlign.START,
+        });
+        this.get_child().single_line_mode = true;
+
         this._obj = o;
-
-        this.actor = new St.Button({ reactive: true,
-                                     track_hover: true,
-                                     style_class: 'shell-link',
-                                     label: text });
-        this.actor.get_child().single_line_mode = true;
-        this.actor.connect('clicked', this._onClicked.bind(this));
-
         this._lookingGlass = lookingGlass;
     }
 
-    _onClicked() {
-        this._lookingGlass.inspectObject(this._obj, this.actor);
+    vfunc_clicked() {
+        this._lookingGlass.inspectObject(this._obj, this);
     }
-};
+});
 
-var Result = class Result {
-    constructor(lookingGlass, command, o, index) {
+var Result = GObject.registerClass(
+class Result extends St.BoxLayout {
+    _init(lookingGlass, command, o, index) {
+        super._init({ vertical: true });
+
         this.index = index;
         this.o = o;
 
-        this.actor = new St.BoxLayout({ vertical: true });
         this._lookingGlass = lookingGlass;
 
         let cmdTxt = new St.Label({ text: command });
         cmdTxt.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-        this.actor.add(cmdTxt);
+        this.add(cmdTxt);
         let box = new St.BoxLayout({});
-        this.actor.add(box);
+        this.add(box);
         let resultTxt = new St.Label({ text: `r(${index}) = ` });
         resultTxt.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         box.add(resultTxt);
         let objLink = new ObjLink(this._lookingGlass, o);
-        box.add(objLink.actor);
+        box.add(objLink);
     }
-};
+});
 
-var WindowList = class WindowList {
-    constructor(lookingGlass) {
-        this.actor = new St.BoxLayout({ name: 'Windows', vertical: true, style: 'spacing: 8px' });
+var WindowList = GObject.registerClass({
+}, class WindowList extends St.BoxLayout {
+    _init(lookingGlass) {
+        super._init({ name: 'Windows', vertical: true, style: 'spacing: 8px' });
         let tracker = Shell.WindowTracker.get_default();
-        this._updateId = Main.initializeDeferredWork(this.actor, this._updateWindowList.bind(this));
+        this._updateId = Main.initializeDeferredWork(this, this._updateWindowList.bind(this));
         global.display.connect('window-created', this._updateWindowList.bind(this));
         tracker.connect('tracked-windows-changed', this._updateWindowList.bind(this));
 
@@ -307,7 +315,7 @@ var WindowList = class WindowList {
         if (!this._lookingGlass.isOpen)
             return;
 
-        this.actor.destroy_all_children();
+        this.destroy_all_children();
         let windows = global.get_window_actors();
         let tracker = Shell.WindowTracker.get_default();
         for (let i = 0; i < windows.length; i++) {
@@ -318,9 +326,9 @@ var WindowList = class WindowList {
                 metaWindow._lookingGlassManaged = true;
             }
             let box = new St.BoxLayout({ vertical: true });
-            this.actor.add(box);
+            this.add(box);
             let windowLink = new ObjLink(this._lookingGlass, metaWindow, metaWindow.title);
-            box.add(windowLink.actor, { x_align: St.Align.START, x_fill: false });
+            box.add_child(windowLink);
             let propsBox = new St.BoxLayout({ vertical: true, style: 'padding-left: 6px;' });
             box.add(propsBox);
             propsBox.add(new St.Label({ text: `wmclass: ${metaWindow.get_wm_class()}` }));
@@ -329,10 +337,10 @@ var WindowList = class WindowList {
                 let icon = app.create_icon_texture(22);
                 let propBox = new St.BoxLayout({ style: 'spacing: 6px; ' });
                 propsBox.add(propBox);
-                propBox.add(new St.Label({ text: 'app: ' }), { y_fill: false });
+                propBox.add_child(new St.Label({ text: 'app: ' }));
                 let appLink = new ObjLink(this._lookingGlass, app, app.get_id());
-                propBox.add(appLink.actor, { y_fill: false });
-                propBox.add(icon, { y_fill: false });
+                propBox.add_child(appLink);
+                propBox.add_child(icon);
             } else {
                 propsBox.add(new St.Label({ text: '<untracked>' }));
             }
@@ -342,23 +350,29 @@ var WindowList = class WindowList {
     update() {
         this._updateWindowList();
     }
-};
-Signals.addSignalMethods(WindowList.prototype);
+});
 
-var ObjInspector = class ObjInspector {
-    constructor(lookingGlass) {
+var ObjInspector = GObject.registerClass(
+class ObjInspector extends St.ScrollView {
+    _init(lookingGlass) {
+        super._init({
+            pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
+        });
+
         this._obj = null;
         this._previousObj = null;
 
         this._parentList = [];
 
-        this.actor = new St.ScrollView({ pivot_point: new Clutter.Point({ x: 0.5, y: 0.5 }),
-                                         x_fill: true, y_fill: true });
-        this.actor.get_hscroll_bar().hide();
-        this._container = new St.BoxLayout({ name: 'LookingGlassPropertyInspector',
-                                             style_class: 'lg-dialog',
-                                             vertical: true });
-        this.actor.add_actor(this._container);
+        this.get_hscroll_bar().hide();
+        this._container = new St.BoxLayout({
+            name: 'LookingGlassPropertyInspector',
+            style_class: 'lg-dialog',
+            vertical: true,
+            x_expand: true,
+            y_expand: true,
+        });
+        this.add_actor(this._container);
 
         this._lookingGlass = lookingGlass;
     }
@@ -374,10 +388,12 @@ var ObjInspector = class ObjInspector {
 
         let hbox = new St.BoxLayout({ style_class: 'lg-obj-inspector-title' });
         this._container.add_actor(hbox);
-        let label = new St.Label({ text: 'Inspecting: %s: %s'.format(typeof obj,
-                                                                     objectToString(obj)) });
+        let label = new St.Label({
+            text: 'Inspecting: %s: %s'.format(typeof obj, objectToString(obj)),
+            x_expand: true,
+        });
         label.single_line_mode = true;
-        hbox.add(label, { expand: true, y_fill: false });
+        hbox.add_child(label);
         let button = new St.Button({ label: 'Insert', style_class: 'lg-obj-inspector-button' });
         button.connect('clicked', this._onInsert.bind(this));
         hbox.add(button);
@@ -394,9 +410,8 @@ var ObjInspector = class ObjInspector {
         hbox.add(button);
         if (typeof obj == typeof {}) {
             let properties = [];
-            for (let propName in obj) {
+            for (let propName in obj)
                 properties.push(propName);
-            }
             properties.sort();
 
             for (let i = 0; i < properties.length; i++) {
@@ -404,14 +419,14 @@ var ObjInspector = class ObjInspector {
                 let link;
                 try {
                     let prop = obj[propName];
-                    link = new ObjLink(this._lookingGlass, prop).actor;
+                    link = new ObjLink(this._lookingGlass, prop);
                 } catch (e) {
                     link = new St.Label({ text: '<error>' });
                 }
-                let hbox = new St.BoxLayout();
-                hbox.add(new St.Label({ text: `${propName}: ` }));
-                hbox.add(link);
-                this._container.add_actor(hbox);
+                let box = new St.BoxLayout();
+                box.add(new St.Label({ text: `${propName}: ` }));
+                box.add(link);
+                this._container.add_actor(box);
             }
         }
     }
@@ -421,17 +436,17 @@ var ObjInspector = class ObjInspector {
             return;
         this._previousObj = null;
         this._open = true;
-        this.actor.show();
+        this.show();
         if (sourceActor) {
-            this.actor.set_scale(0, 0);
-            this.actor.ease({
+            this.set_scale(0, 0);
+            this.ease({
                 scale_x: 1,
                 scale_y: 1,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                duration: 200
+                duration: 200,
             });
         } else {
-            this.actor.set_scale(1, 1);
+            this.set_scale(1, 1);
         }
     }
 
@@ -439,7 +454,7 @@ var ObjInspector = class ObjInspector {
         if (!this._open)
             return;
         this._open = false;
-        this.actor.hide();
+        this.hide();
         this._previousObj = null;
         this._obj = null;
     }
@@ -453,29 +468,44 @@ var ObjInspector = class ObjInspector {
     _onBack() {
         this.selectObject(this._previousObj, true);
     }
-};
+});
 
 var RedBorderEffect = GObject.registerClass(
 class RedBorderEffect extends Clutter.Effect {
-    vfunc_paint() {
+    _init() {
+        super._init();
+        this._pipeline = null;
+    }
+
+    vfunc_paint(paintContext) {
+        let framebuffer = paintContext.get_framebuffer();
+        let coglContext = framebuffer.get_context();
         let actor = this.get_actor();
-        actor.continue_paint();
+        actor.continue_paint(paintContext);
 
-        let color = new Cogl.Color();
-        color.init_from_4ub(0xff, 0, 0, 0xc4);
-        Cogl.set_source_color(color);
+        if (!this._pipeline) {
+            let color = new Cogl.Color();
+            color.init_from_4ub(0xff, 0, 0, 0xc4);
 
-        let geom = actor.get_allocation_geometry();
+            this._pipeline = new Cogl.Pipeline(coglContext);
+            this._pipeline.set_color(color);
+        }
+
+        let alloc = actor.get_allocation_box();
         let width = 2;
 
         // clockwise order
-        Cogl.rectangle(0, 0, geom.width, width);
-        Cogl.rectangle(geom.width - width, width,
-                       geom.width, geom.height);
-        Cogl.rectangle(0, geom.height,
-                       geom.width - width, geom.height - width);
-        Cogl.rectangle(0, geom.height - width,
-                       width, width);
+        framebuffer.draw_rectangle(this._pipeline,
+            0, 0, alloc.get_width(), width);
+        framebuffer.draw_rectangle(this._pipeline,
+            alloc.get_width() - width, width,
+            alloc.get_width(), alloc.get_height());
+        framebuffer.draw_rectangle(this._pipeline,
+            0, alloc.get_height(),
+            alloc.get_width() - width, alloc.get_height() - width);
+        framebuffer.draw_rectangle(this._pipeline,
+            0, alloc.get_height() - width,
+            width, width);
     }
 });
 
@@ -484,8 +514,7 @@ var Inspector = GObject.registerClass({
                'target': { param_types: [Clutter.Actor.$gtype, GObject.TYPE_DOUBLE, GObject.TYPE_DOUBLE] } },
 }, class Inspector extends Clutter.Actor {
     _init(lookingGlass) {
-        super._init({ width: 0,
-                      height: 0 });
+        super._init({ width: 0, height: 0 });
 
         Main.uiGroup.add_actor(this);
 
@@ -494,17 +523,17 @@ var Inspector = GObject.registerClass({
                                               reactive: true });
         this._eventHandler = eventHandler;
         this.add_actor(eventHandler);
-        this._displayText = new St.Label();
-        eventHandler.add(this._displayText, { expand: true });
+        this._displayText = new St.Label({ x_expand: true });
+        eventHandler.add_child(this._displayText);
 
         eventHandler.connect('key-press-event', this._onKeyPressEvent.bind(this));
         eventHandler.connect('button-press-event', this._onButtonPressEvent.bind(this));
         eventHandler.connect('scroll-event', this._onScrollEvent.bind(this));
         eventHandler.connect('motion-event', this._onMotionEvent.bind(this));
 
-        let dm = Clutter.DeviceManager.get_default();
-        this._pointerDevice = dm.get_core_device(Clutter.InputDeviceType.POINTER_DEVICE);
-        this._keyboardDevice = dm.get_core_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+        let seat = Clutter.get_default_backend().get_default_seat();
+        this._pointerDevice = seat.get_pointer();
+        this._keyboardDevice = seat.get_keyboard();
 
         this._pointerDevice.grab(eventHandler);
         this._keyboardDevice.grab(eventHandler);
@@ -548,7 +577,7 @@ var Inspector = GObject.registerClass({
     }
 
     _onKeyPressEvent(actor, event) {
-        if (event.get_key_symbol() == Clutter.Escape)
+        if (event.get_key_symbol() === Clutter.KEY_Escape)
             this._close();
         return Clutter.EVENT_STOP;
     }
@@ -620,18 +649,19 @@ var Inspector = GObject.registerClass({
     }
 });
 
-var Extensions = class Extensions {
-    constructor(lookingGlass) {
+var Extensions = GObject.registerClass({
+}, class Extensions extends St.BoxLayout {
+    _init(lookingGlass) {
+        super._init({ vertical: true, name: 'lookingGlassExtensions' });
+
         this._lookingGlass = lookingGlass;
-        this.actor = new St.BoxLayout({ vertical: true,
-                                        name: 'lookingGlassExtensions' });
         this._noExtensions = new St.Label({ style_class: 'lg-extensions-none',
                                             text: _("No extensions installed") });
         this._numExtensions = 0;
         this._extensionsList = new St.BoxLayout({ vertical: true,
                                                   style_class: 'lg-extensions-list' });
         this._extensionsList.add(this._noExtensions);
-        this.actor.add(this._extensionsList);
+        this.add(this._extensionsList);
 
         Main.extensionManager.getUuids().forEach(uuid => {
             this._loadExtension(null, uuid);
@@ -652,7 +682,7 @@ var Extensions = class Extensions {
         if (this._numExtensions == 0)
             this._extensionsList.remove_actor(this._noExtensions);
 
-        this._numExtensions ++;
+        this._numExtensions++;
         this._extensionsList.add(extensionDisplay);
     }
 
@@ -677,7 +707,7 @@ var Extensions = class Extensions {
             let errors = extension.errors;
             let errorDisplay = new St.BoxLayout({ vertical: true });
             if (errors && errors.length) {
-                for (let i = 0; i < errors.length; i ++)
+                for (let i = 0; i < errors.length; i++)
                     errorDisplay.add(new St.Label({ text: errors[i] }));
             } else {
                 /* Translators: argument is an extension UUID. */
@@ -716,12 +746,18 @@ var Extensions = class Extensions {
 
     _createExtensionDisplay(extension) {
         let box = new St.BoxLayout({ style_class: 'lg-extension', vertical: true });
-        let name = new St.Label({ style_class: 'lg-extension-name',
-                                  text: extension.metadata.name });
-        box.add(name, { expand: true });
-        let description = new St.Label({ style_class: 'lg-extension-description',
-                                         text: extension.metadata.description || 'No description' });
-        box.add(description, { expand: true });
+        let name = new St.Label({
+            style_class: 'lg-extension-name',
+            text: extension.metadata.name,
+            x_expand: true,
+        });
+        box.add_child(name);
+        let description = new St.Label({
+            style_class: 'lg-extension-description',
+            text: extension.metadata.description || 'No description',
+            x_expand: true,
+        });
+        box.add_child(description);
 
         let metaBox = new St.BoxLayout({ style_class: 'lg-extension-meta' });
         box.add(metaBox);
@@ -759,10 +795,19 @@ var Extensions = class Extensions {
 
         return box;
     }
-};
+});
 
-var LookingGlass = class LookingGlass {
-    constructor() {
+var LookingGlass = GObject.registerClass(
+class LookingGlass extends St.BoxLayout {
+    _init() {
+        super._init({
+            name: 'LookingGlassDialog',
+            style_class: 'lg-dialog',
+            vertical: true,
+            visible: false,
+            reactive: true,
+        });
+
         this._borderPaintTarget = null;
         this._redBorderEffect = new RedBorderEffect();
 
@@ -770,17 +815,9 @@ var LookingGlass = class LookingGlass {
 
         this._it = null;
         this._offset = 0;
-        this._results = [];
 
         // Sort of magic, but...eh.
         this._maxItems = 150;
-
-        this.actor = new St.BoxLayout({ name: 'LookingGlassDialog',
-                                        style_class: 'lg-dialog',
-                                        vertical: true,
-                                        visible: false,
-                                        reactive: true });
-        this.actor.connect('key-press-event', this._globalKeyPressEvent.bind(this));
 
         this._interfaceSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
         this._interfaceSettings.connect('changed::monospace-font-name',
@@ -788,8 +825,8 @@ var LookingGlass = class LookingGlass {
         this._updateFont();
 
         // We want it to appear to slide out from underneath the panel
-        Main.uiGroup.add_actor(this.actor);
-        Main.uiGroup.set_child_below_sibling(this.actor,
+        Main.uiGroup.add_actor(this);
+        Main.uiGroup.set_child_below_sibling(this,
                                              Main.layoutManager.panelBox);
         Main.layoutManager.panelBox.connect('allocation-changed',
                                             this._queueResize.bind(this));
@@ -797,11 +834,11 @@ var LookingGlass = class LookingGlass {
                                                this._queueResize.bind(this));
 
         this._objInspector = new ObjInspector(this);
-        Main.uiGroup.add_actor(this._objInspector.actor);
-        this._objInspector.actor.hide();
+        Main.uiGroup.add_actor(this._objInspector);
+        this._objInspector.hide();
 
         let toolbar = new St.BoxLayout({ name: 'Toolbar' });
-        this.actor.add_actor(toolbar);
+        this.add_actor(toolbar);
         let inspectIcon = new St.Icon({ icon_name: 'gtk-color-picker',
                                         icon_size: 24 });
         toolbar.add_actor(inspectIcon);
@@ -812,10 +849,10 @@ var LookingGlass = class LookingGlass {
                 this._pushResult(`inspect(${Math.round(stageX)}, ${Math.round(stageY)})`, target);
             });
             inspector.connect('closed', () => {
-                this.actor.show();
+                this.show();
                 global.stage.set_key_focus(this._entry);
             });
-            this.actor.hide();
+            this.hide();
             return Clutter.EVENT_STOP;
         });
 
@@ -837,33 +874,43 @@ var LookingGlass = class LookingGlass {
 
         let notebook = new Notebook();
         this._notebook = notebook;
-        this.actor.add(notebook.actor, { expand: true });
+        this.add_child(notebook);
 
-        let emptyBox = new St.Bin();
-        toolbar.add(emptyBox, { expand: true });
+        let emptyBox = new St.Bin({ x_expand: true });
+        toolbar.add_child(emptyBox);
         toolbar.add_actor(notebook.tabControls);
 
         this._evalBox = new St.BoxLayout({ name: 'EvalBox', vertical: true });
         notebook.appendPage('Evaluator', this._evalBox);
 
-        this._resultsArea = new St.BoxLayout({ name: 'ResultsArea', vertical: true });
-        this._evalBox.add(this._resultsArea, { expand: true });
+        this._resultsArea = new St.BoxLayout({
+            name: 'ResultsArea',
+            vertical: true,
+            y_expand: true,
+        });
+        this._evalBox.add_child(this._resultsArea);
 
-        this._entryArea = new St.BoxLayout({ name: 'EntryArea' });
+        this._entryArea = new St.BoxLayout({
+            name: 'EntryArea',
+            y_align: Clutter.ActorAlign.END,
+        });
         this._evalBox.add_actor(this._entryArea);
 
         let label = new St.Label({ text: CHEVRON });
         this._entryArea.add(label);
 
-        this._entry = new St.Entry({ can_focus: true });
+        this._entry = new St.Entry({
+            can_focus: true,
+            x_expand: true,
+        });
         ShellEntry.addContextMenu(this._entry);
-        this._entryArea.add(this._entry, { expand: true });
+        this._entryArea.add_child(this._entry);
 
         this._windowList = new WindowList(this);
-        notebook.appendPage('Windows', this._windowList.actor);
+        notebook.appendPage('Windows', this._windowList);
 
         this._extensions = new Extensions(this);
-        notebook.appendPage('Extensions', this._extensions.actor);
+        notebook.appendPage('Extensions', this._extensions);
 
         this._entry.clutter_text.connect('activate', (o, _e) => {
             // Hide any completions we are currently showing
@@ -905,7 +952,7 @@ var LookingGlass = class LookingGlass {
         // monospace font to be bold/oblique/etc. Could easily be added here.
         let size = fontDesc.get_size() / 1024.;
         let unit = fontDesc.get_size_is_absolute() ? 'px' : 'pt';
-        this.actor.style = `
+        this.style = `
             font-size: ${size}${unit};
             font-family: "${fontDesc.get_family()}";`;
     }
@@ -919,17 +966,14 @@ var LookingGlass = class LookingGlass {
     }
 
     _pushResult(command, obj) {
-        let index = this._results.length + this._offset;
+        let index = this._resultsArea.get_n_children() + this._offset;
         let result = new Result(this, CHEVRON + command, obj, index);
-        this._results.push(result);
-        this._resultsArea.add(result.actor);
+        this._resultsArea.add(result);
         if (obj instanceof Clutter.Actor)
             this.setBorderPaintTarget(obj);
 
-        let children = this._resultsArea.get_children();
-        if (children.length > this._maxItems) {
-            this._results.shift();
-            children[0].destroy();
+        if (this._resultsArea.get_n_children() > this._maxItems) {
+            this._resultsArea.get_first_child().destroy();
             this._offset++;
         }
         this._it = obj;
@@ -965,7 +1009,7 @@ var LookingGlass = class LookingGlass {
                 height: naturalHeight,
                 opacity: 255,
                 duration,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
         }
     }
@@ -982,7 +1026,7 @@ var LookingGlass = class LookingGlass {
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
                 onComplete: () => {
                     this._completionActor.hide();
-                }
+                },
             });
         }
     }
@@ -1016,7 +1060,7 @@ var LookingGlass = class LookingGlass {
 
     getResult(idx) {
         try {
-            return this._results[idx - this._offset].o;
+            return this._resultsArea.get_child_at_index(idx - this._offset).o;
         } catch (e) {
             throw new Error(`Unknown result at index ${idx}`);
         }
@@ -1041,15 +1085,15 @@ var LookingGlass = class LookingGlass {
         let myWidth = primary.width * 0.7;
         let availableHeight = primary.height - Main.layoutManager.keyboardBox.height;
         let myHeight = Math.min(primary.height * 0.7, availableHeight * 0.9);
-        this.actor.x = primary.x + (primary.width - myWidth) / 2;
+        this.x = primary.x + (primary.width - myWidth) / 2;
         this._hiddenY = primary.y + Main.layoutManager.panelBox.height - myHeight;
         this._targetY = this._hiddenY + myHeight;
-        this.actor.y = this._hiddenY;
-        this.actor.width = myWidth;
-        this.actor.height = myHeight;
-        this._objInspector.actor.set_size(Math.floor(myWidth * 0.8), Math.floor(myHeight * 0.8));
-        this._objInspector.actor.set_position(this.actor.x + Math.floor(myWidth * 0.1),
-                                              this._targetY + Math.floor(myHeight * 0.1));
+        this.y = this._hiddenY;
+        this.width = myWidth;
+        this.height = myHeight;
+        this._objInspector.set_size(Math.floor(myWidth * 0.8), Math.floor(myHeight * 0.8));
+        this._objInspector.set_position(this.x + Math.floor(myWidth * 0.1),
+                                        this._targetY + Math.floor(myHeight * 0.1));
     }
 
     insertObject(obj) {
@@ -1062,24 +1106,21 @@ var LookingGlass = class LookingGlass {
     }
 
     // Handle key events which are relevant for all tabs of the LookingGlass
-    _globalKeyPressEvent(actor, event) {
-        let symbol = event.get_key_symbol();
-        let modifierState = event.get_state();
-        if (symbol == Clutter.Escape) {
-            if (this._objInspector.actor.visible) {
+    vfunc_key_press_event(keyPressEvent) {
+        let symbol = keyPressEvent.keyval;
+        if (symbol == Clutter.KEY_Escape) {
+            if (this._objInspector.visible)
                 this._objInspector.close();
-            } else {
+            else
                 this.close();
-            }
             return Clutter.EVENT_STOP;
         }
         // Ctrl+PgUp and Ctrl+PgDown switches tabs in the notebook view
-        if (modifierState & Clutter.ModifierType.CONTROL_MASK) {
-            if (symbol == Clutter.KEY_Page_Up) {
+        if (keyPressEvent.modifier_state & Clutter.ModifierType.CONTROL_MASK) {
+            if (symbol == Clutter.KEY_Page_Up)
                 this._notebook.prevTab();
-            } else if (symbol == Clutter.KEY_Page_Down) {
+            else if (symbol == Clutter.KEY_Page_Down)
                 this._notebook.nextTab();
-            }
         }
         return Clutter.EVENT_PROPAGATE;
     }
@@ -1092,19 +1133,19 @@ var LookingGlass = class LookingGlass {
             return;
 
         this._notebook.selectIndex(0);
-        this.actor.show();
+        this.show();
         this._open = true;
         this._history.lastItem();
 
-        this.actor.remove_all_transitions();
+        this.remove_all_transitions();
 
         // We inverse compensate for the slow-down so you can change the factor
         // through LookingGlass without long waits.
         let duration = LG_ANIMATION_TIME / St.Settings.get().slow_down_factor;
-        this.actor.ease({
+        this.ease({
             y: this._targetY,
             duration,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
 
         this._windowList.update();
@@ -1114,10 +1155,10 @@ var LookingGlass = class LookingGlass {
         if (!this._open)
             return;
 
-        this._objInspector.actor.hide();
+        this._objInspector.hide();
 
         this._open = false;
-        this.actor.remove_all_transitions();
+        this.remove_all_transitions();
 
         this.setBorderPaintTarget(null);
 
@@ -1126,16 +1167,15 @@ var LookingGlass = class LookingGlass {
         let settings = St.Settings.get();
         let duration = Math.min(LG_ANIMATION_TIME / settings.slow_down_factor,
                                 LG_ANIMATION_TIME);
-        this.actor.ease({
+        this.ease({
             y: this._hiddenY,
             duration,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this.actor.hide()
+            onComplete: () => this.hide(),
         });
     }
 
     get isOpen() {
         return this._open;
     }
-};
-Signals.addSignalMethods(LookingGlass.prototype);
+});

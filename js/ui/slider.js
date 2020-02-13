@@ -10,8 +10,8 @@ var SLIDER_SCROLL_STEP = 0.02; /* Slider scrolling step in % */
 var Slider = GObject.registerClass({
     Signals: {
         'drag-begin': {},
-        'drag-end': {}
-    }
+        'drag-end': {},
+    },
 }, class Slider extends BarLevel.BarLevel {
     _init(value) {
         super._init({
@@ -19,15 +19,11 @@ var Slider = GObject.registerClass({
             style_class: 'slider',
             can_focus: true,
             reactive: true,
-            accessible_role: Atk.Role.SLIDER
+            accessible_role: Atk.Role.SLIDER,
+            x_expand: true,
         });
 
-        this.connect('button-press-event', this._startDragging.bind(this));
-        this.connect('touch-event', this._touchDragging.bind(this));
-        this.connect('scroll-event', this._onScrollEvent.bind(this));
-        this.connect('key-press-event', this.onKeyPressEvent.bind(this));
-
-        this._releaseId = this._motionId = 0;
+        this._releaseId = 0;
         this._dragging = false;
 
         this._customAccessible.connect('get-minimum-increment', this._getMinimumIncrement.bind(this));
@@ -62,8 +58,8 @@ var Slider = GObject.registerClass({
         cr.$dispose();
     }
 
-    _startDragging(actor, event) {
-        return this.startDragging(event);
+    vfunc_button_press_event() {
+        return this.startDragging(Clutter.get_current_event());
     }
 
     startDragging(event) {
@@ -83,11 +79,6 @@ var Slider = GObject.registerClass({
         this._grabbedDevice = device;
         this._grabbedSequence = sequence;
 
-        if (sequence == null) {
-            this._releaseId = this.connect('button-release-event', this._endDragging.bind(this));
-            this._motionId = this.connect('motion-event', this._motionEvent.bind(this));
-        }
-
         // We need to emit 'drag-begin' before moving the handle to make
         // sure that no 'notify::value' signal is emitted before this one.
         this.emit('drag-begin');
@@ -105,11 +96,6 @@ var Slider = GObject.registerClass({
                 this._releaseId = 0;
             }
 
-            if (this._motionId) {
-                this.disconnect(this._motionId);
-                this._motionId = 0;
-            }
-
             if (this._grabbedSequence != null)
                 this._grabbedDevice.sequence_ungrab(this._grabbedSequence);
             else
@@ -124,7 +110,15 @@ var Slider = GObject.registerClass({
         return Clutter.EVENT_STOP;
     }
 
-    _touchDragging(actor, event) {
+    vfunc_button_release_event() {
+        if (this._dragging && !this._grabbedSequence)
+            return this._endDragging();
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    vfunc_touch_event() {
+        let event = Clutter.get_current_event();
         let device = event.get_device();
         let sequence = event.get_event_sequence();
 
@@ -132,9 +126,9 @@ var Slider = GObject.registerClass({
             event.type() == Clutter.EventType.TOUCH_BEGIN) {
             this.startDragging(event);
             return Clutter.EVENT_STOP;
-        } else if (device.sequence_get_grabbed_actor(sequence) == actor) {
+        } else if (device.sequence_get_grabbed_actor(sequence) == this) {
             if (event.type() == Clutter.EventType.TOUCH_UPDATE)
-                return this._motionEvent(actor, event);
+                return this._motionEvent(this, event);
             else if (event.type() == Clutter.EventType.TOUCH_END)
                 return this._endDragging();
         }
@@ -165,8 +159,15 @@ var Slider = GObject.registerClass({
         return Clutter.EVENT_STOP;
     }
 
-    _onScrollEvent(actor, event) {
-        return this.scroll(event);
+    vfunc_scroll_event() {
+        return this.scroll(Clutter.get_current_event());
+    }
+
+    vfunc_motion_event() {
+        if (this._dragging && !this._grabbedSequence)
+            return this._motionEvent(this, Clutter.get_current_event());
+
+        return Clutter.EVENT_PROPAGATE;
     }
 
     _motionEvent(actor, event) {
@@ -176,13 +177,11 @@ var Slider = GObject.registerClass({
         return Clutter.EVENT_STOP;
     }
 
-    onKeyPressEvent(actor, event) {
-        let key = event.get_key_symbol();
+    vfunc_key_press_event(keyPressEvent) {
+        let key = keyPressEvent.keyval;
         if (key == Clutter.KEY_Right || key == Clutter.KEY_Left) {
             let delta = key == Clutter.KEY_Right ? 0.1 : -0.1;
-            this.emit('drag-begin');
             this.value = Math.max(0, Math.min(this._value + delta, this._maxValue));
-            this.emit('drag-end');
             return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;

@@ -19,6 +19,7 @@
 #include "st.h"
 #include "gtkactionmuxer.h"
 #include "org-gtk-application.h"
+#include "switcheroo-control.h"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-journal.h>
@@ -35,7 +36,7 @@ typedef struct {
   guint refcount;
 
   /* Signal connection to dirty window sort list on workspace changes */
-  guint workspace_switch_id;
+  gulong workspace_switch_id;
 
   GSList *windows;
 
@@ -185,7 +186,7 @@ window_backed_app_get_icon (ShellApp *app,
 {
   MetaWindow *window = NULL;
   StWidget *widget;
-  gint scale;
+  int scale, scaled_size;
   ShellGlobal *global;
   StThemeContext *context;
 
@@ -193,7 +194,7 @@ window_backed_app_get_icon (ShellApp *app,
   context = st_theme_context_get_for_stage (shell_global_get_stage (global));
   g_object_get (context, "scale-factor", &scale, NULL);
 
-  size *= scale;
+  scaled_size = size * scale;
 
   /* During a state transition from running to not-running for
    * window-backend apps, it's possible we get a request for the icon.
@@ -207,14 +208,28 @@ window_backed_app_get_icon (ShellApp *app,
       ClutterActor *actor;
 
       actor = clutter_actor_new ();
-      g_object_set (actor, "opacity", 0, "width", (float) size, "height", (float) size, NULL);
+      g_object_set (actor,
+                    "opacity", 0,
+                    "width", (float) scaled_size,
+                    "height", (float) scaled_size,
+                    NULL);
       return actor;
     }
 
-  widget = st_texture_cache_bind_cairo_surface_property (st_texture_cache_get_default (),
-                                                         G_OBJECT (window),
-                                                         "icon",
-                                                         size);
+  if (meta_window_get_client_type (window) == META_WINDOW_CLIENT_TYPE_X11)
+    {
+      widget = st_texture_cache_bind_cairo_surface_property (st_texture_cache_get_default (),
+                                                             G_OBJECT (window),
+                                                             "icon",
+                                                             scaled_size);
+    }
+  else
+    {
+      widget = g_object_new (ST_TYPE_ICON,
+                             "icon-size", size,
+                             "icon-name", "application-x-executable",
+                             NULL);
+    }
   st_widget_add_style_class_name (widget, "fallback-app-icon");
 
   return CLUTTER_ACTOR (widget);
@@ -223,7 +238,7 @@ window_backed_app_get_icon (ShellApp *app,
 /**
  * shell_app_create_icon_texture:
  *
- * Look up the icon for this application, and create a #ClutterTexture
+ * Look up the icon for this application, and create a #ClutterActor
  * for it at the given size.
  *
  * Return value: (transfer none): A floating #ClutterActor
@@ -1255,6 +1270,60 @@ wait_pid (GDesktopAppInfo *appinfo,
   g_child_watch_add (pid, (GChildWatchFunc) g_spawn_close_pid, NULL);
 }
 
+static void
+apply_discrete_gpu_env (GAppLaunchContext *context,
+                        ShellGlobal       *global)
+{
+  GDBusProxy *proxy;
+  GVariant* variant;
+  guint num_children, i;
+
+  proxy = _shell_global_get_switcheroo_control (global);
+  if (!proxy)
+    {
+      g_warning ("Could not apply discrete GPU environment, switcheroo-control not available");
+      return;
+    }
+
+  variant = shell_net_hadess_switcheroo_control_get_gpus (SHELL_NET_HADESS_SWITCHEROO_CONTROL (proxy));
+  if (!variant)
+    {
+      g_warning ("Could not apply discrete GPU environment, no GPUs in list");
+      return;
+    }
+
+  num_children = g_variant_n_children (variant);
+  for (i = 0; i < num_children; i++)
+    {
+      g_autoptr(GVariant) gpu;
+      g_autoptr(GVariant) env = NULL;
+      g_autoptr(GVariant) default_variant = NULL;
+      g_autofree const char **env_s = NULL;
+      guint j;
+
+      gpu = g_variant_get_child_value (variant, i);
+      if (!gpu ||
+          !g_variant_is_of_type (gpu, G_VARIANT_TYPE ("a{s*}")))
+        continue;
+
+      /* Skip over the default GPU */
+      default_variant = g_variant_lookup_value (gpu, "Default", NULL);
+      if (!default_variant || g_variant_get_boolean (default_variant))
+        continue;
+
+      env = g_variant_lookup_value (gpu, "Environment", NULL);
+      if (!env)
+        continue;
+
+      env_s = g_variant_get_strv (env, NULL);
+      for (j = 0; env_s[j] != NULL; j = j + 2)
+        g_app_launch_context_setenv (context, env_s[j], env_s[j+1]);
+      return;
+    }
+
+  g_warning ("Could not find discrete GPU data in switcheroo-control");
+}
+
 /**
  * shell_app_launch:
  * @timestamp: Event timestamp, or 0 for current event timestamp
@@ -1290,7 +1359,7 @@ shell_app_launch (ShellApp     *app,
   global = shell_global_get ();
   context = shell_global_create_app_launch_context (global, timestamp, workspace);
   if (discrete_gpu)
-    g_app_launch_context_setenv (context, "DRI_PRIME", "1");
+    apply_discrete_gpu_env (context, global);
 
   /* Set LEAVE_DESCRIPTORS_OPEN in order to use an optimized gspawn
    * codepath. The shell's open file descriptors should be marked CLOEXEC
@@ -1445,7 +1514,7 @@ unref_running_state (ShellAppRunningState *state)
   if (state->refcount > 0)
     return;
 
-  g_signal_handler_disconnect (workspace_manager, state->workspace_switch_id);
+  g_clear_signal_handler (&state->workspace_switch_id, workspace_manager);
 
   g_clear_object (&state->application_proxy);
 

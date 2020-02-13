@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
-/* exported addContextMenu */
+/* exported addContextMenu CapsLockWarning */
 
-const { Clutter, Shell, St } = imports.gi;
+const { Clutter, GObject, Pango, Shell, St } = imports.gi;
 
 const BoxPointer = imports.ui.boxpointer;
 const Main = imports.ui.main;
@@ -27,7 +27,8 @@ var EntryMenu = class extends PopupMenu.PopupMenu {
         this.addMenuItem(item);
         this._pasteItem = item;
 
-        this._passwordItem = null;
+        if (entry instanceof St.PasswordEntry)
+            this._makePasswordItem();
 
         Main.uiGroup.add_actor(this.actor);
         this.actor.hide();
@@ -38,24 +39,6 @@ var EntryMenu = class extends PopupMenu.PopupMenu {
         item.connect('activate', this._onPasswordActivated.bind(this));
         this.addMenuItem(item);
         this._passwordItem = item;
-    }
-
-    get isPassword() {
-        return this._passwordItem != null;
-    }
-
-    set isPassword(v) {
-        if (v == this.isPassword)
-            return;
-
-        if (v) {
-            this._makePasswordItem();
-            this._entry.input_purpose = Clutter.InputContentPurpose.PASSWORD;
-        } else {
-            this._passwordItem.destroy();
-            this._passwordItem = null;
-            this._entry.input_purpose = Clutter.InputContentPurpose.NORMAL;
-        }
     }
 
     open(animate) {
@@ -86,8 +69,7 @@ var EntryMenu = class extends PopupMenu.PopupMenu {
     }
 
     _updatePasswordItem() {
-        let textHidden = (this._entry.clutter_text.password_char);
-        if (textHidden)
+        if (!this._entry.password_visible)
             this._passwordItem.label.set_text(_("Show Text"));
         else
             this._passwordItem.label.set_text(_("Hide Text"));
@@ -110,8 +92,7 @@ var EntryMenu = class extends PopupMenu.PopupMenu {
     }
 
     _onPasswordActivated() {
-        let visible = !!(this._entry.clutter_text.password_char);
-        this._entry.clutter_text.set_password_char(visible ? '' : '\u25cf');
+        this._entry.password_visible  = !this._entry.password_visible;
     }
 };
 
@@ -135,7 +116,8 @@ function _onButtonPressEvent(actor, event, entry) {
 }
 
 function _onPopup(actor, entry) {
-    let [success, textX, textY_, lineHeight_] = entry.clutter_text.position_to_coords(-1);
+    let cursorPosition = entry.clutter_text.get_cursor_position();
+    let [success, textX, textY_, lineHeight_] = entry.clutter_text.position_to_coords(cursorPosition);
     if (success)
         entry.menu.setSourceAlignment(textX / entry.width);
     entry.menu.open(BoxPointer.PopupAnimation.FULL);
@@ -145,10 +127,9 @@ function addContextMenu(entry, params) {
     if (entry.menu)
         return;
 
-    params = Params.parse (params, { isPassword: false, actionMode: Shell.ActionMode.POPUP });
+    params = Params.parse(params, { actionMode: Shell.ActionMode.POPUP });
 
     entry.menu = new EntryMenu(entry);
-    entry.menu.isPassword = params.isPassword;
     entry._menuManager = new PopupMenu.PopupMenuManager(entry,
                                                         { actionMode: params.actionMode });
     entry._menuManager.addMenu(entry.menu);
@@ -171,3 +152,57 @@ function addContextMenu(entry, params) {
         entry._menuManager = null;
     });
 }
+
+var CapsLockWarning = GObject.registerClass(
+class CapsLockWarning extends St.Label {
+    _init(params) {
+        let defaultParams = { style_class: 'caps-lock-warning-label' };
+        super._init(Object.assign(defaultParams, params));
+
+        this.text = _('Caps lock is on.');
+
+        this.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        this.clutter_text.line_wrap = true;
+
+        let seat = Clutter.get_default_backend().get_default_seat();
+        this._keymap = seat.get_keymap();
+        this._stateChangedId = 0;
+
+        this.connect('notify::mapped', () => {
+            if (this.is_mapped()) {
+                this._stateChangedId = this._keymap.connect('state-changed',
+                    () => this._sync(true));
+            } else {
+                this._keymap.disconnect(this._stateChangedId);
+                this._stateChangedId = 0;
+            }
+
+            this._sync(false);
+        });
+
+        this.connect('destroy', () => {
+            if (this._stateChangedId)
+                this._keymap.disconnect(this._stateChangedId);
+        });
+    }
+
+    _sync(animate) {
+        let capsLockOn = this._keymap.get_caps_lock_state();
+
+        this.remove_all_transitions();
+
+        this.natural_height_set = false;
+        let [, height] = this.get_preferred_height(-1);
+        this.natural_height_set = true;
+
+        this.ease({
+            height: capsLockOn ? height : 0,
+            opacity: capsLockOn ? 255 : 0,
+            duration: animate ? 200 : 0,
+            onComplete: () => {
+                if (capsLockOn)
+                    this.height = -1;
+            },
+        });
+    }
+});

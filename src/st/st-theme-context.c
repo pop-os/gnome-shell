@@ -22,9 +22,11 @@
 #include <config.h>
 
 #include "st-private.h"
+#include "st-settings.h"
 #include "st-texture-cache.h"
 #include "st-theme.h"
 #include "st-theme-context.h"
+#include "st-theme-node-private.h"
 
 struct _StThemeContext {
   GObject parent;
@@ -36,10 +38,10 @@ struct _StThemeContext {
   /* set of StThemeNode */
   GHashTable *nodes;
 
+  gulong stylesheets_changed_id;
+
   int scale_factor;
 };
-
-#define DEFAULT_FONT "sans-serif 10"
 
 enum
 {
@@ -58,6 +60,10 @@ static guint signals[LAST_SIGNAL] = { 0, };
 
 G_DEFINE_TYPE (StThemeContext, st_theme_context, G_TYPE_OBJECT)
 
+static PangoFontDescription *get_interface_font_description (void);
+static void on_font_name_changed (StSettings     *settings,
+                                  GParamSpec     *pspec,
+                                  StThemeContext *context);
 static void on_icon_theme_changed (StTextureCache *cache,
                                    StThemeContext *context);
 static void st_theme_context_changed (StThemeContext *context);
@@ -76,12 +82,17 @@ st_theme_context_finalize (GObject *object)
 {
   StThemeContext *context = ST_THEME_CONTEXT (object);
 
+  g_signal_handlers_disconnect_by_func (st_settings_get (),
+                                        (gpointer) on_font_name_changed,
+                                        context);
   g_signal_handlers_disconnect_by_func (st_texture_cache_get_default (),
                                        (gpointer) on_icon_theme_changed,
                                        context);
   g_signal_handlers_disconnect_by_func (clutter_get_default_backend (),
                                         (gpointer) st_theme_context_changed,
                                         context);
+
+  g_clear_signal_handler (&context->stylesheets_changed_id, context->theme);
 
   if (context->nodes)
     g_hash_table_unref (context->nodes);
@@ -129,8 +140,12 @@ st_theme_context_class_init (StThemeContextClass *klass)
 static void
 st_theme_context_init (StThemeContext *context)
 {
-  context->font = pango_font_description_from_string (DEFAULT_FONT);
+  context->font = get_interface_font_description ();
 
+  g_signal_connect (st_settings_get (),
+                    "notify::font-name",
+                    G_CALLBACK (on_font_name_changed),
+                    context);
   g_signal_connect (st_texture_cache_get_default (),
                     "icon-theme-changed",
                     G_CALLBACK (on_icon_theme_changed),
@@ -210,6 +225,16 @@ st_theme_context_new (void)
   return context;
 }
 
+static PangoFontDescription *
+get_interface_font_description (void)
+{
+  StSettings *settings = st_settings_get ();
+  g_autofree char *font_name = NULL;
+
+  g_object_get (settings, "font-name", &font_name, NULL);
+  return pango_font_description_from_string (font_name);
+}
+
 static void
 on_stage_destroy (ClutterStage *stage)
 {
@@ -232,6 +257,17 @@ st_theme_context_changed (StThemeContext *context)
     g_object_unref (old_root);
 }
 
+static void
+on_font_name_changed (StSettings     *settings,
+                      GParamSpec     *pspect,
+                      StThemeContext *context)
+{
+  PangoFontDescription *font_desc = get_interface_font_description ();
+  st_theme_context_set_font (context, font_desc);
+
+  pango_font_description_free (font_desc);
+}
+
 static gboolean
 changed_idle (gpointer userdata)
 {
@@ -252,6 +288,19 @@ on_icon_theme_changed (StTextureCache *cache,
    */
   id = g_idle_add ((GSourceFunc) changed_idle, context);
   g_source_set_name_by_id (id, "[gnome-shell] changed_idle");
+}
+
+static void
+on_custom_stylesheets_changed (StTheme        *theme,
+                               StThemeContext *context)
+{
+  GHashTableIter iter;
+  StThemeNode *node;
+
+  g_hash_table_iter_init (&iter, context->nodes);
+
+  while (g_hash_table_iter_next (&iter, (gpointer *) &node, NULL))
+    _st_theme_node_reset_for_stylesheet_change (node);
 }
 
 /**
@@ -299,12 +348,17 @@ st_theme_context_set_theme (StThemeContext          *context,
   if (context->theme != theme)
     {
       if (context->theme)
-        g_object_unref (context->theme);
+        g_clear_signal_handler (&context->stylesheets_changed_id, context->theme);
 
-      context->theme = theme;
+      g_set_object (&context->theme, theme);
 
       if (context->theme)
-        g_object_ref (context->theme);
+        {
+          context->stylesheets_changed_id =
+            g_signal_connect (context->theme, "custom-stylesheets-changed",
+                              G_CALLBACK (on_custom_stylesheets_changed),
+                              context);
+        }
 
       st_theme_context_changed (context);
     }

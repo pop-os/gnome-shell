@@ -37,6 +37,8 @@ enum
   PROP_0,
 
   PROP_GICON,
+  PROP_FALLBACK_GICON,
+
   PROP_ICON_NAME,
   PROP_ICON_SIZE,
   PROP_FALLBACK_ICON_NAME,
@@ -48,19 +50,19 @@ static GParamSpec *props[N_PROPS] = { NULL, };
 
 struct _StIconPrivate
 {
-  ClutterActor *icon_texture;
-  ClutterActor *pending_texture;
-  guint         opacity_handler_id;
+  ClutterActor    *icon_texture;
+  ClutterActor    *pending_texture;
+  gulong           opacity_handler_id;
 
-  GIcon        *gicon;
-  gint          prop_icon_size;  /* icon size set as property */
-  gint          theme_icon_size; /* icon size from theme node */
-  gint          icon_size;       /* icon size we are using */
-  GIcon        *fallback_gicon;
+  GIcon           *gicon;
+  gint             prop_icon_size;  /* icon size set as property */
+  gint             theme_icon_size; /* icon size from theme node */
+  gint             icon_size;       /* icon size we are using */
+  GIcon           *fallback_gicon;
 
-  CoglPipeline *shadow_pipeline;
-  StShadow     *shadow_spec;
-  ClutterSize   shadow_size;
+  CoglPipeline    *shadow_pipeline;
+  StShadow        *shadow_spec;
+  graphene_size_t  shadow_size;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (StIcon, st_icon, ST_TYPE_WIDGET)
@@ -84,6 +86,10 @@ st_icon_set_property (GObject      *gobject,
     {
     case PROP_GICON:
       st_icon_set_gicon (icon, g_value_get_object (value));
+      break;
+
+    case PROP_FALLBACK_GICON:
+      st_icon_set_fallback_gicon (icon, g_value_get_object (value));
       break;
 
     case PROP_ICON_NAME:
@@ -115,7 +121,11 @@ st_icon_get_property (GObject    *gobject,
   switch (prop_id)
     {
     case PROP_GICON:
-      g_value_set_object (value, icon->priv->gicon);
+      g_value_set_object (value, st_icon_get_gicon (icon));
+      break;
+
+    case PROP_FALLBACK_GICON:
+      g_value_set_object (value, st_icon_get_fallback_gicon (icon));
       break;
 
     case PROP_ICON_NAME:
@@ -163,12 +173,13 @@ st_icon_dispose (GObject *gobject)
 }
 
 static void
-st_icon_paint (ClutterActor *actor)
+st_icon_paint (ClutterActor        *actor,
+               ClutterPaintContext *paint_context)
 {
   StIcon *icon = ST_ICON (actor);
   StIconPrivate *priv = icon->priv;
 
-  st_widget_paint_background (ST_WIDGET (actor));
+  st_widget_paint_background (ST_WIDGET (actor), paint_context);
 
   if (priv->icon_texture)
     {
@@ -177,16 +188,18 @@ st_icon_paint (ClutterActor *actor)
       if (priv->shadow_pipeline)
         {
           ClutterActorBox allocation;
+          CoglFramebuffer *framebuffer;
 
           clutter_actor_get_allocation_box (priv->icon_texture, &allocation);
+          framebuffer = clutter_paint_context_get_framebuffer (paint_context);
           _st_paint_shadow_with_opacity (priv->shadow_spec,
-                                         cogl_get_draw_framebuffer (),
+                                         framebuffer,
                                          priv->shadow_pipeline,
                                          &allocation,
                                          clutter_actor_get_paint_opacity (priv->icon_texture));
         }
 
-      clutter_actor_paint (priv->icon_texture);
+      clutter_actor_paint (priv->icon_texture, paint_context);
     }
 }
 
@@ -243,6 +256,13 @@ st_icon_class_init (StIconClass *klass)
                          G_TYPE_ICON,
                          ST_PARAM_READWRITE);
 
+  props[PROP_FALLBACK_GICON] =
+    g_param_spec_object ("fallback-gicon",
+                         "Fallback GIcon",
+                         "The fallback GIcon shown if the normal icon fails to load",
+                         G_TYPE_ICON,
+                         ST_PARAM_READWRITE);
+
   props[PROP_ICON_NAME] =
     g_param_spec_string ("icon-name",
                          "Icon name",
@@ -290,7 +310,7 @@ st_icon_clear_shadow_pipeline (StIcon *icon)
   StIconPrivate *priv = icon->priv;
 
   g_clear_pointer (&priv->shadow_pipeline, cogl_object_unref);
-  clutter_size_init (&priv->shadow_size, 0, 0);
+  graphene_size_init (&priv->shadow_size, 0, 0);
 }
 
 static void
@@ -317,7 +337,7 @@ st_icon_update_shadow_pipeline (StIcon *icon)
                                                    priv->icon_texture);
 
           if (priv->shadow_pipeline)
-            clutter_size_init (&priv->shadow_size, width, height);
+            graphene_size_init (&priv->shadow_size, width, height);
         }
     }
 }
@@ -369,8 +389,7 @@ opacity_changed_cb (GObject *object,
   StIcon *icon = user_data;
   StIconPrivate *priv = icon->priv;
 
-  g_signal_handler_disconnect (priv->pending_texture, priv->opacity_handler_id);
-  priv->opacity_handler_id = 0;
+  g_clear_signal_handler (&priv->opacity_handler_id, priv->pending_texture);
 
   st_icon_finish_update (icon);
 }
@@ -493,6 +512,15 @@ st_icon_new (void)
   return g_object_new (ST_TYPE_ICON, NULL);
 }
 
+/**
+ * st_icon_get_icon_name:
+ * @icon: an #StIcon
+ *
+ * This is a convenience method to get the icon name of the #GThemedIcon that
+ * is currently set.
+ *
+ * Returns: (transfer none): The name of the icon or %NULL if no icon is set
+ */
 const gchar *
 st_icon_get_icon_name (StIcon *icon)
 {
@@ -508,45 +536,41 @@ st_icon_get_icon_name (StIcon *icon)
     return NULL;
 }
 
+/**
+ * st_icon_set_icon_name:
+ * @icon: an #StIcon
+ * @icon_name: (nullable): the name of the icon
+ *
+ * This is a convenience method to set the #GIcon to a #GThemedIcon created
+ * using the given icon name. If @icon_name is an empty string, %NULL or
+ * fails to load, the fallback icon will be shown.
+ */
 void
 st_icon_set_icon_name (StIcon      *icon,
                        const gchar *icon_name)
 {
-  StIconPrivate *priv = icon->priv;
-  GIcon *gicon = NULL;
+  g_autoptr(GIcon) gicon = NULL;
 
   g_return_if_fail (ST_IS_ICON (icon));
 
-  if (icon_name)
+  if (icon_name && *icon_name)
     gicon = g_themed_icon_new_with_default_fallbacks (icon_name);
-
-  if (g_icon_equal (priv->gicon, gicon)) /* do nothing */
-    {
-      if (gicon)
-        g_object_unref (gicon);
-      return;
-    }
-
-  if (priv->gicon)
-    g_object_unref (priv->gicon);
 
   g_object_freeze_notify (G_OBJECT (icon));
 
-  priv->gicon = gicon;
-
-  g_object_notify_by_pspec (G_OBJECT (icon), props[PROP_GICON]);
+  st_icon_set_gicon (icon, gicon);
   g_object_notify_by_pspec (G_OBJECT (icon), props[PROP_ICON_NAME]);
 
   g_object_thaw_notify (G_OBJECT (icon));
-
-  st_icon_update (icon);
 }
 
 /**
  * st_icon_get_gicon:
- * @icon: an icon
+ * @icon: an #StIcon
  *
- * Return value: (transfer none): the override GIcon, if set, or NULL
+ * Gets the current #GIcon in use.
+ *
+ * Returns: (transfer none): The current #GIcon, if set, otherwise %NULL
  */
 GIcon *
 st_icon_get_gicon (StIcon *icon)
@@ -558,8 +582,11 @@ st_icon_get_gicon (StIcon *icon)
 
 /**
  * st_icon_set_gicon:
- * @icon: an icon
- * @gicon: (nullable): a #GIcon to override :icon-name
+ * @icon: an #StIcon
+ * @gicon: (nullable): a #GIcon
+ *
+ * Sets a #GIcon to show for the icon. If @gicon is %NULL or fails to load,
+ * the fallback icon set using st_icon_set_fallback_icon() will be shown.
  */
 void
 st_icon_set_gicon (StIcon *icon, GIcon *gicon)
@@ -570,28 +597,61 @@ st_icon_set_gicon (StIcon *icon, GIcon *gicon)
   if (g_icon_equal (icon->priv->gicon, gicon)) /* do nothing */
     return;
 
-  if (icon->priv->gicon)
-    {
-      g_object_unref (icon->priv->gicon);
-      icon->priv->gicon = NULL;
-    }
-
-  if (gicon)
-    icon->priv->gicon = g_object_ref (gicon);
-
+  g_set_object (&icon->priv->gicon, gicon);
   g_object_notify_by_pspec (G_OBJECT (icon), props[PROP_GICON]);
 
   st_icon_update (icon);
 }
 
 /**
+ * st_icon_get_fallback_gicon:
+ * @icon: a #StIcon
+ *
+ * Gets the currently set fallback #GIcon.
+ *
+ * Returns: (transfer none): The fallback #GIcon, if set, otherwise %NULL
+ */
+GIcon *
+st_icon_get_fallback_gicon (StIcon *icon)
+{
+  g_return_val_if_fail (ST_IS_ICON (icon), NULL);
+
+  return icon->priv->fallback_gicon;
+}
+
+/**
+ * st_icon_set_fallback_gicon:
+ * @icon: a #StIcon
+ * @fallback_gicon: (nullable): the fallback #GIcon
+ *
+ * Sets a fallback #GIcon to show if the normal icon fails to load.
+ * If @fallback_gicon is %NULL or fails to load, the icon is unset and no
+ * texture will be visible for the fallback icon.
+ */
+void
+st_icon_set_fallback_gicon (StIcon *icon,
+                            GIcon  *fallback_gicon)
+{
+  g_return_if_fail (ST_IS_ICON (icon));
+  g_return_if_fail (fallback_gicon == NULL || G_IS_ICON (fallback_gicon));
+
+  if (g_icon_equal (icon->priv->fallback_gicon, fallback_gicon))
+    return;
+
+  g_set_object (&icon->priv->fallback_gicon, fallback_gicon);
+  g_object_notify_by_pspec (G_OBJECT (icon), props[PROP_FALLBACK_GICON]);
+
+  st_icon_update (icon);
+}
+
+/**
  * st_icon_get_icon_size:
- * @icon: an icon
+ * @icon: an #StIcon
  *
- * Gets the size explicit size on the icon. This is not necesariily
- *  the size that the icon will actually be displayed at.
+ * Gets the explicit size set using st_icon_set_icon_size() for the icon.
+ * This is not necessarily the size that the icon will be displayed at.
  *
- * Return value: the size explicitly set, or -1 if no size has been set
+ * Returns: The explicitly set size, or -1 if no size has been set
  */
 gint
 st_icon_get_icon_size (StIcon *icon)
@@ -603,11 +663,12 @@ st_icon_get_icon_size (StIcon *icon)
 
 /**
  * st_icon_set_icon_size:
- * @icon: an icon
+ * @icon: an #StIcon
  * @size: if positive, the new size, otherwise the size will be
  *   derived from the current style
  *
- * Sets an explicit size for the icon.
+ * Sets an explicit size for the icon. Setting @size to -1 will use the size
+ * defined by the current style or the default icon size.
  */
 void
 st_icon_set_icon_size (StIcon *icon,
@@ -627,6 +688,15 @@ st_icon_set_icon_size (StIcon *icon,
     }
 }
 
+/**
+ * st_icon_get_fallback_icon_name:
+ * @icon: an #StIcon
+ *
+ * This is a convenience method to get the icon name of the fallback
+ * #GThemedIcon that is currently set.
+ *
+ * Returns: (transfer none): The name of the icon or %NULL if no icon is set
+ */
 const gchar *
 st_icon_get_fallback_icon_name (StIcon *icon)
 {
@@ -642,31 +712,31 @@ st_icon_get_fallback_icon_name (StIcon *icon)
     return NULL;
 }
 
+/**
+ * st_icon_set_fallback_icon_name:
+ * @icon: an #StIcon
+ * @fallback_icon_name: (nullable): the name of the fallback icon
+ *
+ * This is a convenience method to set the fallback #GIcon to a #GThemedIcon
+ * created using the given icon name. If @fallback_icon_name is an empty
+ * string, %NULL or fails to load, the icon is unset and no texture will
+ * be visible for the fallback icon.
+ */
 void
 st_icon_set_fallback_icon_name (StIcon      *icon,
                                 const gchar *fallback_icon_name)
 {
-  StIconPrivate *priv = icon->priv;
-  GIcon *gicon = NULL;
+  g_autoptr(GIcon) gicon = NULL;
 
   g_return_if_fail (ST_IS_ICON (icon));
 
-  if (fallback_icon_name != NULL)
+  if (fallback_icon_name && *fallback_icon_name)
     gicon = g_themed_icon_new_with_default_fallbacks (fallback_icon_name);
 
-  if (g_icon_equal (priv->fallback_gicon, gicon)) /* do nothing */
-    {
-      if (gicon)
-        g_object_unref (gicon);
-      return;
-    }
+  g_object_freeze_notify (G_OBJECT (icon));
 
-  if (priv->fallback_gicon)
-    g_object_unref (priv->fallback_gicon);
-
-  priv->fallback_gicon = gicon;
-
+  st_icon_set_fallback_gicon (icon, gicon);
   g_object_notify_by_pspec (G_OBJECT (icon), props[PROP_FALLBACK_ICON_NAME]);
 
-  st_icon_update (icon);
+  g_object_thaw_notify (G_OBJECT (icon));
 }

@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported findUrls, spawn, spawnCommandLine, spawnApp, trySpawnCommandLine,
             formatTime, formatTimeSpan, createTimeLabel, insertSorted,
-            makeCloseButton, ensureActorVisibleInScrollView */
+            makeCloseButton, ensureActorVisibleInScrollView, wiggle */
 
 const { Clutter, Gio, GLib, GObject, Shell, St, GnomeDesktop } = imports.gi;
 const Gettext = imports.gettext;
@@ -10,6 +10,10 @@ const Main = imports.ui.main;
 const Params = imports.misc.params;
 
 var SCROLL_TIME = 100;
+
+const WIGGLE_OFFSET = 6;
+const WIGGLE_DURATION = 65;
+const N_WIGGLES = 3;
 
 // http://daringfireball.net/2010/07/improved_regex_for_matching_urls
 const _balancedParens = '\\([^\\s()<>]+\\)';
@@ -121,19 +125,14 @@ function trySpawn(argv) {
             // We are only interested in the part in the parentheses. (And
             // we can't pattern match the text, since it gets localized.)
             let message = err.message.replace(/.*\((.+)\)/, '$1');
-            throw new (err.constructor)({ code: err.code,
-                                          message: message });
+            throw new err.constructor({ code: err.code, message });
         } else {
             throw err;
         }
     }
 
     // Async call, we don't need the reply though
-    try {
-        GnomeDesktop.start_systemd_scope(argv[0], pid, null, null, null, () => {});
-    } catch (err) {
-        // Ignore error; it likely means GnomeDesktop is too old
-    }
+    GnomeDesktop.start_systemd_scope(argv[0], pid, null, null, null, () => {});
 
     // Dummy child watch; we don't want to double-fork internally
     // because then we lose the parent-child relationship, which
@@ -180,23 +179,28 @@ function formatTimeSpan(date) {
 
     if (minutesAgo < 5)
         return _("Just now");
-    if (hoursAgo < 1)
+    if (hoursAgo < 1) {
         return Gettext.ngettext("%d minute ago",
                                 "%d minutes ago", minutesAgo).format(minutesAgo);
-    if (daysAgo < 1)
+    }
+    if (daysAgo < 1) {
         return Gettext.ngettext("%d hour ago",
                                 "%d hours ago", hoursAgo).format(hoursAgo);
+    }
     if (daysAgo < 2)
         return _("Yesterday");
-    if (daysAgo < 15)
+    if (daysAgo < 15) {
         return Gettext.ngettext("%d day ago",
                                 "%d days ago", daysAgo).format(daysAgo);
-    if (weeksAgo < 8)
+    }
+    if (weeksAgo < 8) {
         return Gettext.ngettext("%d week ago",
                                 "%d weeks ago", weeksAgo).format(weeksAgo);
-    if (yearsAgo < 1)
+    }
+    if (yearsAgo < 1) {
         return Gettext.ngettext("%d month ago",
                                 "%d months ago", monthsAgo).format(monthsAgo);
+    }
     return Gettext.ngettext("%d year ago",
                             "%d years ago", yearsAgo).format(yearsAgo);
 }
@@ -221,7 +225,10 @@ function formatTime(time, params) {
         _desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
     let clockFormat = _desktopSettings.get_string('clock-format');
 
-    params = Params.parse(params, { timeOnly: false });
+    params = Params.parse(params, {
+        timeOnly: false,
+        ampm: true,
+    });
 
     if (clockFormat == '24h') {
         // Show only the time if date is on today
@@ -254,7 +261,7 @@ function formatTime(time, params) {
             format = N_("%B %-d %Y, %H\u2236%M");
     } else {
         // Show only the time if date is on today
-        if (daysAgo < 1 || params.timeOnly)
+        if (daysAgo < 1 || params.timeOnly) // eslint-disable-line no-lonely-if
             /* Translators: Time in 12h format */
             format = N_("%l\u2236%M %p");
         // Show the word "Yesterday" and time if date is on yesterday
@@ -282,6 +289,11 @@ function formatTime(time, params) {
             // xgettext:no-c-format
             format = N_("%B %-d %Y, %l\u2236%M %p");
     }
+
+    // Time in short 12h format, without the equivalent of "AM" or "PM"; used
+    // when it is clear from the context
+    if (!params.ampm)
+        format = format.replace(/\s*%p/g, '');
 
     let formattedTime = date.format(Shell.util_translate_time_string(format));
     // prepend LTR-mark to colon/ratio to force a text direction on times
@@ -333,7 +345,7 @@ function lowerBound(array, val, cmp) {
             max = mid;
     }
 
-    return (min == max || cmp(array[min], val) < 0) ? max : min;
+    return min == max || cmp(array[min], val) < 0 ? max : min;
 }
 
 // insertSorted:
@@ -354,19 +366,13 @@ function insertSorted(array, val, cmp) {
 var CloseButton = GObject.registerClass(
 class CloseButton extends St.Button {
     _init(boxpointer) {
-        super._init({ style_class: 'notification-close' });
-
-        // This is a bit tricky. St.Bin has its own x-align/y-align properties
-        // that compete with Clutter's properties. This should be fixed for
-        // Clutter 2.0. Since St.Bin doesn't define its own setters, the
-        // setters are a workaround to get Clutter's version.
-        this.set_x_align(Clutter.ActorAlign.END);
-        this.set_y_align(Clutter.ActorAlign.START);
-
-        // XXX Clutter 2.0 workaround: ClutterBinLayout needs expand
-        // to respect the alignments.
-        this.set_x_expand(true);
-        this.set_y_expand(true);
+        super._init({
+            style_class: 'notification-close',
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.END,
+            y_align: Clutter.ActorAlign.START,
+        });
 
         this._boxPointer = boxpointer;
         if (boxpointer)
@@ -419,7 +425,7 @@ function ensureActorVisibleInScrollView(scrollView, actor) {
         if (!parent)
             throw new Error("actor not in scroll view");
 
-        let box = parent.get_allocation_box();
+        box = parent.get_allocation_box();
         y1 += box.y1;
         y2 += box.y1;
         parent = parent.get_parent();
@@ -434,6 +440,40 @@ function ensureActorVisibleInScrollView(scrollView, actor) {
 
     adjustment.ease(value, {
         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        duration: SCROLL_TIME
+        duration: SCROLL_TIME,
+    });
+}
+
+function wiggle(actor, params) {
+    params = Params.parse(params, {
+        offset: WIGGLE_OFFSET,
+        duration: WIGGLE_DURATION,
+        wiggleCount: N_WIGGLES,
+    });
+    actor.translation_x = 0;
+
+    // Accelerate before wiggling
+    actor.ease({
+        translation_x: -params.offset,
+        duration: params.duration,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+            // Wiggle
+            actor.ease({
+                translation_x: params.offset,
+                duration: params.duration,
+                mode: Clutter.AnimationMode.LINEAR,
+                repeatCount: params.wiggleCount,
+                autoReverse: true,
+                onComplete: () => {
+                    // Decelerate and return to the original position
+                    actor.ease({
+                        translation_x: 0,
+                        duration: params.duration,
+                        mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                    });
+                },
+            });
+        },
     });
 }

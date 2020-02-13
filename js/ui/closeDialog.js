@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported CloseDialog */
 
-const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
+const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
 
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
@@ -13,7 +13,7 @@ var ALIVE_TIMEOUT = 5000;
 var CloseDialog = GObject.registerClass({
     Implements: [Meta.CloseDialog],
     Properties: {
-        'window': GObject.ParamSpec.override('window', Meta.CloseDialog)
+        'window': GObject.ParamSpec.override('window', Meta.CloseDialog),
     },
 }, class CloseDialog extends GObject.Object {
     _init(window) {
@@ -40,10 +40,9 @@ var CloseDialog = GObject.registerClass({
 
         /* Translators: %s is an application name */
         let title = _("“%s” is not responding.").format(windowApp.get_name());
-        let subtitle = _("You may choose to wait a short while for it to " +
-                         "continue or force the application to quit entirely.");
-        let icon = new Gio.ThemedIcon({ name: 'dialog-warning-symbolic' });
-        return new Dialog.MessageDialogContent({ icon, title, subtitle });
+        let description = _('You may choose to wait a short while for it to ' +
+                            'continue or force the application to quit entirely.');
+        return new Dialog.MessageDialogContent({ title, description });
     }
 
     _updateScale() {
@@ -67,13 +66,13 @@ var CloseDialog = GObject.registerClass({
         this._dialog.width = windowActor.width;
         this._dialog.height = windowActor.height;
 
-        this._dialog.addContent(this._createDialogContent());
+        this._dialog.contentLayout.add_child(this._createDialogContent());
         this._dialog.addButton({ label: _('Force Quit'),
                                  action: this._onClose.bind(this),
                                  default: true });
         this._dialog.addButton({ label: _('Wait'),
                                  action: this._onWait.bind(this),
-                                 key: Clutter.Escape });
+                                 key: Clutter.KEY_Escape });
 
         global.focus_manager.add_group(this._dialog);
 
@@ -124,11 +123,12 @@ var CloseDialog = GObject.registerClass({
         if (this._tracked === shouldTrack)
             return;
 
-        if (shouldTrack)
+        if (shouldTrack) {
             Main.layoutManager.trackChrome(this._dialog,
                                            { affectsInputRegion: true });
-        else
+        } else {
             Main.layoutManager.untrackChrome(this._dialog);
+        }
 
         // The buttons are broken when they aren't added to the input region,
         // so disable them properly in that case
@@ -169,7 +169,7 @@ var CloseDialog = GObject.registerClass({
             scale_y: 1,
             mode: Clutter.AnimationMode.LINEAR,
             duration: DIALOG_TRANSITION_TIME,
-            onComplete: this._onFocusChanged.bind(this)
+            onComplete: this._onFocusChanged.bind(this),
         });
     }
 
@@ -196,7 +196,7 @@ var CloseDialog = GObject.registerClass({
             scale_y: 0,
             mode: Clutter.AnimationMode.LINEAR,
             duration: DIALOG_TRANSITION_TIME,
-            onComplete: () => dialog.destroy()
+            onComplete: () => dialog.destroy(),
         });
     }
 

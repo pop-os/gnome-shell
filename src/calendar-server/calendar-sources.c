@@ -112,7 +112,7 @@ static CalendarSources *calendar_sources_singleton = NULL;
 static void
 client_data_free (ClientData *data)
 {
-  g_signal_handler_disconnect (data->client, data->backend_died_id);
+  g_clear_signal_handler (&data->backend_died_id, data->client);
   g_object_unref (data->client);
   g_slice_free (ClientData, data);
 }
@@ -242,11 +242,7 @@ calendar_sources_finalize_source_data (CalendarSources    *sources,
       g_hash_table_destroy (source_data->clients);
       source_data->clients = NULL;
 
-      if (source_data->timeout_id != 0)
-        {
-          g_source_remove (source_data->timeout_id);
-          source_data->timeout_id = 0;
-        }
+      g_clear_handle_id (&source_data->timeout_id, g_source_remove);
 
       source_data->loaded = FALSE;
     }
@@ -259,12 +255,12 @@ calendar_sources_finalize (GObject *object)
 
   if (sources->priv->registry)
     {
-      g_signal_handler_disconnect (sources->priv->registry,
-                                   sources->priv->source_added_id);
-      g_signal_handler_disconnect (sources->priv->registry,
-                                   sources->priv->source_changed_id);
-      g_signal_handler_disconnect (sources->priv->registry,
-                                   sources->priv->source_removed_id);
+      g_clear_signal_handler (&sources->priv->source_added_id,
+                              sources->priv->registry);
+      g_clear_signal_handler (&sources->priv->source_changed_id,
+                              sources->priv->registry);
+      g_clear_signal_handler (&sources->priv->source_removed_id,
+                              sources->priv->registry);
       g_object_unref (sources->priv->registry);
     }
   sources->priv->registry = NULL;
@@ -374,11 +370,7 @@ backend_died_cb (EClient *client, CalendarSourceData *source_data)
   g_warning ("The calendar backend for '%s' has crashed.", display_name);
   g_hash_table_remove (source_data->clients, source);
 
-  if (source_data->timeout_id != 0)
-    {
-      g_source_remove (source_data->timeout_id);
-      source_data->timeout_id = 0;
-    }
+  g_clear_handle_id (&source_data->timeout_id, g_source_remove);
 
   source_data->timeout_id = g_timeout_add_seconds (2, backend_restart,
 		  				   source_data);

@@ -30,7 +30,7 @@ function primaryModifier(mask) {
 }
 
 var SwitcherPopup = GObject.registerClass({
-    GTypeFlags: GObject.TypeFlags.ABSTRACT
+    GTypeFlags: GObject.TypeFlags.ABSTRACT,
 }, class SwitcherPopup extends St.Widget {
     _init(items) {
         super._init({ style_class: 'switcher-popup',
@@ -108,12 +108,6 @@ var SwitcherPopup = GObject.registerClass({
         this._haveModal = true;
         this._modifierMask = primaryModifier(mask);
 
-        this.connect('key-press-event', this._keyPressEvent.bind(this));
-        this.connect('key-release-event', this._keyReleaseEvent.bind(this));
-
-        this.connect('button-press-event', this._clickedOutside.bind(this));
-        this.connect('scroll-event', this._scrollEvent.bind(this));
-
         this.add_actor(this._switcherList);
         this._switcherList.connect('item-activated', this._itemActivated.bind(this));
         this._switcherList.connect('item-entered', this._itemEntered.bind(this));
@@ -148,13 +142,22 @@ var SwitcherPopup = GObject.registerClass({
             GLib.PRIORITY_DEFAULT,
             POPUP_DELAY_TIMEOUT,
             () => {
-                Main.osdWindowManager.hideAll();
-                this.opacity = 255;
-                this._initialDelayTimeoutId = 0;
+                this._showImmediately();
                 return GLib.SOURCE_REMOVE;
             });
         GLib.Source.set_name_by_id(this._initialDelayTimeoutId, '[gnome-shell] Main.osdWindow.cancel');
         return true;
+    }
+
+    _showImmediately() {
+        if (this._initialDelayTimeoutId === 0)
+            return;
+
+        GLib.source_remove(this._initialDelayTimeoutId);
+        this._initialDelayTimeoutId = 0;
+
+        Main.osdWindowManager.hideAll();
+        this.opacity = 255;
     }
 
     _next() {
@@ -169,18 +172,21 @@ var SwitcherPopup = GObject.registerClass({
         throw new GObject.NotImplementedError(`_keyPressHandler in ${this.constructor.name}`);
     }
 
-    _keyPressEvent(actor, event) {
-        let keysym = event.get_key_symbol();
-        let action = global.display.get_keybinding_action(event.get_key_code(), event.get_state());
+    vfunc_key_press_event(keyEvent) {
+        let keysym = keyEvent.keyval;
+        let action = global.display.get_keybinding_action(
+            keyEvent.hardware_keycode, keyEvent.modifier_state);
 
         this._disableHover();
 
-        if (this._keyPressHandler(keysym, action) != Clutter.EVENT_PROPAGATE)
+        if (this._keyPressHandler(keysym, action) != Clutter.EVENT_PROPAGATE) {
+            this._showImmediately();
             return Clutter.EVENT_STOP;
+        }
 
         // Note: pressing one of the below keys will destroy the popup only if
         // that key is not used by the active popup's keyboard shortcut
-        if (keysym == Clutter.Escape || keysym == Clutter.Tab)
+        if (keysym === Clutter.KEY_Escape || keysym === Clutter.KEY_Tab)
             this.fadeAndDestroy();
 
         // Allow to explicitly select the current item; this is particularly
@@ -189,18 +195,18 @@ var SwitcherPopup = GObject.registerClass({
             keysym === Clutter.KEY_Return ||
             keysym === Clutter.KEY_KP_Enter ||
             keysym === Clutter.KEY_ISO_Enter)
-            this._finish(event.get_time());
+            this._finish(keyEvent.time);
 
         return Clutter.EVENT_STOP;
     }
 
-    _keyReleaseEvent(actor, event) {
+    vfunc_key_release_event(keyEvent) {
         if (this._modifierMask) {
             let [x_, y_, mods] = global.get_pointer();
             let state = mods & this._modifierMask;
 
             if (state == 0)
-                this._finish(event.get_time());
+                this._finish(keyEvent.time);
         } else {
             this._resetNoModsTimeout();
         }
@@ -208,7 +214,8 @@ var SwitcherPopup = GObject.registerClass({
         return Clutter.EVENT_STOP;
     }
 
-    _clickedOutside() {
+    vfunc_button_press_event() {
+        /* We clicked outside */
         this.fadeAndDestroy();
         return Clutter.EVENT_PROPAGATE;
     }
@@ -220,8 +227,8 @@ var SwitcherPopup = GObject.registerClass({
             this._select(this._next());
     }
 
-    _scrollEvent(actor, event) {
-        this._scrollHandler(event.get_scroll_direction());
+    vfunc_scroll_event(scrollEvent) {
+        this._scrollHandler(scrollEvent.scroll_direction);
         return Clutter.EVENT_PROPAGATE;
     }
 
@@ -301,7 +308,7 @@ var SwitcherPopup = GObject.registerClass({
                 opacity: 0,
                 duration: POPUP_FADE_OUT_TIME,
                 mode: Clutter.Animation.EASE_OUT_QUAD,
-                onComplete: () => this.destroy()
+                onComplete: () => this.destroy(),
             });
         } else {
             this.destroy();
@@ -323,6 +330,11 @@ var SwitcherPopup = GObject.registerClass({
             GLib.source_remove(this._initialDelayTimeoutId);
         if (this._noModsTimeoutId != 0)
             GLib.source_remove(this._noModsTimeoutId);
+
+        // Make sure the SwitcherList is always destroyed, it may not be
+        // a child of the actor at this point.
+        if (this._switcherList)
+            this._switcherList.destroy();
     }
 
     _select(num) {
@@ -481,7 +493,7 @@ var SwitcherList = GObject.registerClass({
                 if (this._highlighted == 0)
                     this._scrollableLeft = false;
                 this.queue_relayout();
-            }
+            },
         });
     }
 
@@ -504,7 +516,7 @@ var SwitcherList = GObject.registerClass({
                 if (this._highlighted == this._items.length - 1)
                     this._scrollableRight = false;
                 this.queue_relayout();
-            }
+            },
         });
     }
 
@@ -526,7 +538,7 @@ var SwitcherList = GObject.registerClass({
             maxChildNat = Math.max(childNat, maxChildNat);
 
             if (this._squareItems) {
-                let [childMin, childNat] = this._items[i].get_preferred_height(-1);
+                [childMin, childNat] = this._items[i].get_preferred_height(-1);
                 maxChildMin = Math.max(childMin, maxChildMin);
                 maxChildNat = Math.max(childNat, maxChildNat);
             }
@@ -587,7 +599,7 @@ var SwitcherList = GObject.registerClass({
         childBox.x2 = childBox.x1 + arrowWidth;
         childBox.y2 = childBox.y1 + arrowHeight;
         this._leftArrow.allocate(childBox, flags);
-        this._leftArrow.opacity = (this._scrollableLeft && scrollable) ? 255 : 0;
+        this._leftArrow.opacity = this._scrollableLeft && scrollable ? 255 : 0;
 
         arrowWidth = Math.floor(rightPadding / 3);
         arrowHeight = arrowWidth * 2;
@@ -596,7 +608,7 @@ var SwitcherList = GObject.registerClass({
         childBox.x2 = childBox.x1 + arrowWidth;
         childBox.y2 = childBox.y1 + arrowHeight;
         this._rightArrow.allocate(childBox, flags);
-        this._rightArrow.opacity = (this._scrollableRight && scrollable) ? 255 : 0;
+        this._rightArrow.opacity = this._scrollableRight && scrollable ? 255 : 0;
     }
 });
 
@@ -605,7 +617,7 @@ function drawArrow(area, side) {
     let borderColor = themeNode.get_border_color(side);
     let bodyColor = themeNode.get_foreground_color();
 
-    let [width, height] = area.get_surface_size ();
+    let [width, height] = area.get_surface_size();
     let cr = area.get_context();
 
     cr.setLineWidth(1.0);

@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Indicator */
 
-const { Clutter, Gio, St, UPowerGlib: UPower } = imports.gi;
+const { Clutter, Gio, GObject, St, UPowerGlib: UPower } = imports.gi;
 
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
@@ -17,9 +17,10 @@ const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(DisplayDeviceInterface)
 
 const SHOW_BATTERY_PERCENTAGE       = 'show-battery-percentage';
 
-var Indicator = class extends PanelMenu.SystemIndicator {
-    constructor() {
-        super();
+var Indicator = GObject.registerClass(
+class Indicator extends PanelMenu.SystemIndicator {
+    _init() {
+        super._init();
 
         this._desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
         this._desktopSettings.connect(`changed::${SHOW_BATTERY_PERCENTAGE}`,
@@ -28,8 +29,8 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         this._indicator = this._addIndicator();
         this._percentageLabel = new St.Label({ y_expand: true,
                                                y_align: Clutter.ActorAlign.CENTER });
-        this.indicators.add(this._percentageLabel, { expand: true, y_fill: true });
-        this.indicators.add_style_class_name('power-status');
+        this.add_child(this._percentageLabel);
+        this.add_style_class_name('power-status');
 
         this._proxy = new PowerManagerProxy(Gio.DBus.system, BUS_NAME, OBJECT_PATH,
                                             (proxy, error) => {
@@ -122,7 +123,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         // default fallbacks
         let gicon = new Gio.ThemedIcon({
             name: icon,
-            use_default_fallbacks: false
+            use_default_fallbacks: false,
         });
 
         this._indicator.gicon = gicon;
@@ -143,4 +144,4 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         // The status label
         this._item.label.text = this._getStatus();
     }
-};
+});

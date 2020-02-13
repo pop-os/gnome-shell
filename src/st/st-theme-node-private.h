@@ -25,7 +25,7 @@
 #include <gdk/gdk.h>
 
 #include "st-theme-node.h"
-#include <libcroco/libcroco.h>
+#include "croco/libcroco.h"
 #include "st-types.h"
 
 G_BEGIN_DECLS
@@ -123,6 +123,7 @@ void _st_theme_node_ensure_background (StThemeNode *node);
 void _st_theme_node_ensure_geometry (StThemeNode *node);
 void _st_theme_node_apply_margins (StThemeNode *node,
                                    ClutterActor *actor);
+void _st_theme_node_reset_for_stylesheet_change (StThemeNode *node);
 
 G_END_DECLS
 

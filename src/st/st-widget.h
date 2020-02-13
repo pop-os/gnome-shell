@@ -104,10 +104,6 @@ gboolean              st_widget_has_style_class_name      (StWidget        *acto
 void                  st_widget_set_style                 (StWidget        *actor,
                                                            const gchar     *style);
 const gchar *         st_widget_get_style                 (StWidget        *actor);
-void                  st_widget_set_theme                 (StWidget        *actor,
-                                                           StTheme         *theme);
-StTheme *             st_widget_get_theme                 (StWidget        *actor);
-
 void                  st_widget_set_track_hover           (StWidget        *widget,
                                                            gboolean         track_hover);
 gboolean              st_widget_get_track_hover           (StWidget        *widget);
@@ -137,7 +133,8 @@ StThemeNode *         st_widget_get_theme_node            (StWidget        *widg
 StThemeNode *         st_widget_peek_theme_node           (StWidget        *widget);
 
 GList *               st_widget_get_focus_chain           (StWidget        *widget);
-void                  st_widget_paint_background          (StWidget        *widget);
+void                  st_widget_paint_background          (StWidget            *widget,
+                                                           ClutterPaintContext *paint_context);
 gboolean              st_widget_get_resource_scale        (StWidget        *widget,
                                                            float           *resource_scale);
 
@@ -157,12 +154,6 @@ void                  st_widget_set_accessible_name      (StWidget    *widget,
 const gchar *         st_widget_get_accessible_name      (StWidget    *widget);
 void                  st_widget_set_accessible           (StWidget    *widget,
                                                           AtkObject   *accessible);
-/* utility methods */
-void st_get_align_factors (StAlign   x_align,
-                           StAlign   y_align,
-                           gdouble  *x_align_out,
-                           gdouble  *y_align_out);
-
 G_END_DECLS
 
 #endif /* __ST_WIDGET_H__ */

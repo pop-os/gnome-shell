@@ -1,22 +1,25 @@
 /* exported CheckBox */
-const { Clutter, Pango, St } = imports.gi;
+const { Clutter, GObject, Pango, St } = imports.gi;
 
-var CheckBox = class CheckBox {
-    constructor(label) {
-        let container = new St.BoxLayout();
-        this.actor = new St.Button({ style_class: 'check-box',
-                                     child: container,
-                                     button_mask: St.ButtonMask.ONE,
-                                     toggle_mode: true,
-                                     can_focus: true,
-                                     x_fill: true,
-                                     y_fill: true });
+var CheckBox = GObject.registerClass(
+class CheckBox extends St.Button {
+    _init(label) {
+        let container = new St.BoxLayout({
+            x_expand: true,
+            y_expand: true,
+        });
+        super._init({
+            style_class: 'check-box',
+            child: container,
+            button_mask: St.ButtonMask.ONE,
+            toggle_mode: true,
+            can_focus: true,
+        });
 
-        this._box = new St.Bin();
-        this._box.set_y_align(Clutter.ActorAlign.START);
+        this._box = new St.Bin({ y_align: Clutter.ActorAlign.START });
         container.add_actor(this._box);
 
-        this._label = new St.Label();
+        this._label = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
         this._label.clutter_text.set_line_wrap(true);
         this._label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
         container.add_actor(this._label);
@@ -32,4 +35,4 @@ var CheckBox = class CheckBox {
     getLabelActor() {
         return this._label;
     }
-};
+});

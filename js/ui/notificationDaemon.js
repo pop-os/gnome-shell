@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported NotificationDaemon */
 
-const { GdkPixbuf, Gio, GLib, Shell, St } = imports.gi;
+const { GdkPixbuf, Gio, GLib, GObject, Shell, St } = imports.gi;
 
 const Config = imports.misc.config;
 const Main = imports.ui.main;
@@ -23,13 +23,13 @@ var NotificationClosedReason = {
     EXPIRED: 1,
     DISMISSED: 2,
     APP_CLOSED: 3,
-    UNDEFINED: 4
+    UNDEFINED: 4,
 };
 
 var Urgency = {
     LOW: 0,
     NORMAL: 1,
-    CRITICAL: 2
+    CRITICAL: 2,
 };
 
 const rewriteRules = {
@@ -39,8 +39,8 @@ const rewriteRules = {
         { pattern:     /^XChat: New public message from: (\S*) \((.*)\)$/,
           replacement: '$2 <$1>' },
         { pattern:     /^XChat: Highlighted message from: (\S*) \((.*)\)$/,
-          replacement: '$2 <$1>' }
-    ]
+          replacement: '$2 <$1>' },
+    ],
 };
 
 var FdoNotificationDaemon = class FdoNotificationDaemon {
@@ -201,13 +201,13 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
                 hints['image-data'] = hints['icon_data'];
         }
 
-        let ndata = { appName: appName,
-                      icon: icon,
-                      summary: summary,
-                      body: body,
-                      actions: actions,
-                      hints: hints,
-                      timeout: timeout };
+        let ndata = { appName,
+                      icon,
+                      summary,
+                      body,
+                      actions,
+                      hints,
+                      timeout };
         if (replacesId != 0 && this._notifications[replacesId]) {
             ndata.id = id = replacesId;
             ndata.notification = this._notifications[replacesId].notification;
@@ -245,7 +245,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
                 return;
             }
 
-            let [pid] = result;
+            [pid] = result;
             source = this._getSource(appName, pid, ndata, sender, null);
 
             this._senderToPid[sender] = pid;
@@ -299,7 +299,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         else if (!gicon)
             gicon = this._fallbackIconForNotificationData(hints);
 
-        notification.update(summary, body, { gicon: gicon,
+        notification.update(summary, body, { gicon,
                                              bannerMarkup: true,
                                              clear: true,
                                              soundFile: hints['sound-file'],
@@ -310,12 +310,13 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         if (actions.length) {
             for (let i = 0; i < actions.length - 1; i += 2) {
                 let [actionId, label] = [actions[i], actions[i + 1]];
-                if (actionId == 'default')
+                if (actionId == 'default') {
                     hasDefaultAction = true;
-                else
+                } else {
                     notification.addAction(label, () => {
                         this._emitActionInvoked(ndata.id, actionId);
                     });
+                }
             }
         }
 
@@ -345,7 +346,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         // of the 'transient' hint with hints['transient'] rather than hints.transient
         notification.setTransient(!!hints['transient']);
 
-        let privacyScope = (hints['x-gnome-privacy-scope'] || 'user');
+        let privacyScope = hints['x-gnome-privacy-scope'] || 'user';
         notification.setPrivacyScope(privacyScope == 'system'
             ? MessageTray.PrivacyScope.SYSTEM
             : MessageTray.PrivacyScope.USER);
@@ -383,7 +384,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
             Config.PACKAGE_NAME,
             'GNOME',
             Config.PACKAGE_VERSION,
-            '1.2'
+            '1.2',
         ];
     }
 
@@ -412,10 +413,10 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
     }
 };
 
-var FdoNotificationDaemonSource =
+var FdoNotificationDaemonSource = GObject.registerClass(
 class FdoNotificationDaemonSource extends MessageTray.Source {
-    constructor(title, pid, sender, appId) {
-        super(title);
+    _init(title, pid, sender, appId) {
+        super._init(title);
 
         this.pid = pid;
         this.app = this._getApp(appId);
@@ -427,13 +428,14 @@ class FdoNotificationDaemonSource extends MessageTray.Source {
         else
             this.useNotificationIcon = true;
 
-        if (sender)
+        if (sender) {
             this._nameWatcherId = Gio.DBus.session.watch_name(sender,
                                                               Gio.BusNameWatcherFlags.NONE,
                                                               null,
                                                               this._onNameVanished.bind(this));
-        else
+        } else {
             this._nameWatcherId = 0;
+        }
     }
 
     _createPolicy() {
@@ -464,7 +466,7 @@ class FdoNotificationDaemonSource extends MessageTray.Source {
         if (notification.resident && this.app && tracker.focus_app == this.app)
             this.pushNotification(notification);
         else
-            this.notify(notification);
+            this.showNotification(notification);
     }
 
     _getApp(appId) {
@@ -526,19 +528,19 @@ class FdoNotificationDaemonSource extends MessageTray.Source {
             return null;
         }
     }
-};
+});
 
 const PRIORITY_URGENCY_MAP = {
     low: MessageTray.Urgency.LOW,
     normal: MessageTray.Urgency.NORMAL,
     high: MessageTray.Urgency.HIGH,
-    urgent: MessageTray.Urgency.CRITICAL
+    urgent: MessageTray.Urgency.CRITICAL,
 };
 
-var GtkNotificationDaemonNotification =
+var GtkNotificationDaemonNotification = GObject.registerClass(
 class GtkNotificationDaemonNotification extends MessageTray.Notification {
-    constructor(source, notification) {
-        super(source);
+    _init(source, notification) {
+        super._init(source);
         this._serialized = GLib.Variant.new('a{sv}', notification);
 
         let { title,
@@ -602,7 +604,7 @@ class GtkNotificationDaemonNotification extends MessageTray.Notification {
     serialize() {
         return this._serialized;
     }
-};
+});
 
 const FdoApplicationIface = loadInterfaceXML('org.freedesktop.Application');
 const FdoApplicationProxy = Gio.DBusProxy.makeProxyWrapper(FdoApplicationIface);
@@ -618,9 +620,9 @@ function getPlatformData() {
 
 function InvalidAppError() {}
 
-var GtkNotificationDaemonAppSource =
+var GtkNotificationDaemonAppSource = GObject.registerClass(
 class GtkNotificationDaemonAppSource extends MessageTray.Source {
-    constructor(appId) {
+    _init(appId) {
         let objectPath = objectPathFromAppId(appId);
         if (!GLib.Variant.is_object_path(objectPath))
             throw new InvalidAppError();
@@ -629,7 +631,7 @@ class GtkNotificationDaemonAppSource extends MessageTray.Source {
         if (!app)
             throw new InvalidAppError();
 
-        super(app.get_name());
+        super._init(app.get_name());
 
         this._appId = appId;
         this._app = app;
@@ -690,7 +692,7 @@ class GtkNotificationDaemonAppSource extends MessageTray.Source {
         this._notifications[notificationId] = notification;
 
         if (showBanner)
-            this.notify(notification);
+            this.showNotification(notification);
         else
             this.pushNotification(notification);
 
@@ -716,7 +718,7 @@ class GtkNotificationDaemonAppSource extends MessageTray.Source {
         }
         return [this._appId, notifications];
     }
-};
+});
 
 const GtkNotificationsIface = loadInterfaceXML('org.gtk.Notifications');
 
@@ -742,7 +744,7 @@ var GtkNotificationDaemon = class GtkNotificationDaemon {
             delete this._sources[appId];
             this._saveNotifications();
         });
-        source.connect('count-updated', this._saveNotifications.bind(this));
+        source.connect('notify::count', this._saveNotifications.bind(this));
         Main.messageTray.add(source);
         this._sources[appId] = source;
         return source;

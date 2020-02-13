@@ -10,7 +10,7 @@ imports.gi.versions.Gtk = '3.0';
 imports.gi.versions.TelepathyGLib = '0.12';
 imports.gi.versions.TelepathyLogger = '0.2';
 
-const { Clutter, GLib, Meta, Shell, St } = imports.gi;
+const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Gettext = imports.gettext;
 
 // We can't import shell JS modules yet, because they may have
@@ -23,7 +23,7 @@ const Gettext = imports.gettext;
 // of interfaces in Javascript
 function _patchContainerClass(containerClass) {
     // This one is a straightforward mapping of the C method
-    containerClass.prototype.child_set = function(actor, props) {
+    containerClass.prototype.child_set = function (actor, props) {
         let meta = this.get_child_meta(actor);
         for (let prop in props)
             meta[prop] = props[prop];
@@ -32,7 +32,7 @@ function _patchContainerClass(containerClass) {
     // clutter_container_add() actually is a an add-many-actors
     // method. We conveniently, but somewhat dubiously, take the
     // this opportunity to make it do something more useful.
-    containerClass.prototype.add = function(actor, props) {
+    containerClass.prototype.add = function (actor, props) {
         this.add_actor(actor);
         if (props)
             this.child_set(actor, props);
@@ -40,8 +40,8 @@ function _patchContainerClass(containerClass) {
 }
 
 function _patchLayoutClass(layoutClass, styleProps) {
-    if (styleProps)
-        layoutClass.prototype.hookup_style = function(container) {
+    if (styleProps) {
+        layoutClass.prototype.hookup_style = function (container) {
             container.connect('style-changed', () => {
                 let node = container.get_theme_node();
                 for (let prop in styleProps) {
@@ -51,11 +51,7 @@ function _patchLayoutClass(layoutClass, styleProps) {
                 }
             });
         };
-    layoutClass.prototype.child_set = function(actor, props) {
-        let meta = this.get_child_meta(actor.get_parent(), actor);
-        for (let prop in props)
-            meta[prop] = props[prop];
-    };
+    }
 }
 
 function _makeEaseCallback(params, cleanup) {
@@ -105,6 +101,16 @@ function _easeActor(actor, params) {
         actor.set_easing_delay(params.delay);
     delete params.delay;
 
+    let repeatCount = 0;
+    if (params.repeatCount != undefined)
+        repeatCount = params.repeatCount;
+    delete params.repeatCount;
+
+    let autoReverse = false;
+    if (params.autoReverse != undefined)
+        autoReverse = params.autoReverse;
+    delete params.autoReverse;
+
     if (params.mode != undefined)
         actor.set_easing_mode(params.mode);
     delete params.mode;
@@ -127,10 +133,12 @@ function _easeActor(actor, params) {
     else
         Meta.disable_unredirect_for_display(global.display);
 
-    if (transition)
+    if (transition) {
+        transition.set({ repeatCount, autoReverse });
         transition.connect('stopped', (t, finished) => callback(finished));
-    else
+    } else {
         callback(true);
+    }
 }
 
 function _easeActorProperty(actor, propName, target, params) {
@@ -142,6 +150,16 @@ function _easeActorProperty(actor, propName, target, params) {
     if (params.duration)
         params.duration = adjustAnimationTime(params.duration);
     let duration = Math.floor(params.duration || 0);
+
+    let repeatCount = 0;
+    if (params.repeatCount != undefined)
+        repeatCount = params.repeatCount;
+    delete params.repeatCount;
+
+    let autoReverse = false;
+    if (params.autoReverse != undefined)
+        autoReverse = params.autoReverse;
+    delete params.autoReverse;
 
     // Copy Clutter's behavior for implicit animations, see
     // should_skip_implicit_transition()
@@ -168,7 +186,9 @@ function _easeActorProperty(actor, propName, target, params) {
     let transition = new Clutter.PropertyTransition(Object.assign({
         property_name: propName,
         interval: new Clutter.Interval({ value_type: pspec.value_type }),
-        remove_on_complete: true
+        remove_on_complete: true,
+        repeat_count: repeatCount,
+        auto_reverse: autoReverse,
     }, params));
     actor.add_transition(propName, transition);
 
@@ -209,37 +229,37 @@ function init() {
     window.ngettext = Gettext.ngettext;
     window.N_ = s => s;
 
+    GObject.gtypeNameBasedOnJSPath = true;
+
     // Miscellaneous monkeypatching
     _patchContainerClass(St.BoxLayout);
 
-    _patchLayoutClass(Clutter.TableLayout, { row_spacing: 'spacing-rows',
-                                             column_spacing: 'spacing-columns' });
     _patchLayoutClass(Clutter.GridLayout, { row_spacing: 'spacing-rows',
                                             column_spacing: 'spacing-columns' });
     _patchLayoutClass(Clutter.BoxLayout, { spacing: 'spacing' });
 
     let origSetEasingDuration = Clutter.Actor.prototype.set_easing_duration;
-    Clutter.Actor.prototype.set_easing_duration = function(msecs) {
+    Clutter.Actor.prototype.set_easing_duration = function (msecs) {
         origSetEasingDuration.call(this, adjustAnimationTime(msecs));
     };
     let origSetEasingDelay = Clutter.Actor.prototype.set_easing_delay;
-    Clutter.Actor.prototype.set_easing_delay = function(msecs) {
+    Clutter.Actor.prototype.set_easing_delay = function (msecs) {
         origSetEasingDelay.call(this, adjustAnimationTime(msecs));
     };
 
-    Clutter.Actor.prototype.ease = function(props, easingParams) {
-        _easeActor(this, props, easingParams);
+    Clutter.Actor.prototype.ease = function (props) {
+        _easeActor(this, props);
     };
-    Clutter.Actor.prototype.ease_property = function(propName, target, params) {
+    Clutter.Actor.prototype.ease_property = function (propName, target, params) {
         _easeActorProperty(this, propName, target, params);
     };
-    St.Adjustment.prototype.ease = function(target, params) {
+    St.Adjustment.prototype.ease = function (target, params) {
         // we're not an actor of course, but we implement the same
         // transition API as Clutter.Actor, so this works anyway
         _easeActorProperty(this, 'value', target, params);
     };
 
-    Clutter.Actor.prototype.toString = function() {
+    Clutter.Actor.prototype.toString = function () {
         return St.describe_actor(this);
     };
     // Deprecation warning for former JS classes turned into an actor subclass
@@ -249,17 +269,17 @@ function init() {
             let { stack } = new Error();
             log(`Usage of object.actor is deprecated for ${klass}\n${stack}`);
             return this;
-        }
+        },
     });
 
-    St.set_slow_down_factor = function(factor) {
+    St.set_slow_down_factor = function (factor) {
         let { stack } = new Error();
         log(`St.set_slow_down_factor() is deprecated, use St.Settings.slow_down_factor\n${stack}`);
         St.Settings.get().slow_down_factor = factor;
     };
 
     let origToString = Object.prototype.toString;
-    Object.prototype.toString = function() {
+    Object.prototype.toString = function () {
         let base = origToString.call(this);
         try {
             if ('actor' in this && this.actor instanceof Clutter.Actor)
@@ -272,8 +292,9 @@ function init() {
     };
 
     // Work around https://bugzilla.mozilla.org/show_bug.cgi?id=508783
-    Date.prototype.toLocaleFormat = function(format) {
-        return Shell.util_format_date(format, this.getTime());
+    Date.prototype.toLocaleFormat = function (format) {
+        let dt = GLib.DateTime.new_from_unix_local(this.getTime() / 1000);
+        return dt ? dt.format(format) : '';
     };
 
     let slowdownEnv = GLib.getenv('GNOME_SHELL_SLOWDOWN_FACTOR');
