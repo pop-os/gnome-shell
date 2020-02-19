@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-shell\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/gnome-shell/issues\n"
-"POT-Creation-Date: 2020-02-04 18:00+0000\n"
-"PO-Revision-Date: 2020-02-05 18:20+0100\n"
+"POT-Creation-Date: 2020-02-12 19:34+0000\n"
+"PO-Revision-Date: 2020-02-13 21:18+0100\n"
 "Last-Translator: Anders Jonsson <anders.jonsson@norsjovallen.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "Language: sv\n"
@@ -51,11 +51,7 @@ msgstr "Öppna programmenyn"
 msgid "Extensions"
 msgstr "Tillägg"
 
-#: data/org.gnome.Extensions.desktop.in.in:5
-msgid "org.gnome.Extensions"
-msgstr "org.gnome.Extensions"
-
-#: data/org.gnome.Extensions.desktop.in.in:6
+#: data/org.gnome.Extensions.desktop.in.in:7
 msgid "Configure GNOME Shell Extensions"
 msgstr "Konfigurera tillägg för GNOME-skal"
 
@@ -413,11 +409,11 @@ msgstr ""
 "Om du tar bort tillägget kommer du att behöva återvända för att hämta det om "
 "du vill aktivera det igen"
 
-#: js/extensionPrefs/main.js:144 js/gdm/authPrompt.js:170
-#: js/ui/audioDeviceSelection.js:57 js/ui/components/networkAgent.js:107
-#: js/ui/components/polkitAgent.js:139 js/ui/endSessionDialog.js:374
-#: js/ui/extensionDownloader.js:166 js/ui/shellMountOperation.js:376
-#: js/ui/shellMountOperation.js:386 js/ui/status/network.js:910
+#: js/extensionPrefs/main.js:144 js/ui/audioDeviceSelection.js:57
+#: js/ui/components/networkAgent.js:107 js/ui/components/polkitAgent.js:139
+#: js/ui/endSessionDialog.js:374 js/ui/extensionDownloader.js:166
+#: js/ui/shellMountOperation.js:376 js/ui/shellMountOperation.js:386
+#: js/ui/status/network.js:910
 msgid "Cancel"
 msgstr "Avbryt"
 
@@ -474,6 +470,29 @@ msgid_plural "%d extensions will be updated on next login."
 msgstr[0] "%d inlägg kommer att uppdateras vid nästa inloggning."
 msgstr[1] "%d inlägg kommer att uppdateras vid nästa inloggning."
 
+#: js/extensionPrefs/ui/extension-row.ui:100
+#: subprojects/extensions-tool/src/command-create.c:211
+#: subprojects/extensions-tool/src/main.c:173
+msgid "Description"
+msgstr "Beskrivning"
+
+#: js/extensionPrefs/ui/extension-row.ui:123
+#: subprojects/extensions-tool/src/main.c:185
+msgid "Version"
+msgstr "Version"
+
+#: js/extensionPrefs/ui/extension-row.ui:151
+msgid "Author"
+msgstr "Upphovsman"
+
+#: js/extensionPrefs/ui/extension-row.ui:175
+msgid "Website"
+msgstr "Webbplats"
+
+#: js/extensionPrefs/ui/extension-row.ui:192
+msgid "Remove…"
+msgstr "Ta bort…"
+
 #: js/extensionPrefs/ui/extensions-window.ui:8
 msgid "Help"
 msgstr "Hjälp"
@@ -524,47 +543,29 @@ msgstr ""
 "tillägg. Säkerställ att du är inloggad i GNOME och försök igen."
 
 #: js/extensionPrefs/ui/extensions-window.ui:287
-msgid "Logout…"
+msgid "Log Out…"
 msgstr "Logga ut…"
 
-#: js/gdm/authPrompt.js:184 js/gdm/authPrompt.js:237 js/gdm/authPrompt.js:468
-msgid "Next"
-msgstr "Nästa"
-
-#: js/gdm/authPrompt.js:233 js/ui/shellMountOperation.js:380
-#: js/ui/unlockDialog.js:44
-msgid "Unlock"
-msgstr "Lås upp"
-
-#: js/gdm/authPrompt.js:235
-msgctxt "button"
-msgid "Sign In"
-msgstr "Logga in"
-
-#: js/gdm/loginDialog.js:319
+#: js/gdm/loginDialog.js:318
 msgid "Choose Session"
 msgstr "Välj session"
 
-#: js/gdm/loginDialog.js:461
+#: js/gdm/loginDialog.js:457
 msgid "Not listed?"
 msgstr "Inte listad?"
 
 #. Translators: this message is shown below the username entry field
 #. to clue the user in on how to login to the local network realm
-#: js/gdm/loginDialog.js:895
+#: js/gdm/loginDialog.js:912
 #, javascript-format
 msgid "(e.g., user or %s)"
 msgstr "(till exempel användare eller %s)"
 
-#. TTLS and PEAP are actually much more complicated, but this complication
-#. is not visible here since we only care about phase2 authentication
-#. (and don't even care of which one)
-#: js/gdm/loginDialog.js:899 js/ui/components/networkAgent.js:234
-#: js/ui/components/networkAgent.js:257 js/ui/components/networkAgent.js:275
-msgid "Username: "
-msgstr "Användarnamn: "
+#: js/gdm/loginDialog.js:917
+msgid "Username…"
+msgstr "Användarnamn…"
 
-#: js/gdm/loginDialog.js:1230
+#: js/gdm/loginDialog.js:1252
 msgid "Login Window"
 msgstr "Inloggningsfönster"
 
@@ -814,44 +815,44 @@ msgstr "Neka åtkomst"
 msgid "Grant Access"
 msgstr "Bevilja åtkomst"
 
-#: js/ui/appDisplay.js:904
+#: js/ui/appDisplay.js:906
 msgid "Unnamed Folder"
 msgstr "Namnlös mapp"
 
-#: js/ui/appDisplay.js:927
+#: js/ui/appDisplay.js:929
 msgid "Frequently used applications will appear here"
 msgstr "Ofta använda program kommer visas här"
 
-#: js/ui/appDisplay.js:1062
+#: js/ui/appDisplay.js:1064
 msgid "Frequent"
 msgstr "Ofta använda"
 
-#: js/ui/appDisplay.js:1069
+#: js/ui/appDisplay.js:1071
 msgid "All"
 msgstr "Alla"
 
 #. Translators: This is the heading of a list of open windows
-#: js/ui/appDisplay.js:2452 js/ui/panel.js:75
+#: js/ui/appDisplay.js:2454 js/ui/panel.js:75
 msgid "Open Windows"
 msgstr "Öppna fönster"
 
-#: js/ui/appDisplay.js:2472 js/ui/panel.js:82
+#: js/ui/appDisplay.js:2474 js/ui/panel.js:82
 msgid "New Window"
 msgstr "Nytt fönster"
 
-#: js/ui/appDisplay.js:2483
+#: js/ui/appDisplay.js:2485
 msgid "Launch using Dedicated Graphics Card"
 msgstr "Kör med diskret grafikkort"
 
-#: js/ui/appDisplay.js:2511 js/ui/dash.js:239
+#: js/ui/appDisplay.js:2513 js/ui/dash.js:239
 msgid "Remove from Favorites"
 msgstr "Ta bort från favoriter"
 
-#: js/ui/appDisplay.js:2517
+#: js/ui/appDisplay.js:2519
 msgid "Add to Favorites"
 msgstr "Lägg till som favorit"
 
-#: js/ui/appDisplay.js:2527 js/ui/panel.js:93
+#: js/ui/appDisplay.js:2529 js/ui/panel.js:93
 msgid "Show Details"
 msgstr "Visa detaljer"
 
@@ -1091,6 +1092,14 @@ msgstr "Lösenord: "
 #: js/ui/components/networkAgent.js:207
 msgid "Key: "
 msgstr "Nyckel: "
+
+#. TTLS and PEAP are actually much more complicated, but this complication
+#. is not visible here since we only care about phase2 authentication
+#. (and don't even care of which one)
+#: js/ui/components/networkAgent.js:234 js/ui/components/networkAgent.js:257
+#: js/ui/components/networkAgent.js:275
+msgid "Username: "
+msgstr "Användarnamn: "
 
 #: js/ui/components/networkAgent.js:242 js/ui/components/networkAgent.js:265
 msgid "Private key password: "
@@ -1691,31 +1700,7 @@ msgstr "Omstart är inte tillgänglig i Wayland"
 msgid "Restarting…"
 msgstr "Startar om…"
 
-#. Translators: This is a time format for a date in
-#. long format
-#: js/ui/screenShield.js:82
-msgid "%A, %B %d"
-msgstr "%A, %d %B"
-
-#: js/ui/screenShield.js:139
-#, javascript-format
-msgid "%d new message"
-msgid_plural "%d new messages"
-msgstr[0] "%d nytt meddelande"
-msgstr[1] "%d nya meddelanden"
-
-#: js/ui/screenShield.js:141
-#, javascript-format
-msgid "%d new notification"
-msgid_plural "%d new notifications"
-msgstr[0] "%d ny avisering"
-msgstr[1] "%d nya aviseringar"
-
-#: js/ui/screenShield.js:454 js/ui/status/system.js:103
-msgid "Lock"
-msgstr "Lås"
-
-#: js/ui/screenShield.js:717
+#: js/ui/screenShield.js:203
 msgid "GNOME needs to lock the screen"
 msgstr "GNOME behöver låsa skärmen"
 
@@ -1726,11 +1711,11 @@ msgstr "GNOME behöver låsa skärmen"
 #.
 #. XXX: another option is to kick the user into the gdm login
 #. screen, where we're not affected by grabs
-#: js/ui/screenShield.js:830 js/ui/screenShield.js:1301
+#: js/ui/screenShield.js:244 js/ui/screenShield.js:602
 msgid "Unable to lock"
 msgstr "Kunde inte låsa"
 
-#: js/ui/screenShield.js:831 js/ui/screenShield.js:1302
+#: js/ui/screenShield.js:245 js/ui/screenShield.js:603
 msgid "Lock was blocked by an application"
 msgstr "Låsning hindrades av ett program"
 
@@ -1797,6 +1782,10 @@ msgstr "Ange PIM-nummer…"
 #: js/ui/shellMountOperation.js:365
 msgid "Remember Password"
 msgstr "Kom ihåg lösenord"
+
+#: js/ui/shellMountOperation.js:380
+msgid "Unlock"
+msgstr "Lås upp"
 
 #. Translators: %s is the Disks application
 #: js/ui/shellMountOperation.js:391
@@ -2230,6 +2219,10 @@ msgstr "Stäng av"
 msgid "Airplane Mode On"
 msgstr "Flygplansläge påslaget"
 
+#: js/ui/status/system.js:103
+msgid "Lock"
+msgstr "Lås"
+
 #: js/ui/status/system.js:116
 msgid "Power Off / Log Out"
 msgstr "Stäng av / Logga ut"
@@ -2321,11 +2314,7 @@ msgstr "Extern skärm"
 msgid "Built-in Only"
 msgstr "Inbyggd skärm"
 
-#: js/ui/unlockDialog.js:52
-msgid "Log in as another user"
-msgstr "Logga in som en annan användare"
-
-#: js/ui/unlockDialog.js:67
+#: js/ui/unlockDialog.js:459
 msgid "Unlock Window"
 msgstr "Lås upp fönster"
 
@@ -2511,11 +2500,6 @@ msgstr ""
 "Beskrivning är en ensam mening som förklarar vad ditt tillägg gör.\n"
 "Exempel: %s"
 
-#: subprojects/extensions-tool/src/command-create.c:211
-#: subprojects/extensions-tool/src/main.c:173
-msgid "Description"
-msgstr "Beskrivning"
-
 #: subprojects/extensions-tool/src/command-create.c:222
 msgid ""
 "UUID is a globally-unique identifier for your extension.\n"
@@ -2555,7 +2539,7 @@ msgid "Create a new extension"
 msgstr "Skapa ett nytt tillägg"
 
 #: subprojects/extensions-tool/src/command-create.c:280
-#: subprojects/extensions-tool/src/command-list.c:158
+#: subprojects/extensions-tool/src/command-list.c:168
 msgid "Unknown arguments"
 msgstr "Okända argument"
 
@@ -2613,31 +2597,35 @@ msgstr "Ingen tilläggsbunt angiven"
 msgid "More than one extension bundle specified"
 msgstr "Mer än en tilläggsbunt angiven"
 
-#: subprojects/extensions-tool/src/command-list.c:118
+#: subprojects/extensions-tool/src/command-list.c:125
 msgid "Show user-installed extensions"
 msgstr "Visa användarinstallerade tillägg"
 
-#: subprojects/extensions-tool/src/command-list.c:121
+#: subprojects/extensions-tool/src/command-list.c:128
 msgid "Show system-installed extensions"
 msgstr "Visa systeminstallerade tillägg"
 
-#: subprojects/extensions-tool/src/command-list.c:124
+#: subprojects/extensions-tool/src/command-list.c:131
 msgid "Show enabled extensions"
 msgstr "Visa aktiverade tillägg"
 
-#: subprojects/extensions-tool/src/command-list.c:127
+#: subprojects/extensions-tool/src/command-list.c:134
 msgid "Show disabled extensions"
 msgstr "Visa inaktiverade tillägg"
 
-#: subprojects/extensions-tool/src/command-list.c:130
+#: subprojects/extensions-tool/src/command-list.c:137
 msgid "Show extensions with preferences"
 msgstr "Visa tillägg med inställningar"
 
-#: subprojects/extensions-tool/src/command-list.c:133
+#: subprojects/extensions-tool/src/command-list.c:140
+msgid "Show extensions with updates"
+msgstr "Visa tillägg med uppdateringar"
+
+#: subprojects/extensions-tool/src/command-list.c:143
 msgid "Print extension details"
 msgstr "Skriv ut detaljer för tillägg"
 
-#: subprojects/extensions-tool/src/command-list.c:141
+#: subprojects/extensions-tool/src/command-list.c:151
 msgid "List installed extensions"
 msgstr "Lista installerade tillägg"
 
@@ -2717,10 +2705,6 @@ msgstr "URL"
 #: subprojects/extensions-tool/src/main.c:182
 msgid "Original author"
 msgstr "Ursprunglig upphovsman"
-
-#: subprojects/extensions-tool/src/main.c:185
-msgid "Version"
-msgstr "Version"
 
 #: subprojects/extensions-tool/src/main.c:188
 msgid "State"
@@ -2823,6 +2807,35 @@ msgstr[1] "%u ingångar"
 #: subprojects/gvc/gvc-mixer-control.c:2766
 msgid "System Sounds"
 msgstr "Systemljud"
+
+#~ msgid "Next"
+#~ msgstr "Nästa"
+
+#~ msgctxt "button"
+#~ msgid "Sign In"
+#~ msgstr "Logga in"
+
+#~ msgid "%A, %B %d"
+#~ msgstr "%A, %d %B"
+
+#~ msgid "%d new message"
+#~ msgid_plural "%d new messages"
+#~ msgstr[0] "%d nytt meddelande"
+#~ msgstr[1] "%d nya meddelanden"
+
+#~ msgid "%d new notification"
+#~ msgid_plural "%d new notifications"
+#~ msgstr[0] "%d ny avisering"
+#~ msgstr[1] "%d nya aviseringar"
+
+#~ msgid "Log in as another user"
+#~ msgstr "Logga in som en annan användare"
+
+#~ msgid "org.gnome.Extensions"
+#~ msgstr "org.gnome.Extensions"
+
+#~ msgid "Logout…"
+#~ msgstr "Logga ut…"
 
 #~ msgid "Browse in Software"
 #~ msgstr "Bläddra i Programvara"
