@@ -1,13 +1,28 @@
-gnome-shell (3.35.90-1) UNRELEASED; urgency=medium
+gnome-shell (3.35.91-1) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream release
+    - Improve visual appearance of Weather integration
+    - New system dialog designs
+    - Sandbox the portal helper
+    - Improvements to the magnifier
+    - New lock screen (a merge of screen shield and unlock dialog)
+      (LP: #1832812, LP: #1827751)
+    - Show the suspend button in the power menu (LP: #1697143)
+    - Font size matches configured interface font size (LP: #1717453)
+    - Only enable OSK automatically if touch-mode is enabled (LP: #1721319)
+    - Added show-password emblem to password entries (LP: #1860540)
+  * debian/control:
+    - Update build dependencies
+  * debian/gnome-shell-common.install: Add extensions tool icons
+  * d/p/Style-looking-glass-variant-independant.patch:
+    - Allow to style looking glass properly
 
   [ Laurent Bigonville ]
   * debian/rules: Do not override libexecdir so things are installed in
     /usr/libexec now that's allowed by the policy
 
-  [ Marco Trevisan (Treviño) ]
-  * New upstream release
-
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 13 Feb 2020 11:11:02 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 19 Feb 2020 19:01:04 +0100
 
 gnome-shell (3.34.3-1) unstable; urgency=medium
 
