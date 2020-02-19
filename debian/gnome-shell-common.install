@@ -4,4 +4,5 @@ usr/share/GConf
 usr/share/glib-2.0
 usr/share/gnome-control-center
 usr/share/gnome-shell
+usr/share/icons/hicolor/*/apps/*
 usr/share/locale
