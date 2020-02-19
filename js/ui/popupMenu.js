@@ -282,8 +282,11 @@ class PopupMenuItem extends PopupBaseMenuItem {
 var PopupSeparatorMenuItem = GObject.registerClass(
 class PopupSeparatorMenuItem extends PopupBaseMenuItem {
     _init(text) {
-        super._init({ reactive: false,
-                      can_focus: false });
+        super._init({
+            style_class: 'popup-separator-menu-item',
+            reactive: false,
+            can_focus: false,
+        });
 
         this.label = new St.Label({ text: text || '' });
         this.add(this.label);
@@ -293,10 +296,12 @@ class PopupSeparatorMenuItem extends PopupBaseMenuItem {
                            this._syncVisibility.bind(this));
         this._syncVisibility();
 
-        this._separator = new St.Widget({ style_class: 'popup-separator-menu-item',
-                                          x_expand: true,
-                                          y_expand: true,
-                                          y_align: Clutter.ActorAlign.CENTER });
+        this._separator = new St.Widget({
+            style_class: 'popup-separator-menu-item-separator',
+            x_expand: true,
+            y_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
         this.add_child(this._separator);
     }
 
@@ -457,7 +462,7 @@ class PopupImageMenuItem extends PopupBaseMenuItem {
 var PopupMenuBase = class {
     constructor(sourceActor, styleClass) {
         if (this.constructor === PopupMenuBase)
-            throw new TypeError(`Cannot instantiate abstract class ${this.constructor.name}`);
+            throw new TypeError('Cannot instantiate abstract class %s'.format(this.constructor.name));
 
         this.sourceActor = sourceActor;
         this.focusActor = sourceActor;
@@ -541,7 +546,7 @@ var PopupMenuBase = class {
             let app = Shell.AppSystem.get_default().lookup_app(desktopFile);
 
             if (!app) {
-                log(`Settings panel for desktop file ${desktopFile} could not be loaded!`);
+                log('Settings panel for desktop file %s could not be loaded!'.format(desktopFile));
                 return;
             }
 

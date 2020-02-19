@@ -199,19 +199,23 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
         case 'wpa-none':
         case 'wpa-psk':
         case 'sae':
-            secrets.push({ label: _("Password: "), key: 'psk',
+            secrets.push({ label: _('Password'), key: 'psk',
                            value: wirelessSecuritySetting.psk || '',
                            validate: this._validateWpaPsk, password: true });
             break;
         case 'none': // static WEP
-            secrets.push({ label: _("Key: "), key: `wep-key${wirelessSecuritySetting.wep_tx_keyidx}`,
-                           value: wirelessSecuritySetting.get_wep_key(wirelessSecuritySetting.wep_tx_keyidx) || '',
-                           wep_key_type: wirelessSecuritySetting.wep_key_type,
-                           validate: this._validateStaticWep, password: true });
+            secrets.push({
+                label: _('Key'),
+                key: 'wep-key%s'.format(wirelessSecuritySetting.wep_tx_keyidx),
+                value: wirelessSecuritySetting.get_wep_key(wirelessSecuritySetting.wep_tx_keyidx) || '',
+                wep_key_type: wirelessSecuritySetting.wep_key_type,
+                validate: this._validateStaticWep,
+                password: true,
+            });
             break;
         case 'ieee8021x':
             if (wirelessSecuritySetting.auth_alg == 'leap') { // Cisco LEAP
-                secrets.push({ label: _("Password: "), key: 'leap-password',
+                secrets.push({ label: _('Password'), key: 'leap-password',
                                value: wirelessSecuritySetting.leap_password || '', password: true });
             } else { // Dynamic (IEEE 802.1x) WEP
                 this._get8021xSecrets(secrets);
@@ -221,7 +225,7 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
             this._get8021xSecrets(secrets);
             break;
         default:
-            log(`Invalid wireless key management: ${wirelessSecuritySetting.key_mgmt}`);
+            log('Invalid wireless key management: %s'.format(wirelessSecuritySetting.key_mgmt));
         }
     }
 
@@ -231,15 +235,15 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
         /* If hints were given we know exactly what we need to ask */
         if (this._settingName == "802-1x" && this._hints.length) {
             if (this._hints.includes('identity')) {
-                secrets.push({ label: _("Username: "), key: 'identity',
+                secrets.push({ label: _('Username'), key: 'identity',
                                value: ieee8021xSetting.identity || '', password: false });
             }
             if (this._hints.includes('password')) {
-                secrets.push({ label: _("Password: "), key: 'password',
+                secrets.push({ label: _('Password'), key: 'password',
                                value: ieee8021xSetting.password || '', password: true });
             }
             if (this._hints.includes('private-key-password')) {
-                secrets.push({ label: _("Private key password: "), key: 'private-key-password',
+                secrets.push({ label: _('Private key password'), key: 'private-key-password',
                                value: ieee8021xSetting.private_key_password || '', password: true });
             }
             return;
@@ -254,29 +258,29 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
             // TTLS and PEAP are actually much more complicated, but this complication
             // is not visible here since we only care about phase2 authentication
             // (and don't even care of which one)
-            secrets.push({ label: _("Username: "), key: null,
+            secrets.push({ label: _('Username'), key: null,
                            value: ieee8021xSetting.identity || '', password: false });
-            secrets.push({ label: _("Password: "), key: 'password',
+            secrets.push({ label: _('Password'), key: 'password',
                            value: ieee8021xSetting.password || '', password: true });
             break;
         case 'tls':
-            secrets.push({ label: _("Identity: "), key: null,
+            secrets.push({ label: _('Identity'), key: null,
                            value: ieee8021xSetting.identity || '', password: false });
-            secrets.push({ label: _("Private key password: "), key: 'private-key-password',
+            secrets.push({ label: _('Private key password'), key: 'private-key-password',
                            value: ieee8021xSetting.private_key_password || '', password: true });
             break;
         default:
-            log(`Invalid EAP/IEEE802.1x method: ${ieee8021xSetting.get_eap_method(0)}`);
+            log('Invalid EAP/IEEE802.1x method: %s'.format(ieee8021xSetting.get_eap_method(0)));
         }
     }
 
     _getPPPoESecrets(secrets) {
         let pppoeSetting = this._connection.get_setting_pppoe();
-        secrets.push({ label: _("Username: "), key: 'username',
+        secrets.push({ label: _('Username'), key: 'username',
                        value: pppoeSetting.username || '', password: false });
-        secrets.push({ label: _("Service: "), key: 'service',
+        secrets.push({ label: _('Service'), key: 'service',
                        value: pppoeSetting.service || '', password: false });
-        secrets.push({ label: _("Password: "), key: 'password',
+        secrets.push({ label: _('Password'), key: 'password',
                        value: pppoeSetting.password || '', password: true });
     }
 
@@ -286,7 +290,7 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
             setting = this._connection.get_setting_cdma() || this._connection.get_setting_gsm();
         else
             setting = this._connection.get_setting_by_name(connectionType);
-        secrets.push({ label: _("Password: "), key: 'password',
+        secrets.push({ label: _('Password'), key: 'password',
                        value: setting.value || '', password: true });
     }
 
@@ -310,7 +314,7 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
         case '802-3-ethernet':
             content.title = _("Wired 802.1X authentication");
             content.message = null;
-            content.secrets.push({ label: _("Network name: "), key: null,
+            content.secrets.push({ label: _('Network name'), key: null,
                                    value: connectionSetting.get_id(), password: false });
             this._get8021xSecrets(content.secrets);
             break;
@@ -324,7 +328,7 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
                 let gsmSetting = this._connection.get_setting_gsm();
                 content.title = _("PIN code required");
                 content.message = _("PIN code is needed for the mobile broadband device");
-                content.secrets.push({ label: _("PIN: "), key: 'pin',
+                content.secrets.push({ label: _('PIN'), key: 'pin',
                                        value: gsmSetting.pin || '', password: true });
                 break;
             }
@@ -336,7 +340,7 @@ class NetworkSecretDialog extends ModalDialog.ModalDialog {
             this._getMobileSecrets(content.secrets, connectionType);
             break;
         default:
-            log(`Invalid connection type: ${connectionType}`);
+            log('Invalid connection type: %s'.format(connectionType));
         }
 
         return content;
@@ -581,12 +585,12 @@ var VPNRequestHandler = class {
 
         try {
             vpnSetting.foreach_data_item((key, value) => {
-                this._stdin.write(`DATA_KEY=${key}\n`, null);
-                this._stdin.write(`DATA_VAL=${value || ''}\n\n`, null);
+                this._stdin.write('DATA_KEY=%s\n'.format(key), null);
+                this._stdin.write('DATA_VAL=%s\n\n'.format(value || ''), null);
             });
             vpnSetting.foreach_secret((key, value) => {
-                this._stdin.write(`SECRET_KEY=${key}\n`, null);
-                this._stdin.write(`SECRET_VAL=${value || ''}\n\n`, null);
+                this._stdin.write('SECRET_KEY=%s\n'.format(key), null);
+                this._stdin.write('SECRET_VAL=%s\n\n'.format(value || ''), null);
             });
             this._stdin.write('DONE\n\n', null);
         } catch (e) {
@@ -616,7 +620,7 @@ var NetworkAgent = class {
             let monitor = this._pluginDir.monitor(Gio.FileMonitorFlags.NONE, null);
             monitor.connect('changed', () => (this._vpnCacheBuilt = false));
         } catch (e) {
-            log(`Failed to create monitor for VPN plugin dir: ${e.message}`);
+            log('Failed to create monitor for VPN plugin dir: %s'.format(e.message));
         }
 
         this._native.connect('new-request', this._newRequest.bind(this));
@@ -707,7 +711,7 @@ var NetworkAgent = class {
             body = _("A password is required to connect to “%s”.").format(connectionSetting.get_id());
             break;
         default:
-            log(`Invalid connection type: ${connectionType}`);
+            log('Invalid connection type: %s'.format(connectionType));
             this._native.respond(requestId, Shell.NetworkAgentResponse.INTERNAL_ERROR);
             return;
         }

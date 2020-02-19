@@ -303,7 +303,7 @@ var ShellMountPasswordDialog = GObject.registerClass({
 
             this._pimEntry = new St.PasswordEntry({
                 style_class: 'prompt-dialog-password-entry',
-                hint_text: _('Enter PIM Number…'),
+                hint_text: _('PIM Number'),
                 can_focus: true,
                 x_expand: true,
             });
@@ -323,7 +323,7 @@ var ShellMountPasswordDialog = GObject.registerClass({
 
         this._passwordEntry = new St.PasswordEntry({
             style_class: 'prompt-dialog-password-entry',
-            hint_text: _('Enter Password…'),
+            hint_text: _('Password'),
             can_focus: true,
             x_expand: true,
         });
@@ -570,7 +570,7 @@ var GnomeShellMountOpHandler = class {
     _setCurrentRequest(invocation, id, type) {
         let oldId = this._currentId;
         let oldType = this._currentType;
-        let requestId = `${id}@${invocation.get_sender()}`;
+        let requestId = '%s@%s'.format(id, invocation.get_sender());
 
         this._clearCurrentRequest(Gio.MountOperationResult.UNHANDLED, {});
 
