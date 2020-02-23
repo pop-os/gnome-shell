@@ -8,10 +8,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index f915143..a4ca62d 100644
+index de43d3d..2ba72eb 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
-@@ -22,6 +22,7 @@ const { adjustAnimationTime } = imports.ui.environment;
+@@ -19,6 +19,7 @@ const { adjustAnimationTime } = imports.ui.environment;
  const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
  const LOCK_ENABLED_KEY = 'lock-enabled';
  const LOCK_DELAY_KEY = 'lock-delay';
@@ -19,15 +19,15 @@ index f915143..a4ca62d 100644
  
  const LOCKDOWN_SCHEMA = 'org.gnome.desktop.lockdown';
  const DISABLE_LOCK_KEY = 'disable-lock-screen';
-@@ -545,6 +546,7 @@ var ScreenShield = class {
+@@ -113,6 +114,7 @@ var ScreenShield = class {
  
          this._settings = new Gio.Settings({ schema_id: SCREENSAVER_SCHEMA });
-         this._settings.connect(`changed::${LOCK_ENABLED_KEY}`, this._syncInhibitor.bind(this));
-+        this._settings.connect(`changed::${SUSPEND_LOCK_ENABLED_KEY}`, this._syncInhibitor.bind(this));
+         this._settings.connect('changed::%s'.format(LOCK_ENABLED_KEY), this._syncInhibitor.bind(this));
++        this._settings.connect('changed::%s'.format(SUSPEND_LOCK_ENABLED_KEY), this._syncInhibitor.bind(this));
  
          this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
-         this._lockSettings.connect(`changed::${DISABLE_LOCK_KEY}`, this._syncInhibitor.bind(this));
-@@ -709,7 +711,8 @@ var ScreenShield = class {
+         this._lockSettings.connect('changed::%s'.format(DISABLE_LOCK_KEY), this._syncInhibitor.bind(this));
+@@ -195,7 +197,8 @@ var ScreenShield = class {
      }
  
      _syncInhibitor() {
@@ -35,9 +35,9 @@ index f915143..a4ca62d 100644
 +        let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY) ||
 +                          this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY);
          let lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
-         let inhibit = (this._loginSession && this._loginSession.Active &&
-                        !this._isActive && lockEnabled && !lockLocked);
-@@ -729,7 +732,7 @@ var ScreenShield = class {
+         let inhibit = this._loginSession && this._loginSession.Active &&
+                        !this._isActive && lockEnabled && !lockLocked;
+@@ -215,7 +218,7 @@ var ScreenShield = class {
  
      _prepareForSleep(loginManager, aboutToSuspend) {
          if (aboutToSuspend) {

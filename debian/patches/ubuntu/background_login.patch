@@ -14,46 +14,22 @@ Author: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Last-Update: 2019-08-30
 Forwarded: not-needed
 ---
- js/ui/background.js | 22 ++++++++++++++++++++++
- 1 file changed, 22 insertions(+)
+ js/ui/background.js | 5 +++++
+ 1 file changed, 5 insertions(+)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index 8432abc..2ca0f68 100644
+index ddae0de..3a1c496 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
-@@ -96,6 +96,7 @@
- const { Clutter, GDesktopEnums, Gio, GLib, GnomeDesktop, Meta } = imports.gi;
- const Signals = imports.signals;
+@@ -103,6 +103,11 @@ const Params = imports.misc.params;
  
-+const Desktop = imports.misc.desktop;
- const LoginManager = imports.misc.loginManager;
- const Main = imports.ui.main;
- const Params = imports.misc.params;
-@@ -502,6 +503,27 @@ var SystemBackground = class SystemBackground {
-     constructor() {
-         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/noise-texture.png');
+ var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
  
-+        // Yaru is default ubuntu theme, match GDM look
-+        if (Desktop.is("ubuntu")) {
-+            if (_systemBackground == null) {
-+                _systemBackground = new Meta.Background({ meta_display: global.display })
-+                // Yaru uses darken(#762572, 10%) + noise for #lockDialogGroup
-+                let [, ubuntuColor] = Clutter.Color.from_string('#4f194c');
-+                _systemBackground.set_color(ubuntuColor);
-+                _systemBackground.set_file(file, GDesktopEnums.BackgroundStyle.WALLPAPER);
-+            }
-+            this.actor = new Meta.BackgroundActor({ meta_display: global.display,
-+                                                    monitor: 0,
-+                                                    background: _systemBackground });
-+            let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-+                this.emit('loaded');
-+                return GLib.SOURCE_REMOVE;
-+            });
-+            GLib.Source.set_name_by_id(id, '[gnome-shell] SystemBackground.loaded');
++if (imports.misc.desktop.is("ubuntu")) {
++    // Yaru uses darken(#762572, 10%) for #lockDialogGroup
++    [, DEFAULT_BACKGROUND_COLOR] = Clutter.Color.from_string('#4f194c');
++}
 +
-+            return;
-+        }
-+
-         if (_systemBackground == null) {
-             _systemBackground = new Meta.Background({ meta_display: global.display });
-             _systemBackground.set_color(DEFAULT_BACKGROUND_COLOR);
+ const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
+ const PRIMARY_COLOR_KEY = 'primary-color';
+ const SECONDARY_COLOR_KEY = 'secondary-color';

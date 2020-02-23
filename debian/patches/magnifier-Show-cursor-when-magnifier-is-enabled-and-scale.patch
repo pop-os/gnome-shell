@@ -16,10 +16,10 @@ Forwarded: yes
  2 files changed, 73 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 1441bfe..581ac7c 100644
+index c7dd628..a2cb516 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -957,22 +957,38 @@ var LayoutManager = GObject.registerClass({
+@@ -952,22 +952,38 @@ var LayoutManager = GObject.registerClass({
          return ws.get_work_area_for_monitor(monitorIndex);
      }
  
@@ -38,7 +38,7 @@ index 1441bfe..581ac7c 100644
      findIndexForActor(actor) {
          let [x, y] = actor.get_transformed_position();
          let [w, h] = actor.get_transformed_size();
--        let rect = new Meta.Rectangle({ x: x, y: y, width: w, height: h });
+-        let rect = new Meta.Rectangle({ x, y, width: w, height: h });
 -        return global.display.get_monitor_index_for_rect(rect);
 +        return this._findIndexForRect(x, y, w, h);
      }
@@ -63,7 +63,7 @@ index 1441bfe..581ac7c 100644
          if (this._startingUp)
              return;
 diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
-index 70b1291..7060296 100644
+index 844a150..9db01d9 100644
 --- a/js/ui/magnifier.js
 +++ b/js/ui/magnifier.js
 @@ -45,6 +45,8 @@ var MouseSpriteContent = GObject.registerClass({
@@ -86,7 +86,7 @@ index 70b1291..7060296 100644
 +        return [true, width, height];
      }
  
-     vfunc_paint_content(actor, node) {
+     vfunc_paint_content(actor, node, _paintContext) {
 @@ -69,6 +74,29 @@ var MouseSpriteContent = GObject.registerClass({
          textureNode.add_rectangle(actor.get_content_box());
      }
@@ -161,7 +161,7 @@ index 70b1291..7060296 100644
      /**
       * showSystemCursor:
       * Show the system mouse pointer.
-@@ -235,6 +284,8 @@ var Magnifier = class Magnifier {
+@@ -231,6 +280,8 @@ var Magnifier = class Magnifier {
              this.xMouse = xMouse;
              this.yMouse = yMouse;
  

@@ -18,10 +18,10 @@ Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
  2 files changed, 21 insertions(+)
 
 diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
-index dc3f1d5..4158a18 100644
+index 5f6e74b..244c148 100644
 --- a/js/ui/extensionDownloader.js
 +++ b/js/ui/extensionDownloader.js
-@@ -5,6 +5,7 @@
+@@ -4,6 +4,7 @@
  const { Clutter, Gio, GLib, GObject, Soup } = imports.gi;
  
  const Config = imports.misc.config;
@@ -29,8 +29,8 @@ index dc3f1d5..4158a18 100644
  const Dialog = imports.ui.dialog;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
-@@ -22,6 +23,14 @@ function installExtension(uuid, invocation) {
-     let params = { uuid: uuid,
+@@ -20,6 +21,14 @@ function installExtension(uuid, invocation) {
+     let params = { uuid,
                     shell_version: Config.PACKAGE_VERSION };
  
 +    if (Desktop.is("ubuntu") && Main.extensionManager.isModeExtension(uuid)) {
@@ -43,30 +43,30 @@ index dc3f1d5..4158a18 100644
 +
      let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
  
-     _httpSession.queue_message(message, (session, message) => {
-@@ -154,6 +163,9 @@ function updateExtension(uuid) {
- function checkForUpdates() {
-     let metadatas = {};
-     Main.extensionManager.getUuids().forEach(uuid => {
+     _httpSession.queue_message(message, () => {
+@@ -124,6 +133,9 @@ function checkForUpdates() {
+             return;
+         if (extension.hasUpdate)
+             return;
 +        // don't updates out of repository mode extension
 +        if (Desktop.is("ubuntu") && Main.extensionManager.isModeExtension(uuid))
 +            return;
-         metadatas[uuid] = Main.extensionManager.extensions[uuid].metadata;
+         metadatas[uuid] = extension.metadata;
      });
  
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
-index a7a3869..f182b9d 100644
+index 3f2ee35..5a990fa 100644
 --- a/js/ui/extensionSystem.js
 +++ b/js/ui/extensionSystem.js
 @@ -4,6 +4,7 @@
- const { GLib, Gio, St } = imports.gi;
+ const { GLib, Gio, GObject, Shell, St } = imports.gi;
  const Signals = imports.signals;
  
 +const Desktop = imports.misc.desktop;
+ const ExtensionDownloader = imports.ui.extensionDownloader;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
- const Main = imports.ui.main;
-@@ -320,6 +321,10 @@ var ExtensionManager = class {
+@@ -351,6 +352,10 @@ var ExtensionManager = class {
          this.loadExtension(newExtension);
      }
  
@@ -77,7 +77,7 @@ index a7a3869..f182b9d 100644
      _callExtensionInit(uuid) {
          if (!Main.sessionMode.allowExtensions)
              return false;
-@@ -481,6 +486,10 @@ var ExtensionManager = class {
+@@ -527,6 +532,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;

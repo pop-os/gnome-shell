@@ -12,10 +12,10 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
  1 file changed, 40 insertions(+), 7 deletions(-)
 
 diff --git a/js/misc/systemActions.js b/js/misc/systemActions.js
-index 7607efc..64d9ae1 100644
+index 6248fe9..ce9aec9 100644
 --- a/js/misc/systemActions.js
 +++ b/js/misc/systemActions.js
-@@ -231,6 +231,34 @@ const SystemActions = GObject.registerClass({
+@@ -229,6 +229,34 @@ const SystemActions = GObject.registerClass({
          return this._actions.get(LOCK_ORIENTATION_ACTION_ID).iconName;
      }
  
@@ -49,8 +49,8 @@ index 7607efc..64d9ae1 100644
 +
      _updateOrientationLock() {
          let available = false;
-         if (this._sensorProxy.g_name_owner)
-@@ -314,7 +342,7 @@ const SystemActions = GObject.registerClass({
+         if (this._sensorProxy.g_name_owner) {
+@@ -323,7 +351,7 @@ const SystemActions = GObject.registerClass({
      _updateLockScreen() {
          let showLock = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
          let allowLockScreen = !this._lockdownSettings.get_boolean(DISABLE_LOCK_SCREEN_KEY);
@@ -59,7 +59,7 @@ index 7607efc..64d9ae1 100644
          this.notify('can-lock-screen');
      }
  
-@@ -401,20 +429,25 @@ const SystemActions = GObject.registerClass({
+@@ -410,20 +438,25 @@ const SystemActions = GObject.registerClass({
          if (!this._actions.get(LOCK_SCREEN_ACTION_ID).available)
              throw new Error('The lock-screen action is not available!');
  
