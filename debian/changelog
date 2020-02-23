@@ -1,3 +1,71 @@
+gnome-shell (3.35.91-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with Debian. Remaining changes:
+    + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    + Add some Recommends:
+      - ubuntu-session (| gnome-session) to have the ubuntu session available
+      - xserver-xorg-legacy
+      - yaru-theme-gnome-shell for the default ubuntu theming
+    + Update debian/gbp.conf with Ubuntu settings
+    + gnome-shell-common.install: Install Ubuntu mode
+    + gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    + ubuntu/desktop_detect.patch:
+      - add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    + ubuntu/smarter_alt_tab.patch:
+      - quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    + ubuntu/lightdm-user-switching.patch:
+      - Allow user switching when using LightDM.
+    + ubuntu/lock_on_suspend.patch
+      - Respect Ubuntu's lock-on-suspend setting.
+    + ubuntu/gdm.patch
+      - as gdm is system-wide and not session-wide, ensure gdm has an ubuntu
+        styling by default, not impacting the gnome user session though.
+    + ubuntu/background_login.patch
+      - Change default background color as we modified the default GDM color
+        for our ubuntu session.
+    + ubuntu/gdm_alternatives.patch
+      - Add support for GDM3 theme alternatives
+    + optional-hot-corner.patch
+      - enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    + main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      - Improve debug JS tracing for crash reports
+    + st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch:
+      - Fix crash on theme changes
+    + ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      - stop searches when requested from UI
+    + magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      - Show monitor scaled cursor when magnifier is enabled
+    + Break gnome-shell-extension-appindicator (<< 30)
+    + Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
+    + Break gnome-shell-extension-ubuntu-dock (<< 67ubuntu20.04.1)
+    + Break yaru-theme (<< 20.04.2)
+  * debian/control:
+    - Bump breaks on gnome-shell-extension-ubuntu-dock (<< 67ubuntu20.04.1)
+    - Bump breaks on gnome-shell-extension-dashtodock (<< 67+git20200225-1)
+    - Bump breaks on yaru-theme (<< 20.04.2)
+  * d/p/st-scroll-view-Remove-scrollbars-references-on-dispose.patch,
+  * d/p/volume-Add-back-sound-feedback-on-scroll.patch:
+    - Dropped, applied upstream
+  * d/p/ubuntu/background_login.patch:
+    - Simplify: just change the default background color to match Yaru
+  * d/p/ubuntu/lock_on_suspend.patch:
+    - Update to use string formatting not to confuse gettext with templates
+  * debian/patches:
+    - Refreshed
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 19 Feb 2020 19:01:04 +0100
+
 gnome-shell (3.35.91-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
