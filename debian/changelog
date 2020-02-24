@@ -1,4 +1,4 @@
-gnome-shell (3.35.91-1) UNRELEASED; urgency=medium
+gnome-shell (3.35.91-1) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New upstream release
@@ -22,7 +22,7 @@ gnome-shell (3.35.91-1) UNRELEASED; urgency=medium
   * debian/rules: Do not override libexecdir so things are installed in
     /usr/libexec now that's allowed by the policy
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 19 Feb 2020 19:01:04 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 24 Feb 2020 18:48:37 +0000
 
 gnome-shell (3.34.3-1) unstable; urgency=medium
 
