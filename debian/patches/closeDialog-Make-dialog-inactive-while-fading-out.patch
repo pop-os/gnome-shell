@@ -1,0 +1,51 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Wed, 19 Feb 2020 21:54:42 +0000
+Subject: closeDialog: Make dialog inactive while fading out
+
+Otherwise the user might click Kill, which would crash if the fade-out
+was triggered because a Wayland window was closed.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/1032
+
+(cherry picked from commit 32fa060a62051a6fc98532d43e060c65ec7848a7)
+
+Origin: upstream, 3.34.5, commit:99d948559b54ed82bd4c98f5f72a1eca7c1882b0
+---
+ js/ui/closeDialog.js | 1 +
+ js/ui/dialog.js      | 8 +++++++-
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/closeDialog.js b/js/ui/closeDialog.js
+index b943e85..e54ee48 100644
+--- a/js/ui/closeDialog.js
++++ b/js/ui/closeDialog.js
+@@ -192,6 +192,7 @@ var CloseDialog = GObject.registerClass({
+         this._dialog = null;
+         this._removeWindowEffect();
+ 
++        dialog.makeInactive();
+         dialog._dialog.ease({
+             scale_y: 0,
+             mode: Clutter.AnimationMode.LINEAR,
+diff --git a/js/ui/dialog.js b/js/ui/dialog.js
+index f81dbfb..cd64b9e 100644
+--- a/js/ui/dialog.js
++++ b/js/ui/dialog.js
+@@ -51,10 +51,16 @@ class Dialog extends St.Widget {
+                            y_align: St.Align.START });
+     }
+ 
+-    _onDestroy() {
++    makeInactive() {
+         if (this._eventId != 0)
+             this._parentActor.disconnect(this._eventId);
+         this._eventId = 0;
++
++        this.buttonLayout.get_children().forEach(c => c.set_reactive(false));
++    }
++
++    _onDestroy() {
++        this.makeInactive();
+     }
+ 
+     _modalEventHandler(actor, event) {
