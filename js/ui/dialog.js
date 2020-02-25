@@ -1,7 +1,14 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
-/* exported Dialog, MessageDialogContent */
+/* exported Dialog, MessageDialogContent, ListSection, ListSectionItem */
 
-const { Clutter, Gio, GObject, Pango, St } = imports.gi;
+const { Clutter, GObject, Meta, Pango, St } = imports.gi;
+
+function _setLabel(label, value) {
+    label.set({
+        text: value || '',
+        visible: value !== null,
+    });
+}
 
 var Dialog = GObject.registerClass(
 class Dialog extends St.Widget {
@@ -25,10 +32,12 @@ class Dialog extends St.Widget {
     }
 
     _createDialog() {
-        this._dialog = new St.BoxLayout({ style_class: 'modal-dialog',
-                                          x_align: Clutter.ActorAlign.CENTER,
-                                          y_align: Clutter.ActorAlign.CENTER,
-                                          vertical: true });
+        this._dialog = new St.BoxLayout({
+            style_class: 'modal-dialog',
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+            vertical: true,
+        });
 
         // modal dialogs are fixed width and grow vertically; set the request
         // mode accordingly so wrapped labels are handled correctly during
@@ -36,19 +45,17 @@ class Dialog extends St.Widget {
         this._dialog.request_mode = Clutter.RequestMode.HEIGHT_FOR_WIDTH;
         this._dialog.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 
-        this.contentLayout = new St.BoxLayout({ vertical: true,
-                                                style_class: "modal-dialog-content-box" });
-        this._dialog.add(this.contentLayout,
-                         { expand: true,
-                           x_fill: true,
-                           y_fill: true,
-                           x_align: St.Align.MIDDLE,
-                           y_align: St.Align.START });
+        this.contentLayout = new St.BoxLayout({
+            vertical: true,
+            style_class: 'modal-dialog-content-box',
+            y_expand: true,
+        });
+        this._dialog.add_child(this.contentLayout);
 
-        this.buttonLayout = new St.Widget ({ layout_manager: new Clutter.BoxLayout({ homogeneous: true }) });
-        this._dialog.add(this.buttonLayout,
-                         { x_align: St.Align.MIDDLE,
-                           y_align: St.Align.START });
+        this.buttonLayout = new St.Widget({
+            layout_manager: new Clutter.BoxLayout({ homogeneous: true }),
+        });
+        this._dialog.add_child(this.buttonLayout);
     }
 
     _onDestroy() {
@@ -99,10 +106,6 @@ class Dialog extends St.Widget {
         return this._initialKeyFocus || this;
     }
 
-    addContent(actor) {
-        this.contentLayout.add (actor, { expand: true });
-    }
-
     addButton(buttonInfo) {
         let { label, action, key } = buttonInfo;
         let isDefault = buttonInfo['default'];
@@ -115,13 +118,15 @@ class Dialog extends St.Widget {
         else
             keys = [];
 
-        let button = new St.Button({ style_class: 'modal-dialog-linked-button',
-                                     button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
-                                     reactive: true,
-                                     can_focus: true,
-                                     x_expand: true,
-                                     y_expand: true,
-                                     label: label });
+        let button = new St.Button({
+            style_class: 'modal-dialog-linked-button',
+            button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
+            reactive: true,
+            can_focus: true,
+            x_expand: true,
+            y_expand: true,
+            label,
+        });
         button.connect('clicked', action);
 
         buttonInfo['button'] = button;
@@ -148,99 +153,204 @@ class Dialog extends St.Widget {
 
 var MessageDialogContent = GObject.registerClass({
     Properties: {
-        'icon': GObject.ParamSpec.object('icon', 'icon', 'icon',
-                                         GObject.ParamFlags.READWRITE |
-                                         GObject.ParamFlags.CONSTRUCT,
-                                         Gio.Icon.$gtype),
-        'title': GObject.ParamSpec.string('title', 'title', 'title',
-                                          GObject.ParamFlags.READWRITE |
-                                          GObject.ParamFlags.CONSTRUCT,
-                                          null),
-        'subtitle': GObject.ParamSpec.string('subtitle', 'subtitle', 'subtitle',
-                                             GObject.ParamFlags.READWRITE |
-                                             GObject.ParamFlags.CONSTRUCT,
-                                             null),
-        'body': GObject.ParamSpec.string('body', 'body', 'body',
-                                         GObject.ParamFlags.READWRITE |
-                                         GObject.ParamFlags.CONSTRUCT,
-                                         null)
-    }
+        'title': GObject.ParamSpec.string(
+            'title', 'title', 'title',
+            GObject.ParamFlags.READWRITE |
+            GObject.ParamFlags.CONSTRUCT,
+            null),
+        'description': GObject.ParamSpec.string(
+            'description', 'description', 'description',
+            GObject.ParamFlags.READWRITE |
+            GObject.ParamFlags.CONSTRUCT,
+            null),
+    },
 }, class MessageDialogContent extends St.BoxLayout {
     _init(params) {
-        this._icon = new St.Icon({ y_align: Clutter.ActorAlign.START });
-        this._title = new St.Label({ style_class: 'headline' });
-        this._subtitle = new St.Label();
-        this._body = new St.Label();
+        this._title = new St.Label({ style_class: 'message-dialog-title' });
+        this._description = new St.Label({ style_class: 'message-dialog-description' });
 
-        ['icon', 'title', 'subtitle', 'body'].forEach(prop => {
-            this[`_${prop}`].add_style_class_name(`message-dialog-${prop}`);
-        });
+        this._description.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        this._description.clutter_text.line_wrap = true;
 
-        let textProps = { ellipsize: Pango.EllipsizeMode.NONE,
-                          line_wrap: true };
-        this._subtitle.clutter_text.set(textProps);
-        this._body.clutter_text.set(textProps);
-
-        let defaultParams = { style_class: 'message-dialog-main-layout' };
+        let defaultParams = {
+            style_class: 'message-dialog-content',
+            x_expand: true,
+            vertical: true,
+        };
         super._init(Object.assign(defaultParams, params));
 
-        this.messageBox = new St.BoxLayout({ style_class: 'message-dialog-content',
-                                             x_expand: true,
-                                             vertical: true });
+        this.connect('notify::size', this._updateTitleStyle.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
 
-        this.messageBox.add_actor(this._title);
-        this.messageBox.add_actor(this._subtitle);
-        this.messageBox.add_actor(this._body);
-
-        this.add_actor(this._icon);
-        this.add_actor(this.messageBox);
+        this.add_child(this._title);
+        this.add_child(this._description);
     }
 
-    get icon() {
-        return this._icon.gicon;
+    _onDestroy() {
+        if (this._updateTitleStyleLater) {
+            Meta.later_remove(this._updateTitleStyleLater);
+            delete this._updateTitleStyleLater;
+        }
     }
 
     get title() {
         return this._title.text;
     }
 
-    get subtitle() {
-        return this._subtitle.text;
+    get description() {
+        return this._description.text;
     }
 
-    get body() {
-        return this._body.text;
-    }
+    _updateTitleStyle() {
+        if (!this._title.mapped)
+            return;
 
-    set icon(icon) {
-        this._icon.set({
-            gicon: icon,
-            visible: icon != null
-        });
-        this.notify('icon');
+        this._title.ensure_style();
+        const [, titleNatWidth] = this._title.get_preferred_width(-1);
+
+        if (titleNatWidth > this.width) {
+            if (this._updateTitleStyleLater)
+                return;
+
+            this._updateTitleStyleLater = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                this._updateTitleStyleLater = 0;
+                this._title.add_style_class_name('leightweight');
+                return false;
+            });
+        }
+
     }
 
     set title(title) {
-        this._setLabel(this._title, 'title', title);
+        _setLabel(this._title, title);
+
+        this._title.remove_style_class_name('leightweight');
+        this._updateTitleStyle();
+
+        this.notify('title');
     }
 
-    set subtitle(subtitle) {
-        this._setLabel(this._subtitle, 'subtitle', subtitle);
+    set description(description) {
+        _setLabel(this._description, description);
+        this.notify('description');
     }
+});
 
-    set body(body) {
-        this._setLabel(this._body, 'body', body);
-    }
+var ListSection = GObject.registerClass({
+    Properties: {
+        'title': GObject.ParamSpec.string(
+            'title', 'title', 'title',
+            GObject.ParamFlags.READWRITE |
+            GObject.ParamFlags.CONSTRUCT,
+            null),
+    },
+}, class ListSection extends St.BoxLayout {
+    _init(params) {
+        this._title = new St.Label({ style_class: 'dialog-list-title' });
 
-    _setLabel(label, prop, value) {
-        label.set({
-            text: value || '',
-            visible: value != null
+        this._listScrollView = new St.ScrollView({
+            style_class: 'dialog-list-scrollview',
+            hscrollbar_policy: St.PolicyType.NEVER,
         });
-        this.notify(prop);
+
+        this.list = new St.BoxLayout({
+            style_class: 'dialog-list-box',
+            vertical: true,
+        });
+        this._listScrollView.add_actor(this.list);
+
+        let defaultParams = {
+            style_class: 'dialog-list',
+            x_expand: true,
+            vertical: true,
+        };
+        super._init(Object.assign(defaultParams, params));
+
+        this.label_actor = this._title;
+        this.add_child(this._title);
+        this.add_child(this._listScrollView);
     }
 
-    insertBeforeBody(actor) {
-        this.messageBox.insert_child_below(actor, this._body);
+    get title() {
+        return this._title.text;
+    }
+
+    set title(title) {
+        _setLabel(this._title, title);
+        this.notify('title');
+    }
+});
+
+var ListSectionItem = GObject.registerClass({
+    Properties: {
+        'icon-actor':  GObject.ParamSpec.object(
+            'icon-actor', 'icon-actor', 'Icon actor',
+            GObject.ParamFlags.READWRITE,
+            Clutter.Actor.$gtype),
+        'title': GObject.ParamSpec.string(
+            'title', 'title', 'title',
+            GObject.ParamFlags.READWRITE |
+            GObject.ParamFlags.CONSTRUCT,
+            null),
+        'description': GObject.ParamSpec.string(
+            'description', 'description', 'description',
+            GObject.ParamFlags.READWRITE |
+            GObject.ParamFlags.CONSTRUCT,
+            null),
+    },
+}, class ListSectionItem extends St.BoxLayout {
+    _init(params) {
+        this._iconActorBin = new St.Bin();
+
+        let textLayout = new St.BoxLayout({
+            vertical: true,
+            y_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+
+        this._title = new St.Label({ style_class: 'dialog-list-item-title' });
+
+        this._description = new St.Label({
+            style_class: 'dialog-list-item-title-description',
+        });
+
+        textLayout.add_child(this._title);
+        textLayout.add_child(this._description);
+
+        let defaultParams = { style_class: 'dialog-list-item' };
+        super._init(Object.assign(defaultParams, params));
+
+        this.label_actor = this._title;
+        this.add_child(this._iconActorBin);
+        this.add_child(textLayout);
+    }
+
+    // eslint-disable-next-line camelcase
+    get icon_actor() {
+        return this._iconActorBin.get_child();
+    }
+
+    // eslint-disable-next-line camelcase
+    set icon_actor(actor) {
+        this._iconActorBin.set_child(actor);
+        this.notify('icon-actor');
+    }
+
+    get title() {
+        return this._title.text;
+    }
+
+    set title(title) {
+        _setLabel(this._title, title);
+        this.notify('title');
+    }
+
+    get description() {
+        return this._description.text;
+    }
+
+    set description(description) {
+        _setLabel(this._description, description);
+        this.notify('description');
     }
 });

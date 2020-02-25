@@ -3,7 +3,7 @@ imports.gi.versions.Gdk = '3.0';
 imports.gi.versions.Gtk = '3.0';
 
 const Gettext = imports.gettext;
-const { Gdk, GLib, Gio, GObject, Gtk, Pango } = imports.gi;
+const { Gdk, GLib, Gio, GObject, Gtk } = imports.gi;
 const Format = imports.format;
 
 const _ = Gettext.gettext;
@@ -12,7 +12,7 @@ const Config = imports.misc.config;
 const ExtensionUtils = imports.misc.extensionUtils;
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
-const { ExtensionState } = ExtensionUtils;
+const { ExtensionState, ExtensionType } = ExtensionUtils;
 
 const GnomeShellIface = loadInterfaceXML('org.gnome.Shell.Extensions');
 const GnomeShellProxy = Gio.DBusProxy.makeProxyWrapper(GnomeShellIface);
@@ -23,32 +23,149 @@ function stripPrefix(string, prefix) {
     return string;
 }
 
-var Application = GObject.registerClass({
-    GTypeName: 'ExtensionPrefs_Application'
-}, class Application extends Gtk.Application {
+var Application = GObject.registerClass(
+class Application extends Gtk.Application {
     _init() {
         GLib.set_prgname('gnome-shell-extension-prefs');
         super._init({
-            application_id: 'org.gnome.shell.ExtensionPrefs',
-            flags: Gio.ApplicationFlags.HANDLES_COMMAND_LINE
+            application_id: 'org.gnome.Extensions',
+            flags: Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
         });
-
-        this._startupUuid = null;
-        this._loaded = false;
-        this._skipMainWindow = false;
-        this._shellProxy = null;
     }
 
     get shellProxy() {
         return this._shellProxy;
     }
 
-    _showPrefs(uuid) {
-        let row = this._extensionSelector.get_children().find(c => {
-            return c.uuid === uuid && c.hasPrefs;
+    vfunc_activate() {
+        this._shellProxy.CheckForUpdatesRemote();
+        this._window.present();
+    }
+
+    vfunc_startup() {
+        super.vfunc_startup();
+
+        let provider = new Gtk.CssProvider();
+        let uri = 'resource:///org/gnome/shell/css/application.css';
+        try {
+            provider.load_from_file(Gio.File.new_for_uri(uri));
+        } catch (e) {
+            logError(e, 'Failed to add application style');
+        }
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+        this._shellProxy = new GnomeShellProxy(Gio.DBus.session, 'org.gnome.Shell', '/org/gnome/Shell');
+        this._window = new ExtensionsWindow({ application: this });
+    }
+
+    vfunc_command_line(commandLine) {
+        let args = commandLine.get_arguments();
+
+        if (args.length) {
+            let uuid = args[0];
+
+            // Strip off "extension:///" prefix which fakes a URI, if it exists
+            uuid = stripPrefix(uuid, 'extension:///');
+
+            this._window.openPrefs(uuid);
+        } else {
+            this.activate();
+        }
+        return 0;
+    }
+});
+
+var ExtensionsWindow = GObject.registerClass({
+    GTypeName: 'ExtensionsWindow',
+    Template: 'resource:///org/gnome/shell/ui/extensions-window.ui',
+    InternalChildren: [
+        'userList',
+        'systemList',
+        'killSwitch',
+        'mainBox',
+        'mainStack',
+        'scrolledWindow',
+        'updatesBar',
+        'updatesLabel',
+    ],
+}, class ExtensionsWindow extends Gtk.ApplicationWindow {
+    _init(params) {
+        super._init(params);
+
+        this._startupUuid = null;
+        this._loaded = false;
+        this._prefsDialog = null;
+        this._updatesCheckId = 0;
+
+        this._mainBox.set_focus_vadjustment(this._scrolledWindow.vadjustment);
+
+        let action;
+        action = new Gio.SimpleAction({ name: 'show-about' });
+        action.connect('activate', this._showAbout.bind(this));
+        this.add_action(action);
+
+        action = new Gio.SimpleAction({ name: 'logout' });
+        action.connect('activate', this._logout.bind(this));
+        this.add_action(action);
+
+        this._settings = new Gio.Settings({ schema_id: 'org.gnome.shell' });
+        this._settings.bind('disable-user-extensions',
+            this._killSwitch, 'active',
+            Gio.SettingsBindFlags.DEFAULT | Gio.SettingsBindFlags.INVERT_BOOLEAN);
+
+        this._userList.set_sort_func(this._sortList.bind(this));
+        this._userList.set_header_func(this._updateHeader.bind(this));
+
+        this._systemList.set_sort_func(this._sortList.bind(this));
+        this._systemList.set_header_func(this._updateHeader.bind(this));
+
+        this._shellProxy.connectSignal('ExtensionStateChanged',
+            this._onExtensionStateChanged.bind(this));
+
+        this._scanExtensions();
+    }
+
+    get _shellProxy() {
+        return this.application.shellProxy;
+    }
+
+    uninstall(uuid) {
+        let row = this._findExtensionRow(uuid);
+
+        let dialog = new Gtk.MessageDialog({
+            transient_for: this,
+            modal: true,
+            text: _('Remove “%s”?').format(row.name),
+            secondary_text: _('If you remove the extension, you need to return to download it if you want to enable it again'),
         });
 
-        if (!row)
+        dialog.add_button(_('Cancel'), Gtk.ResponseType.CANCEL);
+        dialog.add_button(_('Remove'), Gtk.ResponseType.ACCEPT)
+            .get_style_context().add_class('destructive-action');
+
+        dialog.connect('response', (dlg, response) => {
+            if (response === Gtk.ResponseType.ACCEPT)
+                this._shellProxy.UninstallExtensionRemote(uuid);
+            dialog.destroy();
+        });
+        dialog.present();
+    }
+
+    openPrefs(uuid) {
+        if (!this._loaded)
+            this._startupUuid = uuid;
+        else if (!this._showPrefs(uuid))
+            this.present();
+    }
+
+    _showPrefs(uuid) {
+        if (this._prefsDialog)
+            return false;
+
+        let row = this._findExtensionRow(uuid);
+        if (!row || !row.hasPrefs)
             return false;
 
         let widget;
@@ -59,50 +176,90 @@ var Application = GObject.registerClass({
             widget = this._buildErrorUI(row, e);
         }
 
-        let dialog = new Gtk.Window({
-            modal: !this._skipMainWindow,
-            type_hint: Gdk.WindowTypeHint.DIALOG
+        this._prefsDialog = new Gtk.Window({
+            application: this.application,
+            default_width: 600,
+            default_height: 400,
+            modal: this.visible,
+            type_hint: Gdk.WindowTypeHint.DIALOG,
+            window_position: Gtk.WindowPosition.CENTER,
         });
-        dialog.set_titlebar(new Gtk.HeaderBar({
+
+        this._prefsDialog.set_titlebar(new Gtk.HeaderBar({
             show_close_button: true,
             title: row.name,
-            visible: true
+            visible: true,
         }));
 
-        if (this._skipMainWindow) {
-            this.add_window(dialog);
-            if (this._window)
-                this._window.destroy();
-            this._window = dialog;
-            this._window.window_position = Gtk.WindowPosition.CENTER;
-        } else {
-            dialog.transient_for = this._window;
-        }
+        if (this.visible)
+            this._prefsDialog.transient_for = this;
 
-        dialog.set_default_size(600, 400);
-        dialog.add(widget);
-        dialog.show();
+        this._prefsDialog.connect('destroy', () => {
+            this._prefsDialog = null;
+
+            if (!this.visible)
+                this.destroy();
+        });
+
+        this._prefsDialog.add(widget);
+        this._prefsDialog.show();
 
         return true;
+    }
+
+    _showAbout() {
+        let aboutDialog = new Gtk.AboutDialog({
+            authors: [
+                'Florian Müllner <fmuellner@gnome.org>',
+                'Jasper St. Pierre <jstpierre@mecheye.net>',
+                'Didier Roche <didrocks@ubuntu.com>',
+            ],
+            translator_credits: _('translator-credits'),
+            program_name: _('Extensions'),
+            comments: _('Manage your GNOME Extensions'),
+            license_type: Gtk.License.GPL_2_0,
+            logo_icon_name: 'org.gnome.Extensions',
+            version: Config.PACKAGE_VERSION,
+
+            transient_for: this,
+            modal: true,
+        });
+        aboutDialog.present();
+    }
+
+    _logout() {
+        this.application.get_dbus_connection().call(
+            'org.gnome.SessionManager',
+            '/org/gnome/SessionManager',
+            'org.gnome.SessionManager',
+            'Logout',
+            new GLib.Variant('(u)', [0]),
+            null,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null,
+            (o, res) => {
+                o.call_finish(res);
+            });
     }
 
     _buildErrorUI(row, exc) {
         let scroll = new Gtk.ScrolledWindow({
             hscrollbar_policy: Gtk.PolicyType.NEVER,
-            propagate_natural_height: true
+            propagate_natural_height: true,
         });
 
         let box = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 12,
             margin: 100,
-            margin_bottom: 60
+            margin_bottom: 60,
         });
         scroll.add(box);
 
         let label = new Gtk.Label({
             label: '<span size="x-large">%s</span>'.format(_("Something’s gone wrong")),
-            use_markup: true
+            use_markup: true,
         });
         label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL);
         box.add(label);
@@ -110,31 +267,31 @@ var Application = GObject.registerClass({
         label = new Gtk.Label({
             label: _("We’re very sorry, but there’s been a problem: the settings for this extension can’t be displayed. We recommend that you report the issue to the extension authors."),
             justify: Gtk.Justification.CENTER,
-            wrap: true
+            wrap: true,
         });
         box.add(label);
 
         let expander = new Expander({
             label: _("Technical Details"),
-            margin_top: 12
+            margin_top: 12,
         });
         box.add(expander);
 
-        let errortext = `${exc}\n\nStack trace:\n${
-            // Indent stack trace.
-            exc.stack.split('\n').map(line => `  ${line}`).join('\n')
-        }`;
+        let errortext = '%s\n\nStack trace:\n'.format(exc);
+        // Indent stack trace.
+        errortext +=
+            exc.stack.split('\n').map(line => '  %s'.format(line)).join('\n');
 
         let buffer = new Gtk.TextBuffer({ text: errortext });
         let textview = new Gtk.TextView({
-            buffer: buffer,
+            buffer,
             wrap_mode: Gtk.WrapMode.WORD,
             monospace: true,
             editable: false,
             top_margin: 12,
             bottom_margin: 12,
             left_margin: 12,
-            right_margin: 12
+            right_margin: 12,
         });
 
         let toolbar = new Gtk.Toolbar();
@@ -150,7 +307,7 @@ var Application = GObject.registerClass({
 
         let copyButton = new Gtk.ToolButton({
             icon_name: 'edit-copy-symbolic',
-            tooltip_text: _("Copy Error")
+            tooltip_text: _("Copy Error"),
         });
         toolbar.add(copyButton);
 
@@ -158,16 +315,16 @@ var Application = GObject.registerClass({
             let clipboard = Gtk.Clipboard.get_default(w.get_display());
             // markdown for pasting in gitlab issues
             let lines = [
-                `The settings of extension ${row.uuid} had an error:`,
-                '```',
-                `${exc}`,
-                '```',
+                'The settings of extension %s had an error:'.format(row.uuid),
+                '```', // '`' (xgettext throws up on odd number of backticks)
+                exc.toString(),
+                '```', // '`'
                 '',
                 'Stack trace:',
-                '```',
+                '```', // '`'
                 exc.stack.replace(/\n$/, ''), // stack without trailing newline
-                '```',
-                ''
+                '```', // '`'
+                '',
             ];
             clipboard.set_text(lines.join('\n'), -1);
         });
@@ -180,7 +337,7 @@ var Application = GObject.registerClass({
             label: _("Homepage"),
             tooltip_text: _("Visit extension homepage"),
             no_show_all: true,
-            visible: row.url != null
+            visible: row.url !== '',
         });
         toolbar.add(urlButton);
 
@@ -190,7 +347,7 @@ var Application = GObject.registerClass({
         });
 
         let expandedBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL
+            orientation: Gtk.Orientation.VERTICAL,
         });
         expandedBox.add(textview);
         expandedBox.add(toolbar);
@@ -199,47 +356,6 @@ var Application = GObject.registerClass({
 
         scroll.show_all();
         return scroll;
-    }
-
-    _buildUI() {
-        this._window = new Gtk.ApplicationWindow({ application: this,
-                                                   window_position: Gtk.WindowPosition.CENTER });
-
-        this._window.set_default_size(800, 500);
-
-        this._titlebar = new Gtk.HeaderBar({ show_close_button: true,
-                                             title: _("Shell Extensions") });
-        this._window.set_titlebar(this._titlebar);
-
-        let killSwitch = new Gtk.Switch({ valign: Gtk.Align.CENTER });
-        this._titlebar.pack_end(killSwitch);
-
-        this._settings = new Gio.Settings({ schema_id: 'org.gnome.shell' });
-        this._settings.bind('disable-user-extensions', killSwitch, 'active',
-                            Gio.SettingsBindFlags.DEFAULT |
-                            Gio.SettingsBindFlags.INVERT_BOOLEAN);
-
-        this._mainStack = new Gtk.Stack({
-            transition_type: Gtk.StackTransitionType.CROSSFADE
-        });
-        this._window.add(this._mainStack);
-
-        let scroll = new Gtk.ScrolledWindow({ hscrollbar_policy: Gtk.PolicyType.NEVER });
-
-        this._extensionSelector = new Gtk.ListBox({ selection_mode: Gtk.SelectionMode.NONE });
-        this._extensionSelector.set_sort_func(this._sortList.bind(this));
-        this._extensionSelector.set_header_func(this._updateHeader.bind(this));
-
-        scroll.add(this._extensionSelector);
-
-        this._mainStack.add_named(scroll, 'listing');
-        this._mainStack.add_named(new EmptyPlaceholder(), 'placeholder');
-
-        this._shellProxy = new GnomeShellProxy(Gio.DBus.session, 'org.gnome.Shell', '/org/gnome/Shell');
-        this._shellProxy.connectSignal('ExtensionStateChanged',
-            this._onExtensionStateChanged.bind(this));
-
-        this._window.show_all();
     }
 
     _sortList(row1, row2) {
@@ -255,35 +371,39 @@ var Application = GObject.registerClass({
     }
 
     _findExtensionRow(uuid) {
-        return this._extensionSelector.get_children().find(c => c.uuid === uuid);
+        return [
+            ...this._userList.get_children(),
+            ...this._systemList.get_children(),
+        ].find(c => c.uuid === uuid);
     }
 
     _onExtensionStateChanged(proxy, senderName, [uuid, newState]) {
+        let extension = ExtensionUtils.deserializeExtension(newState);
         let row = this._findExtensionRow(uuid);
+
+        this._queueUpdatesCheck();
+
+        // the extension's type changed; remove the corresponding row
+        // and reset the variable to null so that we create a new row
+        // below and add it to the appropriate list
+        if (row && row.type !== extension.type) {
+            row.destroy();
+            row = null;
+        }
+
         if (row) {
-            let { state } = ExtensionUtils.deserializeExtension(newState);
-            if (state == ExtensionState.UNINSTALLED)
+            if (extension.state === ExtensionState.UNINSTALLED)
                 row.destroy();
             return; // we only deal with new and deleted extensions here
         }
-
-        this._shellProxy.GetExtensionInfoRemote(uuid, ([serialized]) => {
-            let extension = ExtensionUtils.deserializeExtension(serialized);
-            if (!extension)
-                return;
-            // check the extension wasn't added in between
-            if (this._findExtensionRow(uuid) != null)
-                return;
-            this._addExtensionRow(extension);
-        });
+        this._addExtensionRow(extension);
     }
 
     _scanExtensions() {
         this._shellProxy.ListExtensionsRemote(([extensionsMap], e) => {
             if (e) {
                 if (e instanceof Gio.DBusError) {
-                    log(`Failed to connect to shell proxy: ${e}`);
-                    this._mainStack.add_named(new NoShellPlaceholder(), 'noshell');
+                    log('Failed to connect to shell proxy: %s'.format(e.toString()));
                     this._mainStack.visible_child_name = 'noshell';
                 } else {
                     throw e;
@@ -301,57 +421,52 @@ var Application = GObject.registerClass({
 
     _addExtensionRow(extension) {
         let row = new ExtensionRow(extension);
-
-        row.prefsButton.connect('clicked', () => {
-            this._showPrefs(row.uuid);
-        });
-
         row.show_all();
-        this._extensionSelector.add(row);
+
+        if (row.type === ExtensionType.PER_USER)
+            this._userList.add(row);
+        else
+            this._systemList.add(row);
+    }
+
+    _queueUpdatesCheck() {
+        if (this._updatesCheckId)
+            return;
+
+        this._updatesCheckId = GLib.timeout_add_seconds(
+            GLib.PRIORITY_DEFAULT, 1, () => {
+                this._checkUpdates();
+
+                this._updatesCheckId = 0;
+                return GLib.SOURCE_REMOVE;
+            });
+    }
+
+    _checkUpdates() {
+        let nUpdates = this._userList.get_children().filter(c => c.hasUpdate).length;
+
+        this._updatesLabel.label = Gettext.ngettext(
+            '%d extension will be updated on next login.',
+            '%d extensions will be updated on next login.',
+            nUpdates).format(nUpdates);
+        this._updatesBar.visible = nUpdates > 0;
     }
 
     _extensionsLoaded() {
-        if (this._extensionSelector.get_children().length > 0)
-            this._mainStack.visible_child_name = 'listing';
+        this._userList.visible = this._userList.get_children().length > 0;
+        this._systemList.visible = this._systemList.get_children().length > 0;
+
+        if (this._userList.visible || this._systemList.visible)
+            this._mainStack.visible_child_name = 'main';
         else
             this._mainStack.visible_child_name = 'placeholder';
+
+        this._checkUpdates();
 
         if (this._startupUuid)
             this._showPrefs(this._startupUuid);
         this._startupUuid = null;
-        this._skipMainWindow = false;
         this._loaded = true;
-    }
-
-    vfunc_activate() {
-        this._window.present();
-    }
-
-    vfunc_startup() {
-        super.vfunc_startup();
-
-        this._buildUI();
-        this._scanExtensions();
-    }
-
-    vfunc_command_line(commandLine) {
-        this.activate();
-        let args = commandLine.get_arguments();
-
-        if (args.length) {
-            let uuid = args[0];
-
-            this._skipMainWindow = true;
-
-            // Strip off "extension:///" prefix which fakes a URI, if it exists
-            uuid = stripPrefix(uuid, "extension:///");
-
-            if (!this._loaded)
-                this._startupUuid = uuid;
-            else if (!this._showPrefs(uuid))
-                this._skipMainWindow = false;
-        }
-        return 0;
     }
 });
 
@@ -361,20 +476,20 @@ var Expander = GObject.registerClass({
             'label', 'label', 'label',
             GObject.ParamFlags.READWRITE,
             null
-        )
-    }
+        ),
+    },
 }, class Expander extends Gtk.Box {
     _init(params = {}) {
         this._labelText = null;
 
         super._init(Object.assign(params, {
             orientation: Gtk.Orientation.VERTICAL,
-            spacing: 0
+            spacing: 0,
         }));
 
         this._frame = new Gtk.Frame({
             shadow_type: Gtk.ShadowType.IN,
-            hexpand: true
+            hexpand: true,
         });
 
         let eventBox = new Gtk.EventBox();
@@ -382,12 +497,12 @@ var Expander = GObject.registerClass({
 
         let hbox = new Gtk.Box({
             spacing: 6,
-            margin: 12
+            margin: 12,
         });
         eventBox.add(hbox);
 
         this._arrow = new Gtk.Image({
-            icon_name: 'pan-end-symbolic'
+            icon_name: 'pan-end-symbolic',
         });
         hbox.add(this._arrow);
 
@@ -397,7 +512,7 @@ var Expander = GObject.registerClass({
         this._revealer = new Gtk.Revealer();
 
         this._childBin = new Gtk.Frame({
-            shadow_type: Gtk.ShadowType.IN
+            shadow_type: Gtk.ShadowType.IN,
         });
         this._revealer.add(this._childBin);
 
@@ -415,7 +530,7 @@ var Expander = GObject.registerClass({
         this._gesture = new Gtk.GestureMultiPress({
             widget: this._frame,
             button: 0,
-            exclusive: true
+            exclusive: true,
         });
         this._gesture.connect('released', (gesture, nPress) => {
             if (nPress == 1)
@@ -454,113 +569,19 @@ var Expander = GObject.registerClass({
     }
 });
 
-var EmptyPlaceholder = GObject.registerClass(
-class EmptyPlaceholder extends Gtk.Box {
-    _init() {
-        super._init({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 6,
-            margin: 32
-        });
-
-        let image = new Gtk.Image({
-            icon_name: 'application-x-addon-symbolic',
-            pixel_size: 96,
-            visible: true,
-            vexpand: true,
-            valign: Gtk.Align.END
-        });
-        image.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL);
-        this.add(image);
-
-        let label = new Gtk.Label({
-            label: `<b><span size="x-large">${_("No Extensions Installed" )}</span></b>`,
-            use_markup: true,
-            visible: true
-        });
-        label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL);
-        this.add(label);
-
-        let appInfo = Gio.DesktopAppInfo.new('org.gnome.Software.desktop');
-
-        let desc = new Gtk.Label({
-            label: _("Extensions can be installed through Software or <a href=\"https://extensions.gnome.org\">extensions.gnome.org</a>."),
-            use_markup: true,
-            wrap: true,
-            justify: Gtk.Justification.CENTER,
-            visible: true,
-            max_width_chars: 50,
-            hexpand: true,
-            vexpand: (appInfo == null),
-            halign: Gtk.Align.CENTER,
-            valign: Gtk.Align.START
-        });
-        this.add(desc);
-
-        if (appInfo) {
-            let button = new Gtk.Button({
-                label: _("Browse in Software"),
-                image: new Gtk.Image({
-                    icon_name: "org.gnome.Software-symbolic"
-                }),
-                always_show_image: true,
-                margin_top: 12,
-                visible: true,
-                halign: Gtk.Align.CENTER,
-                valign: Gtk.Align.START,
-                vexpand: true
-            });
-            this.add(button);
-
-            button.connect('clicked', w => {
-                let context = w.get_display().get_app_launch_context();
-                appInfo.launch([], context);
-            });
-        }
-    }
-});
-
-var NoShellPlaceholder = GObject.registerClass(
-class NoShellPlaceholder extends Gtk.Box {
-    _init() {
-        super._init({
-            orientation: Gtk.Orientation.VERTICAL,
-            spacing: 12,
-            margin: 100,
-            margin_bottom: 60
-        });
-
-        let label = new Gtk.Label({
-            label: '<span size="x-large">%s</span>'.format(
-                _("Something’s gone wrong")),
-            use_markup: true
-        });
-        label.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL);
-        this.add(label);
-
-        label = new Gtk.Label({
-            label: _("We’re very sorry, but it was not possible to get the list of installed extensions. Make sure you are logged into GNOME and try again."),
-            justify: Gtk.Justification.CENTER,
-            wrap: true
-        });
-        this.add(label);
-
-        this.show_all();
-    }
-});
-
-var DescriptionLabel = GObject.registerClass(
-class DescriptionLabel extends Gtk.Label {
-    vfunc_get_preferred_height_for_width(width) {
-        // Hack: Request the maximum height allowed by the line limit
-        if (this.lines > 0)
-            return super.vfunc_get_preferred_height_for_width(0);
-        return super.vfunc_get_preferred_height_for_width(width);
-    }
-});
-
-var ExtensionRow = GObject.registerClass(
-class ExtensionRow extends Gtk.ListBoxRow {
+var ExtensionRow = GObject.registerClass({
+    GTypeName: 'ExtensionRow',
+    Template: 'resource:///org/gnome/shell/ui/extension-row.ui',
+    InternalChildren: [
+        'nameLabel',
+        'descriptionLabel',
+        'versionLabel',
+        'authorLabel',
+        'updatesIcon',
+        'revealButton',
+        'revealer',
+    ],
+}, class ExtensionRow extends Gtk.ListBoxRow {
     _init(extension) {
         super._init();
 
@@ -568,9 +589,67 @@ class ExtensionRow extends Gtk.ListBoxRow {
         this._extension = extension;
         this._prefsModule = null;
 
-        this.connect('destroy', this._onDestroy.bind(this));
+        this._actionGroup = new Gio.SimpleActionGroup();
+        this.insert_action_group('row', this._actionGroup);
 
-        this._buildUI();
+        let action;
+        action = new Gio.SimpleAction({
+            name: 'show-prefs',
+            enabled: this.hasPrefs,
+        });
+        action.connect('activate', () => this.get_toplevel().openPrefs(this.uuid));
+        this._actionGroup.add_action(action);
+
+        action = new Gio.SimpleAction({
+            name: 'show-url',
+            enabled: this.url !== '',
+        });
+        action.connect('activate', () => {
+            Gio.AppInfo.launch_default_for_uri(
+                this.url, this.get_display().get_app_launch_context());
+        });
+        this._actionGroup.add_action(action);
+
+        action = new Gio.SimpleAction({
+            name: 'uninstall',
+            enabled: this.type === ExtensionType.PER_USER,
+        });
+        action.connect('activate', () => this.get_toplevel().uninstall(this.uuid));
+        this._actionGroup.add_action(action);
+
+        action = new Gio.SimpleAction({
+            name: 'enabled',
+            state: new GLib.Variant('b', false),
+        });
+        action.connect('activate', () => {
+            let state = action.get_state();
+            action.change_state(new GLib.Variant('b', !state.get_boolean()));
+        });
+        action.connect('change-state', (a, state) => {
+            if (state.get_boolean())
+                this._app.shellProxy.EnableExtensionRemote(this.uuid);
+            else
+                this._app.shellProxy.DisableExtensionRemote(this.uuid);
+        });
+        this._actionGroup.add_action(action);
+
+        let name = GLib.markup_escape_text(this.name, -1);
+        this._nameLabel.label = name;
+
+        let desc = this._extension.metadata.description.split('\n')[0];
+        this._descriptionLabel.label = desc;
+
+        this._revealButton.connect('clicked', () => {
+            this._revealer.reveal_child = !this._revealer.reveal_child;
+        });
+        this._revealer.connect('notify::reveal-child', () => {
+            if (this._revealer.reveal_child)
+                this._revealButton.get_style_context().add_class('expanded');
+            else
+                this._revealButton.get_style_context().remove_class('expanded');
+        });
+
+        this.connect('destroy', this._onDestroy.bind(this));
 
         this._extensionStateChangedId = this._app.shellProxy.connectSignal(
             'ExtensionStateChanged', (p, sender, [uuid, newState]) => {
@@ -578,14 +657,9 @@ class ExtensionRow extends Gtk.ListBoxRow {
                     return;
 
                 this._extension = ExtensionUtils.deserializeExtension(newState);
-                let state = (this._extension.state == ExtensionState.ENABLED);
-
-                GObject.signal_handler_block(this._switch, this._notifyActiveId);
-                this._switch.state = state;
-                GObject.signal_handler_unblock(this._switch, this._notifyActiveId);
-
-                this._switch.sensitive = this._canToggle();
+                this._updateState();
             });
+        this._updateState();
     }
 
     get uuid() {
@@ -600,8 +674,40 @@ class ExtensionRow extends Gtk.ListBoxRow {
         return this._extension.hasPrefs;
     }
 
+    get hasUpdate() {
+        return this._extension.hasUpdate || false;
+    }
+
+    get type() {
+        return this._extension.type;
+    }
+
+    get creator() {
+        return this._extension.metadata.creator || '';
+    }
+
     get url() {
-        return this._extension.metadata.url;
+        return this._extension.metadata.url || '';
+    }
+
+    get version() {
+        return this._extension.metadata.version || '';
+    }
+
+    _updateState() {
+        let state = this._extension.state === ExtensionState.ENABLED;
+
+        let action = this._actionGroup.lookup('enabled');
+        action.set_state(new GLib.Variant('b', state));
+        action.enabled = this._canToggle();
+
+        this._updatesIcon.visible = this.hasUpdate;
+
+        this._versionLabel.label = this.version;
+        this._versionLabel.visible = this.version !== '';
+
+        this._authorLabel.label = this.creator;
+        this._authorLabel.visible = this.creator !== '';
     }
 
     _onDestroy() {
@@ -613,64 +719,16 @@ class ExtensionRow extends Gtk.ListBoxRow {
         this._extensionStateChangedId = 0;
     }
 
-    _buildUI() {
-        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
-                                 hexpand: true, margin_end: 24, spacing: 24,
-                                 margin: 12 });
-        this.add(hbox);
-
-        let vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL,
-                                 spacing: 6, hexpand: true });
-        hbox.add(vbox);
-
-        let name = GLib.markup_escape_text(this.name, -1);
-        let label = new Gtk.Label({ label: '<b>' + name + '</b>',
-                                    use_markup: true,
-                                    halign: Gtk.Align.START });
-        vbox.add(label);
-
-        let desc = this._extension.metadata.description.split('\n')[0];
-        label = new DescriptionLabel({ label: desc, wrap: true, lines: 2,
-                                       ellipsize: Pango.EllipsizeMode.END,
-                                       xalign: 0, yalign: 0 });
-        vbox.add(label);
-
-        let button = new Gtk.Button({ valign: Gtk.Align.CENTER,
-                                      visible: this.hasPrefs,
-                                      no_show_all: true });
-        button.set_image(new Gtk.Image({ icon_name: 'emblem-system-symbolic',
-                                         icon_size: Gtk.IconSize.BUTTON,
-                                         visible: true }));
-        button.get_style_context().add_class('circular');
-        hbox.add(button);
-
-        this.prefsButton = button;
-
-        this._switch = new Gtk.Switch({
-            valign: Gtk.Align.CENTER,
-            sensitive: this._canToggle(),
-            state: this._extension.state === ExtensionState.ENABLED
-        });
-        this._notifyActiveId = this._switch.connect('notify::active', () => {
-            if (this._switch.active)
-                this._app.shellProxy.EnableExtensionRemote(this.uuid);
-            else
-                this._app.shellProxy.DisableExtensionRemote(this.uuid);
-        });
-        this._switch.connect('state-set', () => true);
-        hbox.add(this._switch);
-    }
-
     _canToggle() {
         return this._extension.canChange;
     }
 
     get prefsModule() {
+        // give extension prefs access to their own extension object
+        ExtensionUtils.getCurrentExtension = () => this._extension;
+
         if (!this._prefsModule) {
             ExtensionUtils.installImporter(this._extension);
-
-            // give extension prefs access to their own extension object
-            ExtensionUtils.getCurrentExtension = () => this._extension;
 
             this._prefsModule = this._extension.imports.prefs;
             this._prefsModule.init(this._extension.metadata);
@@ -689,10 +747,10 @@ function initEnvironment() {
         },
 
         logError(s) {
-            log(`ERROR: ${s}`);
+            log('ERROR: %s'.format(s));
         },
 
-        userdatadir: GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell'])
+        userdatadir: GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell']),
     };
 
     String.prototype.format = Format.format;
@@ -700,9 +758,6 @@ function initEnvironment() {
 
 function main(argv) {
     initEnvironment();
-
-    Gettext.bindtextdomain(Config.GETTEXT_PACKAGE, Config.LOCALEDIR);
-    Gettext.textdomain(Config.GETTEXT_PACKAGE);
 
     new Application().run(argv);
 }

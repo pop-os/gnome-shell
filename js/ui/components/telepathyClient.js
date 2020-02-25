@@ -19,7 +19,7 @@ const MessageTray = imports.ui.messageTray;
 const Params = imports.misc.params;
 const Util = imports.misc.util;
 
-const HAVE_TP = (Tp != null && Tpl != null);
+const HAVE_TP = Tp != null && Tpl != null;
 
 // See Notification.appendMessage
 var SCROLLBACK_IMMEDIATE_TIME = 3 * 60; // 3 minutes
@@ -37,7 +37,7 @@ var CHAT_EXPAND_LINES = 12;
 
 var NotificationDirection = {
     SENT: 'chat-sent',
-    RECEIVED: 'chat-received'
+    RECEIVED: 'chat-received',
 };
 
 function makeMessageFromTpMessage(tpMessage, direction) {
@@ -49,10 +49,10 @@ function makeMessageFromTpMessage(tpMessage, direction) {
 
     return {
         messageType: tpMessage.get_message_type(),
-        text: text,
+        text,
         sender: tpMessage.sender.alias,
-        timestamp: timestamp,
-        direction: direction
+        timestamp,
+        direction,
     };
 }
 
@@ -66,7 +66,7 @@ function makeMessageFromTplEvent(event) {
         text: event.get_message(),
         sender: event.get_sender().get_alias(),
         timestamp: event.get_timestamp(),
-        direction: direction
+        direction,
     };
 }
 
@@ -87,7 +87,7 @@ var TelepathyComponent = class {
         try {
             this._client.register();
         } catch (e) {
-            throw new Error(`Could not register Telepathy client. Error: ${e}`);
+            throw new Error('Could not register Telepathy client. Error: %s'.format(e.toString()));
         }
 
         if (!this._client.account_manager.is_prepared(Tp.AccountManager.get_feature_quark_core()))
@@ -158,7 +158,7 @@ class TelepathyClient extends Tp.BaseClient {
                 continue;
 
             /* Only observe contact text channels */
-            if ((!(channel instanceof Tp.TextChannel)) ||
+            if (!(channel instanceof Tp.TextChannel) ||
                targetHandleType != Tp.HandleType.CONTACT)
                 continue;
 
@@ -215,7 +215,7 @@ class TelepathyClient extends Tp.BaseClient {
                 // We are already handling the channel, display the source
                 let source = this._chatSources[channel.get_object_path()];
                 if (source)
-                    source.notify();
+                    source.showNotification();
             }
         }
     }
@@ -231,11 +231,12 @@ class TelepathyClient extends Tp.BaseClient {
             return;
         }
 
-        if (chanType == Tp.IFACE_CHANNEL_TYPE_TEXT)
+        if (chanType == Tp.IFACE_CHANNEL_TYPE_TEXT) {
             this._approveTextChannel(account, conn, channel, dispatchOp, context);
-        else
+        } else {
             context.fail(new Tp.Error({ code: Tp.Error.INVALID_ARGUMENT,
                                         message: 'Unsupported channel type' }));
+        }
     }
 
     _approveTextChannel(account, conn, channel, dispatchOp, context) {
@@ -248,12 +249,12 @@ class TelepathyClient extends Tp.BaseClient {
         }
 
         // Approve private text channels right away as we are going to handle it
-        dispatchOp.claim_with_async(this, (dispatchOp, result) => {
+        dispatchOp.claim_with_async(this, (o, result) => {
             try {
                 dispatchOp.claim_with_finish(result);
                 this._handlingChannels(account, conn, [channel], false);
             } catch (err) {
-                log(`Failed to Claim channel: ${err}`);
+                log('Failed to Claim channel: %s'.format(err.toString()));
             }
         });
 
@@ -266,9 +267,10 @@ class TelepathyClient extends Tp.BaseClient {
     }
 }) : null;
 
-var ChatSource = class extends MessageTray.Source {
-    constructor(account, conn, channel, contact, client) {
-        super(contact.get_alias());
+var ChatSource = HAVE_TP ? GObject.registerClass(
+class ChatSource extends MessageTray.Source {
+    _init(account, conn, channel, contact, client) {
+        super._init(contact.get_alias());
 
         this._account = account;
         this._contact = contact;
@@ -326,7 +328,7 @@ var ChatSource = class extends MessageTray.Source {
 
         // We ack messages when the user expands the new notification
         let id = this._banner.connect('expanded', this._ackMessages.bind(this));
-        this._banner.actor.connect('destroy', () => {
+        this._banner.connect('destroy', () => {
             this._banner.disconnect(id);
             this._banner = null;
         });
@@ -348,11 +350,10 @@ var ChatSource = class extends MessageTray.Source {
 
     getIcon() {
         let file = this._contact.get_avatar_file();
-        if (file) {
-            return new Gio.FileIcon({ file: file });
-        } else {
+        if (file)
+            return new Gio.FileIcon({ file });
+        else
             return new Gio.ThemedIcon({ name: 'avatar-default' });
-        }
     }
 
     getSecondaryIcon() {
@@ -386,10 +387,11 @@ var ChatSource = class extends MessageTray.Source {
 
     _updateAvatarIcon() {
         this.iconUpdated();
-        if (this._notifiction)
+        if (this._notifiction) {
             this._notification.update(this._notification.title,
                                       this._notification.bannerBodyText,
                                       { gicon: this.getIcon() });
+        }
     }
 
     open() {
@@ -476,7 +478,7 @@ var ChatSource = class extends MessageTray.Source {
             this._notification.appendMessage(pendingMessages[i], true);
 
         if (pendingMessages.length > 0)
-            this.notify();
+            this.showNotification();
     }
 
     destroy(reason) {
@@ -553,7 +555,7 @@ var ChatSource = class extends MessageTray.Source {
 
     _notifyTimeout() {
         if (this._pendingMessages.length != 0)
-            this.notify();
+            this.showNotification();
 
         this._notifyTimeoutId = 0;
 
@@ -568,8 +570,8 @@ var ChatSource = class extends MessageTray.Source {
         this._notification.appendMessage(message);
     }
 
-    notify() {
-        super.notify(this._notification);
+    showNotification() {
+        super.showNotification(this._notification);
     }
 
     respond(text) {
@@ -601,10 +603,11 @@ var ChatSource = class extends MessageTray.Source {
     }
 
     _presenceChanged(_contact, _presence, _status, _message) {
-        if (this._notification)
+        if (this._notification) {
             this._notification.update(this._notification.title,
                                       this._notification.bannerBodyText,
                                       { secondaryGIcon: this.getSecondaryIcon() });
+        }
     }
 
     _pendingRemoved(channel, message) {
@@ -625,12 +628,18 @@ var ChatSource = class extends MessageTray.Source {
         // 'pending-message-removed' for each one.
         this._channel.ack_all_pending_messages_async(null);
     }
-};
+}) : null;
 
-var ChatNotification = class extends MessageTray.Notification {
-    constructor(source) {
-        super(source, source.title, null,
-              { secondaryGIcon: source.getSecondaryIcon() });
+var ChatNotification = HAVE_TP ? GObject.registerClass({
+    Signals: {
+        'message-removed': { param_types: [Tp.Message.$gtype] },
+        'message-added': { param_types: [Tp.Message.$gtype] },
+        'timestamp-changed': { param_types: [Tp.Message.$gtype] },
+    },
+}, class ChatNotification extends MessageTray.Notification {
+    _init(source) {
+        super._init(source, source.title, null,
+            { secondaryGIcon: source.getSecondaryIcon() });
         this.setUrgency(MessageTray.Urgency.HIGH);
         this.setResident(true);
 
@@ -647,16 +656,16 @@ var ChatNotification = class extends MessageTray.Notification {
 
     /**
      * appendMessage:
-     * @message: An object with the properties:
-     *   text: the body of the message,
-     *   messageType: a #Tp.ChannelTextMessageType,
-     *   sender: the name of the sender,
-     *   timestamp: the time the message was sent
-     *   direction: a #NotificationDirection
+     * @param {Object} message: An object with the properties
+     *   {string} message.text: the body of the message,
+     *   {Tp.ChannelTextMessageType} message.messageType: the type
+     *   {string} message.sender: the name of the sender,
+     *   {number} message.timestamp: the time the message was sent
+     *   {NotificationDirection} message.direction: a #NotificationDirection
      *
-     * @noTimestamp: Whether to add a timestamp. If %true, no timestamp
-     *   will be added, regardless of the difference since the
-     *   last timestamp
+     * @param {bool} noTimestamp: Whether to add a timestamp. If %true,
+     *   no timestamp will be added, regardless of the difference since
+     *   the last timestamp
      */
     appendMessage(message, noTimestamp) {
         let messageBody = GLib.markup_escape_text(message.text, -1);
@@ -668,19 +677,20 @@ var ChatNotification = class extends MessageTray.Notification {
             styles.push('chat-action');
         }
 
-        if (message.direction == NotificationDirection.RECEIVED)
+        if (message.direction == NotificationDirection.RECEIVED) {
             this.update(this.source.title, messageBody,
-                        { datetime: GLib.DateTime.new_from_unix_local (message.timestamp),
+                        { datetime: GLib.DateTime.new_from_unix_local(message.timestamp),
                           bannerMarkup: true });
+        }
 
-        let group = (message.direction == NotificationDirection.RECEIVED
-            ? 'received' : 'sent');
+        let group = message.direction == NotificationDirection.RECEIVED
+            ? 'received' : 'sent';
 
         this._append({ body: messageBody,
-                       group: group,
-                       styles: styles,
+                       group,
+                       styles,
                        timestamp: message.timestamp,
-                       noTimestamp: noTimestamp });
+                       noTimestamp });
     }
 
     _filterMessages() {
@@ -688,7 +698,7 @@ var ChatNotification = class extends MessageTray.Notification {
             return;
 
         let lastMessageTime = this.messages[0].timestamp;
-        let currentTime = (Date.now() / 1000);
+        let currentTime = Date.now() / 1000;
 
         // Keep the scrollback from growing too long. If the most
         // recent message (before the one we just added) is within
@@ -696,7 +706,7 @@ var ChatNotification = class extends MessageTray.Notification {
         // SCROLLBACK_RECENT_LENGTH previous messages. Otherwise
         // we'll keep SCROLLBACK_IDLE_LENGTH messages.
 
-        let maxLength = (lastMessageTime < currentTime - SCROLLBACK_RECENT_TIME)
+        let maxLength = lastMessageTime < currentTime - SCROLLBACK_RECENT_TIME
             ? SCROLLBACK_IDLE_LENGTH : SCROLLBACK_RECENT_LENGTH;
 
         let filteredHistory = this.messages.filter(item => item.realMessage);
@@ -710,16 +720,16 @@ var ChatNotification = class extends MessageTray.Notification {
 
     /**
      * _append:
-     * @props: An object with the properties:
-     *  body: The text of the message.
-     *  group: The group of the message, one of:
+     * @param {Object} props: An object with the properties:
+     *  {string} props.body: The text of the message.
+     *  {string} props.group: The group of the message, one of:
      *         'received', 'sent', 'meta'.
-     *  styles: Style class names for the message to have.
-     *  timestamp: The timestamp of the message.
-     *  noTimestamp: suppress timestamp signal?
+     *  {string[]} props.styles: Style class names for the message to have.
+     *  {number} props.timestamp: The timestamp of the message.
+     *  {bool} props.noTimestamp: suppress timestamp signal?
      */
     _append(props) {
-        let currentTime = (Date.now() / 1000);
+        let currentTime = Date.now() / 1000;
         props = Params.parse(props, { body: null,
                                       group: null,
                                       styles: [],
@@ -782,7 +792,7 @@ var ChatNotification = class extends MessageTray.Notification {
 
         this._filterMessages();
     }
-};
+}) : null;
 
 var ChatLineBox = GObject.registerClass(
 class ChatLineBox extends St.BoxLayout {
@@ -792,9 +802,10 @@ class ChatLineBox extends St.BoxLayout {
     }
 });
 
-var ChatNotificationBanner = class extends MessageTray.NotificationBanner {
-    constructor(notification) {
-        super(notification);
+var ChatNotificationBanner = GObject.registerClass(
+class ChatNotificationBanner extends MessageTray.NotificationBanner {
+    _init(notification) {
+        super._init(notification);
 
         this._responseEntry = new St.Entry({ style_class: 'chat-response',
                                              x_expand: true,
@@ -879,8 +890,7 @@ var ChatNotificationBanner = class extends MessageTray.NotificationBanner {
     }
 
     _addMessage(message) {
-        let highlighter = new MessageList.URLHighlighter(message.body, true, true);
-        let body = highlighter.actor;
+        let body = new MessageList.URLHighlighter(message.body, true, true);
 
         let styles = message.styles;
         for (let i = 0; i < styles.length; i++)
@@ -968,6 +978,6 @@ var ChatNotificationBanner = class extends MessageTray.NotificationBanner {
             this.notification.source.setChatState(Tp.ChannelChatState.ACTIVE);
         }
     }
-};
+});
 
 var Component = TelepathyComponent;

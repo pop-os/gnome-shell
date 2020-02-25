@@ -1,5 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
-/* exported Keyboard */
+/* exported KeyboardManager */
 
 const { Clutter, Gio, GLib, GObject, Meta, St } = imports.gi;
 const Signals = imports.signals;
@@ -89,8 +89,11 @@ class KeyContainer extends St.Widget {
         let gridLayout = new Clutter.GridLayout({ orientation: Clutter.Orientation.HORIZONTAL,
                                                   column_homogeneous: true,
                                                   row_homogeneous: true });
-        super._init({ layout_manager: gridLayout,
-                      x_expand: true, y_expand: true });
+        super._init({
+            layout_manager: gridLayout,
+            x_expand: true,
+            y_expand: true,
+        });
         this._gridLayout = gridLayout;
         this._currentRow = 0;
         this._currentCol = 0;
@@ -117,7 +120,7 @@ class KeyContainer extends St.Widget {
             left: this._currentCol,
             top: this._currentRow,
             width,
-            height
+            height,
         };
 
         let row = this._rows[this._rows.length - 1];
@@ -161,24 +164,27 @@ class KeyContainer extends St.Widget {
     }
 });
 
-var Suggestions = class {
-    constructor() {
-        this.actor = new St.BoxLayout({ style_class: 'word-suggestions',
-                                        vertical: false });
-        this.actor.show();
+var Suggestions = GObject.registerClass(
+class Suggestions extends St.BoxLayout {
+    _init() {
+        super._init({
+            style_class: 'word-suggestions',
+            vertical: false,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        this.show();
     }
 
     add(word, callback) {
         let button = new St.Button({ label: word });
         button.connect('clicked', callback);
-        this.actor.add(button);
+        this.add(button);
     }
 
     clear() {
-        this.actor.remove_all_children();
+        this.remove_all_children();
     }
-};
-Signals.addSignalMethods(Suggestions.prototype);
+});
 
 var LanguageSelectionPopup = class extends PopupMenu.PopupMenu {
     constructor(actor) {
@@ -243,20 +249,28 @@ var LanguageSelectionPopup = class extends PopupMenu.PopupMenu {
     }
 };
 
-var Key = class Key {
-    constructor(key, extendedKeys) {
+var Key = GObject.registerClass({
+    Signals: {
+        'activated': {},
+        'long-press': {},
+        'pressed': { param_types: [GObject.TYPE_UINT, GObject.TYPE_STRING] },
+        'released': { param_types: [GObject.TYPE_UINT, GObject.TYPE_STRING] },
+    },
+}, class Key extends St.BoxLayout {
+    _init(key, extendedKeys) {
+        super._init({ style_class: 'key-container' });
+
         this.key = key || "";
         this.keyButton = this._makeKey(this.key);
 
         /* Add the key in a container, so keys can be padded without losing
          * logical proportions between those.
          */
-        this.actor = new St.BoxLayout ({ style_class: 'key-container' });
-        this.actor.add(this.keyButton, { expand: true, x_fill: true });
-        this.actor.connect('destroy', this._onDestroy.bind(this));
+        this.add_child(this.keyButton);
+        this.connect('destroy', this._onDestroy.bind(this));
 
-        this._extended_keys = extendedKeys;
-        this._extended_keyboard = null;
+        this._extendedKeys = extendedKeys;
+        this._extendedKeyboard = null;
         this._pressTimeoutId = 0;
         this._capturedPress = false;
 
@@ -275,13 +289,13 @@ var Key = class Key {
     }
 
     _ensureExtendedKeysPopup() {
-        if (this._extended_keys.length == 0)
+        if (this._extendedKeys.length === 0)
             return;
 
-        this._boxPointer = new BoxPointer.BoxPointer(St.Side.BOTTOM,
-                                                     { x_fill: true,
-                                                       y_fill: true,
-                                                       x_align: St.Align.START });
+        if (this._boxPointer)
+            return;
+
+        this._boxPointer = new BoxPointer.BoxPointer(St.Side.BOTTOM);
         this._boxPointer.hide();
         Main.layoutManager.addTopChrome(this._boxPointer);
         this._boxPointer.setPosition(this.keyButton, 0.5);
@@ -289,7 +303,7 @@ var Key = class Key {
         // Adds style to existing keyboard style to avoid repetition
         this._boxPointer.add_style_class_name('keyboard-subkeys');
         this._getExtendedKeys();
-        this.keyButton._extended_keys = this._extended_keyboard;
+        this.keyButton._extendedKeys = this._extendedKeyboard;
     }
 
     _getKeyval(key) {
@@ -300,29 +314,28 @@ var Key = class Key {
     _press(key) {
         this.emit('activated');
 
-        if (key != this.key || this._extended_keys.length == 0) {
+        if (key !== this.key || this._extendedKeys.length === 0)
             this.emit('pressed', this._getKeyval(key), key);
-        }
 
         if (key == this.key) {
             this._pressTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-                                                    KEY_LONG_PRESS_TIME,
-                                                    () => {
-                                                        this._longPress = true;
-                                                        this._pressTimeoutId = 0;
+                KEY_LONG_PRESS_TIME,
+                () => {
+                    this._longPress = true;
+                    this._pressTimeoutId = 0;
 
-                                                        this.emit('long-press');
+                    this.emit('long-press');
 
-                                                        if (this._extended_keys.length > 0) {
-                                                            this._touchPressed = false;
-                                                            this.keyButton.set_hover(false);
-                                                            this.keyButton.fake_release();
-                                                            this._ensureExtendedKeysPopup();
-                                                            this._showSubkeys();
-                                                        }
+                    if (this._extendedKeys.length > 0) {
+                        this._touchPressed = false;
+                        this._ensureExtendedKeysPopup();
+                        this.keyButton.set_hover(false);
+                        this.keyButton.fake_release();
+                        this._showSubkeys();
+                    }
 
-                                                        return GLib.SOURCE_REMOVE;
-                                                    });
+                    return GLib.SOURCE_REMOVE;
+                });
         }
     }
 
@@ -332,7 +345,7 @@ var Key = class Key {
             this._pressTimeoutId = 0;
         }
 
-        if (!this._longPress && key == this.key && this._extended_keys.length > 0)
+        if (!this._longPress && key === this.key && this._extendedKeys.length > 0)
             this.emit('pressed', this._getKeyval(key), key);
 
         this.emit('released', this._getKeyval(key), key);
@@ -352,8 +365,8 @@ var Key = class Key {
 
     _onCapturedEvent(actor, event) {
         let type = event.type();
-        let press = (type == Clutter.EventType.BUTTON_PRESS || type == Clutter.EventType.TOUCH_BEGIN);
-        let release = (type == Clutter.EventType.BUTTON_RELEASE || type == Clutter.EventType.TOUCH_END);
+        let press = type == Clutter.EventType.BUTTON_PRESS || type == Clutter.EventType.TOUCH_BEGIN;
+        let release = type == Clutter.EventType.BUTTON_RELEASE || type == Clutter.EventType.TOUCH_END;
 
         if (event.get_source() == this._boxPointer.bin ||
             this._boxPointer.bin.contains(event.get_source()))
@@ -393,8 +406,11 @@ var Key = class Key {
 
     _makeKey(key) {
         let label = GLib.markup_escape_text(key, -1);
-        let button = new St.Button ({ label: label,
-                                      style_class: 'keyboard-key' });
+        let button = new St.Button({
+            label,
+            style_class: 'keyboard-key',
+            x_expand: true,
+        });
 
         button.keyWidth = 1;
         button.connect('button-press-event', () => {
@@ -432,19 +448,22 @@ var Key = class Key {
     }
 
     _getExtendedKeys() {
-        this._extended_keyboard = new St.BoxLayout({ style_class: 'key-container',
-                                                     vertical: false });
-        for (let i = 0; i < this._extended_keys.length; ++i) {
-            let extendedKey = this._extended_keys[i];
+        this._extendedKeyboard = new St.BoxLayout({
+            style_class: 'key-container',
+            vertical: false,
+        });
+        for (let i = 0; i < this._extendedKeys.length; ++i) {
+            let extendedKey = this._extendedKeys[i];
             let key = this._makeKey(extendedKey);
 
-            key.extended_key = extendedKey;
-            this._extended_keyboard.add(key);
+            key.extendedKey = extendedKey;
+            this._extendedKeyboard.add(key);
 
-            key.width = this.keyButton.width;
-            key.height = this.keyButton.height;
+            key.set_size(...this.keyButton.allocation.get_size());
+            this.keyButton.connect('notify::allocation',
+                () => key.set_size(...this.keyButton.allocation.get_size()));
         }
-        this._boxPointer.bin.add_actor(this._extended_keyboard);
+        this._boxPointer.bin.add_actor(this._extendedKeyboard);
     }
 
     get subkeys() {
@@ -461,8 +480,7 @@ var Key = class Key {
         else
             this.keyButton.remove_style_pseudo_class('latched');
     }
-};
-Signals.addSignalMethods(Key.prototype);
+});
 
 var KeyboardModel = class {
     constructor(groupName) {
@@ -582,22 +600,22 @@ var EmojiPager = GObject.registerClass({
         'delta': GObject.ParamSpec.int(
             'delta', 'delta', 'delta',
             GObject.ParamFlags.READWRITE,
-            GLib.MININT32, GLib.MAXINT32, 0)
+            GLib.MININT32, GLib.MAXINT32, 0),
     },
     Signals: {
         'emoji': { param_types: [GObject.TYPE_STRING] },
         'page-changed': {
-            param_types: [GObject.TYPE_INT, GObject.TYPE_INT, GObject.TYPE_INT]
-        }
-    }
+            param_types: [GObject.TYPE_INT, GObject.TYPE_INT, GObject.TYPE_INT],
+        },
+    },
 }, class EmojiPager extends St.Widget {
     _init(sections, nCols, nRows) {
         super._init({
             layout_manager: new Clutter.BinLayout(),
             reactive: true,
-            clip_to_allocation: true
+            clip_to_allocation: true,
+            y_expand: true,
         });
-
         this._sections = sections;
         this._nCols = nCols;
         this._nRows = nRows;
@@ -724,7 +742,7 @@ var EmojiPager = GObject.registerClass({
                 duration: time,
                 onComplete: () => {
                     this.setCurrentPage(this.getFollowingPage());
-                }
+                },
             });
         }
     }
@@ -808,7 +826,7 @@ var EmojiPager = GObject.registerClass({
                 this.emit('emoji', str);
             });
 
-            gridLayout.attach(key.actor, col, row, 1, 1);
+            gridLayout.attach(key, col, row, 1, 1);
 
             col++;
             if (col >= this._nCols) {
@@ -850,7 +868,7 @@ var EmojiPager = GObject.registerClass({
         }
 
         let page = this._pages[nPage];
-        this.emit('page-changed', page.section, page.page, page.nPages);
+        this.emit('page-changed', page.section.label, page.page, page.nPages);
     }
 
     setCurrentSection(section, nPage) {
@@ -865,8 +883,21 @@ var EmojiPager = GObject.registerClass({
     }
 });
 
-var EmojiSelection = class EmojiSelection {
-    constructor() {
+var EmojiSelection = GObject.registerClass({
+    Signals: {
+        'emoji-selected': { param_types: [GObject.TYPE_STRING] },
+        'close-request': {},
+        'toggle': {},
+    },
+}, class EmojiSelection extends St.BoxLayout {
+    _init() {
+        super._init({
+            style_class: 'emoji-panel',
+            x_expand: true,
+            y_expand: true,
+            vertical: true,
+        });
+
         this._sections = [
             { first: 'grinning face', label: '🙂️' },
             { first: 'selfie', label: '👍️' },
@@ -881,39 +912,50 @@ var EmojiSelection = class EmojiSelection {
 
         this._populateSections();
 
-        this.actor = new St.BoxLayout({ style_class: 'emoji-panel',
-                                        x_expand: true,
-                                        y_expand: true,
-                                        vertical: true });
-        this.actor.connect('notify::mapped', () => this._emojiPager.setCurrentPage(0));
-
         this._emojiPager = new EmojiPager(this._sections, 11, 3);
-        this._emojiPager.connect('page-changed', (pager, section, page, nPages) => {
-            this._onPageChanged(section, page, nPages);
+        this._emojiPager.connect('page-changed', (pager, sectionLabel, page, nPages) => {
+            this._onPageChanged(sectionLabel, page, nPages);
         });
         this._emojiPager.connect('emoji', (pager, str) => {
             this.emit('emoji-selected', str);
         });
-        this.actor.add(this._emojiPager, { expand: true });
+        this.add_child(this._emojiPager);
 
-        this._pageIndicator = new PageIndicators.PageIndicators(false);
-        this.actor.add(this._pageIndicator, { expand: true, x_fill: false, y_fill: false });
+        this._pageIndicator = new PageIndicators.PageIndicators(
+            Clutter.Orientation.HORIZONTAL
+        );
+        this.add_child(this._pageIndicator);
         this._pageIndicator.setReactive(false);
 
-        let bottomRow = this._createBottomRow();
-        this.actor.add(bottomRow, { expand: true, x_fill: false, y_fill: false });
+        this._emojiPager.connect('notify::delta', () => {
+            this._updateIndicatorPosition();
+        });
 
-        this._emojiPager.setCurrentPage(0);
+        let bottomRow = this._createBottomRow();
+        this.add_child(bottomRow);
+
+        this._curPage = 0;
     }
 
-    _onPageChanged(section, page, nPages) {
+    vfunc_map() {
+        this._emojiPager.setCurrentPage(0);
+        super.vfunc_map();
+    }
+
+    _onPageChanged(sectionLabel, page, nPages) {
+        this._curPage = page;
         this._pageIndicator.setNPages(nPages);
-        this._pageIndicator.setCurrentPage(page);
+        this._updateIndicatorPosition();
 
         for (let i = 0; i < this._sections.length; i++) {
             let sect = this._sections[i];
-            sect.button.setLatched(section == sect);
+            sect.button.setLatched(sectionLabel == sect.label);
         }
+    }
+
+    _updateIndicatorPosition() {
+        this._pageIndicator.setCurrentPosition(this._curPage -
+            this._emojiPager.delta / this._emojiPager.width);
     }
 
     _findSection(emoji) {
@@ -968,14 +1010,14 @@ var EmojiSelection = class EmojiSelection {
         key = new Key('ABC', []);
         key.keyButton.add_style_class_name('default-key');
         key.connect('released', () => this.emit('toggle'));
-        row.appendKey(key.actor, 1.5);
+        row.appendKey(key, 1.5);
 
         for (let i = 0; i < this._sections.length; i++) {
             let section = this._sections[i];
 
             key = new Key(section.label, []);
             key.connect('released', () => this._emojiPager.setCurrentSection(section, 0));
-            row.appendKey(key.actor);
+            row.appendKey(key);
 
             section.button = key;
         }
@@ -984,9 +1026,9 @@ var EmojiSelection = class EmojiSelection {
         key.keyButton.add_style_class_name('default-key');
         key.keyButton.add_style_class_name('hide-key');
         key.connect('released', () => {
-            this.emit('hide');
+            this.emit('close-request');
         });
-        row.appendKey(key.actor);
+        row.appendKey(key);
         row.layoutButtons();
 
         let actor = new AspectContainer({ layout_manager: new Clutter.BinLayout(),
@@ -1000,11 +1042,14 @@ var EmojiSelection = class EmojiSelection {
 
         return actor;
     }
-};
-Signals.addSignalMethods(EmojiSelection.prototype);
+});
 
-var Keypad = class Keypad {
-    constructor() {
+var Keypad = GObject.registerClass({
+    Signals: {
+        'keyval': { param_types: [GObject.TYPE_UINT] },
+    },
+}, class Keypad extends AspectContainer {
+    _init() {
         let keys = [
             { label: '1', keyval: Clutter.KEY_1, left: 0, top: 0 },
             { label: '2', keyval: Clutter.KEY_2, left: 1, top: 0 },
@@ -1020,14 +1065,17 @@ var Keypad = class Keypad {
             { keyval: Clutter.KEY_Return, extraClassName: 'enter-key', left: 3, top: 1, height: 2 },
         ];
 
-        this.actor = new AspectContainer({ layout_manager: new Clutter.BinLayout(),
-                                           x_expand: true, y_expand: true });
+        super._init({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
 
         let gridLayout = new Clutter.GridLayout({ orientation: Clutter.Orientation.HORIZONTAL,
                                                   column_homogeneous: true,
                                                   row_homogeneous: true });
         this._box = new St.Widget({ layout_manager: gridLayout, x_expand: true, y_expand: true });
-        this.actor.add_child(this._box);
+        this.add_child(this._box);
 
         for (let i = 0; i < keys.length; i++) {
             let cur = keys[i];
@@ -1039,19 +1087,102 @@ var Keypad = class Keypad {
             let w, h;
             w = cur.width || 1;
             h = cur.height || 1;
-            gridLayout.attach(key.actor, cur.left, cur.top, w, h);
+            gridLayout.attach(key, cur.left, cur.top, w, h);
 
             key.connect('released', () => {
                 this.emit('keyval', cur.keyval);
             });
         }
     }
-};
-Signals.addSignalMethods(Keypad.prototype);
+});
 
-var Keyboard = class Keyboard {
+var KeyboardManager = class KeyBoardManager {
     constructor() {
-        this.actor = null;
+        this._keyboard = null;
+        this._a11yApplicationsSettings = new Gio.Settings({ schema_id: A11Y_APPLICATIONS_SCHEMA });
+        this._a11yApplicationsSettings.connect('changed', this._syncEnabled.bind(this));
+
+        this._seat = Clutter.get_default_backend().get_default_seat();
+        this._seat.connect('notify::touch-mode', this._syncEnabled.bind(this));
+
+        this._lastDevice = null;
+        Meta.get_backend().connect('last-device-changed', (backend, device) => {
+            if (device.get_device_name().indexOf('XTEST') < 0) {
+                this._lastDevice = device;
+                this._syncEnabled();
+            }
+        });
+        this._syncEnabled();
+    }
+
+    _lastDeviceIsTouchscreen() {
+        if (!this._lastDevice)
+            return false;
+
+        let deviceType = this._lastDevice.get_device_type();
+        return deviceType == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
+    }
+
+    _syncEnabled() {
+        let enableKeyboard = this._a11yApplicationsSettings.get_boolean(SHOW_KEYBOARD);
+        let autoEnabled = this._seat.get_touch_mode() && this._lastDeviceIsTouchscreen();
+        let enabled = enableKeyboard || autoEnabled;
+
+        if (!enabled && !this._keyboard)
+            return;
+
+        if (enabled && !this._keyboard) {
+            this._keyboard = new Keyboard();
+        } else if (!enabled && this._keyboard) {
+            this._keyboard.setCursorLocation(null);
+            Main.layoutManager.hideKeyboard(true);
+            this._keyboard.destroy();
+            this._keyboard = null;
+        }
+    }
+
+    get keyboardActor() {
+        return this._keyboard;
+    }
+
+    get visible() {
+        return this._keyboard && this._keyboard.visible;
+    }
+
+    open(monitor) {
+        if (this._keyboard)
+            this._keyboard.open(monitor);
+    }
+
+    close() {
+        if (this._keyboard)
+            this._keyboard.close();
+    }
+
+    addSuggestion(text, callback) {
+        if (this._keyboard)
+            this._keyboard.addSuggestion(text, callback);
+    }
+
+    resetSuggestions() {
+        if (this._keyboard)
+            this._keyboard.resetSuggestions();
+    }
+
+    shouldTakeEvent(event) {
+        if (!this._keyboard)
+            return false;
+
+        let actor = event.get_source();
+        return Main.layoutManager.keyboardBox.contains(actor) ||
+               !!actor._extendedKeys || !!actor.extendedKey;
+    }
+};
+
+var Keyboard = GObject.registerClass(
+class Keyboard extends St.BoxLayout {
+    _init() {
+        super._init({ name: 'keyboard', vertical: true });
         this._focusInExtendedKeys = false;
         this._emojiActive = false;
 
@@ -1060,60 +1191,56 @@ var Keyboard = class Keyboard {
         this._animFocusedWindow = null;
         this._delayedAnimFocusWindow = null;
 
-        this._enableKeyboard = false; // a11y settings value
-        this._enabled = false; // enabled state (by setting or device type)
         this._latched = false; // current level is latched
 
-        this._a11yApplicationsSettings = new Gio.Settings({ schema_id: A11Y_APPLICATIONS_SCHEMA });
-        this._a11yApplicationsSettings.connect('changed', this._syncEnabled.bind(this));
-        this._lastDeviceId = null;
         this._suggestions = null;
         this._emojiKeyVisible = Meta.is_wayland_compositor();
 
         this._focusTracker = new FocusTracker();
-        this._focusTracker.connect('position-changed', this._onFocusPositionChanged.bind(this));
-        this._focusTracker.connect('reset', () => {
+        this._connectSignal(this._focusTracker, 'position-changed',
+            this._onFocusPositionChanged.bind(this));
+        this._connectSignal(this._focusTracker, 'reset', () => {
             this._delayedAnimFocusWindow = null;
             this._animFocusedWindow = null;
             this._oskFocusWindow = null;
         });
-        this._focusTracker.connect('focus-changed', (tracker, focused) => {
-            // Valid only for X11
-            if (Meta.is_wayland_compositor())
-                return;
-
-            if (focused)
-                this.show(Main.layoutManager.focusIndex);
-            else
-                this.hide();
-        });
-
-        Meta.get_backend().connect('last-device-changed',
-            (backend, deviceId) => {
-                let manager = Clutter.DeviceManager.get_default();
-                let device = manager.get_device(deviceId);
-
-                if (!device.get_device_name().includes('XTEST')) {
-                    this._lastDeviceId = deviceId;
-                    this._syncEnabled();
-                }
+        // Valid only for X11
+        if (!Meta.is_wayland_compositor()) {
+            this._connectSignal(this._focusTracker, 'focus-changed', (_tracker, focused) => {
+                if (focused)
+                    this.open(Main.layoutManager.focusIndex);
+                else
+                    this.close();
             });
-        this._syncEnabled();
+        }
 
         this._showIdleId = 0;
 
         this._keyboardVisible = false;
-        Main.layoutManager.connect('keyboard-visible-changed', (o, visible) => {
+        this._connectSignal(Main.layoutManager, 'keyboard-visible-changed', (_lm, visible) => {
             this._keyboardVisible = visible;
         });
         this._keyboardRequested = false;
         this._keyboardRestingId = 0;
 
-        Main.layoutManager.connect('monitors-changed', this._relayout.bind(this));
+        this._connectSignal(Main.layoutManager, 'monitors-changed', this._relayout.bind(this));
+
+        this._setupKeyboard();
+
+        this.connect('destroy', this._onDestroy.bind(this));
+    }
+
+    _connectSignal(obj, signal, callback) {
+        if (!this._connectionsIDs)
+            this._connectionsIDs = [];
+
+        let id = obj.connect(signal, callback);
+        this._connectionsIDs.push([obj, id]);
+        return id;
     }
 
     get visible() {
-        return this._keyboardVisible;
+        return this._keyboardVisible && super.visible;
     }
 
     _onFocusPositionChanged(focusTracker) {
@@ -1121,52 +1248,21 @@ var Keyboard = class Keyboard {
         this.setCursorLocation(focusTracker.currentWindow, rect.x, rect.y, rect.width, rect.height);
     }
 
-    _lastDeviceIsTouchscreen() {
-        if (!this._lastDeviceId)
-            return false;
+    _onDestroy() {
+        for (let [obj, id] of this._connectionsIDs)
+            obj.disconnect(id);
+        delete this._connectionsIDs;
 
-        let manager = Clutter.DeviceManager.get_default();
-        let device = manager.get_device(this._lastDeviceId);
-
-        if (!device)
-            return false;
-
-        return device.get_device_type() == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
-    }
-
-    _syncEnabled() {
-        let wasEnabled = this._enabled;
-        this._enableKeyboard = this._a11yApplicationsSettings.get_boolean(SHOW_KEYBOARD);
-        this._enabled = this._enableKeyboard || this._lastDeviceIsTouchscreen();
-        if (!this._enabled && !this._keyboardController)
-            return;
-
-        if (this._enabled && !this._keyboardController)
-            this._setupKeyboard();
-        else if (!this._enabled)
-            this.setCursorLocation(null);
-
-        if (!this._enabled && wasEnabled)
-            Main.layoutManager.hideKeyboard(true);
-    }
-
-    _destroyKeyboard() {
-        if (this._keyboardNotifyId)
-            this._keyboardController.disconnect(this._keyboardNotifyId);
-        if (this._keyboardGroupsChangedId)
-            this._keyboardController.disconnect(this._keyboardGroupsChangedId);
-        if (this._keyboardStateId)
-            this._keyboardController.disconnect(this._keyboardStateId);
-        if (this._emojiKeyVisibleId)
-            this._keyboardController.disconnect(this._emojiKeyVisibleId);
-        if (this._keypadVisibleId)
-            this._keyboardController.disconnect(this._keypadVisibleId);
-        if (this._focusNotifyId)
-            global.stage.disconnect(this._focusNotifyId);
         this._clearShowIdle();
-        this._keyboard = null;
-        this.actor.destroy();
-        this.actor = null;
+
+        this._keyboardController = null;
+        this._suggestions = null;
+        this._aspectContainer = null;
+        this._emojiSelection = null;
+        this._keypad = null;
+
+        Main.layoutManager.untrackChrome(this);
+        Main.layoutManager.keyboardBox.remove_actor(this);
 
         if (this._languagePopup) {
             this._languagePopup.destroy();
@@ -1175,9 +1271,8 @@ var Keyboard = class Keyboard {
     }
 
     _setupKeyboard() {
-        this.actor = new St.BoxLayout({ name: 'keyboard', vertical: true, reactive: true });
-        Main.layoutManager.keyboardBox.add_actor(this.actor);
-        Main.layoutManager.trackChrome(this.actor);
+        Main.layoutManager.keyboardBox.add_actor(this);
+        Main.layoutManager.trackChrome(this);
 
         this._keyboardController = new KeyboardController();
 
@@ -1185,30 +1280,31 @@ var Keyboard = class Keyboard {
         this._currentPage = null;
 
         this._suggestions = new Suggestions();
-        this.actor.add(this._suggestions.actor,
-                       { x_align: St.Align.MIDDLE,
-                         x_fill: false });
+        this.add_child(this._suggestions);
 
-        this._aspectContainer = new AspectContainer({ layout_manager: new Clutter.BinLayout() });
-        this.actor.add(this._aspectContainer, { expand: true });
+        this._aspectContainer = new AspectContainer({
+            layout_manager: new Clutter.BinLayout(),
+            y_expand: true,
+        });
+        this.add_child(this._aspectContainer);
 
         this._emojiSelection = new EmojiSelection();
         this._emojiSelection.connect('toggle', this._toggleEmoji.bind(this));
-        this._emojiSelection.connect('hide', () => this.hide());
+        this._emojiSelection.connect('close-request', () => this.close());
         this._emojiSelection.connect('emoji-selected', (selection, emoji) => {
             this._keyboardController.commitString(emoji);
         });
 
-        this._aspectContainer.add_child(this._emojiSelection.actor);
-        this._emojiSelection.actor.hide();
+        this._aspectContainer.add_child(this._emojiSelection);
+        this._emojiSelection.hide();
 
         this._keypad = new Keypad();
-        this._keypad.connect('keyval', (keypad, keyval) => {
+        this._connectSignal(this._keypad, 'keyval', (_keypad, keyval) => {
             this._keyboardController.keyvalPress(keyval);
             this._keyboardController.keyvalRelease(keyval);
         });
-        this._aspectContainer.add_child(this._keypad.actor);
-        this._keypad.actor.hide();
+        this._aspectContainer.add_child(this._keypad);
+        this._keypad.hide();
         this._keypadVisible = false;
 
         this._ensureKeysForGroup(this._keyboardController.getCurrentGroup());
@@ -1217,16 +1313,23 @@ var Keyboard = class Keyboard {
         // Keyboard models are defined in LTR, we must override
         // the locale setting in order to avoid flipping the
         // keyboard on RTL locales.
-        this.actor.text_direction = Clutter.TextDirection.LTR;
+        this.text_direction = Clutter.TextDirection.LTR;
 
-        this._keyboardNotifyId = this._keyboardController.connect('active-group', this._onGroupChanged.bind(this));
-        this._keyboardGroupsChangedId = this._keyboardController.connect('groups-changed', this._onKeyboardGroupsChanged.bind(this));
-        this._keyboardStateId = this._keyboardController.connect('panel-state', this._onKeyboardStateChanged.bind(this));
-        this._keypadVisibleId = this._keyboardController.connect('keypad-visible', this._onKeypadVisible.bind(this));
-        this._focusNotifyId = global.stage.connect('notify::key-focus', this._onKeyFocusChanged.bind(this));
+        this._connectSignal(this._keyboardController, 'active-group',
+            this._onGroupChanged.bind(this));
+        this._connectSignal(this._keyboardController, 'groups-changed',
+            this._onKeyboardGroupsChanged.bind(this));
+        this._connectSignal(this._keyboardController, 'panel-state',
+            this._onKeyboardStateChanged.bind(this));
+        this._connectSignal(this._keyboardController, 'keypad-visible',
+            this._onKeypadVisible.bind(this));
+        this._connectSignal(global.stage, 'notify::key-focus',
+            this._onKeyFocusChanged.bind(this));
 
-        if (Meta.is_wayland_compositor())
-            this._emojiKeyVisibleId = this._keyboardController.connect('emoji-visible', this._onEmojiKeyVisible.bind(this));
+        if (Meta.is_wayland_compositor()) {
+            this._connectSignal(this._keyboardController, 'emoji-visible',
+                this._onEmojiKeyVisible.bind(this));
+        }
 
         this._relayout();
     }
@@ -1237,22 +1340,22 @@ var Keyboard = class Keyboard {
         // Showing an extended key popup and clicking a key from the extended keys
         // will grab focus, but ignore that
         let extendedKeysWereFocused = this._focusInExtendedKeys;
-        this._focusInExtendedKeys = focus && (focus._extended_keys || focus.extended_key);
+        this._focusInExtendedKeys = focus && (focus._extendedKeys || focus.extendedKey);
         if (this._focusInExtendedKeys || extendedKeysWereFocused)
             return;
 
         if (!(focus instanceof Clutter.Text)) {
-            this.hide();
+            this.close();
             return;
         }
 
         if (!this._showIdleId) {
             this._showIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this.show(Main.layoutManager.focusIndex);
+                this.open(Main.layoutManager.focusIndex);
                 this._showIdleId = 0;
                 return GLib.SOURCE_REMOVE;
             });
-            GLib.Source.set_name_by_id(this._showIdleId, '[gnome-shell] this.show');
+            GLib.Source.set_name_by_id(this._showIdleId, '[gnome-shell] this.open');
         }
     }
 
@@ -1266,7 +1369,7 @@ var Keyboard = class Keyboard {
              * basically). We however make things consistent by skipping that
              * second level.
              */
-            let level = (i >= 1 && levels.length == 3) ? i + 1 : i;
+            let level = i >= 1 && levels.length == 3 ? i + 1 : i;
 
             let layout = new KeyContainer();
             layout.shiftKeys = [];
@@ -1316,7 +1419,7 @@ var Keyboard = class Keyboard {
                     this._setActiveLayer(0);
             });
 
-            layout.appendKey(button.actor, button.keyButton.keyWidth);
+            layout.appendKey(button, button.keyButton.keyWidth);
         }
     }
 
@@ -1355,7 +1458,7 @@ var Keyboard = class Keyboard {
                 if (switchToLevel != null) {
                     this._setActiveLayer(switchToLevel);
                     // Shift only gets latched on long press
-                    this._latched = (switchToLevel != 1);
+                    this._latched = switchToLevel != 1;
                 } else if (keyval != null) {
                     this._keyboardController.keyvalPress(keyval);
                 }
@@ -1364,7 +1467,7 @@ var Keyboard = class Keyboard {
                 if (keyval != null)
                     this._keyboardController.keyvalRelease(keyval);
                 else if (action == 'hide')
-                    this.hide();
+                    this.close();
                 else if (action == 'languageMenu')
                     this._popupLanguageMenu(actor);
                 else if (action == 'emoji')
@@ -1387,7 +1490,7 @@ var Keyboard = class Keyboard {
                     /* Only hide the key actor, so the container still takes space */
                     extraButton.keyButton.hide();
                 } else {
-                    extraButton.actor.hide();
+                    extraButton.hide();
                 }
                 extraButton.setWidth(1.5);
             } else if (key.right && numKeys > 8) {
@@ -1398,7 +1501,7 @@ var Keyboard = class Keyboard {
                 extraButton.setWidth(1.5);
             }
 
-            layout.appendKey(extraButton.actor, extraButton.keyButton.keyWidth);
+            layout.appendKey(extraButton, extraButton.keyButton.keyWidth);
         }
     }
 
@@ -1409,7 +1512,7 @@ var Keyboard = class Keyboard {
 
     _setEmojiActive(active) {
         this._emojiActive = active;
-        this._emojiSelection.actor.visible = this._emojiActive;
+        this._emojiSelection.visible = this._emojiActive;
         this._updateCurrentPageVisible();
     }
 
@@ -1455,7 +1558,7 @@ var Keyboard = class Keyboard {
         for (let i = 0; i < rows.length; ++i) {
             layout.appendRow();
             let [pre, post] = this._getDefaultKeysForRow(i, rows.length, level);
-            this._mergeRowKeys (layout, pre, rows[i], post, numLevels);
+            this._mergeRowKeys(layout, pre, rows[i], post, numLevels);
         }
     }
 
@@ -1477,12 +1580,22 @@ var Keyboard = class Keyboard {
     _relayout() {
         let monitor = Main.layoutManager.keyboardMonitor;
 
-        if (this.actor == null || monitor == null)
+        if (!monitor)
             return;
 
         let maxHeight = monitor.height / 3;
-        this.actor.width = monitor.width;
-        this.actor.height = maxHeight;
+        this.width = monitor.width;
+
+        if (monitor.width > monitor.height) {
+            this.height = maxHeight;
+        } else {
+            /* In portrait mode, lack of horizontal space means we won't be
+             * able to make the OSK that big while keeping size ratio, so
+             * we allow the OSK being smaller than 1/3rd of the monitor height
+             * there.
+             */
+            this.height = Math.min(maxHeight, this.get_preferred_height(monitor.width));
+        }
     }
 
     _onGroupChanged() {
@@ -1491,7 +1604,7 @@ var Keyboard = class Keyboard {
     }
 
     _onKeyboardGroupsChanged() {
-        let nonGroupActors = [this._emojiSelection.actor, this._keypad.actor];
+        let nonGroupActors = [this._emojiSelection, this._keypad];
         this._aspectContainer.get_children().filter(c => !nonGroupActors.includes(c)).forEach(c => {
             c.destroy();
         });
@@ -1505,7 +1618,7 @@ var Keyboard = class Keyboard {
             return;
 
         this._keypadVisible = visible;
-        this._keypad.actor.visible = this._keypadVisible;
+        this._keypad.visible = this._keypadVisible;
         this._updateCurrentPageVisible();
     }
 
@@ -1525,14 +1638,14 @@ var Keyboard = class Keyboard {
         else if (state == Clutter.InputPanelState.ON)
             enabled = true;
         else if (state == Clutter.InputPanelState.TOGGLE)
-            enabled = (this._keyboardVisible == false);
+            enabled = this._keyboardVisible == false;
         else
             return;
 
         if (enabled)
-            this.show(Main.layoutManager.focusIndex);
+            this.open(Main.layoutManager.focusIndex);
         else
-            this.hide();
+            this.close();
     }
 
     _setActiveLayer(activeLevel) {
@@ -1559,12 +1672,6 @@ var Keyboard = class Keyboard {
         this._updateCurrentPageVisible();
     }
 
-    shouldTakeEvent(event) {
-        let actor = event.get_source();
-        return Main.layoutManager.keyboardBox.contains(actor) ||
-               !!actor._extended_keys || !!actor.extended_key;
-    }
-
     _clearKeyboardRestTimer() {
         if (!this._keyboardRestingId)
             return;
@@ -1572,10 +1679,7 @@ var Keyboard = class Keyboard {
         this._keyboardRestingId = 0;
     }
 
-    show(monitor) {
-        if (!this._enabled)
-            return;
-
+    open(monitor) {
         this._clearShowIdle();
         this._keyboardRequested = true;
 
@@ -1589,16 +1693,16 @@ var Keyboard = class Keyboard {
 
         this._clearKeyboardRestTimer();
         this._keyboardRestingId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-                                                   KEYBOARD_REST_TIME,
-                                                   () => {
-                                                       this._clearKeyboardRestTimer();
-                                                       this._show(monitor);
-                                                       return GLib.SOURCE_REMOVE;
-                                                   });
+            KEYBOARD_REST_TIME,
+            () => {
+                this._clearKeyboardRestTimer();
+                this._open(monitor);
+                return GLib.SOURCE_REMOVE;
+            });
         GLib.Source.set_name_by_id(this._keyboardRestingId, '[gnome-shell] this._clearKeyboardRestTimer');
     }
 
-    _show(monitor) {
+    _open(monitor) {
         if (!this._keyboardRequested)
             return;
 
@@ -1614,10 +1718,7 @@ var Keyboard = class Keyboard {
         }
     }
 
-    hide() {
-        if (!this._enabled)
-            return;
-
+    close() {
         this._clearShowIdle();
         this._keyboardRequested = false;
 
@@ -1626,16 +1727,16 @@ var Keyboard = class Keyboard {
 
         this._clearKeyboardRestTimer();
         this._keyboardRestingId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-                                                   KEYBOARD_REST_TIME,
-                                                   () => {
-                                                       this._clearKeyboardRestTimer();
-                                                       this._hide();
-                                                       return GLib.SOURCE_REMOVE;
-                                                   });
+            KEYBOARD_REST_TIME,
+            () => {
+                this._clearKeyboardRestTimer();
+                this._close();
+                return GLib.SOURCE_REMOVE;
+            });
         GLib.Source.set_name_by_id(this._keyboardRestingId, '[gnome-shell] this._clearKeyboardRestTimer');
     }
 
-    _hide() {
+    _close() {
         if (this._keyboardRequested)
             return;
 
@@ -1652,7 +1753,7 @@ var Keyboard = class Keyboard {
         if (!this._suggestions)
             return;
         this._suggestions.add(text, callback);
-        this._suggestions.actor.show();
+        this._suggestions.show();
     }
 
     _clearShowIdle() {
@@ -1682,7 +1783,7 @@ var Keyboard = class Keyboard {
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
                 onComplete: () => {
                     this._windowSlideAnimationComplete(window, -deltaY);
-                }
+                },
             });
         } else {
             windowActor.ease({
@@ -1691,7 +1792,7 @@ var Keyboard = class Keyboard {
                 mode: Clutter.AnimationMode.EASE_IN_QUAD,
                 onComplete: () => {
                     this._windowSlideAnimationComplete(window, deltaY);
-                }
+                },
             });
         }
     }
@@ -1729,18 +1830,18 @@ var Keyboard = class Keyboard {
 
         this._oskFocusWindow = window;
     }
-};
+});
 
 var KeyboardController = class {
     constructor() {
-        let deviceManager = Clutter.DeviceManager.get_default();
-        this._virtualDevice = deviceManager.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+        let seat = Clutter.get_default_backend().get_default_seat();
+        this._virtualDevice = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
 
         this._inputSourceManager = InputSourceManager.getInputSourceManager();
         this._sourceChangedId = this._inputSourceManager.connect('current-source-changed',
                                                                  this._onSourceChanged.bind(this));
-        this._sourcesModifiedId = this._inputSourceManager.connect ('sources-changed',
-                                                                    this._onSourcesModified.bind(this));
+        this._sourcesModifiedId = this._inputSourceManager.connect('sources-changed',
+                                                                   this._onSourcesModified.bind(this));
         this._currentSource = this._inputSourceManager.currentSource;
 
         Main.inputMethod.connect('notify::content-purpose',

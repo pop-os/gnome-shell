@@ -21,9 +21,12 @@ class LayoutMenuItem extends PopupMenu.PopupBaseMenuItem {
     _init(displayName, shortName) {
         super._init();
 
-        this.label = new St.Label({ text: displayName });
+        this.label = new St.Label({
+            text: displayName,
+            x_expand: true,
+        });
         this.indicator = new St.Label({ text: shortName });
-        this.add(this.label, { expand: true });
+        this.add_child(this.label);
         this.add(this.indicator);
         this.label_actor = this.label;
     }
@@ -61,7 +64,7 @@ var InputSource = class {
             return this.id;
 
         if (engineDesc.variant && engineDesc.variant.length > 0)
-            return `${engineDesc.layout}+${engineDesc.variant}`;
+            return '%s+%s'.format(engineDesc.layout, engineDesc.variant);
         else
             return engineDesc.layout;
     }
@@ -84,9 +87,9 @@ class InputSourcePopup extends SwitcherPopup.SwitcherPopup {
             this._select(this._next());
         else if (action == this._actionBackward)
             this._select(this._previous());
-        else if (keysym == Clutter.Left)
+        else if (keysym == Clutter.KEY_Left)
             this._select(this._previous());
-        else if (keysym == Clutter.Right)
+        else if (keysym == Clutter.KEY_Right)
             this._select(this._next());
         else
             return Clutter.EVENT_PROPAGATE;
@@ -114,12 +117,19 @@ class InputSourceSwitcher extends SwitcherPopup.SwitcherList {
         let box = new St.BoxLayout({ vertical: true });
 
         let bin = new St.Bin({ style_class: 'input-source-switcher-symbol' });
-        let symbol = new St.Label({ text: item.shortName });
+        let symbol = new St.Label({
+            text: item.shortName,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
         bin.set_child(symbol);
-        box.add(bin, { x_fill: false, y_fill: false } );
+        box.add_child(bin);
 
-        let text = new St.Label({ text: item.displayName });
-        box.add(text, { x_fill: false });
+        let text = new St.Label({
+            text: item.displayName,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        box.add_child(text);
 
         this.addItem(box, text);
     }
@@ -128,7 +138,7 @@ class InputSourceSwitcher extends SwitcherPopup.SwitcherList {
 var InputSourceSettings = class {
     constructor() {
         if (this.constructor === InputSourceSettings)
-            throw new TypeError(`Cannot instantiate abstract class ${this.constructor.name}`);
+            throw new TypeError('Cannot instantiate abstract class %s'.format(this.constructor.name));
     }
 
     _emitInputSourcesChanged() {
@@ -201,7 +211,7 @@ var InputSourceSystemSettings = class extends InputSourceSettings {
                                  try {
                                      props = conn.call_finish(result).deep_unpack()[0];
                                  } catch (e) {
-                                     log(`Could not get properties from ${this._BUS_NAME}`);
+                                     log('Could not get properties from %s'.format(this._BUS_NAME));
                                      return;
                                  }
                                  let layouts = props['X11Layout'].unpack();
@@ -229,8 +239,8 @@ var InputSourceSystemSettings = class extends InputSourceSettings {
         for (let i = 0; i < layouts.length && !!layouts[i]; i++) {
             let id = layouts[i];
             if (variants[i])
-                id += `+${variants[i]}`;
-            sourcesList.push({ type: INPUT_SOURCE_TYPE_XKB, id: id });
+                id += '+%s'.format(variants[i]);
+            sourcesList.push({ type: INPUT_SOURCE_TYPE_XKB, id });
         }
         return sourcesList;
     }
@@ -251,9 +261,9 @@ var InputSourceSessionSettings = class extends InputSourceSettings {
         this._KEY_PER_WINDOW = 'per-window';
 
         this._settings = new Gio.Settings({ schema_id: this._DESKTOP_INPUT_SOURCES_SCHEMA });
-        this._settings.connect(`changed::${this._KEY_INPUT_SOURCES}`, this._emitInputSourcesChanged.bind(this));
-        this._settings.connect(`changed::${this._KEY_KEYBOARD_OPTIONS}`, this._emitKeyboardOptionsChanged.bind(this));
-        this._settings.connect(`changed::${this._KEY_PER_WINDOW}`, this._emitPerWindowChanged.bind(this));
+        this._settings.connect('changed::%s'.format(this._KEY_INPUT_SOURCES), this._emitInputSourcesChanged.bind(this));
+        this._settings.connect('changed::%s'.format(this._KEY_KEYBOARD_OPTIONS), this._emitKeyboardOptionsChanged.bind(this));
+        this._settings.connect('changed::%s'.format(this._KEY_PER_WINDOW), this._emitPerWindowChanged.bind(this));
     }
 
     _getSourcesList(key) {
@@ -263,7 +273,7 @@ var InputSourceSessionSettings = class extends InputSourceSettings {
 
         for (let i = 0; i < nSources; i++) {
             let [type, id] = sources.get_child_value(i).deep_unpack();
-            sourcesList.push({ type: type, id: id });
+            sourcesList.push({ type, id });
         }
         return sourcesList;
     }
@@ -434,13 +444,13 @@ var InputSourceManager = class {
 
         this.emit('current-source-changed', oldSource);
 
-        for (let i = 1; i < this._mruSources.length; ++i)
+        for (let i = 1; i < this._mruSources.length; ++i) {
             if (this._mruSources[i] == newSource) {
                 let currentSource = this._mruSources.splice(i, 1);
                 this._mruSources = currentSource.concat(this._mruSources);
                 break;
             }
-
+        }
         this._changePerWindowSource();
     }
 
@@ -513,12 +523,13 @@ var InputSourceManager = class {
 
         let mruSources = [];
         for (let i = 0; i < this._mruSources.length; i++) {
-            for (let j = 0; j < sourcesList.length; j++)
+            for (let j = 0; j < sourcesList.length; j++) {
                 if (this._mruSources[i].type == sourcesList[j].type &&
                     this._mruSources[i].id == sourcesList[j].id) {
                     mruSources = mruSources.concat(sourcesList.splice(j, 1));
                     break;
                 }
+            }
         }
         this._mruSources = mruSources.concat(sourcesList);
     }
@@ -559,14 +570,14 @@ var InputSourceManager = class {
             }
 
             if (exists)
-                infosList.push({ type: type, id: id, displayName: displayName, shortName: shortName });
+                infosList.push({ type, id, displayName, shortName });
         }
 
         if (infosList.length == 0) {
             let type = INPUT_SOURCE_TYPE_XKB;
             let id = KeyboardManager.DEFAULT_LAYOUT;
             let [, displayName, shortName] = this._xkbInfo.get_layout_info(id);
-            infosList.push({ type: type, id: id, displayName: displayName, shortName: shortName });
+            infosList.push({ type, id, displayName, shortName });
         }
 
         let inputSourcesByShortName = {};
@@ -923,7 +934,7 @@ class InputSourceIndicator extends PanelMenu.Button {
     }
 
     _buildPropSection(properties) {
-        this._propSeparator.actor.hide();
+        this._propSeparator.hide();
         this._propSection.actor.hide();
         this._propSection.removeAll();
 
@@ -931,7 +942,7 @@ class InputSourceIndicator extends PanelMenu.Button {
 
         if (!this._propSection.isEmpty()) {
             this._propSection.actor.show();
-            this._propSeparator.actor.show();
+            this._propSeparator.show();
         }
     }
 
@@ -983,16 +994,16 @@ class InputSourceIndicator extends PanelMenu.Button {
                         return;
 
                     let group = item.radioGroup;
-                    for (let i = 0; i < group.length; ++i) {
-                        if (group[i] == item) {
+                    for (let j = 0; j < group.length; ++j) {
+                        if (group[j] == item) {
                             item.setOrnament(PopupMenu.Ornament.DOT);
                             item.prop.set_state(IBus.PropState.CHECKED);
                             ibusManager.activateProperty(item.prop.get_key(),
                                                          IBus.PropState.CHECKED);
                         } else {
-                            group[i].setOrnament(PopupMenu.Ornament.NONE);
-                            group[i].prop.set_state(IBus.PropState.UNCHECKED);
-                            ibusManager.activateProperty(group[i].prop.get_key(),
+                            group[j].setOrnament(PopupMenu.Ornament.NONE);
+                            group[j].prop.set_state(IBus.PropState.UNCHECKED);
+                            ibusManager.activateProperty(group[j].prop.get_key(),
                                                          IBus.PropState.UNCHECKED);
                         }
                     }
@@ -1029,7 +1040,7 @@ class InputSourceIndicator extends PanelMenu.Button {
                 break;
 
             default:
-                log ('IBus property %s has invalid type %d'.format(prop.get_key(), type));
+                log('IBus property %s has invalid type %d'.format(prop.get_key(), type));
                 continue;
             }
 
@@ -1060,7 +1071,7 @@ class InputSourceIndicator extends PanelMenu.Button {
 
         let description = xkbLayout;
         if (xkbVariant.length > 0)
-            description = `${description}\t${xkbVariant}`;
+            description = '%s\t%s'.format(description, xkbVariant);
 
         Util.spawn(['gkbd-keyboard-display', '-l', description]);
     }

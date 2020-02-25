@@ -32,7 +32,7 @@
 
 #define DEFAULT_FADE_OFFSET 68.0f
 
-#include "st-scroll-view-fade-generated.c"
+#include "st-scroll-view-fade-generated.h"
 
 struct _StScrollViewFade
 {
@@ -85,7 +85,8 @@ st_scroll_view_fade_get_static_shader_source (ClutterShaderEffect *effect)
 
 
 static void
-st_scroll_view_fade_paint_target (ClutterOffscreenEffect *effect)
+st_scroll_view_fade_paint_target (ClutterOffscreenEffect *effect,
+                                  ClutterPaintContext    *paint_context)
 {
   StScrollViewFade *self = ST_SCROLL_VIEW_FADE (effect);
   ClutterShaderEffect *shader = CLUTTER_SHADER_EFFECT (effect);
@@ -100,7 +101,7 @@ st_scroll_view_fade_paint_target (ClutterOffscreenEffect *effect)
 
   float fade_area_topleft[2];
   float fade_area_bottomright[2];
-  ClutterVertex verts[4];
+  graphene_point3d_t verts[4];
 
   clutter_actor_get_paint_box (self->actor, &paint_box);
   clutter_actor_get_abs_allocation_vertices (self->actor, verts);
@@ -153,7 +154,7 @@ st_scroll_view_fade_paint_target (ClutterOffscreenEffect *effect)
   clutter_shader_effect_set_uniform (shader, "fade_area_bottomright", CLUTTER_TYPE_SHADER_FLOAT, 2, fade_area_bottomright);
 
   parent = CLUTTER_OFFSCREEN_EFFECT_CLASS (st_scroll_view_fade_parent_class);
-  parent->paint_target(effect);
+  parent->paint_target (effect, paint_context);
 }
 
 static void

@@ -139,13 +139,17 @@ st_button_press (StButton             *button,
                  ClutterEventSequence *sequence)
 {
   StButtonPrivate *priv = st_button_get_instance_private (button);
+  gboolean active_changed = priv->pressed == 0 || sequence;
 
-  if (priv->pressed == 0 || sequence)
+  if (active_changed)
     st_widget_add_style_pseudo_class (ST_WIDGET (button), "active");
 
   priv->pressed |= mask;
   priv->press_sequence = sequence;
   priv->device = device;
+
+  if (active_changed)
+    g_object_notify_by_pspec (G_OBJECT (button), props[PROP_PRESSED]);
 }
 
 static void
@@ -171,6 +175,7 @@ st_button_release (StButton             *button,
   priv->press_sequence = NULL;
   priv->device = NULL;
   st_widget_remove_style_pseudo_class (ST_WIDGET (button), "active");
+  g_object_notify_by_pspec (G_OBJECT (button), props[PROP_PRESSED]);
 
   if (clicked_button || sequence)
     {
@@ -628,6 +633,8 @@ st_button_set_label (StButton    *button,
                             "line-alignment", PANGO_ALIGN_CENTER,
                             "ellipsize", PANGO_ELLIPSIZE_END,
                             "use-markup", TRUE,
+                            "x-align", CLUTTER_ACTOR_ALIGN_CENTER,
+                            "y-align", CLUTTER_ACTOR_ALIGN_CENTER,
                             NULL);
       st_bin_set_child (ST_BIN (button), label);
     }

@@ -42,7 +42,7 @@ class ATIndicator extends PanelMenu.Button {
         this.add_child(this._hbox);
 
         this._a11ySettings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
-        this._a11ySettings.connect(`changed::${KEY_ALWAYS_SHOW}`, this._queueSyncMenuVisibility.bind(this));
+        this._a11ySettings.connect('changed::%s'.format(KEY_ALWAYS_SHOW), this._queueSyncMenuVisibility.bind(this));
 
         let highContrast = this._buildHCItem();
         this.menu.addMenuItem(highContrast);
@@ -101,12 +101,13 @@ class ATIndicator extends PanelMenu.Button {
 
     _buildItemExtended(string, initialValue, writable, onSet) {
         let widget = new PopupMenu.PopupSwitchMenuItem(string, initialValue);
-        if (!writable)
-            widget.actor.reactive = false;
-        else
+        if (!writable) {
+            widget.reactive = false;
+        } else {
             widget.connect('toggled', item => {
                 onSet(item.state);
             });
+        }
         return widget;
     }
 
@@ -117,7 +118,7 @@ class ATIndicator extends PanelMenu.Button {
             settings.is_writable(key),
             enabled => settings.set_boolean(key, enabled));
 
-        settings.connect(`changed::${key}`, () => {
+        settings.connect('changed::%s'.format(key), () => {
             widget.setToggleState(settings.get_boolean(key));
 
             this._queueSyncMenuVisibility();
@@ -130,7 +131,7 @@ class ATIndicator extends PanelMenu.Button {
         let interfaceSettings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });
         let gtkTheme = interfaceSettings.get_string(KEY_GTK_THEME);
         let iconTheme = interfaceSettings.get_string(KEY_ICON_THEME);
-        let hasHC = (gtkTheme == HIGH_CONTRAST_THEME);
+        let hasHC = gtkTheme == HIGH_CONTRAST_THEME;
         let highContrast = this._buildItemExtended(
             _("High Contrast"),
             hasHC,
@@ -149,7 +150,7 @@ class ATIndicator extends PanelMenu.Button {
                 }
             });
 
-        interfaceSettings.connect(`changed::${KEY_GTK_THEME}`, () => {
+        interfaceSettings.connect('changed::%s'.format(KEY_GTK_THEME), () => {
             let value = interfaceSettings.get_string(KEY_GTK_THEME);
             if (value == HIGH_CONTRAST_THEME) {
                 highContrast.setToggleState(true);
@@ -161,7 +162,7 @@ class ATIndicator extends PanelMenu.Button {
             this._queueSyncMenuVisibility();
         });
 
-        interfaceSettings.connect(`changed::${KEY_ICON_THEME}`, () => {
+        interfaceSettings.connect('changed::%s'.format(KEY_ICON_THEME), () => {
             let value = interfaceSettings.get_string(KEY_ICON_THEME);
             if (value != HIGH_CONTRAST_THEME)
                 iconTheme = value;
@@ -173,21 +174,22 @@ class ATIndicator extends PanelMenu.Button {
     _buildFontItem() {
         let settings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });
         let factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
-        let initialSetting = (factor > 1.0);
+        let initialSetting = factor > 1.0;
         let widget = this._buildItemExtended(_("Large Text"),
             initialSetting,
             settings.is_writable(KEY_TEXT_SCALING_FACTOR),
             enabled => {
-                if (enabled)
+                if (enabled) {
                     settings.set_double(
                         KEY_TEXT_SCALING_FACTOR, DPI_FACTOR_LARGE);
-                else
+                } else {
                     settings.reset(KEY_TEXT_SCALING_FACTOR);
+                }
             });
 
-        settings.connect(`changed::${KEY_TEXT_SCALING_FACTOR}`, () => {
-            let factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
-            let active = (factor > 1.0);
+        settings.connect('changed::%s'.format(KEY_TEXT_SCALING_FACTOR), () => {
+            factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
+            let active = factor > 1.0;
             widget.setToggleState(active);
 
             this._queueSyncMenuVisibility();

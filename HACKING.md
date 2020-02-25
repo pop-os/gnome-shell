@@ -29,9 +29,8 @@ what to do.
             bar = do_thing(b);
 
         if (var == 5) {
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 10; i++)
                 print(i);
-            }
         } else {
             print(20);
         }
@@ -102,9 +101,8 @@ under the imports:
 Always use either `const` or `let` when defining a variable.
 ```javascript
     // Iterating over an array
-    for (let i = 0; i < arr.length; ++i) {
+    for (let i = 0; i < arr.length; ++i)
         let item = arr[i];
-    }
 
     // Iterating over an object's properties
     for (let prop in someobj) {
@@ -163,11 +161,17 @@ you to inherit from a type to use it, you can do so:
              return [100, 100];
         }
 
-        vfunc_paint() {
+        vfunc_paint(paintContext) {
+             let framebuffer = paintContext.get_framebuffer();
+             let coglContext = framebuffer.get_context();
              let alloc = this.get_allocation_box();
-             Cogl.set_source_color4ub(255, 0, 0, 255);
-             Cogl.rectangle(alloc.x1, alloc.y1,
-                            alloc.x2, alloc.y2);
+
+             let pipeline = new Cogl.Pipeline(coglContext);
+             pipeline.set_color4ub(255, 0, 0, 255);
+
+             framebuffer.draw_rectangle(pipeline,
+		 alloc.x1, alloc.y1,
+		 alloc.x2, alloc.y2);
         }
     });
 ```
@@ -186,15 +190,27 @@ and "double quotes" for strings that the user may see. This allows us to
 quickly find untranslated or mistranslated strings by grepping through the
 sources for double quotes without a gettext call around them.
 
-## `actor` and `_delegate`
+## `actor` (deprecated) and `_delegate`
 
 gjs allows us to set so-called "expando properties" on introspected objects,
 allowing us to treat them like any other. Because the Shell was built before
-you could inherit from GTypes natively in JS, we usually have a wrapper class
-that has a property called `actor`. We call this wrapper class the "delegate".
+you could inherit from GTypes natively in JS, in some cases we have a wrapper
+class that has a property called `actor` (now deprecated). We call this
+wrapper class the "delegate".
 
 We sometimes use expando properties to set a property called `_delegate` on
 the actor itself:
+```javascript
+    var MyActor = GObject.registerClass(
+    class MyActor extends Clutter.Actor {
+        _init(params) {
+            super._init(params);
+            this._delegate = this;
+        }
+    });
+```
+
+Or using the deprecated `actor`:
 ```javascript
     var MyClass = class {
         constructor() {
@@ -215,6 +231,7 @@ delegate object from an associated actor. For instance, the drag and drop
 system calls the `handleDragOver` function on the delegate of a "drop target"
 when the user drags an item over it. If you do not set the `_delegate`
 property, your actor will not be able to be dropped onto.
+In case the class is an actor itself, the `_delegate` can be just set to `this`.
 
 ## Functional style
 
@@ -233,7 +250,7 @@ variable that can be captured in closures.
 All closures should be wrapped with Function.prototype.bind or use arrow
 notation.
 ```javascript
-    let closure1 = () => { this._fnorbate(); };
+    let closure1 = () => this._fnorbate();
     let closure2 = this._fnorbate.bind(this);
 ```
 

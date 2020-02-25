@@ -1,14 +1,15 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported RemoteAccessApplet */
 
-const Meta = imports.gi.Meta;
+const { GObject, Meta } = imports.gi;
 
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 
-var RemoteAccessApplet = class extends PanelMenu.SystemIndicator {
-    constructor() {
-        super();
+var RemoteAccessApplet = GObject.registerClass(
+class RemoteAccessApplet extends PanelMenu.SystemIndicator {
+    _init() {
+        super._init();
 
         let backend = Meta.get_backend();
         let controller = backend.get_remote_access_controller();
@@ -27,7 +28,7 @@ var RemoteAccessApplet = class extends PanelMenu.SystemIndicator {
         this._indicator = null;
         this._menuSection = null;
 
-        controller.connect('new-handle', (controller, handle) => {
+        controller.connect('new-handle', (o, handle) => {
             this._onNewHandle(handle);
         });
     }
@@ -75,4 +76,4 @@ var RemoteAccessApplet = class extends PanelMenu.SystemIndicator {
             this._sync();
         }
     }
-};
+});

@@ -55,6 +55,8 @@ const RENAMED_DESKTOP_IDS = {
     'org.gnome.taquin.desktop': 'org.gnome.Taquin.desktop',
     'org.gnome.Weather.Application.desktop': 'org.gnome.Weather.desktop',
     'polari.desktop': 'org.gnome.Polari.desktop',
+    'seahorse.desktop': 'org.gnome.seahorse.Application.desktop',
+    'shotwell.desktop': 'org.gnome.Shotwell.desktop',
     'tali.desktop': 'org.gnome.Tali.desktop',
     'totem.desktop': 'org.gnome.Totem.desktop',
     'evince.desktop': 'org.gnome.Evince.desktop',
@@ -64,7 +66,7 @@ class AppFavorites {
     constructor() {
         this.FAVORITE_APPS_KEY = 'favorite-apps';
         this._favorites = {};
-        global.settings.connect(`changed::${this.FAVORITE_APPS_KEY}`, this._onFavsChanged.bind(this));
+        global.settings.connect('changed::%s'.format(this.FAVORITE_APPS_KEY), this._onFavsChanged.bind(this));
         this.reload();
     }
 

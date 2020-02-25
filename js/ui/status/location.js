@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Indicator */
 
-const { Clutter, Gio, GLib, GObject, Shell } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Shell, St } = imports.gi;
 
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
@@ -25,7 +25,7 @@ var GeoclueAccuracyLevel = {
     CITY: 4,
     NEIGHBORHOOD: 5,
     STREET: 6,
-    EXACT: 8
+    EXACT: 8,
 };
 
 function accuracyLevelToString(accuracyLevel) {
@@ -42,14 +42,15 @@ const GeoclueManager = Gio.DBusProxy.makeProxyWrapper(GeoclueIface);
 
 var AgentIface = loadInterfaceXML('org.freedesktop.GeoClue2.Agent');
 
-var Indicator = class extends PanelMenu.SystemIndicator {
-    constructor() {
-        super();
+var Indicator = GObject.registerClass(
+class Indicator extends PanelMenu.SystemIndicator {
+    _init() {
+        super._init();
 
         this._settings = new Gio.Settings({ schema_id: LOCATION_SCHEMA });
-        this._settings.connect(`changed::${ENABLED}`,
+        this._settings.connect('changed::%s'.format(ENABLED),
                                this._onMaxAccuracyLevelChanged.bind(this));
-        this._settings.connect(`changed::${MAX_ACCURACY_LEVEL}`,
+        this._settings.connect('changed::%s'.format(MAX_ACCURACY_LEVEL),
                                this._onMaxAccuracyLevelChanged.bind(this));
 
         this._indicator = this._addIndicator();
@@ -92,7 +93,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
                                            this._getMaxAccuracyLevel());
 
         authorizer.authorize(accuracyLevel => {
-            let ret = (accuracyLevel != GeoclueAccuracyLevel.NONE);
+            let ret = accuracyLevel != GeoclueAccuracyLevel.NONE;
             invocation.return_value(GLib.Variant.new('(bu)',
                                                      [ret, accuracyLevel]));
         });
@@ -222,7 +223,7 @@ var Indicator = class extends PanelMenu.SystemIndicator {
 
         this._permStoreProxy = proxy;
     }
-};
+});
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -243,7 +244,7 @@ var AppAuthorizer = class {
         this._onAuthDone = onAuthDone;
 
         let appSystem = Shell.AppSystem.get_default();
-        this._app = appSystem.lookup_app(`${this.desktopId}.desktop`);
+        this._app = appSystem.lookup_app('%s.desktop'.format(this.desktopId));
         if (this._app == null || this._permStoreProxy == null) {
             this._completeAuth();
 
@@ -344,21 +345,31 @@ var AppAuthorizer = class {
 };
 
 var GeolocationDialog = GObject.registerClass({
-    Signals: { 'response': { param_types: [GObject.TYPE_UINT] } }
+    Signals: { 'response': { param_types: [GObject.TYPE_UINT] } },
 }, class GeolocationDialog extends ModalDialog.ModalDialog {
-    _init(name, subtitle, reqAccuracyLevel) {
+    _init(name, reason, reqAccuracyLevel) {
         super._init({ styleClass: 'geolocation-dialog' });
         this.reqAccuracyLevel = reqAccuracyLevel;
 
-        let icon = new Gio.ThemedIcon({ name: 'find-location-symbolic' });
+        let content = new Dialog.MessageDialogContent({
+            title: _('Allow location access'),
+            /* Translators: %s is an application name */
+            description: _('The app %s wants to access your location').format(name),
+        });
 
-        /* Translators: %s is an application name */
-        let title = _("Give %s access to your location?").format(name);
-        let body = _("Location access can be changed at any time from the privacy settings.");
+        let reasonLabel = new St.Label({
+            text: reason,
+            style_class: 'message-dialog-description',
+        });
+        content.add_child(reasonLabel);
 
-        let contentParams = { icon, title, subtitle, body };
-        let content = new Dialog.MessageDialogContent(contentParams);
-        this.contentLayout.add_actor(content);
+        let infoLabel = new St.Label({
+            text: _('Location access can be changed at any time from the privacy settings.'),
+            style_class: 'message-dialog-description',
+        });
+        content.add_child(infoLabel);
+
+        this.contentLayout.add_child(content);
 
         let button = this.addButton({ label: _("Deny Access"),
                                       action: this._onDenyClicked.bind(this),

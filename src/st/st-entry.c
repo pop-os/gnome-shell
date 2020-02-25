@@ -110,7 +110,6 @@ struct _StEntryPrivate
 
   gfloat        spacing;
 
-  gboolean      capslock_warning_shown;
   gboolean      has_ibeam;
 
   CoglPipeline *text_shadow_material;
@@ -217,59 +216,12 @@ st_entry_get_property (GObject    *gobject,
 }
 
 static void
-show_capslock_feedback (StEntry *entry)
-{
-  StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
-  if (priv->secondary_icon == NULL)
-    {
-      ClutterActor *icon = g_object_new (ST_TYPE_ICON,
-                                         "style-class", "capslock-warning",
-                                         "icon-name", "dialog-warning-symbolic",
-                                         NULL);
-
-      st_entry_set_secondary_icon (entry, icon);
-      priv->capslock_warning_shown = TRUE;
-    }
-}
-
-static void
-remove_capslock_feedback (StEntry *entry)
-{
-  StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
-  if (priv->capslock_warning_shown)
-    {
-      st_entry_set_secondary_icon (entry, NULL);
-      priv->capslock_warning_shown = FALSE;
-    }
-}
-
-static void
-keymap_state_changed (ClutterKeymap *keymap,
-                      gpointer       user_data)
-{
-  StEntry *entry = ST_ENTRY (user_data);
-  StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
-
-  if (clutter_text_get_password_char (CLUTTER_TEXT (priv->entry)) != 0)
-    {
-      if (clutter_keymap_get_caps_lock_state (keymap))
-        show_capslock_feedback (entry);
-      else
-        remove_capslock_feedback (entry);
-    }
-}
-
-static void
 st_entry_dispose (GObject *object)
 {
   StEntry *entry = ST_ENTRY (object);
   StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
-  ClutterKeymap *keymap;
 
   cogl_clear_object (&priv->text_shadow_material);
-
-  keymap = clutter_backend_get_keymap (clutter_get_default_backend ());
-  g_signal_handlers_disconnect_by_func (keymap, keymap_state_changed, entry);
 
   G_OBJECT_CLASS (st_entry_parent_class)->dispose (object);
 }
@@ -280,8 +232,7 @@ st_entry_update_hint_visibility (StEntry *self)
   StEntryPrivate *priv = ST_ENTRY_PRIV (self);
   gboolean hint_visible =
     priv->hint_actor != NULL &&
-    strcmp (clutter_text_get_text (CLUTTER_TEXT (priv->entry)), "") == 0 &&
-    !HAS_FOCUS (priv->entry);
+    strcmp (clutter_text_get_text (CLUTTER_TEXT (priv->entry)), "") == 0;
 
   if (priv->hint_actor)
     g_object_set (priv->hint_actor, "visible", hint_visible, NULL);
@@ -567,16 +518,6 @@ static void
 clutter_text_focus_in_cb (ClutterText  *text,
                           ClutterActor *actor)
 {
-  StEntry *entry = ST_ENTRY (actor);
-  ClutterKeymap *keymap;
-
-  st_entry_update_hint_visibility (entry);
-
-  keymap = clutter_backend_get_keymap (clutter_get_default_backend ());
-  keymap_state_changed (keymap, entry);
-  g_signal_connect (keymap, "state-changed",
-                    G_CALLBACK (keymap_state_changed), entry);
-
   st_widget_add_style_pseudo_class (ST_WIDGET (actor), "focus");
   clutter_text_set_cursor_visible (text, TRUE);
 }
@@ -585,30 +526,8 @@ static void
 clutter_text_focus_out_cb (ClutterText  *text,
                            ClutterActor *actor)
 {
-  StEntry *entry = ST_ENTRY (actor);
-  ClutterKeymap *keymap;
-
   st_widget_remove_style_pseudo_class (ST_WIDGET (actor), "focus");
-
-  st_entry_update_hint_visibility (entry);
-
   clutter_text_set_cursor_visible (text, FALSE);
-  remove_capslock_feedback (entry);
-
-  keymap = clutter_backend_get_keymap (clutter_get_default_backend ());
-  g_signal_handlers_disconnect_by_func (keymap, keymap_state_changed, entry);
-}
-
-static void
-clutter_text_password_char_cb (GObject    *object,
-                               GParamSpec *pspec,
-                               gpointer    user_data)
-{
-  StEntry *entry = ST_ENTRY (user_data);
-  StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
-
-  if (clutter_text_get_password_char (CLUTTER_TEXT (priv->entry)) == 0)
-    remove_capslock_feedback (entry);
 }
 
 static void
@@ -619,8 +538,12 @@ clutter_text_changed_cb (GObject    *object,
   StEntry *entry = ST_ENTRY (user_data);
   StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
 
+  st_entry_update_hint_visibility (entry);
+
   /* Since the text changed, force a regen of the shadow texture */
   cogl_clear_object (&priv->text_shadow_material);
+
+  g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_TEXT]);
 }
 
 static void
@@ -842,14 +765,15 @@ st_entry_leave_event (ClutterActor         *actor,
 }
 
 static void
-st_entry_paint (ClutterActor *actor)
+st_entry_paint (ClutterActor        *actor,
+                ClutterPaintContext *paint_context)
 {
   StEntryPrivate *priv = ST_ENTRY_PRIV (actor);
   StThemeNode *theme_node = st_widget_get_theme_node (ST_WIDGET (actor));
   StShadow *shadow_spec = st_theme_node_get_text_shadow (theme_node);
   ClutterActorClass *parent_class;
 
-  st_widget_paint_background (ST_WIDGET (actor));
+  st_widget_paint_background (ST_WIDGET (actor), paint_context);
 
   if (shadow_spec)
     {
@@ -876,11 +800,16 @@ st_entry_paint (ClutterActor *actor)
         }
 
       if (priv->text_shadow_material != NULL)
-        _st_paint_shadow_with_opacity (shadow_spec,
-                                       cogl_get_draw_framebuffer (),
-                                       priv->text_shadow_material,
-                                       &allocation,
-                                       clutter_actor_get_paint_opacity (priv->entry));
+        {
+          CoglFramebuffer *framebuffer =
+            clutter_paint_context_get_framebuffer (paint_context);
+
+          _st_paint_shadow_with_opacity (shadow_spec,
+                                         framebuffer,
+                                         priv->text_shadow_material,
+                                         &allocation,
+                                         clutter_actor_get_paint_opacity (priv->entry));
+        }
     }
 
   /* Since we paint the background ourselves, chain to the parent class
@@ -888,7 +817,7 @@ st_entry_paint (ClutterActor *actor)
    * This is needed as we still want to paint children.
    */
   parent_class = g_type_class_peek_parent (st_entry_parent_class);
-  parent_class->paint (actor);
+  parent_class->paint (actor, paint_context);
 }
 
 static void
@@ -1048,9 +977,6 @@ st_entry_init (StEntry *entry)
   g_signal_connect (priv->entry, "key-focus-out",
                     G_CALLBACK (clutter_text_focus_out_cb), entry);
 
-  g_signal_connect (priv->entry, "notify::password-char",
-                    G_CALLBACK (clutter_text_password_char_cb), entry);
-
   g_signal_connect (priv->entry, "button-press-event",
                     G_CALLBACK (clutter_text_button_press_event), entry);
 
@@ -1107,10 +1033,8 @@ st_entry_get_text (StEntry *entry)
   g_return_val_if_fail (ST_IS_ENTRY (entry), NULL);
 
   priv = st_entry_get_instance_private (entry);
-  if (priv->hint_actor != NULL && clutter_actor_is_visible (priv->hint_actor))
-    return "";
-  else
-    return clutter_text_get_text (CLUTTER_TEXT (priv->entry));
+
+  return clutter_text_get_text (CLUTTER_TEXT (priv->entry));
 }
 
 /**
@@ -1132,9 +1056,8 @@ st_entry_set_text (StEntry     *entry,
 
   clutter_text_set_text (CLUTTER_TEXT (priv->entry), text);
 
-  st_entry_update_hint_visibility (entry);
-
-  g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_TEXT]);
+  /* Note: PROP_TEXT will get notfied from our notify::text handler connected
+   * to priv->entry. */
 }
 
 /**
@@ -1172,6 +1095,8 @@ st_entry_set_hint_text (StEntry     *entry,
   g_return_if_fail (ST_IS_ENTRY (entry));
 
   label = st_label_new (text);
+  st_widget_add_style_class_name (label, "hint-text");
+
   st_entry_set_hint_actor (ST_ENTRY (entry), CLUTTER_ACTOR (label));
 }
 

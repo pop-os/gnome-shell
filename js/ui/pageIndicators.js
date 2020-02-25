@@ -1,9 +1,14 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported PageIndicators, AnimatedPageIndicators */
 
-const { Clutter, GLib, GObject, Meta, St } = imports.gi;
+const { Clutter, GLib, Graphene, GObject, Meta, St } = imports.gi;
 
 const { ANIMATION_TIME_OUT, ANIMATION_MAX_DELAY_OUT_FOR_ITEM, AnimationDirection } = imports.ui.iconGrid;
+
+const INDICATOR_INACTIVE_OPACITY = 128;
+const INDICATOR_INACTIVE_OPACITY_HOVER = 255;
+const INDICATOR_INACTIVE_SCALE = 2 / 3;
+const INDICATOR_INACTIVE_SCALE_PRESSED = 0.5;
 
 var INDICATORS_BASE_TIME = 250;
 var INDICATORS_BASE_TIME_OUT = 125;
@@ -12,24 +17,27 @@ var INDICATORS_ANIMATION_DELAY_OUT = 62.5;
 var INDICATORS_ANIMATION_MAX_TIME = 750;
 var SWITCH_TIME = 400;
 var INDICATORS_ANIMATION_MAX_TIME_OUT =
-    Math.min (SWITCH_TIME,
-              ANIMATION_TIME_OUT + ANIMATION_MAX_DELAY_OUT_FOR_ITEM);
+    Math.min(SWITCH_TIME,
+             ANIMATION_TIME_OUT + ANIMATION_MAX_DELAY_OUT_FOR_ITEM);
 
 var ANIMATION_DELAY = 100;
 
 var PageIndicators = GObject.registerClass({
-    Signals: { 'page-activated': { param_types: [GObject.TYPE_INT] } }
+    Signals: { 'page-activated': { param_types: [GObject.TYPE_INT] } },
 }, class PageIndicators extends St.BoxLayout {
-    _init(vertical = true) {
-        super._init({ style_class: 'page-indicators',
-                      vertical,
-                      x_expand: true, y_expand: true,
-                      x_align: vertical ? Clutter.ActorAlign.END : Clutter.ActorAlign.CENTER,
-                      y_align: vertical ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.END,
-                      reactive: true,
-                      clip_to_allocation: true });
+    _init(orientation = Clutter.Orientation.VERTICAL) {
+        let vertical = orientation == Clutter.Orientation.VERTICAL;
+        super._init({
+            style_class: 'page-indicators',
+            vertical,
+            x_expand: true, y_expand: true,
+            x_align: vertical ? Clutter.ActorAlign.END : Clutter.ActorAlign.CENTER,
+            y_align: vertical ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.END,
+            reactive: true,
+            clip_to_allocation: true,
+        });
         this._nPages = 0;
-        this._currentPage = undefined;
+        this._currentPosition = 0;
         this._reactive = true;
         this._reactive = true;
     }
@@ -63,13 +71,21 @@ var PageIndicators = GObject.registerClass({
                                                 button_mask: St.ButtonMask.ONE |
                                                              St.ButtonMask.TWO |
                                                              St.ButtonMask.THREE,
-                                                toggle_mode: true,
-                                                reactive: this._reactive,
-                                                checked: pageIndex == this._currentPage });
-                indicator.child = new St.Widget({ style_class: 'page-indicator-icon' });
+                                                reactive: this._reactive });
+                indicator.child = new St.Widget({
+                    style_class: 'page-indicator-icon',
+                    pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
+                });
                 indicator.connect('clicked', () => {
                     this.emit('page-activated', pageIndex);
                 });
+                indicator.connect('notify::hover', () => {
+                    this._updateIndicator(indicator, pageIndex);
+                });
+                indicator.connect('notify::pressed', () => {
+                    this._updateIndicator(indicator, pageIndex);
+                });
+                this._updateIndicator(indicator, pageIndex);
                 this.add_actor(indicator);
             }
         } else {
@@ -78,33 +94,57 @@ var PageIndicators = GObject.registerClass({
                 children[i].destroy();
         }
         this._nPages = nPages;
-        this.visible = (this._nPages > 1);
+        this.visible = this._nPages > 1;
     }
 
-    setCurrentPage(currentPage) {
-        this._currentPage = currentPage;
+    _updateIndicator(indicator, pageIndex) {
+        let progress =
+            Math.max(1 - Math.abs(this._currentPosition - pageIndex), 0);
+
+        let inactiveScale = indicator.pressed
+            ? INDICATOR_INACTIVE_SCALE_PRESSED : INDICATOR_INACTIVE_SCALE;
+        let inactiveOpacity = indicator.hover
+            ? INDICATOR_INACTIVE_OPACITY_HOVER : INDICATOR_INACTIVE_OPACITY;
+
+        let scale = inactiveScale + (1 - inactiveScale) * progress;
+        let opacity = inactiveOpacity + (255 - inactiveOpacity) * progress;
+
+        indicator.child.set_scale(scale, scale);
+        indicator.child.opacity = opacity;
+    }
+
+    setCurrentPosition(currentPosition) {
+        this._currentPosition = currentPosition;
 
         let children = this.get_children();
         for (let i = 0; i < children.length; i++)
-            children[i].set_checked(i == this._currentPage);
+            this._updateIndicator(children[i], i);
     }
 });
 
 var AnimatedPageIndicators = GObject.registerClass(
 class AnimatedPageIndicators extends PageIndicators {
     _init() {
-        super._init(true);
+        super._init();
+        this.connect('destroy', this._onDestroy.bind(this));
+    }
 
-        this.connect('notify::mapped', () => {
-            if (!this.mapped)
-                return;
+    _onDestroy() {
+        if (this.animateLater) {
+            Meta.later_remove(this.animateLater);
+            this.animateLater = 0;
+        }
+    }
 
-            // Implicit animations are skipped for unmapped actors, and our
-            // children aren't mapped yet, so defer to a later handler
-            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
-                this.animateIndicators(AnimationDirection.IN);
-                return GLib.SOURCE_REMOVE;
-            });
+    vfunc_map() {
+        super.vfunc_map();
+
+        // Implicit animations are skipped for unmapped actors, and our
+        // children aren't mapped yet, so defer to a later handler
+        this.animateLater = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this.animateLater = 0;
+            this.animateIndicators(AnimationDirection.IN);
+            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -143,7 +183,7 @@ class AnimatedPageIndicators extends PageIndicators {
                 translation_x: isAnimationIn ? 0 : offset,
                 duration: baseTime + delay * i,
                 mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
-                delay: isAnimationIn ? ANIMATION_DELAY : 0
+                delay: isAnimationIn ? ANIMATION_DELAY : 0,
             });
         }
     }

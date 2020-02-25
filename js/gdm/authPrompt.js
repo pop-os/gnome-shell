@@ -1,11 +1,12 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported AuthPrompt */
 
-const { Clutter, Pango, Shell, St } = imports.gi;
-const Signals = imports.signals;
+const { Clutter, GObject, Pango, Shell, St } = imports.gi;
 
 const Animation = imports.ui.animation;
 const Batch = imports.gdm.batch;
 const GdmUtil = imports.gdm.util;
+const Util = imports.misc.util;
 const Params = imports.misc.params;
 const ShellEntry = imports.ui.shellEntry;
 const UserWidget = imports.ui.userWidget;
@@ -18,23 +19,38 @@ var MESSAGE_FADE_OUT_ANIMATION_TIME = 500;
 
 var AuthPromptMode = {
     UNLOCK_ONLY: 0,
-    UNLOCK_OR_LOG_IN: 1
+    UNLOCK_OR_LOG_IN: 1,
 };
 
 var AuthPromptStatus = {
     NOT_VERIFYING: 0,
     VERIFYING: 1,
     VERIFICATION_FAILED: 2,
-    VERIFICATION_SUCCEEDED: 3
+    VERIFICATION_SUCCEEDED: 3,
 };
 
 var BeginRequestType = {
     PROVIDE_USERNAME: 0,
-    DONT_PROVIDE_USERNAME: 1
+    DONT_PROVIDE_USERNAME: 1,
 };
 
-var AuthPrompt = class {
-    constructor(gdmClient, mode) {
+var AuthPrompt = GObject.registerClass({
+    Signals: {
+        'cancelled': {},
+        'failed': {},
+        'next': {},
+        'prompted': {},
+        'reset': { param_types: [GObject.TYPE_UINT] },
+    },
+}, class AuthPrompt extends St.BoxLayout {
+    _init(gdmClient, mode) {
+        super._init({
+            style_class: 'login-dialog-prompt-layout',
+            vertical: true,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+
         this.verificationStatus = AuthPromptStatus.NOT_VERIFYING;
 
         this._gdmClient = gdmClient;
@@ -46,7 +62,7 @@ var AuthPrompt = class {
         else if (this._mode == AuthPromptMode.UNLOCK_OR_LOG_IN)
             reauthenticationOnly = false;
 
-        this._userVerifier = new GdmUtil.ShellUserVerifier(this._gdmClient, { reauthenticationOnly: reauthenticationOnly });
+        this._userVerifier = new GdmUtil.ShellUserVerifier(this._gdmClient, { reauthenticationOnly });
 
         this._userVerifier.connect('ask-question', this._onAskQuestion.bind(this));
         this._userVerifier.connect('show-message', this._onShowMessage.bind(this));
@@ -57,73 +73,42 @@ var AuthPrompt = class {
         this._userVerifier.connect('ovirt-user-authenticated', this._onOVirtUserAuthenticated.bind(this));
         this.smartcardDetected = this._userVerifier.smartcardDetected;
 
-        this.connect('next', () => {
-            this.updateSensitivity(false);
-            this.startSpinning();
-            if (this._queryingService) {
-                this._userVerifier.answerQuery(this._queryingService, this._entry.text);
-            } else {
-                this._preemptiveAnswer = this._entry.text;
-            }
+        this.connect('destroy', this._onDestroy.bind(this));
+
+        this._userWell = new St.Bin({
+            x_expand: true,
+            y_expand: true,
         });
+        this.add_child(this._userWell);
 
-        this.actor = new St.BoxLayout({ style_class: 'login-dialog-prompt-layout',
-                                        vertical: true });
-        this.actor.connect('destroy', this._onDestroy.bind(this));
-        this.actor.connect('key-press-event', (actor, event) => {
-            if (event.get_key_symbol() == Clutter.KEY_Escape)
-                this.cancel();
-            return Clutter.EVENT_PROPAGATE;
+        this._hasCancelButton = this._mode === AuthPromptStatus.UNLOCK_OR_LOG_IN;
+
+        this._initEntryRow();
+
+        let capsLockPlaceholder = new St.Label();
+        this.add_child(capsLockPlaceholder);
+
+        this._capsLockWarningLabel = new ShellEntry.CapsLockWarning({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
         });
+        this.add_child(this._capsLockWarningLabel);
 
-        this._userWell = new St.Bin({ x_fill: true,
-                                      x_align: St.Align.START });
-        this.actor.add(this._userWell,
-                       { x_align: St.Align.START,
-                         x_fill: true,
-                         y_fill: true,
-                         expand: true });
-        this._label = new St.Label({ style_class: 'login-dialog-prompt-label' });
+        this._capsLockWarningLabel.bind_property('visible',
+            capsLockPlaceholder, 'visible',
+            GObject.BindingFlags.SYNC_CREATE | GObject.BindingFlags.INVERT_BOOLEAN);
 
-        this.actor.add(this._label,
-                       { expand: true,
-                         x_fill: false,
-                         y_fill: true,
-                         x_align: St.Align.START });
-        this._entry = new St.Entry({ style_class: 'login-dialog-prompt-entry',
-                                     can_focus: true });
-        ShellEntry.addContextMenu(this._entry, { isPassword: true, actionMode: Shell.ActionMode.NONE });
-
-        this.actor.add(this._entry,
-                       { expand: true,
-                         x_fill: true,
-                         y_fill: false,
-                         x_align: St.Align.START });
-
-        this._entry.grab_key_focus();
-
-        this._message = new St.Label({ opacity: 0,
-                                       styleClass: 'login-dialog-message' });
+        this._message = new St.Label({
+            opacity: 0,
+            styleClass: 'login-dialog-message',
+            y_expand: true,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.START,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
         this._message.clutter_text.line_wrap = true;
         this._message.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
-        this.actor.add(this._message, { x_fill: false, x_align: St.Align.START, y_align: St.Align.START });
-
-        this._buttonBox = new St.BoxLayout({ style_class: 'login-dialog-button-box',
-                                             vertical: false });
-        this.actor.add(this._buttonBox,
-                       { expand: true,
-                         x_align: St.Align.MIDDLE,
-                         y_align: St.Align.END });
-
-        this._defaultButtonWell = new St.Widget({ layout_manager: new Clutter.BinLayout() });
-        this._defaultButtonWellActor = null;
-
-        this._initButtons();
-
-        this._spinner = new Animation.Spinner(DEFAULT_BUTTON_WELL_ICON_SIZE);
-        this._spinner.actor.opacity = 0;
-        this._spinner.actor.show();
-        this._defaultButtonWell.add_child(this._spinner.actor);
+        this.add_child(this._message);
     }
 
     _onDestroy() {
@@ -131,55 +116,106 @@ var AuthPrompt = class {
         this._userVerifier = null;
     }
 
-    _initButtons() {
-        this.cancelButton = new St.Button({ style_class: 'modal-dialog-button button',
-                                            button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
-                                            reactive: true,
-                                            can_focus: true,
-                                            label: _("Cancel") });
-        this.cancelButton.connect('clicked', () => this.cancel());
-        this._buttonBox.add(this.cancelButton,
-                            { expand: false,
-                              x_fill: false,
-                              y_fill: false,
-                              x_align: St.Align.START,
-                              y_align: St.Align.END });
-
-        this._buttonBox.add(this._defaultButtonWell,
-                            { expand: true,
-                              x_fill: false,
-                              y_fill: false,
-                              x_align: St.Align.END,
-                              y_align: St.Align.MIDDLE });
-        this.nextButton = new St.Button({ style_class: 'modal-dialog-button button',
-                                          button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
-                                          reactive: true,
-                                          can_focus: true,
-                                          label: _("Next") });
-        this.nextButton.connect('clicked', () => this.emit('next'));
-        this.nextButton.add_style_pseudo_class('default');
-        this._buttonBox.add(this.nextButton,
-                            { expand: false,
-                              x_fill: false,
-                              y_fill: false,
-                              x_align: St.Align.END,
-                              y_align: St.Align.END });
-
-        this._updateNextButtonSensitivity(this._entry.text.length > 0);
-
-        this._entry.clutter_text.connect('text-changed', () => {
-            if (!this._userVerifier.hasPendingMessages)
-                this._fadeOutMessage();
-
-            this._updateNextButtonSensitivity(this._entry.text.length > 0 || this.verificationStatus == AuthPromptStatus.VERIFYING);
-        });
-        this._entry.clutter_text.connect('activate', () => {
-            if (this.nextButton.reactive)
-                this.emit('next');
-        });
+    vfunc_key_press_event(keyPressEvent) {
+        if (keyPressEvent.keyval == Clutter.KEY_Escape)
+            this.cancel();
+        return Clutter.EVENT_PROPAGATE;
     }
 
-    _onAskQuestion(verifier, serviceName, question, passwordChar) {
+    _initEntryRow() {
+        this._mainBox = new St.BoxLayout({
+            style_class: 'login-dialog-button-box',
+            vertical: false,
+        });
+        this.add_child(this._mainBox);
+
+        this.cancelButton = new St.Button({
+            style_class: 'modal-dialog-button button cancel-button',
+            button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
+            reactive: this._hasCancelButton,
+            can_focus: true,
+            x_align: Clutter.ActorAlign.START,
+            y_align: Clutter.ActorAlign.CENTER,
+            child: new St.Icon({ icon_name: 'go-previous-symbolic' }),
+        });
+        if (this._hasCancelButton)
+            this.cancelButton.connect('clicked', () => this.cancel());
+        else
+            this.cancelButton.opacity = 0;
+        this._mainBox.add_child(this.cancelButton);
+
+        let entryParams = {
+            style_class: 'login-dialog-prompt-entry',
+            can_focus: true,
+            x_expand: true,
+        };
+
+        this._entry = null;
+
+        this._textEntry = new St.Entry(entryParams);
+        ShellEntry.addContextMenu(this._textEntry, { actionMode: Shell.ActionMode.NONE });
+
+        this._passwordEntry = new St.PasswordEntry(entryParams);
+        ShellEntry.addContextMenu(this._passwordEntry, { actionMode: Shell.ActionMode.NONE });
+
+        this._entry = this._passwordEntry;
+        this._mainBox.add_child(this._entry);
+        this._entry.grab_key_focus();
+
+        [this._textEntry, this._passwordEntry].forEach(entry => {
+            entry.clutter_text.connect('text-changed', () => {
+                if (!this._userVerifier.hasPendingMessages)
+                    this._fadeOutMessage();
+            });
+
+            entry.clutter_text.connect('activate', () => {
+                let shouldSpin = entry === this._passwordEntry;
+                if (entry.reactive)
+                    this._activateNext(shouldSpin);
+            });
+        });
+
+        this._defaultButtonWell = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_align: Clutter.ActorAlign.END,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._defaultButtonWell.add_constraint(new Clutter.BindConstraint({
+            source: this.cancelButton,
+            coordinate: Clutter.BindCoordinate.SIZE,
+        }));
+        this._mainBox.add_child(this._defaultButtonWell);
+
+        this._spinner = new Animation.Spinner(DEFAULT_BUTTON_WELL_ICON_SIZE);
+        this._defaultButtonWell.add_child(this._spinner);
+    }
+
+    _activateNext(shouldSpin) {
+        this.updateSensitivity(false);
+
+        if (shouldSpin)
+            this.startSpinning();
+
+        if (this._queryingService)
+            this._userVerifier.answerQuery(this._queryingService, this._entry.text);
+        else
+            this._preemptiveAnswer = this._entry.text;
+
+        this.emit('next');
+    }
+
+    _updateEntry(secret) {
+        if (secret && this._entry !== this._passwordEntry) {
+            this._mainBox.replace_child(this._entry, this._passwordEntry);
+            this._entry = this._passwordEntry;
+        } else if (!secret && this._entry !== this._textEntry) {
+            this._mainBox.replace_child(this._entry, this._textEntry);
+            this._entry = this._textEntry;
+        }
+        this._capsLockWarningLabel.visible = secret;
+    }
+
+    _onAskQuestion(verifier, serviceName, question, secret) {
         if (this._queryingService)
             this.clear();
 
@@ -189,17 +225,16 @@ var AuthPrompt = class {
             this._preemptiveAnswer = null;
             return;
         }
-        this.setPasswordChar(passwordChar);
-        this.setQuestion(question);
 
-        if (passwordChar) {
-            if (this._userVerifier.reauthenticating)
-                this.nextButton.label = _("Unlock");
-            else
-                this.nextButton.label = C_("button", "Sign In");
-        } else {
-            this.nextButton.label = _("Next");
-        }
+        this._updateEntry(secret);
+
+        // Hack: The question string comes directly from PAM, if it's "Password:"
+        // we replace it with our own to allow localization, if it's something
+        // else we remove the last colon and any trailing or leading spaces.
+        if (question === 'Password:' || question === 'Password: ')
+            this.setQuestion(_('Password'));
+        else
+            this.setQuestion(question.replace(/: *$/, '').trim());
 
         this.updateSensitivity(true);
         this.emit('prompted');
@@ -241,6 +276,8 @@ var AuthPrompt = class {
         this.updateSensitivity(canRetry);
         this.setActorInDefaultButtonWell(null);
         this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
+
+        Util.wiggle(this._entry);
     }
 
     _onVerificationComplete() {
@@ -254,10 +291,6 @@ var AuthPrompt = class {
         this.reset();
     }
 
-    addActorToDefaultButtonWell(actor) {
-        this._defaultButtonWell.add_child(actor);
-    }
-
     setActorInDefaultButtonWell(actor, animate) {
         if (!this._defaultButtonWellActor &&
             !actor)
@@ -269,13 +302,13 @@ var AuthPrompt = class {
             oldActor.remove_all_transitions();
 
         let wasSpinner;
-        if (oldActor == this._spinner.actor)
+        if (oldActor == this._spinner)
             wasSpinner = true;
         else
             wasSpinner = false;
 
         let isSpinner;
-        if (actor == this._spinner.actor)
+        if (actor == this._spinner)
             isSpinner = true;
         else
             isSpinner = false;
@@ -299,7 +332,7 @@ var AuthPrompt = class {
                             if (this._spinner)
                                 this._spinner.stop();
                         }
-                    }
+                    },
                 });
             }
         }
@@ -308,22 +341,23 @@ var AuthPrompt = class {
             if (isSpinner)
                 this._spinner.play();
 
-            if (!animate)
+            if (!animate) {
                 actor.opacity = 255;
-            else
+            } else {
                 actor.ease({
                     opacity: 255,
                     duration: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
                     delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
-                    mode: Clutter.AnimationMode.LINEAR
+                    mode: Clutter.AnimationMode.LINEAR,
                 });
+            }
         }
 
         this._defaultButtonWellActor = actor;
     }
 
     startSpinning() {
-        this.setActorInDefaultButtonWell(this._spinner.actor, true);
+        this.setActorInDefaultButtonWell(this._spinner, true);
     }
 
     stopSpinning() {
@@ -335,17 +369,10 @@ var AuthPrompt = class {
         this.stopSpinning();
     }
 
-    setPasswordChar(passwordChar) {
-        this._entry.clutter_text.set_password_char(passwordChar);
-        this._entry.menu.isPassword = passwordChar != '';
-    }
-
     setQuestion(question) {
-        this._label.set_text(question);
+        this._entry.hint_text = question;
 
-        this._label.show();
         this._entry.show();
-
         this._entry.grab_key_focus();
     }
 
@@ -369,7 +396,7 @@ var AuthPrompt = class {
         this._message.ease({
             opacity: 0,
             duration: MESSAGE_FADE_OUT_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
@@ -393,20 +420,14 @@ var AuthPrompt = class {
         }
     }
 
-    _updateNextButtonSensitivity(sensitive) {
-        this.nextButton.reactive = sensitive;
-        this.nextButton.can_focus = sensitive;
-    }
-
     updateSensitivity(sensitive) {
-        this._updateNextButtonSensitivity(sensitive && (this._entry.text.length > 0 || this.verificationStatus == AuthPromptStatus.VERIFYING));
         this._entry.reactive = sensitive;
         this._entry.clutter_text.editable = sensitive;
     }
 
-    hide() {
+    vfunc_hide() {
         this.setActorInDefaultButtonWell(null, true);
-        this.actor.hide();
+        super.vfunc_hide();
         this._message.opacity = 0;
 
         this.setUser(null);
@@ -420,17 +441,17 @@ var AuthPrompt = class {
         if (oldChild)
             oldChild.destroy();
 
-        if (user) {
-            let userWidget = new UserWidget.UserWidget(user);
-            this._userWell.set_child(userWidget.actor);
-        }
+        let userWidget = new UserWidget.UserWidget(user, Clutter.Orientation.VERTICAL);
+        this._userWell.set_child(userWidget);
+
+        if (!user)
+            this._updateEntry(false);
     }
 
     reset() {
         let oldStatus = this.verificationStatus;
         this.verificationStatus = AuthPromptStatus.NOT_VERIFYING;
-        this.cancelButton.reactive = true;
-        this.nextButton.label = _("Next");
+        this.cancelButton.reactive = this._hasCancelButton;
         this._preemptiveAnswer = null;
 
         if (this._userVerifier)
@@ -440,6 +461,7 @@ var AuthPrompt = class {
         this.clear();
         this._message.opacity = 0;
         this.setUser(null);
+        this._updateEntry(true);
         this.stopSpinning();
 
         if (oldStatus == AuthPromptStatus.VERIFICATION_FAILED)
@@ -501,11 +523,10 @@ var AuthPrompt = class {
     }
 
     cancel() {
-        if (this.verificationStatus == AuthPromptStatus.VERIFICATION_SUCCEEDED) {
+        if (this.verificationStatus == AuthPromptStatus.VERIFICATION_SUCCEEDED)
             return;
-        }
+
         this.reset();
         this.emit('cancelled');
     }
-};
-Signals.addSignalMethods(AuthPrompt.prototype);
+});

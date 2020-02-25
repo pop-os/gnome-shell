@@ -37,7 +37,7 @@ var MessageType = {
     NONE: 0,
     ERROR: 1,
     INFO: 2,
-    HINT: 3
+    HINT: 3,
 };
 
 function fadeInActor(actor) {
@@ -58,7 +58,7 @@ function fadeInActor(actor) {
         onComplete: () => {
             this.set_height(-1);
             hold.release();
-        }
+        },
     });
 
     return hold;
@@ -81,7 +81,7 @@ function fadeOutActor(actor) {
             this.hide();
             this.set_height(-1);
             hold.release();
-        }
+        },
     });
     return hold;
 }
@@ -109,7 +109,7 @@ function cloneAndFadeOutActor(actor) {
         onComplete: () => {
             clone.destroy();
             hold.release();
-        }
+        },
     });
     return hold;
 }
@@ -272,7 +272,7 @@ var ShellUserVerifier = class {
         let interval = this._getIntervalForMessage(message);
 
         this.hasPendingMessages = true;
-        this._messageQueue.push({ text: message, type: messageType, interval: interval });
+        this._messageQueue.push({ text: message, type: messageType, interval });
         this._queueMessageTimeout();
     }
 
@@ -485,7 +485,7 @@ var ShellUserVerifier = class {
         if (!this.serviceIsForeground(serviceName))
             return;
 
-        this.emit('ask-question', serviceName, question, '');
+        this.emit('ask-question', serviceName, question, false);
     }
 
     _onSecretInfoQuery(client, serviceName, secretQuestion) {
@@ -498,7 +498,7 @@ var ShellUserVerifier = class {
             return;
         }
 
-        this.emit('ask-question', serviceName, secretQuestion, '\u25cf');
+        this.emit('ask-question', serviceName, secretQuestion, true);
     }
 
     _onReset() {
@@ -544,6 +544,7 @@ var ShellUserVerifier = class {
                 });
             }
         } else {
+            // eslint-disable-next-line no-lonely-if
             if (!this.hasPendingMessages) {
                 this._cancelAndReset();
             } else {
@@ -571,9 +572,8 @@ var ShellUserVerifier = class {
         // if the password service fails, then cancel everything.
         // But if, e.g., fingerprint fails, still give
         // password authentication a chance to succeed
-        if (this.serviceIsForeground(serviceName)) {
+        if (this.serviceIsForeground(serviceName))
             this._verificationFailed(true);
-        }
     }
 };
 Signals.addSignalMethods(ShellUserVerifier.prototype);

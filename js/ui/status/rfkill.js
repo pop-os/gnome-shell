@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Indicator */
 
-const Gio = imports.gi.Gio;
+const { Gio, GObject } = imports.gi;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
@@ -61,9 +61,10 @@ function getRfkillManager() {
     return _manager;
 }
 
-var Indicator = class extends PanelMenu.SystemIndicator {
-    constructor() {
-        super();
+var Indicator = GObject.registerClass(
+class Indicator extends PanelMenu.SystemIndicator {
+    _init() {
+        super._init();
 
         this._manager = getRfkillManager();
         this._manager.connect('airplane-mode-changed', this._sync.bind(this));
@@ -97,8 +98,8 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         let hwAirplaneMode = this._manager.hwAirplaneMode;
         let showAirplaneMode = this._manager.shouldShowAirplaneMode;
 
-        this._indicator.visible = (airplaneMode && showAirplaneMode);
-        this._item.visible = (airplaneMode && showAirplaneMode);
+        this._indicator.visible = airplaneMode && showAirplaneMode;
+        this._item.visible = airplaneMode && showAirplaneMode;
         this._offItem.setSensitive(!hwAirplaneMode);
 
         if (hwAirplaneMode)
@@ -106,4 +107,4 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         else
             this._offItem.label.text = _("Turn Off");
     }
-};
+});

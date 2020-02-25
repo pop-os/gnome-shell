@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Indicator */
 
-const { Clutter, Gio, GObject, Gvc, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Gvc, St } = imports.gi;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
@@ -30,24 +30,31 @@ var StreamSlider = class {
 
         this.item = new PopupMenu.PopupBaseMenuItem({ activate: false });
 
+        this._inDrag = false;
+        this._notifyVolumeChangeId = 0;
+
         this._slider = new Slider.Slider(0);
 
         this._soundSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.sound' });
-        this._soundSettings.connect(`changed::${ALLOW_AMPLIFIED_VOLUME_KEY}`, this._amplifySettingsChanged.bind(this));
+        this._soundSettings.connect('changed::%s'.format(ALLOW_AMPLIFIED_VOLUME_KEY), this._amplifySettingsChanged.bind(this));
         this._amplifySettingsChanged();
 
         this._sliderChangedId = this._slider.connect('notify::value',
                                                      this._sliderChanged.bind(this));
-        this._slider.connect('drag-end', this._notifyVolumeChange.bind(this));
+        this._slider.connect('drag-begin', () => (this._inDrag = true));
+        this._slider.connect('drag-end', () => {
+            this._inDrag = false;
+            this._notifyVolumeChange();
+        });
 
         this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
         this.item.add(this._icon);
-        this.item.add(this._slider, { expand: true });
+        this.item.add_child(this._slider);
         this.item.connect('button-press-event', (actor, event) => {
             return this._slider.startDragging(event);
         });
         this.item.connect('key-press-event', (actor, event) => {
-            return this._slider.onKeyPressEvent(actor, event);
+            return this._slider.emit('key-press-event', event);
         });
 
         this._stream = null;
@@ -59,9 +66,8 @@ var StreamSlider = class {
     }
 
     set stream(stream) {
-        if (this._stream) {
+        if (this._stream)
             this._disconnectStream(this._stream);
-        }
 
         this._stream = stream;
 
@@ -107,6 +113,7 @@ var StreamSlider = class {
         let value = this._slider.value;
         let volume = value * this._control.get_vol_max_norm();
         let prevMuted = this._stream.is_muted;
+        let prevVolume = this._stream.volume;
         if (volume < 1) {
             this._stream.volume = 0;
             if (!prevMuted)
@@ -117,9 +124,23 @@ var StreamSlider = class {
                 this._stream.change_is_muted(false);
         }
         this._stream.push_volume();
+
+        let volumeChanged = this._stream.volume !== prevVolume;
+        if (volumeChanged && !this._notifyVolumeChangeId && !this._inDrag) {
+            this._notifyVolumeChangeId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 30, () => {
+                this._notifyVolumeChange();
+                this._notifyVolumeChangeId = 0;
+                return GLib.SOURCE_REMOVE;
+            });
+            GLib.Source.set_name_by_id(this._notifyVolumeChangeId,
+                '[gnome-shell] this._notifyVolumeChangeId');
+        }
     }
 
     _notifyVolumeChange() {
+        if (this._stream.state === Gvc.MixerStreamState.RUNNING)
+            return; // feedback not necessary while playing
+
         if (this._volumeCancellable)
             this._volumeCancellable.cancel();
 
@@ -131,15 +152,15 @@ var StreamSlider = class {
     }
 
     _changeSlider(value) {
-        GObject.signal_handler_block(this._slider, this._sliderChangedId);
+        this._slider.block_signal_handler(this._sliderChangedId);
         this._slider.value = value;
-        GObject.signal_handler_unblock(this._slider, this._sliderChangedId);
+        this._slider.unblock_signal_handler(this._sliderChangedId);
     }
 
     _updateVolume() {
         let muted = this._stream.is_muted;
         this._changeSlider(muted
-            ? 0 : (this._stream.volume / this._control.get_vol_max_norm()));
+            ? 0 : this._stream.volume / this._control.get_vol_max_norm());
         this.emit('stream-updated');
     }
 
@@ -228,9 +249,9 @@ var OutputStreamSlider = class extends StreamSlider {
     }
 
     _updateSliderIcon() {
-        this._icon.icon_name = (this._hasHeadphones
+        this._icon.icon_name = this._hasHeadphones
             ? 'audio-headphones-symbolic'
-            : 'audio-speakers-symbolic');
+            : 'audio-speakers-symbolic';
     }
 
     _portChanged() {
@@ -264,7 +285,7 @@ var InputStreamSlider = class extends StreamSlider {
             // as recording because they show the input level
             let skippedApps = [
                 'org.gnome.VolumeControl',
-                'org.PulseAudio.pavucontrol'
+                'org.PulseAudio.pavucontrol',
             ];
 
             showInput = this._control.get_source_outputs().some(output => {
@@ -299,6 +320,9 @@ var VolumeMenu = class extends PopupMenu.PopupMenuSection {
         this.addMenuItem(this._output.item);
 
         this._input = new InputStreamSlider(this._control);
+        this._input.item.connect('notify::visible', () => {
+            this.emit('input-visible-changed');
+        });
         this.addMenuItem(this._input.item);
 
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
@@ -338,34 +362,43 @@ var VolumeMenu = class extends PopupMenu.PopupMenuSection {
     getMaxLevel() {
         return this._output.getMaxLevel();
     }
+
+    getInputVisible() {
+        return this._input.item.visible;
+    }
 };
 
-var Indicator = class extends PanelMenu.SystemIndicator {
-    constructor() {
-        super();
+var Indicator = GObject.registerClass(
+class Indicator extends PanelMenu.SystemIndicator {
+    _init() {
+        super._init();
 
         this._primaryIndicator = this._addIndicator();
+        this._inputIndicator = this._addIndicator();
 
         this._control = getMixerControl();
         this._volumeMenu = new VolumeMenu(this._control);
         this._volumeMenu.connect('icon-changed', () => {
             let icon = this._volumeMenu.getIcon();
 
-            if (icon != null) {
-                this.indicators.show();
+            if (icon != null)
                 this._primaryIndicator.icon_name = icon;
-            } else {
-                this.indicators.hide();
-            }
+            this._primaryIndicator.visible = icon !== null;
+        });
+
+        this._inputIndicator.set({
+            icon_name: 'audio-input-microphone-symbolic',
+            visible: this._volumeMenu.getInputVisible(),
+        });
+        this._volumeMenu.connect('input-visible-changed', () => {
+            this._inputIndicator.visible = this._volumeMenu.getInputVisible();
         });
 
         this.menu.addMenuItem(this._volumeMenu);
-
-        this.indicators.connect('scroll-event', this._onScrollEvent.bind(this));
     }
 
-    _onScrollEvent(actor, event) {
-        let result = this._volumeMenu.scroll(event);
+    vfunc_scroll_event() {
+        let result = this._volumeMenu.scroll(Clutter.get_current_event());
         if (result == Clutter.EVENT_PROPAGATE || this.menu.actor.mapped)
             return result;
 
@@ -375,4 +408,4 @@ var Indicator = class extends PanelMenu.SystemIndicator {
         Main.osdWindowManager.show(-1, gicon, null, level, maxLevel);
         return result;
     }
-};
+});

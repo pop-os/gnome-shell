@@ -58,9 +58,8 @@ var AutomountManager = class {
     _InhibitorsChanged(_object, _senderName, [_inhibitor]) {
         this._session.IsInhibitedRemote(GNOME_SESSION_AUTOMOUNT_INHIBIT,
             (result, error) => {
-                if (!error) {
+                if (!error)
                     this._inhibited = result[0];
-                }
             });
     }
 
@@ -110,20 +109,20 @@ var AutomountManager = class {
         // mount operation object
         if (drive.can_stop()) {
             drive.stop(Gio.MountUnmountFlags.FORCE, null, null,
-                (drive, res) => {
+                (o, res) => {
                     try {
                         drive.stop_finish(res);
                     } catch (e) {
-                        log(`Unable to stop the drive after drive-eject-button ${e.toString()}`);
+                        log('Unable to stop the drive after drive-eject-button %s'.format(e.toString()));
                     }
                 });
         } else if (drive.can_eject()) {
             drive.eject_with_operation(Gio.MountUnmountFlags.FORCE, null, null,
-                (drive, res) => {
+                (o, res) => {
                     try {
                         drive.eject_with_operation_finish(res);
                     } catch (e) {
-                        log(`Unable to eject the drive after drive-eject-button ${e.toString()}`);
+                        log('Unable to eject the drive after drive-eject-button %s'.format(e.toString()));
                     }
                 });
         }
@@ -211,7 +210,7 @@ var AutomountManager = class {
                 }
 
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED_HANDLED))
-                    log(`Unable to mount volume ${volume.get_name()}: ${e.toString()}`);
+                    log('Unable to mount volume %s: %s'.format(volume.get_name(), e.toString()));
                 this._closeOperation(volume);
             }
         }
@@ -223,7 +222,7 @@ var AutomountManager = class {
             delete volume._allowAutorunExpireId;
         }
         this._volumeQueue =
-            this._volumeQueue.filter(element => (element != volume));
+            this._volumeQueue.filter(element => element != volume);
     }
 
     _reaskPassword(volume) {
@@ -231,7 +230,7 @@ var AutomountManager = class {
         let existingDialog = prevOperation ? prevOperation.borrowDialog() : null;
         let operation =
             new ShellMountOperation.ShellMountOperation(volume,
-                                                        { existingDialog: existingDialog });
+                                                        { existingDialog });
         this._mountVolume(volume, operation);
     }
 

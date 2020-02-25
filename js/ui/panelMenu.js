@@ -2,7 +2,6 @@
 /* exported Button, SystemIndicator */
 
 const { Atk, Clutter, GObject, St } = imports.gi;
-const Signals = imports.signals;
 
 const Main = imports.ui.main;
 const Params = imports.misc.params;
@@ -11,15 +10,17 @@ const PopupMenu = imports.ui.popupMenu;
 var ButtonBox = GObject.registerClass(
 class ButtonBox extends St.Widget {
     _init(params) {
-        params = Params.parse(params, { style_class: 'panel-button' }, true);
+        params = Params.parse(params, {
+            style_class: 'panel-button',
+            x_expand: true,
+            y_expand: true,
+        }, true);
 
         super._init(params);
 
         this._delegate = this;
 
-        this.container = new St.Bin({ y_fill: true,
-                                      x_fill: true,
-                                      child: this });
+        this.container = new St.Bin({ child: this });
 
         this.connect('style-changed', this._onStyleChanged.bind(this));
         this.connect('destroy', this._onDestroy.bind(this));
@@ -101,9 +102,6 @@ var Button = GObject.registerClass({
                       accessible_name: nameText ? nameText : "",
                       accessible_role: Atk.Role.MENU });
 
-        this.connect('event', this._onEvent.bind(this));
-        this.connect('notify::visible', this._onVisibilityChanged.bind(this));
-
         if (dontCreateMenu)
             this.menu = new PopupMenu.PopupDummyMenu(this);
         else
@@ -132,7 +130,7 @@ var Button = GObject.registerClass({
         this.emit('menu-set');
     }
 
-    _onEvent(actor, event) {
+    vfunc_event(event) {
         if (this.menu &&
             (event.type() == Clutter.EventType.TOUCH_BEGIN ||
              event.type() == Clutter.EventType.BUTTON_PRESS))
@@ -141,11 +139,10 @@ var Button = GObject.registerClass({
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _onVisibilityChanged() {
-        if (!this.menu)
-            return;
+    vfunc_hide() {
+        super.vfunc_hide();
 
-        if (!this.visible)
+        if (this.menu)
             this.menu.close();
     }
 
@@ -157,7 +154,7 @@ var Button = GObject.registerClass({
         if (symbol == Clutter.KEY_Left || symbol == Clutter.KEY_Right) {
             let group = global.focus_manager.get_group(this);
             if (group) {
-                let direction = (symbol == Clutter.KEY_Left) ? St.DirectionType.LEFT : St.DirectionType.RIGHT;
+                let direction = symbol == Clutter.KEY_Left ? St.DirectionType.LEFT : St.DirectionType.RIGHT;
                 group.navigate_focus(this, direction, false);
                 return Clutter.EVENT_STOP;
             }
@@ -182,7 +179,7 @@ var Button = GObject.registerClass({
         // measures are in logical pixels, so make sure to consider the scale
         // factor when computing max-height
         let maxHeight = Math.round((workArea.height - verticalMargins) / scaleFactor);
-        this.menu.actor.style = ('max-height: %spx;').format(maxHeight);
+        this.menu.actor.style = 'max-height: %spx;'.format(maxHeight);
     }
 
     _onDestroy() {
@@ -200,24 +197,33 @@ var Button = GObject.registerClass({
  * of an icon and a menu section, which will be composed into the
  * aggregate menu.
  */
-var SystemIndicator = class {
-    constructor() {
-        this.indicators = new St.BoxLayout({ style_class: 'panel-status-indicators-box',
-                                             reactive: true });
-        this.indicators.hide();
+var SystemIndicator = GObject.registerClass(
+class SystemIndicator extends St.BoxLayout {
+    _init() {
+        super._init({
+            style_class: 'panel-status-indicators-box',
+            reactive: true,
+            visible: false,
+        });
         this.menu = new PopupMenu.PopupMenuSection();
     }
 
+    get indicators() {
+        let klass = this.constructor.name;
+        let { stack } = new Error();
+        log(`Usage of indicator.indicators is deprecated for ${klass}\n${stack}`);
+        return this;
+    }
+
     _syncIndicatorsVisible() {
-        this.indicators.visible = this.indicators.get_children().some(a => a.visible);
+        this.visible = this.get_children().some(a => a.visible);
     }
 
     _addIndicator() {
         let icon = new St.Icon({ style_class: 'system-status-icon' });
-        this.indicators.add_actor(icon);
+        this.add_actor(icon);
         icon.connect('notify::visible', this._syncIndicatorsVisible.bind(this));
         this._syncIndicatorsVisible();
         return icon;
     }
-};
-Signals.addSignalMethods(SystemIndicator.prototype);
+});

@@ -52,9 +52,9 @@ class SwitchMonitorPopup extends SwitcherPopup.SwitcherPopup {
     _keyPressHandler(keysym, action) {
         if (action == Meta.KeyBindingAction.SWITCH_MONITOR)
             this._select(this._next());
-        else if (keysym == Clutter.Left)
+        else if (keysym == Clutter.KEY_Left)
             this._select(this._previous());
-        else if (keysym == Clutter.Right)
+        else if (keysym == Clutter.KEY_Right)
             this._select(this._next());
         else
             return Clutter.EVENT_PROPAGATE;
@@ -84,10 +84,13 @@ class SwitchMonitorSwitcher extends SwitcherPopup.SwitcherList {
 
         let icon = new St.Icon({ icon_name: item.icon,
                                  icon_size: APP_ICON_SIZE });
-        box.add(icon, { x_fill: false, y_fill: false } );
+        box.add_child(icon);
 
-        let text = new St.Label({ text: item.label });
-        box.add(text, { x_fill: false });
+        let text = new St.Label({
+            text: item.label,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        box.add_child(text);
 
         this.addItem(box, text);
     }

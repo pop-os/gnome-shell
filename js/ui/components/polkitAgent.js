@@ -1,35 +1,34 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Component */
 
-const { AccountsService, Clutter, Gio, GLib,
+const { AccountsService, Clutter, GLib,
         GObject, Pango, PolkitAgent, Polkit, Shell, St } = imports.gi;
 
-const Animation = imports.ui.animation;
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
 const ShellEntry = imports.ui.shellEntry;
 const UserWidget = imports.ui.userWidget;
+const Util = imports.misc.util;
 
 const DialogMode = {
     AUTH: 0,
     CONFIRM: 1,
 };
 
-var DIALOG_ICON_SIZE = 48;
+const DIALOG_ICON_SIZE = 64;
 
-var WORK_SPINNER_ICON_SIZE = 16;
+const DELAYED_RESET_TIMEOUT = 200;
 
 var AuthenticationDialog = GObject.registerClass({
-    Signals: { 'done': { param_types: [GObject.TYPE_BOOLEAN] } }
+    Signals: { 'done': { param_types: [GObject.TYPE_BOOLEAN] } },
 }, class AuthenticationDialog extends ModalDialog.ModalDialog {
-    _init(actionId, body, cookie, userNames) {
+    _init(actionId, description, cookie, userNames) {
         super._init({ styleClass: 'prompt-dialog' });
 
         this.actionId = actionId;
-        this.message = body;
+        this.message = description;
         this.userNames = userNames;
-        this._wasDismissed = false;
 
         this._sessionUpdatedId = Main.sessionMode.connect('updated', () => {
             this.visible = !Main.sessionMode.isLocked;
@@ -37,14 +36,15 @@ var AuthenticationDialog = GObject.registerClass({
 
         this.connect('closed', this._onDialogClosed.bind(this));
 
-        let icon = new Gio.ThemedIcon({ name: 'dialog-password-symbolic' });
         let title = _("Authentication Required");
 
-        let content = new Dialog.MessageDialogContent({ icon, title, body });
-        this.contentLayout.add_actor(content);
+        let headerContent = new Dialog.MessageDialogContent({ title, description });
+        this.contentLayout.add_child(headerContent);
+
+        let bodyContent = new Dialog.MessageDialogContent();
 
         if (userNames.length > 1) {
-            log(`polkitAuthenticationAgent: Received ${userNames.length} ` +
+            log('polkitAuthenticationAgent: Received %d'.format(userNames.length) +
                 'identities that can be used for authentication. Only ' +
                 'considering one.');
         }
@@ -59,23 +59,21 @@ var AuthenticationDialog = GObject.registerClass({
 
         let userBox = new St.BoxLayout({
             style_class: 'polkit-dialog-user-layout',
-            vertical: false,
+            vertical: true,
         });
-        content.messageBox.add(userBox);
+        bodyContent.add_child(userBox);
 
         this._userAvatar = new UserWidget.Avatar(this._user, {
             iconSize: DIALOG_ICON_SIZE,
             styleClass: 'polkit-dialog-user-icon',
         });
-        this._userAvatar.actor.hide();
-        userBox.add_child(this._userAvatar.actor);
+        this._userAvatar.x_align = Clutter.ActorAlign.CENTER;
+        userBox.add_child(this._userAvatar);
 
         this._userLabel = new St.Label({
             style_class: userName === 'root'
                 ? 'polkit-dialog-user-root-label'
                 : 'polkit-dialog-user-label',
-            x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
         });
 
         if (userName === 'root')
@@ -83,55 +81,76 @@ var AuthenticationDialog = GObject.registerClass({
 
         userBox.add_child(this._userLabel);
 
-        this._passwordBox = new St.BoxLayout({ vertical: false, style_class: 'prompt-dialog-password-box' });
-        content.messageBox.add(this._passwordBox);
-        this._passwordLabel = new St.Label(({ style_class: 'prompt-dialog-password-label' }));
-        this._passwordBox.add(this._passwordLabel, { y_fill: false, y_align: St.Align.MIDDLE });
-        this._passwordEntry = new St.Entry({ style_class: 'prompt-dialog-password-entry',
-                                             text: "",
-                                             can_focus: true });
-        ShellEntry.addContextMenu(this._passwordEntry, { isPassword: true });
-        this._passwordEntry.clutter_text.connect('activate', this._onEntryActivate.bind(this));
-        this._passwordBox.add(this._passwordEntry,
-                              { expand: true });
-
-        this._workSpinner = new Animation.Spinner(WORK_SPINNER_ICON_SIZE, {
-            animate: true,
+        let passwordBox = new St.BoxLayout({
+            style_class: 'prompt-dialog-password-layout',
+            vertical: true,
         });
-        this._passwordBox.add(this._workSpinner.actor);
 
-        this._passwordBox.hide();
+        this._passwordEntry = new St.PasswordEntry({
+            style_class: 'prompt-dialog-password-entry',
+            text: "",
+            can_focus: true,
+            visible: false,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        ShellEntry.addContextMenu(this._passwordEntry);
+        this._passwordEntry.clutter_text.connect('activate', this._onEntryActivate.bind(this));
+        this._passwordEntry.bind_property('reactive',
+            this._passwordEntry.clutter_text, 'editable',
+            GObject.BindingFlags.SYNC_CREATE);
+        passwordBox.add_child(this._passwordEntry);
 
-        this._errorMessageLabel = new St.Label({ style_class: 'prompt-dialog-error-label' });
+        let warningBox = new St.BoxLayout({ vertical: true });
+
+        let capsLockWarning = new ShellEntry.CapsLockWarning();
+        this._passwordEntry.bind_property('visible',
+            capsLockWarning, 'visible',
+            GObject.BindingFlags.SYNC_CREATE);
+        warningBox.add_child(capsLockWarning);
+
+        this._errorMessageLabel = new St.Label({
+            style_class: 'prompt-dialog-error-label',
+            visible: false,
+        });
         this._errorMessageLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         this._errorMessageLabel.clutter_text.line_wrap = true;
-        content.messageBox.add(this._errorMessageLabel, { x_fill: false, x_align: St.Align.START });
-        this._errorMessageLabel.hide();
+        warningBox.add_child(this._errorMessageLabel);
 
-        this._infoMessageLabel = new St.Label({ style_class: 'prompt-dialog-info-label' });
+        this._infoMessageLabel = new St.Label({
+            style_class: 'prompt-dialog-info-label',
+            visible: false,
+        });
         this._infoMessageLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         this._infoMessageLabel.clutter_text.line_wrap = true;
-        content.messageBox.add(this._infoMessageLabel);
-        this._infoMessageLabel.hide();
+        warningBox.add_child(this._infoMessageLabel);
 
         /* text is intentionally non-blank otherwise the height is not the same as for
          * infoMessage and errorMessageLabel - but it is still invisible because
          * gnome-shell.css sets the color to be transparent
          */
-        this._nullMessageLabel = new St.Label({ style_class: 'prompt-dialog-null-label',
-                                                text: 'abc' });
-        this._nullMessageLabel.add_style_class_name('hidden');
+        this._nullMessageLabel = new St.Label({ style_class: 'prompt-dialog-null-label' });
         this._nullMessageLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         this._nullMessageLabel.clutter_text.line_wrap = true;
-        content.messageBox.add(this._nullMessageLabel);
-        this._nullMessageLabel.show();
+        warningBox.add_child(this._nullMessageLabel);
+
+        passwordBox.add_child(warningBox);
+        bodyContent.add_child(passwordBox);
 
         this._cancelButton = this.addButton({ label: _("Cancel"),
                                               action: this.cancel.bind(this),
-                                              key: Clutter.Escape });
+                                              key: Clutter.KEY_Escape });
         this._okButton = this.addButton({ label: _("Authenticate"),
                                           action: this._onAuthenticateButtonPressed.bind(this),
-                                          default: true });
+                                          reactive: false });
+        this._okButton.bind_property('reactive',
+            this._okButton, 'can-focus',
+            GObject.BindingFlags.SYNC_CREATE);
+
+        this._passwordEntry.clutter_text.connect('text-changed', text => {
+            this._okButton.reactive = text.get_text().length > 0;
+        });
+
+        this.contentLayout.add_child(bodyContent);
 
         this._doneEmitted = false;
 
@@ -147,15 +166,8 @@ var AuthenticationDialog = GObject.registerClass({
         this._onUserChanged();
     }
 
-    _setWorking(working) {
-        if (working)
-            this._workSpinner.play();
-        else
-            this._workSpinner.stop();
-    }
-
     _initiateSession() {
-        this._destroySession();
+        this._destroySession(DELAYED_RESET_TIMEOUT);
 
         this._session = new PolkitAgent.Session({ identity: this._identityToAuth,
                                                   cookie: this._cookie });
@@ -182,8 +194,8 @@ var AuthenticationDialog = GObject.registerClass({
             // We could add retrying if this turns out to be a problem
 
             log('polkitAuthenticationAgent: Failed to show modal dialog. ' +
-                `Dismissing authentication request for action-id ${this.actionId} ` +
-                `cookie ${this._cookie}`);
+                'Dismissing authentication request for action-id %s '.format(this.actionId) +
+                'cookie %s'.format(this._cookie));
             this._emitDone(true);
         }
     }
@@ -195,18 +207,14 @@ var AuthenticationDialog = GObject.registerClass({
         }
     }
 
-    _updateSensitivity(sensitive) {
-        this._passwordEntry.reactive = sensitive;
-        this._passwordEntry.clutter_text.editable = sensitive;
-
-        this._okButton.can_focus = sensitive;
-        this._okButton.reactive = sensitive;
-        this._setWorking(!sensitive);
-    }
-
     _onEntryActivate() {
         let response = this._passwordEntry.get_text();
-        this._updateSensitivity(false);
+        if (response.length === 0)
+            return;
+
+        this._passwordEntry.reactive = false;
+        this._okButton.reactive = false;
+
         this._session.response(response);
         // When the user responds, dismiss already shown info and
         // error texts (if any)
@@ -238,7 +246,7 @@ var AuthenticationDialog = GObject.registerClass({
              * error providing authentication-method specific information),
              * show "Sorry, that didn't work. Please try again."
              */
-            if (!this._errorMessageLabel.visible && !this._wasDismissed) {
+            if (!this._errorMessageLabel.visible) {
                 /* Translators: "that didn't work" refers to the fact that the
                  * requested authentication was not gained; this can happen
                  * because of an authentication error (like invalid password),
@@ -247,6 +255,8 @@ var AuthenticationDialog = GObject.registerClass({
                 this._errorMessageLabel.show();
                 this._infoMessageLabel.hide();
                 this._nullMessageLabel.hide();
+
+                Util.wiggle(this._passwordEntry);
             }
 
             /* Try and authenticate again */
@@ -255,20 +265,25 @@ var AuthenticationDialog = GObject.registerClass({
     }
 
     _onSessionRequest(session, request, echoOn) {
-        // Cheap localization trick
-        if (request == 'Password:' || request == 'Password: ')
-            this._passwordLabel.set_text(_("Password:"));
-        else
-            this._passwordLabel.set_text(request);
+        if (this._sessionRequestTimeoutId) {
+            GLib.source_remove(this._sessionRequestTimeoutId);
+            this._sessionRequestTimeoutId = 0;
+        }
 
-        if (echoOn)
-            this._passwordEntry.clutter_text.set_password_char('');
+        // Hack: The request string comes directly from PAM, if it's "Password:"
+        // we replace it with our own to allow localization, if it's something
+        // else we remove the last colon and any trailing or leading spaces.
+        if (request === 'Password:' || request === 'Password: ')
+            this._passwordEntry.hint_text = _('Password');
         else
-            this._passwordEntry.clutter_text.set_password_char('\u25cf'); // ● U+25CF BLACK CIRCLE
+            this._passwordEntry.hint_text = request.replace(/: *$/, '').trim();
 
-        this._passwordBox.show();
+        this._passwordEntry.password_visible = echoOn;
+
+        this._passwordEntry.show();
         this._passwordEntry.set_text('');
-        this._updateSensitivity(true);
+        this._passwordEntry.reactive  = true;
+        this._okButton.reactive = false;
 
         this._ensureOpen();
         this._passwordEntry.grab_key_focus();
@@ -292,17 +307,39 @@ var AuthenticationDialog = GObject.registerClass({
         this._ensureOpen();
     }
 
-    _destroySession() {
+    _destroySession(delay = 0) {
         if (this._session) {
-            if (!this._completed)
-                this._session.cancel();
-            this._completed = false;
-
             this._session.disconnect(this._sessionCompletedId);
             this._session.disconnect(this._sessionRequestId);
             this._session.disconnect(this._sessionShowErrorId);
             this._session.disconnect(this._sessionShowInfoId);
+
+            if (!this._completed)
+                this._session.cancel();
+
+            this._completed = false;
             this._session = null;
+        }
+
+        if (this._sessionRequestTimeoutId) {
+            GLib.source_remove(this._sessionRequestTimeoutId);
+            this._sessionRequestTimeoutId = 0;
+        }
+
+        let resetDialog = () => {
+            if (this.state != ModalDialog.State.OPENED)
+                return;
+
+            this._passwordEntry.hide();
+            this._cancelButton.grab_key_focus();
+            this._okButton.reactive = false;
+        };
+
+        if (delay) {
+            this._sessionRequestTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, resetDialog);
+            GLib.Source.set_name_by_id(this._sessionRequestTimeoutId, '[gnome-shell] this._sessionRequestTimeoutId');
+        } else {
+            resetDialog();
         }
     }
 
@@ -313,12 +350,10 @@ var AuthenticationDialog = GObject.registerClass({
         let userName = this._user.get_user_name();
         let realName = this._user.get_real_name();
 
-        if (userName !== 'root') {
+        if (userName !== 'root')
             this._userLabel.set_text(realName);
 
-            this._userAvatar.update();
-            this._userAvatar.actor.show();
-        }
+        this._userAvatar.update();
 
         if (this._user.get_password_mode() === AccountsService.UserPasswordMode.NONE) {
             if (this._mode === DialogMode.CONFIRM)
@@ -344,7 +379,6 @@ var AuthenticationDialog = GObject.registerClass({
     }
 
     cancel() {
-        this._wasDismissed = true;
         this.close(global.get_current_time());
         this._emitDone(true);
     }
@@ -352,7 +386,10 @@ var AuthenticationDialog = GObject.registerClass({
     _onDialogClosed() {
         if (this._sessionUpdatedId)
             Main.sessionMode.disconnect(this._sessionUpdatedId);
-        this._sessionUpdatedId = 0;
+
+        if (this._sessionRequestTimeoutId)
+            GLib.source_remove(this._sessionRequestTimeoutId);
+        this._sessionRequestTimeoutId = 0;
 
         if (this._user) {
             this._user.disconnect(this._userLoadedId);
@@ -364,19 +401,20 @@ var AuthenticationDialog = GObject.registerClass({
     }
 });
 
-var AuthenticationAgent = class {
-    constructor() {
+var AuthenticationAgent = GObject.registerClass(
+class AuthenticationAgent extends Shell.PolkitAuthenticationAgent {
+    _init() {
+        super._init();
+
         this._currentDialog = null;
-        this._handle = null;
-        this._native = new Shell.PolkitAuthenticationAgent();
-        this._native.connect('initiate', this._onInitiate.bind(this));
-        this._native.connect('cancel', this._onCancel.bind(this));
+        this.connect('initiate', this._onInitiate.bind(this));
+        this.connect('cancel', this._onCancel.bind(this));
         this._sessionUpdatedId = 0;
     }
 
     enable() {
         try {
-            this._native.register();
+            this.register();
         } catch (e) {
             log('Failed to register AuthenticationAgent');
         }
@@ -384,7 +422,7 @@ var AuthenticationAgent = class {
 
     disable() {
         try {
-            this._native.unregister();
+            this.unregister();
         } catch (e) {
             log('Failed to unregister AuthenticationAgent');
         }
@@ -422,8 +460,8 @@ var AuthenticationAgent = class {
             Main.sessionMode.disconnect(this._sessionUpdatedId);
         this._sessionUpdatedId = 0;
 
-        this._native.complete(dismissed);
+        this.complete(dismissed);
     }
-};
+});
 
 var Component = AuthenticationAgent;

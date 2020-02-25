@@ -1,5 +1,5 @@
 /* exported MediaSection */
-const { Gio, Shell, St } = imports.gi;
+const { Gio, GObject, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const Calendar = imports.ui.calendar;
@@ -19,9 +19,10 @@ const MprisPlayerProxy = Gio.DBusProxy.makeProxyWrapper(MprisPlayerIface);
 
 const MPRIS_PLAYER_PREFIX = 'org.mpris.MediaPlayer2.';
 
-var MediaMessage = class MediaMessage extends MessageList.Message {
-    constructor(player) {
-        super('', '');
+var MediaMessage = GObject.registerClass(
+class MediaMessage extends MessageList.Message {
+    _init(player) {
+        super._init('', '');
 
         this._player = player;
 
@@ -43,12 +44,20 @@ var MediaMessage = class MediaMessage extends MessageList.Message {
                 this._player.next();
             });
 
-        this._player.connect('changed', this._update.bind(this));
-        this._player.connect('closed', this.close.bind(this));
+        this._updateHandlerId =
+            this._player.connect('changed', this._update.bind(this));
+        this._closedHandlerId =
+            this._player.connect('closed', this.close.bind(this));
         this._update();
     }
 
-    _onClicked() {
+    _onDestroy() {
+        super._onDestroy();
+        this._player.disconnect(this._updateHandlerId);
+        this._player.disconnect(this._closedHandlerId);
+    }
+
+    vfunc_clicked() {
         this._player.raise();
         Main.panel.closeCalendar();
     }
@@ -63,7 +72,7 @@ var MediaMessage = class MediaMessage extends MessageList.Message {
 
         if (this._player.trackCoverUrl) {
             let file = Gio.File.new_for_uri(this._player.trackCoverUrl);
-            this._icon.gicon = new Gio.FileIcon({ file: file });
+            this._icon.gicon = new Gio.FileIcon({ file });
             this._icon.remove_style_class_name('fallback');
         } else {
             this._icon.icon_name = 'audio-x-generic-symbolic';
@@ -79,7 +88,7 @@ var MediaMessage = class MediaMessage extends MessageList.Message {
         this._updateNavButton(this._prevButton, this._player.canGoPrevious);
         this._updateNavButton(this._nextButton, this._player.canGoNext);
     }
-};
+});
 
 var MprisPlayer = class MprisPlayer {
     constructor(busName) {
@@ -94,6 +103,7 @@ var MprisPlayer = class MprisPlayer {
         this._trackArtists = [];
         this._trackTitle = '';
         this._trackCoverUrl = '';
+        this._busName = busName;
     }
 
     get status() {
@@ -137,7 +147,7 @@ var MprisPlayer = class MprisPlayer {
         // so prefer activating the app via .desktop file if possible
         let app = null;
         if (this._mprisProxy.DesktopEntry) {
-            let desktopId = `${this._mprisProxy.DesktopEntry}.desktop`;
+            let desktopId = '%s.desktop'.format(this._mprisProxy.DesktopEntry);
             app = Shell.AppSystem.get_default().lookup_app(desktopId);
         }
 
@@ -176,9 +186,39 @@ var MprisPlayer = class MprisPlayer {
         for (let prop in this._playerProxy.Metadata)
             metadata[prop] = this._playerProxy.Metadata[prop].deep_unpack();
 
-        this._trackArtists = metadata['xesam:artist'] || [_("Unknown artist")];
-        this._trackTitle = metadata['xesam:title'] || _("Unknown title");
-        this._trackCoverUrl = metadata['mpris:artUrl'] || '';
+        // Validate according to the spec; some clients send buggy metadata:
+        // https://www.freedesktop.org/wiki/Specifications/mpris-spec/metadata
+        this._trackArtists = metadata['xesam:artist'];
+        if (!Array.isArray(this._trackArtists) ||
+            !this._trackArtists.every(artist => typeof artist === 'string')) {
+            if (typeof this._trackArtists !== 'undefined') {
+                log(('Received faulty track artist metadata from %s; ' +
+                    'expected an array of strings, got %s (%s)').format(
+                    this._busName, this._trackArtists, typeof this._trackArtists));
+            }
+            this._trackArtists =  [_("Unknown artist")];
+        }
+
+        this._trackTitle = metadata['xesam:title'];
+        if (typeof this._trackTitle !== 'string') {
+            if (typeof this._trackTitle !== 'undefined') {
+                log(('Received faulty track title metadata from %s; ' +
+                    'expected a string, got %s (%s)').format(
+                    this._busName, this._trackTitle, typeof this._trackTitle));
+            }
+            this._trackTitle = _("Unknown title");
+        }
+
+        this._trackCoverUrl = metadata['mpris:artUrl'];
+        if (typeof this._trackCoverUrl !== 'string') {
+            if (typeof this._trackCoverUrl !== 'undefined') {
+                log(('Received faulty track cover art metadata from %s; ' +
+                    'expected a string, got %s (%s)').format(
+                    this._busName, this._trackCoverUrl, typeof this._trackCoverUrl));
+            }
+            this._trackCoverUrl = '';
+        }
+
         this.emit('changed');
 
         let visible = this._playerProxy.CanPlay;
@@ -188,15 +228,16 @@ var MprisPlayer = class MprisPlayer {
             if (visible)
                 this.emit('show');
             else
-                this._close();
+                this.emit('hide');
         }
     }
 };
 Signals.addSignalMethods(MprisPlayer.prototype);
 
-var MediaSection = class MediaSection extends MessageList.MessageListSection {
-    constructor() {
-        super();
+var MediaSection = GObject.registerClass(
+class MediaSection extends MessageList.MessageListSection {
+    _init() {
+        super._init();
 
         this._players = new Map();
 
@@ -215,15 +256,20 @@ var MediaSection = class MediaSection extends MessageList.MessageListSection {
             return;
 
         let player = new MprisPlayer(busName);
+        let message = null;
         player.connect('closed',
             () => {
                 this._players.delete(busName);
             });
-        player.connect('show',
-            () => {
-                let message = new MediaMessage(player);
-                this.addMessage(message, true);
-            });
+        player.connect('show', () => {
+            message = new MediaMessage(player);
+            this.addMessage(message, true);
+        });
+        player.connect('hide', () => {
+            this.removeMessage(message, true);
+            message = null;
+        });
+
         this._players.set(busName, player);
     }
 
@@ -247,4 +293,4 @@ var MediaSection = class MediaSection extends MessageList.MessageListSection {
         if (newOwner && !oldOwner)
             this._addPlayer(name);
     }
-};
+});

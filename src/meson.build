@@ -6,10 +6,6 @@ subdir('hotplug-sniffer')
 subdir('st')
 subdir('tray')
 
-if get_option('extensions_tool')
-  subdir('extensions-tool')
-endif
-
 script_data = configuration_data()
 script_data.set('bindir', bindir)
 script_data.set('datadir', datadir)
@@ -95,6 +91,7 @@ libshell_public_headers = [
   'shell-app.h',
   'shell-app-system.h',
   'shell-app-usage.h',
+  'shell-blur-effect.h',
   'shell-embedded-window.h',
   'shell-glsl-effect.h',
   'shell-gtk-embed.h',
@@ -129,6 +126,7 @@ libshell_sources = [
   'shell-app.c',
   'shell-app-system.c',
   'shell-app-usage.c',
+  'shell-blur-effect.c',
   'shell-embedded-window.c',
   'shell-embedded-window-private.h',
   'shell-global.c',
@@ -185,6 +183,11 @@ libshell_no_gir_sources = [
 
 dbus_generated = gnome.gdbus_codegen('org-gtk-application',
   'org.gtk.Application.xml',
+  namespace: 'Shell'
+)
+
+dbus_generated += gnome.gdbus_codegen('switcheroo-control',
+  '../data/dbus-interfaces/net.hadess.SwitcherooControl.xml',
   namespace: 'Shell'
 )
 

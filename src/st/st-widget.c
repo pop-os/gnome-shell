@@ -57,7 +57,6 @@
 typedef struct _StWidgetPrivate        StWidgetPrivate;
 struct _StWidgetPrivate
 {
-  StTheme      *theme;
   StThemeNode  *theme_node;
   gchar        *pseudo_class;
   gchar        *style_class;
@@ -106,7 +105,6 @@ enum
 {
   PROP_0,
 
-  PROP_THEME,
   PROP_PSEUDO_CLASS,
   PROP_STYLE_CLASS,
   PROP_STYLE,
@@ -154,10 +152,6 @@ st_widget_set_property (GObject      *gobject,
 
   switch (prop_id)
     {
-    case PROP_THEME:
-      st_widget_set_theme (actor, g_value_get_object (value));
-      break;
-
     case PROP_PSEUDO_CLASS:
       st_widget_set_style_pseudo_class (actor, g_value_get_string (value));
       break;
@@ -211,10 +205,6 @@ st_widget_get_property (GObject    *gobject,
 
   switch (prop_id)
     {
-    case PROP_THEME:
-      g_value_set_object (value, priv->theme);
-      break;
-
     case PROP_PSEUDO_CLASS:
       g_value_set_string (value, priv->pseudo_class);
       break;
@@ -312,18 +302,14 @@ st_widget_dispose (GObject *gobject)
   StWidget *actor = ST_WIDGET (gobject);
   StWidgetPrivate *priv = st_widget_get_instance_private (actor);
 
-  g_clear_pointer (&priv->theme, g_object_unref);
   g_clear_pointer (&priv->theme_node, g_object_unref);
 
   st_widget_remove_transition (actor);
 
   g_clear_pointer (&priv->label_actor, g_object_unref);
 
-  if (priv->texture_file_changed_id != 0)
-    {
-      g_signal_handler_disconnect (st_texture_cache_get_default (), priv->texture_file_changed_id);
-      priv->texture_file_changed_id = 0;
-    }
+  g_clear_signal_handler (&priv->texture_file_changed_id,
+                          st_texture_cache_get_default ());
 
   g_clear_object (&priv->first_visible_child);
   g_clear_object (&priv->last_visible_child);
@@ -417,7 +403,8 @@ st_widget_allocate (ClutterActor          *actor,
  * painting children.
  */
 void
-st_widget_paint_background (StWidget *widget)
+st_widget_paint_background (StWidget            *widget,
+                            ClutterPaintContext *paint_context)
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
   CoglFramebuffer *framebuffer;
@@ -429,7 +416,7 @@ st_widget_paint_background (StWidget *widget)
   if (!st_widget_get_resource_scale (widget, &resource_scale))
     return;
 
-  framebuffer = cogl_get_draw_framebuffer ();
+  framebuffer = clutter_paint_context_get_framebuffer (paint_context);
   theme_node = st_widget_get_theme_node (widget);
 
   clutter_actor_get_allocation_box (CLUTTER_ACTOR (widget), &allocation);
@@ -452,12 +439,13 @@ st_widget_paint_background (StWidget *widget)
 }
 
 static void
-st_widget_paint (ClutterActor *actor)
+st_widget_paint (ClutterActor        *actor,
+                 ClutterPaintContext *paint_context)
 {
-  st_widget_paint_background (ST_WIDGET (actor));
+  st_widget_paint_background (ST_WIDGET (actor), paint_context);
 
   /* Chain up so we paint children. */
-  CLUTTER_ACTOR_CLASS (st_widget_parent_class)->paint (actor);
+  CLUTTER_ACTOR_CLASS (st_widget_parent_class)->paint (actor, paint_context);
 }
 
 static void
@@ -639,7 +627,7 @@ st_widget_get_theme_node (StWidget *widget)
         pseudo_class = direction_pseudo_class;
 
       context = st_theme_context_get_for_stage (stage);
-      tmp_node = st_theme_node_new (context, parent_node, priv->theme,
+      tmp_node = st_theme_node_new (context, parent_node, NULL,
                                     G_OBJECT_TYPE (widget),
                                     clutter_actor_get_name (CLUTTER_ACTOR (widget)),
                                     priv->style_class,
@@ -762,7 +750,7 @@ st_widget_get_paint_volume (ClutterActor *self,
   ClutterActorBox paint_box, alloc_box;
   StThemeNode *theme_node;
   StWidgetPrivate *priv;
-  ClutterVertex origin;
+  graphene_point3d_t origin;
 
   /* Setting the paint volume does not make sense when we don't have any allocation */
   if (!clutter_actor_has_allocation (self))
@@ -903,19 +891,6 @@ st_widget_class_init (StWidgetClass *klass)
                           ST_PARAM_READWRITE);
 
   /**
-   * StWidget:theme:
-   *
-   * A theme set on this actor overriding the global theming for this actor
-   * and its descendants
-   */
-  props[PROP_THEME] =
-     g_param_spec_object ("theme",
-                          "Theme",
-                          "Theme override",
-                          ST_TYPE_THEME,
-                          ST_PARAM_READWRITE);
-
-  /**
    * StWidget:track-hover:
    *
    * Determines whether the widget tracks pointer hover state. If
@@ -1040,52 +1015,6 @@ st_widget_class_init (StWidgetClass *klass)
                   G_STRUCT_OFFSET (StWidgetClass, resource_scale_changed),
                   NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
-}
-
-/**
- * st_widget_set_theme:
- * @actor: a #StWidget
- * @theme: a new style class string
- *
- * Overrides the theme that would be inherited from the actor's parent
- * or the stage with an entirely new theme (set of stylesheets).
- */
-void
-st_widget_set_theme (StWidget  *actor,
-                     StTheme   *theme)
-{
-  StWidgetPrivate *priv;
-
-  g_return_if_fail (ST_IS_WIDGET (actor));
-
-  priv = st_widget_get_instance_private (actor);
-
-  if (theme != priv->theme)
-    {
-      if (priv->theme)
-        g_object_unref (priv->theme);
-      priv->theme = g_object_ref (theme);
-
-      st_widget_style_changed (actor);
-
-      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_THEME]);
-    }
-}
-
-/**
- * st_widget_get_theme:
- * @actor: a #StWidget
- *
- * Gets the overriding theme set on the actor. See st_widget_set_theme()
- *
- * Return value: (transfer none): the overriding theme, or %NULL
- */
-StTheme *
-st_widget_get_theme (StWidget *actor)
-{
-  g_return_val_if_fail (ST_IS_WIDGET (actor), NULL);
-
-  return ST_WIDGET_PRIVATE (actor)->theme;
 }
 
 static const gchar *
@@ -1968,12 +1897,12 @@ st_widget_set_hover (StWidget *widget,
 void
 st_widget_sync_hover (StWidget *widget)
 {
-  ClutterDeviceManager *device_manager;
   ClutterInputDevice *pointer;
   ClutterActor *pointer_actor;
+  ClutterSeat *seat;
 
-  device_manager = clutter_device_manager_get_default ();
-  pointer = clutter_device_manager_get_device (device_manager, VIRTUAL_CORE_POINTER_ID);
+  seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
+  pointer = clutter_seat_get_pointer (seat);
   pointer_actor = clutter_input_device_get_pointer_actor (pointer);
   if (pointer_actor && clutter_actor_get_reactive (CLUTTER_ACTOR (widget)))
     st_widget_set_hover (widget, clutter_actor_contains (CLUTTER_ACTOR (widget), pointer_actor));
@@ -2062,7 +1991,7 @@ filter_by_position (GList            *children,
                     StDirectionType   direction)
 {
   ClutterActorBox cbox;
-  ClutterVertex abs_vertices[4];
+  graphene_point3d_t abs_vertices[4];
   GList *l, *ret;
   ClutterActor *child;
 
@@ -2128,7 +2057,7 @@ get_distance (ClutterActor    *actor,
 {
   int ax, ay, bx, by, dx, dy;
   ClutterActorBox abox;
-  ClutterVertex abs_vertices[4];
+  graphene_point3d_t abs_vertices[4];
 
   clutter_actor_get_abs_allocation_vertices (actor, abs_vertices);
   clutter_actor_box_from_vertices (&abox, abs_vertices);
@@ -2232,7 +2161,7 @@ st_widget_real_navigate_focus (StWidget         *widget,
   else /* direction is an arrow key, not tab */
     {
       ClutterActorBox sort_box;
-      ClutterVertex abs_vertices[4];
+      graphene_point3d_t abs_vertices[4];
 
       /* Compute the allocation box of the previous focused actor. If there
        * was no previous focus, use the coordinates of the appropriate edge of
@@ -3111,64 +3040,4 @@ GList *
 st_widget_get_focus_chain (StWidget *widget)
 {
   return ST_WIDGET_GET_CLASS (widget)->get_focus_chain (widget);
-}
-
-/**
- * st_get_align_factors:
- * @x_align: an #StAlign
- * @y_align: an #StAlign
- * @x_align_out: (out) (optional): @x_align as a #gdouble
- * @y_align_out: (out) (optional): @y_align as a #gdouble
- *
- * Converts @x_align and @y_align to #gdouble values.
- */
-void
-st_get_align_factors (StAlign   x_align,
-                      StAlign   y_align,
-                      gdouble  *x_align_out,
-                      gdouble  *y_align_out)
-{
-  if (x_align_out)
-    {
-      switch (x_align)
-        {
-        case ST_ALIGN_START:
-          *x_align_out = 0.0;
-          break;
-
-        case ST_ALIGN_MIDDLE:
-          *x_align_out = 0.5;
-          break;
-
-        case ST_ALIGN_END:
-          *x_align_out = 1.0;
-          break;
-
-        default:
-          g_warn_if_reached ();
-          break;
-        }
-    }
-
-  if (y_align_out)
-    {
-      switch (y_align)
-        {
-        case ST_ALIGN_START:
-          *y_align_out = 0.0;
-          break;
-
-        case ST_ALIGN_MIDDLE:
-          *y_align_out = 0.5;
-          break;
-
-        case ST_ALIGN_END:
-          *y_align_out = 1.0;
-          break;
-
-        default:
-          g_warn_if_reached ();
-          break;
-        }
-    }
 }

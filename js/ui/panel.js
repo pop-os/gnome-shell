@@ -57,8 +57,7 @@ function _unpremultiply(color) {
     let red = Math.min((color.red * 255 + 127) / color.alpha, 255);
     let green = Math.min((color.green * 255 + 127) / color.alpha, 255);
     let blue = Math.min((color.blue * 255 + 127) / color.alpha, 255);
-    return new Clutter.Color({ red: red, green: green,
-                               blue: blue, alpha: color.alpha });
+    return new Clutter.Color({ red, green, blue, alpha: color.alpha });
 }
 
 class AppMenu extends PopupMenu.PopupMenu {
@@ -119,7 +118,7 @@ class AppMenu extends PopupMenu.PopupMenu {
 
     _updateDetailsVisibility() {
         let sw = this._appSystem.lookup_app('org.gnome.Software.desktop');
-        this._detailsItem.visible = (sw != null);
+        this._detailsItem.visible = sw != null;
     }
 
     isEmpty() {
@@ -242,7 +241,7 @@ var AppMenuButton = GObject.registerClass({
             animate: true,
             hideOnStop: true,
         });
-        this._container.add_actor(this._spinner.actor);
+        this._container.add_actor(this._spinner);
 
         let menu = new AppMenu(this);
         this.setMenu(menu);
@@ -271,7 +270,7 @@ var AppMenuButton = GObject.registerClass({
         this.ease({
             opacity: 255,
             duration: Overview.ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
     }
 
@@ -286,7 +285,7 @@ var AppMenuButton = GObject.registerClass({
             opacity: 0,
             mode: Clutter.Animation.EASE_OUT_QUAD,
             duration: Overview.ANIMATION_TIME,
-            onComplete: () => this.hide()
+            onComplete: () => this.hide(),
         });
     }
 
@@ -347,9 +346,10 @@ var AppMenuButton = GObject.registerClass({
         if (focusedApp && focusedApp.is_on_workspace(workspace))
             return focusedApp;
 
-        for (let i = 0; i < this._startingApps.length; i++)
+        for (let i = 0; i < this._startingApps.length; i++) {
             if (this._startingApps[i].is_on_workspace(workspace))
                 return this._startingApps[i];
+        }
 
         return null;
     }
@@ -372,21 +372,21 @@ var AppMenuButton = GObject.registerClass({
             }
         }
 
-        let visible = (this._targetApp != null && !Main.overview.visibleTarget);
+        let visible = this._targetApp != null && !Main.overview.visibleTarget;
         if (visible)
             this.fadeIn();
         else
             this.fadeOut();
 
-        let isBusy = (this._targetApp != null &&
+        let isBusy = this._targetApp != null &&
                       (this._targetApp.get_state() == Shell.AppState.STARTING ||
-                       this._targetApp.get_busy()));
+                       this._targetApp.get_busy());
         if (isBusy)
             this.startAnimation();
         else
             this.stopAnimation();
 
-        this.reactive = (visible && !isBusy);
+        this.reactive = visible && !isBusy;
 
         this._syncIcon();
         this.menu.setApp(this._targetApp);
@@ -437,16 +437,13 @@ class ActivitiesButton extends PanelMenu.Button {
 
         this.label_actor = this._label;
 
-        this.connect('captured-event', this._onCapturedEvent.bind(this));
-        this.connect_after('key-release-event', this._onKeyRelease.bind(this));
-
         Main.overview.connect('showing', () => {
             this.add_style_pseudo_class('overview');
-            this.add_accessible_state (Atk.StateType.CHECKED);
+            this.add_accessible_state(Atk.StateType.CHECKED);
         });
         Main.overview.connect('hiding', () => {
             this.remove_style_pseudo_class('overview');
-            this.remove_accessible_state (Atk.StateType.CHECKED);
+            this.remove_accessible_state(Atk.StateType.CHECKED);
         });
 
         this._xdndTimeOut = 0;
@@ -466,7 +463,7 @@ class ActivitiesButton extends PanelMenu.Button {
         return DND.DragMotionResult.CONTINUE;
     }
 
-    _onCapturedEvent(actor, event) {
+    vfunc_captured_event(event) {
         if (event.type() == Clutter.EventType.BUTTON_PRESS ||
             event.type() == Clutter.EventType.TOUCH_BEGIN) {
             if (!Main.overview.shouldToggleByCornerOrButton())
@@ -475,23 +472,25 @@ class ActivitiesButton extends PanelMenu.Button {
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _onEvent(actor, event) {
-        super._onEvent(actor, event);
-
+    vfunc_event(event) {
         if (event.type() == Clutter.EventType.TOUCH_END ||
-            event.type() == Clutter.EventType.BUTTON_RELEASE)
+            event.type() == Clutter.EventType.BUTTON_RELEASE) {
             if (Main.overview.shouldToggleByCornerOrButton())
                 Main.overview.toggle();
+        }
 
         return Clutter.EVENT_PROPAGATE;
     }
 
-    _onKeyRelease(actor, event) {
-        let symbol = event.get_key_symbol();
+    vfunc_key_release_event(keyEvent) {
+        let symbol = keyEvent.keyval;
         if (symbol == Clutter.KEY_Return || symbol == Clutter.KEY_space) {
-            if (Main.overview.shouldToggleByCornerOrButton())
+            if (Main.overview.shouldToggleByCornerOrButton()) {
                 Main.overview.toggle();
+                return Clutter.EVENT_STOP;
+            }
         }
+
         return Clutter.EVENT_PROPAGATE;
     }
 
@@ -508,13 +507,12 @@ class ActivitiesButton extends PanelMenu.Button {
     }
 });
 
-var PanelCorner = class {
-    constructor(side) {
+var PanelCorner = GObject.registerClass(
+class PanelCorner extends St.DrawingArea {
+    _init(side) {
         this._side = side;
 
-        this.actor = new St.DrawingArea({ style_class: 'panel-corner' });
-        this.actor.connect('style-changed', this._styleChanged.bind(this));
-        this.actor.connect('repaint', this._repaint.bind(this));
+        super._init({ style_class: 'panel-corner' });
     }
 
     _findRightmostButton(container) {
@@ -535,8 +533,8 @@ var PanelCorner = class {
         if (index < 0)
             return null;
 
-        if (!(children[index].has_style_class_name('panel-menu')) &&
-            !(children[index].has_style_class_name('panel-button')))
+        if (!children[index].has_style_class_name('panel-menu') &&
+            !children[index].has_style_class_name('panel-button'))
             return this._findRightmostButton(children[index]);
 
         return children[index];
@@ -560,8 +558,8 @@ var PanelCorner = class {
         if (index == children.length)
             return null;
 
-        if (!(children[index].has_style_class_name('panel-menu')) &&
-            !(children[index].has_style_class_name('panel-button')))
+        if (!children[index].has_style_class_name('panel-menu') &&
+            !children[index].has_style_class_name('panel-button'))
             return this._findLeftmostButton(children[index]);
 
         return children[index];
@@ -604,7 +602,7 @@ var PanelCorner = class {
             this._buttonStyleChangedSignalId = button.connect('style-changed',
                 () => {
                     let pseudoClass = button.get_style_pseudo_class();
-                    this.actor.set_style_pseudo_class(pseudoClass);
+                    this.set_style_pseudo_class(pseudoClass);
                 });
 
             // The corner doesn't support theme transitions, so override
@@ -613,8 +611,8 @@ var PanelCorner = class {
         }
     }
 
-    _repaint() {
-        let node = this.actor.get_theme_node();
+    vfunc_repaint() {
+        let node = this.get_theme_node();
 
         let cornerRadius = node.get_length("-panel-corner-radius");
         let borderWidth = node.get_length('-panel-corner-border-width');
@@ -625,18 +623,19 @@ var PanelCorner = class {
         let overlap = borderColor.alpha != 0;
         let offsetY = overlap ? 0 : borderWidth;
 
-        let cr = this.actor.get_context();
+        let cr = this.get_context();
         cr.setOperator(Cairo.Operator.SOURCE);
 
         cr.moveTo(0, offsetY);
-        if (this._side == St.Side.LEFT)
+        if (this._side == St.Side.LEFT) {
             cr.arc(cornerRadius,
                    borderWidth + cornerRadius,
                    cornerRadius, Math.PI, 3 * Math.PI / 2);
-        else
+        } else {
             cr.arc(0,
                    borderWidth + cornerRadius,
                    cornerRadius, 3 * Math.PI / 2, 2 * Math.PI);
+        }
         cr.lineTo(cornerRadius, offsetY);
         cr.closePath();
 
@@ -652,7 +651,7 @@ var PanelCorner = class {
             Clutter.cairo_set_source_color(cr, backgroundColor);
 
             cr.save();
-            cr.translate(xOffsetDirection * offset, - offset);
+            cr.translate(xOffsetDirection * offset, -offset);
             cr.appendPath(savedPath);
             cr.fill();
             cr.restore();
@@ -661,16 +660,17 @@ var PanelCorner = class {
         cr.$dispose();
     }
 
-    _styleChanged() {
-        let node = this.actor.get_theme_node();
+    vfunc_style_changed() {
+        super.vfunc_style_changed();
+        let node = this.get_theme_node();
 
         let cornerRadius = node.get_length("-panel-corner-radius");
         let borderWidth = node.get_length('-panel-corner-border-width');
 
-        this.actor.set_size(cornerRadius, borderWidth + cornerRadius);
-        this.actor.set_anchor_point(0, borderWidth);
+        this.set_size(cornerRadius, borderWidth + cornerRadius);
+        this.set_anchor_point(0, borderWidth);
     }
-};
+});
 
 var AggregateLayout = GObject.registerClass(
 class AggregateLayout extends Clutter.BoxLayout {
@@ -713,16 +713,15 @@ class AggregateMenu extends PanelMenu.Button {
         this._indicators = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
         this.add_child(this._indicators);
 
-        if (Config.HAVE_NETWORKMANAGER) {
+        if (Config.HAVE_NETWORKMANAGER)
             this._network = new imports.ui.status.network.NMApplet();
-        } else {
+        else
             this._network = null;
-        }
-        if (Config.HAVE_BLUETOOTH) {
+
+        if (Config.HAVE_BLUETOOTH)
             this._bluetooth = new imports.ui.status.bluetooth.Indicator();
-        } else {
+        else
             this._bluetooth = null;
-        }
 
         this._remoteAccess = new imports.ui.status.remoteAccess.RemoteAccessApplet();
         this._power = new imports.ui.status.power.Indicator();
@@ -735,42 +734,41 @@ class AggregateMenu extends PanelMenu.Button {
         this._nightLight = new imports.ui.status.nightLight.Indicator();
         this._thunderbolt = new imports.ui.status.thunderbolt.Indicator();
 
-        this._indicators.add_child(this._thunderbolt.indicators);
-        this._indicators.add_child(this._screencast.indicators);
-        this._indicators.add_child(this._location.indicators);
-        this._indicators.add_child(this._nightLight.indicators);
-        if (this._network) {
-            this._indicators.add_child(this._network.indicators);
-        }
-        if (this._bluetooth) {
-            this._indicators.add_child(this._bluetooth.indicators);
-        }
-        this._indicators.add_child(this._remoteAccess.indicators);
-        this._indicators.add_child(this._rfkill.indicators);
-        this._indicators.add_child(this._volume.indicators);
-        this._indicators.add_child(this._power.indicators);
+        this._indicators.add_child(this._thunderbolt);
+        this._indicators.add_child(this._screencast);
+        this._indicators.add_child(this._location);
+        this._indicators.add_child(this._nightLight);
+        if (this._network)
+            this._indicators.add_child(this._network);
+        if (this._bluetooth)
+            this._indicators.add_child(this._bluetooth);
+        this._indicators.add_child(this._remoteAccess);
+        this._indicators.add_child(this._rfkill);
+        this._indicators.add_child(this._volume);
+        this._indicators.add_child(this._power);
         this._indicators.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
 
         this.menu.addMenuItem(this._volume.menu);
         this.menu.addMenuItem(this._brightness.menu);
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-        if (this._network) {
+        if (this._network)
             this.menu.addMenuItem(this._network.menu);
-        }
-        if (this._bluetooth) {
+
+        if (this._bluetooth)
             this.menu.addMenuItem(this._bluetooth.menu);
-        }
+
         this.menu.addMenuItem(this._remoteAccess.menu);
         this.menu.addMenuItem(this._location.menu);
         this.menu.addMenuItem(this._rfkill.menu);
         this.menu.addMenuItem(this._power.menu);
         this.menu.addMenuItem(this._nightLight.menu);
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         this.menu.addMenuItem(this._system.menu);
 
         menuLayout.addSizeChild(this._location.menu.actor);
         menuLayout.addSizeChild(this._rfkill.menu.actor);
         menuLayout.addSizeChild(this._power.menu.actor);
-        menuLayout.addSizeChild(this._system.buttonGroup);
+        menuLayout.addSizeChild(this._system.menu.actor);
     }
 });
 
@@ -806,14 +804,10 @@ class Panel extends St.Widget {
         this.add_child(this._rightBox);
 
         this._leftCorner = new PanelCorner(St.Side.LEFT);
-        this.add_child(this._leftCorner.actor);
+        this.add_child(this._leftCorner);
 
         this._rightCorner = new PanelCorner(St.Side.RIGHT);
-        this.add_child(this._rightCorner.actor);
-
-        this.connect('button-press-event', this._onButtonPress.bind(this));
-        this.connect('touch-event', this._onButtonPress.bind(this));
-        this.connect('key-press-event', this._onKeyPress.bind(this));
+        this.add_child(this._rightCorner);
 
         Main.overview.connect('showing', () => {
             this.add_style_pseudo_class('overview');
@@ -902,62 +896,65 @@ class Panel extends St.Widget {
 
         let cornerWidth, cornerHeight;
 
-        [, cornerWidth] = this._leftCorner.actor.get_preferred_width(-1);
-        [, cornerHeight] = this._leftCorner.actor.get_preferred_height(-1);
+        [, cornerWidth] = this._leftCorner.get_preferred_width(-1);
+        [, cornerHeight] = this._leftCorner.get_preferred_height(-1);
         childBox.x1 = 0;
         childBox.x2 = cornerWidth;
         childBox.y1 = allocHeight;
         childBox.y2 = allocHeight + cornerHeight;
-        this._leftCorner.actor.allocate(childBox, flags);
+        this._leftCorner.allocate(childBox, flags);
 
-        [, cornerWidth] = this._rightCorner.actor.get_preferred_width(-1);
-        [, cornerHeight] = this._rightCorner.actor.get_preferred_height(-1);
+        [, cornerWidth] = this._rightCorner.get_preferred_width(-1);
+        [, cornerHeight] = this._rightCorner.get_preferred_height(-1);
         childBox.x1 = allocWidth - cornerWidth;
         childBox.x2 = allocWidth;
         childBox.y1 = allocHeight;
         childBox.y2 = allocHeight + cornerHeight;
-        this._rightCorner.actor.allocate(childBox, flags);
+        this._rightCorner.allocate(childBox, flags);
     }
 
-    _onButtonPress(actor, event) {
+    _tryDragWindow(event) {
         if (Main.modalCount > 0)
             return Clutter.EVENT_PROPAGATE;
 
-        if (event.get_source() != actor)
+        if (event.source != this)
             return Clutter.EVENT_PROPAGATE;
 
-        let type = event.type();
-        let isPress = type == Clutter.EventType.BUTTON_PRESS;
-        if (!isPress && type != Clutter.EventType.TOUCH_BEGIN)
-            return Clutter.EVENT_PROPAGATE;
-
-        let button = isPress ? event.get_button() : -1;
-        if (isPress && button != 1)
-            return Clutter.EVENT_PROPAGATE;
-
-        let [stageX, stageY] = event.get_coords();
-
-        let dragWindow = this._getDraggableWindowForPosition(stageX);
+        let { x, y } = event;
+        let dragWindow = this._getDraggableWindowForPosition(x);
 
         if (!dragWindow)
             return Clutter.EVENT_PROPAGATE;
 
-        global.display.begin_grab_op(dragWindow,
-                                     Meta.GrabOp.MOVING,
-                                     false, /* pointer grab */
-                                     true, /* frame action */
-                                     button,
-                                     event.get_state(),
-                                     event.get_time(),
-                                     stageX, stageY);
-
-        return Clutter.EVENT_STOP;
+        return global.display.begin_grab_op(
+            dragWindow,
+            Meta.GrabOp.MOVING,
+            false, /* pointer grab */
+            true, /* frame action */
+            event.button || -1,
+            event.modifier_state,
+            event.time,
+            x, y) ? Clutter.EVENT_STOP : Clutter.EVENT_PROPAGATE;
     }
 
-    _onKeyPress(actor, event) {
-        let symbol = event.get_key_symbol();
+    vfunc_button_press_event(buttonEvent) {
+        if (buttonEvent.button != 1)
+            return Clutter.EVENT_PROPAGATE;
+
+        return this._tryDragWindow(buttonEvent);
+    }
+
+    vfunc_touch_event(touchEvent) {
+        if (touchEvent.type != Clutter.EventType.TOUCH_BEGIN)
+            return Clutter.EVENT_PROPAGATE;
+
+        return this._tryDragWindow(touchEvent);
+    }
+
+    vfunc_key_press_event(keyEvent) {
+        let symbol = keyEvent.keyval;
         if (symbol == Clutter.KEY_Escape) {
-            global.display.focus_default_window(event.get_time());
+            global.display.focus_default_window(keyEvent.time);
             return Clutter.EVENT_STOP;
         }
 
@@ -965,7 +962,7 @@ class Panel extends St.Widget {
     }
 
     _toggleMenu(indicator) {
-        if (!indicator || !indicator.container.visible)
+        if (!indicator || !indicator.mapped)
             return; // menu not supported by current session mode
 
         let menu = indicator.menu;
@@ -1102,7 +1099,7 @@ class Panel extends St.Widget {
 
     addToStatusArea(role, indicator, position, box) {
         if (this.statusArea[role])
-            throw new Error(`Extension point conflict: there is already a status indicator for role ${role}`);
+            throw new Error('Extension point conflict: there is already a status indicator for role %s'.format(role));
 
         if (!(indicator instanceof PanelMenu.Button))
             throw new TypeError('Status indicator must be an instance of PanelMenu.Button');
@@ -1111,7 +1108,7 @@ class Panel extends St.Widget {
         let boxes = {
             left: this._leftBox,
             center: this._centerBox,
-            right: this._rightBox
+            right: this._rightBox,
         };
         let boxContainer = boxes[box] || this._rightBox;
         this.statusArea[role] = indicator;
@@ -1121,14 +1118,14 @@ class Panel extends St.Widget {
 
     _addStyleClassName(className) {
         this.add_style_class_name(className);
-        this._rightCorner.actor.add_style_class_name(className);
-        this._leftCorner.actor.add_style_class_name(className);
+        this._rightCorner.add_style_class_name(className);
+        this._leftCorner.add_style_class_name(className);
     }
 
     _removeStyleClassName(className) {
         this.remove_style_class_name(className);
-        this._rightCorner.actor.remove_style_class_name(className);
-        this._leftCorner.actor.remove_style_class_name(className);
+        this._rightCorner.remove_style_class_name(className);
+        this._leftCorner.remove_style_class_name(className);
     }
 
     _onMenuSet(indicator) {
