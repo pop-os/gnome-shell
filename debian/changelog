@@ -4,6 +4,7 @@ gnome-shell (3.34.4-1) UNRELEASED; urgency=medium
     debian/master is now in use for 3.35.x.
   * New upstream release
   * Apply post-release fixes up to 3.34.4-1-g99d948559
+  * Bump Standards-Version to 4.5.0
 
  -- Simon McVittie <smcv@debian.org>  Tue, 25 Feb 2020 00:16:52 +0000
 
