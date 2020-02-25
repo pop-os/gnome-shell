@@ -1,14 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported loadRemoteSearchProviders */
 
-const GdkPixbuf = imports.gi.GdkPixbuf;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
+const { GdkPixbuf, Gio, GLib, Shell, St } = imports.gi;
 
 const FileUtils = imports.misc.fileUtils;
-const Search = imports.ui.search;
 
 const KEY_FILE_GROUP = 'Shell Search Provider';
 
@@ -75,7 +70,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {
 
         try {
             keyfile.load_from_file(path, 0);
-        } catch(e) {
+        } catch (e) {
             return;
         }
 
@@ -95,15 +90,17 @@ function loadRemoteSearchProviders(searchSettings, callback) {
             try {
                 let desktopId = keyfile.get_string(group, 'DesktopId');
                 appInfo = Gio.DesktopAppInfo.new(desktopId);
+                if (!appInfo.should_show())
+                    return;
             } catch (e) {
-                log('Ignoring search provider ' + path + ': missing DesktopId');
+                log(`Ignoring search provider ${path}: missing DesktopId`);
                 return;
             }
 
             let autoStart = true;
             try {
                 autoStart = keyfile.get_boolean(group, 'AutoStart');
-            } catch(e) {
+            } catch (e) {
                 // ignore error
             }
 
@@ -122,13 +119,13 @@ function loadRemoteSearchProviders(searchSettings, callback) {
             remoteProvider.defaultEnabled = true;
             try {
                 remoteProvider.defaultEnabled = !keyfile.get_boolean(group, 'DefaultDisabled');
-            } catch(e) {
+            } catch (e) {
                 // ignore error
             }
 
             objectPaths[objectPath] = remoteProvider;
             loadedProviders.push(remoteProvider);
-        } catch(e) {
+        } catch (e) {
             log('Failed to add search provider %s: %s'.format(path, e.toString()));
         }
     }
@@ -150,10 +147,10 @@ function loadRemoteSearchProviders(searchSettings, callback) {
 
         if (provider.defaultEnabled) {
             let disabled = searchSettings.get_strv('disabled');
-            return disabled.indexOf(appId) == -1;
+            return !disabled.includes(appId);
         } else {
             let enabled = searchSettings.get_strv('enabled');
-            return enabled.indexOf(appId) != -1;
+            return enabled.includes(appId);
         }
     });
 
@@ -190,32 +187,30 @@ function loadRemoteSearchProviders(searchSettings, callback) {
     callback(loadedProviders);
 }
 
-var RemoteSearchProvider = new Lang.Class({
-    Name: 'RemoteSearchProvider',
-
-    _init(appInfo, dbusName, dbusPath, autoStart, proxyInfo) {
+var RemoteSearchProvider = class {
+    constructor(appInfo, dbusName, dbusPath, autoStart, proxyInfo) {
         if (!proxyInfo)
             proxyInfo = SearchProviderProxyInfo;
 
-        let g_flags = Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES;
+        let gFlags = Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES;
         if (autoStart)
-            g_flags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START_AT_CONSTRUCTION;
+            gFlags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START_AT_CONSTRUCTION;
         else
-            g_flags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START;
+            gFlags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START;
 
         this.proxy = new Gio.DBusProxy({ g_bus_type: Gio.BusType.SESSION,
                                          g_name: dbusName,
                                          g_object_path: dbusPath,
                                          g_interface_info: proxyInfo,
                                          g_interface_name: proxyInfo.name,
-                                         g_flags });
+                                         gFlags });
         this.proxy.init_async(GLib.PRIORITY_DEFAULT, null, null);
 
         this.appInfo = appInfo;
         this.id = appInfo.get_id();
         this.isRemoteProvider = true;
         this.canLaunchSearch = false;
-    },
+    }
 
     createIcon(size, meta) {
         let gicon = null;
@@ -227,7 +222,7 @@ var RemoteSearchProvider = new Lang.Class({
             gicon = Gio.icon_new_for_string(meta['gicon']);
         } else if (meta['icon-data']) {
             let [width, height, rowStride, hasAlpha,
-                 bitsPerSample, nChannels, data] = meta['icon-data'];
+                 bitsPerSample, nChannels_, data] = meta['icon-data'];
             gicon = Shell.util_create_pixbuf_from_data(data, GdkPixbuf.Colorspace.RGB, hasAlpha,
                                                        bitsPerSample, width, height, rowStride);
         }
@@ -236,7 +231,7 @@ var RemoteSearchProvider = new Lang.Class({
             icon = new St.Icon({ gicon: gicon,
                                  icon_size: size });
         return icon;
-    },
+    }
 
     filterResults(results, maxNumber) {
         if (results.length <= maxNumber)
@@ -246,7 +241,7 @@ var RemoteSearchProvider = new Lang.Class({
         let specialResults = results.filter(r => r.startsWith('special:'));
 
         return regularResults.slice(0, maxNumber).concat(specialResults.slice(0, maxNumber));
-    },
+    }
 
     _getResultsFinished(results, error, callback) {
         if (error) {
@@ -259,7 +254,7 @@ var RemoteSearchProvider = new Lang.Class({
         }
 
         callback(results[0]);
-    },
+    }
 
     getInitialResultSet(terms, callback, cancellable) {
         this.proxy.GetInitialResultSetRemote(terms,
@@ -267,7 +262,7 @@ var RemoteSearchProvider = new Lang.Class({
                                                  this._getResultsFinished(results, error, callback);
                                              },
                                              cancellable);
-    },
+    }
 
     getSubsearchResultSet(previousResults, newTerms, callback, cancellable) {
         this.proxy.GetSubsearchResultSetRemote(previousResults, newTerms,
@@ -275,7 +270,7 @@ var RemoteSearchProvider = new Lang.Class({
                                                    this._getResultsFinished(results, error, callback);
                                                },
                                                cancellable);
-    },
+    }
 
     _getResultMetasFinished(results, error, callback) {
         if (error) {
@@ -302,7 +297,7 @@ var RemoteSearchProvider = new Lang.Class({
                                clipboardText: metas[i]['clipboardText'] });
         }
         callback(resultMetas);
-    },
+    }
 
     getResultMetas(ids, callback, cancellable) {
         this.proxy.GetResultMetasRemote(ids,
@@ -310,35 +305,32 @@ var RemoteSearchProvider = new Lang.Class({
                                             this._getResultMetasFinished(results, error, callback);
                                         },
                                         cancellable);
-    },
+    }
 
     activateResult(id) {
         this.proxy.ActivateResultRemote(id);
-    },
+    }
 
-    launchSearch(terms) {
+    launchSearch(_terms) {
         // the provider is not compatible with the new version of the interface, launch
         // the app itself but warn so we can catch the error in logs
-        log('Search provider ' + this.appInfo.get_id() + ' does not implement LaunchSearch');
+        log(`Search provider ${this.appInfo.get_id()} does not implement LaunchSearch`);
         this.appInfo.launch([], global.create_app_launch_context(0, -1));
     }
-});
+};
 
-var RemoteSearchProvider2 = new Lang.Class({
-    Name: 'RemoteSearchProvider2',
-    Extends: RemoteSearchProvider,
-
-    _init(appInfo, dbusName, dbusPath, autoStart) {
-        this.parent(appInfo, dbusName, dbusPath, autoStart, SearchProvider2ProxyInfo);
+var RemoteSearchProvider2 = class extends RemoteSearchProvider {
+    constructor(appInfo, dbusName, dbusPath, autoStart) {
+        super(appInfo, dbusName, dbusPath, autoStart, SearchProvider2ProxyInfo);
 
         this.canLaunchSearch = true;
-    },
+    }
 
     activateResult(id, terms) {
         this.proxy.ActivateResultRemote(id, terms, global.get_current_time());
-    },
+    }
 
     launchSearch(terms) {
         this.proxy.LaunchSearchRemote(terms, global.get_current_time());
     }
-});
+};

@@ -1,13 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Indicator */
 
-const AccountsService = imports.gi.AccountsService;
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
-const GObject = imports.gi.GObject;
+const { AccountsService, Clutter, GLib, GObject, Shell, St } = imports.gi;
 
 const BoxPointer = imports.ui.boxpointer;
 const SystemActions = imports.misc.systemActions;
@@ -16,21 +10,19 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 
 
-var AltSwitcher = new Lang.Class({
-    Name: 'AltSwitcher',
-
-    _init(standard, alternate) {
+var AltSwitcher = class {
+    constructor(standard, alternate) {
         this._standard = standard;
         this._standard.connect('notify::visible', this._sync.bind(this));
         if (this._standard instanceof St.Button)
             this._standard.connect('clicked',
-                                   () => { this._clickAction.release(); });
+                                   () => this._clickAction.release());
 
         this._alternate = alternate;
         this._alternate.connect('notify::visible', this._sync.bind(this));
         if (this._alternate instanceof St.Button)
             this._alternate.connect('clicked',
-                                    () => { this._clickAction.release(); });
+                                    () => this._clickAction.release());
 
         this._capturedEventId = global.stage.connect('captured-event', this._onCapturedEvent.bind(this));
 
@@ -41,14 +33,14 @@ var AltSwitcher = new Lang.Class({
 
         this.actor = new St.Bin();
         this.actor.connect('destroy', this._onDestroy.bind(this));
-        this.actor.connect('notify::mapped', () => { this._flipped = false; });
-    },
+        this.actor.connect('notify::mapped', () => (this._flipped = false));
+    }
 
     _sync() {
         let childToShow = null;
 
         if (this._standard.visible && this._alternate.visible) {
-            let [x, y, mods] = global.get_pointer();
+            let [x_, y_, mods] = global.get_pointer();
             let altPressed = (mods & Clutter.ModifierType.MOD1_MASK) != 0;
             if (this._flipped)
                 childToShow = altPressed ? this._standard : this._alternate;
@@ -58,6 +50,9 @@ var AltSwitcher = new Lang.Class({
             childToShow = this._standard;
         } else if (this._alternate.visible) {
             childToShow = this._alternate;
+        } else {
+            this.actor.hide();
+            return;
         }
 
         let childShown = this.actor.get_child();
@@ -79,15 +74,15 @@ var AltSwitcher = new Lang.Class({
             global.sync_pointer();
         }
 
-        this.actor.visible = (childToShow != null);
-    },
+        this.actor.show();
+    }
 
     _onDestroy() {
         if (this._capturedEventId > 0) {
             global.stage.disconnect(this._capturedEventId);
             this._capturedEventId = 0;
         }
-    },
+    }
 
     _onCapturedEvent(actor, event) {
         let type = event.type();
@@ -98,7 +93,7 @@ var AltSwitcher = new Lang.Class({
         }
 
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _onLongPress(action, actor, state) {
         if (state == Clutter.LongPressState.QUERY ||
@@ -109,14 +104,11 @@ var AltSwitcher = new Lang.Class({
         this._sync();
         return true;
     }
-});
+};
 
-var Indicator = new Lang.Class({
-    Name: 'SystemIndicator',
-    Extends: PanelMenu.SystemIndicator,
-
-    _init() {
-        this.parent();
+var Indicator = class extends PanelMenu.SystemIndicator {
+    constructor() {
+        super();
 
         let userManager = AccountsService.UserManager.get_default();
         this._user = userManager.get_user(GLib.get_user_name());
@@ -125,10 +117,10 @@ var Indicator = new Lang.Class({
 
         this._createSubMenu();
 
-        this._loginScreenItem.actor.connect('notify::visible',
-                                            () => { this._updateMultiUser(); });
-        this._logoutItem.actor.connect('notify::visible',
-                                       () => { this._updateMultiUser(); });
+        this._loginScreenItem.connect('notify::visible',
+                                      () => this._updateMultiUser());
+        this._logoutItem.connect('notify::visible',
+                                 () => this._updateMultiUser());
         // Whether shutdown is available or not depends on both lockdown
         // settings (disable-log-out) and Polkit policy - the latter doesn't
         // notify, so we update the menu item each time the menu opens or
@@ -143,27 +135,18 @@ var Indicator = new Lang.Class({
 
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
-    },
-
-    _updateActionsVisibility() {
-        let visible = (this._settingsAction.visible ||
-                       this._orientationLockAction.visible ||
-                       this._lockScreenAction.visible ||
-                       this._altSwitcher.actor.visible);
-
-        this._actionsItem.actor.visible = visible;
-    },
+    }
 
     _sessionUpdated() {
         this._settingsAction.visible = Main.sessionMode.allowSettings;
-    },
+    }
 
     _updateMultiUser() {
-        let hasSwitchUser = this._loginScreenItem.actor.visible;
-        let hasLogout = this._logoutItem.actor.visible;
+        let hasSwitchUser = this._loginScreenItem.visible;
+        let hasLogout = this._logoutItem.visible;
 
-        this._switchUserSubMenu.actor.visible = hasSwitchUser || hasLogout;
-    },
+        this._switchUserSubMenu.visible = hasSwitchUser || hasLogout;
+    }
 
     _updateSwitchUserSubMenu() {
         this._switchUserSubMenu.label.text = this._user.get_real_name();
@@ -178,25 +161,7 @@ var Indicator = new Lang.Class({
         let layout = clutterText.get_layout();
         if (layout.is_ellipsized())
             this._switchUserSubMenu.label.text = this._user.get_user_name();
-
-        let iconFile = this._user.get_icon_file();
-        if (iconFile && !GLib.file_test(iconFile, GLib.FileTest.EXISTS))
-            iconFile = null;
-
-        if (iconFile) {
-            let file = Gio.File.new_for_path(iconFile);
-            let gicon = new Gio.FileIcon({ file: file });
-            this._switchUserSubMenu.icon.gicon = gicon;
-
-            this._switchUserSubMenu.icon.add_style_class_name('user-icon');
-            this._switchUserSubMenu.icon.remove_style_class_name('default-icon');
-        } else {
-            this._switchUserSubMenu.icon.icon_name = 'avatar-default-symbolic';
-
-            this._switchUserSubMenu.icon.add_style_class_name('default-icon');
-            this._switchUserSubMenu.icon.remove_style_class_name('user-icon');
-        }
-    },
+    }
 
     _createActionButton(iconName, accessibleName) {
         let icon = new St.Button({ reactive: true,
@@ -206,14 +171,14 @@ var Indicator = new Lang.Class({
                                    style_class: 'system-menu-action' });
         icon.child = new St.Icon({ icon_name: iconName });
         return icon;
-    },
+    }
 
     _createSubMenu() {
         let bindFlags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE;
         let item;
 
         this._switchUserSubMenu = new PopupMenu.PopupSubMenuMenuItem('', true);
-        this._switchUserSubMenu.icon.style_class = 'system-switch-user-submenu-icon';
+        this._switchUserSubMenu.icon.icon_name = 'avatar-default-symbolic';
 
         // Since the label of the switch user submenu depends on the width of
         // the popup menu, and we can't easily connect on allocation-changed
@@ -232,7 +197,7 @@ var Indicator = new Lang.Class({
         this._switchUserSubMenu.menu.addMenuItem(item);
         this._loginScreenItem = item;
         this._systemActions.bind_property('can-switch-user',
-                                          this._loginScreenItem.actor,
+                                          this._loginScreenItem,
                                           'visible',
                                           bindFlags);
 
@@ -244,7 +209,7 @@ var Indicator = new Lang.Class({
         this._switchUserSubMenu.menu.addMenuItem(item);
         this._logoutItem = item;
         this._systemActions.bind_property('can-logout',
-                                          this._logoutItem.actor,
+                                          this._logoutItem,
                                           'visible',
                                           bindFlags);
 
@@ -260,6 +225,7 @@ var Indicator = new Lang.Class({
 
         item = new PopupMenu.PopupBaseMenuItem({ reactive: false,
                                                  can_focus: false });
+        this.buttonGroup = item;
 
         let app = this._settingsApp = Shell.AppSystem.get_default().lookup_app(
             'gnome-control-center.desktop'
@@ -274,14 +240,14 @@ var Indicator = new Lang.Class({
             log('Missing required core component Settings, expect trouble…');
             this._settingsAction = new St.Widget();
         }
-        item.actor.add(this._settingsAction, { expand: true, x_fill: false });
+        item.add(this._settingsAction, { expand: true, x_fill: false });
 
         this._orientationLockAction = this._createActionButton('', _("Orientation Lock"));
         this._orientationLockAction.connect('clicked', () => {
-            this.menu.itemActivated(BoxPointer.PopupAnimation.NONE),
+            this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
             this._systemActions.activateLockOrientation();
         });
-        item.actor.add(this._orientationLockAction, { expand: true, x_fill: false });
+        item.add(this._orientationLockAction, { expand: true, x_fill: false });
         this._systemActions.bind_property('can-lock-orientation',
                                           this._orientationLockAction,
                                           'visible',
@@ -296,7 +262,7 @@ var Indicator = new Lang.Class({
             this.menu.itemActivated(BoxPointer.PopupAnimation.NONE);
             this._systemActions.activateLockScreen();
         });
-        item.actor.add(this._lockScreenAction, { expand: true, x_fill: false });
+        item.add(this._lockScreenAction, { expand: true, x_fill: false });
         this._systemActions.bind_property('can-lock-screen',
                                           this._lockScreenAction,
                                           'visible',
@@ -323,25 +289,27 @@ var Indicator = new Lang.Class({
                                           bindFlags);
 
         this._altSwitcher = new AltSwitcher(this._powerOffAction, this._suspendAction);
-        item.actor.add(this._altSwitcher.actor, { expand: true, x_fill: false });
+        item.add(this._altSwitcher.actor, { expand: true, x_fill: false });
 
-        this._actionsItem = item;
         this.menu.addMenuItem(item);
 
+        let visibilityGroup = [
+            this._settingsAction,
+            this._orientationLockAction,
+            this._lockScreenAction,
+            this._altSwitcher.actor,
+        ];
 
-        this._settingsAction.connect('notify::visible',
-                                     () => { this._updateActionsVisibility(); });
-        this._orientationLockAction.connect('notify::visible',
-                                            () => { this._updateActionsVisibility(); });
-        this._lockScreenAction.connect('notify::visible',
-                                       () => { this._updateActionsVisibility(); });
-        this._altSwitcher.actor.connect('notify::visible',
-                                        () => { this._updateActionsVisibility(); });
-    },
+        for (let actor of visibilityGroup) {
+            actor.connect('notify::visible', () => {
+                this.buttonGroup.visible = visibilityGroup.some(a => a.visible);
+            });
+        }
+    }
 
     _onSettingsClicked() {
         this.menu.itemActivated();
         Main.overview.hide();
         this._settingsApp.activate();
     }
-});
+};

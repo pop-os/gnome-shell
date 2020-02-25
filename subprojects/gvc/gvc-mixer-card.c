@@ -34,8 +34,6 @@
 #include "gvc-mixer-card.h"
 #include "gvc-mixer-card-private.h"
 
-#define GVC_MIXER_CARD_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), GVC_TYPE_MIXER_CARD, GvcMixerCardPrivate))
-
 static guint32 card_serial = 1;
 
 struct GvcMixerCardPrivate
@@ -67,7 +65,7 @@ enum
 
 static void     gvc_mixer_card_finalize   (GObject            *object);
 
-G_DEFINE_TYPE (GvcMixerCard, gvc_mixer_card, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (GvcMixerCard, gvc_mixer_card, G_TYPE_OBJECT)
 
 static guint32
 get_next_card_serial (void)
@@ -222,6 +220,15 @@ _pa_context_set_card_profile_by_index_cb (pa_context                       *cont
         card->priv->profile_op = NULL;
 }
 
+/**
+ * gvc_mixer_card_change_profile:
+ * @card: a #GvcMixerCard
+ * @profile: (allow-none): the profile to change to or %NULL.
+ *
+ * Change the profile in use on this card.
+ *
+ * Returns: %TRUE if profile successfully changed or already using this profile.
+ */
 gboolean
 gvc_mixer_card_change_profile (GvcMixerCard *card,
                                const char *profile)
@@ -509,14 +516,12 @@ gvc_mixer_card_class_init (GvcMixerCardClass *klass)
                                                               "Name of current profile for this card in human readable form",
                                                               NULL,
                                                               G_PARAM_READABLE));
-
-        g_type_class_add_private (klass, sizeof (GvcMixerCardPrivate));
 }
 
 static void
 gvc_mixer_card_init (GvcMixerCard *card)
 {
-        card->priv = GVC_MIXER_CARD_GET_PRIVATE (card);
+        card->priv = gvc_mixer_card_get_instance_private (card);
 }
 
 GvcMixerCard *
@@ -568,8 +573,7 @@ gvc_mixer_card_finalize (GObject *object)
         g_free (mixer_card->priv->human_profile);
         mixer_card->priv->human_profile = NULL;
 
-        g_list_foreach (mixer_card->priv->profiles, (GFunc) free_profile, NULL);
-        g_list_free (mixer_card->priv->profiles);
+        g_list_free_full (mixer_card->priv->profiles, (GDestroyNotify) free_profile);
         mixer_card->priv->profiles = NULL;
 
         g_list_free_full (mixer_card->priv->ports, (GDestroyNotify) free_port);

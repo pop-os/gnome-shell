@@ -1,9 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported SessionMode, listModes */
 
-const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const FileUtils = imports.misc.fileUtils;
@@ -27,6 +25,7 @@ const _modes = {
         hasWorkspaces: false,
         hasWindows: false,
         hasNotifications: false,
+        hasWmMenus: false,
         isLocked: false,
         isGreeter: false,
         isPrimary: false,
@@ -49,7 +48,7 @@ const _modes = {
         panel: {
             left: [],
             center: ['dateMenu'],
-            right: ['a11y', 'keyboard', 'aggregateMenu']
+            right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu']
         },
         panelStyle: 'login-screen'
     },
@@ -74,7 +73,7 @@ const _modes = {
         panel: {
             left: [],
             center: [],
-            right: ['a11y', 'keyboard', 'aggregateMenu']
+            right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu']
         },
         panelStyle: 'unlock-screen'
     },
@@ -88,20 +87,21 @@ const _modes = {
         hasRunDialog: true,
         hasWorkspaces: true,
         hasWindows: true,
+        hasWmMenus: true,
         hasNotifications: true,
         isLocked: false,
         isPrimary: true,
         unlockDialog: imports.ui.unlockDialog.UnlockDialog,
-        components: Config.HAVE_NETWORKMANAGER ?
-                    ['networkAgent', 'polkitAgent', 'telepathyClient',
-                     'keyring', 'autorunManager', 'automountManager'] :
-                    ['polkitAgent', 'telepathyClient',
-                     'keyring', 'autorunManager', 'automountManager'],
+        components: Config.HAVE_NETWORKMANAGER
+            ? ['networkAgent', 'polkitAgent', 'telepathyClient',
+               'keyring', 'autorunManager', 'automountManager']
+            : ['polkitAgent', 'telepathyClient',
+               'keyring', 'autorunManager', 'automountManager'],
 
         panel: {
             left: ['activities', 'appMenu'],
             center: ['dateMenu'],
-            right: ['a11y', 'keyboard', 'aggregateMenu']
+            right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu']
         }
     }
 };
@@ -111,16 +111,16 @@ function _loadMode(file, info) {
     let suffix = name.indexOf('.json');
     let modeName = suffix == -1 ? name : name.slice(name, suffix);
 
-    if (_modes.hasOwnProperty(modeName))
+    if (Object.prototype.hasOwnProperty.call(_modes, modeName))
         return;
 
-    let fileContent, success, tag, newMode;
+    let fileContent, success_, newMode;
     try {
-        [success, fileContent, tag] = file.load_contents(null);
+        [success_, fileContent] = file.load_contents(null);
         if (fileContent instanceof Uint8Array)
             fileContent = imports.byteArray.toString(fileContent);
         newMode = JSON.parse(fileContent);
-    } catch(e) {
+    } catch (e) {
         return;
     }
 
@@ -128,7 +128,7 @@ function _loadMode(file, info) {
     let propBlacklist = ['unlockDialog'];
     for (let prop in _modes[DEFAULT_MODE]) {
         if (newMode[prop] !== undefined &&
-            propBlacklist.indexOf(prop) == -1)
+            !propBlacklist.includes(prop))
             _modes[modeName][prop] = newMode[prop];
     }
     _modes[modeName]['isPrimary'] = true;
@@ -140,51 +140,50 @@ function _loadModes() {
 
 function listModes() {
     _loadModes();
-    let id = Mainloop.idle_add(() => {
+    let loop = new GLib.MainLoop(null, false);
+    let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
         let names = Object.getOwnPropertyNames(_modes);
         for (let i = 0; i < names.length; i++)
             if (_modes[names[i]].isPrimary)
                 print(names[i]);
-        Mainloop.quit('listModes');
+        loop.quit();
     });
     GLib.Source.set_name_by_id(id, '[gnome-shell] listModes');
-    Mainloop.run('listModes');
+    loop.run();
 }
 
-var SessionMode = new Lang.Class({
-    Name: 'SessionMode',
-
-    _init() {
+var SessionMode = class {
+    constructor() {
         _loadModes();
         let isPrimary = (_modes[global.session_mode] &&
                          _modes[global.session_mode].isPrimary);
         let mode = isPrimary ? global.session_mode : 'user';
         this._modeStack = [mode];
         this._sync();
-    },
+    }
 
     pushMode(mode) {
         this._modeStack.push(mode);
         this._sync();
-    },
+    }
 
     popMode(mode) {
         if (this.currentMode != mode || this._modeStack.length === 1)
             throw new Error("Invalid SessionMode.popMode");
         this._modeStack.pop();
         this._sync();
-    },
+    }
 
     switchMode(to) {
         if (this.currentMode == to)
             return;
         this._modeStack[this._modeStack.length - 1] = to;
         this._sync();
-    },
+    }
 
     get currentMode() {
         return this._modeStack[this._modeStack.length - 1];
-    },
+    }
 
     _sync() {
         let params = _modes[this.currentMode];
@@ -205,5 +204,5 @@ var SessionMode = new Lang.Class({
 
         this.emit('updated');
     }
-});
+};
 Signals.addSignalMethods(SessionMode.prototype);

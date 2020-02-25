@@ -1,20 +1,15 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported addBackgroundMenu */
 
-const Clutter = imports.gi.Clutter;
-const Lang = imports.lang;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
+const { Clutter, St } = imports.gi;
 
 const BoxPointer = imports.ui.boxpointer;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 
-var BackgroundMenu = new Lang.Class({
-    Name: 'BackgroundMenu',
-    Extends: PopupMenu.PopupMenu,
-
-    _init(layoutManager) {
-        this.parent(layoutManager.dummyCursor, 0, St.Side.TOP);
+var BackgroundMenu = class BackgroundMenu extends PopupMenu.PopupMenu {
+    constructor(layoutManager) {
+        super(layoutManager.dummyCursor, 0, St.Side.TOP);
 
         this.addSettingsAction(_("Change Background…"), 'gnome-background-panel.desktop');
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
@@ -26,17 +21,17 @@ var BackgroundMenu = new Lang.Class({
         layoutManager.uiGroup.add_actor(this.actor);
         this.actor.hide();
     }
-});
+};
 
 function addBackgroundMenu(actor, layoutManager) {
     actor.reactive = true;
     actor._backgroundMenu = new BackgroundMenu(layoutManager);
-    actor._backgroundManager = new PopupMenu.PopupMenuManager({ actor: actor });
+    actor._backgroundManager = new PopupMenu.PopupMenuManager(actor);
     actor._backgroundManager.addMenu(actor._backgroundMenu);
 
     function openMenu(x, y) {
         Main.layoutManager.setDummyCursorGeometry(x, y, 0, 0);
-        actor._backgroundMenu.open(BoxPointer.PopupAnimation.NONE);
+        actor._backgroundMenu.open(BoxPointer.PopupAnimation.FULL);
     }
 
     let clickAction = new Clutter.ClickAction();

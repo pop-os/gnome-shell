@@ -71,44 +71,11 @@ GAppLaunchContext *
                                                  guint32       timestamp,
                                                  int           workspace);
 
-void     shell_global_play_theme_sound          (ShellGlobal *global,
-                                                 guint        id,
-                                                 const char   *name,
-                                                 const char   *description,
-                                                 ClutterEvent *for_event);
-void     shell_global_play_theme_sound_full     (ShellGlobal  *global,
-                                                 guint         id,
-                                                 const char   *name,
-                                                 const char   *description,
-                                                 ClutterEvent *for_event,
-                                                 const char   *application_id,
-                                                 const char   *application_name);
-void     shell_global_play_sound_file           (ShellGlobal  *global,
-                                                 guint         id,
-                                                 const char   *file_name,
-                                                 const char   *description,
-                                                 ClutterEvent *for_event);
-void     shell_global_play_sound_file_full      (ShellGlobal  *global,
-                                                 guint         id,
-                                                 const char   *file_name,
-                                                 const char   *description,
-                                                 ClutterEvent *for_event,
-                                                 const char   *application_id,
-                                                 const char   *application_name);
-
-void     shell_global_cancel_theme_sound        (ShellGlobal  *global,
-                                                 guint         id);
-
 void     shell_global_notify_error              (ShellGlobal  *global,
                                                  const char   *msg,
                                                  const char   *details);
 
-void     shell_global_init_xdnd                 (ShellGlobal  *global);
-
 void     shell_global_reexec_self               (ShellGlobal  *global);
-
-void     shell_global_log_structured            (const char *message,
-                                                 const char *const *keys);
 
 const char *     shell_global_get_session_mode  (ShellGlobal  *global);
 

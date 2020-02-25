@@ -38,6 +38,16 @@ G_BEGIN_DECLS
 #define ST_TYPE_WIDGET                 (st_widget_get_type ())
 G_DECLARE_DERIVABLE_TYPE (StWidget, st_widget, ST, WIDGET, ClutterActor)
 
+typedef enum
+{
+  ST_DIR_TAB_FORWARD,
+  ST_DIR_TAB_BACKWARD,
+  ST_DIR_UP,
+  ST_DIR_DOWN,
+  ST_DIR_LEFT,
+  ST_DIR_RIGHT,
+} StDirectionType;
+
 typedef struct _StWidgetClass          StWidgetClass;
 
 /**
@@ -53,6 +63,7 @@ struct _StWidgetClass
   /* signals */
   void     (* style_changed)       (StWidget         *self);
   void     (* popup_menu)          (StWidget         *self);
+  void     (* resource_scale_changed) (StWidget         *self);
 
   /* vfuncs */
 
@@ -64,7 +75,7 @@ struct _StWidgetClass
    */
   gboolean (* navigate_focus)      (StWidget         *self,
                                     ClutterActor     *from,
-                                    GtkDirectionType  direction);
+                                    StDirectionType   direction);
   GType    (* get_accessible_type) (void);
 
   GList *  (* get_focus_chain)     (StWidget         *widget);
@@ -113,7 +124,7 @@ void                  st_widget_set_can_focus             (StWidget        *widg
 gboolean              st_widget_get_can_focus             (StWidget        *widget);
 gboolean              st_widget_navigate_focus            (StWidget        *widget,
                                                            ClutterActor    *from,
-                                                           GtkDirectionType direction,
+                                                           StDirectionType  direction,
                                                            gboolean         wrap_around);
 
 ClutterActor *        st_widget_get_label_actor           (StWidget        *widget);
@@ -127,11 +138,11 @@ StThemeNode *         st_widget_peek_theme_node           (StWidget        *widg
 
 GList *               st_widget_get_focus_chain           (StWidget        *widget);
 void                  st_widget_paint_background          (StWidget        *widget);
+gboolean              st_widget_get_resource_scale        (StWidget        *widget,
+                                                           float           *resource_scale);
 
 /* debug methods */
 char  *st_describe_actor       (ClutterActor *actor);
-void   st_set_slow_down_factor (gfloat factor);
-gfloat st_get_slow_down_factor (void);
 
 /* accessibility methods */
 void                  st_widget_set_accessible_role      (StWidget    *widget,

@@ -1,11 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Component */
 
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
+const { Gio, GLib } = imports.gi;
 const Params = imports.misc.params;
-const Shell = imports.gi.Shell;
 
 const GnomeSession = imports.misc.gnomeSession;
 const Main = imports.ui.main;
@@ -19,10 +16,8 @@ const SETTING_ENABLE_AUTOMOUNT = 'automount';
 
 var AUTORUN_EXPIRE_TIMEOUT_SECS = 10;
 
-var AutomountManager = new Lang.Class({
-    Name: 'AutomountManager',
-
-    _init() {
+var AutomountManager = class {
+    constructor() {
         this._settings = new Gio.Settings({ schema_id: SETTINGS_SCHEMA });
         this._volumeQueue = [];
         this._activeOperations = new Map();
@@ -34,7 +29,7 @@ var AutomountManager = new Lang.Class({
         this._inhibited = false;
 
         this._volumeMonitor = Gio.VolumeMonitor.get();
-    },
+    }
 
     enable() {
         this._volumeAddedId = this._volumeMonitor.connect('volume-added', this._onVolumeAdded.bind(this));
@@ -43,9 +38,9 @@ var AutomountManager = new Lang.Class({
         this._driveDisconnectedId = this._volumeMonitor.connect('drive-disconnected', this._onDriveDisconnected.bind(this));
         this._driveEjectButtonId = this._volumeMonitor.connect('drive-eject-button', this._onDriveEjectButton.bind(this));
 
-        this._mountAllId = Mainloop.idle_add(this._startupMountAll.bind(this));
+        this._mountAllId = GLib.idle_add(GLib.PRIORITY_DEFAULT, this._startupMountAll.bind(this));
         GLib.Source.set_name_by_id(this._mountAllId, '[gnome-shell] this._startupMountAll');
-    },
+    }
 
     disable() {
         this._volumeMonitor.disconnect(this._volumeAddedId);
@@ -55,19 +50,19 @@ var AutomountManager = new Lang.Class({
         this._volumeMonitor.disconnect(this._driveEjectButtonId);
 
         if (this._mountAllId > 0) {
-            Mainloop.source_remove(this._mountAllId);
+            GLib.source_remove(this._mountAllId);
             this._mountAllId = 0;
         }
-    },
+    }
 
-    _InhibitorsChanged(object, senderName, [inhibtor]) {
+    _InhibitorsChanged(_object, _senderName, [_inhibitor]) {
         this._session.IsInhibitedRemote(GNOME_SESSION_AUTOMOUNT_INHIBIT,
             (result, error) => {
                 if (!error) {
                     this._inhibited = result[0];
                 }
             });
-    },
+    }
 
     _startupMountAll() {
         let volumes = this._volumeMonitor.get_volumes();
@@ -79,7 +74,7 @@ var AutomountManager = new Lang.Class({
 
         this._mountAllId = 0;
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     _onDriveConnected() {
         // if we're not in the current ConsoleKit session,
@@ -87,10 +82,11 @@ var AutomountManager = new Lang.Class({
         if (!this._session.SessionIsActive)
             return;
 
-        global.play_theme_sound(0, 'device-added-media',
-                                _("External drive connected"),
-                                null);
-    },
+        let player = global.display.get_sound_player();
+        player.play_from_theme('device-added-media',
+                               _("External drive connected"),
+                               null);
+    }
 
     _onDriveDisconnected() {
         // if we're not in the current ConsoleKit session,
@@ -98,10 +94,11 @@ var AutomountManager = new Lang.Class({
         if (!this._session.SessionIsActive)
             return;
 
-        global.play_theme_sound(0, 'device-removed-media',
-                                _("External drive disconnected"),
-                                null);
-    },
+        let player = global.display.get_sound_player();
+        player.play_from_theme('device-removed-media',
+                               _("External drive disconnected"),
+                               null);
+    }
 
     _onDriveEjectButton(monitor, drive) {
         // TODO: this code path is not tested, as the GVfs volume monitor
@@ -112,31 +109,29 @@ var AutomountManager = new Lang.Class({
         // we force stop/eject in this case, so we don't have to pass a
         // mount operation object
         if (drive.can_stop()) {
-            drive.stop
-                (Gio.MountUnmountFlags.FORCE, null, null,
-                 (drive, res) => {
-                     try {
-                         drive.stop_finish(res);
-                     } catch (e) {
-                         log("Unable to stop the drive after drive-eject-button " + e.toString());
-                     }
-                 });
+            drive.stop(Gio.MountUnmountFlags.FORCE, null, null,
+                (drive, res) => {
+                    try {
+                        drive.stop_finish(res);
+                    } catch (e) {
+                        log(`Unable to stop the drive after drive-eject-button ${e.toString()}`);
+                    }
+                });
         } else if (drive.can_eject()) {
-            drive.eject_with_operation 
-                (Gio.MountUnmountFlags.FORCE, null, null,
-                 (drive, res) => {
-                     try {
-                         drive.eject_with_operation_finish(res);
-                     } catch (e) {
-                         log("Unable to eject the drive after drive-eject-button " + e.toString());
-                     }
-                 });
+            drive.eject_with_operation(Gio.MountUnmountFlags.FORCE, null, null,
+                (drive, res) => {
+                    try {
+                        drive.eject_with_operation_finish(res);
+                    } catch (e) {
+                        log(`Unable to eject the drive after drive-eject-button ${e.toString()}`);
+                    }
+                });
         }
-    },
+    }
 
     _onVolumeAdded(monitor, volume) {
         this._checkAndMountVolume(volume);
-    },
+    }
 
     _checkAndMountVolume(volume, params) {
         params = Params.parse(params, { checkSession: true,
@@ -161,7 +156,7 @@ var AutomountManager = new Lang.Class({
             !volume.should_automount() ||
             !volume.can_mount()) {
             // allow the autorun to run anyway; this can happen if the
-            // mount gets added programmatically later, even if 
+            // mount gets added programmatically later, even if
             // should_automount() or can_mount() are false, like for
             // blank optical media.
             this._allowAutorun(volume);
@@ -176,7 +171,7 @@ var AutomountManager = new Lang.Class({
         } else {
             this._mountVolume(volume, null, params.allowAutorun);
         }
-    },
+    }
 
     _mountVolume(volume, operation, allowAutorun) {
         if (allowAutorun)
@@ -187,7 +182,7 @@ var AutomountManager = new Lang.Class({
 
         volume.mount(0, mountOp, null,
                      this._onVolumeMounted.bind(this));
-    },
+    }
 
     _onVolumeMounted(volume, res) {
         this._allowAutorunExpire(volume);
@@ -197,36 +192,48 @@ var AutomountManager = new Lang.Class({
             this._closeOperation(volume);
         } catch (e) {
             // FIXME: we will always get G_IO_ERROR_FAILED from the gvfs udisks
-            // backend in this case, see 
-            // https://bugs.freedesktop.org/show_bug.cgi?id=51271
-            if (e.message.indexOf('No key available with this passphrase') != -1) {
+            // backend, see https://bugs.freedesktop.org/show_bug.cgi?id=51271
+            // To reask the password if the user input was empty or wrong, we
+            // will check for corresponding error messages. However, these
+            // error strings are not unique for the cases in the comments below.
+            if (e.message.includes('No key available with this passphrase') || // cryptsetup
+                e.message.includes('No key available to unlock device') ||     // udisks (no password)
+                // libblockdev wrong password opening LUKS device
+                e.message.includes('Failed to activate device: Incorrect passphrase') ||
+                // cryptsetup returns EINVAL in many cases, including wrong TCRYPT password/parameters
+                e.message.includes('Failed to load device\'s parameters: Invalid argument')) {
+
                 this._reaskPassword(volume);
             } else {
-                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED_HANDLED))
-                    log('Unable to mount volume ' + volume.get_name() + ': ' + e.toString());
+                if (e.message.includes('Compiled against a version of libcryptsetup that does not support the VeraCrypt PIM setting')) {
+                    Main.notifyError(_("Unable to unlock volume"),
+                        _("The installed udisks version does not support the PIM setting"));
+                }
 
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED_HANDLED))
+                    log(`Unable to mount volume ${volume.get_name()}: ${e.toString()}`);
                 this._closeOperation(volume);
             }
         }
-    },
+    }
 
     _onVolumeRemoved(monitor, volume) {
         if (volume._allowAutorunExpireId && volume._allowAutorunExpireId > 0) {
-            Mainloop.source_remove(volume._allowAutorunExpireId);
+            GLib.source_remove(volume._allowAutorunExpireId);
             delete volume._allowAutorunExpireId;
         }
-        this._volumeQueue = 
+        this._volumeQueue =
             this._volumeQueue.filter(element => (element != volume));
-    },
+    }
 
     _reaskPassword(volume) {
         let prevOperation = this._activeOperations.get(volume);
         let existingDialog = prevOperation ? prevOperation.borrowDialog() : null;
-        let operation = 
+        let operation =
             new ShellMountOperation.ShellMountOperation(volume,
                                                         { existingDialog: existingDialog });
         this._mountVolume(volume, operation);
-    },
+    }
 
     _closeOperation(volume) {
         let operation = this._activeOperations.get(volume);
@@ -234,14 +241,14 @@ var AutomountManager = new Lang.Class({
             return;
         operation.close();
         this._activeOperations.delete(volume);
-    },
+    }
 
     _allowAutorun(volume) {
         volume.allowAutorun = true;
-    },
+    }
 
     _allowAutorunExpire(volume) {
-        let id = Mainloop.timeout_add_seconds(AUTORUN_EXPIRE_TIMEOUT_SECS, () => {
+        let id = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, AUTORUN_EXPIRE_TIMEOUT_SECS, () => {
             volume.allowAutorun = false;
             delete volume._allowAutorunExpireId;
             return GLib.SOURCE_REMOVE;
@@ -249,5 +256,5 @@ var AutomountManager = new Lang.Class({
         volume._allowAutorunExpireId = id;
         GLib.Source.set_name_by_id(id, '[gnome-shell] volume.allowAutorun');
     }
-});
+};
 var Component = AutomountManager;

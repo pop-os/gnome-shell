@@ -10,8 +10,6 @@
 
 #include <pwd.h>
 
-#define POLKIT_AGENT_I_KNOW_API_IS_SUBJECT_TO_CHANGE
-#include <polkitagent/polkitagent.h>
 #include "shell-polkit-authentication-agent.h"
 
 #include <glib/gi18n.h>
@@ -23,24 +21,20 @@
 static void
 print_debug (const gchar *format, ...)
 {
-  gchar *s;
+  g_autofree char *s = NULL;
+  g_autofree char *timestamp = NULL;
+  g_autoptr (GDateTime) now = NULL;
   va_list ap;
-  gchar timebuf[64];
-  GTimeVal now;
-  time_t now_t;
-  struct tm broken_down;
 
-  g_get_current_time (&now);
-  now_t = now.tv_sec;
-  localtime_r (&now_t, &broken_down);
-  strftime (timebuf, sizeof timebuf, "%H:%M:%S", &broken_down);
+  now = g_date_time_new_now_local ();
+  timestamp = g_date_time_format (now, "%H:%M:%S");
 
   va_start (ap, format);
   s = g_strdup_vprintf (format, ap);
   va_end (ap);
 
-  g_print ("ShellPolkitAuthenticationAgent: %s.%03d: %s\n", timebuf, (gint) (now.tv_usec / 1000), s);
-  g_free (s);
+  g_print ("ShellPolkitAuthenticationAgent: %s.%03d: %s\n",
+           timestamp, g_date_time_get_microsecond (now), s);
 }
 #else
 static void
@@ -48,12 +42,6 @@ print_debug (const gchar *str, ...)
 {
 }
 #endif
-
-
-struct _ShellPolkitAuthenticationAgentClass
-{
-  PolkitAgentListenerClass parent_class;
-};
 
 struct _AuthRequest;
 typedef struct _AuthRequest AuthRequest;
@@ -326,8 +314,11 @@ shell_polkit_authentication_agent_unregister (ShellPolkitAuthenticationAgent *ag
   if (agent->current_request != NULL)
     auth_request_dismiss (agent->current_request);
 
-  polkit_agent_listener_unregister (agent->handle);
-  agent->handle = NULL;
+  if (agent->handle)
+    {
+      polkit_agent_listener_unregister (agent->handle);
+      agent->handle = NULL;
+    }
 }
 
 static void maybe_process_next_request (ShellPolkitAuthenticationAgent *agent);

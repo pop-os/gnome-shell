@@ -1,23 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported RunDialog */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
-const Signals = imports.signals;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
-const FileUtils = imports.misc.fileUtils;
 const Main = imports.ui.main;
 const ModalDialog = imports.ui.modalDialog;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const Util = imports.misc.util;
 const History = imports.misc.history;
-
-var MAX_FILE_DELETED_BEFORE_INVALID = 10;
 
 const HISTORY_KEY = 'command-history';
 
@@ -28,14 +18,12 @@ const TERMINAL_SCHEMA = 'org.gnome.desktop.default-applications.terminal';
 const EXEC_KEY = 'exec';
 const EXEC_ARG_KEY = 'exec-arg';
 
-var DIALOG_GROW_TIME = 0.1;
+var DIALOG_GROW_TIME = 100;
 
-var RunDialog = new Lang.Class({
-    Name: 'RunDialog',
-    Extends: ModalDialog.ModalDialog,
-
+var RunDialog = GObject.registerClass(
+class RunDialog extends ModalDialog.ModalDialog {
     _init() {
-        this.parent({ styleClass: 'run-dialog',
+        super._init({ styleClass: 'run-dialog',
                       destroyOnClose: false });
 
         this._lockdownSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
@@ -45,30 +33,26 @@ var RunDialog = new Lang.Class({
         });
         this._enableInternalCommands = global.settings.get_boolean('development-tools');
 
-        this._internalCommands = { 'lg': () => {
-                                       Main.createLookingGlass().open();
-                                   },
+        this._internalCommands = {
+            'lg': () => Main.createLookingGlass().open(),
 
-                                   'r': this._restart.bind(this),
+            'r': this._restart.bind(this),
 
-                                   // Developer brain backwards compatibility
-                                   'restart': this._restart.bind(this),
+            // Developer brain backwards compatibility
+            'restart': this._restart.bind(this),
 
-                                   'debugexit': () => {
-                                       Meta.quit(Meta.ExitCode.ERROR);
-                                   },
+            'debugexit': () => Meta.quit(Meta.ExitCode.ERROR),
 
-                                   // rt is short for "reload theme"
-                                   'rt': () => {
-                                       Main.reloadThemeResource();
-                                       Main.loadTheme();
-                                   },
+            // rt is short for "reload theme"
+            'rt': () => {
+                Main.reloadThemeResource();
+                Main.loadTheme();
+            },
 
-                                   'check_cloexec_fds': () => {
-                                       Shell.util_check_cloexec_fds();
-                                   },
-                                 };
-
+            'check_cloexec_fds': () => {
+                Shell.util_check_cloexec_fds();
+            },
+        };
 
         let label = new St.Label({ style_class: 'run-dialog-label',
                                    text: _("Enter a Command") });
@@ -110,15 +94,17 @@ var RunDialog = new Lang.Class({
 
         this._errorBox.hide();
 
-        this.setButtons([{ action: this.close.bind(this),
-                           label: _("Close"),
-                           key: Clutter.Escape }]);
+        this.setButtons([{
+            action: this.close.bind(this),
+            label: _("Close"),
+            key: Clutter.Escape,
+        }]);
 
         this._pathCompleter = new Gio.FilenameCompleter();
 
         this._history = new History.HistoryManager({ gsettingsKey: HISTORY_KEY,
                                                      entry: this._entryText });
-        this._entryText.connect('activate', (o) => {
+        this._entryText.connect('activate', o => {
             this.popModal();
             this._run(o.get_text(),
                       Clutter.get_current_event().get_state() & Clutter.ModifierType.CONTROL_MASK);
@@ -144,7 +130,7 @@ var RunDialog = new Lang.Class({
             }
             return Clutter.EVENT_PROPAGATE;
         });
-    },
+    }
 
     _getCommandCompletion(text) {
         function _getCommon(s1, s2) {
@@ -178,9 +164,8 @@ var RunDialog = new Lang.Class({
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND) &&
                     !e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_DIRECTORY))
                     log(e);
-            } finally {
-                return results;
             }
+            return results;
         });
         let results = someResults.reduce((a, b) => a.concat(b), []);
 
@@ -189,15 +174,15 @@ var RunDialog = new Lang.Class({
 
         let common = results.reduce(_getCommon, null);
         return common.substr(text.length);
-    },
+    }
 
     _getCompletion(text) {
-        if (text.indexOf('/') != -1) {
+        if (text.includes('/')) {
             return this._pathCompleter.get_completion_suffix(text);
         } else {
             return this._getCommandCompletion(text);
         }
-    },
+    }
 
     _run(input, inTerminal) {
         let command = input;
@@ -215,8 +200,8 @@ var RunDialog = new Lang.Class({
             try {
                 if (inTerminal) {
                     let exec = this._terminalSettings.get_string(EXEC_KEY);
-                    let exec_arg = this._terminalSettings.get_string(EXEC_ARG_KEY);
-                    command = exec + ' ' + exec_arg + ' ' + input;
+                    let execArg = this._terminalSettings.get_string(EXEC_ARG_KEY);
+                    command = `${exec} ${execArg} ${input}`;
                 }
                 Util.trySpawnCommandLine(command);
             } catch (e) {
@@ -248,7 +233,7 @@ var RunDialog = new Lang.Class({
                 }
             }
         }
-    },
+    }
 
     _showError(message) {
         this._commandError = true;
@@ -256,20 +241,21 @@ var RunDialog = new Lang.Class({
         this._errorMessage.set_text(message);
 
         if (!this._errorBox.visible) {
-            let [errorBoxMinHeight, errorBoxNaturalHeight] = this._errorBox.get_preferred_height(-1);
+            let [, errorBoxNaturalHeight] = this._errorBox.get_preferred_height(-1);
 
             let parentActor = this._errorBox.get_parent();
-            Tweener.addTween(parentActor,
-                             { height: parentActor.height + errorBoxNaturalHeight,
-                               time: DIALOG_GROW_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   parentActor.set_height(-1);
-                                   this._errorBox.show();
-                               }
-                             });
+            let height = parentActor.height + errorBoxNaturalHeight;
+            parentActor.ease({
+                height,
+                duration: DIALOG_GROW_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    parentActor.set_height(-1);
+                    this._errorBox.show();
+                }
+            });
         }
-    },
+    }
 
     _restart() {
         if (Meta.is_wayland_compositor()) {
@@ -279,7 +265,7 @@ var RunDialog = new Lang.Class({
         this._shouldFadeOut = false;
         this.close();
         Meta.restart(_("Restarting…"));
-    },
+    }
 
     open() {
         this._history.lastItem();
@@ -290,7 +276,6 @@ var RunDialog = new Lang.Class({
         if (this._lockdownSettings.get_boolean(DISABLE_COMMAND_LINE_KEY))
             return;
 
-        this.parent();
-    },
+        super.open();
+    }
 });
-Signals.addSignalMethods(RunDialog.prototype);

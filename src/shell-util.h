@@ -44,9 +44,6 @@ GdkPixbuf *shell_util_create_pixbuf_from_data (const guchar      *data,
                                                int                height,
                                                int                rowstride);
 
-void    shell_util_cursor_tracker_to_clutter (MetaCursorTracker *tracker,
-                                              ClutterTexture    *texture);
-
 gboolean shell_util_need_background_refresh (void);
 
 ClutterContent * shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
@@ -56,10 +53,20 @@ cairo_surface_t * shell_util_composite_capture_images (ClutterCapture  *captures
                                                        int              n_captures,
                                                        int              x,
                                                        int              y,
-                                                       int              width,
-                                                       int              height);
+                                                       int              target_width,
+                                                       int              target_height,
+                                                       float            target_scale);
 
 void shell_util_check_cloexec_fds (void);
+
+gboolean shell_util_start_systemd_unit (const char  *unit,
+                                        const char  *mode,
+                                        GError     **error);
+gboolean shell_util_stop_systemd_unit  (const char  *unit,
+                                        const char  *mode,
+                                        GError     **error);
+
+void shell_util_sd_notify (void);
 
 G_END_DECLS
 

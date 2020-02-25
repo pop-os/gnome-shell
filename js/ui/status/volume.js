@@ -1,10 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Indicator */
 
-const Clutter = imports.gi.Clutter;
-const Lang = imports.lang;
-const Gio = imports.gi.Gio;
-const Gvc = imports.gi.Gvc;
-const St = imports.gi.St;
+const { Clutter, Gio, GObject, Gvc, St } = imports.gi;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
@@ -13,8 +10,6 @@ const PopupMenu = imports.ui.popupMenu;
 const Slider = imports.ui.slider;
 
 const ALLOW_AMPLIFIED_VOLUME_KEY = 'allow-volume-above-100-percent';
-
-var VOLUME_NOTIFY_ID = 1;
 
 // Each Gvc.MixerControl is a connection to PulseAudio,
 // so it's better to make it a singleton
@@ -29,10 +24,8 @@ function getMixerControl() {
     return _mixerControl;
 }
 
-var StreamSlider = new Lang.Class({
-    Name: 'StreamSlider',
-
-    _init(control) {
+var StreamSlider = class {
+    constructor(control) {
         this._control = control;
 
         this.item = new PopupMenu.PopupBaseMenuItem({ activate: false });
@@ -40,28 +33,30 @@ var StreamSlider = new Lang.Class({
         this._slider = new Slider.Slider(0);
 
         this._soundSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.sound' });
-        this._soundSettings.connect('changed::' + ALLOW_AMPLIFIED_VOLUME_KEY, this._amplifySettingsChanged.bind(this));
+        this._soundSettings.connect(`changed::${ALLOW_AMPLIFIED_VOLUME_KEY}`, this._amplifySettingsChanged.bind(this));
         this._amplifySettingsChanged();
 
-        this._slider.connect('value-changed', this._sliderChanged.bind(this));
+        this._sliderChangedId = this._slider.connect('notify::value',
+                                                     this._sliderChanged.bind(this));
         this._slider.connect('drag-end', this._notifyVolumeChange.bind(this));
 
         this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
-        this.item.actor.add(this._icon);
-        this.item.actor.add(this._slider.actor, { expand: true });
-        this.item.actor.connect('button-press-event', (actor, event) => {
+        this.item.add(this._icon);
+        this.item.add(this._slider, { expand: true });
+        this.item.connect('button-press-event', (actor, event) => {
             return this._slider.startDragging(event);
         });
-        this.item.actor.connect('key-press-event', (actor, event) => {
+        this.item.connect('key-press-event', (actor, event) => {
             return this._slider.onKeyPressEvent(actor, event);
         });
 
         this._stream = null;
-    },
+        this._volumeCancellable = null;
+    }
 
     get stream() {
         return this._stream;
-    },
+    }
 
     set stream(stream) {
         if (this._stream) {
@@ -78,42 +73,38 @@ var StreamSlider = new Lang.Class({
         }
 
         this._updateVisibility();
-    },
+    }
 
     _disconnectStream(stream) {
         stream.disconnect(this._mutedChangedId);
         this._mutedChangedId = 0;
         stream.disconnect(this._volumeChangedId);
         this._volumeChangedId = 0;
-    },
+    }
 
     _connectStream(stream) {
         this._mutedChangedId = stream.connect('notify::is-muted', this._updateVolume.bind(this));
         this._volumeChangedId = stream.connect('notify::volume', this._updateVolume.bind(this));
-    },
+    }
 
     _shouldBeVisible() {
         return this._stream != null;
-    },
+    }
 
     _updateVisibility() {
         let visible = this._shouldBeVisible();
-        this.item.actor.visible = visible;
-    },
+        this.item.visible = visible;
+    }
 
     scroll(event) {
         return this._slider.scroll(event);
-    },
+    }
 
-    setValue(value) {
-        // piggy-back off of sliderChanged
-        this._slider.setValue(value);
-    },
-
-    _sliderChanged(slider, value, property) {
+    _sliderChanged() {
         if (!this._stream)
             return;
 
+        let value = this._slider.value;
         let volume = value * this._control.get_vol_max_norm();
         let prevMuted = this._stream.is_muted;
         if (volume < 1) {
@@ -126,33 +117,41 @@ var StreamSlider = new Lang.Class({
                 this._stream.change_is_muted(false);
         }
         this._stream.push_volume();
-    },
+    }
 
     _notifyVolumeChange() {
-        global.cancel_theme_sound(VOLUME_NOTIFY_ID);
-        global.play_theme_sound(VOLUME_NOTIFY_ID,
-                                'audio-volume-change',
-                                _("Volume changed"),
-                                Clutter.get_current_event ());
-    },
+        if (this._volumeCancellable)
+            this._volumeCancellable.cancel();
+
+        this._volumeCancellable = new Gio.Cancellable();
+        let player = global.display.get_sound_player();
+        player.play_from_theme('audio-volume-change',
+                               _("Volume changed"),
+                               this._volumeCancellable);
+    }
+
+    _changeSlider(value) {
+        GObject.signal_handler_block(this._slider, this._sliderChangedId);
+        this._slider.value = value;
+        GObject.signal_handler_unblock(this._slider, this._sliderChangedId);
+    }
 
     _updateVolume() {
         let muted = this._stream.is_muted;
-        this._slider.setValue(muted ? 0 : (this._stream.volume / this._control.get_vol_max_norm()));
+        this._changeSlider(muted
+            ? 0 : (this._stream.volume / this._control.get_vol_max_norm()));
         this.emit('stream-updated');
-    },
+    }
 
     _amplifySettingsChanged() {
         this._allowAmplified = this._soundSettings.get_boolean(ALLOW_AMPLIFIED_VOLUME_KEY);
 
-        if (this._allowAmplified)
-            this._slider.setMaximumValue(this.getMaxLevel() / 100);
-        else
-            this._slider.setMaximumValue(1);
+        this._slider.maximum_value = this._allowAmplified
+            ? this.getMaxLevel() : 1;
 
         if (this._stream)
             this._updateVolume();
-    },
+    }
 
     getIcon() {
         if (!this._stream)
@@ -176,39 +175,36 @@ var StreamSlider = new Lang.Class({
                 n = 4;
         }
         return icons[n];
-    },
+    }
 
     getLevel() {
         if (!this._stream)
             return null;
 
-        return 100 * this._stream.volume / this._control.get_vol_max_norm();
-    },
+        return this._stream.volume / this._control.get_vol_max_norm();
+    }
 
     getMaxLevel() {
         let maxVolume = this._control.get_vol_max_norm();
         if (this._allowAmplified)
             maxVolume = this._control.get_vol_max_amplified();
 
-        return 100 * maxVolume / this._control.get_vol_max_norm();
+        return maxVolume / this._control.get_vol_max_norm();
     }
-});
+};
 Signals.addSignalMethods(StreamSlider.prototype);
 
-var OutputStreamSlider = new Lang.Class({
-    Name: 'OutputStreamSlider',
-    Extends: StreamSlider,
-
-    _init(control) {
-        this.parent(control);
-        this._slider.actor.accessible_name = _("Volume");
-    },
+var OutputStreamSlider = class extends StreamSlider {
+    constructor(control) {
+        super(control);
+        this._slider.accessible_name = _("Volume");
+    }
 
     _connectStream(stream) {
-        this.parent(stream);
+        super._connectStream(stream);
         this._portChangedId = stream.connect('notify::port', this._portChanged.bind(this));
         this._portChanged();
-    },
+    }
 
     _findHeadphones(sink) {
         // This only works for external headphones (e.g. bluetooth)
@@ -220,22 +216,22 @@ var OutputStreamSlider = new Lang.Class({
         // of different identifiers for headphones, and I could
         // not find the complete list
         if (sink.get_ports().length > 0)
-            return sink.get_port().port.indexOf('headphone') >= 0;
+            return sink.get_port().port.includes('headphone');
 
         return false;
-    },
+    }
 
     _disconnectStream(stream) {
-        this.parent(stream);
+        super._disconnectStream(stream);
         stream.disconnect(this._portChangedId);
         this._portChangedId = 0;
-    },
+    }
 
     _updateSliderIcon() {
-        this._icon.icon_name = (this._hasHeadphones ?
-                                'audio-headphones-symbolic' :
-                                'audio-speakers-symbolic');
-    },
+        this._icon.icon_name = (this._hasHeadphones
+            ? 'audio-headphones-symbolic'
+            : 'audio-speakers-symbolic');
+    }
 
     _portChanged() {
         let hasHeadphones = this._findHeadphones(this._stream);
@@ -244,57 +240,50 @@ var OutputStreamSlider = new Lang.Class({
             this._updateSliderIcon();
         }
     }
-});
+};
 
-var InputStreamSlider = new Lang.Class({
-    Name: 'InputStreamSlider',
-    Extends: StreamSlider,
-
-    _init(control) {
-        this.parent(control);
-        this._slider.actor.accessible_name = _("Microphone");
+var InputStreamSlider = class extends StreamSlider {
+    constructor(control) {
+        super(control);
+        this._slider.accessible_name = _("Microphone");
         this._control.connect('stream-added', this._maybeShowInput.bind(this));
         this._control.connect('stream-removed', this._maybeShowInput.bind(this));
         this._icon.icon_name = 'audio-input-microphone-symbolic';
-    },
+    }
 
     _connectStream(stream) {
-        this.parent(stream);
+        super._connectStream(stream);
         this._maybeShowInput();
-    },
+    }
 
     _maybeShowInput() {
         // only show input widgets if any application is recording audio
         let showInput = false;
-        let recordingApps = this._control.get_source_outputs();
-        if (this._stream && recordingApps) {
-            for (let i = 0; i < recordingApps.length; i++) {
-                let outputStream = recordingApps[i];
-                let id = outputStream.get_application_id();
-                // but skip gnome-volume-control and pavucontrol
-                // (that appear as recording because they show the input level)
-                if (!id || (id != 'org.gnome.VolumeControl' && id != 'org.PulseAudio.pavucontrol')) {
-                    showInput = true;
-                    break;
-                }
-            }
+        if (this._stream) {
+            // skip gnome-volume-control and pavucontrol which appear
+            // as recording because they show the input level
+            let skippedApps = [
+                'org.gnome.VolumeControl',
+                'org.PulseAudio.pavucontrol'
+            ];
+
+            showInput = this._control.get_source_outputs().some(output => {
+                return !skippedApps.includes(output.get_application_id());
+            });
         }
 
         this._showInput = showInput;
         this._updateVisibility();
-    },
+    }
 
     _shouldBeVisible() {
-        return this.parent() && this._showInput;
+        return super._shouldBeVisible() && this._showInput;
     }
-});
+};
 
-var VolumeMenu = new Lang.Class({
-    Name: 'VolumeMenu',
-    Extends: PopupMenu.PopupMenuSection,
-
-    _init(control) {
-        this.parent();
+var VolumeMenu = class extends PopupMenu.PopupMenuSection {
+    constructor(control) {
+        super();
 
         this.hasHeadphones = false;
 
@@ -315,11 +304,11 @@ var VolumeMenu = new Lang.Class({
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
         this._onControlStateChanged();
-    },
+    }
 
     scroll(event) {
         return this._output.scroll(event);
-    },
+    }
 
     _onControlStateChanged() {
         if (this._control.get_state() == Gvc.MixerControlState.READY) {
@@ -328,41 +317,38 @@ var VolumeMenu = new Lang.Class({
         } else {
             this.emit('icon-changed');
         }
-    },
+    }
 
     _readOutput() {
         this._output.stream = this._control.get_default_sink();
-    },
+    }
 
     _readInput() {
         this._input.stream = this._control.get_default_source();
-    },
+    }
 
     getIcon() {
         return this._output.getIcon();
-    },
+    }
 
     getLevel() {
         return this._output.getLevel();
-    },
+    }
 
     getMaxLevel() {
         return this._output.getMaxLevel();
     }
-});
+};
 
-var Indicator = new Lang.Class({
-    Name: 'VolumeIndicator',
-    Extends: PanelMenu.SystemIndicator,
-
-    _init() {
-        this.parent();
+var Indicator = class extends PanelMenu.SystemIndicator {
+    constructor() {
+        super();
 
         this._primaryIndicator = this._addIndicator();
 
         this._control = getMixerControl();
         this._volumeMenu = new VolumeMenu(this._control);
-        this._volumeMenu.connect('icon-changed', menu => {
+        this._volumeMenu.connect('icon-changed', () => {
             let icon = this._volumeMenu.getIcon();
 
             if (icon != null) {
@@ -376,7 +362,7 @@ var Indicator = new Lang.Class({
         this.menu.addMenuItem(this._volumeMenu);
 
         this.indicators.connect('scroll-event', this._onScrollEvent.bind(this));
-    },
+    }
 
     _onScrollEvent(actor, event) {
         let result = this._volumeMenu.scroll(event);
@@ -384,9 +370,9 @@ var Indicator = new Lang.Class({
             return result;
 
         let gicon = new Gio.ThemedIcon({ name: this._volumeMenu.getIcon() });
-        let level = parseInt(this._volumeMenu.getLevel());
-        let maxLevel = parseInt(this._volumeMenu.getMaxLevel());
+        let level = this._volumeMenu.getLevel();
+        let maxLevel = this._volumeMenu.getMaxLevel();
         Main.osdWindowManager.show(-1, gicon, null, level, maxLevel);
         return result;
     }
-});
+};

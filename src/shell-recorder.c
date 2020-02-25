@@ -12,20 +12,17 @@
 #include <gst/gst.h>
 
 #include <gtk/gtk.h>
-#include <gdk/gdk.h>
 
 #include <cogl/cogl.h>
 #include <meta/meta-cursor-tracker.h>
 #include <meta/display.h>
 #include <meta/compositor-mutter.h>
+#include <st/st.h>
 
 #include "shell-global.h"
 #include "shell-recorder-src.h"
 #include "shell-recorder.h"
 #include "shell-util.h"
-
-#define A11Y_APPS_SCHEMA "org.gnome.desktop.a11y.applications"
-#define MAGNIFIER_ACTIVE_KEY "screen-magnifier-enabled"
 
 typedef enum {
   RECORDER_STATE_CLOSED,
@@ -52,12 +49,13 @@ struct _ShellRecorder {
   int stage_width;
   int stage_height;
 
-  GdkScreen *gdk_screen;
+  int capture_width;
+  int capture_height;
+  float scale;
 
   int pointer_x;
   int pointer_y;
 
-  GSettings *a11y_settings;
   gboolean draw_cursor;
   MetaCursorTracker *cursor_tracker;
   cairo_surface_t *cursor_image;
@@ -210,11 +208,7 @@ shell_recorder_init (ShellRecorder *recorder)
 
   shell_recorder_src_register ();
 
-  recorder->gdk_screen = gdk_screen_get_default ();
-
   recorder->memory_target = get_memory_target();
-
-  recorder->a11y_settings = g_settings_new (A11Y_APPS_SCHEMA);
 
   recorder->state = RECORDER_STATE_CLOSED;
   recorder->framerate = DEFAULT_FRAMES_PER_SECOND;
@@ -239,8 +233,6 @@ shell_recorder_finalize (GObject  *object)
   recorder_set_file_template (recorder, NULL);
 
   recorder_remove_redraw_timeout (recorder);
-
-  g_clear_object (&recorder->a11y_settings);
 
   G_OBJECT_CLASS (shell_recorder_parent_class)->finalize (object);
 }
@@ -435,10 +427,8 @@ recorder_record_frame (ShellRecorder *recorder,
     return;
   recorder->last_frame_time = now;
 
-  clutter_stage_capture (recorder->stage, paint, &recorder->area,
-                         &captures, &n_captures);
-
-  if (n_captures == 0)
+  if (!clutter_stage_capture (recorder->stage, paint, &recorder->area,
+                              &captures, &n_captures))
     return;
 
   if (n_captures == 1)
@@ -448,8 +438,9 @@ recorder_record_frame (ShellRecorder *recorder,
                                                  n_captures,
                                                  recorder->area.x,
                                                  recorder->area.y,
-                                                 recorder->area.width,
-                                                 recorder->area.height);
+                                                 recorder->capture_width,
+                                                 recorder->capture_height,
+                                                 recorder->scale);
 
   data = cairo_image_surface_get_data (image);
   size = (cairo_image_surface_get_height (image) *
@@ -467,9 +458,16 @@ recorder_record_frame (ShellRecorder *recorder,
 
   GST_BUFFER_PTS(buffer) = now;
 
-  if (recorder->draw_cursor &&
-      !g_settings_get_boolean (recorder->a11y_settings, MAGNIFIER_ACTIVE_KEY))
-    recorder_draw_cursor (recorder, buffer);
+  if (recorder->draw_cursor)
+    {
+      StSettings *settings = st_settings_get ();
+      gboolean magnifier_active = FALSE;
+
+      g_object_get (settings, "magnifier-active", &magnifier_active, NULL);
+
+      if (!magnifier_active)
+        recorder_draw_cursor (recorder, buffer);
+    }
 
   shell_recorder_src_add_buffer (SHELL_RECORDER_SRC (recorder->current_pipeline->src), buffer);
   gst_buffer_unref (buffer);
@@ -505,6 +503,11 @@ recorder_update_size (ShellRecorder *recorder)
       recorder->area.y = 0;
       recorder->area.width = recorder->stage_width;
       recorder->area.height = recorder->stage_height;
+
+      clutter_stage_get_capture_final_size (recorder->stage, NULL,
+                                            &recorder->capture_width,
+                                            &recorder->capture_height,
+                                            &recorder->scale);
     }
 }
 
@@ -622,6 +625,8 @@ recorder_connect_stage_callbacks (ShellRecorder *recorder)
   g_signal_connect (recorder->stage, "notify::width",
                     G_CALLBACK (recorder_on_stage_notify_size), recorder);
   g_signal_connect (recorder->stage, "notify::height",
+                    G_CALLBACK (recorder_on_stage_notify_size), recorder);
+  g_signal_connect (recorder->stage, "notify::resource-scale",
                     G_CALLBACK (recorder_on_stage_notify_size), recorder);
 }
 
@@ -830,7 +835,7 @@ shell_recorder_class_init (ShellRecorderClass *klass)
                                                         "Display",
                                                         "Display to record",
                                                         META_TYPE_DISPLAY,
-                                                        G_PARAM_WRITABLE));
+                                                        G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_STAGE,
@@ -838,7 +843,7 @@ shell_recorder_class_init (ShellRecorderClass *klass)
                                                         "Stage",
                                                         "Stage to record",
                                                         CLUTTER_TYPE_STAGE,
-                                                        G_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_FRAMERATE,
@@ -848,7 +853,7 @@ shell_recorder_class_init (ShellRecorderClass *klass)
                                                       0,
                                                       G_MAXINT,
                                                       DEFAULT_FRAMES_PER_SECOND,
-                                                      G_PARAM_READWRITE));
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_PIPELINE,
@@ -856,7 +861,7 @@ shell_recorder_class_init (ShellRecorderClass *klass)
                                                         "Pipeline",
                                                         "GStreamer pipeline description to encode recordings",
                                                         NULL,
-                                                        G_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_FILE_TEMPLATE,
@@ -864,7 +869,7 @@ shell_recorder_class_init (ShellRecorderClass *klass)
                                                         "File Template",
                                                         "The filename template to use for output files",
                                                         NULL,
-                                                        G_PARAM_READWRITE));
+                                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_DRAW_CURSOR,
@@ -872,7 +877,7 @@ shell_recorder_class_init (ShellRecorderClass *klass)
                                                          "Draw Cursor",
                                                          "Whether to record the cursor",
                                                          TRUE,
-                                                         G_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 /* Sets the GstCaps (video format, in this case) on the stream
@@ -880,6 +885,7 @@ shell_recorder_class_init (ShellRecorderClass *klass)
 static void
 recorder_pipeline_set_caps (RecorderPipeline *pipeline)
 {
+  ShellRecorder *recorder = pipeline->recorder;
   GstCaps *caps;
 
   /* The data is always native-endian xRGB; videoconvert
@@ -892,9 +898,9 @@ recorder_pipeline_set_caps (RecorderPipeline *pipeline)
 #else
                               "format", G_TYPE_STRING, "xRGB",
 #endif
-                              "framerate", GST_TYPE_FRACTION, pipeline->recorder->framerate, 1,
-                              "width", G_TYPE_INT, pipeline->recorder->area.width,
-                              "height", G_TYPE_INT, pipeline->recorder->area.height,
+                              "framerate", GST_TYPE_FRACTION, recorder->framerate, 1,
+                              "width", G_TYPE_INT, recorder->capture_width,
+                              "height", G_TYPE_INT, recorder->capture_height,
                               NULL);
   g_object_set (pipeline->src, "caps", caps, NULL);
   gst_caps_unref (caps);
@@ -1500,6 +1506,11 @@ shell_recorder_set_area (ShellRecorder *recorder,
                                 0, recorder->stage_width - recorder->area.x);
   recorder->area.height = CLAMP (height,
                                  0, recorder->stage_height - recorder->area.y);
+
+  clutter_stage_get_capture_final_size (recorder->stage, &recorder->area,
+                                        &recorder->capture_width,
+                                        &recorder->capture_height,
+                                        &recorder->scale);
 
   /* This breaks the recording but tweaking the GStreamer pipeline a bit
    * might make it work, at least if the codec can handle a stream where

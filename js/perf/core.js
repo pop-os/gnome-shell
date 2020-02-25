@@ -1,4 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported run, script_overviewShowStart, script_overviewShowDone,
+            script_applicationsShowStart, script_applicationsShowDone,
+            script_afterShowHide, malloc_usedSize, glx_swapComplete,
+            clutter_stagePaintDone */
+/* eslint camelcase: ["error", { properties: "never", allow: ["^script_", "^malloc", "^glx", "^clutter"] }] */
 
 const System = imports.system;
 
@@ -10,7 +15,7 @@ const Scripting = imports.ui.scripting;
 // someone should be able to get an idea of how well the shell is performing
 // on a particular system.
 
-let METRICS = {
+var METRICS = {
     overviewLatencyFirst:
     { description: "Time to first frame after triggering overview, first time",
       units: "us" },
@@ -19,7 +24,7 @@ let METRICS = {
       units: "frames / s" },
     overviewLatencySubsequent:
     { description: "Time to first frame after triggering overview, second time",
-      units: "us"},
+      units: "us" },
     overviewFpsSubsequent:
     { description: "Frames rate when going to the overview, second time",
       units: "frames / s" },
@@ -52,7 +57,7 @@ let METRICS = {
       units: "us" },
     applicationsShowTimeSubsequent:
     { description: "Time to switch to applications view, second time",
-      units: "us"}
+      units: "us" }
 };
 
 let WINDOW_CONFIGS = [
@@ -65,7 +70,7 @@ let WINDOW_CONFIGS = [
     { width: 640, height: 480, alpha: true,  maximized: false, count: 10, metric: 'overviewFps10Alpha' }
 ];
 
-function run() {
+function *run() {
     Scripting.defineScriptEvent("overviewShowStart", "Starting to show the overview");
     Scripting.defineScriptEvent("overviewShowDone", "Overview finished showing");
     Scripting.defineScriptEvent("afterShowHide", "After a show/hide cycle for the overview");
@@ -121,9 +126,11 @@ function run() {
 
     for (let i = 0; i < 2; i++) {
         Scripting.scriptEvent('applicationsShowStart');
+        // eslint-disable-next-line require-atomic-updates
         Main.overview._dash.showAppsButton.checked = true;
         yield Scripting.waitLeisure();
         Scripting.scriptEvent('applicationsShowDone');
+        // eslint-disable-next-line require-atomic-updates
         Main.overview._dash.showAppsButton.checked = false;
         yield Scripting.waitLeisure();
     }
@@ -136,7 +143,6 @@ let overviewFrames;
 let overviewLatency;
 let mallocUsedSize = 0;
 let overviewShowCount = 0;
-let firstOverviewUsedSize;
 let haveSwapComplete = false;
 let applicationsShowStart;
 let applicationsShowCount = 0;
@@ -148,7 +154,7 @@ function script_overviewShowStart(time) {
     overviewFrames = 0;
 }
 
-function script_overviewShowDone(time) {
+function script_overviewShowDone(_time) {
     // We've set up the state at the end of the zoom out, but we
     // need to wait for one more frame to paint before we count
     // ourselves as done.
@@ -167,7 +173,7 @@ function script_applicationsShowDone(time) {
         METRICS.applicationsShowTimeSubsequent.value = time - applicationsShowStart;
 }
 
-function script_afterShowHide(time) {
+function script_afterShowHide(_time) {
     if (overviewShowCount == 1) {
         METRICS.usedAfterOverview.value = mallocUsedSize;
     } else {

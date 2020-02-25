@@ -11,8 +11,21 @@ def is_process_running(proc):
     return True
 
 def add_info(report):
+    attach_related_packages(report, ['mutter-common'])
+
     attach_gsettings_package(report, 'gnome-shell-common')
-    attach_gsettings_schema(report, 'org.gnome.desktop.interface')
+    attach_gsettings_package(report, 'gsettings-desktop-schemas')
+    attach_gsettings_package(report, 'mutter-common')
+    attach_gsettings_schema(report, 'org.gnome.settings-daemon.plugins.color')
+    attach_gsettings_schema(report, 'org.gnome.settings-daemon.peripherals.mouse')
+    attach_gsettings_schema(report, 'org.gnome.settings-daemon.peripherals.touchscreen')
+
+    try:
+        monitors = os.path.join(os.environ['XDG_CONFIG_HOME'], 'monitors.xml')
+    except KeyError:
+        monitors = os.path.expanduser('~/.config/monitors.xml')
+
+    attach_file_if_exists(report, monitors, 'monitors.xml')
 
     result = ''
 
@@ -25,3 +38,9 @@ def add_info(report):
             break
 
     report['DisplayManager'] = result
+
+    if command_available('journalctl') and os.path.exists('/run/systemd/system'):
+        report['ShellJournal'] = command_output(['journalctl',
+                                                 '/usr/bin/gnome-shell',
+                                                 '-b', '-o', 'short-monotonic',
+                                                 '--lines', '3000'])

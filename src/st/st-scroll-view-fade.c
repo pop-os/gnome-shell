@@ -19,6 +19,7 @@
  */
 
 
+#include "st-private.h"
 #include "st-scroll-view-fade.h"
 #include "st-scroll-view.h"
 #include "st-widget.h"
@@ -58,18 +59,22 @@ enum {
 
   PROP_VFADE_OFFSET,
   PROP_HFADE_OFFSET,
-  PROP_FADE_EDGES
+  PROP_FADE_EDGES,
+
+  N_PROPS
 };
 
-static CoglHandle
+static GParamSpec *props[N_PROPS] = { NULL, };
+
+static CoglTexture *
 st_scroll_view_fade_create_texture (ClutterOffscreenEffect *effect,
                                     gfloat                  min_width,
                                     gfloat                  min_height)
 {
-  return cogl_texture_new_with_size (min_width,
-                                     min_height,
-                                     COGL_TEXTURE_NO_SLICING,
-                                     COGL_PIXEL_FORMAT_RGBA_8888_PRE);
+  CoglContext *ctx =
+    clutter_backend_get_cogl_context (clutter_get_default_backend ());
+
+  return COGL_TEXTURE (cogl_texture_2d_new_with_size (ctx, min_width, min_height));
 }
 
 static char *
@@ -110,8 +115,8 @@ st_scroll_view_fade_paint_target (ClutterOffscreenEffect *effect)
    */
   fade_area_topleft[0] = content_box.x1 + (verts[0].x - paint_box.x1);
   fade_area_topleft[1] = content_box.y1 + (verts[0].y - paint_box.y1);
-  fade_area_bottomright[0] = content_box.x2 + (verts[3].x - paint_box.x2);
-  fade_area_bottomright[1] = content_box.y2 + (verts[3].y - paint_box.y2);
+  fade_area_bottomright[0] = content_box.x2 + (verts[3].x - paint_box.x2) + 1;
+  fade_area_bottomright[1] = content_box.y2 + (verts[3].y - paint_box.y2) + 1;
 
   g_object_get (ST_SCROLL_VIEW (self->actor),
                 "hscrollbar-visible", &h_scroll_visible,
@@ -272,7 +277,7 @@ st_scroll_view_vfade_set_offset (StScrollViewFade *self,
   if (self->actor != NULL)
     clutter_actor_queue_redraw (self->actor);
 
-  g_object_notify (G_OBJECT (self), "vfade-offset");
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_VFADE_OFFSET]);
   g_object_thaw_notify (G_OBJECT (self));
 }
 
@@ -290,7 +295,7 @@ st_scroll_view_hfade_set_offset (StScrollViewFade *self,
   if (self->actor != NULL)
     clutter_actor_queue_redraw (self->actor);
 
-  g_object_notify (G_OBJECT (self), "hfade-offset");
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_HFADE_OFFSET]);
   g_object_thaw_notify (G_OBJECT (self));
 }
 
@@ -308,7 +313,7 @@ st_scroll_view_fade_set_fade_edges (StScrollViewFade *self,
   if (self->actor != NULL)
     clutter_actor_queue_redraw (self->actor);
 
-  g_object_notify (G_OBJECT (self), "fade-edges");
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_FADE_EDGES]);
   g_object_thaw_notify (G_OBJECT (self));
 }
 
@@ -383,29 +388,28 @@ st_scroll_view_fade_class_init (StScrollViewFadeClass *klass)
   offscreen_class->create_texture = st_scroll_view_fade_create_texture;
   offscreen_class->paint_target = st_scroll_view_fade_paint_target;
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_VFADE_OFFSET,
-                                   g_param_spec_float ("vfade-offset",
-                                                       "Vertical Fade Offset",
-                                                       "The height of the area which is faded at the edge",
-                                                       0.f, G_MAXFLOAT, DEFAULT_FADE_OFFSET,
-                                                       G_PARAM_READWRITE));
-  g_object_class_install_property (gobject_class,
-                                   PROP_HFADE_OFFSET,
-                                   g_param_spec_float ("hfade-offset",
-                                                       "Horizontal Fade Offset",
-                                                       "The width of the area which is faded at the edge",
-                                                       0.f, G_MAXFLOAT, DEFAULT_FADE_OFFSET,
-                                                       G_PARAM_READWRITE));
-  g_object_class_install_property (gobject_class,
-                                   PROP_FADE_EDGES,
-                                   g_param_spec_boolean ("fade-edges",
-                                                         "Fade Edges",
-                                                         "Whether the faded area should extend to the edges",
-                                                         FALSE,
-                                                         G_PARAM_READWRITE));
+  props[PROP_VFADE_OFFSET] =
+    g_param_spec_float ("vfade-offset",
+                        "Vertical Fade Offset",
+                        "The height of the area which is faded at the edge",
+                        0.f, G_MAXFLOAT, DEFAULT_FADE_OFFSET,
+                        ST_PARAM_READWRITE);
 
+  props[PROP_HFADE_OFFSET] =
+    g_param_spec_float ("hfade-offset",
+                        "Horizontal Fade Offset",
+                        "The width of the area which is faded at the edge",
+                        0.f, G_MAXFLOAT, DEFAULT_FADE_OFFSET,
+                        ST_PARAM_READWRITE);
 
+  props[PROP_FADE_EDGES] =
+    g_param_spec_boolean ("fade-edges",
+                          "Fade Edges",
+                          "Whether the faded area should extend to the edges",
+                          FALSE,
+                          ST_PARAM_READWRITE);
+
+  g_object_class_install_properties (gobject_class, N_PROPS, props);
 }
 
 static void

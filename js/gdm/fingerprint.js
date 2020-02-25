@@ -1,9 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported FprintManager */
 
 const Gio = imports.gi.Gio;
-const Lang = imports.lang;
-const Shell = imports.gi.Shell;
-const Signals = imports.signals;
 
 const FprintManagerIface = `
 <node>
@@ -26,8 +24,8 @@ function FprintManager() {
 
     try {
         self.init(null);
-    } catch(e) {
-        log('Failed to connect to Fprint service: ' + e.message);
+    } catch (e) {
+        log(`Failed to connect to Fprint service: ${e.message}`);
         return null;
     }
 

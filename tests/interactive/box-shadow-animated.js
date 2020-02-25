@@ -2,11 +2,7 @@
 
 const UI = imports.testcommon.ui;
 
-const Clutter = imports.gi.Clutter;
-const St = imports.gi.St;
-const Mainloop = imports.mainloop;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
+const { Clutter, GLib, St } = imports.gi;
 
 const DELAY = 2000;
 
@@ -62,14 +58,14 @@ function test() {
 
     resize_animated(label1);
     resize_animated(label2);
-    Mainloop.timeout_add(DELAY, () => {
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, DELAY, () => {
         log(label1 + label1.get_size());
         resize_animated(label1);
         resize_animated(label2);
         return true;
     });
 
-    Mainloop.timeout_add(2 * DELAY, () => {
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2 * DELAY, () => {
         iter += 1;
         iter %= shadowStyles.length;
         label1.set_style(get_css_style(shadowStyles[iter]));

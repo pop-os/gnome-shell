@@ -102,7 +102,7 @@ shell_invert_lightness_effect_pre_paint (ClutterEffect *effect)
     {
       ClutterOffscreenEffect *offscreen_effect =
         CLUTTER_OFFSCREEN_EFFECT (effect);
-      CoglHandle texture;
+      CoglTexture *texture;
 
       texture = clutter_offscreen_effect_get_texture (offscreen_effect);
       self->tex_width = cogl_texture_get_width (texture);
@@ -186,9 +186,7 @@ shell_invert_lightness_effect_init (ShellInvertLightnessEffect *self)
       cogl_pipeline_add_layer_snippet (klass->base_pipeline, 0, snippet);
       cogl_object_unref (snippet);
 
-      cogl_pipeline_set_layer_null_texture (klass->base_pipeline,
-                                            0, /* layer number */
-                                            COGL_TEXTURE_TYPE_2D);
+      cogl_pipeline_set_layer_null_texture (klass->base_pipeline, 0);
     }
 
   self->pipeline = cogl_pipeline_copy (klass->base_pipeline);

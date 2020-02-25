@@ -1,107 +1,314 @@
-gnome-shell (3.30.2-11) unstable; urgency=medium
+gnome-shell (3.34.3-1) unstable; urgency=medium
+
+  * New upstream release
+    + polkitAgent: Fix confirming via keyboard when password-less
+  * control: Bump mutter BD to 3.34.3. This probably isn't *strictly*
+    required, but nevertheless let's keep them in sync.
+
+ -- Iain Lane <laney@debian.org>  Mon, 06 Jan 2020 13:40:57 +0000
+
+gnome-shell (3.34.2-1) unstable; urgency=medium
 
   * Team upload
+
+  [ Georges Basile Stavracas Neto ]
+  * Add gnome-menus to Recommends.
+    The files installed by gnome-menus are needed for the functionality of
+    suggesting a name for a new folder to work.
+
+  [ Simon McVittie ]
+  * d/watch: Only watch for stable releases
+  * New upstream release
+  * d/gbp.conf: Use upstream/3.34.x branch
+  * Add build-dependency on libgnome-desktop-3-dev (>= 3.34.2) for new
+    systemd scope functionality
+  * Remove Breaks/Conflicts on packages older than Debian 9 (oldstable)
+  * Remove unused Lintian override
+  * Bump Standards-Version to 4.4.1
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 16 Dec 2019 16:55:02 +0000
+
+gnome-shell (3.34.1+git20191024-1) unstable; urgency=medium
+
+  * New upstream snapshot release
+    + Fix some animations using invalid parameters
+    + Compute lock timeout fade duration using animations parameters
+    + Ensure unredirection is disabled after animations
+    + Speed-up overview opening using windows cached centers (LP: #1848009)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 25 Oct 2019 13:36:08 +0100
+
+gnome-shell (3.34.1-1) unstable; urgency=medium
+
+  * New upstream release
+    + Allow editing app folder names
+    + Do not notify systemd before initialization is complete
+    + Don't leak NOTIFY_SOCKET environment variable to applications
+    + Fix accidentally skipped animations
+    + Fix box-shadow glitch with prerendered resources
+    + Fix desktop right click menu appearing in the wrong place if a Terminal
+      window is open (LP: #1842910)
+    + Fix extra icons appearing in "Frequent" view animation
+    + Fix fading out desktop icons (Closes: #940612)
+    + Fix "Frequent" view icons disappearing on hover (LP: #1846083)
+    + Fix lock-up on X11 when ibus is already running on startup (LP:
+      #1845198)
+    + Fix screen dimming on idle (LP: #1846941)
+    + Fix screenshots and window animations when scaled
+    + Fix various regressions with dynamic workspaces
+    + Improve performance when enabling/disabling all extensions
+    + Make menu animations more consistent
+    + Skip property transitions while hidden
+    + Support SAE secrets in network agent (LP: #1844422)
+  * control: Require mutter 3.34.1
+
+ -- Iain Lane <laney@debian.org>  Wed, 09 Oct 2019 11:20:28 +0100
+
+gnome-shell (3.34.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Upload to unstable.
+
+ -- Andreas Henriksson <andreas@fatal.se>  Mon, 30 Sep 2019 14:29:53 +0200
+
+gnome-shell (3.34.0-1) experimental; urgency=medium
+
+  * New upstream release
+    + Handle startup/shutdown of misc X11 services
+    + Fix sound volume mute/unmute
+    + Correctly terminate pasted text
+  * d/p/volume-Ignore-slider-changes-we-initiated-ourselves.patch: Drop,
+    upstream
+  * control: Bump mutter Build-Depends and Depends to 3.34.0
+
+ -- Iain Lane <laney@debian.org>  Tue, 10 Sep 2019 10:51:44 +0100
+
+gnome-shell (3.33.92-1) experimental; urgency=medium
+
+  * New upstream release
+    + Animate pointer a11y pie timer
+    + Fix restarting shell in systemd user session
+  * volume-Ignore-slider-changes-we-initiated-ourselves.patch: Cherry-pick.
+    volume: Ignore slider changes we initiated ourselves Commit
+    21e14bd46f9774e6c0146cb2169d938e782dba3c fixed this for the brightness
+    slider, but we have the same problem for volume too. When the volume is
+    muted - for example in Settings or via a media key, we update the slider
+    to '0' to indicate this visually. But we also actually invoke the slider's
+    callback to *set* the volume to zero. That means that the previous level
+    is overwritten so it can't be restored when unmuting.  The fix is the same
+    - when we update the slider internally ourselves, don't call the signal
+    handler.
+  * Bump mutter BD to 3.33.92, corresponding to the shell's version
+  * control: BD on xwayland <!nocheck>, required for the testsuite
+  * control, rules: Run a session bus for the testsuite
+
+ -- Iain Lane <laney@debian.org>  Thu, 05 Sep 2019 18:15:19 +0100
+
+gnome-shell (3.33.91-1) experimental; urgency=medium
+
+  * New upstream release
+    + Fix regression when adjusting brightness
+    + Fix pointer a11y timeout animation
+    + Add new extensions CLI tool
+    + Only track top-level windows
+  * control: Bump BDs per upstream, & add BDs for the extension tool
+
+ -- Iain Lane <laney@debian.org>  Fri, 23 Aug 2019 21:05:26 +0100
+
+gnome-shell (3.33.90-1) experimental; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream release
+    + Add option for disabling the hot corner
+    + Allow dragging unfocused tiled/maximized windows from top bar
+    + Allow to disable window menus via session mode
+    + Avoid unnecessary style changes when computing :first/:last-child
+    + Call GDM's RegisterSession() after startup (LP: #1798790)
+    + Consistently animate new window actions
+    + Disable emoji on-screen keyboard support on X11
+    + Don't crash for world clock locations with no timezone
+    + Don't leak old on-screen keyboard layout groups
+    + Fix alt-tab icon size on HiDPI
+    + Fix cursor visibility in screen recordings
+    + Fix distortion of some image contents
+    + Fix ellipsization in dialog subtitles/bodies
+    + Fix extended keys popups being hidden by on-screen keyboard
+    + Fix glitch of fullscreen window in workspace switch animation
+    + Fix keeping actors visible in scrollviews
+    + Fix opening window menu
+    + Fix style updates for non-background CSS properties
+    + Fix tablet button mapping overlay
+    + Fix the calculation of the maximum number of app search results
+    + Fix top bar being hidden by lock screen
+    + Fix unintentional interference between gestures
+    + Fix unintentional loop while polkit dialog is active
+    + Handle horizontal workspace layout with gestures/animations
+    + Handle network interface name changes
+    + Implement DND app picker folder management
+    + Implement locate-pointer accessibility feature
+    + Implement mouse accessibility
+    + Improve handling of session mode extensions
+    + Include 'sandboxed-app-id' in winodw introspection info
+    + Make Clocks/Weather integration work with sandboxed apps
+    + Minimize travel distance in overview animation
+    + Move some chrome above popup windows
+    + Only emit ::style-changed on actual changes
+    + Port to libecal-2.0
+    + Prepare for optional X11
+    + Refine the app menu
+    + Refine window preview style
+    + Reload search providers when installed applications change
+    + Replace Tweener with Clutter animations
+    + Rescan icon theme when installed apps changed
+    + Set up GJS profiler when GJS_TRACE_FD is set
+    + Style fixes and improvements
+    + Support startup via systemd user instance
+    + Support TCRYPT in mount password dialog
+    + Update theme to better match GTK's Adwaita
+    + Use more fine-grained levels in battery indicator
+  * debian/patches:
+    + tweener-Save-handlers-on-target-and-remove-them-on-destro.patch: Refresh
+  * debian/control: Bump dependency to mutter 3.33.90 and desktop schemas 3.33.1
+
+  [ Simon McVittie ]
   * d/gnome-shell.bug-control: Include related packages in bug reports
 
- -- Simon McVittie <smcv@debian.org>  Sun, 18 Aug 2019 17:23:32 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 13 Aug 2019 11:12:43 +0100
 
-gnome-shell (3.30.2-10) unstable; urgency=medium
+gnome-shell (3.32.2-2) experimental; urgency=medium
 
-  * Team upload
-  * Update to upstream gnome-3-30 branch, commit 3.30.2-22-gd41669189
-    - d/p/dialog-Really-set-ellipsize-mode-in-subtitle-and-body.patch:
-      Fix truncation of long messages in Shell-modal dialogs
-      (LP: #1809788)
-    - d/p/osk-layouts-Fix-French-layout.patch:
-      Update metadata to reflect upstream backport (no functional changes)
-    - d/p/boxpointer-Unset-the-sourceActor-on-destruction.patch:
-      Avoid crash on reallocation of dead actors (LP: #1831555)
+  * debian/source_gnome-shell.py:
+    + Add more informations that we might need to debug information in the
+      apport retracing (LP: #1722886):
+      - All the desktop shared gsettings key
+      - Mutter gsettings key and version
+      - Settings daemon settings key used by the shell
+      - ~/.config/monitors.xml
+      - Shell's journalctl since it will include errors and JS stacktrace.
+  * d/p/boxpointer-Unset-the-sourceActor-on-destruction.patch:
+    - Avoid crash on reallocation of dead actors (LP: #1831555)
 
- -- Simon McVittie <smcv@debian.org>  Tue, 30 Jul 2019 09:13:11 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Jun 2019 17:54:16 +0100
 
-gnome-shell (3.30.2-9) unstable; urgency=medium
+gnome-shell (3.32.2-1) experimental; urgency=medium
 
-  * Team upload
-  * d/p/ShellApp-Use-g_signal_connect_object-for-window-signals.patch:
-    Mark as forwarded and applied upstream
-  * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
-    d/p/workaround_crasher_fractional_scaling.patch:
-    Move non-upstreamed patches to appear last in d/p/series
-  * Update patch series from gnome-3-30 branch, up to 3.30.2-19-g1f03c94d3
-    - d/p/inputMethod-Avoid-calling-set_preedit_text-if-unnecessary.patch,
-      d/p/inputMethod-Keep-track-of-preedit-string-visibility.patch:
-      Avoid a bad interaction between gnome-shell, GTK, non-English input
-      methods, WebKitGTK and Evolution that can cause text to be deleted
-      unintentionally when Ctrl or Alt is pressed (Closes: #927719)
-    - d/p/messageTray-Re-enable-unredirection-when-banner-is-destro.patch:
-      If a notification appears while a game or other graphically intensive
-      application is full-screen, correctly re-enable unredirection (for
-      its performance benefits) when the notification closes
-      (Closes: #927718)
-    - d/p/dnd-Only-handle-touch-events-in-wayland.patch:
-      Fix a bug seen in X11 mode where extensions that use drag-and-drop,
-      such as dash-to-dock, can get the Shell into a state where
-      interaction with apps is no longer possible
-    - d/p/windowManager-Don-t-animate-touch-touchpad-gesture-in-ove.patch:
-      When the four-finger swipe up/down touchpad gesture is used to move
-      between workspaces, don't move application windows to the wrong place
-    - Update translations: gd, is
+  * New upstream release
+    - Fix ellipsization in dialog subtitles/bodies (LP: #1809788)
+    - Don't crash for world clock locations with no timezone (LP: #1827953)
 
- -- Simon McVittie <smcv@debian.org>  Sun, 28 Apr 2019 00:13:04 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 21 May 2019 17:19:41 +0100
 
-gnome-shell (3.30.2-8) unstable; urgency=medium
+gnome-shell (3.32.1-1) experimental; urgency=medium
 
-  * Team upload
-  * d/p/st-widget-Add-missing-g_return_val_if_fail.patch:
-    Add patch from upstream to add a precondition check on
-    st_widget_get_theme_node(). This should mitigate crashes if a StWidget
-    remains active after it has been destroyed (which is itself a bug,
-    but a less serious one with this change).
-    (Closes: #927162, LP: #1796606)
-  * d/p/ShellApp-Use-g_signal_connect_object-for-window-signals.patch:
-    Make the ShellApp more robust against crashes
-    (Closes: #926212, we hope)
-
- -- Simon McVittie <smcv@debian.org>  Sat, 20 Apr 2019 22:29:02 +0100
-
-gnome-shell (3.30.2-7) unstable; urgency=medium
-
-  * Team upload
-  * d/clean: Add trailing slash to debian/home/ so that debhelper will
-    be willing to delete a directory, fixing FTBFS when built twice in
-    a row
-
- -- Simon McVittie <smcv@debian.org>  Tue, 16 Apr 2019 09:38:50 +0100
-
-gnome-shell (3.30.2-6) unstable; urgency=medium
-
-  * Team upload
-  * d/p/keyboard-Make-items-in-language-menu-unfocusable.patch,
-    d/p/popupMenu-Respect-items-can-focus-property.patch:
-    Add patches from upstream to fix the on-screen keyboard language's menu
-    closing said keyboard (Closes: #926453)
-  * d/p/osk-layouts-Fix-French-layout.patch:
-    Add patches from upstream to add missing French layouts to
-    the on-screen keyboard (Closes: #926452)
-
- -- intrigeri <intrigeri@debian.org>  Mon, 15 Apr 2019 11:23:31 +0000
-
-gnome-shell (3.30.2-5) unstable; urgency=medium
-
-  * Team upload
-  * Really create a suitable temporary XDG_RUNTIME_DIR for the unit tests
-  * Clean up debian/home with d/clean, not a dh_clean override
-
- -- Simon McVittie <smcv@debian.org>  Sun, 14 Apr 2019 15:33:47 +0100
-
-gnome-shell (3.30.2-4) unstable; urgency=medium
-
-  * Team upload
+  [ Simon McVittie ]
   * d/rules: Create a temporary HOME, XDG_RUNTIME_DIR for the unit tests.
-    This hopefully fixes test failures and FTBFS on the s390x buildd.
+    This goes some way towards fixing test failures and FTBFS on buster's
+    sbuild, as deployed on the s390x buildd.
   * d/.gitignore: Add
 
- -- Simon McVittie <smcv@debian.org>  Sun, 14 Apr 2019 10:40:33 +0100
+  [ Laurent Bigonville ]
+  * New upstream release
+
+ -- Laurent Bigonville <bigon@debian.org>  Mon, 22 Apr 2019 15:45:49 +0200
+
+gnome-shell (3.32.0+git20190410-1) experimental; urgency=medium
+
+  * Use debhelper-compat 12 and BD on dh-sequence-{gnome,gir}
+  * New upstream release, which includes
+    - shell: Fallback on ISO 8601 datetime string for screenshot date info
+      (LP: #1796251)
+  * BD on the corresponding mutter
+  * debian/patches/various: Drop upstream cherry-picks. We had cherry-picked
+    the stable branch into Debian patches in the previous upload, but that
+    would get out of hand if we carried on.  Instead we are using a tarball
+    snapshot. So drop the cherry-picks.
+
+ -- Iain Lane <laney@debian.org>  Wed, 10 Apr 2019 16:36:31 +0100
+
+gnome-shell (3.32.0-1) experimental; urgency=medium
+
+  * New upstream release
+    + Fix sizing issues in on-screen-keyboard emoji panel
+    + Fix test linker failure on Debian/Ubuntu
+    + Avoid assertion when sizing fallback app icons from CSS
+    + Fix mis-sized menu arrows after texture cache changes
+  * debian/patches: Update to master at ede0fd866.  These are all fixes which
+    will be in 3.32.1.
+    - d/p/build-Add-mutter-s-private-directory-to-libst-s-build-tim.patch:
+      Drop, applied upstream.
+  * control: Bump mutter BD to 3.32.0
+
+ -- Iain Lane <laney@debian.org>  Tue, 12 Mar 2019 12:50:26 +0000
+
+gnome-shell (3.31.92-1) experimental; urgency=medium
+
+  * New upstream release
+    + Add flags parameter in GrabAccelerators API
+    + Always use symbolic user icon in system menu
+    + Don't close on-screen-keyboard's language menu on hover
+    + Don't let unfullscreen gesture interfere with top bar taps
+    + Don't toggle on-screen keyboard on every focus change
+    + Fix generating French OSK layout
+    + Fix legacy tray icons not responding to events on wayland
+    + Fix visual glitch in submenus
+    + Hide trailing separator in search results
+    + Only consider visible children for :first-child/:last-child
+    + Remember choice in inhibit-shortcuts dialogue
+    + Support fractional scaling
+    + Use borderless round user images
+  * control:
+    + BD on mutter 3.31.92, the corresponding release for this Shell
+    + BD on gjs 1.54, per upstream
+  * Drop workaround_crasher_fractional_scaling.patch. Marco says this is
+    probaly not required any more, and it was only ever intended to be a
+    temporary workaround.
+  * Cherry-pick c7342824 to fix `test-theme`
+  * Add a BD <!nocheck> on gnome-settings-daemon-common.
+    This is required for `test-theme`.
+
+ -- Iain Lane <laney@debian.org>  Wed, 06 Mar 2019 14:39:17 +0000
+
+gnome-shell (3.31.90-1) experimental; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * New upstream release
+    - Don't fill journal with osdWindow errors (LP: #1772677)
+    - Fix missing icon in keyboard indicator (LP: #1812266)
+  * debian/control:
+    - Update mutter dependency on mutter-4 3.31.4
+    - Drop dependencies on libcanberra and libcanberra-gtk3
+  * debian/gnome-shell.install:
+    - Remove usr/lib/mozilla as no plugin is shipped anymore
+  * debian/gnome-shell.lintian-overrides:
+    - Update mutter libraries paths
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Recommends ibus, gnome-shell tried to start for years
+    now, ibus is required to input emoji these days. (Closes: #815050)
+
+  [ Marco Trevisan (Treviño) ]
+  * d/p/Update-Basque-translation.patch,
+    d/p/Update-Esperanto-translation.patch,
+    d/p/Update-French-translation.patch,
+    d/p/Update-Slovak-translation.patch,
+    d/p/altSwitcher-Fix-error-when-all-alternatives-are-disabled.patch,
+    d/p/dash-destroy-items-s-child-before-tooltip.patch,
+    d/p/ibusManager-Don-t-pass-undefined-callback-to-ibus.patch,
+    d/p/keyboard-Do-not-call-KeyboardManager.holdKeyboard-with-se.patch,
+    d/p/panel-Don-t-allow-opening-hidden-menus-via-keybindings.patch,
+    d/p/power-Label-the-PENDING_CHARGE-state-as-Not-Charging.patch,
+    d/p/shellActionModes-disable-POPUP-keybindings-in-unlock-scre.patch,
+    d/p/st-button-Ignore-pointer-emulated-touch-events.patch:
+    - Dropped applied Upstream
+  * d/p/tweener-Save-handlers-on-target-and-remove-them-on-destro.patch,
+    d/p/workaround_crasher_fractional_scaling.patch:
+    - Refreshed
+  * debian/control: set breaks on dash-to-panel and dashtodock extensions
+
+  [ Iain Lane ]
+  * control: Bump libmutter-dev version to 3.31.90, per upstream
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 21 Feb 2019 09:39:22 +0000
 
 gnome-shell (3.30.2-3) unstable; urgency=medium
 

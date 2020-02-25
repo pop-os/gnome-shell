@@ -1,22 +1,25 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Geoclue = imports.gi.Geoclue;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GWeather = imports.gi.GWeather;
-const Lang = imports.lang;
+const { Geoclue, Gio, GLib, GWeather, Shell } = imports.gi;
 const Signals = imports.signals;
 
 const PermissionStore = imports.misc.permissionStore;
-const Util = imports.misc.util;
+
+const { loadInterfaceXML } = imports.misc.fileUtils;
+
+const WeatherIntegrationIface = loadInterfaceXML('org.gnome.Shell.WeatherIntegration');
+
+const WEATHER_BUS_NAME = 'org.gnome.Weather';
+const WEATHER_OBJECT_PATH = '/org/gnome/Weather';
+const WEATHER_INTEGRATION_IFACE = 'org.gnome.Shell.WeatherIntegration';
+
+const WEATHER_APP_ID = 'org.gnome.Weather.desktop';
 
 // Minimum time between updates to show loading indication
 var UPDATE_THRESHOLD = 10 * GLib.TIME_SPAN_MINUTE;
 
-var WeatherClient = new Lang.Class({
-    Name: 'WeatherClient',
-
-    _init() {
+var WeatherClient = class {
+    constructor() {
         this._loading = false;
         this._locationValid = false;
         this._lastUpdate = GLib.DateTime.new_from_unix_local(0);
@@ -29,16 +32,25 @@ var WeatherClient = new Lang.Class({
         this._gclueStarting = false;
         this._gclueLocationChangedId = 0;
 
+        this._needsAuth = true;
         this._weatherAuthorized = false;
         this._permStore = new PermissionStore.PermissionStore((proxy, error) => {
             if (error) {
-                log('Failed to connect to permissionStore: ' + error.message);
+                log(`Failed to connect to permissionStore: ${error.message}`);
+                return;
+            }
+
+            if (this._permStore.g_name_owner == null) {
+                // Failed to auto-start, likely because xdg-desktop-portal
+                // isn't installed; don't restrict access to location service
+                this._weatherAuthorized = true;
+                this._updateAutoLocation();
                 return;
             }
 
             this._permStore.LookupRemote('gnome', 'geolocation', (res, error) => {
                 if (error)
-                    log('Error looking up permission: ' + error.message);
+                    log(`Error looking up permission: ${error.message}`);
 
                 let [perms, data] = error ? [{}, null] : res;
                 let  params = ['gnome', 'geolocation', false, data, perms];
@@ -64,34 +76,56 @@ var WeatherClient = new Lang.Class({
             this.emit('changed');
         });
 
-        this._weatherAppMon = new Util.AppSettingsMonitor('org.gnome.Weather.Application.desktop',
-                                                          'org.gnome.Weather.Application');
-        this._weatherAppMon.connect('available-changed', () => { this.emit('changed'); });
-        this._weatherAppMon.watchSetting('automatic-location',
-                                         this._onAutomaticLocationChanged.bind(this));
-        this._weatherAppMon.watchSetting('locations',
-                                         this._onLocationsChanged.bind(this));
-    },
+        this._weatherApp = null;
+        this._weatherProxy = null;
+
+        let nodeInfo = Gio.DBusNodeInfo.new_for_xml(WeatherIntegrationIface);
+        Gio.DBusProxy.new(
+            Gio.DBus.session,
+            Gio.DBusProxyFlags.DO_NOT_AUTO_START | Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES,
+            nodeInfo.lookup_interface(WEATHER_INTEGRATION_IFACE),
+            WEATHER_BUS_NAME,
+            WEATHER_OBJECT_PATH,
+            WEATHER_INTEGRATION_IFACE,
+            null,
+            this._onWeatherProxyReady.bind(this));
+
+        this._settings = new Gio.Settings({
+            schema_id: 'org.gnome.shell.weather'
+        });
+        this._settings.connect('changed::automatic-location',
+            this._onAutomaticLocationChanged.bind(this));
+        this._onAutomaticLocationChanged();
+        this._settings.connect('changed::locations',
+            this._onLocationsChanged.bind(this));
+        this._onLocationsChanged();
+
+        this._appSystem = Shell.AppSystem.get_default();
+        this._appSystem.connect('installed-changed',
+            this._onInstalledChanged.bind(this));
+        this._onInstalledChanged();
+    }
 
     get available() {
-        return this._weatherAppMon.available;
-    },
+        return this._weatherApp != null;
+    }
 
     get loading() {
         return this._loading;
-    },
+    }
 
     get hasLocation() {
         return this._locationValid;
-    },
+    }
 
     get info() {
         return this._weatherInfo;
-    },
+    }
 
     activateApp() {
-        this._weatherAppMon.activateApp();
-    },
+        if (this._weatherApp)
+            this._weatherApp.activate();
+    }
 
     update() {
         if (!this._locationValid)
@@ -104,13 +138,52 @@ var WeatherClient = new Lang.Class({
             this._weatherInfo.update();
         else
             this._loadInfo();
-    },
+    }
 
     get _useAutoLocation() {
         return this._autoLocationRequested &&
                this._locationSettings.get_boolean('enabled') &&
-               this._weatherAuthorized;
-    },
+               (!this._needsAuth || this._weatherAuthorized);
+    }
+
+    _onWeatherProxyReady(o, res) {
+        try {
+            this._weatherProxy = Gio.DBusProxy.new_finish(res);
+        } catch (e) {
+            log(`Failed to create GNOME Weather proxy: ${e}`);
+            return;
+        }
+
+        this._weatherProxy.connect('g-properties-changed',
+            this._onWeatherPropertiesChanged.bind(this));
+        this._onWeatherPropertiesChanged();
+    }
+
+    _onWeatherPropertiesChanged() {
+        if (this._weatherProxy.g_name_owner == null)
+            return;
+
+        this._settings.set_boolean('automatic-location',
+            this._weatherProxy.AutomaticLocation);
+        this._settings.set_value('locations',
+            new GLib.Variant('av', this._weatherProxy.Locations));
+    }
+
+    _onInstalledChanged() {
+        let hadApp = (this._weatherApp != null);
+        this._weatherApp = this._appSystem.lookup_app(WEATHER_APP_ID);
+        let haveApp = (this._weatherApp != null);
+
+        if (hadApp !== haveApp)
+            this.emit('changed');
+
+        let neededAuth = this._needsAuth;
+        this._needsAuth = this._weatherApp === null ||
+                          this._weatherApp.app_info.has_key('X-Flatpak');
+
+        if (neededAuth !== this._needsAuth)
+            this._updateAutoLocation();
+    }
 
     _loadInfo() {
         let id = this._weatherInfo.connect('updated', () => {
@@ -122,7 +195,7 @@ var WeatherClient = new Lang.Class({
         this.emit('changed');
 
         this._weatherInfo.update();
-    },
+    }
 
     _locationsEqual(loc1, loc2) {
         if (loc1 == loc2)
@@ -132,7 +205,7 @@ var WeatherClient = new Lang.Class({
             return false;
 
         return loc1.equal(loc2);
-    },
+    }
 
     _setLocation(location) {
         if (this._locationsEqual(this._weatherInfo.location, location))
@@ -148,7 +221,7 @@ var WeatherClient = new Lang.Class({
             this._loadInfo();
         else
             this.emit('changed');
-    },
+    }
 
     _updateLocationMonitoring() {
         if (this._useAutoLocation) {
@@ -164,7 +237,7 @@ var WeatherClient = new Lang.Class({
                 this._gclueService.disconnect(this._gclueLocationChangedId);
             this._gclueLocationChangedId = 0;
         }
-    },
+    }
 
     _startGClueService() {
         if (this._gclueStarting)
@@ -176,8 +249,8 @@ var WeatherClient = new Lang.Class({
             (o, res) => {
                 try {
                     this._gclueService = Geoclue.Simple.new_finish(res);
-                } catch(e) {
-                    log('Failed to connect to Geoclue2 service: ' + e.message);
+                } catch (e) {
+                    log(`Failed to connect to Geoclue2 service: ${e.message}`);
                     this._setLocation(this._mostRecentLocation);
                     return;
                 }
@@ -185,7 +258,7 @@ var WeatherClient = new Lang.Class({
                 this._gclueService.get_client().distance_threshold = 100;
                 this._updateLocationMonitoring();
             });
-    },
+    }
 
     _onGClueLocationChanged() {
         let geoLocation = this._gclueService.location;
@@ -194,17 +267,17 @@ var WeatherClient = new Lang.Class({
                                                       geoLocation.latitude,
                                                       geoLocation.longitude);
         this._setLocation(location);
-    },
+    }
 
-    _onAutomaticLocationChanged(settings, key) {
-        let useAutoLocation = settings.get_boolean(key);
+    _onAutomaticLocationChanged() {
+        let useAutoLocation = this._settings.get_boolean('automatic-location');
         if (this._autoLocationRequested == useAutoLocation)
             return;
 
         this._autoLocationRequested = useAutoLocation;
 
         this._updateAutoLocation();
-    },
+    }
 
     _updateAutoLocation() {
         this._updateLocationMonitoring();
@@ -213,10 +286,11 @@ var WeatherClient = new Lang.Class({
             this._startGClueService();
         else
             this._setLocation(this._mostRecentLocation);
-    },
+    }
 
-    _onLocationsChanged(settings, key) {
-        let serialized = settings.get_value(key).deep_unpack().shift();
+    _onLocationsChanged() {
+        let locations = this._settings.get_value('locations').deep_unpack();
+        let serialized = locations.shift();
         let mostRecentLocation = null;
 
         if (serialized)
@@ -229,19 +303,19 @@ var WeatherClient = new Lang.Class({
 
         if (!this._useAutoLocation || !this._gclueStarted)
             this._setLocation(this._mostRecentLocation);
-    },
+    }
 
     _onPermStoreChanged(proxy, sender, params) {
-        let [table, id, deleted, data, perms] = params;
+        let [table, id, deleted_, data_, perms] = params;
 
         if (table != 'gnome' || id != 'geolocation')
             return;
 
-        let permission = perms['org.gnome.Weather.Application'] || ['NONE'];
+        let permission = perms['org.gnome.Weather'] || ['NONE'];
         let [accuracy] = permission;
         this._weatherAuthorized = accuracy != 'NONE';
 
         this._updateAutoLocation();
     }
-});
+};
 Signals.addSignalMethods(WeatherClient.prototype);

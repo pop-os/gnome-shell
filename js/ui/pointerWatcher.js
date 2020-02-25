@@ -1,11 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported getPointerWatcher */
 
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const GnomeDesktop = imports.gi.GnomeDesktop;
-const Shell = imports.gi.Shell;
+const { GLib, Meta } = imports.gi;
 
 // We stop polling if the user is idle for more than this amount of time
 var IDLE_TIME = 1000;
@@ -22,14 +18,12 @@ function getPointerWatcher() {
     return _pointerWatcher;
 }
 
-var PointerWatch = new Lang.Class({
-    Name: 'PointerWatch',
-
-    _init(watcher, interval, callback) {
+var PointerWatch = class {
+    constructor(watcher, interval, callback) {
         this.watcher = watcher;
         this.interval = interval;
         this.callback = callback;
-    },
+    }
 
     // remove:
     // remove this watch. This function may safely be called
@@ -37,19 +31,17 @@ var PointerWatch = new Lang.Class({
     remove() {
         this.watcher._removeWatch(this);
     }
-});
+};
 
-var PointerWatcher = new Lang.Class({
-    Name: 'PointerWatcher',
-
-    _init() {
+var PointerWatcher = class {
+    constructor() {
         this._idleMonitor = Meta.IdleMonitor.get_core();
         this._idleMonitor.add_idle_watch(IDLE_TIME, this._onIdleMonitorBecameIdle.bind(this));
         this._idle = this._idleMonitor.get_idletime() > IDLE_TIME;
         this._watches = [];
         this.pointerX = null;
         this.pointerY = null;
-    },
+    }
 
     // addWatch:
     // @interval: hint as to the time resolution needed. When the user is
@@ -68,7 +60,7 @@ var PointerWatcher = new Lang.Class({
         this._watches.push(watch);
         this._updateTimeout();
         return watch;
-    },
+    }
 
     _removeWatch(watch) {
         for (let i = 0; i < this._watches.length; i++) {
@@ -78,23 +70,23 @@ var PointerWatcher = new Lang.Class({
                 return;
             }
         }
-    },
+    }
 
-    _onIdleMonitorBecameActive(monitor) {
+    _onIdleMonitorBecameActive() {
         this._idle = false;
         this._updatePointer();
         this._updateTimeout();
-    },
+    }
 
-    _onIdleMonitorBecameIdle(monitor) {
+    _onIdleMonitorBecameIdle() {
         this._idle = true;
         this._idleMonitor.add_user_active_watch(this._onIdleMonitorBecameActive.bind(this));
         this._updateTimeout();
-    },
+    }
 
     _updateTimeout() {
         if (this._timeoutId) {
-            Mainloop.source_remove(this._timeoutId);
+            GLib.source_remove(this._timeoutId);
             this._timeoutId = 0;
         }
 
@@ -105,18 +97,18 @@ var PointerWatcher = new Lang.Class({
         for (let i = 1; i < this._watches.length; i++)
             minInterval = Math.min(this._watches[i].interval, minInterval);
 
-        this._timeoutId = Mainloop.timeout_add(minInterval,
-                                               this._onTimeout.bind(this));
+        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, minInterval,
+            this._onTimeout.bind(this));
         GLib.Source.set_name_by_id(this._timeoutId, '[gnome-shell] this._onTimeout');
-    },
+    }
 
     _onTimeout() {
         this._updatePointer();
         return GLib.SOURCE_CONTINUE;
-    },
+    }
 
     _updatePointer() {
-        let [x, y, mods] = global.get_pointer();
+        let [x, y] = global.get_pointer();
         if (this.pointerX == x && this.pointerY == y)
             return;
 
@@ -130,4 +122,4 @@ var PointerWatcher = new Lang.Class({
                 i++;
         }
     }
-});
+};

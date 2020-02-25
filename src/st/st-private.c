@@ -204,9 +204,7 @@ _st_create_texture_pipeline (CoglTexture *src_texture)
         clutter_backend_get_cogl_context (clutter_get_default_backend ());
 
       texture_pipeline_template = cogl_pipeline_new (ctx);
-      cogl_pipeline_set_layer_null_texture (texture_pipeline_template,
-                                            0, /* layer */
-                                            COGL_TEXTURE_TYPE_2D);
+      cogl_pipeline_set_layer_null_texture (texture_pipeline_template, 0);
     }
 
   pipeline = cogl_pipeline_copy (texture_pipeline_template);
@@ -359,11 +357,12 @@ blur_pixels (guchar  *pixels_in,
 
 CoglPipeline *
 _st_create_shadow_pipeline (StShadow    *shadow_spec,
-                            CoglTexture *src_texture)
+                            CoglTexture *src_texture,
+                            float        resource_scale)
 {
   ClutterBackend *backend = clutter_get_default_backend ();
   CoglContext *ctx = clutter_backend_get_cogl_context (backend);
-  CoglError *error = NULL;
+  GError *error = NULL;
 
   static CoglPipeline *shadow_pipeline_template = NULL;
 
@@ -386,7 +385,7 @@ _st_create_shadow_pipeline (StShadow    *shadow_spec,
                          rowstride_in, pixels_in);
 
   pixels_out = blur_pixels (pixels_in, width_in, height_in, rowstride_in,
-                            shadow_spec->blur,
+                            shadow_spec->blur * resource_scale,
                             &width_out, &height_out, &rowstride_out);
   g_free (pixels_in);
 
@@ -399,7 +398,7 @@ _st_create_shadow_pipeline (StShadow    *shadow_spec,
   if (error)
     {
       g_warning ("Failed to allocate texture: %s", error->message);
-      cogl_error_free (error);
+      g_error_free (error);
     }
 
   g_free (pixels_out);
@@ -429,7 +428,9 @@ CoglPipeline *
 _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
                                        ClutterActor *actor)
 {
+  ClutterContent *image = NULL;
   CoglPipeline *shadow_pipeline = NULL;
+  float resource_scale;
   float width, height;
 
   g_return_val_if_fail (clutter_actor_has_allocation (actor), NULL);
@@ -439,15 +440,23 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
   if (width == 0 || height == 0)
     return NULL;
 
-  if (CLUTTER_IS_TEXTURE (actor))
+  if (!clutter_actor_get_resource_scale (actor, &resource_scale))
+    return NULL;
+
+  width = ceilf (width * resource_scale);
+  height = ceilf (height * resource_scale);
+
+  image = clutter_actor_get_content (actor);
+  if (image && CLUTTER_IS_IMAGE (image))
     {
       CoglTexture *texture;
 
-      texture = clutter_texture_get_cogl_texture (CLUTTER_TEXTURE (actor));
+      texture = clutter_image_get_texture (CLUTTER_IMAGE (image));
       if (texture &&
           cogl_texture_get_width (texture) == width &&
           cogl_texture_get_height (texture) == height)
-        shadow_pipeline = _st_create_shadow_pipeline (shadow_spec, texture);
+        shadow_pipeline = _st_create_shadow_pipeline (shadow_spec, texture,
+                                                      resource_scale);
     }
 
   if (shadow_pipeline == NULL)
@@ -455,14 +464,13 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
       CoglTexture *buffer;
       CoglOffscreen *offscreen;
       CoglFramebuffer *fb;
+      CoglContext *ctx;
       CoglColor clear_color;
-      CoglError *catch_error = NULL;
+      GError *catch_error = NULL;
       float x, y;
 
-      buffer = cogl_texture_new_with_size (width,
-                                           height,
-                                           COGL_TEXTURE_NO_SLICING,
-                                           COGL_PIXEL_FORMAT_ANY);
+      ctx = clutter_backend_get_cogl_context (clutter_get_default_backend ());
+      buffer = cogl_texture_2d_new_with_size (ctx, width, height);
 
       if (buffer == NULL)
         return NULL;
@@ -472,7 +480,7 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
 
       if (!cogl_framebuffer_allocate (fb, &catch_error))
         {
-          cogl_error_free (catch_error);
+          g_error_free (catch_error);
           cogl_object_unref (offscreen);
           cogl_object_unref (buffer);
           return NULL;
@@ -490,6 +498,7 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
       cogl_framebuffer_clear (fb, COGL_BUFFER_BIT_COLOR, &clear_color);
       cogl_framebuffer_translate (fb, -x, -y, 0);
       cogl_framebuffer_orthographic (fb, 0, 0, width, height, 0, 1.0);
+      cogl_framebuffer_scale (fb, resource_scale, resource_scale, 1);
 
       clutter_actor_set_opacity_override (actor, 255);
       clutter_actor_paint (actor);
@@ -501,7 +510,8 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
 
       cogl_object_unref (fb);
 
-      shadow_pipeline = _st_create_shadow_pipeline (shadow_spec, buffer);
+      shadow_pipeline = _st_create_shadow_pipeline (shadow_spec, buffer,
+                                                    resource_scale);
 
       cogl_object_unref (buffer);
     }
@@ -527,9 +537,10 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
  * the offset.
  */
 cairo_pattern_t *
-_st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
+_st_create_shadow_cairo_pattern (StShadow        *shadow_spec_in,
                                  cairo_pattern_t *src_pattern)
 {
+  g_autoptr(StShadow) shadow_spec = NULL;
   static cairo_user_data_key_t shadow_pattern_user_data;
   cairo_t *cr;
   cairo_surface_t *src_surface;
@@ -540,9 +551,10 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
   gint             width_in, height_in, rowstride_in;
   gint             width_out, height_out, rowstride_out;
   cairo_matrix_t   shadow_matrix;
+  double           xscale_in, yscale_in;
   int i, j;
 
-  g_return_val_if_fail (shadow_spec != NULL, NULL);
+  g_return_val_if_fail (shadow_spec_in != NULL, NULL);
   g_return_val_if_fail (src_pattern != NULL, NULL);
 
   if (cairo_pattern_get_surface (src_pattern, &src_surface) != CAIRO_STATUS_SUCCESS)
@@ -554,6 +566,25 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
 
   width_in  = cairo_image_surface_get_width  (src_surface);
   height_in = cairo_image_surface_get_height (src_surface);
+
+  cairo_surface_get_device_scale (src_surface, &xscale_in, &yscale_in);
+
+  if (xscale_in != 1.0 || yscale_in != 1.0)
+    {
+      /* Scale the shadow specifications in a temporary copy so that
+       * we can work everywhere in absolute surface coordinates */
+      double scale = (xscale_in + yscale_in) / 2.0;
+      shadow_spec = st_shadow_new (&shadow_spec_in->color,
+                                   shadow_spec_in->xoffset * xscale_in,
+                                   shadow_spec_in->yoffset * yscale_in,
+                                   shadow_spec_in->blur * scale,
+                                   shadow_spec_in->spread * scale,
+                                   shadow_spec_in->inset);
+    }
+  else
+    {
+      shadow_spec = st_shadow_ref (shadow_spec_in);
+    }
 
   /* We want the output to be a color agnostic alpha mask,
    * so we need to strip the color channels from the input
@@ -597,6 +628,7 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
                                                      width_out,
                                                      height_out,
                                                      rowstride_out);
+  cairo_surface_set_device_scale (surface_out, xscale_in, yscale_in);
   cairo_surface_set_user_data (surface_out, &shadow_pattern_user_data,
                                pixels_out, (cairo_destroy_func_t) g_free);
 
@@ -607,6 +639,9 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
 
   if (shadow_spec->inset)
     {
+      /* Scale the matrix in surface absolute coordinates */
+      cairo_matrix_scale (&shadow_matrix, 1.0 / xscale_in, 1.0 / yscale_in);
+
       /* For inset shadows, offsets and spread radius have already been
        * applied to the original pattern, so all left to do is shift the
        * blurred image left, so that it aligns centered under the
@@ -615,6 +650,10 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
       cairo_matrix_translate (&shadow_matrix,
                               (width_out - width_in) / 2.0,
                               (height_out - height_in) / 2.0);
+
+      /* Scale back the matrix in original coordinates */
+      cairo_matrix_scale (&shadow_matrix, xscale_in, yscale_in);
+
       cairo_pattern_set_matrix (dst_pattern, &shadow_matrix);
       return dst_pattern;
     }
@@ -626,6 +665,9 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
 
   /* 6. Invert the matrix back */
   cairo_matrix_invert (&shadow_matrix);
+
+  /* Scale the matrix in surface absolute coordinates */
+  cairo_matrix_scale (&shadow_matrix, 1.0 / xscale_in, 1.0 / yscale_in);
 
   /* 5. Adjust based on specified offsets */
   cairo_matrix_translate (&shadow_matrix,
@@ -648,6 +690,9 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
                           - (width_out - width_in) / 2.0,
                           - (height_out - height_in) / 2.0);
 
+  /* Scale back the matrix in scaled coordinates */
+  cairo_matrix_scale (&shadow_matrix, xscale_in, yscale_in);
+
   /* 1. Invert the matrix so we can work with it in pattern space
    */
   cairo_matrix_invert (&shadow_matrix);
@@ -659,11 +704,11 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
 
 void
 _st_paint_shadow_with_opacity (StShadow        *shadow_spec,
+                               CoglFramebuffer *framebuffer,
                                CoglPipeline    *shadow_pipeline,
                                ClutterActorBox *box,
                                guint8           paint_opacity)
 {
-  CoglFramebuffer *fb = cogl_get_draw_framebuffer ();
   ClutterActorBox shadow_box;
   CoglColor color;
 
@@ -679,7 +724,8 @@ _st_paint_shadow_with_opacity (StShadow        *shadow_spec,
                             shadow_spec->color.alpha * paint_opacity / 255);
   cogl_color_premultiply (&color);
   cogl_pipeline_set_layer_combine_constant (shadow_pipeline, 0, &color);
-  cogl_framebuffer_draw_rectangle (fb, shadow_pipeline,
+  cogl_framebuffer_draw_rectangle (framebuffer,
+                                   shadow_pipeline,
                                    shadow_box.x1, shadow_box.y1,
                                    shadow_box.x2, shadow_box.y2);
 }

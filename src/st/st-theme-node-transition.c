@@ -19,6 +19,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
+
 #include "st-theme-node-transition.h"
 
 enum {
@@ -42,13 +44,13 @@ struct _StThemeNodeTransitionPrivate {
   StThemeNodePaintState old_paint_state;
   StThemeNodePaintState new_paint_state;
 
-  CoglHandle old_texture;
-  CoglHandle new_texture;
+  CoglTexture *old_texture;
+  CoglTexture *new_texture;
 
-  CoglHandle old_offscreen;
-  CoglHandle new_offscreen;
+  CoglFramebuffer *old_offscreen;
+  CoglFramebuffer *new_offscreen;
 
-  CoglHandle material;
+  CoglPipeline *material;
 
   ClutterTimeline *timeline;
 
@@ -117,6 +119,10 @@ st_theme_node_transition_new (StThemeNode *from_node,
   return transition;
 }
 
+/**
+ * st_theme_node_transition_get_new_paint_state: (skip)
+ *
+ */
 StThemeNodePaintState *
 st_theme_node_transition_get_new_paint_state (StThemeNodeTransition *transition)
 {
@@ -237,64 +243,57 @@ st_theme_node_transition_get_paint_box (StThemeNodeTransition *transition,
 
 static gboolean
 setup_framebuffers (StThemeNodeTransition *transition,
-                    const ClutterActorBox *allocation)
+                    const ClutterActorBox *allocation,
+                    float                  resource_scale)
 {
   StThemeNodeTransitionPrivate *priv = transition->priv;
+  CoglContext *ctx;
   guint width, height;
-  CoglError *catch_error = NULL;
+  GError *catch_error = NULL;
 
   /* template material to avoid unnecessary shader compilation */
-  static CoglHandle material_template = COGL_INVALID_HANDLE;
+  static CoglPipeline *material_template = NULL;
 
-  width  = priv->offscreen_box.x2 - priv->offscreen_box.x1;
-  height = priv->offscreen_box.y2 - priv->offscreen_box.y1;
+  ctx = clutter_backend_get_cogl_context (clutter_get_default_backend ());
+  width  = ceilf ((priv->offscreen_box.x2 - priv->offscreen_box.x1) * resource_scale);
+  height = ceilf ((priv->offscreen_box.y2 - priv->offscreen_box.y1) * resource_scale);
 
   g_return_val_if_fail (width  > 0, FALSE);
   g_return_val_if_fail (height > 0, FALSE);
 
-  if (priv->old_texture)
-    cogl_handle_unref (priv->old_texture);
-  priv->old_texture = cogl_texture_new_with_size (width, height,
-                                                  COGL_TEXTURE_NO_SLICING,
-                                                  COGL_PIXEL_FORMAT_ANY);
+  cogl_clear_object (&priv->old_texture);
+  priv->old_texture = COGL_TEXTURE (cogl_texture_2d_new_with_size (ctx, width, height));
 
-  if (priv->new_texture)
-    cogl_handle_unref (priv->new_texture);
-  priv->new_texture = cogl_texture_new_with_size (width, height,
-                                                  COGL_TEXTURE_NO_SLICING,
-                                                  COGL_PIXEL_FORMAT_ANY);
+  cogl_clear_object (&priv->new_texture);
+  priv->new_texture = COGL_TEXTURE (cogl_texture_2d_new_with_size (ctx, width, height));
 
-  if (priv->old_texture == COGL_INVALID_HANDLE)
+  if (priv->old_texture == NULL)
     return FALSE;
 
-  if (priv->new_texture == COGL_INVALID_HANDLE)
+  if (priv->new_texture == NULL)
     return FALSE;
 
-  if (priv->old_offscreen)
-    cogl_handle_unref (priv->old_offscreen);
-  priv->old_offscreen = cogl_offscreen_new_with_texture (priv->old_texture);
-  if (!cogl_framebuffer_allocate (COGL_FRAMEBUFFER (priv->old_offscreen), &catch_error))
+  cogl_clear_object (&priv->old_offscreen);
+  priv->old_offscreen = COGL_FRAMEBUFFER (cogl_offscreen_new_with_texture (priv->old_texture));
+  if (!cogl_framebuffer_allocate (priv->old_offscreen, &catch_error))
     {
-      cogl_object_unref (priv->old_offscreen);
-      cogl_error_free (catch_error);
-      priv->old_offscreen = COGL_INVALID_HANDLE;
+      g_error_free (catch_error);
+      cogl_clear_object (&priv->old_offscreen);
       return FALSE;
     }
 
-  if (priv->new_offscreen)
-    cogl_handle_unref (priv->new_offscreen);
-  priv->new_offscreen = cogl_offscreen_new_with_texture (priv->new_texture);
-  if (!cogl_framebuffer_allocate (COGL_FRAMEBUFFER (priv->new_offscreen), &catch_error))
+  cogl_clear_object (&priv->new_offscreen);
+  priv->new_offscreen = COGL_FRAMEBUFFER (cogl_offscreen_new_with_texture (priv->new_texture));
+  if (!cogl_framebuffer_allocate (priv->new_offscreen, &catch_error))
     {
-      cogl_object_unref (priv->new_offscreen);
-      cogl_error_free (catch_error);
-      priv->new_offscreen = COGL_INVALID_HANDLE;
+      g_error_free (catch_error);
+      cogl_clear_object (&priv->new_offscreen);
       return FALSE;
     }
 
   if (priv->material == NULL)
     {
-      if (G_UNLIKELY (material_template == COGL_INVALID_HANDLE))
+      if (G_UNLIKELY (material_template == NULL))
         {
           CoglContext *ctx =
             clutter_backend_get_cogl_context (clutter_get_default_backend ());
@@ -328,7 +327,7 @@ setup_framebuffers (StThemeNodeTransition *transition,
                                  priv->offscreen_box.y2, 0.0, 1.0);
 
   st_theme_node_paint (priv->old_theme_node, &priv->old_paint_state,
-                       priv->old_offscreen, allocation, 255);
+                       priv->old_offscreen, allocation, 255, resource_scale);
 
   cogl_framebuffer_clear4f (priv->new_offscreen, COGL_BUFFER_BIT_COLOR,
                             0, 0, 0, 0);
@@ -338,18 +337,19 @@ setup_framebuffers (StThemeNodeTransition *transition,
                                  priv->offscreen_box.x2,
                                  priv->offscreen_box.y2, 0.0, 1.0);
   st_theme_node_paint (priv->new_theme_node, &priv->new_paint_state,
-                       priv->new_offscreen, allocation, 255);
+                       priv->new_offscreen, allocation, 255, resource_scale);
 
   return TRUE;
 }
 
 void
 st_theme_node_transition_paint (StThemeNodeTransition *transition,
+                                CoglFramebuffer       *framebuffer,
                                 ClutterActorBox       *allocation,
-                                guint8                 paint_opacity)
+                                guint8                 paint_opacity,
+                                float                  resource_scale)
 {
   StThemeNodeTransitionPrivate *priv = transition->priv;
-  CoglFramebuffer *fb = cogl_get_draw_framebuffer ();
 
   CoglColor constant;
   float tex_coords[] = {
@@ -368,7 +368,8 @@ st_theme_node_transition_paint (StThemeNodeTransition *transition,
       priv->last_allocation = *allocation;
 
       calculate_offscreen_box (transition, allocation);
-      priv->needs_setup = !setup_framebuffers (transition, allocation);
+      priv->needs_setup = !setup_framebuffers (transition, allocation,
+                                               resource_scale);
 
       if (priv->needs_setup) /* setting up framebuffers failed */
         return;
@@ -382,7 +383,8 @@ st_theme_node_transition_paint (StThemeNodeTransition *transition,
                               paint_opacity, paint_opacity,
                               paint_opacity, paint_opacity);
 
-  cogl_framebuffer_draw_multitextured_rectangle (fb, priv->material,
+  cogl_framebuffer_draw_multitextured_rectangle (framebuffer,
+                                                 priv->material,
                                                  priv->offscreen_box.x1,
                                                  priv->offscreen_box.y1,
                                                  priv->offscreen_box.x2,
@@ -395,47 +397,16 @@ st_theme_node_transition_dispose (GObject *object)
 {
   StThemeNodeTransitionPrivate *priv = ST_THEME_NODE_TRANSITION (object)->priv;
 
-  if (priv->old_theme_node)
-    {
-      g_object_unref (priv->old_theme_node);
-      priv->old_theme_node = NULL;
-    }
+  g_clear_object (&priv->old_theme_node);
+  g_clear_object (&priv->new_theme_node);
 
-  if (priv->new_theme_node)
-    {
-      g_object_unref (priv->new_theme_node);
-      priv->new_theme_node = NULL;
-    }
+  cogl_clear_object (&priv->old_texture);
+  cogl_clear_object (&priv->new_texture);
 
-  if (priv->old_texture)
-    {
-      cogl_handle_unref (priv->old_texture);
-      priv->old_texture = NULL;
-    }
+  cogl_clear_object (&priv->old_offscreen);
+  cogl_clear_object (&priv->new_offscreen);
 
-  if (priv->new_texture)
-    {
-      cogl_handle_unref (priv->new_texture);
-      priv->new_texture = NULL;
-    }
-
-  if (priv->old_offscreen)
-    {
-      cogl_handle_unref (priv->old_offscreen);
-      priv->old_offscreen = NULL;
-    }
-
-  if (priv->new_offscreen)
-    {
-      cogl_handle_unref (priv->new_offscreen);
-      priv->new_offscreen = NULL;
-    }
-
-  if (priv->material)
-    {
-      cogl_handle_unref (priv->material);
-      priv->material = NULL;
-    }
+  cogl_clear_object (&priv->material);
 
   if (priv->timeline)
     {
@@ -446,8 +417,7 @@ st_theme_node_transition_dispose (GObject *object)
         g_signal_handler_disconnect (priv->timeline,
                                      priv->timeline_new_frame_id);
 
-      g_object_unref (priv->timeline);
-      priv->timeline = NULL;
+      g_clear_object (&priv->timeline);
     }
 
   priv->timeline_completed_id = 0;

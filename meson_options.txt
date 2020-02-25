@@ -1,7 +1,7 @@
-option('browser_plugin',
+option('extensions_tool',
   type: 'boolean',
   value: true,
-  description: 'Enable extensions.gnome.org browser plugin'
+  description: 'Build gnome-extensions CLI tool'
 )
 
 option('gtk_doc',

@@ -1,12 +1,17 @@
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk;
-const Meta = imports.gi.Meta;
+/* exported run, script_desktopShown, script_overviewShowStart,
+            script_overviewShowDone, script_applicationsShowStart,
+            script_applicationsShowDone, script_mainViewDrawStart,
+            script_mainViewDrawDone, script_overviewDrawStart,
+            script_overviewDrawDone, script_redrawTestStart,
+            script_redrawTestDone, script_collectTimings,
+            script_geditLaunch, script_geditFirstFrame,
+            clutter_stagePaintStart, clutter_paintCompletedTimestamp */
+/* eslint camelcase: ["error", { properties: "never", allow: ["^script_", "^clutter"] }] */
+const { Clutter, Gio, Shell } = imports.gi;
 const Main = imports.ui.main;
 const Scripting = imports.ui.scripting;
-const Shell = imports.gi.Shell;
 
-let METRICS = {
+var METRICS = {
     timeToDesktop:
     { description: "Time from starting graphical.target to desktop showing",
       units: "us" },
@@ -34,7 +39,7 @@ let METRICS = {
     geditStartTime:
     { description: "Time from gedit launch to window drawn",
       units: "us" },
-}
+};
 
 function waitAndDraw(milliseconds) {
     let cb;
@@ -42,7 +47,7 @@ function waitAndDraw(milliseconds) {
     let timeline = new Clutter.Timeline({ duration: milliseconds });
     timeline.start();
 
-    timeline.connect('new-frame', (timeline, frame) => {
+    timeline.connect('new-frame', (_timeline, _frame) => {
         global.stage.queue_redraw();
     });
 
@@ -52,7 +57,7 @@ function waitAndDraw(milliseconds) {
             cb();
     });
 
-    return callback => { cb = callback; };
+    return callback => (cb = callback);
 }
 
 function waitSignal(object, signal) {
@@ -64,7 +69,7 @@ function waitSignal(object, signal) {
             cb();
     });
 
-    return callback => { cb = callback; };
+    return callback => (cb = callback);
 }
 
 function extractBootTimestamp() {
@@ -77,8 +82,8 @@ function extractBootTimestamp() {
     let result = null;
 
     let datastream = Gio.DataInputStream.new(sp.get_stdout_pipe());
-    while (true) {
-        let [line, length] = datastream.read_line_utf8(null);
+    while (true) { // eslint-disable-line no-constant-condition
+        let [line, length_] = datastream.read_line_utf8(null);
         if (line === null)
             break;
 
@@ -89,7 +94,7 @@ function extractBootTimestamp() {
     return result;
 }
 
-function run() {
+function *run() {
     Scripting.defineScriptEvent("desktopShown", "Finished initial animation");
     Scripting.defineScriptEvent("overviewShowStart", "Starting to show the overview");
     Scripting.defineScriptEvent("overviewShowDone", "Overview finished showing");
@@ -108,7 +113,10 @@ function run() {
     yield Scripting.waitLeisure();
     Scripting.scriptEvent('desktopShown');
 
-    Gtk.Settings.get_default().gtk_enable_animations = false;
+    let interfaceSettings = new Gio.Settings({
+        schema_id: 'org.gnome.desktop.interface'
+    });
+    interfaceSettings.set_boolean('enable-animations', false);
 
     Scripting.scriptEvent('overviewShowStart');
     Main.overview.show();
@@ -118,6 +126,7 @@ function run() {
     yield Scripting.sleep(1000);
 
     Scripting.scriptEvent('applicationsShowStart');
+    // eslint-disable-next-line require-atomic-updates
     Main.overview._dash.showAppsButton.checked = true;
 
     yield Scripting.waitLeisure();
@@ -128,9 +137,9 @@ function run() {
     Main.overview.hide();
     yield Scripting.waitLeisure();
 
-    ////////////////////////////////////////
-    // Tests of redraw speed
-    ////////////////////////////////////////
+    // --------------------- //
+    // Tests of redraw speed //
+    // --------------------- //
 
     global.frame_timestamps = true;
     global.frame_finish_timestamp = true;
@@ -158,7 +167,7 @@ function run() {
     Main.overview.hide();
 
     yield Scripting.createTestWindow({ maximized: true,
-                                       redraws: true});
+                                       redraws: true });
     yield Scripting.waitTestWindows();
 
     yield Scripting.sleep(1000);
@@ -176,8 +185,6 @@ function run() {
     global.frame_finish_timestamp = false;
 
     yield Scripting.sleep(1000);
-
-    ////////////////////////////////////////
 
     let appSys = Shell.AppSystem.get_default();
     let app = appSys.lookup_app('org.gnome.gedit.desktop');
@@ -204,7 +211,7 @@ function run() {
 
     yield Scripting.sleep(1000);
 
-    Gtk.Settings.get_default().gtk_enable_animations = true;
+    interfaceSettings.set_boolean('enable-animations', true);
 }
 
 let overviewShowStart;
@@ -235,31 +242,31 @@ function script_applicationsShowDone(time) {
     METRICS.applicationsShowTime.value = time - applicationsShowStart;
 }
 
-function script_mainViewDrawStart(time) {
+function script_mainViewDrawStart(_time) {
     redrawTiming = 'mainView';
 }
 
-function script_mainViewDrawDone(time) {
+function script_mainViewDrawDone(_time) {
     redrawTiming = null;
 }
 
-function script_overviewDrawStart(time) {
+function script_overviewDrawStart(_time) {
     redrawTiming = 'overview';
 }
 
-function script_overviewDrawDone(time) {
+function script_overviewDrawDone(_time) {
     redrawTiming = null;
 }
 
-function script_redrawTestStart(time) {
+function script_redrawTestStart(_time) {
     redrawTiming = 'application';
 }
 
-function script_redrawTestDone(time) {
+function script_redrawTestDone(_time) {
     redrawTiming = null;
 }
 
-function script_collectTimings(time) {
+function script_collectTimings(_time) {
     for (let timing in redrawTimes) {
         let times = redrawTimes[timing];
         times.sort((a, b) => a - b);
@@ -270,11 +277,11 @@ function script_collectTimings(time) {
         if (len == 0)
             median = -1;
         else if (len % 2 == 1)
-            median = times[(len - 1)/ 2];
+            median = times[(len - 1) / 2];
         else
             median = Math.round((times[len / 2 - 1] + times[len / 2]) / 2);
 
-        METRICS[timing + 'RedrawTime'].value = median;
+        METRICS[`${timing}RedrawTime`].value = median;
     }
 }
 

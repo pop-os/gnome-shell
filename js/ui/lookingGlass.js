@@ -1,41 +1,24 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported LookingGlass */
 
-const Clutter = imports.gi.Clutter;
-const Cogl = imports.gi.Cogl;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk;
-const Meta = imports.gi.Meta;
-const Pango = imports.gi.Pango;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
+const { Clutter, Cogl, Gio, GLib,
+        GObject, Meta, Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
 const System = imports.system;
 
 const History = imports.misc.history;
-const ExtensionSystem = imports.ui.extensionSystem;
 const ExtensionUtils = imports.misc.extensionUtils;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const Main = imports.ui.main;
 const JsParse = imports.misc.jsParse;
+
+const { ExtensionState } = ExtensionUtils;
 
 const CHEVRON = '>>> ';
 
 /* Imports...feel free to add here as needed */
-var commandHeader = 'const Clutter = imports.gi.Clutter; ' +
-                    'const GLib = imports.gi.GLib; ' +
-                    'const GObject = imports.gi.GObject; ' +
-                    'const Gio = imports.gi.Gio; ' +
-                    'const Gtk = imports.gi.Gtk; ' +
-                    'const Mainloop = imports.mainloop; ' +
-                    'const Meta = imports.gi.Meta; ' +
-                    'const Shell = imports.gi.Shell; ' +
+var commandHeader = 'const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi; ' +
                     'const Main = imports.ui.main; ' +
-                    'const Lang = imports.lang; ' +
-                    'const Tweener = imports.ui.tweener; ' +
                     /* Utility functions...we should probably be able to use these
                      * in the shell core code too. */
                     'const stage = global.stage; ' +
@@ -47,8 +30,10 @@ var commandHeader = 'const Clutter = imports.gi.Clutter; ' +
 const HISTORY_KEY = 'looking-glass-history';
 // Time between tabs for them to count as a double-tab event
 var AUTO_COMPLETE_DOUBLE_TAB_DELAY = 500;
-var AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION = 0.2;
+var AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION = 200;
 var AUTO_COMPLETE_GLOBAL_KEYWORDS = _getAutoCompleteGlobalKeywords();
+
+const LG_ANIMATION_TIME = 500;
 
 function _getAutoCompleteGlobalKeywords() {
     const keywords = ['true', 'false', 'null', 'new'];
@@ -61,14 +46,12 @@ function _getAutoCompleteGlobalKeywords() {
     return keywords.concat(windowProperties).concat(headerProperties);
 }
 
-var AutoComplete = new Lang.Class({
-    Name: 'AutoComplete',
-
-    _init(entry) {
+var AutoComplete = class AutoComplete {
+    constructor(entry) {
         this._entry = entry;
         this._entry.connect('key-press-event', this._entryKeyPressEvent.bind(this));
         this._lastTabTime = global.get_current_time();
-    },
+    }
 
     _processCompletionRequest(event) {
         if (event.completions.length == 0) {
@@ -85,12 +68,12 @@ var AutoComplete = new Lang.Class({
             if (commonPrefix.length > 0) {
                 this.additionalCompletionText(commonPrefix, event.attrHead);
                 this.emit('completion', { completion: commonPrefix, type: 'prefix' });
-                this.emit('suggest', { completions: event.completions});
+                this.emit('suggest', { completions: event.completions });
             }
         } else if (event.completions.length > 1 && event.tabType === 'double') {
-            this.emit('suggest', { completions: event.completions});
+            this.emit('suggest', { completions: event.completions });
         }
-    },
+    }
 
     _entryKeyPressEvent(actor, event) {
         let cursorPos = this._entry.clutter_text.get_cursor_position();
@@ -113,7 +96,7 @@ var AutoComplete = new Lang.Class({
             this._lastTabTime = currTime;
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     // Insert characters of text not already included in head at cursor position.  i.e., if text="abc" and head="a",
     // the string "bc" will be appended to this._entry
@@ -123,21 +106,19 @@ var AutoComplete = new Lang.Class({
 
         this._entry.clutter_text.insert_text(additionalCompletionText, cursorPos);
     }
-});
+};
 Signals.addSignalMethods(AutoComplete.prototype);
 
 
-var Notebook = new Lang.Class({
-    Name: 'Notebook',
-
-    _init() {
+var Notebook = class Notebook {
+    constructor() {
         this.actor = new St.BoxLayout({ vertical: true });
 
         this.tabControls = new St.BoxLayout({ style_class: 'labels' });
 
         this._selectedIndex = -1;
         this._tabs = [];
-    },
+    }
 
     appendPage(name, child) {
         let labelBox = new St.BoxLayout({ style_class: 'notebook-tab',
@@ -165,12 +146,12 @@ var Notebook = new Lang.Class({
         this.actor.add(scrollview, { expand: true });
 
         let vAdjust = scrollview.vscroll.adjustment;
-        vAdjust.connect('changed', () => { this._onAdjustScopeChanged(tabData); });
-        vAdjust.connect('notify::value', () => { this._onAdjustValueChanged(tabData); });
+        vAdjust.connect('changed', () => this._onAdjustScopeChanged(tabData));
+        vAdjust.connect('notify::value', () => this._onAdjustValueChanged(tabData));
 
         if (this._selectedIndex == -1)
             this.selectIndex(0);
-    },
+    }
 
     _unselect() {
         if (this._selectedIndex < 0)
@@ -179,7 +160,7 @@ var Notebook = new Lang.Class({
         tabData.labelBox.remove_style_pseudo_class('selected');
         tabData.scrollView.hide();
         this._selectedIndex = -1;
-    },
+    }
 
     selectIndex(index) {
         if (index == this._selectedIndex)
@@ -192,7 +173,7 @@ var Notebook = new Lang.Class({
 
         // Focus the new tab before unmapping the old one
         let tabData = this._tabs[index];
-        if (!tabData.scrollView.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false))
+        if (!tabData.scrollView.navigate_focus(null, St.DirectionType.TAB_FORWARD, false))
             this.actor.grab_key_focus();
 
         this._unselect();
@@ -201,12 +182,12 @@ var Notebook = new Lang.Class({
         tabData.scrollView.show();
         this._selectedIndex = index;
         this.emit('selection', tabData.child);
-    },
+    }
 
     selectChild(child) {
-        if (child == null)
+        if (child == null) {
             this.selectIndex(-1);
-        else {
+        } else {
             for (let i = 0; i < this._tabs.length; i++) {
                 let tabData = this._tabs[i];
                 if (tabData.child == child) {
@@ -215,26 +196,26 @@ var Notebook = new Lang.Class({
                 }
             }
         }
-    },
+    }
 
     scrollToBottom(index) {
         let tabData = this._tabs[index];
         tabData._scrollToBottom = true;
 
-    },
+    }
 
     _onAdjustValueChanged(tabData) {
         let vAdjust = tabData.scrollView.vscroll.adjustment;
         if (vAdjust.value < (vAdjust.upper - vAdjust.lower - 0.5))
             tabData._scrolltoBottom = false;
-    },
+    }
 
     _onAdjustScopeChanged(tabData) {
         if (!tabData._scrollToBottom)
             return;
         let vAdjust = tabData.scrollView.vscroll.adjustment;
         vAdjust.value = vAdjust.upper - vAdjust.page_size;
-    },
+    }
 
     nextTab() {
         let nextIndex = this._selectedIndex;
@@ -243,7 +224,7 @@ var Notebook = new Lang.Class({
         }
 
         this.selectIndex(nextIndex);
-    },
+    }
 
     prevTab() {
         let prevIndex = this._selectedIndex;
@@ -253,22 +234,20 @@ var Notebook = new Lang.Class({
 
         this.selectIndex(prevIndex);
     }
-});
+};
 Signals.addSignalMethods(Notebook.prototype);
 
 function objectToString(o) {
-    if (typeof(o) == typeof(objectToString)) {
+    if (typeof o == typeof objectToString) {
         // special case this since the default is way, way too verbose
         return '<js function>';
     } else {
-        return '' + o;
+        return `${o}`;
     }
 }
 
-var ObjLink = new Lang.Class({
-    Name: 'ObjLink',
-
-    _init(lookingGlass, o, title) {
+var ObjLink = class ObjLink {
+    constructor(lookingGlass, o, title) {
         let text;
         if (title)
             text = title;
@@ -285,17 +264,15 @@ var ObjLink = new Lang.Class({
         this.actor.connect('clicked', this._onClicked.bind(this));
 
         this._lookingGlass = lookingGlass;
-    },
+    }
 
-    _onClicked(link) {
+    _onClicked() {
         this._lookingGlass.inspectObject(this._obj, this.actor);
     }
-});
+};
 
-var Result = new Lang.Class({
-    Name: 'Result',
-
-    _init(lookingGlass, command, o, index) {
+var Result = class Result {
+    constructor(lookingGlass, command, o, index) {
         this.index = index;
         this.o = o;
 
@@ -307,18 +284,16 @@ var Result = new Lang.Class({
         this.actor.add(cmdTxt);
         let box = new St.BoxLayout({});
         this.actor.add(box);
-        let resultTxt = new St.Label({ text: 'r(' + index + ') = ' });
+        let resultTxt = new St.Label({ text: `r(${index}) = ` });
         resultTxt.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         box.add(resultTxt);
         let objLink = new ObjLink(this._lookingGlass, o);
         box.add(objLink.actor);
     }
-});
+};
 
-var WindowList = new Lang.Class({
-    Name: 'WindowList',
-
-    _init(lookingGlass) {
+var WindowList = class WindowList {
+    constructor(lookingGlass) {
         this.actor = new St.BoxLayout({ name: 'Windows', vertical: true, style: 'spacing: 8px' });
         let tracker = Shell.WindowTracker.get_default();
         this._updateId = Main.initializeDeferredWork(this.actor, this._updateWindowList.bind(this));
@@ -326,9 +301,12 @@ var WindowList = new Lang.Class({
         tracker.connect('tracked-windows-changed', this._updateWindowList.bind(this));
 
         this._lookingGlass = lookingGlass;
-    },
+    }
 
     _updateWindowList() {
+        if (!this._lookingGlass.isOpen)
+            return;
+
         this.actor.destroy_all_children();
         let windows = global.get_window_actors();
         let tracker = Shell.WindowTracker.get_default();
@@ -345,7 +323,7 @@ var WindowList = new Lang.Class({
             box.add(windowLink.actor, { x_align: St.Align.START, x_fill: false });
             let propsBox = new St.BoxLayout({ vertical: true, style: 'padding-left: 6px;' });
             box.add(propsBox);
-            propsBox.add(new St.Label({ text: 'wmclass: ' + metaWindow.get_wm_class() }));
+            propsBox.add(new St.Label({ text: `wmclass: ${metaWindow.get_wm_class()}` }));
             let app = tracker.get_window_app(metaWindow);
             if (app != null && !app.is_window_backed()) {
                 let icon = app.create_icon_texture(22);
@@ -360,13 +338,15 @@ var WindowList = new Lang.Class({
             }
         }
     }
-});
+
+    update() {
+        this._updateWindowList();
+    }
+};
 Signals.addSignalMethods(WindowList.prototype);
 
-var ObjInspector = new Lang.Class({
-    Name: 'ObjInspector',
-
-    _init(lookingGlass) {
+var ObjInspector = class ObjInspector {
+    constructor(lookingGlass) {
         this._obj = null;
         this._previousObj = null;
 
@@ -381,7 +361,7 @@ var ObjInspector = new Lang.Class({
         this.actor.add_actor(this._container);
 
         this._lookingGlass = lookingGlass;
-    },
+    }
 
     selectObject(obj, skipPrevious) {
         if (!skipPrevious)
@@ -394,7 +374,7 @@ var ObjInspector = new Lang.Class({
 
         let hbox = new St.BoxLayout({ style_class: 'lg-obj-inspector-title' });
         this._container.add_actor(hbox);
-        let label = new St.Label({ text: 'Inspecting: %s: %s'.format(typeof(obj),
+        let label = new St.Label({ text: 'Inspecting: %s: %s'.format(typeof obj,
                                                                      objectToString(obj)) });
         label.single_line_mode = true;
         hbox.add(label, { expand: true, y_fill: false });
@@ -409,9 +389,10 @@ var ObjInspector = new Lang.Class({
         }
 
         button = new St.Button({ style_class: 'window-close' });
+        button.add_actor(new St.Icon({ icon_name: 'window-close-symbolic' }));
         button.connect('clicked', this.close.bind(this));
         hbox.add(button);
-        if (typeof(obj) == typeof({})) {
+        if (typeof obj == typeof {}) {
             let properties = [];
             for (let propName in obj) {
                 properties.push(propName);
@@ -420,7 +401,6 @@ var ObjInspector = new Lang.Class({
 
             for (let i = 0; i < properties.length; i++) {
                 let propName = properties[i];
-                let valueStr;
                 let link;
                 try {
                     let prop = obj[propName];
@@ -429,13 +409,12 @@ var ObjInspector = new Lang.Class({
                     link = new St.Label({ text: '<error>' });
                 }
                 let hbox = new St.BoxLayout();
-                let propText = propName + ': ' + valueStr;
-                hbox.add(new St.Label({ text: propName + ': ' }));
+                hbox.add(new St.Label({ text: `${propName}: ` }));
                 hbox.add(link);
                 this._container.add_actor(hbox);
             }
         }
-    },
+    }
 
     open(sourceActor) {
         if (this._open)
@@ -445,13 +424,16 @@ var ObjInspector = new Lang.Class({
         this.actor.show();
         if (sourceActor) {
             this.actor.set_scale(0, 0);
-            Tweener.addTween(this.actor, { scale_x: 1, scale_y: 1,
-                                           transition: 'easeOutQuad',
-                                           time: 0.2 });
+            this.actor.ease({
+                scale_x: 1,
+                scale_y: 1,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                duration: 200
+            });
         } else {
             this.actor.set_scale(1, 1);
         }
-    },
+    }
 
     close() {
         if (!this._open)
@@ -460,23 +442,21 @@ var ObjInspector = new Lang.Class({
         this.actor.hide();
         this._previousObj = null;
         this._obj = null;
-    },
+    }
 
     _onInsert() {
         let obj = this._obj;
         this.close();
         this._lookingGlass.insertObject(obj);
-    },
+    }
 
     _onBack() {
         this.selectObject(this._previousObj, true);
     }
-});
+};
 
-var RedBorderEffect = new Lang.Class({
-    Name: 'RedBorderEffect',
-    Extends: Clutter.Effect,
-
+var RedBorderEffect = GObject.registerClass(
+class RedBorderEffect extends Clutter.Effect {
     vfunc_paint() {
         let actor = this.get_actor();
         actor.continue_paint();
@@ -496,23 +476,24 @@ var RedBorderEffect = new Lang.Class({
                        geom.width - width, geom.height - width);
         Cogl.rectangle(0, geom.height - width,
                        width, width);
-    },
+    }
 });
 
-var Inspector = new Lang.Class({
-    Name: 'Inspector',
-
+var Inspector = GObject.registerClass({
+    Signals: { 'closed': {},
+               'target': { param_types: [Clutter.Actor.$gtype, GObject.TYPE_DOUBLE, GObject.TYPE_DOUBLE] } },
+}, class Inspector extends Clutter.Actor {
     _init(lookingGlass) {
-        let container = new Shell.GenericContainer({ width: 0,
-                                                     height: 0 });
-        container.connect('allocate', this._allocate.bind(this));
-        Main.uiGroup.add_actor(container);
+        super._init({ width: 0,
+                      height: 0 });
+
+        Main.uiGroup.add_actor(this);
 
         let eventHandler = new St.BoxLayout({ name: 'LookingGlassDialog',
                                               vertical: false,
                                               reactive: true });
         this._eventHandler = eventHandler;
-        container.add_actor(eventHandler);
+        this.add_actor(eventHandler);
         this._displayText = new St.Label();
         eventHandler.add(this._displayText, { expand: true });
 
@@ -520,8 +501,13 @@ var Inspector = new Lang.Class({
         eventHandler.connect('button-press-event', this._onButtonPressEvent.bind(this));
         eventHandler.connect('scroll-event', this._onScrollEvent.bind(this));
         eventHandler.connect('motion-event', this._onMotionEvent.bind(this));
-        Clutter.grab_pointer(eventHandler);
-        Clutter.grab_keyboard(eventHandler);
+
+        let dm = Clutter.DeviceManager.get_default();
+        this._pointerDevice = dm.get_core_device(Clutter.InputDeviceType.POINTER_DEVICE);
+        this._keyboardDevice = dm.get_core_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+
+        this._pointerDevice.grab(eventHandler);
+        this._keyboardDevice.grab(eventHandler);
 
         // this._target is the actor currently shown by the inspector.
         // this._pointerTarget is the actor directly under the pointer.
@@ -532,15 +518,17 @@ var Inspector = new Lang.Class({
         this._pointerTarget = null;
 
         this._lookingGlass = lookingGlass;
-    },
+    }
 
-    _allocate(actor, box, flags) {
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
+
         if (!this._eventHandler)
             return;
 
         let primary = Main.layoutManager.primaryMonitor;
 
-        let [minWidth, minHeight, natWidth, natHeight] =
+        let [, , natWidth, natHeight] =
             this._eventHandler.get_preferred_size();
 
         let childBox = new Clutter.ActorBox();
@@ -549,21 +537,21 @@ var Inspector = new Lang.Class({
         childBox.y1 = primary.y + Math.floor((primary.height - natHeight) / 2);
         childBox.y2 = childBox.y1 + natHeight;
         this._eventHandler.allocate(childBox, flags);
-    },
+    }
 
     _close() {
-        Clutter.ungrab_pointer();
-        Clutter.ungrab_keyboard();
+        this._pointerDevice.ungrab();
+        this._keyboardDevice.ungrab();
         this._eventHandler.destroy();
         this._eventHandler = null;
         this.emit('closed');
-    },
+    }
 
     _onKeyPressEvent(actor, event) {
         if (event.get_key_symbol() == Clutter.Escape)
             this._close();
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onButtonPressEvent(actor, event) {
         if (this._target) {
@@ -572,11 +560,11 @@ var Inspector = new Lang.Class({
         }
         this._close();
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onScrollEvent(actor, event) {
         switch (event.get_scroll_direction()) {
-        case Clutter.ScrollDirection.UP:
+        case Clutter.ScrollDirection.UP: {
             // select parent
             let parent = this._target.get_parent();
             if (parent != null) {
@@ -584,6 +572,7 @@ var Inspector = new Lang.Class({
                 this._update(event);
             }
             break;
+        }
 
         case Clutter.ScrollDirection.DOWN:
             // select child
@@ -606,12 +595,12 @@ var Inspector = new Lang.Class({
             break;
         }
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onMotionEvent(actor, event) {
         this._update(event);
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _update(event) {
         let [stageX, stageY] = event.get_coords();
@@ -623,40 +612,37 @@ var Inspector = new Lang.Class({
             this._target = target;
         this._pointerTarget = target;
 
-        let position = '[inspect x: ' + stageX + ' y: ' + stageY + ']';
+        let position = `[inspect x: ${stageX} y: ${stageY}]`;
         this._displayText.text = '';
-        this._displayText.text = position + ' ' + this._target;
+        this._displayText.text = `${position} ${this._target}`;
 
         this._lookingGlass.setBorderPaintTarget(this._target);
     }
 });
 
-Signals.addSignalMethods(Inspector.prototype);
-
-var Extensions = new Lang.Class({
-    Name: 'Extensions',
-
-    _init(lookingGlass) {
+var Extensions = class Extensions {
+    constructor(lookingGlass) {
         this._lookingGlass = lookingGlass;
         this.actor = new St.BoxLayout({ vertical: true,
                                         name: 'lookingGlassExtensions' });
         this._noExtensions = new St.Label({ style_class: 'lg-extensions-none',
-                                             text: _("No extensions installed") });
+                                            text: _("No extensions installed") });
         this._numExtensions = 0;
         this._extensionsList = new St.BoxLayout({ vertical: true,
                                                   style_class: 'lg-extensions-list' });
         this._extensionsList.add(this._noExtensions);
         this.actor.add(this._extensionsList);
 
-        for (let uuid in ExtensionUtils.extensions)
+        Main.extensionManager.getUuids().forEach(uuid => {
             this._loadExtension(null, uuid);
+        });
 
-        ExtensionSystem.connect('extension-loaded',
-                                this._loadExtension.bind(this));
-    },
+        Main.extensionManager.connect('extension-loaded',
+                                      this._loadExtension.bind(this));
+    }
 
     _loadExtension(o, uuid) {
-        let extension = ExtensionUtils.extensions[uuid];
+        let extension = Main.extensionManager.lookup(uuid);
         // There can be cases where we create dummy extension metadata
         // that's not really a proper extension. Don't bother with these.
         if (!extension.metadata.name)
@@ -668,20 +654,20 @@ var Extensions = new Lang.Class({
 
         this._numExtensions ++;
         this._extensionsList.add(extensionDisplay);
-    },
+    }
 
     _onViewSource(actor) {
         let extension = actor._extension;
         let uri = extension.dir.get_uri();
         Gio.app_info_launch_default_for_uri(uri, global.create_app_launch_context(0, -1));
         this._lookingGlass.close();
-    },
+    }
 
     _onWebPage(actor) {
         let extension = actor._extension;
         Gio.app_info_launch_default_for_uri(extension.metadata.url, global.create_app_launch_context(0, -1));
         this._lookingGlass.close();
-    },
+    }
 
     _onViewErrors(actor) {
         let extension = actor._extension;
@@ -709,29 +695,29 @@ var Extensions = new Lang.Class({
         }
 
         actor._isShowing = shouldShow;
-    },
+    }
 
     _stateToString(extensionState) {
         switch (extensionState) {
-            case ExtensionSystem.ExtensionState.ENABLED:
-                return _("Enabled");
-            case ExtensionSystem.ExtensionState.DISABLED:
-            case ExtensionSystem.ExtensionState.INITIALIZED:
-                return _("Disabled");
-            case ExtensionSystem.ExtensionState.ERROR:
-                return _("Error");
-            case ExtensionSystem.ExtensionState.OUT_OF_DATE:
-                return _("Out of date");
-            case ExtensionSystem.ExtensionState.DOWNLOADING:
-                return _("Downloading");
+        case ExtensionState.ENABLED:
+            return _("Enabled");
+        case ExtensionState.DISABLED:
+        case ExtensionState.INITIALIZED:
+            return _("Disabled");
+        case ExtensionState.ERROR:
+            return _("Error");
+        case ExtensionState.OUT_OF_DATE:
+            return _("Out of date");
+        case ExtensionState.DOWNLOADING:
+            return _("Downloading");
         }
         return 'Unknown'; // Not translated, shouldn't appear
-    },
+    }
 
     _createExtensionDisplay(extension) {
         let box = new St.BoxLayout({ style_class: 'lg-extension', vertical: true });
         let name = new St.Label({ style_class: 'lg-extension-name',
-                                   text: extension.metadata.name });
+                                  text: extension.metadata.name });
         box.add(name, { expand: true });
         let description = new St.Label({ style_class: 'lg-extension-description',
                                          text: extension.metadata.description || 'No description' });
@@ -739,7 +725,6 @@ var Extensions = new Lang.Class({
 
         let metaBox = new St.BoxLayout({ style_class: 'lg-extension-meta' });
         box.add(metaBox);
-        let stateString = this._stateToString(extension.state);
         let state = new St.Label({ style_class: 'lg-extension-state',
                                    text: this._stateToString(extension.state) });
         metaBox.add(state);
@@ -774,12 +759,10 @@ var Extensions = new Lang.Class({
 
         return box;
     }
-});
+};
 
-var LookingGlass = new Lang.Class({
-    Name: 'LookingGlass',
-
-    _init() {
+var LookingGlass = class LookingGlass {
+    constructor() {
         this._borderPaintTarget = null;
         this._redBorderEffect = new RedBorderEffect();
 
@@ -826,7 +809,7 @@ var LookingGlass = new Lang.Class({
         inspectIcon.connect('button-press-event', () => {
             let inspector = new Inspector(this);
             inspector.connect('target', (i, target, stageX, stageY) => {
-                this._pushResult('inspect(' + Math.round(stageX) + ', ' + Math.round(stageY) + ')', target);
+                this._pushResult(`inspect(${Math.round(stageX)}, ${Math.round(stageY)})`, target);
             });
             inspector.connect('closed', () => {
                 this.actor.show();
@@ -841,15 +824,15 @@ var LookingGlass = new Lang.Class({
         toolbar.add_actor(gcIcon);
         gcIcon.reactive = true;
         gcIcon.connect('button-press-event', () => {
-           gcIcon.icon_name = 'user-trash';
-           System.gc();
-           this._timeoutId = Mainloop.timeout_add(500, () => {
+            gcIcon.icon_name = 'user-trash';
+            System.gc();
+            this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
                 gcIcon.icon_name = 'user-trash-full';
                 this._timeoutId = 0;
                 return GLib.SOURCE_REMOVE;
-           });
-           GLib.Source.set_name_by_id(this._timeoutId, '[gnome-shell] gcIcon.icon_name = \'user-trash-full\'');
-           return Clutter.EVENT_PROPAGATE;
+            });
+            GLib.Source.set_name_by_id(this._timeoutId, '[gnome-shell] gcIcon.icon_name = \'user-trash-full\'');
+            return Clutter.EVENT_PROPAGATE;
         });
 
         let notebook = new Notebook();
@@ -882,7 +865,7 @@ var LookingGlass = new Lang.Class({
         this._extensions = new Extensions(this);
         notebook.appendPage('Extensions', this._extensions.actor);
 
-        this._entry.clutter_text.connect('activate', (o, e) => {
+        this._entry.clutter_text.connect('activate', (o, _e) => {
             // Hide any completions we are currently showing
             this._hideCompletions();
 
@@ -898,7 +881,7 @@ var LookingGlass = new Lang.Class({
             return true;
         });
 
-        this._history = new History.HistoryManager({ gsettingsKey: HISTORY_KEY, 
+        this._history = new History.HistoryManager({ gsettingsKey: HISTORY_KEY,
                                                      entry: this._entry.clutter_text });
 
         this._autoComplete = new AutoComplete(this._entry);
@@ -913,17 +896,19 @@ var LookingGlass = new Lang.Class({
         });
 
         this._resize();
-    },
+    }
 
     _updateFont() {
         let fontName = this._interfaceSettings.get_string('monospace-font-name');
         let fontDesc = Pango.FontDescription.from_string(fontName);
         // We ignore everything but size and style; you'd be crazy to set your system-wide
         // monospace font to be bold/oblique/etc. Could easily be added here.
-        this.actor.style =
-            'font-size: ' + fontDesc.get_size() / 1024. + (fontDesc.get_size_is_absolute() ? 'px' : 'pt') + ';'
-            + 'font-family: "' + fontDesc.get_family() + '";';
-    },
+        let size = fontDesc.get_size() / 1024.;
+        let unit = fontDesc.get_size_is_absolute() ? 'px' : 'pt';
+        this.actor.style = `
+            font-size: ${size}${unit};
+            font-family: "${fontDesc.get_family()}";`;
+    }
 
     setBorderPaintTarget(obj) {
         if (this._borderPaintTarget != null)
@@ -931,7 +916,7 @@ var LookingGlass = new Lang.Class({
         this._borderPaintTarget = obj;
         if (this._borderPaintTarget != null)
             this._borderPaintTarget.add_effect(this._redBorderEffect);
-    },
+    }
 
     _pushResult(command, obj) {
         let index = this._results.length + this._offset;
@@ -951,7 +936,7 @@ var LookingGlass = new Lang.Class({
 
         // Scroll to bottom
         this._notebook.scrollToBottom(0);
-    },
+    }
 
     _showCompletions(completions) {
         if (!this._completionActor) {
@@ -964,76 +949,92 @@ var LookingGlass = new Lang.Class({
         this._completionActor.set_text(completions.join(', '));
 
         // Setting the height to -1 allows us to get its actual preferred height rather than
-        // whatever was last given in set_height by Tweener.
+        // whatever was last set when animating
         this._completionActor.set_height(-1);
-        let [minHeight, naturalHeight] = this._completionActor.get_preferred_height(this._resultsArea.get_width());
+        let [, naturalHeight] = this._completionActor.get_preferred_height(this._resultsArea.get_width());
 
         // Don't reanimate if we are already visible
         if (this._completionActor.visible) {
             this._completionActor.height = naturalHeight;
         } else {
+            let settings = St.Settings.get();
+            let duration = AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / settings.slow_down_factor;
             this._completionActor.show();
-            Tweener.removeTweens(this._completionActor);
-            Tweener.addTween(this._completionActor, { time: AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / St.get_slow_down_factor(),
-                                                      transition: 'easeOutQuad',
-                                                      height: naturalHeight,
-                                                      opacity: 255
-                                                    });
+            this._completionActor.remove_all_transitions();
+            this._completionActor.ease({
+                height: naturalHeight,
+                opacity: 255,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
-    },
+    }
 
     _hideCompletions() {
         if (this._completionActor) {
-            Tweener.removeTweens(this._completionActor);
-            Tweener.addTween(this._completionActor, { time: AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / St.get_slow_down_factor(),
-                                                      transition: 'easeOutQuad',
-                                                      height: 0,
-                                                      opacity: 0,
-                                                      onComplete: () => {
-                                                          this._completionActor.hide();
-                                                      }
-                                                    });
+            let settings = St.Settings.get();
+            let duration = AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION / settings.slow_down_factor;
+            this._completionActor.remove_all_transitions();
+            this._completionActor.ease({
+                height: 0,
+                opacity: 0,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._completionActor.hide();
+                }
+            });
         }
-    },
+    }
 
     _evaluate(command) {
         this._history.addItem(command);
 
-        let fullCmd = commandHeader + command;
+        let lines = command.split(';');
+        lines.push(`return ${lines.pop()}`);
+
+        let fullCmd = commandHeader + lines.join(';');
 
         let resultObj;
         try {
-            resultObj = eval(fullCmd);
+            resultObj = Function(fullCmd)();
         } catch (e) {
-            resultObj = '<exception ' + e + '>';
+            resultObj = `<exception ${e}>`;
         }
 
         this._pushResult(command, resultObj);
         this._entry.text = '';
-    },
+    }
 
     inspect(x, y) {
         return global.stage.get_actor_at_pos(Clutter.PickMode.REACTIVE, x, y);
-    },
+    }
 
     getIt() {
         return this._it;
-    },
+    }
 
     getResult(idx) {
-        return this._results[idx - this._offset].o;
-    },
+        try {
+            return this._results[idx - this._offset].o;
+        } catch (e) {
+            throw new Error(`Unknown result at index ${idx}`);
+        }
+    }
 
     toggle() {
         if (this._open)
             this.close();
         else
             this.open();
-    },
+    }
 
     _queueResize() {
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => { this._resize(); });
-    },
+        Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._resize();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
 
     _resize() {
         let primary = Main.layoutManager.primaryMonitor;
@@ -1049,16 +1050,16 @@ var LookingGlass = new Lang.Class({
         this._objInspector.actor.set_size(Math.floor(myWidth * 0.8), Math.floor(myHeight * 0.8));
         this._objInspector.actor.set_position(this.actor.x + Math.floor(myWidth * 0.1),
                                               this._targetY + Math.floor(myHeight * 0.1));
-    },
+    }
 
     insertObject(obj) {
         this._pushResult('<insert>', obj);
-    },
+    }
 
     inspectObject(obj, sourceActor) {
         this._objInspector.open(sourceActor);
         this._objInspector.selectObject(obj);
-    },
+    }
 
     // Handle key events which are relevant for all tabs of the LookingGlass
     _globalKeyPressEvent(actor, event) {
@@ -1081,7 +1082,7 @@ var LookingGlass = new Lang.Class({
             }
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     open() {
         if (this._open)
@@ -1095,15 +1096,19 @@ var LookingGlass = new Lang.Class({
         this._open = true;
         this._history.lastItem();
 
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         // We inverse compensate for the slow-down so you can change the factor
         // through LookingGlass without long waits.
-        Tweener.addTween(this.actor, { time: 0.5 / St.get_slow_down_factor(),
-                                       transition: 'easeOutQuad',
-                                       y: this._targetY
-                                     });
-    },
+        let duration = LG_ANIMATION_TIME / St.Settings.get().slow_down_factor;
+        this.actor.ease({
+            y: this._targetY,
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
+
+        this._windowList.update();
+    }
 
     close() {
         if (!this._open)
@@ -1112,19 +1117,25 @@ var LookingGlass = new Lang.Class({
         this._objInspector.actor.hide();
 
         this._open = false;
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
 
         this.setBorderPaintTarget(null);
 
         Main.popModal(this._entry);
 
-        Tweener.addTween(this.actor, { time: Math.min(0.5 / St.get_slow_down_factor(), 0.5),
-                                       transition: 'easeOutQuad',
-                                       y: this._hiddenY,
-                                       onComplete: () => {
-                                           this.actor.hide();
-                                       }
-                                     });
+        let settings = St.Settings.get();
+        let duration = Math.min(LG_ANIMATION_TIME / settings.slow_down_factor,
+                                LG_ANIMATION_TIME);
+        this.actor.ease({
+            y: this._hiddenY,
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.actor.hide()
+        });
     }
-});
+
+    get isOpen() {
+        return this._open;
+    }
+};
 Signals.addSignalMethods(LookingGlass.prototype);

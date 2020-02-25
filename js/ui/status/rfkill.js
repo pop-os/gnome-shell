@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Indicator */
 
 const Gio = imports.gi.Gio;
-const Lang = imports.lang;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
@@ -16,10 +16,8 @@ const OBJECT_PATH = '/org/gnome/SettingsDaemon/Rfkill';
 const RfkillManagerInterface = loadInterfaceXML('org.gnome.SettingsDaemon.Rfkill');
 const RfkillManagerProxy = Gio.DBusProxy.makeProxyWrapper(RfkillManagerInterface);
 
-var RfkillManager = new Lang.Class({
-    Name: 'RfkillManager',
-
-    _init() {
+var RfkillManager = class {
+    constructor() {
         this._proxy = new RfkillManagerProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH,
                                              (proxy, error) => {
                                                  if (error) {
@@ -30,28 +28,28 @@ var RfkillManager = new Lang.Class({
                                                                      this._changed.bind(this));
                                                  this._changed();
                                              });
-    },
+    }
 
     get airplaneMode() {
         return this._proxy.AirplaneMode;
-    },
+    }
 
     set airplaneMode(v) {
         this._proxy.AirplaneMode = v;
-    },
+    }
 
     get hwAirplaneMode() {
         return this._proxy.HardwareAirplaneMode;
-    },
+    }
 
     get shouldShowAirplaneMode() {
         return this._proxy.ShouldShowAirplaneMode;
-    },
+    }
 
     _changed() {
         this.emit('airplane-mode-changed');
     }
-});
+};
 Signals.addSignalMethods(RfkillManager.prototype);
 
 var _manager;
@@ -63,12 +61,9 @@ function getRfkillManager() {
     return _manager;
 }
 
-var Indicator = new Lang.Class({
-    Name: 'RfkillIndicator',
-    Extends: PanelMenu.SystemIndicator,
-
-    _init() {
-        this.parent();
+var Indicator = class extends PanelMenu.SystemIndicator {
+    constructor() {
+        super();
 
         this._manager = getRfkillManager();
         this._manager.connect('airplane-mode-changed', this._sync.bind(this));
@@ -90,12 +85,12 @@ var Indicator = new Lang.Class({
 
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
-    },
+    }
 
     _sessionUpdated() {
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
         this.menu.setSensitive(sensitive);
-    },
+    }
 
     _sync() {
         let airplaneMode = this._manager.airplaneMode;
@@ -103,12 +98,12 @@ var Indicator = new Lang.Class({
         let showAirplaneMode = this._manager.shouldShowAirplaneMode;
 
         this._indicator.visible = (airplaneMode && showAirplaneMode);
-        this._item.actor.visible = (airplaneMode && showAirplaneMode);
+        this._item.visible = (airplaneMode && showAirplaneMode);
         this._offItem.setSensitive(!hwAirplaneMode);
 
         if (hwAirplaneMode)
             this._offItem.label.text = _("Use hardware switch to turn off");
         else
             this._offItem.label.text = _("Turn Off");
-    },
-});
+    }
+};

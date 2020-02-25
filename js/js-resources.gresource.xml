@@ -16,6 +16,7 @@
     <file>misc/history.js</file>
     <file>misc/ibusManager.js</file>
     <file>misc/inputMethod.js</file>
+    <file>misc/introspect.js</file>
     <file>misc/jsParse.js</file>
     <file>misc/keyboardManager.js</file>
     <file>misc/loginManager.js</file>
@@ -63,6 +64,7 @@
     <file>ui/keyboard.js</file>
     <file>ui/layout.js</file>
     <file>ui/lightbox.js</file>
+    <file>ui/locatePointer.js</file>
     <file>ui/lookingGlass.js</file>
     <file>ui/magnifier.js</file>
     <file>ui/magnifierDBus.js</file>
@@ -77,12 +79,14 @@
     <file>ui/overview.js</file>
     <file>ui/overviewControls.js</file>
     <file>ui/padOsd.js</file>
+    <file>ui/pageIndicators.js</file>
     <file>ui/panel.js</file>
     <file>ui/panelMenu.js</file>
+    <file>ui/pointerA11yTimeout.js</file>
     <file>ui/pointerWatcher.js</file>
     <file>ui/popupMenu.js</file>
-    <file>ui/remoteMenu.js</file>
     <file>ui/remoteSearch.js</file>
+    <file>ui/ripples.js</file>
     <file>ui/runDialog.js</file>
     <file>ui/screenShield.js</file>
     <file>ui/screencast.js</file>
@@ -119,6 +123,7 @@
 
     <file>ui/status/accessibility.js</file>
     <file>ui/status/brightness.js</file>
+    <file>ui/status/dwellClick.js</file>
     <file>ui/status/location.js</file>
     <file>ui/status/keyboard.js</file>
     <file>ui/status/nightLight.js</file>

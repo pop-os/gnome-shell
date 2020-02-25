@@ -1,46 +1,38 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported CloseDialog */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
-var FROZEN_WINDOW_BRIGHTNESS = -0.3
-var DIALOG_TRANSITION_TIME = 0.15
+var FROZEN_WINDOW_BRIGHTNESS = -0.3;
+var DIALOG_TRANSITION_TIME = 150;
 var ALIVE_TIMEOUT = 5000;
 
-var CloseDialog = new Lang.Class({
-    Name: 'CloseDialog',
-    Extends: GObject.Object,
-    Implements: [ Meta.CloseDialog ],
+var CloseDialog = GObject.registerClass({
+    Implements: [Meta.CloseDialog],
     Properties: {
         'window': GObject.ParamSpec.override('window', Meta.CloseDialog)
     },
-
+}, class CloseDialog extends GObject.Object {
     _init(window) {
-        this.parent();
+        super._init();
         this._window = window;
         this._dialog = null;
         this._tracked = undefined;
         this._timeoutId = 0;
         this._windowFocusChangedId = 0;
         this._keyFocusChangedId = 0;
-    },
+    }
 
     get window() {
         return this._window;
-    },
+    }
 
     set window(window) {
         this._window = window;
-    },
+    }
 
     _createDialogContent() {
         let tracker = Shell.WindowTracker.get_default();
@@ -52,7 +44,19 @@ var CloseDialog = new Lang.Class({
                          "continue or force the application to quit entirely.");
         let icon = new Gio.ThemedIcon({ name: 'dialog-warning-symbolic' });
         return new Dialog.MessageDialogContent({ icon, title, subtitle });
-    },
+    }
+
+    _updateScale() {
+        // Since this is a child of MetaWindowActor (which, for Wayland clients,
+        // applies the geometry scale factor to its children itself, see
+        // meta_window_actor_set_geometry_scale()), make sure we don't apply
+        // the factor twice in the end.
+        if (this._window.get_client_type() !== Meta.WindowClientType.WAYLAND)
+            return;
+
+        let { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        this._dialog.set_scale(1 / scaleFactor, 1 / scaleFactor);
+    }
 
     _initDialog() {
         if (this._dialog)
@@ -64,15 +68,20 @@ var CloseDialog = new Lang.Class({
         this._dialog.height = windowActor.height;
 
         this._dialog.addContent(this._createDialogContent());
-        this._dialog.addButton({ label:   _('Force Quit'),
-                                 action:  this._onClose.bind(this),
+        this._dialog.addButton({ label: _('Force Quit'),
+                                 action: this._onClose.bind(this),
                                  default: true });
-        this._dialog.addButton({ label:  _('Wait'),
+        this._dialog.addButton({ label: _('Wait'),
                                  action: this._onWait.bind(this),
-                                 key:    Clutter.Escape });
+                                 key: Clutter.Escape });
 
         global.focus_manager.add_group(this._dialog);
-    },
+
+        let themeContext = St.ThemeContext.get_for_stage(global.stage);
+        themeContext.connect('notify::scale-factor', this._updateScale.bind(this));
+
+        this._updateScale();
+    }
 
     _addWindowEffect() {
         // We set the effect on the surface actor, so the dialog itself
@@ -83,21 +92,21 @@ var CloseDialog = new Lang.Class({
         let effect = new Clutter.BrightnessContrastEffect();
         effect.set_brightness(FROZEN_WINDOW_BRIGHTNESS);
         surfaceActor.add_effect_with_name("gnome-shell-frozen-window", effect);
-    },
+    }
 
     _removeWindowEffect() {
         let windowActor = this._window.get_compositor_private();
         let surfaceActor = windowActor.get_first_child();
         surfaceActor.remove_effect_by_name("gnome-shell-frozen-window");
-    },
+    }
 
     _onWait() {
         this.response(Meta.CloseDialogResponse.WAIT);
-    },
+    }
 
     _onClose() {
         this.response(Meta.CloseDialogResponse.FORCE_CLOSE);
-    },
+    }
 
     _onFocusChanged() {
         if (Meta.is_wayland_compositor())
@@ -128,7 +137,7 @@ var CloseDialog = new Lang.Class({
         });
 
         this._tracked = shouldTrack;
-    },
+    }
 
     vfunc_show() {
         if (this._dialog != null)
@@ -153,16 +162,16 @@ var CloseDialog = new Lang.Class({
         this._addWindowEffect();
         this._initDialog();
 
-        this._dialog.scale_y = 0;
-        this._dialog.set_pivot_point(0.5, 0.5);
+        this._dialog._dialog.scale_y = 0;
+        this._dialog._dialog.set_pivot_point(0.5, 0.5);
 
-        Tweener.addTween(this._dialog,
-                         { scale_y: 1,
-                           transition: 'linear',
-                           time: DIALOG_TRANSITION_TIME,
-                           onComplete: this._onFocusChanged.bind(this)
-                         });
-    },
+        this._dialog._dialog.ease({
+            scale_y: 1,
+            mode: Clutter.AnimationMode.LINEAR,
+            duration: DIALOG_TRANSITION_TIME,
+            onComplete: this._onFocusChanged.bind(this)
+        });
+    }
 
     vfunc_hide() {
         if (this._dialog == null)
@@ -173,7 +182,7 @@ var CloseDialog = new Lang.Class({
         GLib.source_remove(this._timeoutId);
         this._timeoutId = 0;
 
-        global.display.disconnect(this._windowFocusChangedId)
+        global.display.disconnect(this._windowFocusChangedId);
         this._windowFocusChangedId = 0;
 
         global.stage.disconnect(this._keyFocusChangedId);
@@ -183,15 +192,13 @@ var CloseDialog = new Lang.Class({
         this._dialog = null;
         this._removeWindowEffect();
 
-        Tweener.addTween(dialog,
-                         { scale_y: 0,
-                           transition: 'linear',
-                           time: DIALOG_TRANSITION_TIME,
-                           onComplete: () => {
-                               dialog.destroy();
-                           }
-                         });
-    },
+        dialog._dialog.ease({
+            scale_y: 0,
+            mode: Clutter.AnimationMode.LINEAR,
+            duration: DIALOG_TRANSITION_TIME,
+            onComplete: () => dialog.destroy()
+        });
+    }
 
     vfunc_focus() {
         if (this._dialog)

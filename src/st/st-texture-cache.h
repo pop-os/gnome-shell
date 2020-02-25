@@ -32,6 +32,7 @@
 
 #include <st/st-types.h>
 #include <st/st-theme-node.h>
+#include <st/st-widget.h>
 
 #define ST_TYPE_TEXTURE_CACHE                 (st_texture_cache_get_type ())
 G_DECLARE_FINAL_TYPE (StTextureCache, st_texture_cache,
@@ -58,33 +59,39 @@ st_texture_cache_load_sliced_image (StTextureCache *cache,
                                     GFile          *file,
                                     gint            grid_width,
                                     gint            grid_height,
-                                    gint            scale,
+                                    gint            paint_scale,
+                                    gfloat          resource_scale,
                                     GFunc           load_callback,
                                     gpointer        user_data);
 
-ClutterActor *st_texture_cache_bind_cairo_surface_property (StTextureCache    *cache,
-                                                            GObject           *object,
-                                                            const char        *property_name);
+StWidget *st_texture_cache_bind_cairo_surface_property (StTextureCache    *cache,
+                                                        GObject           *object,
+                                                        const char        *property_name,
+                                                        gint               size);
 
 ClutterActor *st_texture_cache_load_gicon (StTextureCache *cache,
                                            StThemeNode    *theme_node,
                                            GIcon          *icon,
                                            gint            size,
-                                           gint            scale);
+                                           gint            paint_scale,
+                                           gfloat          resource_scale);
 
 ClutterActor *st_texture_cache_load_file_async (StTextureCache    *cache,
                                                 GFile             *file,
                                                 int                available_width,
                                                 int                available_height,
-                                                int                scale);
+                                                int                paint_scale,
+                                                gfloat             resource_scale);
 
 CoglTexture     *st_texture_cache_load_file_to_cogl_texture (StTextureCache *cache,
                                                              GFile          *file,
-                                                             gint            scale);
+                                                             gint            paint_scale,
+                                                             gfloat          resource_scale);
 
 cairo_surface_t *st_texture_cache_load_file_to_cairo_surface (StTextureCache *cache,
                                                               GFile          *file,
-                                                              gint            scale);
+                                                              gint            paint_scale,
+                                                              gfloat          resource_scale);
 
 /**
  * StTextureCacheLoader: (skip)
@@ -105,5 +112,7 @@ CoglTexture * st_texture_cache_load (StTextureCache       *cache,
                                      StTextureCacheLoader  load,
                                      void                 *data,
                                      GError              **error);
+
+gboolean st_texture_cache_rescan_icon_theme (StTextureCache *cache);
 
 #endif /* __ST_TEXTURE_CACHE_H__ */

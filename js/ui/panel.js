@@ -1,18 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Panel */
 
+const { Atk, Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Cairo = imports.cairo;
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Pango = imports.gi.Pango;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
-const Signals = imports.signals;
-const Atk = imports.gi.Atk;
 
 const Animation = imports.ui.animation;
 const Config = imports.misc.config;
@@ -21,16 +11,12 @@ const DND = imports.ui.dnd;
 const Overview = imports.ui.overview;
 const PopupMenu = imports.ui.popupMenu;
 const PanelMenu = imports.ui.panelMenu;
-const RemoteMenu = imports.ui.remoteMenu;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
 
 var PANEL_ICON_SIZE = 16;
 var APP_MENU_ICON_MARGIN = 0;
 
 var BUTTON_DND_ACTIVATION_TIMEOUT = 250;
-
-var SPINNER_ANIMATION_TIME = 1.0;
 
 // To make sure the panel corners blend nicely with the panel,
 // we draw background and borders the same way, e.g. drawing
@@ -62,7 +48,7 @@ function _premultiply(color) {
                                green: _norm(color.green * color.alpha),
                                blue: _norm(color.blue * color.alpha),
                                alpha: color.alpha });
-};
+}
 
 function _unpremultiply(color) {
     if (color.alpha == 0)
@@ -73,7 +59,127 @@ function _unpremultiply(color) {
     let blue = Math.min((color.blue * 255 + 127) / color.alpha, 255);
     return new Clutter.Color({ red: red, green: green,
                                blue: blue, alpha: color.alpha });
-};
+}
+
+class AppMenu extends PopupMenu.PopupMenu {
+    constructor(sourceActor) {
+        super(sourceActor, 0.5, St.Side.TOP);
+
+        this.actor.add_style_class_name('app-menu');
+
+        this._app = null;
+        this._appSystem = Shell.AppSystem.get_default();
+
+        this._windowsChangedId = 0;
+
+        /* Translators: This is the heading of a list of open windows */
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_("Open Windows")));
+
+        this._windowSection = new PopupMenu.PopupMenuSection();
+        this.addMenuItem(this._windowSection);
+
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this._newWindowItem = this.addAction(_("New Window"), () => {
+            this._app.open_new_window(-1);
+        });
+
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this._actionSection = new PopupMenu.PopupMenuSection();
+        this.addMenuItem(this._actionSection);
+
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this._detailsItem = this.addAction(_("Show Details"), () => {
+            let id = this._app.get_id();
+            let args = GLib.Variant.new('(ss)', [id, '']);
+            Gio.DBus.get(Gio.BusType.SESSION, null, (o, res) => {
+                let bus = Gio.DBus.get_finish(res);
+                bus.call('org.gnome.Software',
+                         '/org/gnome/Software',
+                         'org.gtk.Actions', 'Activate',
+                         GLib.Variant.new('(sava{sv})',
+                                          ['details', [args], null]),
+                         null, 0, -1, null, null);
+            });
+        });
+
+        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        this.addAction(_("Quit"), () => {
+            this._app.request_quit();
+        });
+
+        this._appSystem.connect('installed-changed', () => {
+            this._updateDetailsVisibility();
+        });
+        this._updateDetailsVisibility();
+    }
+
+    _updateDetailsVisibility() {
+        let sw = this._appSystem.lookup_app('org.gnome.Software.desktop');
+        this._detailsItem.visible = (sw != null);
+    }
+
+    isEmpty() {
+        if (!this._app)
+            return true;
+        return super.isEmpty();
+    }
+
+    setApp(app) {
+        if (this._app == app)
+            return;
+
+        if (this._windowsChangedId)
+            this._app.disconnect(this._windowsChangedId);
+        this._windowsChangedId = 0;
+
+        this._app = app;
+
+        if (app) {
+            this._windowsChangedId = app.connect('windows-changed', () => {
+                this._updateWindowsSection();
+            });
+        }
+
+        this._updateWindowsSection();
+
+        let appInfo = app ? app.app_info : null;
+        let actions = appInfo ? appInfo.list_actions() : [];
+
+        this._actionSection.removeAll();
+        actions.forEach(action => {
+            let label = appInfo.get_action_name(action);
+            this._actionSection.addAction(label, event => {
+                this._app.launch_action(action, event.get_time(), -1);
+            });
+        });
+
+        this._newWindowItem.visible =
+            app && app.can_open_new_window() && !actions.includes('new-window');
+    }
+
+    _updateWindowsSection() {
+        this._windowSection.removeAll();
+
+        if (!this._app)
+            return;
+
+        let windows = this._app.get_windows();
+        windows.forEach(window => {
+            let title = window.title || this._app.get_name();
+            let item = this._windowSection.addAction(title, event => {
+                Main.activateWindow(window, event.get_time());
+            });
+            let id = window.connect('notify::title', () => {
+                item.label.text = window.title || this._app.get_name();
+            });
+            item.connect('destroy', () => window.disconnect(id));
+        });
+    }
+}
 
 /**
  * AppMenuButton:
@@ -83,30 +189,25 @@ function _unpremultiply(color) {
  * this menu also handles startup notification for it.  So when we
  * have an active startup notification, we switch modes to display that.
  */
-var AppMenuButton = new Lang.Class({
-    Name: 'AppMenuButton',
-    Extends: PanelMenu.Button,
-
+var AppMenuButton = GObject.registerClass({
+    Signals: { 'changed': {} },
+}, class AppMenuButton extends PanelMenu.Button {
     _init(panel) {
-        this.parent(0.0, null, true);
+        super._init(0.0, null, true);
 
-        this.actor.accessible_role = Atk.Role.MENU;
+        this.accessible_role = Atk.Role.MENU;
 
         this._startingApps = [];
 
         this._menuManager = panel.menuManager;
-        this._gtkSettings = Gtk.Settings.get_default();
         this._targetApp = null;
-        this._appMenuNotifyId = 0;
-        this._actionGroupNotifyId = 0;
         this._busyNotifyId = 0;
 
         let bin = new St.Bin({ name: 'appMenu' });
-        bin.connect('style-changed', this._onStyleChanged.bind(this));
-        this.actor.add_actor(bin);
+        this.add_actor(bin);
 
-        this.actor.bind_property("reactive", this.actor, "can-focus", 0);
-        this.actor.reactive = false;
+        this.bind_property("reactive", this, "can-focus", 0);
+        this.reactive = false;
 
         this._container = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         bin.set_child(this._container);
@@ -115,8 +216,15 @@ var AppMenuButton = new Lang.Class({
         textureCache.connect('icon-theme-changed',
                              this._onIconThemeChanged.bind(this));
 
+        let iconEffect = new Clutter.DesaturateEffect();
         this._iconBox = new St.Bin({ style_class: 'app-menu-icon' });
+        this._iconBox.add_effect(iconEffect);
         this._container.add_actor(this._iconBox);
+
+        this._iconBox.connect('style-changed', () => {
+            let themeNode = this._iconBox.get_theme_node();
+            iconEffect.enabled = themeNode.get_icon_style() == St.IconStyle.SYMBOLIC;
+        });
 
         this._label = new St.Label({ y_expand: true,
                                      y_align: Clutter.ActorAlign.CENTER });
@@ -124,18 +232,21 @@ var AppMenuButton = new Lang.Class({
         this._arrow = PopupMenu.arrowIcon(St.Side.BOTTOM);
         this._container.add_actor(this._arrow);
 
-        this._visible = this._gtkSettings.gtk_shell_shows_app_menu &&
-                        !Main.overview.visible;
+        this._visible = !Main.overview.visible;
         if (!this._visible)
-            this.actor.hide();
+            this.hide();
         this._overviewHidingId = Main.overview.connect('hiding', this._sync.bind(this));
         this._overviewShowingId = Main.overview.connect('showing', this._sync.bind(this));
-        this._showsAppMenuId = this._gtkSettings.connect('notify::gtk-shell-shows-app-menu',
-                                                         this._sync.bind(this));
 
-        this._stop = true;
+        this._spinner = new Animation.Spinner(PANEL_ICON_SIZE, {
+            animate: true,
+            hideOnStop: true,
+        });
+        this._container.add_actor(this._spinner.actor);
 
-        this._spinner = null;
+        let menu = new AppMenu(this);
+        this.setMenu(menu);
+        this._menuManager.addMenu(menu);
 
         let tracker = Shell.WindowTracker.get_default();
         let appSys = Shell.AppSystem.get_default();
@@ -147,49 +258,37 @@ var AppMenuButton = new Lang.Class({
             global.window_manager.connect('switch-workspace', this._sync.bind(this));
 
         this._sync();
-    },
+    }
 
-    show() {
+    fadeIn() {
         if (this._visible)
             return;
 
         this._visible = true;
-        this.actor.reactive = true;
-        this.actor.show();
-        Tweener.removeTweens(this.actor);
-        Tweener.addTween(this.actor,
-                         { opacity: 255,
-                           time: Overview.ANIMATION_TIME,
-                           transition: 'easeOutQuad' });
-    },
+        this.reactive = true;
+        this.show();
+        this.remove_all_transitions();
+        this.ease({
+            opacity: 255,
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
+    }
 
-    hide() {
+    fadeOut() {
         if (!this._visible)
             return;
 
         this._visible = false;
-        this.actor.reactive = false;
-        Tweener.removeTweens(this.actor);
-        Tweener.addTween(this.actor,
-                         { opacity: 0,
-                           time: Overview.ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete() {
-                               this.actor.hide();
-                           },
-                           onCompleteScope: this });
-    },
-
-    _onStyleChanged(actor) {
-        let node = actor.get_theme_node();
-        let [success, icon] = node.lookup_url('spinner-image', false);
-        if (!success || (this._spinnerIcon && this._spinnerIcon.equal(icon)))
-            return;
-        this._spinnerIcon = icon;
-        this._spinner = new Animation.AnimatedIcon(this._spinnerIcon, PANEL_ICON_SIZE);
-        this._container.add_actor(this._spinner.actor);
-        this._spinner.actor.hide();
-    },
+        this.reactive = false;
+        this.remove_all_transitions();
+        this.ease({
+            opacity: 0,
+            mode: Clutter.Animation.EASE_OUT_QUAD,
+            duration: Overview.ANIMATION_TIME,
+            onComplete: () => this.hide()
+        });
+    }
 
     _syncIcon() {
         if (!this._targetApp)
@@ -197,46 +296,22 @@ var AppMenuButton = new Lang.Class({
 
         let icon = this._targetApp.create_icon_texture(PANEL_ICON_SIZE - APP_MENU_ICON_MARGIN);
         this._iconBox.set_child(icon);
-    },
+    }
 
     _onIconThemeChanged() {
         if (this._iconBox.child == null)
             return;
 
         this._syncIcon();
-    },
+    }
 
     stopAnimation() {
-        if (this._stop)
-            return;
-
-        this._stop = true;
-
-        if (this._spinner == null)
-            return;
-
-        Tweener.addTween(this._spinner.actor,
-                         { opacity: 0,
-                           time: SPINNER_ANIMATION_TIME,
-                           transition: "easeOutQuad",
-                           onCompleteScope: this,
-                           onComplete() {
-                               this._spinner.stop();
-                               this._spinner.actor.opacity = 255;
-                               this._spinner.actor.hide();
-                           }
-                         });
-    },
+        this._spinner.stop();
+    }
 
     startAnimation() {
-        this._stop = false;
-
-        if (this._spinner == null)
-            return;
-
         this._spinner.play();
-        this._spinner.actor.show();
-    },
+    }
 
     _onAppStateChanged(appSys, app) {
         let state = app.state;
@@ -249,7 +324,7 @@ var AppMenuButton = new Lang.Class({
         // changing.  An example case is how we map OpenOffice.org based on the window
         // title which is a dynamic property.
         this._sync();
-    },
+    }
 
     _focusAppChanged() {
         let tracker = Shell.WindowTracker.get_default();
@@ -262,7 +337,7 @@ var AppMenuButton = new Lang.Class({
                 return;
         }
         this._sync();
-    },
+    }
 
     _findTargetApp() {
         let workspaceManager = global.workspace_manager;
@@ -277,20 +352,12 @@ var AppMenuButton = new Lang.Class({
                 return this._startingApps[i];
 
         return null;
-    },
+    }
 
     _sync() {
         let targetApp = this._findTargetApp();
 
         if (this._targetApp != targetApp) {
-            if (this._appMenuNotifyId) {
-                this._targetApp.disconnect(this._appMenuNotifyId);
-                this._appMenuNotifyId = 0;
-            }
-            if (this._actionGroupNotifyId) {
-                this._targetApp.disconnect(this._actionGroupNotifyId);
-                this._actionGroupNotifyId = 0;
-            }
             if (this._busyNotifyId) {
                 this._targetApp.disconnect(this._busyNotifyId);
                 this._busyNotifyId = 0;
@@ -299,24 +366,17 @@ var AppMenuButton = new Lang.Class({
             this._targetApp = targetApp;
 
             if (this._targetApp) {
-                this._appMenuNotifyId = this._targetApp.connect('notify::menu', this._sync.bind(this));
-                this._actionGroupNotifyId = this._targetApp.connect('notify::action-group', this._sync.bind(this));
                 this._busyNotifyId = this._targetApp.connect('notify::busy', this._sync.bind(this));
                 this._label.set_text(this._targetApp.get_name());
-                this.actor.set_accessible_name(this._targetApp.get_name());
+                this.set_accessible_name(this._targetApp.get_name());
             }
         }
 
-        let shellShowsAppMenu = this._gtkSettings.gtk_shell_shows_app_menu;
-        Meta.prefs_set_show_fallback_app_menu(!shellShowsAppMenu);
-
-        let visible = (this._targetApp != null &&
-                       shellShowsAppMenu &&
-                       !Main.overview.visibleTarget);
+        let visible = (this._targetApp != null && !Main.overview.visibleTarget);
         if (visible)
-            this.show();
+            this.fadeIn();
         else
-            this.hide();
+            this.fadeOut();
 
         let isBusy = (this._targetApp != null &&
                       (this._targetApp.get_state() == Shell.AppState.STARTING ||
@@ -326,47 +386,14 @@ var AppMenuButton = new Lang.Class({
         else
             this.stopAnimation();
 
-        this.actor.reactive = (visible && !isBusy);
+        this.reactive = (visible && !isBusy);
 
         this._syncIcon();
-        this._maybeSetMenu();
+        this.menu.setApp(this._targetApp);
         this.emit('changed');
-    },
+    }
 
-    _maybeSetMenu() {
-        let menu;
-
-        if (this._targetApp == null) {
-            menu = null;
-        } else if (this._targetApp.action_group && this._targetApp.menu) {
-            if (this.menu instanceof RemoteMenu.RemoteMenu &&
-                this.menu.actionGroup == this._targetApp.action_group)
-                return;
-
-            menu = new RemoteMenu.RemoteMenu(this.actor, this._targetApp.menu, this._targetApp.action_group);
-            menu.connect('activate', () => {
-                let win = this._targetApp.get_windows()[0];
-                win.check_alive(global.get_current_time());
-            });
-
-        } else {
-            if (this.menu && this.menu.isDummyQuitMenu)
-                return;
-
-            // fallback to older menu
-            menu = new PopupMenu.PopupMenu(this.actor, 0.0, St.Side.TOP, 0);
-            menu.isDummyQuitMenu = true;
-            menu.addAction(_("Quit"), () => {
-                this._targetApp.request_quit();
-            });
-        }
-
-        this.setMenu(menu);
-        if (menu)
-            this._menuManager.addMenu(menu);
-    },
-
-    destroy() {
+    _onDestroy() {
         if (this._appStateChangedSignalId > 0) {
             let appSys = Shell.AppSystem.get_default();
             appSys.disconnect(this._appStateChangedSignalId);
@@ -385,67 +412,59 @@ var AppMenuButton = new Lang.Class({
             Main.overview.disconnect(this._overviewShowingId);
             this._overviewShowingId = 0;
         }
-        if (this._showsAppMenuId > 0) {
-            this._gtkSettings.disconnect(this._showsAppMenuId);
-            this._showsAppMenuId = 0;
-        }
         if (this._switchWorkspaceNotifyId > 0) {
             global.window_manager.disconnect(this._switchWorkspaceNotifyId);
             this._switchWorkspaceNotifyId = 0;
         }
 
-        this.parent();
+        super._onDestroy();
     }
 });
 
-Signals.addSignalMethods(AppMenuButton.prototype);
-
-var ActivitiesButton = new Lang.Class({
-    Name: 'ActivitiesButton',
-    Extends: PanelMenu.Button,
-
+var ActivitiesButton = GObject.registerClass(
+class ActivitiesButton extends PanelMenu.Button {
     _init() {
-        this.parent(0.0, null, true);
-        this.actor.accessible_role = Atk.Role.TOGGLE_BUTTON;
+        super._init(0.0, null, true);
+        this.accessible_role = Atk.Role.TOGGLE_BUTTON;
 
-        this.actor.name = 'panelActivities';
+        this.name = 'panelActivities';
 
         /* Translators: If there is no suitable word for "Activities"
            in your language, you can use the word for "Overview". */
         this._label = new St.Label({ text: _("Activities"),
                                      y_align: Clutter.ActorAlign.CENTER });
-        this.actor.add_actor(this._label);
+        this.add_actor(this._label);
 
-        this.actor.label_actor = this._label;
+        this.label_actor = this._label;
 
-        this.actor.connect('captured-event', this._onCapturedEvent.bind(this));
-        this.actor.connect_after('key-release-event', this._onKeyRelease.bind(this));
+        this.connect('captured-event', this._onCapturedEvent.bind(this));
+        this.connect_after('key-release-event', this._onKeyRelease.bind(this));
 
         Main.overview.connect('showing', () => {
-            this.actor.add_style_pseudo_class('overview');
-            this.actor.add_accessible_state (Atk.StateType.CHECKED);
+            this.add_style_pseudo_class('overview');
+            this.add_accessible_state (Atk.StateType.CHECKED);
         });
         Main.overview.connect('hiding', () => {
-            this.actor.remove_style_pseudo_class('overview');
-            this.actor.remove_accessible_state (Atk.StateType.CHECKED);
+            this.remove_style_pseudo_class('overview');
+            this.remove_accessible_state (Atk.StateType.CHECKED);
         });
 
         this._xdndTimeOut = 0;
-    },
+    }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
         if (this._xdndTimeOut != 0)
-            Mainloop.source_remove(this._xdndTimeOut);
-        this._xdndTimeOut = Mainloop.timeout_add(BUTTON_DND_ACTIVATION_TIMEOUT, () => {
-            this._xdndToggleOverview(actor);
+            GLib.source_remove(this._xdndTimeOut);
+        this._xdndTimeOut = GLib.timeout_add(GLib.PRIORITY_DEFAULT, BUTTON_DND_ACTIVATION_TIMEOUT, () => {
+            this._xdndToggleOverview();
         });
         GLib.Source.set_name_by_id(this._xdndTimeOut, '[gnome-shell] this._xdndToggleOverview');
 
         return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
     _onCapturedEvent(actor, event) {
         if (event.type() == Clutter.EventType.BUTTON_PRESS ||
@@ -454,10 +473,10 @@ var ActivitiesButton = new Lang.Class({
                 return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _onEvent(actor, event) {
-        this.parent(actor, event);
+        super._onEvent(actor, event);
 
         if (event.type() == Clutter.EventType.TOUCH_END ||
             event.type() == Clutter.EventType.BUTTON_RELEASE)
@@ -465,7 +484,7 @@ var ActivitiesButton = new Lang.Class({
                 Main.overview.toggle();
 
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _onKeyRelease(actor, event) {
         let symbol = event.get_key_symbol();
@@ -474,31 +493,29 @@ var ActivitiesButton = new Lang.Class({
                 Main.overview.toggle();
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
-    _xdndToggleOverview(actor) {
-        let [x, y, mask] = global.get_pointer();
+    _xdndToggleOverview() {
+        let [x, y] = global.get_pointer();
         let pickedActor = global.stage.get_actor_at_pos(Clutter.PickMode.REACTIVE, x, y);
 
-        if (pickedActor == this.actor && Main.overview.shouldToggleByCornerOrButton())
+        if (pickedActor == this && Main.overview.shouldToggleByCornerOrButton())
             Main.overview.toggle();
 
-        Mainloop.source_remove(this._xdndTimeOut);
+        GLib.source_remove(this._xdndTimeOut);
         this._xdndTimeOut = 0;
         return GLib.SOURCE_REMOVE;
     }
 });
 
-var PanelCorner = new Lang.Class({
-    Name: 'PanelCorner',
-
-    _init(side) {
+var PanelCorner = class {
+    constructor(side) {
         this._side = side;
 
         this.actor = new St.DrawingArea({ style_class: 'panel-corner' });
         this.actor.connect('style-changed', this._styleChanged.bind(this));
         this.actor.connect('repaint', this._repaint.bind(this));
-    },
+    }
 
     _findRightmostButton(container) {
         if (!container.get_children)
@@ -523,7 +540,7 @@ var PanelCorner = new Lang.Class({
             return this._findRightmostButton(children[index]);
 
         return children[index];
-    },
+    }
 
     _findLeftmostButton(container) {
         if (!container.get_children)
@@ -548,7 +565,7 @@ var PanelCorner = new Lang.Class({
             return this._findLeftmostButton(children[index]);
 
         return children[index];
-    },
+    }
 
     setStyleParent(box) {
         let side = this._side;
@@ -585,7 +602,7 @@ var PanelCorner = new Lang.Class({
 
             // Synchronize the locate button's pseudo classes with this corner
             this._buttonStyleChangedSignalId = button.connect('style-changed',
-                actor => {
+                () => {
                     let pseudoClass = button.get_style_pseudo_class();
                     this.actor.set_style_pseudo_class(pseudoClass);
                 });
@@ -594,7 +611,7 @@ var PanelCorner = new Lang.Class({
             // the .panel-button default
             button.style = 'transition-duration: 0ms';
         }
-    },
+    }
 
     _repaint() {
         let node = this.actor.get_theme_node();
@@ -642,7 +659,7 @@ var PanelCorner = new Lang.Class({
         }
 
         cr.$dispose();
-    },
+    }
 
     _styleChanged() {
         let node = this.actor.get_theme_node();
@@ -653,25 +670,21 @@ var PanelCorner = new Lang.Class({
         this.actor.set_size(cornerRadius, borderWidth + cornerRadius);
         this.actor.set_anchor_point(0, borderWidth);
     }
-});
+};
 
-var AggregateLayout = new Lang.Class({
-    Name: 'AggregateLayout',
-    Extends: Clutter.BoxLayout,
-
-    _init(params) {
-        if (!params)
-            params = {};
+var AggregateLayout = GObject.registerClass(
+class AggregateLayout extends Clutter.BoxLayout {
+    _init(params = {}) {
         params['orientation'] = Clutter.Orientation.VERTICAL;
-        this.parent(params);
+        super._init(params);
 
         this._sizeChildren = [];
-    },
+    }
 
     addSizeChild(actor) {
         this._sizeChildren.push(actor);
         this.layout_changed();
-    },
+    }
 
     vfunc_get_preferred_width(container, forHeight) {
         let themeNode = container.get_theme_node();
@@ -682,25 +695,23 @@ var AggregateLayout = new Lang.Class({
             let child = this._sizeChildren[i];
             let [childMin, childNat] = child.get_preferred_width(forHeight);
             minWidth = Math.max(minWidth, childMin);
-            natWidth = Math.max(minWidth, childNat);
+            natWidth = Math.max(natWidth, childNat);
         }
         return [minWidth, natWidth];
     }
 });
 
-var AggregateMenu = new Lang.Class({
-    Name: 'AggregateMenu',
-    Extends: PanelMenu.Button,
-
+var AggregateMenu = GObject.registerClass(
+class AggregateMenu extends PanelMenu.Button {
     _init() {
-        this.parent(0.0, C_("System menu in the top bar", "System"), false);
+        super._init(0.0, C_("System menu in the top bar", "System"), false);
         this.menu.actor.add_style_class_name('aggregate-menu');
 
         let menuLayout = new AggregateLayout();
         this.menu.box.set_layout_manager(menuLayout);
 
         this._indicators = new St.BoxLayout({ style_class: 'panel-status-indicators-box' });
-        this.actor.add_child(this._indicators);
+        this.add_child(this._indicators);
 
         if (Config.HAVE_NETWORKMANAGER) {
             this._network = new imports.ui.status.network.NMApplet();
@@ -759,8 +770,8 @@ var AggregateMenu = new Lang.Class({
         menuLayout.addSizeChild(this._location.menu.actor);
         menuLayout.addSizeChild(this._rfkill.menu.actor);
         menuLayout.addSizeChild(this._power.menu.actor);
-        menuLayout.addSizeChild(this._system.menu.actor);
-    },
+        menuLayout.addSizeChild(this._system.buttonGroup);
+    }
 });
 
 const PANEL_ITEM_IMPLEMENTATIONS = {
@@ -770,16 +781,16 @@ const PANEL_ITEM_IMPLEMENTATIONS = {
     'dateMenu': imports.ui.dateMenu.DateMenuButton,
     'a11y': imports.ui.status.accessibility.ATIndicator,
     'keyboard': imports.ui.status.keyboard.InputSourceIndicator,
+    'dwellClick': imports.ui.status.dwellClick.DwellClickIndicator,
 };
 
-var Panel = new Lang.Class({
-    Name: 'Panel',
-
+var Panel = GObject.registerClass(
+class Panel extends St.Widget {
     _init() {
-        this.actor = new Shell.GenericContainer({ name: 'panel',
-                                                  reactive: true });
-        this.actor._delegate = this;
-        this.actor.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
+        super._init({ name: 'panel',
+                      reactive: true });
+
+        this.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 
         this._sessionStyle = null;
 
@@ -788,95 +799,63 @@ var Panel = new Lang.Class({
         this.menuManager = new PopupMenu.PopupMenuManager(this);
 
         this._leftBox = new St.BoxLayout({ name: 'panelLeft' });
-        this.actor.add_actor(this._leftBox);
+        this.add_child(this._leftBox);
         this._centerBox = new St.BoxLayout({ name: 'panelCenter' });
-        this.actor.add_actor(this._centerBox);
+        this.add_child(this._centerBox);
         this._rightBox = new St.BoxLayout({ name: 'panelRight' });
-        this.actor.add_actor(this._rightBox);
+        this.add_child(this._rightBox);
 
         this._leftCorner = new PanelCorner(St.Side.LEFT);
-        this.actor.add_actor(this._leftCorner.actor);
+        this.add_child(this._leftCorner.actor);
 
         this._rightCorner = new PanelCorner(St.Side.RIGHT);
-        this.actor.add_actor(this._rightCorner.actor);
+        this.add_child(this._rightCorner.actor);
 
-        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this.actor.connect('allocate', this._allocate.bind(this));
-        this.actor.connect('button-press-event', this._onButtonPress.bind(this));
-        this.actor.connect('touch-event', this._onButtonPress.bind(this));
-        this.actor.connect('key-press-event', this._onKeyPress.bind(this));
+        this.connect('button-press-event', this._onButtonPress.bind(this));
+        this.connect('touch-event', this._onButtonPress.bind(this));
+        this.connect('key-press-event', this._onKeyPress.bind(this));
 
         Main.overview.connect('showing', () => {
-            this.actor.add_style_pseudo_class('overview');
-            this._updateSolidStyle();
+            this.add_style_pseudo_class('overview');
         });
         Main.overview.connect('hiding', () => {
-            this.actor.remove_style_pseudo_class('overview');
-            this._updateSolidStyle();
+            this.remove_style_pseudo_class('overview');
         });
 
-        Main.layoutManager.panelBox.add(this.actor);
-        Main.ctrlAltTabManager.addGroup(this.actor, _("Top Bar"), 'focus-top-bar-symbolic',
+        Main.layoutManager.panelBox.add(this);
+        Main.ctrlAltTabManager.addGroup(this, _("Top Bar"), 'focus-top-bar-symbolic',
                                         { sortGroup: CtrlAltTab.SortGroup.TOP });
 
         Main.sessionMode.connect('updated', this._updatePanel.bind(this));
 
-        this._trackedWindows = new Map();
-        global.window_group.connect('actor-added', this._onWindowActorAdded.bind(this));
-        global.window_group.connect('actor-removed', this._onWindowActorRemoved.bind(this));
-        global.window_manager.connect('switch-workspace', this._updateSolidStyle.bind(this));
-
-        global.display.connect('workareas-changed', () => { this.actor.queue_relayout(); });
+        global.display.connect('workareas-changed', () => this.queue_relayout());
         this._updatePanel();
-    },
+    }
 
-    _onWindowActorAdded(container, metaWindowActor) {
-        let signalIds = [];
-        ['allocation-changed', 'notify::visible'].forEach(s => {
-            signalIds.push(metaWindowActor.connect(s, this._updateSolidStyle.bind(this)));
-        });
-        this._trackedWindows.set(metaWindowActor, signalIds);
-    },
-
-    _onWindowActorRemoved(container, metaWindowActor) {
-        this._trackedWindows.get(metaWindowActor).forEach(id => {
-            metaWindowActor.disconnect(id);
-        });
-        this._trackedWindows.delete(metaWindowActor);
-        this._updateSolidStyle();
-    },
-
-    _getPreferredWidth(actor, forHeight, alloc) {
+    vfunc_get_preferred_width(_forHeight) {
         let primaryMonitor = Main.layoutManager.primaryMonitor;
 
-        alloc.min_size = -1;
-
         if (primaryMonitor)
-            alloc.natural_size = primaryMonitor.width;
-        else
-            alloc.natural_size = -1;
-    },
+            return [0, primaryMonitor.width];
 
-    _getPreferredHeight(actor, forWidth, alloc) {
-        // We don't need to implement this; it's forced by the CSS
-        alloc.min_size = -1;
-        alloc.natural_size = -1;
-    },
+        return [0,  0];
+    }
 
-    _allocate(actor, box, flags) {
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
+
         let allocWidth = box.x2 - box.x1;
         let allocHeight = box.y2 - box.y1;
 
-        let [leftMinWidth, leftNaturalWidth] = this._leftBox.get_preferred_width(-1);
-        let [centerMinWidth, centerNaturalWidth] = this._centerBox.get_preferred_width(-1);
-        let [rightMinWidth, rightNaturalWidth] = this._rightBox.get_preferred_width(-1);
+        let [, leftNaturalWidth] = this._leftBox.get_preferred_width(-1);
+        let [, centerNaturalWidth] = this._centerBox.get_preferred_width(-1);
+        let [, rightNaturalWidth] = this._rightBox.get_preferred_width(-1);
 
         let sideWidth, centerWidth;
         centerWidth = centerNaturalWidth;
 
         // get workspace area and center date entry relative to it
-        let monitor = Main.layoutManager.findMonitorForActor(actor);
+        let monitor = Main.layoutManager.findMonitorForActor(this);
         let centerOffset = 0;
         if (monitor) {
             let workArea = Main.layoutManager.getWorkAreaForMonitor(monitor.index);
@@ -889,7 +868,7 @@ var Panel = new Lang.Class({
 
         childBox.y1 = 0;
         childBox.y2 = allocHeight;
-        if (this.actor.get_text_direction() == Clutter.TextDirection.RTL) {
+        if (this.get_text_direction() == Clutter.TextDirection.RTL) {
             childBox.x1 = Math.max(allocWidth - Math.min(Math.floor(sideWidth),
                                                          leftNaturalWidth),
                                    0);
@@ -909,7 +888,7 @@ var Panel = new Lang.Class({
 
         childBox.y1 = 0;
         childBox.y2 = allocHeight;
-        if (this.actor.get_text_direction() == Clutter.TextDirection.RTL) {
+        if (this.get_text_direction() == Clutter.TextDirection.RTL) {
             childBox.x1 = 0;
             childBox.x2 = Math.min(Math.floor(sideWidth),
                                    rightNaturalWidth);
@@ -921,25 +900,24 @@ var Panel = new Lang.Class({
         }
         this._rightBox.allocate(childBox, flags);
 
-        let cornerMinWidth, cornerMinHeight;
         let cornerWidth, cornerHeight;
 
-        [cornerMinWidth, cornerWidth] = this._leftCorner.actor.get_preferred_width(-1);
-        [cornerMinHeight, cornerHeight] = this._leftCorner.actor.get_preferred_height(-1);
+        [, cornerWidth] = this._leftCorner.actor.get_preferred_width(-1);
+        [, cornerHeight] = this._leftCorner.actor.get_preferred_height(-1);
         childBox.x1 = 0;
         childBox.x2 = cornerWidth;
         childBox.y1 = allocHeight;
         childBox.y2 = allocHeight + cornerHeight;
         this._leftCorner.actor.allocate(childBox, flags);
 
-        [cornerMinWidth, cornerWidth] = this._rightCorner.actor.get_preferred_width(-1);
-        [cornerMinHeight, cornerHeight] = this._rightCorner.actor.get_preferred_height(-1);
+        [, cornerWidth] = this._rightCorner.actor.get_preferred_width(-1);
+        [, cornerHeight] = this._rightCorner.actor.get_preferred_height(-1);
         childBox.x1 = allocWidth - cornerWidth;
         childBox.x2 = allocWidth;
         childBox.y1 = allocHeight;
         childBox.y2 = allocHeight + cornerHeight;
         this._rightCorner.actor.allocate(childBox, flags);
-    },
+    }
 
     _onButtonPress(actor, event) {
         if (Main.modalCount > 0)
@@ -957,22 +935,11 @@ var Panel = new Lang.Class({
         if (isPress && button != 1)
             return Clutter.EVENT_PROPAGATE;
 
-        let focusWindow = global.display.focus_window;
-        if (!focusWindow)
-            return Clutter.EVENT_PROPAGATE;
-
-        let dragWindow = focusWindow.is_attached_dialog() ? focusWindow.get_transient_for()
-                                                          : focusWindow;
-        if (!dragWindow)
-            return Clutter.EVENT_PROPAGATE;
-
-        let rect = dragWindow.get_frame_rect();
         let [stageX, stageY] = event.get_coords();
 
-        let allowDrag = dragWindow.maximized_vertically &&
-                        stageX > rect.x && stageX < rect.x + rect.width;
+        let dragWindow = this._getDraggableWindowForPosition(stageX);
 
-        if (!allowDrag)
+        if (!dragWindow)
             return Clutter.EVENT_PROPAGATE;
 
         global.display.begin_grab_op(dragWindow,
@@ -985,7 +952,7 @@ var Panel = new Lang.Class({
                                      stageX, stageY);
 
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onKeyPress(actor, event) {
         let symbol = event.get_key_symbol();
@@ -995,28 +962,28 @@ var Panel = new Lang.Class({
         }
 
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _toggleMenu(indicator) {
-        if (!indicator) // menu not supported by current session mode
-            return;
+        if (!indicator || !indicator.container.visible)
+            return; // menu not supported by current session mode
 
         let menu = indicator.menu;
-        if (!indicator.actor.reactive)
+        if (!indicator.reactive)
             return;
 
         menu.toggle();
         if (menu.isOpen)
-            menu.actor.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false);
-    },
+            menu.actor.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
+    }
 
     toggleAppMenu() {
         this._toggleMenu(this.statusArea.appMenu);
-    },
+    }
 
     toggleCalendar() {
         this._toggleMenu(this.statusArea.dateMenu);
-    },
+    }
 
     closeCalendar() {
         let indicator = this.statusArea.dateMenu;
@@ -1024,11 +991,11 @@ var Panel = new Lang.Class({
             return;
 
         let menu = indicator.menu;
-        if (!indicator.actor.reactive)
+        if (!indicator.reactive)
             return;
 
         menu.close();
-    },
+    }
 
     set boxOpacity(value) {
         let isReactive = value > 0;
@@ -1039,11 +1006,11 @@ var Panel = new Lang.Class({
         this._centerBox.reactive = isReactive;
         this._rightBox.opacity = value;
         this._rightBox.reactive = isReactive;
-    },
+    }
 
     get boxOpacity() {
         return this._leftBox.opacity;
-    },
+    }
 
     _updatePanel() {
         let panel = Main.sessionMode.panel;
@@ -1052,15 +1019,13 @@ var Panel = new Lang.Class({
         this._updateBox(panel.center, this._centerBox);
         this._updateBox(panel.right, this._rightBox);
 
-        if (panel.left.indexOf('dateMenu') != -1)
+        if (panel.left.includes('dateMenu'))
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.START;
-        else if (panel.right.indexOf('dateMenu') != -1)
+        else if (panel.right.includes('dateMenu'))
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.END;
         // Default to center if there is no dateMenu
         else
             Main.messageTray.bannerAlignment = Clutter.ActorAlign.CENTER;
-
-        this._updateSolidStyle();
 
         if (this._sessionStyle)
             this._removeStyleClassName(this._sessionStyle);
@@ -1069,49 +1034,14 @@ var Panel = new Lang.Class({
         if (this._sessionStyle)
             this._addStyleClassName(this._sessionStyle);
 
-        if (this.actor.get_text_direction() == Clutter.TextDirection.RTL) {
+        if (this.get_text_direction() == Clutter.TextDirection.RTL) {
             this._leftCorner.setStyleParent(this._rightBox);
             this._rightCorner.setStyleParent(this._leftBox);
         } else {
             this._leftCorner.setStyleParent(this._leftBox);
             this._rightCorner.setStyleParent(this._rightBox);
         }
-    },
-
-    _updateSolidStyle() {
-        if (this.actor.has_style_pseudo_class('overview') || !Main.sessionMode.hasWindows) {
-            this._removeStyleClassName('solid');
-            return;
-        }
-
-        if (!Main.layoutManager.primaryMonitor)
-            return;
-
-        /* Get all the windows in the active workspace that are in the primary monitor and visible */
-        let workspaceManager = global.workspace_manager;
-        let activeWorkspace = workspaceManager.get_active_workspace();
-        let windows = activeWorkspace.list_windows().filter(metaWindow => {
-            return metaWindow.is_on_primary_monitor() &&
-                   metaWindow.showing_on_its_workspace() &&
-                   !metaWindow.is_hidden() &&
-                   metaWindow.get_window_type() != Meta.WindowType.DESKTOP;
-        });
-
-        /* Check if at least one window is near enough to the panel */
-        let [, panelTop] = this.actor.get_transformed_position();
-        let panelBottom = panelTop + this.actor.get_height();
-        let scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        let isNearEnough = windows.some(metaWindow => {
-            let verticalPosition = metaWindow.get_frame_rect().y;
-            return verticalPosition < panelBottom + 5 * scale;
-        });
-
-        if (isNearEnough)
-            this._addStyleClassName('solid');
-        else
-            this._removeStyleClassName('solid');
-
-    },
+    }
 
     _hideIndicators() {
         for (let role in PANEL_ITEM_IMPLEMENTATIONS) {
@@ -1120,7 +1050,7 @@ var Panel = new Lang.Class({
                 continue;
             indicator.container.hide();
         }
-    },
+    }
 
     _ensureIndicator(role) {
         let indicator = this.statusArea[role];
@@ -1134,7 +1064,7 @@ var Panel = new Lang.Class({
             this.statusArea[role] = indicator;
         }
         return indicator;
-    },
+    }
 
     _updateBox(elements, box) {
         let nChildren = box.get_n_children();
@@ -1147,7 +1077,7 @@ var Panel = new Lang.Class({
 
             this._addToPanelBox(role, indicator, i + nChildren, box);
         }
-    },
+    }
 
     _addToPanelBox(role, indicator, position, box) {
         let container = indicator.container;
@@ -1165,15 +1095,14 @@ var Panel = new Lang.Class({
         let destroyId = indicator.connect('destroy', emitter => {
             delete this.statusArea[role];
             emitter.disconnect(destroyId);
-            container.destroy();
         });
         indicator.connect('menu-set', this._onMenuSet.bind(this));
         this._onMenuSet(indicator);
-    },
+    }
 
     addToStatusArea(role, indicator, position, box) {
         if (this.statusArea[role])
-            throw new Error('Extension point conflict: there is already a status indicator for role ' + role);
+            throw new Error(`Extension point conflict: there is already a status indicator for role ${role}`);
 
         if (!(indicator instanceof PanelMenu.Button))
             throw new TypeError('Status indicator must be an instance of PanelMenu.Button');
@@ -1188,22 +1117,22 @@ var Panel = new Lang.Class({
         this.statusArea[role] = indicator;
         this._addToPanelBox(role, indicator, position, boxContainer);
         return indicator;
-    },
+    }
 
     _addStyleClassName(className) {
-        this.actor.add_style_class_name(className);
+        this.add_style_class_name(className);
         this._rightCorner.actor.add_style_class_name(className);
         this._leftCorner.actor.add_style_class_name(className);
-    },
+    }
 
     _removeStyleClassName(className) {
-        this.actor.remove_style_class_name(className);
+        this.remove_style_class_name(className);
         this._rightCorner.actor.remove_style_class_name(className);
         this._leftCorner.actor.remove_style_class_name(className);
-    },
+    }
 
     _onMenuSet(indicator) {
-        if (!indicator.menu || indicator.menu.hasOwnProperty('_openChangedId'))
+        if (!indicator.menu || indicator.menu._openChangedId)
             return;
 
         indicator.menu._openChangedId = indicator.menu.connect('open-state-changed',
@@ -1219,5 +1148,22 @@ var Panel = new Lang.Class({
                 if (boxAlignment == Main.messageTray.bannerAlignment)
                     Main.messageTray.bannerBlocked = isOpen;
             });
+    }
+
+    _getDraggableWindowForPosition(stageX) {
+        let workspaceManager = global.workspace_manager;
+        let workspace = workspaceManager.get_active_workspace();
+        let allWindowsByStacking = global.display.sort_windows_by_stacking(
+            workspace.list_windows()
+        ).reverse();
+
+        return allWindowsByStacking.find(metaWindow => {
+            let rect = metaWindow.get_frame_rect();
+            return metaWindow.is_on_primary_monitor() &&
+                   metaWindow.showing_on_its_workspace() &&
+                   metaWindow.get_window_type() != Meta.WindowType.DESKTOP &&
+                   metaWindow.maximized_vertically &&
+                   stageX > rect.x && stageX < rect.x + rect.width;
+        });
     }
 });

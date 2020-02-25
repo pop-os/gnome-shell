@@ -1,18 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported PadOsdService */
 
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const Clutter = imports.gi.Clutter;
-const St = imports.gi.St;
-const Rsvg = imports.gi.Rsvg;
-const GObject = imports.gi.GObject;
-const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Gio = imports.gi.Gio;
-const GDesktopEnums = imports.gi.GDesktopEnums;
-const Atk = imports.gi.Atk;
-const Cairo = imports.cairo;
+const { Atk, Clutter, GDesktopEnums, Gio,
+        GLib, GObject, Gtk, Meta, Rsvg, St } = imports.gi;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
@@ -32,10 +22,8 @@ const CCW = 1;
 const UP = 0;
 const DOWN = 1;
 
-var PadChooser = new Lang.Class({
-    Name: 'PadChooser',
-
-    _init(device, groupDevices) {
+var PadChooser = class {
+    constructor(device, groupDevices) {
         this.actor = new St.Button({ style_class: 'pad-chooser-button',
                                      toggle_mode: true,
                                      x_fill: false,
@@ -62,7 +50,7 @@ var PadChooser = new Lang.Class({
                 this._padChooserMenu.close(true);
             }
         });
-    },
+    }
 
     _ensureMenu(devices) {
         this._padChooserMenu =  new PopupMenu.PopupMenu(this.actor, 0.5, St.Side.TOP);
@@ -81,33 +69,31 @@ var PadChooser = new Lang.Class({
                 this.emit('pad-selected', device);
             });
         }
-    },
+    }
 
     _onDestroy() {
         this._padChooserMenu.destroy();
-    },
+    }
 
     update(devices) {
         if (this._padChooserMenu)
             this._padChooserMenu.actor.destroy();
         this.actor.set_checked(false);
         this._ensureMenu(devices);
-    },
+    }
 
     destroy() {
         this.actor.destroy();
-    },
-});
+    }
+};
 Signals.addSignalMethods(PadChooser.prototype);
 
-var KeybindingEntry = new Lang.Class({
-    Name: 'KeybindingEntry',
-
-    _init() {
+var KeybindingEntry = class {
+    constructor() {
         this.actor = new St.Entry({ hint_text: _("New shortcut…"),
                                     style: 'width: 10em' });
         this.actor.connect('captured-event', this._onCapturedEvent.bind(this));
-    },
+    }
 
     _onCapturedEvent(actor, event) {
         if (event.type() != Clutter.EventType.KEY_PRESS)
@@ -121,13 +107,11 @@ var KeybindingEntry = new Lang.Class({
         this.emit('keybinding-edited', str);
         return Clutter.EVENT_STOP;
     }
-});
+};
 Signals.addSignalMethods(KeybindingEntry.prototype);
 
-var ActionComboBox = new Lang.Class({
-    Name: 'ActionComboBox',
-
-    _init() {
+var ActionComboBox = class {
+    constructor() {
         this.actor = new St.Button({ style_class: 'button' });
         this.actor.connect('clicked', this._onButtonClicked.bind(this));
         this.actor.set_toggle_mode(true);
@@ -138,7 +122,7 @@ var ActionComboBox = new Lang.Class({
         this.actor.set_child(box);
 
         this._label = new St.Label({ style_class: 'combo-box-label' });
-        box.add_child(this._label)
+        box.add_child(this._label);
 
         let arrow = new St.Icon({ style_class: 'popup-menu-arrow',
                                   icon_name: 'pan-down-symbolic',
@@ -175,43 +159,41 @@ var ActionComboBox = new Lang.Class({
         }
 
         this.setAction(GDesktopEnums.PadButtonAction.NONE);
-    },
+    }
 
     _onActionSelected(action) {
         this.setAction(action);
         this.popdown();
         this.emit('action-selected', action);
-    },
+    }
 
     setAction(action) {
         this._label.set_text(this._actionLabels.get(action));
-    },
+    }
 
     popup() {
         this._editMenu.open(true);
-    },
+    }
 
     popdown() {
         this._editMenu.close(true);
-    },
+    }
 
     _onButtonClicked() {
         if (this.actor.get_checked())
             this.popup();
         else
             this.popdown();
-    },
+    }
 
     setButtonActionsActive(active) {
-        this._buttonItems.forEach(item => { item.setSensitive(active); });
+        this._buttonItems.forEach(item => item.setSensitive(active));
     }
-});
+};
 Signals.addSignalMethods(ActionComboBox.prototype);
 
-var ActionEditor = new Lang.Class({
-    Name: 'ActionEditor',
-
-    _init() {
+var ActionEditor = class {
+    constructor() {
         let boxLayout = new Clutter.BoxLayout({ orientation: Clutter.Orientation.HORIZONTAL,
                                                 spacing: 12 });
 
@@ -227,10 +209,10 @@ var ActionEditor = new Lang.Class({
 
         this._doneButton = new St.Button({ label: _("Done"),
                                            style_class: 'button',
-                                           x_expand: false});
+                                           x_expand: false });
         this._doneButton.connect('clicked', this._onEditingDone.bind(this));
         this.actor.add_actor(this._doneButton);
-    },
+    }
 
     _updateKeybindingEntryState() {
         if (this._currentAction == GDesktopEnums.PadButtonAction.KEYBINDING) {
@@ -240,7 +222,7 @@ var ActionEditor = new Lang.Class({
         } else {
             this._keybindingEdit.actor.hide();
         }
-    },
+    }
 
     setSettings(settings, action) {
         this._buttonSettings = settings;
@@ -252,21 +234,21 @@ var ActionEditor = new Lang.Class({
 
         let isButton = (action == Meta.PadActionType.BUTTON);
         this._actionComboBox.setButtonActionsActive(isButton);
-    },
+    }
 
     close() {
         this._actionComboBox.popdown();
         this.actor.hide();
-    },
+    }
 
     _onKeybindingEdited(entry, keybinding) {
         this._currentKeybinding = keybinding;
-    },
+    }
 
     _onActionSelected(menu, action) {
         this._currentAction = action;
         this._updateKeybindingEntryState();
-    },
+    }
 
     _storeSettings() {
         if (!this._buttonSettings)
@@ -283,38 +265,38 @@ var ActionEditor = new Lang.Class({
             this._buttonSettings.set_string('keybinding', keybinding);
         else
             this._buttonSettings.reset('keybinding');
-    },
+    }
 
     _onEditingDone() {
         this._storeSettings();
         this.close();
         this.emit('done');
     }
-});
+};
 Signals.addSignalMethods(ActionEditor.prototype);
 
-var PadDiagram = new Lang.Class({
-    Name: 'PadDiagram',
-    Extends: St.DrawingArea,
-    Properties: { 'left-handed': GObject.ParamSpec.boolean('left-handed',
-                                                           'left-handed', 'Left handed',
-                                                           GObject.ParamFlags.READWRITE |
-                                                           GObject.ParamFlags.CONSTRUCT_ONLY,
-                                                           false),
-                  'image': GObject.ParamSpec.string('image', 'image', 'Image',
-                                                    GObject.ParamFlags.READWRITE |
-                                                    GObject.ParamFlags.CONSTRUCT_ONLY,
-                                                    null),
-                  'editor-actor': GObject.ParamSpec.object('editor-actor',
-                                                           'editor-actor',
-                                                           'Editor actor',
-                                                           GObject.ParamFlags.READWRITE |
-                                                           GObject.ParamFlags.CONSTRUCT_ONLY,
-                                                           Clutter.Actor.$gtype) },
-
+var PadDiagram = GObject.registerClass({
+    Properties: {
+        'left-handed': GObject.ParamSpec.boolean('left-handed',
+                                                 'left-handed', 'Left handed',
+                                                 GObject.ParamFlags.READWRITE |
+                                                 GObject.ParamFlags.CONSTRUCT_ONLY,
+                                                 false),
+        'image': GObject.ParamSpec.string('image', 'image', 'Image',
+                                          GObject.ParamFlags.READWRITE |
+                                          GObject.ParamFlags.CONSTRUCT_ONLY,
+                                          null),
+        'editor-actor': GObject.ParamSpec.object('editor-actor',
+                                                 'editor-actor',
+                                                 'Editor actor',
+                                                 GObject.ParamFlags.READWRITE |
+                                                 GObject.ParamFlags.CONSTRUCT_ONLY,
+                                                 Clutter.Actor.$gtype)
+    },
+}, class PadDiagram extends St.DrawingArea {
     _init(params) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/pad-osd.css');
-        let [success, css, etag] = file.load_contents(null);
+        let [success_, css] = file.load_contents(null);
         if (css instanceof Uint8Array)
             css = imports.byteArray.toString(css);
         this._curEdited = null;
@@ -322,20 +304,22 @@ var PadDiagram = new Lang.Class({
         this._css = css;
         this._labels = [];
         this._activeButtons = [];
-        this.parent(params);
-    },
+        super._init(params);
+    }
 
+    // eslint-disable-next-line camelcase
     get left_handed() {
         return this._leftHanded;
-    },
+    }
 
+    // eslint-disable-next-line camelcase
     set left_handed(leftHanded) {
         this._leftHanded = leftHanded;
-    },
+    }
 
     get image() {
         return this._imagePath;
-    },
+    }
 
     set image(imagePath) {
         let originalHandle = Rsvg.Handle.new_from_file(imagePath);
@@ -345,45 +329,47 @@ var PadDiagram = new Lang.Class({
 
         this._imagePath = imagePath;
         this._handle = this._composeStyledDiagram();
-    },
+    }
 
+    // eslint-disable-next-line camelcase
     get editor_actor() {
         return this._editorActor;
-    },
+    }
 
+    // eslint-disable-next-line camelcase
     set editor_actor(actor) {
         actor.hide();
         this._editorActor = actor;
         this.add_actor(actor);
-    },
+    }
 
     _wrappingSvgHeader() {
         return ('<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
                 '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" ' +
                 'xmlns:xi="http://www.w3.org/2001/XInclude" ' +
-                'width="' + this._imageWidth + '" height="' + this._imageHeight + '"> ' +
+                `width="${this._imageWidth}" height="${this._imageHeight}"> ` +
                 '<style type="text/css">');
-    },
+    }
 
     _wrappingSvgFooter() {
         return ('</style>' +
                 '<xi:include href="' + this._imagePath + '" />' +
                 '</svg>');
-    },
+    }
 
     _cssString() {
         let css = this._css;
 
         for (let i = 0; i < this._activeButtons.length; i++) {
             let ch = String.fromCharCode('A'.charCodeAt() + this._activeButtons[i]);
-            css += ('.' + ch + ' { ' +
-	            '  stroke: ' + ACTIVE_COLOR + ' !important; ' +
-                    '  fill: ' + ACTIVE_COLOR + ' !important; ' +
-                    '} ');
+            css += `.${ch} {
+                stroke: ${ACTIVE_COLOR} !important;
+                fill: ${ACTIVE_COLOR} !important;
+            }`;
         }
 
         return css;
-    },
+    }
 
     _composeStyledDiagram() {
         let svgData = '';
@@ -395,13 +381,13 @@ var PadDiagram = new Lang.Class({
         svgData += this._cssString();
         svgData += this._wrappingSvgFooter();
 
-        let handle = new Rsvg.Handle();
-        handle.set_base_uri(GLib.path_get_dirname(this._imagePath));
-        handle.write(svgData);
-        handle.close();
+        let istream = new Gio.MemoryInputStream();
+        istream.add_bytes(new GLib.Bytes(svgData));
 
-        return handle;
-    },
+        return Rsvg.Handle.new_from_stream_sync(istream,
+                                                Gio.File.new_for_path(this._imagePath),
+                                                0, null);
+    }
 
     _updateDiagramScale() {
         if (this._handle == null)
@@ -412,11 +398,11 @@ var PadDiagram = new Lang.Class({
         let scaleX = this._actorWidth / dimensions.width;
         let scaleY = this._actorHeight / dimensions.height;
         this._scale = Math.min(scaleX, scaleY);
-    },
+    }
 
     _allocateChild(child, x, y, direction) {
-        let [prefHeight, natHeight] = child.get_preferred_height(-1);
-        let [prefWidth, natWidth] = child.get_preferred_width(natHeight);
+        let [, natHeight] = child.get_preferred_height(-1);
+        let [, natWidth] = child.get_preferred_width(natHeight);
         let childBox = new Clutter.ActorBox();
 
         if (direction == LTR) {
@@ -430,24 +416,24 @@ var PadDiagram = new Lang.Class({
         childBox.y1 = y - natHeight / 2;
         childBox.y2 = y + natHeight / 2;
         child.allocate(childBox, 0);
-    },
+    }
 
     vfunc_allocate(box, flags) {
-        this.parent(box, flags);
+        super.vfunc_allocate(box, flags);
         this._updateDiagramScale();
 
         for (let i = 0; i < this._labels.length; i++) {
             let [label, action, idx, dir] = this._labels[i];
-            let [found, x, y, arrangement] = this.getLabelCoords(action, idx, dir);
+            let [found_, x, y, arrangement] = this.getLabelCoords(action, idx, dir);
             this._allocateChild(label, x, y, arrangement);
         }
 
         if (this._editorActor && this._curEdited) {
-            let [label, action, idx, dir] = this._curEdited;
-            let [found, x, y, arrangement] = this.getLabelCoords(action, idx, dir);
+            let [label_, action, idx, dir] = this._curEdited;
+            let [found_, x, y, arrangement] = this.getLabelCoords(action, idx, dir);
             this._allocateChild(this._editorActor, x, y, arrangement);
         }
-    },
+    }
 
     vfunc_repaint() {
         if (this._handle == null)
@@ -461,15 +447,15 @@ var PadDiagram = new Lang.Class({
         let cr = this.get_context();
 
         cr.save();
-        cr.translate(width/2, height/2);
+        cr.translate(width / 2, height / 2);
         cr.scale(this._scale, this._scale);
         if (this._leftHanded)
             cr.rotate(Math.PI);
-        cr.translate(-dimensions.width/2, -dimensions.height/2);
+        cr.translate(-dimensions.width / 2, -dimensions.height / 2);
         this._handle.render_cairo(cr);
         cr.restore();
         cr.$dispose();
-    },
+    }
 
     _transformPoint(x, y) {
         if (this._handle == null || this._scale == null)
@@ -478,9 +464,9 @@ var PadDiagram = new Lang.Class({
         // I miss Cairo.Matrix
         let dimensions = this._handle.get_dimensions();
         x = x * this._scale + this._actorWidth / 2 - dimensions.width / 2 * this._scale;
-        y = y * this._scale + this._actorHeight / 2 - dimensions.height / 2 * this._scale;;
+        y = y * this._scale + this._actorHeight / 2 - dimensions.height / 2 * this._scale;
         return [Math.round(x), Math.round(y)];
-    },
+    }
 
     _getItemLabelCoords(labelName, leaderName) {
         if (this._handle == null)
@@ -489,12 +475,12 @@ var PadDiagram = new Lang.Class({
         let leaderPos, leaderSize, pos;
         let found, direction;
 
-        [found, pos] = this._handle.get_position_sub('#' + labelName);
+        [found, pos] = this._handle.get_position_sub(`#${labelName}`);
         if (!found)
             return [false];
 
-        [found, leaderPos] = this._handle.get_position_sub('#' + leaderName);
-        [found, leaderSize] = this._handle.get_dimensions_sub('#' + leaderName);
+        [found, leaderPos] = this._handle.get_position_sub(`#${leaderName}`);
+        [found, leaderSize] = this._handle.get_dimensions_sub(`#${leaderName}`);
         if (!found)
             return [false];
 
@@ -509,36 +495,36 @@ var PadDiagram = new Lang.Class({
             pos.y = this._imageHeight - pos.y;
         }
 
-        let [x, y] = this._transformPoint(pos.x, pos.y)
+        let [x, y] = this._transformPoint(pos.x, pos.y);
 
         return [true, x, y, direction];
-    },
+    }
 
     getButtonLabelCoords(button) {
         let ch = String.fromCharCode('A'.charCodeAt() + button);
-        let labelName = 'Label' + ch;
-        let leaderName = 'Leader' + ch;
+        let labelName = `Label${ch}`;
+        let leaderName = `Leader${ch}`;
 
         return this._getItemLabelCoords(labelName, leaderName);
-    },
+    }
 
     getRingLabelCoords(number, dir) {
         let numStr = number > 0 ? (number + 1).toString() : '';
         let dirStr = dir == CW ? 'CW' : 'CCW';
-        let labelName = 'LabelRing' + numStr + dirStr;
-        let leaderName = 'LeaderRing' + numStr + dirStr;
+        let labelName = `LabelRing${numStr}${dirStr}`;
+        let leaderName = `LeaderRing${numStr}${dirStr}`;
 
         return this._getItemLabelCoords(labelName, leaderName);
-    },
+    }
 
     getStripLabelCoords(number, dir) {
         let numStr = number > 0 ? (number + 1).toString() : '';
         let dirStr = dir == UP ? 'Up' : 'Down';
-        let labelName = 'LabelStrip' + numStr + dirStr;
-        let leaderName = 'LeaderStrip' + numStr + dirStr;
+        let labelName = `LabelStrip${numStr}${dirStr}`;
+        let leaderName = `LeaderStrip${numStr}${dirStr}`;
 
         return this._getItemLabelCoords(labelName, leaderName);
-    },
+    }
 
     getLabelCoords(action, idx, dir) {
         if (action == Meta.PadActionType.BUTTON)
@@ -549,19 +535,19 @@ var PadDiagram = new Lang.Class({
             return this.getStripLabelCoords(idx, dir);
 
         return [false];
-    },
+    }
 
     _invalidateSvg() {
         if (this._handle == null)
             return;
         this._handle = this._composeStyledDiagram();
         this.queue_repaint();
-    },
+    }
 
     activateButton(button) {
         this._activeButtons.push(button);
         this._invalidateSvg();
-    },
+    }
 
     deactivateButton(button) {
         for (let i = 0; i < this._activeButtons.length; i++) {
@@ -569,22 +555,22 @@ var PadDiagram = new Lang.Class({
                 this._activeButtons.splice(i, 1);
         }
         this._invalidateSvg();
-    },
+    }
 
     addLabel(label, type, idx, dir) {
         this._labels.push([label, type, idx, dir]);
         this.add_actor(label);
-    },
+    }
 
     _applyLabel(label, action, idx, dir, str) {
         if (str != null) {
             label.set_text(str);
 
-            let [found, x, y, arrangement] = this.getLabelCoords(action, idx, dir);
+            let [found_, x, y, arrangement] = this.getLabelCoords(action, idx, dir);
             this._allocateChild(label, x, y, arrangement);
         }
         label.show();
-    },
+    }
 
     stopEdition(continues, str) {
         this._editorActor.hide();
@@ -602,7 +588,7 @@ var PadDiagram = new Lang.Class({
                 this._prevEdited = this._curEdited;
             this._curEdited = null;
         }
-    },
+    }
 
     startEdition(action, idx, dir) {
         let editedLabel;
@@ -629,12 +615,10 @@ var PadDiagram = new Lang.Class({
     }
 });
 
-var PadOsd = new Lang.Class({
-    Name: 'PadOsd',
-
-    _init(padDevice, settings, imagePath, editionMode, monitorIndex) {
+var PadOsd = class {
+    constructor(padDevice, settings, imagePath, editionMode, monitorIndex) {
         this.padDevice = padDevice;
-        this._groupPads = [ padDevice ];
+        this._groupPads = [padDevice];
         this._settings = settings;
         this._imagePath = imagePath;
         this._editionMode = editionMode;
@@ -653,7 +637,7 @@ var PadOsd = new Lang.Class({
             // If the device is being removed, destroy the padOsd.
             if (device == this.padDevice) {
                 this.destroy();
-            } else if (this._groupPads.indexOf(device) != -1) {
+            } else if (this._groupPads.includes(device)) {
                 // Or update the pad chooser if the device belongs to
                 // the same group.
                 this._groupPads.splice(this._groupPads.indexOf(device), 1);
@@ -737,9 +721,9 @@ var PadOsd = new Lang.Class({
         }
 
         let buttonBox = new St.Widget({ layout_manager: new Clutter.BinLayout(),
-                                         x_expand: true,
-                                         x_align: Clutter.ActorAlign.CENTER,
-                                         y_align: Clutter.ActorAlign.CENTER });
+                                        x_expand: true,
+                                        x_align: Clutter.ActorAlign.CENTER,
+                                        y_align: Clutter.ActorAlign.CENTER });
         this.actor.add_actor(buttonBox);
         this._editButton = new St.Button({ label: _("Edit…"),
                                            style_class: 'button',
@@ -752,12 +736,12 @@ var PadOsd = new Lang.Class({
 
         this._syncEditionMode();
         Main.pushModal(this.actor);
-    },
+    }
 
     _updatePadChooser() {
         if (this._groupPads.length > 1) {
             if (this._padChooser == null) {
-                this._padChooser = new PadChooser(this.padDevice, this._groupPads)
+                this._padChooser = new PadChooser(this.padDevice, this._groupPads);
                 this._padChooser.connect('pad-selected', (chooser, pad) => {
                     this._requestForOtherPad(pad);
                 });
@@ -769,23 +753,22 @@ var PadOsd = new Lang.Class({
             this._padChooser.destroy();
             this._padChooser = null;
         }
-    },
+    }
 
     _requestForOtherPad(pad) {
-        if (pad == this.padDevice ||
-            this._groupPads.indexOf(pad) == -1)
+        if (pad == this.padDevice || !this._groupPads.includes(pad))
             return;
 
         let editionMode = this._editionMode;
         this.destroy();
         global.display.request_pad_osd(pad, editionMode);
-    },
+    }
 
     _createLabel(type, number, dir) {
         let str = global.display.get_pad_action_label(this.padDevice, type, number);
         let label = new St.Label({ text: str ? str : _("None") });
         this._padDiagram.addLabel(label, type, number, dir);
-    },
+    }
 
     _onCapturedEvent(actor, event) {
         if (event.type() == Clutter.EventType.PAD_BUTTON_PRESS &&
@@ -811,26 +794,26 @@ var PadOsd = new Lang.Class({
         } else if (event.get_source_device() == this.padDevice &&
                    event.type() == Clutter.EventType.PAD_STRIP) {
             if (this._editionMode) {
-                let [retval, number, mode] = event.get_pad_event_details();
+                let [retval_, number, mode] = event.get_pad_event_details();
                 this._startStripActionEdition(number, UP, mode);
             }
         } else if (event.get_source_device() == this.padDevice &&
                    event.type() == Clutter.EventType.PAD_RING) {
             if (this._editionMode) {
-                let [retval, number, mode] = event.get_pad_event_details();
+                let [retval_, number, mode] = event.get_pad_event_details();
                 this._startRingActionEdition(number, CCW, mode);
             }
         }
 
         // If the event comes from another pad in the same group,
         // show the OSD for it.
-        if (this._groupPads.indexOf(event.get_source_device()) != -1) {
+        if (this._groupPads.includes(event.get_source_device())) {
             this._requestForOtherPad(event.get_source_device());
             return Clutter.EVENT_STOP;
         }
 
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _syncEditionMode() {
         this._editButton.set_reactive(!this._editionMode);
@@ -850,7 +833,7 @@ var PadOsd = new Lang.Class({
         }
 
         this._titleLabel.clutter_text.set_markup('<span size="larger"><b>' + title + '</b></span>');
-    },
+    }
 
     _isEditedAction(type, number, dir) {
         if (!this._editedAction)
@@ -859,7 +842,7 @@ var PadOsd = new Lang.Class({
         return (this._editedAction.type == type &&
                 this._editedAction.number == number &&
                 this._editedAction.dir == dir);
-    },
+    }
 
     _followUpActionEdition(str) {
         let { type, dir, number, mode } = this._editedAction;
@@ -876,7 +859,7 @@ var PadOsd = new Lang.Class({
             this._startStripActionEdition(number, DOWN, mode);
 
         return true;
-    },
+    }
 
     _endActionEdition() {
         this._actionEditor.close();
@@ -888,12 +871,12 @@ var PadOsd = new Lang.Class({
             if (this._followUpActionEdition(str))
                 return;
 
-            this._padDiagram.stopEdition(false, str ? str : _("None"))
+            this._padDiagram.stopEdition(false, str ? str : _("None"));
             this._editedAction = null;
         }
 
         this._editedActionSettings = null;
-    },
+    }
 
     _startActionEdition(key, type, number, dir, mode) {
         if (this._isEditedAction(type, number, dir))
@@ -907,25 +890,25 @@ var PadOsd = new Lang.Class({
                                                                 settingsPath);
         this._actionEditor.setSettings(this._editedActionSettings, type);
         this._padDiagram.startEdition(type, number, dir);
-    },
+    }
 
     _startButtonActionEdition(button) {
         let ch = String.fromCharCode('A'.charCodeAt() + button);
-        let key = 'button' + ch;
+        let key = `button${ch}`;
         this._startActionEdition(key, Meta.PadActionType.BUTTON, button);
-    },
+    }
 
     _startRingActionEdition(ring, dir, mode) {
         let ch = String.fromCharCode('A'.charCodeAt() + ring);
         let key = 'ring%s-%s-mode-%d'.format(ch, dir == CCW ? 'ccw' : 'cw', mode);
         this._startActionEdition(key, Meta.PadActionType.RING, ring, dir, mode);
-    },
+    }
 
     _startStripActionEdition(strip, dir, mode) {
         let ch = String.fromCharCode('A'.charCodeAt() + strip);
         let key = 'strip%s-%s-mode-%d'.format(ch, dir == UP ? 'up' : 'down', mode);
         this._startActionEdition(key, Meta.PadActionType.STRIP, strip, dir, mode);
-    },
+    }
 
     setEditionMode(editionMode) {
         if (this._editionMode == editionMode)
@@ -933,11 +916,11 @@ var PadOsd = new Lang.Class({
 
         this._editionMode = editionMode;
         this._syncEditionMode();
-    },
+    }
 
     destroy() {
         this.actor.destroy();
-    },
+    }
 
     _onDestroy() {
         Main.popModal(this.actor);
@@ -961,19 +944,17 @@ var PadOsd = new Lang.Class({
         this.actor = null;
         this.emit('closed');
     }
-});
+};
 Signals.addSignalMethods(PadOsd.prototype);
 
 const PadOsdIface = loadInterfaceXML('org.gnome.Shell.Wacom.PadOsd');
 
-var PadOsdService = new Lang.Class({
-    Name: 'PadOsdService',
-
-    _init() {
+var PadOsdService = class {
+    constructor() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(PadOsdIface, this);
         this._dbusImpl.export(Gio.DBus.session, '/org/gnome/Shell/Wacom');
         Gio.DBus.session.own_name('org.gnome.Shell.Wacom.PadOsd', Gio.BusNameOwnerFlags.REPLACE, null, null);
-    },
+    }
 
     ShowAsync(params, invocation) {
         let [deviceNode, editionMode] = params;
@@ -997,5 +978,5 @@ var PadOsdService = new Lang.Class({
         global.display.request_pad_osd(padDevice, editionMode);
         invocation.return_value(null);
     }
-});
+};
 Signals.addSignalMethods(PadOsdService.prototype);

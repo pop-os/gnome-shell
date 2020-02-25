@@ -1,17 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Lightbox */
 
-const Clutter = imports.gi.Clutter;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
+const { Clutter, GObject, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
 
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 var DEFAULT_FADE_FACTOR = 0.4;
-var VIGNETTE_BRIGHTNESS = 0.8;
+var VIGNETTE_BRIGHTNESS = 0.2;
 var VIGNETTE_SHARPNESS = 0.7;
 
 const VIGNETTE_DECLARATIONS = '\
@@ -27,43 +23,62 @@ t = clamp(t, 0.0, 1.0);\n\
 float pixel_brightness = mix(1.0, 1.0 - vignette_sharpness, t);\n\
 cogl_color_out.a = cogl_color_out.a * (1 - pixel_brightness * brightness);';
 
-var RadialShaderQuad = new Lang.Class({
-    Name: 'RadialShaderQuad',
-    Extends: Shell.GLSLQuad,
-
+var RadialShaderEffect = GObject.registerClass({
+    Properties: {
+        'brightness': GObject.ParamSpec.float(
+            'brightness', 'brightness', 'brightness',
+            GObject.ParamFlags.READWRITE,
+            0, 1, 1
+        ),
+        'sharpness': GObject.ParamSpec.float(
+            'sharpness', 'sharpness', 'sharpness',
+            GObject.ParamFlags.READWRITE,
+            0, 1, 0
+        )
+    }
+}, class RadialShaderEffect extends Shell.GLSLEffect {
     _init(params) {
-        this.parent(params);
+        this._brightness = undefined;
+        this._sharpness = undefined;
+
+        super._init(params);
 
         this._brightnessLocation = this.get_uniform_location('brightness');
         this._sharpnessLocation = this.get_uniform_location('vignette_sharpness');
 
         this.brightness = 1.0;
-        this.vignetteSharpness = 0.0;
-    },
+        this.sharpness = 0.0;
+    }
 
     vfunc_build_pipeline() {
         this.add_glsl_snippet(Shell.SnippetHook.FRAGMENT,
                               VIGNETTE_DECLARATIONS, VIGNETTE_CODE, true);
-    },
+    }
 
     get brightness() {
         return this._brightness;
-    },
+    }
 
     set brightness(v) {
+        if (this._brightness == v)
+            return;
         this._brightness = v;
         this.set_uniform_float(this._brightnessLocation,
                                1, [this._brightness]);
-    },
+        this.notify('brightness');
+    }
 
-    get vignetteSharpness() {
+    get sharpness() {
         return this._sharpness;
-    },
+    }
 
-    set vignetteSharpness(v) {
+    set sharpness(v) {
+        if (this._sharpness == v)
+            return;
         this._sharpness = v;
         this.set_uniform_float(this._sharpnessLocation,
                                1, [this._sharpness]);
+        this.notify('sharpness');
     }
 });
 
@@ -74,8 +89,8 @@ var RadialShaderQuad = new Lang.Class({
  *           - inhibitEvents: whether to inhibit events for @container
  *           - width: shade actor width
  *           - height: shade actor height
- *           - fadeInTime: seconds used to fade in
- *           - fadeOutTime: seconds used to fade out
+ *           - fadeInTime: milliseconds used to fade in
+ *           - fadeOutTime: milliseconds used to fade out
  *
  * Lightbox creates a dark translucent "shade" actor to hide the
  * contents of @container, and allows you to specify particular actors
@@ -91,31 +106,27 @@ var RadialShaderQuad = new Lang.Class({
  * @container and will track any changes in its size. You can override
  * this by passing an explicit width and height in @params.
  */
-var Lightbox = new Lang.Class({
-    Name: 'Lightbox',
-
-    _init(container, params) {
-        params = Params.parse(params, { inhibitEvents: false,
-                                        width: null,
-                                        height: null,
-                                        fadeFactor: DEFAULT_FADE_FACTOR,
-                                        radialEffect: false,
-                                      });
+var Lightbox = class Lightbox {
+    constructor(container, params) {
+        params = Params.parse(params, {
+            inhibitEvents: false,
+            width: null,
+            height: null,
+            fadeFactor: DEFAULT_FADE_FACTOR,
+            radialEffect: false,
+        });
 
         this._container = container;
         this._children = container.get_children();
         this._fadeFactor = params.fadeFactor;
         this._radialEffect = Clutter.feature_available(Clutter.FeatureFlags.SHADERS_GLSL) && params.radialEffect;
+
+        this.actor = new St.Bin({ reactive: params.inhibitEvents });
+
         if (this._radialEffect)
-            this.actor = new RadialShaderQuad({ x: 0,
-                                                y: 0,
-                                                reactive: params.inhibitEvents });
+            this.actor.add_effect(new RadialShaderEffect({ name: 'radial' }));
         else
-            this.actor = new St.Bin({ x: 0,
-                                      y: 0,
-                                      opacity: 0,
-                                      style_class: 'lightbox',
-                                      reactive: params.inhibitEvents });
+            this.actor.set({ opacity: 0, style_class: 'lightbox' });
 
         container.add_actor(this.actor);
         this.actor.raise_top();
@@ -137,7 +148,7 @@ var Lightbox = new Lang.Class({
         this._actorRemovedSignalId = container.connect('actor-removed', this._actorRemoved.bind(this));
 
         this._highlighted = null;
-    },
+    }
 
     _actorAdded(container, newChild) {
         let children = this._container.get_children();
@@ -159,65 +170,57 @@ var Lightbox = new Lang.Class({
             if (prevChild != -1) // paranoia
                 this._children.splice(prevChild + 1, 0, newChild);
         }
-    },
+    }
 
     show(fadeInTime) {
-        fadeInTime = fadeInTime || 0;
+        this.actor.remove_all_transitions();
 
-        Tweener.removeTweens(this.actor);
-        if (this._radialEffect) {
-            Tweener.addTween(this.actor,
-                             { brightness: VIGNETTE_BRIGHTNESS,
-                               vignetteSharpness: VIGNETTE_SHARPNESS,
-                               time: fadeInTime,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this.shown = true;
-                                   this.emit('shown');
-                               }
-                             });
-        } else {
-            Tweener.addTween(this.actor,
-                             { opacity: 255 * this._fadeFactor,
-                               time: fadeInTime,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this.shown = true;
-                                   this.emit('shown');
-                               }
-                             });
-        }
+        let easeProps = {
+            duration: fadeInTime || 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        };
+
+        let onComplete = () => {
+            this.shown = true;
+            this.emit('shown');
+        };
 
         this.actor.show();
-    },
+
+        if (this._radialEffect) {
+            this.actor.ease_property(
+                '@effects.radial.brightness', VIGNETTE_BRIGHTNESS, easeProps);
+            this.actor.ease_property(
+                '@effects.radial.sharpness', VIGNETTE_SHARPNESS,
+                Object.assign({ onComplete }, easeProps));
+        } else {
+            this.actor.ease(Object.assign(easeProps, {
+                opacity: 255 * this._fadeFactor,
+                onComplete
+            }));
+        }
+    }
 
     hide(fadeOutTime) {
-        fadeOutTime = fadeOutTime || 0;
-
         this.shown = false;
-        Tweener.removeTweens(this.actor);
+        this.actor.remove_all_transitions();
+
+        let easeProps = {
+            duration: fadeOutTime || 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        };
+
+        let onComplete = () => this.actor.hide();
+
         if (this._radialEffect) {
-            Tweener.addTween(this.actor,
-                             { brightness: 1.0,
-                               vignetteSharpness: 0.0,
-                               opacity: 0,
-                               time: fadeOutTime,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this.actor.hide();
-                               }
-                             });
+            this.actor.ease_property(
+                '@effects.radial.brightness', 1.0, easeProps);
+            this.actor.ease_property(
+                '@effects.radial.sharpness', 0.0, Object.assign({ onComplete }, easeProps));
         } else {
-            Tweener.addTween(this.actor,
-                             { opacity: 0,
-                               time: fadeOutTime,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this.actor.hide();
-                               }
-                             });
+            this.actor.ease(Object.assign(easeProps, { opacity: 0, onComplete }));
         }
-    },
+    }
 
     _actorRemoved(container, child) {
         let index = this._children.indexOf(child);
@@ -226,7 +229,7 @@ var Lightbox = new Lang.Class({
 
         if (child == this._highlighted)
             this._highlighted = null;
-    },
+    }
 
     /**
      * highlight:
@@ -257,7 +260,7 @@ var Lightbox = new Lang.Class({
         }
 
         this._highlighted = window;
-    },
+    }
 
     /**
      * destroy:
@@ -266,7 +269,7 @@ var Lightbox = new Lang.Class({
      */
     destroy() {
         this.actor.destroy();
-    },
+    }
 
     /**
      * _onDestroy:
@@ -280,5 +283,5 @@ var Lightbox = new Lang.Class({
 
         this.highlight(null);
     }
-});
+};
 Signals.addSignalMethods(Lightbox.prototype);

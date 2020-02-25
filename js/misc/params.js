@@ -1,4 +1,5 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported parse */
 
 // parse:
 // @params: caller-provided parameter object, or %null
@@ -14,22 +15,13 @@
 //
 // Return value: a new object, containing the merged parameters from
 // @params and @defaults
-function parse(params, defaults, allowExtras) {
-    let ret = {}, prop;
-
-    if (!params)
-        params = {};
-
-    for (prop in params) {
-        if (!(prop in defaults) && !allowExtras)
-            throw new Error('Unrecognized parameter "' + prop + '"');
-        ret[prop] = params[prop];
+function parse(params = {}, defaults, allowExtras) {
+    if (!allowExtras) {
+        for (let prop in params)
+            if (!(prop in defaults))
+                throw new Error(`Unrecognized parameter "${prop}"`);
     }
 
-    for (prop in defaults) {
-        if (!(prop in params))
-            ret[prop] = defaults[prop];
-    }
-
-    return ret;
+    let defaultsCopy = Object.assign({}, defaults);
+    return Object.assign(defaultsCopy, params);
 }

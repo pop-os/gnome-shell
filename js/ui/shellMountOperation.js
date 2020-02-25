@@ -1,15 +1,10 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ShellMountOperation, GnomeShellMountOpHandler */
 
-const Clutter = imports.gi.Clutter;
-const Lang = imports.lang;
+const { Clutter, Gio, GLib, GObject, Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Pango = imports.gi.Pango;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
 
+const Animation = imports.ui.animation;
 const CheckBox = imports.ui.checkBox;
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
@@ -21,28 +16,20 @@ const ShellEntry = imports.ui.shellEntry;
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
 var LIST_ITEM_ICON_SIZE = 48;
+var WORK_SPINNER_ICON_SIZE = 16;
 
 const REMEMBER_MOUNT_PASSWORD_KEY = 'remember-mount-password';
 
 /* ------ Common Utils ------- */
-function _setLabelText(label, text) {
-    if (text) {
-        label.set_text(text);
-        label.show();
-    } else {
-        label.set_text('');
-        label.hide();
-    }
-}
-
 function _setButtonsForChoices(dialog, choices) {
     let buttons = [];
 
     for (let idx = 0; idx < choices.length; idx++) {
         let button = idx;
-        buttons.unshift({ label: choices[idx],
-                          action: () => { dialog.emit('response', button); }
-                        });
+        buttons.unshift({
+            label: choices[idx],
+            action: () => dialog.emit('response', button),
+        });
     }
 
     dialog.setButtons(buttons);
@@ -55,20 +42,13 @@ function _setLabelsForMessage(content, message) {
     content.body = labels.join('\n');
 }
 
-function _createIcon(gicon) {
-    return new St.Icon({ gicon: gicon,
-                         style_class: 'shell-mount-operation-icon' })
-}
-
 /* -------------------------------------------------------- */
 
-var ListItem = new Lang.Class({
-    Name: 'ListItem',
-
-    _init(app) {
+var ListItem = class {
+    constructor(app) {
         this._app = app;
 
-        let layout = new St.BoxLayout({ vertical: false});
+        let layout = new St.BoxLayout({ vertical: false });
 
         this.actor = new St.Button({ style_class: 'mount-dialog-app-list-item',
                                      can_focus: true,
@@ -90,19 +70,17 @@ var ListItem = new Lang.Class({
         layout.add(labelBin);
 
         this.actor.connect('clicked', this._onClicked.bind(this));
-    },
+    }
 
     _onClicked() {
         this.emit('activate');
         this._app.activate();
     }
-});
+};
 Signals.addSignalMethods(ListItem.prototype);
 
-var ShellMountOperation = new Lang.Class({
-    Name: 'ShellMountOperation',
-
-    _init(source, params) {
+var ShellMountOperation = class {
+    constructor(source, params) {
         params = Params.parse(params, { existingDialog: null });
 
         this._dialog = null;
@@ -124,7 +102,7 @@ var ShellMountOperation = new Lang.Class({
                              this._onShowUnmountProgress.bind(this));
 
         this._gicon = source.get_icon();
-    },
+    }
 
     _closeExistingDialog() {
         if (!this._existingDialog)
@@ -132,7 +110,7 @@ var ShellMountOperation = new Lang.Class({
 
         this._existingDialog.close();
         this._existingDialog = null;
-    },
+    }
 
     _onAskQuestion(op, message, choices) {
         this._closeExistingDialog();
@@ -148,7 +126,7 @@ var ShellMountOperation = new Lang.Class({
 
         this._dialog.update(message, choices);
         this._dialog.open();
-    },
+    }
 
     _onAskPassword(op, message, defaultUser, defaultDomain, flags) {
         if (this._existingDialog) {
@@ -159,7 +137,7 @@ var ShellMountOperation = new Lang.Class({
         }
 
         this._dialogId = this._dialog.connect('response',
-            (object, choice, password, remember) => {
+            (object, choice, password, remember, hiddenVolume, systemVolume, pim) => {
                 if (choice == -1) {
                     this.mountOp.reply(Gio.MountOperationResult.ABORTED);
                 } else {
@@ -169,13 +147,16 @@ var ShellMountOperation = new Lang.Class({
                         this.mountOp.set_password_save(Gio.PasswordSave.NEVER);
 
                     this.mountOp.set_password(password);
+                    this.mountOp.set_is_tcrypt_hidden_volume(hiddenVolume);
+                    this.mountOp.set_is_tcrypt_system_volume(systemVolume);
+                    this.mountOp.set_pim(pim);
                     this.mountOp.reply(Gio.MountOperationResult.HANDLED);
                 }
             });
         this._dialog.open();
-    },
+    }
 
-    close(op) {
+    close(_op) {
         this._closeExistingDialog();
         this._processesDialog = null;
 
@@ -188,7 +169,7 @@ var ShellMountOperation = new Lang.Class({
             this._notifier.done();
             this._notifier = null;
         }
-    },
+    }
 
     _onShowProcesses2(op) {
         this._closeExistingDialog();
@@ -216,17 +197,17 @@ var ShellMountOperation = new Lang.Class({
         }
 
         this._processesDialog.update(message, processes, choices);
-    },
+    }
 
     _onShowUnmountProgress(op, message, timeLeft, bytesLeft) {
         if (!this._notifier)
             this._notifier = new ShellUnmountNotifier();
-            
+
         if (bytesLeft == 0)
             this._notifier.done(message);
         else
             this._notifier.show(message);
-    },
+    }
 
     borrowDialog() {
         if (this._dialogId != 0) {
@@ -236,18 +217,15 @@ var ShellMountOperation = new Lang.Class({
 
         return this._dialog;
     }
-});
+};
 
-var ShellUnmountNotifier = new Lang.Class({
-    Name: 'ShellUnmountNotifier',
-    Extends: MessageTray.Source,
-
-    _init() {
-        this.parent('', 'media-removable');
+var ShellUnmountNotifier = class extends MessageTray.Source {
+    constructor() {
+        super('', 'media-removable');
 
         this._notification = null;
         Main.messageTray.add(this);
-    },
+    }
 
     show(message) {
         let [header, text] = message.split('\n', 2);
@@ -261,7 +239,7 @@ var ShellUnmountNotifier = new Lang.Class({
         }
 
         this.notify(this._notification);
-    },
+    }
 
     done(message) {
         if (this._notification) {
@@ -276,54 +254,125 @@ var ShellUnmountNotifier = new Lang.Class({
             this.notify(notification);
         }
     }
-});
+};
 
-var ShellMountQuestionDialog = new Lang.Class({
-    Name: 'ShellMountQuestionDialog',
-    Extends: ModalDialog.ModalDialog,
-
+var ShellMountQuestionDialog = GObject.registerClass({
+    Signals: { 'response': { param_types: [GObject.TYPE_INT] } }
+}, class ShellMountQuestionDialog extends ModalDialog.ModalDialog {
     _init(icon) {
-        this.parent({ styleClass: 'mount-dialog' });
+        super._init({ styleClass: 'mount-dialog' });
 
         this._content = new Dialog.MessageDialogContent({ icon });
         this.contentLayout.add(this._content, { x_fill: true, y_fill: false });
-    },
+    }
 
     update(message, choices) {
         _setLabelsForMessage(this._content, message);
         _setButtonsForChoices(this, choices);
     }
 });
-Signals.addSignalMethods(ShellMountQuestionDialog.prototype);
 
-var ShellMountPasswordDialog = new Lang.Class({
-    Name: 'ShellMountPasswordDialog',
-    Extends: ModalDialog.ModalDialog,
-
+var ShellMountPasswordDialog = GObject.registerClass({
+    Signals: { 'response': { param_types: [GObject.TYPE_INT,
+                                           GObject.TYPE_STRING,
+                                           GObject.TYPE_BOOLEAN,
+                                           GObject.TYPE_BOOLEAN,
+                                           GObject.TYPE_BOOLEAN,
+                                           GObject.TYPE_UINT] } }
+}, class ShellMountPasswordDialog extends ModalDialog.ModalDialog {
     _init(message, icon, flags) {
         let strings = message.split('\n');
         let title = strings.shift() || null;
         let body = strings.shift() || null;
-        this.parent({ styleClass: 'prompt-dialog' });
+        super._init({ styleClass: 'prompt-dialog' });
+
+        let disksApp = Shell.AppSystem.get_default().lookup_app('org.gnome.DiskUtility.desktop');
 
         let content = new Dialog.MessageDialogContent({ icon, title, body });
         this.contentLayout.add_actor(content);
+        content._body.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
 
-        this._passwordBox = new St.BoxLayout({ vertical: false, style_class: 'prompt-dialog-password-box' });
-        content.messageBox.add(this._passwordBox);
+        let layout = new Clutter.GridLayout({ orientation: Clutter.Orientation.VERTICAL });
+        let grid = new St.Widget({ style_class: 'prompt-dialog-grid',
+                                   layout_manager: layout });
+        layout.hookup_style(grid);
+        let rtl = grid.get_text_direction() === Clutter.TextDirection.RTL;
 
-        this._passwordLabel = new St.Label(({ style_class: 'prompt-dialog-password-label',
-                                              text: _("Password") }));
-        this._passwordBox.add(this._passwordLabel, { y_fill: false, y_align: St.Align.MIDDLE });
+        if (flags & Gio.AskPasswordFlags.TCRYPT) {
+            this._keyfilesLabel = new St.Label(({ style_class: 'prompt-dialog-keyfiles-label',
+                                                  visible: false }));
 
+            this._hiddenVolume = new CheckBox.CheckBox(_("Hidden Volume"));
+            content.messageBox.add(this._hiddenVolume.actor);
+
+            this._systemVolume = new CheckBox.CheckBox(_("Windows System Volume"));
+            content.messageBox.add(this._systemVolume.actor);
+
+            this._keyfilesCheckbox = new CheckBox.CheckBox(_("Uses Keyfiles"));
+            this._keyfilesCheckbox.actor.connect("clicked", this._onKeyfilesCheckboxClicked.bind(this));
+            content.messageBox.add(this._keyfilesCheckbox.actor);
+
+            this._keyfilesLabel.clutter_text.set_markup(
+                /* Translators: %s is the Disks application */
+                _("To unlock a volume that uses keyfiles, use the <i>%s</i> utility instead.").format(disksApp.get_name())
+            );
+            this._keyfilesLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+            this._keyfilesLabel.clutter_text.line_wrap = true;
+            content.messageBox.add(this._keyfilesLabel, { y_fill: false, y_align: St.Align.MIDDLE, expand: true });
+
+            this._pimLabel = new St.Label({ style_class: 'prompt-dialog-password-label',
+                                            text: _("PIM Number"),
+                                            y_align: Clutter.ActorAlign.CENTER });
+            this._pimEntry = new St.Entry({ style_class: 'prompt-dialog-password-entry',
+                                            can_focus: true,
+                                            x_expand: true });
+            this._pimEntry.clutter_text.connect('activate', this._onEntryActivate.bind(this));
+            this._pimEntry.clutter_text.set_password_char('\u25cf'); // ● U+25CF BLACK CIRCLE
+            ShellEntry.addContextMenu(this._pimEntry, { isPassword: true });
+
+            if (rtl) {
+                layout.attach(this._pimEntry, 0, 0, 1, 1);
+                layout.attach(this._pimLabel, 1, 0, 1, 1);
+            } else {
+                layout.attach(this._pimLabel, 0, 0, 1, 1);
+                layout.attach(this._pimEntry, 1, 0, 1, 1);
+            }
+
+            this._pimErrorMessageLabel = new St.Label({ style_class: 'prompt-dialog-password-entry',
+                                                        text: _("The PIM must be a number or empty."),
+                                                        visible: false });
+            layout.attach(this._pimErrorMessageLabel, 0, 2, 2, 1);
+        } else {
+            this._hiddenVolume = null;
+            this._systemVolume = null;
+            this._pimEntry = null;
+            this._pimErrorMessageLabel = null;
+        }
+
+        this._passwordLabel = new St.Label({ style_class: 'prompt-dialog-password-label',
+                                             text: _("Password"),
+                                             y_align: Clutter.ActorAlign.CENTER });
         this._passwordEntry = new St.Entry({ style_class: 'prompt-dialog-password-entry',
-                                             text: "",
-                                             can_focus: true});
-        ShellEntry.addContextMenu(this._passwordEntry, { isPassword: true });
+                                             can_focus: true,
+                                             x_expand: true });
         this._passwordEntry.clutter_text.connect('activate', this._onEntryActivate.bind(this));
         this._passwordEntry.clutter_text.set_password_char('\u25cf'); // ● U+25CF BLACK CIRCLE
-        this._passwordBox.add(this._passwordEntry, {expand: true });
+        ShellEntry.addContextMenu(this._passwordEntry, { isPassword: true });
         this.setInitialKeyFocus(this._passwordEntry);
+        this._workSpinner = new Animation.Spinner(WORK_SPINNER_ICON_SIZE, {
+            animate: true,
+        });
+        this._passwordEntry.secondary_icon = this._workSpinner.actor;
+
+        if (rtl) {
+            layout.attach(this._passwordEntry, 0, 1, 1, 1);
+            layout.attach(this._passwordLabel, 1, 1, 1, 1);
+        } else {
+            layout.attach(this._passwordLabel, 0, 1, 1, 1);
+            layout.attach(this._passwordEntry, 1, 1, 1, 1);
+        }
+
+        content.messageBox.add(grid);
 
         this._errorMessageLabel = new St.Label({ style_class: 'prompt-dialog-error-label',
                                                  text: _("Sorry, that didn’t work. Please try again.") });
@@ -333,8 +382,7 @@ var ShellMountPasswordDialog = new Lang.Class({
         content.messageBox.add(this._errorMessageLabel);
 
         if (flags & Gio.AskPasswordFlags.SAVING_SUPPORTED) {
-            this._rememberChoice = new CheckBox.CheckBox();
-            this._rememberChoice.getLabelActor().text = _("Remember Password");
+            this._rememberChoice = new CheckBox.CheckBox(_("Remember Password"));
             this._rememberChoice.actor.checked =
                 global.settings.get_boolean(REMEMBER_MOUNT_PASSWORD_KEY);
             content.messageBox.add(this._rememberChoice.actor);
@@ -342,54 +390,114 @@ var ShellMountPasswordDialog = new Lang.Class({
             this._rememberChoice = null;
         }
 
-        let buttons = [{ label: _("Cancel"),
-                         action: this._onCancelButton.bind(this),
-                         key:    Clutter.Escape
-                       },
-                       { label: _("Unlock"),
-                         action: this._onUnlockButton.bind(this),
-                         default: true
-                       }];
+        this._defaultButtons = [{
+            label: _("Cancel"),
+            action: this._onCancelButton.bind(this),
+            key: Clutter.Escape,
+        }, {
+            label: _("Unlock"),
+            action: this._onUnlockButton.bind(this),
+            default: true,
+        }];
 
-        this.setButtons(buttons);
-    },
+        this._usesKeyfilesButtons = [{
+            label: _("Cancel"),
+            action: this._onCancelButton.bind(this),
+            key: Clutter.Escape,
+        }, {
+            /* Translators: %s is the Disks application */
+            label: _("Open %s").format(disksApp.get_name()),
+            action: this._onOpenDisksButton.bind(this),
+            default: true,
+        }];
+
+        this.setButtons(this._defaultButtons);
+    }
 
     reaskPassword() {
         this._passwordEntry.set_text('');
         this._errorMessageLabel.show();
-    },
+        this._workSpinner.stop();
+    }
 
     _onCancelButton() {
-        this.emit('response', -1, '', false);
-    },
+        this.emit('response', -1, '', false, false, false, 0);
+    }
 
     _onUnlockButton() {
         this._onEntryActivate();
-    },
+    }
 
     _onEntryActivate() {
+        let pim = 0;
+        if (this._pimEntry !== null)
+            pim = this._pimEntry.get_text();
+        if (isNaN(pim)) {
+            this._pimEntry.set_text('');
+            this._pimErrorMessageLabel.show();
+            return;
+        } else if (this._pimErrorMessageLabel !== null) {
+            this._pimErrorMessageLabel.hide();
+        }
+
         global.settings.set_boolean(REMEMBER_MOUNT_PASSWORD_KEY,
             this._rememberChoice && this._rememberChoice.actor.checked);
+
+        this._workSpinner.play();
         this.emit('response', 1,
             this._passwordEntry.get_text(),
             this._rememberChoice &&
-            this._rememberChoice.actor.checked);
+            this._rememberChoice.actor.checked,
+            this._hiddenVolume &&
+            this._hiddenVolume.actor.checked,
+            this._systemVolume &&
+            this._systemVolume.actor.checked,
+            parseInt(pim));
+    }
+
+    _onKeyfilesCheckboxClicked() {
+        let useKeyfiles = this._keyfilesCheckbox.actor.checked;
+        this._passwordEntry.reactive = !useKeyfiles;
+        this._passwordEntry.can_focus = !useKeyfiles;
+        this._passwordEntry.clutter_text.editable = !useKeyfiles;
+        this._passwordEntry.clutter_text.selectable = !useKeyfiles;
+        this._pimEntry.reactive = !useKeyfiles;
+        this._pimEntry.can_focus = !useKeyfiles;
+        this._pimEntry.clutter_text.editable = !useKeyfiles;
+        this._pimEntry.clutter_text.selectable = !useKeyfiles;
+        this._rememberChoice.actor.reactive = !useKeyfiles;
+        this._rememberChoice.actor.can_focus = !useKeyfiles;
+        this._keyfilesLabel.visible = useKeyfiles;
+        this.setButtons(useKeyfiles ? this._usesKeyfilesButtons : this._defaultButtons);
+    }
+
+    _onOpenDisksButton() {
+        let app = Shell.AppSystem.get_default().lookup_app('org.gnome.DiskUtility.desktop');
+        if (app)
+            app.activate();
+        else
+            Main.notifyError(
+                /* Translators: %s is the Disks application */
+                _("Unable to start %s").format(app.get_name()),
+                /* Translators: %s is the Disks application */
+                _("Couldn’t find the %s application").format(app.get_name())
+            );
+        this._onCancelButton();
     }
 });
 
-var ShellProcessesDialog = new Lang.Class({
-    Name: 'ShellProcessesDialog',
-    Extends: ModalDialog.ModalDialog,
-
+var ShellProcessesDialog = GObject.registerClass({
+    Signals: { 'response': { param_types: [GObject.TYPE_INT] } }
+}, class ShellProcessesDialog extends ModalDialog.ModalDialog {
     _init(icon) {
-        this.parent({ styleClass: 'mount-dialog' });
+        super._init({ styleClass: 'mount-dialog' });
 
         this._content = new Dialog.MessageDialogContent({ icon });
         this.contentLayout.add(this._content, { x_fill: true, y_fill: false });
 
-        let scrollView = new St.ScrollView({ style_class: 'mount-dialog-app-list'});
-        scrollView.set_policy(Gtk.PolicyType.NEVER,
-                              Gtk.PolicyType.AUTOMATIC);
+        let scrollView = new St.ScrollView({ style_class: 'mount-dialog-app-list' });
+        scrollView.set_policy(St.PolicyType.NEVER,
+                              St.PolicyType.AUTOMATIC);
         this.contentLayout.add(scrollView,
                                { x_fill: true,
                                  y_fill: true });
@@ -407,7 +515,7 @@ var ShellProcessesDialog = new Lang.Class({
             if (this._applicationList.get_n_children() == 0)
                 scrollView.hide();
         });
-    },
+    }
 
     _setAppsForPids(pids) {
         // remove all the items
@@ -428,7 +536,7 @@ var ShellProcessesDialog = new Lang.Class({
                 this.emit('response', -1);
             });
         });
-    },
+    }
 
     update(message, processes, choices) {
         this._setAppsForPids(processes);
@@ -436,7 +544,6 @@ var ShellProcessesDialog = new Lang.Class({
         _setButtonsForChoices(this, choices);
     }
 });
-Signals.addSignalMethods(ShellProcessesDialog.prototype);
 
 const GnomeShellMountOpIface = loadInterfaceXML('org.Gtk.MountOperationHandler');
 
@@ -447,10 +554,8 @@ var ShellMountOperationType = {
     SHOW_PROCESSES: 3
 };
 
-var GnomeShellMountOpHandler = new Lang.Class({
-    Name: 'GnomeShellMountOpHandler',
-
-    _init() {
+var GnomeShellMountOpHandler = class {
+    constructor() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(GnomeShellMountOpIface, this);
         this._dbusImpl.export(Gio.DBus.session, '/org/gtk/MountOperationHandler');
         Gio.bus_own_name_on_connection(Gio.DBus.session, 'org.gtk.MountOperationHandler',
@@ -460,13 +565,13 @@ var GnomeShellMountOpHandler = new Lang.Class({
         this._volumeMonitor = Gio.VolumeMonitor.get();
 
         this._ensureEmptyRequest();
-    },
+    }
 
     _ensureEmptyRequest() {
         this._currentId = null;
         this._currentInvocation = null;
         this._currentType = ShellMountOperationType.NONE;
-    },
+    }
 
     _clearCurrentRequest(response, details) {
         if (this._currentInvocation) {
@@ -475,12 +580,12 @@ var GnomeShellMountOpHandler = new Lang.Class({
         }
 
         this._ensureEmptyRequest();
-    },
+    }
 
     _setCurrentRequest(invocation, id, type) {
         let oldId = this._currentId;
         let oldType = this._currentType;
-        let requestId = id + '@' + invocation.get_sender();
+        let requestId = `${id}@${invocation.get_sender()}`;
 
         this._clearCurrentRequest(Gio.MountOperationResult.UNHANDLED, {});
 
@@ -492,20 +597,20 @@ var GnomeShellMountOpHandler = new Lang.Class({
             return true;
 
         return false;
-    },
+    }
 
     _closeDialog() {
         if (this._dialog) {
             this._dialog.close();
             this._dialog = null;
         }
-    },
+    }
 
     _createGIcon(iconName) {
         let realIconName = iconName ? iconName : 'drive-harddisk';
         return new Gio.ThemedIcon({ name: realIconName,
                                     use_default_fallbacks: true });
-    },
+    }
 
     /**
      * AskPassword:
@@ -529,7 +634,7 @@ var GnomeShellMountOpHandler = new Lang.Class({
      * attempt went wrong.
      */
     AskPasswordAsync(params, invocation) {
-        let [id, message, iconName, defaultUser, defaultDomain, flags] = params;
+        let [id, message, iconName, defaultUser_, defaultDomain_, flags] = params;
 
         if (this._setCurrentRequest(invocation, id, ShellMountOperationType.ASK_PASSWORD)) {
             this._dialog.reaskPassword();
@@ -540,7 +645,7 @@ var GnomeShellMountOpHandler = new Lang.Class({
 
         this._dialog = new ShellMountPasswordDialog(message, this._createGIcon(iconName), flags);
         this._dialog.connect('response',
-            (object, choice, password, remember) => {
+            (object, choice, password, remember, hiddenVolume, systemVolume, pim) => {
                 let details = {};
                 let response;
 
@@ -552,12 +657,15 @@ var GnomeShellMountOpHandler = new Lang.Class({
                     let passSave = remember ? Gio.PasswordSave.PERMANENTLY : Gio.PasswordSave.NEVER;
                     details['password_save'] = GLib.Variant.new('u', passSave);
                     details['password'] = GLib.Variant.new('s', password);
+                    details['hidden_volume'] = GLib.Variant.new('b', hiddenVolume);
+                    details['system_volume'] = GLib.Variant.new('b', systemVolume);
+                    details['pim'] = GLib.Variant.new('u', pim);
                 }
 
                 this._clearCurrentRequest(response, details);
             });
         this._dialog.open();
-    },
+    }
 
     /**
      * AskQuestion:
@@ -595,7 +703,7 @@ var GnomeShellMountOpHandler = new Lang.Class({
 
         this._dialog.update(message, choices);
         this._dialog.open();
-    },
+    }
 
     /**
      * ShowProcesses:
@@ -643,7 +751,7 @@ var GnomeShellMountOpHandler = new Lang.Class({
 
         this._dialog.update(message, applicationPids, choices);
         this._dialog.open();
-    },
+    }
 
     /**
      * Close:
@@ -651,8 +759,8 @@ var GnomeShellMountOpHandler = new Lang.Class({
      * Closes a dialog previously opened by AskPassword, AskQuestion or ShowProcesses.
      * If no dialog is open, does nothing.
      */
-    Close(params, invocation) {
+    Close(_params, _invocation) {
         this._clearCurrentRequest(Gio.MountOperationResult.UNHANDLED, {});
         this._closeDialog();
     }
-});
+};

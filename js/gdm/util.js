@@ -1,28 +1,23 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported BANNER_MESSAGE_KEY, BANNER_MESSAGE_TEXT_KEY, LOGO_KEY,
+            DISABLE_USER_LIST_KEY, fadeInActor, fadeOutActor, cloneAndFadeOutActor */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
+const { Clutter, Gio, GLib } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
 
 const Batch = imports.gdm.batch;
 const Fprint = imports.gdm.fingerprint;
 const OVirt = imports.gdm.oVirt;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const ShellEntry = imports.ui.shellEntry;
 const SmartcardManager = imports.misc.smartcardManager;
-const Tweener = imports.ui.tweener;
 
 var PASSWORD_SERVICE_NAME = 'gdm-password';
 var FINGERPRINT_SERVICE_NAME = 'gdm-fingerprint';
 var SMARTCARD_SERVICE_NAME = 'gdm-smartcard';
 var OVIRT_SERVICE_NAME = 'gdm-ovirtcred';
-var FADE_ANIMATION_TIME = 0.16;
-var CLONE_FADE_ANIMATION_TIME = 0.25;
+var FADE_ANIMATION_TIME = 160;
+var CLONE_FADE_ANIMATION_TIME = 250;
 
 var LOGIN_SCREEN_SCHEMA = 'org.gnome.login-screen';
 var PASSWORD_AUTHENTICATION_KEY = 'enable-password-authentication';
@@ -36,7 +31,7 @@ var LOGO_KEY = 'logo';
 var DISABLE_USER_LIST_KEY = 'disable-user-list';
 
 // Give user 48ms to read each character of a PAM message
-var USER_READ_TIME = 48
+var USER_READ_TIME = 48;
 
 var MessageType = {
     NONE: 0,
@@ -51,20 +46,20 @@ function fadeInActor(actor) {
 
     let hold = new Batch.Hold();
     actor.show();
-    let [minHeight, naturalHeight] = actor.get_preferred_height(-1);
+    let [, naturalHeight] = actor.get_preferred_height(-1);
 
     actor.opacity = 0;
     actor.set_height(0);
-    Tweener.addTween(actor,
-                     { opacity: 255,
-                       height: naturalHeight,
-                       time: FADE_ANIMATION_TIME,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           this.set_height(-1);
-                           hold.release();
-                       },
-                     });
+    actor.ease({
+        opacity: 255,
+        height: naturalHeight,
+        duration: FADE_ANIMATION_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+            this.set_height(-1);
+            hold.release();
+        }
+    });
 
     return hold;
 }
@@ -77,17 +72,17 @@ function fadeOutActor(actor) {
     }
 
     let hold = new Batch.Hold();
-    Tweener.addTween(actor,
-                     { opacity: 0,
-                       height: 0,
-                       time: FADE_ANIMATION_TIME,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           this.hide();
-                           this.set_height(-1);
-                           hold.release();
-                       },
-                     });
+    actor.ease({
+        opacity: 0,
+        height: 0,
+        duration: FADE_ANIMATION_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+            this.hide();
+            this.set_height(-1);
+            hold.release();
+        }
+    });
     return hold;
 }
 
@@ -107,22 +102,20 @@ function cloneAndFadeOutActor(actor) {
     clone.set_position(x, y);
 
     let hold = new Batch.Hold();
-    Tweener.addTween(clone,
-                     { opacity: 0,
-                       time: CLONE_FADE_ANIMATION_TIME,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           clone.destroy();
-                           hold.release();
-                       }
-                     });
+    clone.ease({
+        opacity: 0,
+        duration: CLONE_FADE_ANIMATION_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+            clone.destroy();
+            hold.release();
+        }
+    });
     return hold;
 }
 
-var ShellUserVerifier = new Lang.Class({
-    Name: 'ShellUserVerifier',
-
-    _init(client, params) {
+var ShellUserVerifier = class {
+    constructor(client, params) {
         params = Params.parse(params, { reauthenticationOnly: false });
         this._reauthOnly = params.reauthenticationOnly;
 
@@ -165,7 +158,7 @@ var ShellUserVerifier = new Lang.Class({
 
         this._oVirtUserAuthenticatedId = this._oVirtCredentialsManager.connect('user-authenticated',
                                                                                this._oVirtUserAuthenticated.bind(this));
-    },
+    }
 
     begin(userName, hold) {
         this._cancellable = new Gio.Cancellable();
@@ -183,7 +176,7 @@ var ShellUserVerifier = new Lang.Class({
         } else {
             this._client.get_user_verifier(this._cancellable, this._userVerifierGot.bind(this));
         }
-    },
+    }
 
     cancel() {
         if (this._cancellable)
@@ -193,14 +186,14 @@ var ShellUserVerifier = new Lang.Class({
             this._userVerifier.call_cancel_sync(null);
             this.clear();
         }
-    },
+    }
 
     _clearUserVerifier() {
         if (this._userVerifier) {
             this._userVerifier.run_dispose();
             this._userVerifier = null;
         }
-    },
+    }
 
     clear() {
         if (this._cancellable) {
@@ -210,7 +203,7 @@ var ShellUserVerifier = new Lang.Class({
 
         this._clearUserVerifier();
         this._clearMessageQueue();
-    },
+    }
 
     destroy() {
         this.clear();
@@ -224,7 +217,7 @@ var ShellUserVerifier = new Lang.Class({
 
         this._oVirtCredentialsManager.disconnect(this._oVirtUserAuthenticatedId);
         this._oVirtCredentialsManager = null;
-    },
+    }
 
     answerQuery(serviceName, answer) {
         if (!this.hasPendingMessages) {
@@ -235,12 +228,12 @@ var ShellUserVerifier = new Lang.Class({
                 this._userVerifier.call_answer_query(serviceName, answer, this._cancellable, null);
             });
         }
-    },
+    }
 
     _getIntervalForMessage(message) {
         // We probably could be smarter here
         return message.length * USER_READ_TIME;
-    },
+    }
 
     finishMessageQueue() {
         if (!this.hasPendingMessages)
@@ -250,7 +243,7 @@ var ShellUserVerifier = new Lang.Class({
 
         this.hasPendingMessages = false;
         this.emit('no-more-messages');
-    },
+    }
 
     _queueMessageTimeout() {
         if (this._messageQueue.length == 0) {
@@ -273,7 +266,7 @@ var ShellUserVerifier = new Lang.Class({
                                                            return GLib.SOURCE_REMOVE;
                                                        });
         GLib.Source.set_name_by_id(this._messageQueueTimeoutId, '[gnome-shell] this._queueMessageTimeout');
-    },
+    }
 
     _queueMessage(message, messageType) {
         let interval = this._getIntervalForMessage(message);
@@ -281,7 +274,7 @@ var ShellUserVerifier = new Lang.Class({
         this.hasPendingMessages = true;
         this._messageQueue.push({ text: message, type: messageType, interval: interval });
         this._queueMessageTimeout();
-    },
+    }
 
     _clearMessageQueue() {
         this.finishMessageQueue();
@@ -291,7 +284,7 @@ var ShellUserVerifier = new Lang.Class({
             this._messageQueueTimeoutId = 0;
         }
         this.emit('show-message', null, MessageType.NONE);
-    },
+    }
 
     _checkForFingerprintReader() {
         this._haveFingerprintReader = false;
@@ -309,12 +302,12 @@ var ShellUserVerifier = new Lang.Class({
                     this._updateDefaultService();
                 }
             });
-    },
+    }
 
-    _oVirtUserAuthenticated(token) {
+    _oVirtUserAuthenticated(_token) {
         this._preemptingService = OVIRT_SERVICE_NAME;
         this.emit('ovirt-user-authenticated');
-    },
+    }
 
     _checkForSmartcard() {
         let smartcardDetected;
@@ -336,7 +329,7 @@ var ShellUserVerifier = new Lang.Class({
 
             this.emit('smartcard-status-changed');
         }
-    },
+    }
 
     _reportInitError(where, error) {
         logError(error, where);
@@ -344,13 +337,13 @@ var ShellUserVerifier = new Lang.Class({
 
         this._queueMessage(_("Authentication error"), MessageType.ERROR);
         this._verificationFailed(false);
-    },
+    }
 
     _reauthenticationChannelOpened(client, result) {
         try {
             this._clearUserVerifier();
             this._userVerifier = client.open_reauthentication_channel_finish(result);
-        } catch(e) {
+        } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 return;
             if (e.matches(Gio.DBusError, Gio.DBusError.ACCESS_DENIED) &&
@@ -371,13 +364,13 @@ var ShellUserVerifier = new Lang.Class({
         this._connectSignals();
         this._beginVerification();
         this._hold.release();
-    },
+    }
 
     _userVerifierGot(client, result) {
         try {
             this._clearUserVerifier();
             this._userVerifier = client.get_user_verifier_finish(result);
-        } catch(e) {
+        } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 return;
             this._reportInitError('Failed to obtain user verifier', e);
@@ -387,7 +380,7 @@ var ShellUserVerifier = new Lang.Class({
         this._connectSignals();
         this._beginVerification();
         this._hold.release();
-    },
+    }
 
     _connectSignals() {
         this._userVerifier.connect('info', this._onInfo.bind(this));
@@ -397,22 +390,22 @@ var ShellUserVerifier = new Lang.Class({
         this._userVerifier.connect('conversation-stopped', this._onConversationStopped.bind(this));
         this._userVerifier.connect('reset', this._onReset.bind(this));
         this._userVerifier.connect('verification-complete', this._onVerificationComplete.bind(this));
-    },
+    }
 
     _getForegroundService() {
         if (this._preemptingService)
             return this._preemptingService;
 
         return this._defaultService;
-    },
+    }
 
     serviceIsForeground(serviceName) {
         return serviceName == this._getForegroundService();
-    },
+    }
 
     serviceIsDefault(serviceName) {
         return serviceName == this._defaultService;
-    },
+    }
 
     _updateDefaultService() {
         if (this._settings.get_boolean(PASSWORD_AUTHENTICATION_KEY))
@@ -426,50 +419,45 @@ var ShellUserVerifier = new Lang.Class({
             log("no authentication service is enabled, using password authentication");
             this._defaultService = PASSWORD_SERVICE_NAME;
         }
-    },
+    }
 
     _startService(serviceName) {
         this._hold.acquire();
         if (this._userName) {
-           this._userVerifier.call_begin_verification_for_user(serviceName,
-                                                               this._userName,
-                                                               this._cancellable,
-                                                               (obj, result) => {
-               try {
-                   obj.call_begin_verification_for_user_finish(result);
-               } catch(e) {
-                   if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                       return;
-                   this._reportInitError('Failed to start verification for user', e);
-                   return;
-               }
+            this._userVerifier.call_begin_verification_for_user(serviceName, this._userName, this._cancellable, (obj, result) => {
+                try {
+                    obj.call_begin_verification_for_user_finish(result);
+                } catch (e) {
+                    if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        return;
+                    this._reportInitError('Failed to start verification for user', e);
+                    return;
+                }
 
-               this._hold.release();
-           });
+                this._hold.release();
+            });
         } else {
-           this._userVerifier.call_begin_verification(serviceName,
-                                                      this._cancellable,
-                                                      (obj, result) => {
-               try {
-                   obj.call_begin_verification_finish(result);
-               } catch(e) {
-                   if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                       return;
-                   this._reportInitError('Failed to start verification', e);
-                   return;
-               }
+            this._userVerifier.call_begin_verification(serviceName, this._cancellable, (obj, result) => {
+                try {
+                    obj.call_begin_verification_finish(result);
+                } catch (e) {
+                    if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        return;
+                    this._reportInitError('Failed to start verification', e);
+                    return;
+                }
 
-               this._hold.release();
-           });
+                this._hold.release();
+            });
         }
-    },
+    }
 
     _beginVerification() {
         this._startService(this._getForegroundService());
 
         if (this._userName && this._haveFingerprintReader && !this.serviceIsForeground(FINGERPRINT_SERVICE_NAME))
             this._startService(FINGERPRINT_SERVICE_NAME);
-    },
+    }
 
     _onInfo(client, serviceName, info) {
         if (this.serviceIsForeground(serviceName)) {
@@ -484,21 +472,21 @@ var ShellUserVerifier = new Lang.Class({
             // to indicate the user can swipe their finger instead
             this._queueMessage(_("(or swipe finger)"), MessageType.HINT);
         }
-    },
+    }
 
     _onProblem(client, serviceName, problem) {
         if (!this.serviceIsForeground(serviceName))
             return;
 
         this._queueMessage(problem, MessageType.ERROR);
-    },
+    }
 
     _onInfoQuery(client, serviceName, question) {
         if (!this.serviceIsForeground(serviceName))
             return;
 
         this.emit('ask-question', serviceName, question, '');
-    },
+    }
 
     _onSecretInfoQuery(client, serviceName, secretQuestion) {
         if (!this.serviceIsForeground(serviceName))
@@ -511,7 +499,7 @@ var ShellUserVerifier = new Lang.Class({
         }
 
         this.emit('ask-question', serviceName, secretQuestion, '\u25cf');
-    },
+    }
 
     _onReset() {
         // Clear previous attempts to authenticate
@@ -519,20 +507,20 @@ var ShellUserVerifier = new Lang.Class({
         this._updateDefaultService();
 
         this.emit('reset');
-    },
+    }
 
     _onVerificationComplete() {
         this.emit('verification-complete');
-    },
+    }
 
     _cancelAndReset() {
         this.cancel();
         this._onReset();
-    },
+    }
 
     _retry() {
         this.begin(this._userName, new Batch.Hold());
-    },
+    }
 
     _verificationFailed(retry) {
         // For Not Listed / enterprise logins, immediately reset
@@ -567,7 +555,7 @@ var ShellUserVerifier = new Lang.Class({
         }
 
         this.emit('verification-failed', canRetry);
-    },
+    }
 
     _onConversationStopped(client, serviceName) {
         // If the login failed with the preauthenticated oVirt credentials
@@ -586,6 +574,6 @@ var ShellUserVerifier = new Lang.Class({
         if (this.serviceIsForeground(serviceName)) {
             this._verificationFailed(true);
         }
-    },
-});
+    }
+};
 Signals.addSignalMethods(ShellUserVerifier.prototype);

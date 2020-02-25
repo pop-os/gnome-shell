@@ -1,28 +1,21 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Workspace */
 
-const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Pango = imports.gi.Pango;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
-const Atk = imports.gi.Atk;
-
+const { Atk, Clutter, GLib, GObject, Meta, Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
 const Overview = imports.ui.overview;
-const Tweener = imports.ui.tweener;
-const WindowManager = imports.ui.windowManager;
 
 var WINDOW_DND_SIZE = 256;
 
 var WINDOW_CLONE_MAXIMUM_SCALE = 1.0;
 
-var CLOSE_BUTTON_FADE_TIME = 0.1;
+var WINDOW_OVERLAY_IDLE_HIDE_TIMEOUT = 750;
+var WINDOW_OVERLAY_FADE_TIME = 100;
+
+var WINDOW_REPOSITIONING_DELAY = 750;
 
 var DRAGGING_WINDOW_OPACITY = 100;
 
@@ -40,24 +33,22 @@ function _interpolate(start, end, step) {
     return start + (end - start) * step;
 }
 
-var WindowCloneLayout = new Lang.Class({
-    Name: 'WindowCloneLayout',
-    Extends: Clutter.LayoutManager,
-
+var WindowCloneLayout = GObject.registerClass(
+class WindowCloneLayout extends Clutter.LayoutManager {
     _init(boundingBox) {
-        this.parent();
+        super._init();
 
         this._boundingBox = boundingBox;
-    },
+    }
 
     get boundingBox() {
         return this._boundingBox;
-    },
+    }
 
     set boundingBox(b) {
         this._boundingBox = b;
         this.layout_changed();
-    },
+    }
 
     _makeBoxForWindow(window) {
         // We need to adjust the position of the actor because of the
@@ -65,34 +56,33 @@ var WindowCloneLayout = new Lang.Class({
         // has an extra set of "padding" around it that we need to trim
         // down.
 
-        // The outer rect (from which we compute the bounding box)
-        // paradoxically is the smaller rectangle, containing the positions
-        // of the visible frame. The input rect contains everything,
-        // including the invisible border padding.
-        let inputRect = window.get_buffer_rect();
+        // The bounding box is based on the (visible) frame rect, while
+        // the buffer rect contains everything, including the invisible
+        // border padding.
+        let bufferRect = window.get_buffer_rect();
 
         let box = new Clutter.ActorBox();
 
-        box.set_origin(inputRect.x - this._boundingBox.x,
-                       inputRect.y - this._boundingBox.y);
-        box.set_size(inputRect.width, inputRect.height);
+        box.set_origin(bufferRect.x - this._boundingBox.x,
+                       bufferRect.y - this._boundingBox.y);
+        box.set_size(bufferRect.width, bufferRect.height);
 
         return box;
-    },
+    }
 
-    vfunc_get_preferred_height(container, forWidth) {
+    vfunc_get_preferred_height(_container, _forWidth) {
         return [this._boundingBox.height, this._boundingBox.height];
-    },
+    }
 
-    vfunc_get_preferred_width(container, forHeight) {
+    vfunc_get_preferred_width(_container, _forHeight) {
         return [this._boundingBox.width, this._boundingBox.width];
-    },
+    }
 
     vfunc_allocate(container, box, flags) {
         container.get_children().forEach(child => {
             let realWindow;
-            if (child == container._delegate._windowClone)
-                realWindow = container._delegate.realWindow;
+            if (child == container._windowClone)
+                realWindow = container.realWindow;
             else
                 realWindow = child.source;
 
@@ -102,9 +92,17 @@ var WindowCloneLayout = new Lang.Class({
     }
 });
 
-var WindowClone = new Lang.Class({
-    Name: 'WindowClone',
-
+var WindowClone = GObject.registerClass({
+    Signals: {
+        'drag-begin': {},
+        'drag-cancelled': {},
+        'drag-end': {},
+        'hide-chrome': {},
+        'selected': { param_types: [GObject.TYPE_UINT] },
+        'show-chrome': {},
+        'size-changed': {}
+    },
+}, class WorkspaceWindowClone extends St.Widget {
     _init(realWindow, workspace) {
         this.realWindow = realWindow;
         this.metaWindow = realWindow.meta_window;
@@ -112,7 +110,7 @@ var WindowClone = new Lang.Class({
         this._workspace = workspace;
 
         this._windowClone = new Clutter.Clone({ source: realWindow });
-        // We expect this.actor to be used for all interaction rather than
+        // We expect this to be used for all interaction rather than
         // this._windowClone; as the former is reactive and the latter
         // is not, this just works for most cases. However, for DND all
         // actors are picked, so DND operations would operate on the clone.
@@ -123,14 +121,18 @@ var WindowClone = new Lang.Class({
         // the invisible border; this is inconvenient; rather than trying
         // to compensate all over the place we insert a ClutterActor into
         // the hierarchy that is sized to only the visible portion.
-        this.actor = new St.Widget({ reactive: true,
-                                     can_focus: true,
-                                     accessible_role: Atk.Role.PUSH_BUTTON,
-                                     layout_manager: new WindowCloneLayout() });
+        super._init({
+            reactive: true,
+            can_focus: true,
+            accessible_role: Atk.Role.PUSH_BUTTON,
+            layout_manager: new WindowCloneLayout()
+        });
 
-        this.actor.add_child(this._windowClone);
+        this.set_offscreen_redirect(Clutter.OffscreenRedirect.AUTOMATIC_FOR_OPACITY);
 
-        this.actor._delegate = this;
+        this.add_child(this._windowClone);
+
+        this._delegate = this;
 
         this.slotId = 0;
         this._slot = [0, 0, 0, 0];
@@ -152,23 +154,25 @@ var WindowClone = new Lang.Class({
 
         this._updateAttachedDialogs();
         this._computeBoundingBox();
-        this.actor.x = this._boundingBox.x;
-        this.actor.y = this._boundingBox.y;
+        this.x = this._boundingBox.x;
+        this.y = this._boundingBox.y;
+
+        this._computeWindowCenter();
 
         let clickAction = new Clutter.ClickAction();
         clickAction.connect('clicked', this._onClicked.bind(this));
         clickAction.connect('long-press', this._onLongPress.bind(this));
-        this.actor.add_action(clickAction);
-        this.actor.connect('destroy', this._onDestroy.bind(this));
-        this.actor.connect('key-press-event', this._onKeyPress.bind(this));
+        this.add_action(clickAction);
+        this.connect('destroy', this._onDestroy.bind(this));
+        this.connect('key-press-event', this._onKeyPress.bind(this));
 
-        this.actor.connect('enter-event', () => { this.emit('show-chrome'); });
-        this.actor.connect('key-focus-in', () => { this.emit('show-chrome'); });
+        this.connect('enter-event', () => this.emit('show-chrome'));
+        this.connect('key-focus-in', () => this.emit('show-chrome'));
 
-        this.actor.connect('leave-event', () => { this.emit('hide-chrome'); });
-        this.actor.connect('key-focus-out', () => { this.emit('hide-chrome'); });
+        this.connect('leave-event', () => this.emit('hide-chrome'));
+        this.connect('key-focus-out', () => this.emit('hide-chrome'));
 
-        this._draggable = DND.makeDraggable(this.actor,
+        this._draggable = DND.makeDraggable(this,
                                             { restoreOnSuccess: true,
                                               manualMode: true,
                                               dragActorMaxSize: WINDOW_DND_SIZE,
@@ -180,22 +184,26 @@ var WindowClone = new Lang.Class({
 
         this._selected = false;
         this._closeRequested = false;
-    },
+    }
+
+    vfunc_has_overlaps() {
+        return this.hasAttachedDialogs();
+    }
 
     set slot(slot) {
         this._slot = slot;
-    },
+    }
 
     get slot() {
         if (this.inDrag)
             return this._dragSlot;
         else
             return this._slot;
-    },
+    }
 
     deleteAll() {
         // Delete all windows, starting from the bottom-most (most-modal) one
-        let windows = this.actor.get_children();
+        let windows = this.get_children();
         for (let i = windows.length - 1; i >= 1; i--) {
             let realWindow = windows[i].source;
             let metaWindow = realWindow.meta_window;
@@ -205,7 +213,7 @@ var WindowClone = new Lang.Class({
 
         this.metaWindow.delete(global.get_current_time());
         this._closeRequested = true;
-    },
+    }
 
     addDialog(win) {
         let parent = win.get_transient_for();
@@ -222,11 +230,11 @@ var WindowClone = new Lang.Class({
         // assume it's a close confirmation and leave the overview
         if (this._closeRequested)
             this._activate();
-    },
+    }
 
     hasAttachedDialogs() {
-        return this.actor.get_n_children() > 1;
-    },
+        return this.get_n_children() > 1;
+    }
 
     _doAddAttachedDialog(metaWin, realWin) {
         let clone = new Clutter.Clone({ source: realWin });
@@ -239,8 +247,8 @@ var WindowClone = new Lang.Class({
 
             this._onMetaWindowSizeChanged();
         });
-        this.actor.add_child(clone);
-    },
+        this.add_child(clone);
+    }
 
     _updateAttachedDialogs() {
         let iter = win => {
@@ -256,28 +264,28 @@ var WindowClone = new Lang.Class({
             return true;
         };
         this.metaWindow.foreach_transient(iter);
-    },
+    }
 
     get boundingBox() {
         return this._boundingBox;
-    },
+    }
 
     get width() {
         return this._boundingBox.width;
-    },
+    }
 
     get height() {
         return this._boundingBox.height;
-    },
+    }
 
     getOriginalPosition() {
         return [this._boundingBox.x, this._boundingBox.y];
-    },
+    }
 
     _computeBoundingBox() {
         let rect = this.metaWindow.get_frame_rect();
 
-        this.actor.get_children().forEach(child => {
+        this.get_children().forEach(child => {
             let realWindow;
             if (child == this._windowClone)
                 realWindow = this.realWindow;
@@ -290,11 +298,22 @@ var WindowClone = new Lang.Class({
 
         // Convert from a MetaRectangle to a native JS object
         this._boundingBox = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-        this.actor.layout_manager.boundingBox = rect;
-    },
+        this.layout_manager.boundingBox = rect;
+    }
 
-    // Find the actor just below us, respecting reparenting done
-    // by DND code
+    get windowCenter() {
+        return this._windowCenter;
+    }
+
+    _computeWindowCenter() {
+        let box = this.realWindow.get_allocation_box();
+        this._windowCenter = new Clutter.Point({
+            x: box.get_x() + box.get_width() / 2,
+            y: box.get_y() + box.get_height() / 2,
+        });
+    }
+
+    // Find the actor just below us, respecting reparenting done by DND code
     getActualStackAbove() {
         if (this._stackAbove == null)
             return null;
@@ -307,7 +326,7 @@ var WindowClone = new Lang.Class({
         } else {
             return this._stackAbove;
         }
-    },
+    }
 
     setStackAbove(actor) {
         this._stackAbove = actor;
@@ -317,17 +336,13 @@ var WindowClone = new Lang.Class({
 
         let actualAbove = this.getActualStackAbove();
         if (actualAbove == null)
-            this.actor.lower_bottom();
+            this.lower_bottom();
         else
-            this.actor.raise(actualAbove);
-    },
-
-    destroy() {
-        this.actor.destroy();
-    },
+            this.raise(actualAbove);
+    }
 
     _disconnectSignals() {
-        this.actor.get_children().forEach(child => {
+        this.get_children().forEach(child => {
             let realWindow;
             if (child == this._windowClone)
                 realWindow = this.realWindow;
@@ -338,31 +353,34 @@ var WindowClone = new Lang.Class({
             realWindow.meta_window.disconnect(child._posChangedId);
             realWindow.disconnect(child._destroyId);
         });
-    },
+    }
 
     _onMetaWindowSizeChanged() {
         this._computeBoundingBox();
         this.emit('size-changed');
-    },
+    }
 
     _onDestroy() {
         this._disconnectSignals();
 
         this.metaWindow._delegate = null;
-        this.actor._delegate = null;
+        this._delegate = null;
+
+        if (this._longPressLater) {
+            Meta.later_remove(this._longPressLater);
+            delete this._longPressLater;
+        }
 
         if (this.inDrag) {
             this.emit('drag-end');
             this.inDrag = false;
         }
-
-        this.disconnectAll();
-    },
+    }
 
     _activate() {
         this._selected = true;
         this.emit('selected', global.get_current_time());
-    },
+    }
 
     _onKeyPress(actor, event) {
         let symbol = event.get_key_symbol();
@@ -373,11 +391,11 @@ var WindowClone = new Lang.Class({
         }
 
         return false;
-    },
+    }
 
-    _onClicked(action, actor) {
+    _onClicked() {
         this._activate();
-    },
+    }
 
     _onLongPress(action, actor, state) {
         // Take advantage of the Clutter policy to consider
@@ -387,9 +405,13 @@ var WindowClone = new Lang.Class({
             let event = Clutter.get_current_event();
             this._dragTouchSequence = event.get_event_sequence();
 
+            if (this._longPressLater)
+                return true;
+
             // A click cancels a long-press before any click handler is
             // run - make sure to not start a drag in that case
-            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._longPressLater = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                delete this._longPressLater;
                 if (this._selected)
                     return;
                 let [x, y] = action.get_coords();
@@ -400,156 +422,151 @@ var WindowClone = new Lang.Class({
             this.emit('show-chrome');
         }
         return true;
-    },
+    }
 
-    _onDragBegin(draggable, time) {
+    _onDragBegin(_draggable, _time) {
         this._dragSlot = this._slot;
-        [this.dragOrigX, this.dragOrigY] = this.actor.get_position();
-        this.dragOrigScale = this.actor.scale_x;
         this.inDrag = true;
         this.emit('drag-begin');
-    },
+    }
 
     handleDragOver(source, actor, x, y, time) {
         return this._workspace.handleDragOver(source, actor, x, y, time);
-    },
+    }
 
     acceptDrop(source, actor, x, y, time) {
-        this._workspace.acceptDrop(source, actor, x, y, time);
-    },
+        return this._workspace.acceptDrop(source, actor, x, y, time);
+    }
 
-    _onDragCancelled(draggable, time) {
+    _onDragCancelled(_draggable, _time) {
         this.emit('drag-cancelled');
-    },
+    }
 
-    _onDragEnd(draggable, time, snapback) {
+    _onDragEnd(_draggable, _time, _snapback) {
         this.inDrag = false;
 
         // We may not have a parent if DnD completed successfully, in
         // which case our clone will shortly be destroyed and replaced
         // with a new one on the target workspace.
-        if (this.actor.get_parent() != null) {
+        if (this.get_parent() != null) {
             if (this._stackAbove == null)
-                this.actor.lower_bottom();
+                this.lower_bottom();
             else
-                this.actor.raise(this._stackAbove);
+                this.raise(this._stackAbove);
         }
 
 
         this.emit('drag-end');
     }
 });
-Signals.addSignalMethods(WindowClone.prototype);
 
 
 /**
  * @windowClone: Corresponding window clone
  * @parentActor: The actor which will be the parent of all overlay items
- *               such as app icon and window caption
+ *               such as the close button and window caption
  */
-var WindowOverlay = new Lang.Class({
-    Name: 'WindowOverlay',
-
-    _init(windowClone, parentActor) {
+var WindowOverlay = class {
+    constructor(windowClone, parentActor) {
         let metaWindow = windowClone.metaWindow;
 
         this._windowClone = windowClone;
         this._parentActor = parentActor;
         this._hidden = false;
 
+        this._idleHideOverlayId = 0;
+
         this.borderSize = 0;
         this.border = new St.Bin({ style_class: 'window-clone-border' });
 
-        let title = new St.Label({ style_class: 'window-caption',
-                                   text: this._getCaption() });
-        title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-        windowClone.actor.label_actor = title;
+        this.title = new St.Label({ style_class: 'window-caption',
+                                    text: this._getCaption(),
+                                    reactive: true });
+        this.title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        windowClone.label_actor = this.title;
 
         this._maxTitleWidth = -1;
 
-        this._updateCaptionId = metaWindow.connect('notify::title', w => {
-            this.title.text = w.title;
+        this._updateCaptionId = metaWindow.connect('notify::title', () => {
             this.title.text = this._getCaption();
             this.relayout(false);
         });
 
-        let button = new St.Button({ style_class: 'window-close' });
-        button._overlap = 0;
+        this.closeButton = new St.Button({ style_class: 'window-close' });
+        this.closeButton.add_actor(new St.Icon({ icon_name: 'window-close-symbolic' }));
+        this.closeButton._overlap = 0;
 
-        this._idleToggleCloseId = 0;
-        button.connect('clicked', () => this._windowClone.deleteAll());
+        this.closeButton.connect('clicked', () => this._windowClone.deleteAll());
 
-        windowClone.actor.connect('destroy', this._onDestroy.bind(this));
+        windowClone.connect('destroy', this._onDestroy.bind(this));
         windowClone.connect('show-chrome', this._onShowChrome.bind(this));
         windowClone.connect('hide-chrome', this._onHideChrome.bind(this));
 
-        button.hide();
-        title.hide();
-
-        this.title = title;
-        this.closeButton = button;
+        this.title.hide();
+        this.closeButton.hide();
 
         // Don't block drop targets
-        Shell.util_set_hidden_from_pick(this.title, true);
         Shell.util_set_hidden_from_pick(this.border, true);
 
         parentActor.add_actor(this.border);
         parentActor.add_actor(this.title);
         parentActor.add_actor(this.closeButton);
-        title.connect('style-changed',
-                      this._onStyleChanged.bind(this));
-        button.connect('style-changed',
-                       this._onStyleChanged.bind(this));
-        this.border.connect('style-changed', this._onStyleChanged.bind(this));
-        // force a style change if we are already on a stage - otherwise
+        this.title.connect('style-changed',
+                           this._onStyleChanged.bind(this));
+        this.closeButton.connect('style-changed',
+                                 this._onStyleChanged.bind(this));
+        this.border.connect('style-changed',
+                            this._onStyleChanged.bind(this));
+
+        // Force a style change if we are already on a stage - otherwise
         // the signal will be emitted normally when we are added
         if (parentActor.get_stage())
             this._onStyleChanged();
-    },
+    }
 
     hide() {
         this._hidden = true;
 
-        this.hideCloseButton();
-    },
+        this.hideOverlay();
+    }
 
     show() {
         this._hidden = false;
 
-        if (this._windowClone.actor['has-pointer'])
+        if (this._windowClone['has-pointer'])
             this._animateVisible();
-    },
+    }
 
     chromeHeights() {
         return [Math.max(this.borderSize, this.closeButton.height - this.closeButton._overlap),
                 (this.title.height - this.borderSize) / 2];
-    },
+    }
 
     chromeWidths() {
         return [this.borderSize,
                 Math.max(this.borderSize, this.closeButton.width - this.closeButton._overlap)];
-    },
+    }
 
     setMaxChromeWidth(max) {
         if (this._maxTitleWidth == max)
             return;
 
         this._maxTitleWidth = max;
-    },
+    }
 
     relayout(animate) {
         let button = this.closeButton;
         let title = this.title;
         let border = this.border;
 
-        Tweener.removeTweens(button);
-        Tweener.removeTweens(border);
-        Tweener.removeTweens(title);
+        button.remove_all_transitions();
+        border.remove_all_transitions();
+        title.remove_all_transitions();
 
         let [cloneX, cloneY, cloneWidth, cloneHeight] = this._windowClone.slot;
 
         let layout = Meta.prefs_get_button_layout();
-        let side = layout.left_buttons.indexOf(Meta.ButtonFunction.CLOSE) > -1 ? St.Side.LEFT : St.Side.RIGHT;
+        let side = layout.left_buttons.includes(Meta.ButtonFunction.CLOSE) ? St.Side.LEFT : St.Side.RIGHT;
 
         let buttonX;
         let buttonY = cloneY - (button.height - button._overlap);
@@ -598,7 +615,7 @@ var WindowOverlay = new Lang.Class({
             this.border.set_position(borderX, borderY);
             this.border.set_size(borderWidth, borderHeight);
         }
-    },
+    }
 
     _getCaption() {
         let metaWindow = this._windowClone.metaWindow;
@@ -608,36 +625,36 @@ var WindowOverlay = new Lang.Class({
         let tracker = Shell.WindowTracker.get_default();
         let app = tracker.get_window_app(metaWindow);
         return app.get_name();
-    },
+    }
 
     _animateOverlayActor(actor, x, y, width, height) {
-        let params = { x: x,
-                       y: y,
-                       width: width,
-                       time: Overview.ANIMATION_TIME,
-                       transition: 'easeOutQuad' };
+        let params = {
+            x, y, width,
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        };
 
         if (height !== undefined)
             params.height = height;
 
-        Tweener.addTween(actor, params);
-    },
+        actor.ease(params);
+    }
 
     _windowCanClose() {
         return this._windowClone.metaWindow.can_close() &&
                !this._windowClone.hasAttachedDialogs();
-    },
+    }
 
     _onDestroy() {
-        if (this._idleToggleCloseId > 0) {
-            Mainloop.source_remove(this._idleToggleCloseId);
-            this._idleToggleCloseId = 0;
+        if (this._idleHideOverlayId > 0) {
+            GLib.source_remove(this._idleHideOverlayId);
+            this._idleHideOverlayId = 0;
         }
         this._windowClone.metaWindow.disconnect(this._updateCaptionId);
         this.title.destroy();
         this.closeButton.destroy();
         this.border.destroy();
-    },
+    }
 
     _animateVisible() {
         this._parentActor.raise_top();
@@ -649,22 +666,24 @@ var WindowOverlay = new Lang.Class({
         toAnimate.forEach(a => {
             a.show();
             a.opacity = 0;
-            Tweener.addTween(a,
-                             { opacity: 255,
-                               time: CLOSE_BUTTON_FADE_TIME,
-                               transition: 'easeOutQuad' });
+            a.ease({
+                opacity: 255,
+                duration: WINDOW_OVERLAY_FADE_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         });
-    },
+    }
 
     _animateInvisible() {
         [this.closeButton, this.border, this.title].forEach(a => {
             a.opacity = 255;
-            Tweener.addTween(a,
-                             { opacity: 0,
-                               time: CLOSE_BUTTON_FADE_TIME,
-                               transition: 'easeInQuad' });
+            a.ease({
+                opacity: 0,
+                duration: WINDOW_OVERLAY_FADE_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD
+            });
         });
-    },
+    }
 
     _onShowChrome() {
         // We might get enter events on the clone while the overlay is
@@ -675,35 +694,38 @@ var WindowOverlay = new Lang.Class({
             return;
 
         this._animateVisible();
-        this.emit('show-close-button');
-    },
+        this.emit('chrome-visible');
+    }
 
     _onHideChrome() {
-        if (this._idleToggleCloseId == 0) {
-            this._idleToggleCloseId = Mainloop.timeout_add(750, this._idleToggleCloseButton.bind(this));
-            GLib.Source.set_name_by_id(this._idleToggleCloseId, '[gnome-shell] this._idleToggleCloseButton');
-        }
-    },
+        if (this._idleHideOverlayId > 0)
+            GLib.source_remove(this._idleHideOverlayId);
 
-    _idleToggleCloseButton() {
-        this._idleToggleCloseId = 0;
+        this._idleHideOverlayId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, WINDOW_OVERLAY_IDLE_HIDE_TIMEOUT, this._idleHideOverlay.bind(this));
+        GLib.Source.set_name_by_id(this._idleHideOverlayId, '[gnome-shell] this._idleHideOverlay');
+    }
 
-        if (!this._windowClone.actor['has-pointer'] &&
-            !this.closeButton['has-pointer'])
+    _idleHideOverlay() {
+        if (this.closeButton['has-pointer'] ||
+            this.title['has-pointer'])
+            return GLib.SOURCE_CONTINUE;
+
+        if (!this._windowClone['has-pointer'])
             this._animateInvisible();
 
+        this._idleHideOverlayId = 0;
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
-    hideCloseButton() {
-        if (this._idleToggleCloseId > 0) {
-            Mainloop.source_remove(this._idleToggleCloseId);
-            this._idleToggleCloseId = 0;
+    hideOverlay() {
+        if (this._idleHideOverlayId > 0) {
+            GLib.source_remove(this._idleHideOverlayId);
+            this._idleHideOverlayId = 0;
         }
         this.closeButton.hide();
         this.border.hide();
         this.title.hide();
-    },
+    }
 
     _onStyleChanged() {
         let closeNode = this.closeButton.get_theme_node();
@@ -714,7 +736,7 @@ var WindowOverlay = new Lang.Class({
 
         this._parentActor.queue_relayout();
     }
-});
+};
 Signals.addSignalMethods(WindowOverlay.prototype);
 
 var WindowPositionFlags = {
@@ -735,10 +757,6 @@ var WindowPositionFlags = {
 // than the previous layout. A layout consists of which windows are in
 // which rows, row sizes and other general state tracking that would make
 // calculating window positions from this information fairly easy.
-//
-// We don't compute some global order of windows right now for optimal
-// travel when animating into the overview; windows are assumed to be
-// in some stable order.
 //
 // After a layout is computed that's considered the best layout, we
 // compute the layout scale to fit it in the area, and then compute
@@ -797,15 +815,15 @@ var WindowPositionFlags = {
 // each window's "cell" area to be the same, but we shrink the thumbnail
 // and center it horizontally, and align it to the bottom vertically.
 
-var LayoutStrategy = new Lang.Class({
-    Name: 'LayoutStrategy',
-    Abstract: true,
+var LayoutStrategy = class {
+    constructor(monitor, rowSpacing, columnSpacing) {
+        if (this.constructor === LayoutStrategy)
+            throw new TypeError(`Cannot instantiate abstract type ${this.constructor.name}`);
 
-    _init(monitor, rowSpacing, columnSpacing) {
         this._monitor = monitor;
         this._rowSpacing = rowSpacing;
         this._columnSpacing = columnSpacing;
-    },
+    }
 
     _newRow() {
         // Row properties:
@@ -823,10 +841,10 @@ var LayoutStrategy = new Lang.Class({
                  width: 0, height: 0,
                  fullWidth: 0, fullHeight: 0,
                  windows: [] };
-    },
+    }
 
     // Computes and returns an individual scaling factor for @window,
-    // to be applied in addition to the overal layout scale.
+    // to be applied in addition to the overall layout scale.
     _computeWindowScale(window) {
         // Since we align windows next to each other, the height of the
         // thumbnails is much more important to preserve than the width of
@@ -841,15 +859,15 @@ var LayoutStrategy = new Lang.Class({
 
         // Map from [0, 1] to [1.5, 1]
         return _interpolate(1.5, 1, ratio);
-    },
+    }
 
     // Compute the size of each row, by assigning to the properties
     // row.width, row.height, row.fullWidth, row.fullHeight, and
     // (optionally) for each row in @layout.rows. This method is
     // intended to be called by subclasses.
-    _computeRowSizes(layout) {
-        throw new Error('_computeRowSizes not implemented');
-    },
+    _computeRowSizes(_layout) {
+        throw new GObject.NotImplementedError(`_computeRowSizes in ${this.constructor.name}`);
+    }
 
     // Compute strategy-specific window slots for each window in
     // @windows, given the @layout. The strategy may also use @layout
@@ -860,9 +878,9 @@ var LayoutStrategy = new Lang.Class({
     //  * gridWidth - The total width used by the grid, unscaled, unspaced.
     //  * gridHeight - The totial height used by the grid, unscaled, unspaced.
     //  * rows - A list of rows, which should be instantiated by _newRow.
-    computeLayout(windows, layout) {
-        throw new Error('computeLayout not implemented');
-    },
+    computeLayout(_windows, _layout) {
+        throw new GObject.NotImplementedError(`computeLayout in ${this.constructor.name}`);
+    }
 
     // Given @layout, compute the overall scale and space of the layout.
     // The scale is the individual, non-fancy scale of each window, and
@@ -895,12 +913,12 @@ var LayoutStrategy = new Lang.Class({
 
         layout.scale = scale;
         layout.space = space;
-    },
+    }
 
     computeWindowSlots(layout, area) {
         this._computeRowSizes(layout);
 
-        let { rows: rows, scale: scale } = layout;
+        let { rows, scale } = layout;
 
         let slots = [];
 
@@ -916,7 +934,7 @@ var LayoutStrategy = new Lang.Class({
 
         // keep track how much smaller the grid becomes due to scaling
         // so it can be centered again
-        let compensation = 0
+        let compensation = 0;
         let y = 0;
 
         for (let i = 0; i < rows.length; i++) {
@@ -938,12 +956,12 @@ var LayoutStrategy = new Lang.Class({
                 // height would undo what vertical scaling is trying to achieve.
             }
 
-            row.x = area.x + (Math.max(area.width - (widthWithoutSpacing * row.additionalScale + horizontalSpacing), 0) / 2)
+            row.x = area.x + (Math.max(area.width - (widthWithoutSpacing * row.additionalScale + horizontalSpacing), 0) / 2);
             row.y = area.y + (Math.max(area.height - (heightWithoutSpacing + verticalSpacing), 0) / 2) + y;
             y += row.height * row.additionalScale + this._rowSpacing;
         }
 
-        compensation = compensation / 2;
+        compensation /= 2;
 
         for (let i = 0; i < rows.length; i++) {
             let row = rows[i];
@@ -971,20 +989,17 @@ var LayoutStrategy = new Lang.Class({
         }
         return slots;
     }
-});
+};
 
-var UnalignedLayoutStrategy = new Lang.Class({
-    Name: 'UnalignedLayoutStrategy',
-    Extends: LayoutStrategy,
-
+var UnalignedLayoutStrategy = class extends LayoutStrategy {
     _computeRowSizes(layout) {
-        let { rows: rows, scale: scale } = layout;
+        let { rows, scale } = layout;
         for (let i = 0; i < rows.length; i++) {
             let row = rows[i];
             row.width = row.fullWidth * scale + (row.windows.length - 1) * this._columnSpacing;
             row.height = row.fullHeight * scale;
         }
-    },
+    }
 
     _keepSameRow(row, window, width, idealRowWidth) {
         if (row.fullWidth + width <= idealRowWidth)
@@ -997,12 +1012,13 @@ var UnalignedLayoutStrategy = new Lang.Class({
             return true;
 
         return false;
-    },
+    }
 
     _sortRow(row) {
-        // Sort windows horizontally to minimize travel distance
-        row.windows.sort((a, b) => a.realWindow.x - b.realWindow.x);
-    },
+        // Sort windows horizontally to minimize travel distance.
+        // This affects in what order the windows end up in a row.
+        row.windows.sort((a, b) => a.windowCenter.x - b.windowCenter.x);
+    }
 
     computeLayout(windows, layout) {
         let numRows = layout.numRows;
@@ -1016,14 +1032,19 @@ var UnalignedLayoutStrategy = new Lang.Class({
         }
 
         let idealRowWidth = totalWidth / numRows;
+
+        // Sort windows vertically to minimize travel distance.
+        // This affects what rows the windows get placed in.
+        let sortedWindows = windows.slice();
+        sortedWindows.sort((a, b) => a.windowCenter.y - b.windowCenter.y);
+
         let windowIdx = 0;
         for (let i = 0; i < numRows; i++) {
-            let col = 0;
             let row = this._newRow();
             rows.push(row);
 
-            for (; windowIdx < windows.length; windowIdx++) {
-                let window = windows[windowIdx];
+            for (; windowIdx < sortedWindows.length; windowIdx++) {
+                let window = sortedWindows[windowIdx];
                 let s = this._computeWindowScale(window);
                 let width = window.width * s;
                 let height = window.height * s;
@@ -1055,7 +1076,7 @@ var UnalignedLayoutStrategy = new Lang.Class({
         layout.gridWidth = maxRow.fullWidth;
         layout.gridHeight = gridHeight;
     }
-});
+};
 
 function padArea(area, padding) {
     return {
@@ -1079,16 +1100,12 @@ function rectEqual(one, two) {
             one.height == two.height);
 }
 
-const WorkspaceActor = new Lang.Class({
-    Name: 'WorkspaceActor',
-    Extends: St.Widget,
-
+const WorkspaceActor = GObject.registerClass(
+class WorkspaceActor extends St.Widget {
     vfunc_get_focus_chain() {
-        return this.get_children().filter(c => c.visible).sort((a,b) => {
-            let cloneA = (a._delegate && a._delegate instanceof WindowClone) ? a._delegate: null;
-            let cloneB = (b._delegate && b._delegate instanceof WindowClone) ? b._delegate: null;
-            if (cloneA && cloneB)
-                return cloneA.slotId - cloneB.slotId;
+        return this.get_children().filter(c => c.visible).sort((a, b) => {
+            if (a instanceof WindowClone && b instanceof WindowClone)
+                return a.slotId - b.slotId;
 
             return 0;
         });
@@ -1098,10 +1115,8 @@ const WorkspaceActor = new Lang.Class({
 /**
  * @metaWorkspace: a #Meta.Workspace, or null
  */
-var Workspace = new Lang.Class({
-    Name: 'Workspace',
-
-    _init(metaWorkspace, monitorIndex) {
+var Workspace = class {
+    constructor(metaWorkspace, monitorIndex) {
         // When dragging a window, we use this slot for reserve space.
         this._reservedSlot = null;
         this._reservedSlotWindow = null;
@@ -1147,9 +1162,8 @@ var Workspace = new Lang.Class({
         this._windows = [];
         this._windowOverlays = [];
         for (let i = 0; i < windows.length; i++) {
-            if (this._isOverviewWindow(windows[i])) {
+            if (this._isOverviewWindow(windows[i]))
                 this._addWindowClone(windows[i], true);
-            }
         }
 
         // Track window changes
@@ -1174,7 +1188,7 @@ var Workspace = new Lang.Class({
             if (this.actor.mapped)
                 this._syncActualGeometry();
         });
-    },
+    }
 
     setFullGeometry(geom) {
         if (rectEqual(this._fullGeometry, geom))
@@ -1184,7 +1198,7 @@ var Workspace = new Lang.Class({
 
         if (this.actor.mapped)
             this._recalculateWindowPositions(WindowPositionFlags.NONE);
-    },
+    }
 
     setActualGeometry(geom) {
         if (rectEqual(this._actualGeometry, geom))
@@ -1195,7 +1209,7 @@ var Workspace = new Lang.Class({
 
         if (this.actor.mapped)
             this._syncActualGeometry();
-    },
+    }
 
     _syncActualGeometry() {
         if (this._actualGeometryLater || !this._actualGeometryDirty)
@@ -1216,24 +1230,19 @@ var Workspace = new Lang.Class({
 
             return false;
         });
-    },
+    }
 
     _lookupIndex(metaWindow) {
-        for (let i = 0; i < this._windows.length; i++) {
-            if (this._windows[i].metaWindow == metaWindow) {
-                return i;
-            }
-        }
-        return -1;
-    },
+        return this._windows.findIndex(w => w.metaWindow == metaWindow);
+    }
 
     containsMetaWindow(metaWindow) {
         return this._lookupIndex(metaWindow) >= 0;
-    },
+    }
 
     isEmpty() {
         return this._windows.length == 0;
-    },
+    }
 
     setReservedSlot(metaWindow) {
         if (this._reservedSlotWindow == metaWindow)
@@ -1248,7 +1257,7 @@ var Workspace = new Lang.Class({
         }
 
         this._recalculateWindowPositions(WindowPositionFlags.ANIMATE);
-    },
+    }
 
     _recalculateWindowPositions(flags) {
         this._positionWindowsFlags |= flags;
@@ -1262,11 +1271,11 @@ var Workspace = new Lang.Class({
             this._positionWindowsId = 0;
             return false;
         });
-    },
+    }
 
     _realRecalculateWindowPositions(flags) {
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
@@ -1283,7 +1292,7 @@ var Workspace = new Lang.Class({
 
         this._currentLayout = this._computeLayout(clones);
         this._updateWindowPositions(flags);
-    },
+    }
 
     _updateWindowPositions(flags) {
         if (this._currentLayout == null) {
@@ -1292,7 +1301,7 @@ var Workspace = new Lang.Class({
         }
 
         // We will reposition windows anyway when enter again overview or when ending the windows
-        // animations whith fade animation.
+        // animations with fade animation.
         // In this way we avoid unwanted animations of windows repositioning while
         // animating overview.
         if (this.leavingOverview || this._animatingWindowsFade)
@@ -1315,8 +1324,7 @@ var Workspace = new Lang.Class({
         for (let i = 0; i < slots.length; i++) {
             let slot = slots[i];
             let [x, y, scale, clone] = slot;
-            let metaWindow = clone.metaWindow;
-            let overlay = clone.overlay;
+
             clone.slotId = i;
 
             // Positioning a window currently being dragged must be avoided;
@@ -1324,61 +1332,61 @@ var Workspace = new Lang.Class({
             if (clone.inDrag)
                 continue;
 
-            let cloneWidth = clone.actor.width * scale;
-            let cloneHeight = clone.actor.height * scale;
+            let cloneWidth = clone.width * scale;
+            let cloneHeight = clone.height * scale;
             clone.slot = [x, y, cloneWidth, cloneHeight];
 
             let cloneCenter = x + cloneWidth / 2;
             let maxChromeWidth = 2 * Math.min(
                 cloneCenter - area.x,
                 area.x + area.width - cloneCenter);
-            overlay.setMaxChromeWidth(Math.round(maxChromeWidth));
+            clone.overlay.setMaxChromeWidth(Math.round(maxChromeWidth));
 
-            if (overlay && (initialPositioning || !clone.positioned))
-                overlay.hide();
+            if (clone.overlay && (initialPositioning || !clone.positioned))
+                clone.overlay.hide();
 
             if (!clone.positioned) {
                 // This window appeared after the overview was already up
                 // Grow the clone from the center of the slot
-                clone.actor.x = x + cloneWidth / 2;
-                clone.actor.y = y + cloneHeight / 2;
-                clone.actor.scale_x = 0;
-                clone.actor.scale_y = 0;
+                clone.x = x + cloneWidth / 2;
+                clone.y = y + cloneHeight / 2;
+                clone.scale_x = 0;
+                clone.scale_y = 0;
                 clone.positioned = true;
             }
 
             if (animate && isOnCurrentWorkspace) {
-                if (!metaWindow.showing_on_its_workspace()) {
+                if (!clone.metaWindow.showing_on_its_workspace()) {
                     /* Hidden windows should fade in and grow
                      * therefore we need to resize them now so they
                      * can be scaled up later */
                     if (initialPositioning) {
-                        clone.actor.opacity = 0;
-                        clone.actor.scale_x = 0;
-                        clone.actor.scale_y = 0;
-                        clone.actor.x = x;
-                        clone.actor.y = y;
+                        clone.opacity = 0;
+                        clone.scale_x = 0;
+                        clone.scale_y = 0;
+                        clone.x = x;
+                        clone.y = y;
                     }
 
-                    Tweener.addTween(clone.actor,
-                                     { opacity: 255,
-                                       time: Overview.ANIMATION_TIME,
-                                       transition: 'easeInQuad'
-                                     });
+                    clone.ease({
+                        opacity: 255,
+                        mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                        duration: Overview.ANIMATION_TIME
+                    });
                 }
 
-                this._animateClone(clone, overlay, x, y, scale);
+                this._animateClone(clone, clone.overlay, x, y, scale);
             } else {
                 // cancel any active tweens (otherwise they might override our changes)
-                Tweener.removeTweens(clone.actor);
-                clone.actor.set_position(x, y);
-                clone.actor.set_scale(scale, scale);
-                clone.actor.set_opacity(255);
+                clone.remove_all_transitions();
+                clone.set_position(x, y);
+                clone.set_scale(scale, scale);
+                clone.set_opacity(255);
                 clone.overlay.relayout(false);
-                this._showWindowOverlay(clone, overlay);
+                this._showWindowOverlay(clone, clone.overlay);
             }
         }
-    },
+    }
 
     syncStacking(stackIndices) {
         let clones = this._windows.slice();
@@ -1390,42 +1398,39 @@ var Workspace = new Lang.Class({
 
         for (let i = 0; i < clones.length; i++) {
             let clone = clones[i];
-            let metaWindow = clone.metaWindow;
             if (i == 0) {
                 clone.setStackAbove(this._dropRect);
             } else {
                 let previousClone = clones[i - 1];
-                clone.setStackAbove(previousClone.actor);
+                clone.setStackAbove(previousClone);
             }
         }
-    },
+    }
 
     _animateClone(clone, overlay, x, y, scale) {
-        Tweener.addTween(clone.actor,
-                         { x: x,
-                           y: y,
-                           scale_x: scale,
-                           scale_y: scale,
-                           time: Overview.ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this._showWindowOverlay(clone, overlay);
-                           }
-                         });
-
+        clone.ease({
+            x, y,
+            scale_x: scale,
+            scale_y: scale,
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._showWindowOverlay(clone, overlay);
+            }
+        });
         clone.overlay.relayout(true);
-    },
+    }
 
     _showWindowOverlay(clone, overlay) {
         if (clone.inDrag)
             return;
 
         if (overlay && overlay._hidden)
-                overlay.show();
-    },
+            overlay.show();
+    }
 
     _delayedWindowRepositioning() {
-        let [x, y, mask] = global.get_pointer();
+        let [x, y] = global.get_pointer();
 
         let pointerHasMoved = (this._cursorX != x && this._cursorY != y);
         let inWorkspace = (this._fullGeometry.x < x && x < this._fullGeometry.x + this._fullGeometry.width &&
@@ -1440,14 +1445,14 @@ var Workspace = new Lang.Class({
 
         let actorUnderPointer = global.stage.get_actor_at_pos(Clutter.PickMode.REACTIVE, x, y);
         for (let i = 0; i < this._windows.length; i++) {
-            if (this._windows[i].actor == actorUnderPointer)
+            if (this._windows[i] == actorUnderPointer)
                 return GLib.SOURCE_CONTINUE;
         }
 
         this._recalculateWindowPositions(WindowPositionFlags.ANIMATE);
         this._repositionWindowsId = 0;
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     _doRemoveWindow(metaWin) {
         let win = metaWin.get_compositor_private();
@@ -1462,12 +1467,12 @@ var Workspace = new Lang.Class({
             // destroyed; we'd like to animate this, but it's too late at
             // this point.)
             if (win) {
-                let [stageX, stageY] = clone.actor.get_transformed_position();
-                let [stageWidth, stageHeight] = clone.actor.get_transformed_size();
+                let [stageX, stageY] = clone.get_transformed_position();
+                let [stageWidth] = clone.get_transformed_size();
                 win._overviewHint = {
                     x: stageX,
                     y: stageY,
-                    scale: stageWidth / clone.actor.width
+                    scale: stageWidth / clone.width
                 };
             }
             clone.destroy();
@@ -1480,20 +1485,20 @@ var Workspace = new Lang.Class({
 
         // remove old handler
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
         // setup new handler
-        let [x, y, mask] = global.get_pointer();
+        let [x, y] = global.get_pointer();
         this._cursorX = x;
         this._cursorY = y;
 
         this._currentLayout = null;
-        this._repositionWindowsId = Mainloop.timeout_add(750,
+        this._repositionWindowsId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, WINDOW_REPOSITIONING_DELAY,
             this._delayedWindowRepositioning.bind(this));
         GLib.Source.set_name_by_id(this._repositionWindowsId, '[gnome-shell] this._delayedWindowRepositioning');
-    },
+    }
 
     _doAddWindow(metaWin) {
         if (this.leavingOverview)
@@ -1504,7 +1509,7 @@ var Workspace = new Lang.Class({
         if (!win) {
             // Newly-created windows are added to a workspace before
             // the compositor finds out about them...
-            let id = Mainloop.idle_add(() => {
+            let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 if (this.actor &&
                     metaWin.get_compositor_private() &&
                     metaWin.get_workspace() == this.metaWorkspace)
@@ -1517,7 +1522,7 @@ var Workspace = new Lang.Class({
 
         // We might have the window in our list already if it was on all workspaces and
         // now was moved to this workspace
-        if (this._lookupIndex (metaWin) != -1)
+        if (this._lookupIndex(metaWin) != -1)
             return;
 
         if (!this._isMyWindow(win))
@@ -1539,7 +1544,7 @@ var Workspace = new Lang.Class({
             return;
         }
 
-        let [clone, overlay] = this._addWindowClone(win, false);
+        let [clone, overlay_] = this._addWindowClone(win, false);
 
         if (win._overviewHint) {
             let x = win._overviewHint.x - this.actor.x;
@@ -1547,36 +1552,37 @@ var Workspace = new Lang.Class({
             let scale = win._overviewHint.scale;
             delete win._overviewHint;
 
-            clone.slot = [x, y, clone.actor.width * scale, clone.actor.height * scale];
+            clone.slot = [x, y, clone.width * scale, clone.height * scale];
             clone.positioned = true;
-            clone.actor.set_position (x, y);
-            clone.actor.set_scale (scale, scale);
+
+            clone.set_position(x, y);
+            clone.set_scale(scale, scale);
             clone.overlay.relayout(false);
         }
 
         this._currentLayout = null;
         this._recalculateWindowPositions(WindowPositionFlags.ANIMATE);
-    },
+    }
 
     _windowAdded(metaWorkspace, metaWin) {
         this._doAddWindow(metaWin);
-    },
+    }
 
     _windowRemoved(metaWorkspace, metaWin) {
         this._doRemoveWindow(metaWin);
-    },
+    }
 
     _windowEnteredMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doAddWindow(metaWin);
         }
-    },
+    }
 
     _windowLeftMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doRemoveWindow(metaWin);
         }
-    },
+    }
 
     // check for maximized windows on the workspace
     hasMaximizedWindows() {
@@ -1588,7 +1594,7 @@ var Workspace = new Lang.Class({
                 return true;
         }
         return false;
-    },
+    }
 
     fadeToOverview() {
         // We don't want to reposition windows while animating in this way.
@@ -1624,7 +1630,7 @@ var Workspace = new Lang.Class({
                 let overlay = this._windowOverlays[i];
                 if (overlay)
                     overlay.hide();
-                this._windows[i].actor.opacity = 0;
+                this._windows[i].opacity = 0;
             } else {
                 let fromTop = topIndex - i;
                 let time;
@@ -1633,11 +1639,11 @@ var Workspace = new Lang.Class({
                 else
                     time = windowBaseTime;
 
-                this._windows[i].actor.opacity = 255;
+                this._windows[i].opacity = 255;
                 this._fadeWindow(i, time, 0);
             }
         }
-    },
+    }
 
     fadeFromOverview() {
         this.leavingOverview = true;
@@ -1645,13 +1651,11 @@ var Workspace = new Lang.Class({
         if (this._windows.length == 0)
             return;
 
-        for (let i = 0; i < this._windows.length; i++) {
-            let clone = this._windows[i];
-            Tweener.removeTweens(clone.actor);
-        }
+        for (let i = 0; i < this._windows.length; i++)
+            this._windows[i].remove_all_transitions();
 
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
@@ -1682,7 +1686,7 @@ var Workspace = new Lang.Class({
                 let overlay = this._windowOverlays[i];
                 if (overlay)
                     overlay.hide();
-                this._windows[i].actor.opacity = 0;
+                this._windows[i].opacity = 0;
             } else {
                 let fromTop = topIndex - i;
                 let time;
@@ -1691,13 +1695,13 @@ var Workspace = new Lang.Class({
                 else
                     time = windowBaseTime * nTimeSlots;
 
-                this._windows[i].actor.opacity = 0;
+                this._windows[i].opacity = 0;
                 this._fadeWindow(i, time, 255);
             }
         }
-    },
+    }
 
-    _fadeWindow(index, time, opacity) {
+    _fadeWindow(index, duration, opacity) {
         let clone = this._windows[index];
         let overlay = this._windowOverlays[index];
 
@@ -1706,25 +1710,25 @@ var Workspace = new Lang.Class({
 
         if (clone.metaWindow.showing_on_its_workspace()) {
             let [origX, origY] = clone.getOriginalPosition();
-            clone.actor.scale_x = 1;
-            clone.actor.scale_y = 1;
-            clone.actor.x = origX;
-            clone.actor.y = origY;
-            Tweener.addTween(clone.actor,
-                             { time: time,
-                               opacity: opacity,
-                               transition: 'easeOutQuad'
-                             });
+            clone.scale_x = 1;
+            clone.scale_y = 1;
+            clone.x = origX;
+            clone.y = origY;
+            clone.ease({
+                opacity,
+                duration,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         } else {
             // The window is hidden
-            clone.actor.opacity = 0;
+            clone.opacity = 0;
         }
-    },
+    }
 
     zoomToOverview() {
         // Position and scale the windows.
         this._recalculateWindowPositions(WindowPositionFlags.ANIMATE | WindowPositionFlags.INITIAL);
-    },
+    }
 
     zoomFromOverview() {
         let workspaceManager = global.workspace_manager;
@@ -1732,13 +1736,11 @@ var Workspace = new Lang.Class({
 
         this.leavingOverview = true;
 
-        for (let i = 0; i < this._windows.length; i++) {
-            let clone = this._windows[i];
-            Tweener.removeTweens(clone.actor);
-        }
+        for (let i = 0; i < this._windows.length; i++)
+            this._windows[i].remove_all_transitions();
 
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
         this._overviewHiddenId = Main.overview.connect('hidden', this._doneLeavingOverview.bind(this));
@@ -1748,8 +1750,8 @@ var Workspace = new Lang.Class({
 
         // Position and scale the windows.
         for (let i = 0; i < this._windows.length; i++)
-           this._zoomWindowFromOverview(i);
-    },
+            this._zoomWindowFromOverview(i);
+    }
 
     _zoomWindowFromOverview(index) {
         let clone = this._windows[index];
@@ -1760,37 +1762,36 @@ var Workspace = new Lang.Class({
 
         if (clone.metaWindow.showing_on_its_workspace()) {
             let [origX, origY] = clone.getOriginalPosition();
-            Tweener.addTween(clone.actor,
-                             { x: origX,
-                               y: origY,
-                               scale_x: 1.0,
-                               scale_y: 1.0,
-                               time: Overview.ANIMATION_TIME,
-                               opacity: 255,
-                               transition: 'easeOutQuad'
-                             });
+            clone.ease({
+                x: origX,
+                y: origY,
+                scale_x: 1,
+                scale_y: 1,
+                opacity: 255,
+                duration: Overview.ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         } else {
             // The window is hidden, make it shrink and fade it out
-            Tweener.addTween(clone.actor,
-                             { scale_x: 0,
-                               scale_y: 0,
-                               opacity: 0,
-                               time: Overview.ANIMATION_TIME,
-                               transition: 'easeOutQuad'
-                             });
+            clone.ease({
+                scale_x: 0,
+                scale_y: 0,
+                opacity: 0,
+                duration: Overview.ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
-    },
+    }
 
     destroy() {
         this.actor.destroy();
-    },
+    }
 
-    _onDestroy(actor) {
+    _onDestroy() {
         if (this._overviewHiddenId) {
             Main.overview.disconnect(this._overviewHiddenId);
             this._overviewHiddenId = 0;
         }
-        Tweener.removeTweens(actor);
 
         if (this.metaWorkspace) {
             this.metaWorkspace.disconnect(this._windowAddedId);
@@ -1800,7 +1801,7 @@ var Workspace = new Lang.Class({
         global.display.disconnect(this._windowLeftMonitorId);
 
         if (this._repositionWindowsId > 0) {
-            Mainloop.source_remove(this._repositionWindowsId);
+            GLib.source_remove(this._repositionWindowsId);
             this._repositionWindowsId = 0;
         }
 
@@ -1815,29 +1816,29 @@ var Workspace = new Lang.Class({
         }
 
         this._windows = [];
-    },
+    }
 
     // Sets this.leavingOverview flag to false.
     _doneLeavingOverview() {
         this.leavingOverview = false;
-    },
+    }
 
     _doneShowingOverview() {
         this._animatingWindowsFade = false;
         this._recalculateWindowPositions(WindowPositionFlags.INITIAL);
-    },
+    }
 
     // Tests if @actor belongs to this workspaces and monitor
     _isMyWindow(actor) {
         let win = actor.meta_window;
         return (this.metaWorkspace == null || win.located_on_workspace(this.metaWorkspace)) &&
             (win.get_monitor() == this.monitorIndex);
-    },
+    }
 
     // Tests if @win should be shown in the Overview
     _isOverviewWindow(win) {
         return !win.get_meta_window().skip_taskbar;
-    },
+    }
 
     // Create a clone of a (non-desktop) window and add it to the window list
     _addWindowClone(win, positioned) {
@@ -1862,49 +1863,44 @@ var Workspace = new Lang.Class({
         clone.connect('size-changed', () => {
             this._recalculateWindowPositions(WindowPositionFlags.NONE);
         });
-        clone.actor.connect('destroy', () => {
+        clone.connect('destroy', () => {
             this._removeWindowClone(clone.metaWindow);
         });
 
-        this.actor.add_actor(clone.actor);
+        this.actor.add_actor(clone);
 
-        overlay.connect('show-close-button', () => {
+        overlay.connect('chrome-visible', () => {
             let focus = global.stage.key_focus;
             if (focus == null || this.actor.contains(focus))
-                clone.actor.grab_key_focus();
-            this._onShowOverlayClose(overlay);
+                clone.grab_key_focus();
+
+            this._windowOverlays.forEach(o => {
+                if (o != overlay)
+                    o.hideOverlay();
+            });
         });
 
         if (this._windows.length == 0)
             clone.setStackAbove(null);
         else
-            clone.setStackAbove(this._windows[this._windows.length - 1].actor);
+            clone.setStackAbove(this._windows[this._windows.length - 1]);
 
         this._windows.push(clone);
         this._windowOverlays.push(overlay);
 
         return [clone, overlay];
-    },
+    }
 
     _removeWindowClone(metaWin) {
         // find the position of the window in our list
-        let index = this._lookupIndex (metaWin);
+        let index = this._lookupIndex(metaWin);
 
         if (index == -1)
             return null;
 
         this._windowOverlays.splice(index, 1);
         return this._windows.splice(index, 1).pop();
-    },
-
-    _onShowOverlayClose(windowOverlay) {
-        for (let i = 0; i < this._windowOverlays.length; i++) {
-            let overlay = this._windowOverlays[i];
-            if (overlay == windowOverlay)
-                continue;
-            overlay.hideCloseButton();
-        }
-    },
+    }
 
     _isBetterLayout(oldLayout, newLayout) {
         if (oldLayout.scale === undefined)
@@ -1917,16 +1913,16 @@ var Workspace = new Lang.Class({
             // Win win -- better scale and better space
             return true;
         } else if (newLayout.scale > oldLayout.scale && newLayout.space <= oldLayout.space) {
-            // Keep new layout only if scale gain outweights aspect space loss
+            // Keep new layout only if scale gain outweighs aspect space loss
             return scalePower > spacePower;
         } else if (newLayout.scale <= oldLayout.scale && newLayout.space > oldLayout.space) {
-            // Keep new layout only if aspect space gain outweights scale loss
+            // Keep new layout only if aspect space gain outweighs scale loss
             return spacePower > scalePower;
         } else {
             // Lose -- worse scale and space
             return false;
         }
-    },
+    }
 
     _getBestLayout(windows, area, rowSpacing, columnSpacing) {
         // We look for the largest scale that allows us to fit the
@@ -1956,7 +1952,7 @@ var Workspace = new Lang.Class({
         }
 
         return lastLayout;
-    },
+    }
 
     _getSpacingAndPadding() {
         let node = this.actor.get_theme_node();
@@ -1985,32 +1981,39 @@ var Workspace = new Lang.Class({
         padding.right += rightBorder;
 
         return [rowSpacing, columnSpacing, padding];
-    },
+    }
 
     _computeLayout(windows) {
         let [rowSpacing, columnSpacing, padding] = this._getSpacingAndPadding();
         let area = padArea(this._fullGeometry, padding);
         return this._getBestLayout(windows, area, rowSpacing, columnSpacing);
-    },
+    }
 
     _onCloneSelected(clone, time) {
-        let wsIndex = undefined;
+        let wsIndex;
         if (this.metaWorkspace)
             wsIndex = this.metaWorkspace.index();
         Main.activateWindow(clone.metaWindow, time, wsIndex);
-    },
+    }
 
     // Draggable target interface
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (source.realWindow && !this._isMyWindow(source.realWindow))
             return DND.DragMotionResult.MOVE_DROP;
-        if (source.shellWorkspaceLaunch)
+        if (source.app && source.app.can_open_new_window())
+            return DND.DragMotionResult.COPY_DROP;
+        if (!source.app && source.shellWorkspaceLaunch)
             return DND.DragMotionResult.COPY_DROP;
 
         return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
     acceptDrop(source, actor, x, y, time) {
+        let workspaceManager = global.workspace_manager;
+        let workspaceIndex = this.metaWorkspace
+            ? this.metaWorkspace.index()
+            : workspaceManager.get_active_workspace_index();
+
         if (source.realWindow) {
             let win = source.realWindow;
             if (this._isMyWindow(win))
@@ -2032,18 +2035,23 @@ var Workspace = new Lang.Class({
             if (metaWindow.get_monitor() != this.monitorIndex)
                 metaWindow.move_to_monitor(this.monitorIndex);
 
-            let workspaceManager = global.workspace_manager;
-            let index = this.metaWorkspace ? this.metaWorkspace.index() : workspaceManager.get_active_workspace_index();
-            metaWindow.change_workspace_by_index(index, false);
+            metaWindow.change_workspace_by_index(workspaceIndex, false);
             return true;
-        } else if (source.shellWorkspaceLaunch) {
-            source.shellWorkspaceLaunch({ workspace: this.metaWorkspace ? this.metaWorkspace.index() : -1,
+        } else if (source.app && source.app.can_open_new_window()) {
+            if (source.animateLaunchAtPos)
+                source.animateLaunchAtPos(actor.x, actor.y);
+
+            source.app.open_new_window(workspaceIndex);
+            return true;
+        } else if (!source.app && source.shellWorkspaceLaunch) {
+            // While unused in our own drag sources, shellWorkspaceLaunch allows
+            // extensions to define custom actions for their drag sources.
+            source.shellWorkspaceLaunch({ workspace: workspaceIndex,
                                           timestamp: time });
             return true;
         }
 
         return false;
     }
-});
-
+};
 Signals.addSignalMethods(Workspace.prototype);

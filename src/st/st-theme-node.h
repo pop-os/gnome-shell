@@ -104,10 +104,12 @@ struct _StThemeNodePaintState {
   float box_shadow_width;
   float box_shadow_height;
 
+  float resource_scale;
+
   CoglPipeline *box_shadow_pipeline;
   CoglPipeline *prerendered_texture;
   CoglPipeline *prerendered_pipeline;
-  CoglHandle corner_material[4];
+  CoglPipeline *corner_material[4];
 };
 
 StThemeNode *st_theme_node_new (StThemeContext *context,
@@ -279,7 +281,8 @@ void st_theme_node_paint (StThemeNode            *node,
                           StThemeNodePaintState  *state,
                           CoglFramebuffer        *framebuffer,
                           const ClutterActorBox  *box,
-                          guint8                  paint_opacity);
+                          guint8                  paint_opacity,
+                          float                   resource_scale);
 
 void st_theme_node_invalidate_background_image (StThemeNode *node);
 void st_theme_node_invalidate_border_image (StThemeNode *node);
@@ -291,6 +294,9 @@ void st_theme_node_paint_state_free (StThemeNodePaintState *state);
 void st_theme_node_paint_state_copy (StThemeNodePaintState *state,
                                      StThemeNodePaintState *other);
 void st_theme_node_paint_state_invalidate (StThemeNodePaintState *state);
+gboolean st_theme_node_paint_state_invalidate_for_file (StThemeNodePaintState *state,
+                                                        GFile                 *file);
+
 void st_theme_node_paint_state_set_node (StThemeNodePaintState *state,
                                          StThemeNode           *node);
 

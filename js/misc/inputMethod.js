@@ -1,22 +1,22 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
-const Clutter = imports.gi.Clutter;
-const IBus = imports.gi.IBus;
+/* exported InputMethod */
+const { Clutter, GLib, Gio, GObject, IBus } = imports.gi;
+
 const Keyboard = imports.ui.status.keyboard;
-const Lang = imports.lang;
-const Signals = imports.signals;
 
-var InputMethod = new Lang.Class({
-    Name: 'InputMethod',
-    Extends: Clutter.InputMethod,
+var HIDE_PANEL_TIME = 50;
 
+var InputMethod = GObject.registerClass(
+class InputMethod extends Clutter.InputMethod {
     _init() {
-        this.parent();
+        super._init();
         this._hints = 0;
         this._purpose = 0;
-        this._enabled = true;
         this._currentFocus = null;
         this._preeditStr = '';
         this._preeditPos = 0;
+        this._preeditVisible = false;
+        this._hidePanelId = 0;
         this._ibus = IBus.Bus.new_async();
         this._ibus.connect('connected', this._onConnected.bind(this));
         this._ibus.connect('disconnected', this._clear.bind(this));
@@ -29,40 +29,40 @@ var InputMethod = new Lang.Class({
 
         if (this._ibus.is_connected())
             this._onConnected();
-    },
+    }
 
     get currentFocus() {
         return this._currentFocus;
-    },
+    }
 
     _updateCapabilities() {
-        let caps = 0;
-
-        if (this.can_show_preedit)
-            caps |= IBus.Capabilite.PREEDIT_TEXT;
-
-        if (this._currentFocus)
-            caps |= IBus.Capabilite.FOCUS | IBus.Capabilite.SURROUNDING_TEXT;
-        else
-            caps |= IBus.Capabilite.PREEDIT_TEXT | IBus.Capabilite.AUXILIARY_TEXT | IBus.Capabilite.LOOKUP_TABLE | IBus.Capabilite.PROPERTY;
+        let caps = IBus.Capabilite.PREEDIT_TEXT | IBus.Capabilite.FOCUS | IBus.Capabilite.SURROUNDING_TEXT;
 
         if (this._context)
             this._context.set_capabilities(caps);
-    },
+    }
 
     _onSourceChanged() {
         this._currentSource = this._inputSourceManager.currentSource;
-    },
+    }
 
     _onConnected() {
-        this._ibus.create_input_context_async ('gnome-shell', -1, null,
-                                               this._setContext.bind(this));
-    },
+        this._cancellable = new Gio.Cancellable();
+        this._ibus.create_input_context_async ('gnome-shell', -1,
+            this._cancellable, this._setContext.bind(this));
+    }
 
     _setContext(bus, res) {
-        this._context = this._ibus.create_input_context_async_finish(res);
-        this._context.connect('enabled', () => { this._enabled = true });
-        this._context.connect('disabled', () => { this._enabled = false });
+        try {
+            this._context = this._ibus.create_input_context_async_finish(res);
+        } catch (e) {
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+                logError(e);
+                this._clear();
+            }
+            return;
+        }
+
         this._context.connect('commit-text', this._onCommitText.bind(this));
         this._context.connect('delete-surrounding-text', this._onDeleteSurroundingText.bind(this));
         this._context.connect('update-preedit-text', this._onUpdatePreeditText.bind(this));
@@ -71,50 +71,62 @@ var InputMethod = new Lang.Class({
         this._context.connect('forward-key-event', this._onForwardKeyEvent.bind(this));
 
         this._updateCapabilities();
-    },
+    }
 
     _clear() {
+        if (this._cancellable) {
+            this._cancellable.cancel();
+            this._cancellable = null;
+        }
+
         this._context = null;
         this._hints = 0;
         this._purpose = 0;
-        this._enabled = false;
-        this._preeditStr = ''
+        this._preeditStr = '';
         this._preeditPos = 0;
-    },
+        this._preeditVisible = false;
+    }
 
     _emitRequestSurrounding() {
         if (this._context.needs_surrounding_text())
             this.emit('request-surrounding');
-    },
+    }
 
-    _onCommitText(context, text) {
+    _onCommitText(_context, text) {
         this.commit(text.get_text());
-    },
+    }
 
-    _onDeleteSurroundingText(context) {
+    _onDeleteSurroundingText() {
         this.delete_surrounding();
-    },
+    }
 
-    _onUpdatePreeditText(context, text, pos, visible) {
+    _onUpdatePreeditText(_context, text, pos, visible) {
         if (text == null)
             return;
-        this._preeditStr = text.get_text();
-        this._preeditPos = pos;
+
+        let preedit = text.get_text();
+
         if (visible)
-            this.set_preedit_text(this._preeditStr, pos);
-        else
+            this.set_preedit_text(preedit, pos);
+        else if (this._preeditVisible)
             this.set_preedit_text(null, pos);
-    },
 
-    _onShowPreeditText(context) {
+        this._preeditStr = preedit;
+        this._preeditPos = pos;
+        this._preeditVisible = visible;
+    }
+
+    _onShowPreeditText() {
+        this._preeditVisible = true;
         this.set_preedit_text(this._preeditStr, this._preeditPos);
-    },
+    }
 
-    _onHidePreeditText(context) {
+    _onHidePreeditText() {
         this.set_preedit_text(null, this._preeditPos);
-    },
+        this._preeditVisible = false;
+    }
 
-    _onForwardKeyEvent(context, keyval, keycode, state) {
+    _onForwardKeyEvent(_context, keyval, keycode, state) {
         let press = (state & IBus.ModifierType.RELEASE_MASK) == 0;
         state &= ~(IBus.ModifierType.RELEASE_MASK);
 
@@ -126,27 +138,38 @@ var InputMethod = new Lang.Class({
             time = global.display.get_current_time_roundtrip();
 
         this.forward_key(keyval, keycode + 8, state & Clutter.ModifierType.MODIFIER_MASK, time, press);
-    },
+    }
 
     vfunc_focus_in(focus) {
         this._currentFocus = focus;
         if (this._context) {
             this._context.focus_in();
-            this._updateCapabilities();
             this._emitRequestSurrounding();
         }
-    },
+
+        if (this._hidePanelId) {
+            GLib.source_remove(this._hidePanelId);
+            this._hidePanelId = 0;
+        }
+    }
 
     vfunc_focus_out() {
         this._currentFocus = null;
-        if (this._context) {
+        if (this._context)
             this._context.focus_out();
-            this._updateCapabilities();
+
+        if (this._preeditStr) {
+            // Unset any preedit text
+            this.set_preedit_text(null, 0);
+            this._preeditStr = null;
         }
 
-        // Unset any preedit text
-        this.set_preedit_text(null, 0);
-    },
+        this._hidePanelId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HIDE_PANEL_TIME, () => {
+            this.set_input_panel_state(Clutter.InputPanelState.OFF);
+            this._hidePanelId = 0;
+            return GLib.SOURCE_REMOVE;
+        });
+    }
 
     vfunc_reset() {
         if (this._context) {
@@ -154,9 +177,12 @@ var InputMethod = new Lang.Class({
             this._emitRequestSurrounding();
         }
 
-        // Unset any preedit text
-        this.set_preedit_text(null, 0);
-    },
+        if (this._preeditStr) {
+            // Unset any preedit text
+            this.set_preedit_text(null, 0);
+            this._preeditStr = null;
+        }
+    }
 
     vfunc_set_cursor_location(rect) {
         if (this._context) {
@@ -164,7 +190,7 @@ var InputMethod = new Lang.Class({
                                               rect.get_width(), rect.get_height());
             this._emitRequestSurrounding();
         }
-    },
+    }
 
     vfunc_set_surrounding(text, cursor, anchor) {
         if (!this._context || !text)
@@ -172,7 +198,7 @@ var InputMethod = new Lang.Class({
 
         let ibusText = IBus.Text.new_from_string(text);
         this._context.set_surrounding_text(ibusText, cursor, anchor);
-    },
+    }
 
     vfunc_update_content_hints(hints) {
         let ibusHints = 0;
@@ -192,7 +218,7 @@ var InputMethod = new Lang.Class({
         this._hints = ibusHints;
         if (this._context)
             this._context.set_content_type(this._purpose, this._hints);
-    },
+    }
 
     vfunc_update_content_purpose(purpose) {
         let ibusPurpose = 0;
@@ -218,10 +244,10 @@ var InputMethod = new Lang.Class({
         this._purpose = ibusPurpose;
         if (this._context)
             this._context.set_content_type(this._purpose, this._hints);
-    },
+    }
 
     vfunc_filter_key_event(event) {
-        if (!this._context || !this._enabled)
+        if (!this._context)
             return false;
         if (!this._currentSource)
             return false;
@@ -233,17 +259,19 @@ var InputMethod = new Lang.Class({
         if (event.type() == Clutter.EventType.KEY_RELEASE)
             state |= IBus.ModifierType.RELEASE_MASK;
 
-        this._context.process_key_event_async(event.get_key_symbol(),
-                                              event.get_key_code() - 8, // Convert XKB keycodes to evcodes
-                                              state, -1, null,
-                                              (context, res) => {
-                                                  try {
-                                                      let retval = context.process_key_event_async_finish(res);
-                                                      this.notify_key_event(event, retval);
-                                                  } catch (e) {
-                                                      log('Error processing key on IM: ' + e.message);
-                                                  }
-                                              });
+        this._context.process_key_event_async(
+            event.get_key_symbol(),
+            event.get_key_code() - 8, // Convert XKB keycodes to evcodes
+            state, -1, this._cancellable,
+            (context, res) => {
+                try {
+                    let retval = context.process_key_event_async_finish(res);
+                    this.notify_key_event(event, retval);
+                } catch (e) {
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        log(`Error processing key on IM: ${e.message}`);
+                }
+            });
         return true;
-    },
+    }
 });

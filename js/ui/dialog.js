@@ -1,18 +1,12 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Dialog, MessageDialogContent */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const Pango = imports.gi.Pango;
-const St = imports.gi.St;
-const Lang = imports.lang;
+const { Clutter, Gio, GObject, Pango, St } = imports.gi;
 
-var Dialog = new Lang.Class({
-    Name: 'Dialog',
-    Extends: St.Widget,
-
+var Dialog = GObject.registerClass(
+class Dialog extends St.Widget {
     _init(parentActor, styleClass) {
-        this.parent({ layout_manager: new Clutter.BinLayout() });
+        super._init({ layout_manager: new Clutter.BinLayout() });
         this.connect('destroy', this._onDestroy.bind(this));
 
         this._initialKeyFocus = null;
@@ -28,13 +22,13 @@ var Dialog = new Lang.Class({
         this._parentActor = parentActor;
         this._eventId = this._parentActor.connect('event', this._modalEventHandler.bind(this));
         this._parentActor.add_child(this);
-    },
+    }
 
     _createDialog() {
         this._dialog = new St.BoxLayout({ style_class: 'modal-dialog',
-                                          x_align:     Clutter.ActorAlign.CENTER,
-                                          y_align:     Clutter.ActorAlign.CENTER,
-                                          vertical:    true });
+                                          x_align: Clutter.ActorAlign.CENTER,
+                                          y_align: Clutter.ActorAlign.CENTER,
+                                          vertical: true });
 
         // modal dialogs are fixed width and grow vertically; set the request
         // mode accordingly so wrapped labels are handled correctly during
@@ -45,23 +39,23 @@ var Dialog = new Lang.Class({
         this.contentLayout = new St.BoxLayout({ vertical: true,
                                                 style_class: "modal-dialog-content-box" });
         this._dialog.add(this.contentLayout,
-                         { expand:  true,
-                           x_fill:  true,
-                           y_fill:  true,
+                         { expand: true,
+                           x_fill: true,
+                           y_fill: true,
                            x_align: St.Align.MIDDLE,
                            y_align: St.Align.START });
 
-        this.buttonLayout = new St.Widget ({ layout_manager: new Clutter.BoxLayout({ homogeneous:true }) });
+        this.buttonLayout = new St.Widget ({ layout_manager: new Clutter.BoxLayout({ homogeneous: true }) });
         this._dialog.add(this.buttonLayout,
                          { x_align: St.Align.MIDDLE,
                            y_align: St.Align.START });
-    },
+    }
 
     _onDestroy() {
         if (this._eventId != 0)
             this._parentActor.disconnect(this._eventId);
         this._eventId = 0;
-    },
+    }
 
     _modalEventHandler(actor, event) {
         if (event.type() == Clutter.EventType.KEY_PRESS) {
@@ -87,7 +81,7 @@ var Dialog = new Lang.Class({
         }
 
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _setInitialKeyFocus(actor) {
         if (this._initialKeyFocus)
@@ -99,15 +93,15 @@ var Dialog = new Lang.Class({
             this._initialKeyFocus = null;
             this._initialKeyFocusDestroyId = 0;
         });
-    },
+    }
 
     get initialKeyFocus() {
         return this._initialKeyFocus || this;
-    },
+    }
 
     addContent(actor) {
         this.contentLayout.add (actor, { expand: true });
-    },
+    }
 
     addButton(buttonInfo) {
         let { label, action, key } = buttonInfo;
@@ -123,11 +117,11 @@ var Dialog = new Lang.Class({
 
         let button = new St.Button({ style_class: 'modal-dialog-linked-button',
                                      button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
-                                     reactive:    true,
-                                     can_focus:   true,
-                                     x_expand:    true,
-                                     y_expand:    true,
-                                     label:       label });
+                                     reactive: true,
+                                     can_focus: true,
+                                     x_expand: true,
+                                     y_expand: true,
+                                     label: label });
         button.connect('clicked', action);
 
         buttonInfo['button'] = button;
@@ -144,17 +138,15 @@ var Dialog = new Lang.Class({
         this.buttonLayout.add_actor(button);
 
         return button;
-    },
+    }
 
     clearButtons() {
         this.buttonLayout.destroy_all_children();
         this._buttonKeys = {};
-    },
+    }
 });
 
-var MessageDialogContent = new Lang.Class({
-    Name: 'MessageDialogContent',
-    Extends: St.BoxLayout,
+var MessageDialogContent = GObject.registerClass({
     Properties: {
         'icon': GObject.ParamSpec.object('icon', 'icon', 'icon',
                                          GObject.ParamFlags.READWRITE |
@@ -172,8 +164,8 @@ var MessageDialogContent = new Lang.Class({
                                          GObject.ParamFlags.READWRITE |
                                          GObject.ParamFlags.CONSTRUCT,
                                          null)
-    },
-
+    }
+}, class MessageDialogContent extends St.BoxLayout {
     _init(params) {
         this._icon = new St.Icon({ y_align: Clutter.ActorAlign.START });
         this._title = new St.Label({ style_class: 'headline' });
@@ -184,15 +176,13 @@ var MessageDialogContent = new Lang.Class({
             this[`_${prop}`].add_style_class_name(`message-dialog-${prop}`);
         });
 
-        let textProps = { ellipsize_mode: Pango.EllipsizeMode.NONE,
+        let textProps = { ellipsize: Pango.EllipsizeMode.NONE,
                           line_wrap: true };
-        Object.assign(this._subtitle.clutter_text, textProps);
-        Object.assign(this._body.clutter_text, textProps);
+        this._subtitle.clutter_text.set(textProps);
+        this._body.clutter_text.set(textProps);
 
-        if (!params.hasOwnProperty('style_class'))
-            params.style_class = 'message-dialog-main-layout';
-
-        this.parent(params);
+        let defaultParams = { style_class: 'message-dialog-main-layout' };
+        super._init(Object.assign(defaultParams, params));
 
         this.messageBox = new St.BoxLayout({ style_class: 'message-dialog-content',
                                              x_expand: true,
@@ -204,45 +194,51 @@ var MessageDialogContent = new Lang.Class({
 
         this.add_actor(this._icon);
         this.add_actor(this.messageBox);
-    },
+    }
 
     get icon() {
         return this._icon.gicon;
-    },
+    }
 
     get title() {
         return this._title.text;
-    },
+    }
 
     get subtitle() {
         return this._subtitle.text;
-    },
+    }
 
     get body() {
         return this._body.text;
-    },
+    }
 
     set icon(icon) {
-        Object.assign(this._icon, { gicon: icon, visible: icon != null });
+        this._icon.set({
+            gicon: icon,
+            visible: icon != null
+        });
         this.notify('icon');
-    },
+    }
 
     set title(title) {
         this._setLabel(this._title, 'title', title);
-    },
+    }
 
     set subtitle(subtitle) {
         this._setLabel(this._subtitle, 'subtitle', subtitle);
-    },
+    }
 
     set body(body) {
         this._setLabel(this._body, 'body', body);
-    },
+    }
 
     _setLabel(label, prop, value) {
-        Object.assign(label, { text: value || '', visible: value != null });
+        label.set({
+            text: value || '',
+            visible: value != null
+        });
         this.notify(prop);
-    },
+    }
 
     insertBeforeBody(actor) {
         this.messageBox.insert_child_below(actor, this._body);

@@ -1,12 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported getIBusManager */
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
+const { Gio, GLib, IBus } = imports.gi;
 const Signals = imports.signals;
 
-const IBus = imports.gi.IBus;
 const IBusCandidatePopup = imports.ui.ibusCandidatePopup;
 
 // Ensure runtime version matches
@@ -21,9 +18,9 @@ function _checkIBusVersion(requiredMajor, requiredMinor, requiredMicro) {
          IBus.MICRO_VERSION >= requiredMicro))
         return;
 
-    throw "Found IBus version %d.%d.%d but required is %d.%d.%d".
-        format(IBus.MAJOR_VERSION, IBus.MINOR_VERSION, IBus.MINOR_VERSION,
-               requiredMajor, requiredMinor, requiredMicro);
+    throw "Found IBus version %d.%d.%d but required is %d.%d.%d"
+        .format(IBus.MAJOR_VERSION, IBus.MINOR_VERSION, IBus.MINOR_VERSION,
+                requiredMajor, requiredMinor, requiredMicro);
 }
 
 function getIBusManager() {
@@ -32,21 +29,20 @@ function getIBusManager() {
     return _ibusManager;
 }
 
-var IBusManager = new Lang.Class({
-    Name: 'IBusManager',
-
-    // This is the longest we'll keep the keyboard frozen until an input
-    // source is active.
-    _MAX_INPUT_SOURCE_ACTIVATION_TIME: 4000, // ms
-    _PRELOAD_ENGINES_DELAY_TIME: 30, // sec
-
-    _init() {
+var IBusManager = class {
+    constructor() {
         IBus.init();
+
+        // This is the longest we'll keep the keyboard frozen until an input
+        // source is active.
+        this._MAX_INPUT_SOURCE_ACTIVATION_TIME = 4000; // ms
+        this._PRELOAD_ENGINES_DELAY_TIME = 30; // sec
+
 
         this._candidatePopup = new IBusCandidatePopup.CandidatePopup();
 
         this._panelService = null;
-        this._engines = {};
+        this._engines = new Map();
         this._ready = false;
         this._registerPropertiesId = 0;
         this._currentEngineName = null;
@@ -60,56 +56,81 @@ var IBusManager = new Lang.Class({
         this._ibus.connect('global-engine-changed', this._engineChanged.bind(this));
 
         this._spawn();
-    },
+    }
 
-    _spawn() {
+    _spawn(extraArgs = []) {
         try {
-            Gio.Subprocess.new(['ibus-daemon', '--xim', '--panel', 'disable'],
-                               Gio.SubprocessFlags.NONE);
-        } catch(e) {
-            log('Failed to launch ibus-daemon: ' + e.message);
+            let cmdLine = ['ibus-daemon', '--panel', 'disable', ...extraArgs];
+            Gio.Subprocess.new(cmdLine, Gio.SubprocessFlags.NONE);
+        } catch (e) {
+            log(`Failed to launch ibus-daemon: ${e.message}`);
         }
-    },
+    }
+
+    restartDaemon(extraArgs = []) {
+        this._spawn(['-r', ...extraArgs]);
+    }
 
     _clear() {
+        if (this._cancellable) {
+            this._cancellable.cancel();
+            this._cancellable = null;
+        }
+
+        if (this._preloadEnginesId) {
+            GLib.source_remove(this._preloadEnginesId);
+            this._preloadEnginesId = 0;
+        }
+
         if (this._panelService)
             this._panelService.destroy();
 
         this._panelService = null;
         this._candidatePopup.setPanelService(null);
-        this._engines = {};
+        this._engines.clear();
         this._ready = false;
         this._registerPropertiesId = 0;
         this._currentEngineName = null;
 
         this.emit('ready', false);
-
-        this._spawn();
-    },
+    }
 
     _onConnected() {
-        this._ibus.list_engines_async(-1, null, this._initEngines.bind(this));
+        this._cancellable = new Gio.Cancellable();
+        this._ibus.list_engines_async(-1, this._cancellable,
+            this._initEngines.bind(this));
         this._ibus.request_name_async(IBus.SERVICE_PANEL,
-                                      IBus.BusNameFlag.REPLACE_EXISTING,
-                                      -1, null,
-                                      this._initPanelService.bind(this));
-    },
+            IBus.BusNameFlag.REPLACE_EXISTING, -1, this._cancellable,
+            this._initPanelService.bind(this));
+    }
 
     _initEngines(ibus, result) {
-        let enginesList = this._ibus.list_engines_async_finish(result);
-        if (enginesList) {
+        try {
+            let enginesList = this._ibus.list_engines_async_finish(result);
             for (let i = 0; i < enginesList.length; ++i) {
                 let name = enginesList[i].get_name();
-                this._engines[name] = enginesList[i];
+                this._engines.set(name, enginesList[i]);
             }
             this._updateReadiness();
-        } else {
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+
+            logError(e);
             this._clear();
         }
-    },
+    }
 
     _initPanelService(ibus, result) {
-        let success = this._ibus.request_name_async_finish(result);
+        let success = false;
+        try {
+            success = !!this._ibus.request_name_async_finish(result);
+        } catch (e) {
+            if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+            logError(e);
+        }
+
         if (success) {
             this._panelService = new IBus.PanelService({ connection: this._ibus.get_connection(),
                                                          object_path: IBus.PATH_PANEL });
@@ -123,7 +144,7 @@ var IBusManager = new Lang.Class({
                 if (!GLib.str_has_suffix(path, '/InputContext_1'))
                     this.emit ('focus-in');
             });
-            this._panelService.connect('focus-out', () => { this.emit('focus-out'); });
+            this._panelService.connect('focus-out', () => this.emit('focus-out'));
 
             try {
                 // IBus versions older than 1.5.10 have a bug which
@@ -136,13 +157,13 @@ var IBusManager = new Lang.Class({
             } catch (e) {
             }
             // If an engine is already active we need to get its properties
-            this._ibus.get_global_engine_async(-1, null, (i, result) => {
+            this._ibus.get_global_engine_async(-1, this._cancellable, (_bus, result) => {
                 let engine;
                 try {
                     engine = this._ibus.get_global_engine_async_finish(result);
                     if (!engine)
                         return;
-                } catch(e) {
+                } catch (e) {
                     return;
                 }
                 this._engineChanged(this._ibus, engine.get_name());
@@ -151,13 +172,12 @@ var IBusManager = new Lang.Class({
         } else {
             this._clear();
         }
-    },
+    }
 
     _updateReadiness() {
-        this._ready = (Object.keys(this._engines).length > 0 &&
-                       this._panelService != null);
+        this._ready = this._engines.size > 0 && this._panelService != null;
         this.emit('ready', this._ready);
-    },
+    }
 
     _engineChanged(bus, engineName) {
         if (!this._ready)
@@ -178,26 +198,26 @@ var IBusManager = new Lang.Class({
 
                 this.emit('properties-registered', this._currentEngineName, props);
             });
-    },
+    }
 
     _updateProperty(panel, prop) {
         this.emit('property-updated', this._currentEngineName, prop);
-    },
+    }
 
     _setContentType(panel, purpose, hints) {
         this.emit('set-content-type', purpose, hints);
-    },
+    }
 
     activateProperty(key, state) {
         this._panelService.property_activate(key, state);
-    },
+    }
 
     getEngineDesc(id) {
-        if (!this._ready || !this._engines.hasOwnProperty(id))
+        if (!this._ready || !this._engines.has(id))
             return null;
 
-        return this._engines[id];
-    },
+        return this._engines.get(id);
+    }
 
     setEngine(id, callback) {
         // Send id even if id == this._currentEngineName
@@ -209,30 +229,42 @@ var IBusManager = new Lang.Class({
             return;
         }
 
-        this._ibus.set_global_engine_async(id, this._MAX_INPUT_SOURCE_ACTIVATION_TIME,
-                                           null, callback);
-    },
+        this._ibus.set_global_engine_async(id,
+            this._MAX_INPUT_SOURCE_ACTIVATION_TIME,
+            this._cancellable, (_bus, res) => {
+                try {
+                    this._ibus.set_global_engine_async_finish(res);
+                } catch (e) {
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        logError(e);
+                }
+                if (callback)
+                    callback();
+            });
+    }
 
     preloadEngines(ids) {
         if (!this._ibus || ids.length == 0)
             return;
 
         if (this._preloadEnginesId != 0) {
-            Mainloop.source_remove(this._preloadEnginesId);
+            GLib.source_remove(this._preloadEnginesId);
             this._preloadEnginesId = 0;
         }
 
         this._preloadEnginesId =
-            Mainloop.timeout_add_seconds(this._PRELOAD_ENGINES_DELAY_TIME,
-                                         () => {
-                                             this._ibus.preload_engines_async(
-                                                 ids,
-                                                 -1,
-                                                 null,
-                                                 null);
-                                             this._preloadEnginesId = 0;
-                                             return GLib.SOURCE_REMOVE;
-                                         });
-    },
-});
+            GLib.timeout_add_seconds(
+                GLib.PRIORITY_DEFAULT,
+                this._PRELOAD_ENGINES_DELAY_TIME,
+                () => {
+                    this._ibus.preload_engines_async(
+                        ids,
+                        -1,
+                        this._cancellable,
+                        null);
+                    this._preloadEnginesId = 0;
+                    return GLib.SOURCE_REMOVE;
+                });
+    }
+};
 Signals.addSignalMethods(IBusManager.prototype);

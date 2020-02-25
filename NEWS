@@ -1,23 +1,441 @@
-3.30.2
+3.34.3
 ======
+* polkitAgent: Fix confirming via keyboard when password-less [Jonas; #2066]
+* Misc. bug fixes and cleanups [Florian; !906]
+
+Contributors:
+  Jonas Dreßler, Florian Müllner
+
+3.34.2
+======
+* Fix unredirection after cancelled animations [Florian; #1788]
+* Use cached coordinates for window sorting in overview [Andrew; !763]
+* Include shadow in window screenshots [Robert; !762]
+* Use correct timezones for events [Milan, Florian; !806, #1895]
+* Adjust style of system menu action buttons [monday; !802]
+* Fix windows getting stuck on screen if closed while animating [Florian; !815]
+* Hide stopped spinner in top bar [Joonas; !834]
+* Reuse existing icons when updating the app picker grid [Georges; !841]
+* Fix not-responding dialog size when using geometry scaling [Jonas; !783]
+* Fix battery icon glitch in "100% but charging" case [Philip; !814]
+* Update window titles in app menu [Florian; #1830]
+* Improve modifier-less keyboard navigation of switcher popups [Florian; #1883]
+* Use better OSK layout fallback for unsupported variants [Florian; #1907]
+* Fix creating app folders with no pre-existing folders [Jonas; #1652]
+* Improve DND page switching in app picker [Florian, Jonas; #1693]
+* Show polkit confirmation dialog for users with no password [Joaquim; !829]
+* Fix interacting with applications when magnifier is enabled [Jonas; !754]
+* Tweak styling of notifications/media constrols [Joonas; !855, !865]
+* Fix disable command of gnome-extensions tool [Florian; #1946]
+* Enable clean session shutdown after gnome-shell failure [Benjamin; !858]
+* Also remove scaled keys when texture cache is cleared [Daniel; !567]
+* Don't show overflow indicator in switchers that fit screen [Florian; #1834]
+* Place launched applications into a systemd scope [Benjamin; !863]
+* Fix weather forecasts for automatic location when Weather is not sandboxed
+  [Florian; #1823]
+* Dismiss switcher popups when a system modal dialogs opens [Florian; #1536]
+* Misc. bug fixes and cleanups [Marco, Philip, Florian, cunidev, Jonas, Joonas;
+  !758, !749, !777, !811, #1884, !823, !840, !782, !847, #1836, !852, !851,
+  !788, #1916, !866, !884]
+
+Contributors:
+  Marco Trevisan (Treviño), Benjamin Berg, Philip Chimento, Milan Crha,
+  Jonas Dreßler, Joonas Henriksson, Robert Mader, Daniel García Moreno,
+  Florian Müllner, Georges Basile Stavracas Neto, Joaquim Rocha, Andrew Watson,
+  cunidev, monday
+
+Translators:
+  Stas Solovey [ru], Ricardo Silva Veloso [pt_BR], Yi-Jyun Pan [zh_TW],
+  Umarzuki Bin Mochlis Moktar [ms]
+
+3.34.1
+======
+* Fix "Frequent" view icons disappearing on hover [Jonas D.; #1502]
+* Allow editing app folder names [Georges, Marco; !675, !720]
+* Skip property transitions while hidden [Florian; !708]
+* Make menu animations more consistent [Florian, GB_2; #1595, !717]
+* Improve performance when enabling/disabling all extensions [Jonas D.; !96]
+* Fix extra icons appearing in "Frequent" view animation [Georges; !696]
+* Fix fading out desktop icons [Harshula; #1616]
+* Fix box-shadow glitch with prerendered resources [Daniel; #1186]
+* Fix accidentally skipped animations [Florian; #1572]
+* Fix screenshots and window animations when scaled [Robert; !728]
+* Don't leak NOTIFY_SOCKET environment variable to applications [Benjamin; !741]
+* Fix lock-up on X11 when ibus is already running on startup [Marco; #1712]
+* Fix screen dimming on idle [Marco; #1683]
+* Do not notify systemd before initialization is complete [Iain; !750]
+* Support SAE secrets in network agent [Lubomir; !751]
+* Fix various regressions with dynamic workspaces [Florian; #1497]
+* Fixed crashes [Florian, Marco; #1678, !746]
+* Misc. bug fixes and cleanups [Marco, Jonas D., Florian, Iain, Georges,
+  Jonas Å., Martin, Takao, Carlos; !700, !705, !709, !711, !707, #1538, !710,
+  !713, !699, !715, !718, !716, !719, !721, #1243, !725, !731, #1614, !683,
+  !732, !121, !735, !736, !740, #573, #1641, #1571]
+
+Contributors:
+  Marco Trevisan (Treviño), Benjamin Berg, Jonas Dreßler, Takao Fujiwara, GB_2,
+  Carlos Garnacho, Harshula Jayasuriya, Iain Lane, Robert Mader,
+  Daniel García Moreno, Florian Müllner, Georges Basile Stavracas Neto,
+  Lubomir Rintel, Martin Zurowietz, Jonas Ådahl
+
+Translators:
+  Rafael Fontenelle [pt_BR], Fran Dieguez [gl], Balázs Úr [hu],
+  Milo Casagrande [it], Daniel Șerbănescu [ro], Kukuh Syafaat [id],
+  Jiri Grönroos [fi], Daniel Mustieles [es], Piotr Drąg [pl],
+  Anders Jonsson [sv], Marek Černocký [cs], Jordi Mas [ca],
+  Aurimas Černius [lt], Christian Kirbach [de], Emin Tufan Çetin [tr],
+  Enrico Nicoletto [pt_BR], Danial Behzadi [fa], Марко Костић [sr],
+  Alexandre Franke [fr], Charles Monzat [fr], Kjartan Maraas [nb],
+  Ryuta Fujii [ja], Nathan Follens [nl], Dušan Kazik [sk], Fabio Tomat [fur],
+  Matej Urbančič [sl], Ask Hjorth Larsen [da], Alan Mortensen [da]
+
+3.34.0
+======
+* Handle startup/shutdown of misc X11 services [Carlos; !680]
+* Fix sound volume mute/unmute [Iain; #1557]
+* Correctly terminate pasted text [Carlos; #1570]
+
+Contributors:
+  Carlos Garnacho, Iain Lane
+
+Translators:
+  Tom Tryfonidis [el], Milo Casagrande [it], Ryuta Fujii [ja],
+  Efstathios Iosifidis [el], Carmen Bianca BAKKER [eo], Sabri Ünal [tr],
+  Dušan Kazik [sk], Balázs Meskó [hu], Claude Paroz [fr]
+
+3.33.92
+=======
+* Animate pointer a11y pie timer [Jonas D.; !688]
+* Fix restarting shell in systemd user session [Benjamin; !690]
+* Misc. bug fixes and cleanups [Florian, Jonas D., Jonas Å., Will;
+  !691, !689, !692, #1552, !698]
+
+Contributors:
+  Jonas Ådahl, Benjamin Berg, Piotr Drąg, Jonas Dreßler, Florian Müllner,
+  Will Thompson
+
+Translators:
+  Daniel Șerbănescu [ro], Danial Behzadi [fa], Daniel Mustieles [es],
+  Jiri Grönroos [fi], Asier Sarasua Garmendia [eu], Piotr Drąg [pl],
+  Rūdolfs Mazurs [lv], Anders Jonsson [sv], Fran Dieguez [gl], Jordi Mas [ca],
+  Matej Urbančič [sl], Zander Brown [en_GB], Ryuta Fujii [ja], Tim Sabsch [de],
+  Fabio Tomat [fur], Pawan Chitrakar [ne], A S Alam [pa], Changwoo Ryu [ko],
+  Aurimas Černius [lt], Daniel Rusek [cs], Marek Černocký [cs],
+  Kukuh Syafaat [id], Goran Vidović [hr], Rafael Fontenelle [pt_BR]
+
+3.33.91
+=======
+* Fix regression when adjusting brightness [Florian; #1500]
+* Fix pointer a11y timeout animation [Jonas D.; #1533]
+* Add new extensions CLI tool [Florian; #1234]
+* Only track top-level windows [Carlos; #556]
+* Misc. bug fixes and cleanups [Jonas D., Jonas Å., Piotr, Florian;
+  !678, !682, !686]
+
+Contributors:
+  Jonas Ådahl, Jonas Dreßler, Carlos Garnacho, Florian Müllner
+
+Translators:
+  Asier Sarasua Garmendia [eu], Sveinn í Felli [is], Anders Jonsson [sv],
+  Jordi Mas [ca], Kukuh Syafaat [id], Florentina Mușat [ro], Jiri Grönroos [fi],
+  Aurimas Černius [lt], Daniel Mustieles [es], Piotr Drąg [pl],
+  Danial Behzadi [fa]
+
+3.33.90
+=======
+* Implement DND app picker folder management [Georges; !643, !645, !664, !671]
+* Make Clocks/Weather integration work with sandboxed apps [Florian; #1158]
+* Support startup via systemd user instance [Benjamin; !507]
+* Replace Tweener with Clutter animations [Florian; !663, !22, !666, !668, !669]
+* Minimize travel distance in overview animation [Sergey; !267]
+* Rescan icon theme when installed apps changed [Georges; !661]
+* Consistently animate new window actions [Jonas; !662, !673]
+* Misc. bug fixes and cleanups [Florian, Daniel, Ray, Bastien, Jonas, Niels,
+  Marco, Georges; !635, !636, !637, #1462, !628, !640, !641, !627, !644, !647,
+  !385, #1474, !651, #1144, !646, !653, !652, !655, #1482, !656, $654, !665,
+  !667, !670, #1357, !672, !657, #1507, !674, !677]
+
+Contributors:
+  Benjamin Berg, Sergey Bugaev, Jonas Dreßler, Niels De Graef, Florian Müllner,
+  Georges Basile Stavracas Neto, Bastien Nocera, Ray Strode,
+  Marco Trevisan (Treviño), verdre, Daniel van Vugt
+
+Translators:
+  Asier Sarasua Garmendia [eu], Rafael Fontenelle [pt_BR],
+  Kristjan SCHMIDT [eo], Jor Teron [mjw], Daniel Mustieles [es],
+  Kukuh Syafaat [id], Jordi Mas [ca], Fabio Tomat [fur], Daniel Șerbănescu [ro],
+  Anders Jonsson [sv]
+
+3.33.4
+======
+* Fix unintentional interference between gestures [Jonas; !598]
+* Fix unintentional loop while polkit dialog is active [Ray; !602]
+* Fix alt-tab icon size on HiDPI [Jonas; !587]
+* Style fixes and improvements [Frederik, Jakub; !610, #1446, #1449]
+* Fix style updates for non-background CSS properties [Florian; #1212]
+* Fix cursor visibility in screen recordings [Illya; #1208]
+* Add option for disabling the hot corner [Florian; #688320]
+* Use more fine-grained levels in battery indicator [Florian; !561, #1442]
+* Fix the calculation of the maximum number of app search results [Jonas; !110]
+* Handle horizontal workspace layout with gestures/animations [Florian; !575]
+* Improve handling of session mode extensions [Florian, Didier; #789852]
+* Misc. bug fixes and cleanups [Jonas, Florian, Sonny, Carlos, Mario, Benjamin,
+  Marco, Ting-Wei; !599, !600, !591, !606, !152, !607, !604, !495, !608, !611,
+  !614, !612, !615, !618, #369, !620, #774, !621, !616, #1065, !609, !626,
+  !491, !631, !632, !633, #1457]
+
+Contributors:
+  Benjamin Berg, Jonas Dreßler, Frederik Feichtmeier, Carlos Garnacho,
+  Illya Klymov, Ting-Wei Lan, Florian Müllner, Sonny Piers, Mario Sanchez Prada,
+  Didier Roche, Jakub Steiner, Ray Strode, Jor Teron, Marco Trevisan (Treviño)
+
+Translators:
+  Jordi Mas [ca], Jor Teron [mjw]
+
+3.33.3
+======
+* Prepare for optional X11 [Carlos; !378]
+* Fix opening window menu [Marco; !557]
+* Reload search providers when installed applications change [Cosimo; !562]
+* Implement locate-pointer accessibility feature [Olivier; #981]
+* Allow to disable window menus via session mode [Cosimo; !569]
+* Implement mouse accessibility [Olivier; !474]
+* Call GDM's RegisterSession() after startup [Iain; !570]
+* Fix extended keys popups being hidden by on-screen keyboard [Marco; !583]
+* Fix top bar being hidden by lock screen [Jonas; !571]
+* Update theme to better match GTK's Adwaita [Frederik; #841]
+* Set up GJS profiler when GJS_TRACE_FD is set [Christian; !573]
+* Misc. bug fixes and cleanups [Jonas, Cosimo, Robert, Florian, Marco, Simon,
+  Laurent, Niels, Will; !551, !555, !464, #1333, !565, !572, !568, !558, #1205,
+  #1336, !579, !576, #1392, !582, !586, #1406, #1351]
+
+Contributors:
+  Laurent Bigonville, Cosimo Cecchi, Piotr Drąg, Jonas Dreßler,
+  Frederik Feichtmeier, Olivier Fourdan, Carlos Garnacho, Niels De Graef,
+  Christian Hergert, Iain Lane, Robert Mader, Florian Müllner, Simon Schampijer,
+  Jakub Steiner, Will Thompson, Marco Trevisan (Treviño)
+
+Translators:
+  Kukuh Syafaat [id], Balázs Meskó [hu], Daniel Mustieles [es],
+  Fabio Tomat [fur], Nathan Follens [nl], Goran Vidović [hr], Jordi Mas [ca]
+
+3.33.2
+======
+* Fix keeping actors visible in scrollviews [Marco; #1061]
+* Move some chrome above popup windows [Jonas D.; !358]
+* Include 'sandboxed-app-id' in winodw introspection info [Florian; #1289]
+* Port to libecal-2.0 [Milan; !501]
+* Support TCRYPT in mount password dialog [segfault; !126]
+* Misc. bug fixes and cleanups [Florian, Marco, Veerasamy; !517, #745, !499,
+  !510, !515, !546, !549]
+
+Contributors:
+  Cosimo Cecchi, Milan Crha, Jonas Dreßler, Florian Müllner, segfault,
+  Veerasamy Sevagen, Marco Trevisan (Treviño)
+
+Translators:
+  Daniel Mustieles [es]
+
+3.33.1
+======
+* Refine the app menu [Florian; #968]
+* Refine window preview style [Feichtmeier; !461]
+* Only emit ::style-changed on actual changes [Carlos; #1153]
+* Disable emoji on-screen keyboard support on X11 [Florian; #1172]
+* Fix tablet button mapping overlay [Carlos; #1220]
+* Don't crash for world clock locations with no timezone [Florian; #1062]
+* Don't leak old on-screen keyboard layout groups [Carlos; mutter#556]
+* Fix ellipsization in dialog subtitles/bodies [Marco; !531]
+* Fix glitch of fullscreen window in workspace switch animation [Jonas D.; !322]
+* Fix distortion of some image contents [Florian; !525]
+* Allow dragging unfocused tiled/maximized windows from top bar [Dylan; #679290]
+* Handle network interface name changes [Fabrice; !534]
+* Avoid unnecessary style changes when computing :first/:last-child
+  [Florian; !529]
+* Misc. bug fixes and cleanups [Florian, Marco, Robert, Georges, Carlos, Simon,
+  Jonas D.; !487, !441, !502, !503, !504, !506, #822, !551, !512, !509, !511,
+  #1054, !524, #1065, !331, !540]
+
+Contributors:
+  Fabrice Bellet, Jonas Dreßler, Feichtmeier, Carlos Garnacho, Robert Mader,
+  Dylan McCall, Simon McVittie, Florian Müllner, Georges Basile Stavracas Neto,
+  Marco Trevisan (Treviño)
+
+Translators:
+  Daniel Mustieles [es], Kukuh Syafaat [id], Fabio Tomat [fur],
+  Carmen Bianca BAKKER [eo], Dingzhong Chen [zh_CN], Tim Sabsch [de]
+
+3.32.1
+======
+* Fix avatar scaling on login screen [Florian; #1024]
+* Fix distortion of desktop zoom [Florian; #646]
+* Fix mouse cursor visibility when using desktop zoom [Florian, Marco; #1020]
+* Fix screen dimming after wake-up on lock screen [Xiaoguang; #900]
+* Fix Alt+Esc switcher [Florian; #1064]
+* Respect struts for popover placement [Andrea; #1102]
+* Fix app icons updates after theme changes [Florian; #1117]
+* Fix desktop zoom after resolution changes [Marco; #1120]
+* Implement stick-to-finger workspace switch overview gestures [Florian; #516]
+* Make World Clocks offsets relative to local time [Florian; #1157]
+* Fix top app icon disappearing from dash [Florian; #1053]
+* Update switch style to match new Adwaita [Jakub; !496]
+* Ensure CSS units are pixel-aligned when scaling is used [Carlos; #91]
+* Misc. bug fixes and cleanups [Florian, Jakub, Robert, Alex, Carlos, Phil,
+  Marco, Benjamin, AsciiWolf, Ray, verdre; !444, #1016, #1018, !449, #1036,
+  !455, #1094, !440, #1023, #624, #1017, !476, !473, !480, #1130, !485, !481,
+  !490, !489, #1151, !435, #1160, !482, #1150, #1166, !384]
+
+Contributors:
+  AsciiWolf, Andrea Azzarone, Benjamin Berg, Carlos Garnacho, Victor Ibragimov,
+  Robert Mader, Alex Monday, Florian Müllner, Jakub Steiner, Ray Strode,
+  Marco Trevisan (Treviño), verdre, Xiaoguang Wang, Phil Wyett
+
+Translators:
+  Victor Ibragimov [tg, af, et, ja], Bruce Cowan [en_GB], Piotr Drąg [tg],
+  Charles Monzat [fr], Khaled Hosny [ar], Goran Vidović [hr],
+  Cheng-Chia Tseng [zh_TW], Carmen Bianca BAKKER [eo], Daniel Mustieles [es],
+  Dušan Kazik [sk]
+
+3.32.0
+======
+* Fix sizing issues in on-screen-keyboard emoji panel [Carlos; !439]
+* Fix test linker failure on Debian/Ubuntu [Iain; !442]
+* Avoid assertion when sizing fallback app icons from CSS [Florian; #1027]
+* Fix mis-sized menu arrows after texture cache changes [Florian; !452]
+
+Contributors:
+  Carlos Garnacho, Iain Lane, Florian Müllner
+
+Translators:
+  Gábor Kelemen [hu], Victor Ibragimov [tg], Ryuta Fujii [ja], Piotr Drąg [af,
+  tg], Mart Raudsepp [et]
+
+3.31.92
+=======
+* Fix visual glitch in submenus [Alex; #987]
+* Support fractional scaling [Jonas, Marco; #765011, !5]
+* Only consider visible children for :first-child/:last-child [Florian; !312]
+* Hide trailing separator in search results [verdre; !311]
+* Remember choice in inhibit-shortcuts dialogue [Olivier; !382]
+* Don't toggle on-screen keyboard on every focus change [Carlos; !397]
+* Fix legacy tray icons not responding to events on wayland [Florian; #191]
+* Fix generating French OSK layout [Florian; #997]
+* Use borderless round user images [Florian; #811]
+* Misc. bug fixes and cleanups [Andrea, Robert, Florian, Marco, Niels,
+  Benjamin; !414, !417, !420, #996, !408, !422, !425, #1006, !427, !315,
+  #989, !430, !431, !432, #1015, !429, !423, !419, !434]
+
+Contributors:
+  Jonas Ådahl, Alan, Andrea Azzarone, Benjamin Berg, Olivier Fourdan,
+  Carlos Garnacho, Niels De Graef, Robert Mader, Alex Monday, Florian Müllner,
+  Marco Trevisan (Treviño), verdre
+
+Translators:
+  Carmen Bianca BAKKER [eo], Asier Sarasua Garmendia [eu], Stas Solovey [ru],
+  Changwoo Ryu [ko], Julien Humbert [fr], Milo Casagrande [it],
+  Марко Костић [sr], Ask Hjorth Larsen [da], Kukuh Syafaat [id],
+  Daniel Șerbănescu [ro], Bernd Homuth [de], Trần Ngọc Quân [vi],
+  Nathan Follens [nl], Rūdolfs Mazurs [lv], Aurimas Černius [lt]
+
+3.31.91
+=======
+* Don't close on-screen-keyboard's language menu on hover [Florian; #171]
+* Don't let unfullscreen gesture interfere with top bar taps [Jonas D.; #552]
+* Always use symbolic user icon in system menu [Florian; #957]
+* Add flags parameter in GrabAccelerators API [Andrea; #68]
+* Misc. bug fixes and cleanups [Florian, Jonas A.; !399, !398, !400, !402,
+  !407, !410, !411]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Arnaud Bonatti, Jonas Dreßler, Florian Müllner
+
+Translators:
+  Jordi Mas [ca], Ryuta Fujii [ja], Marek Cernocky [cs], Fran Dieguez [gl],
+  Jiri Grönroos [fi], Serdar Sağlam [tr], Anders Jonsson [sv],
+  Matej Urbančič [sl], Gun Chleoc [gd], Kukuh Syafaat [id],
+  Baurzhan Muftakhidinov [kk], Alan Mortensen [da], Rafael Fontenelle [pt_BR],
+  Sveinn í Felli [is]
+
+3.31.90
+=======
+* Fix input methods after ibus restarts [Takao; #295]
+* Refresh world clocks and weather sections [Florian; #262]
+* Port to ES6 classes (update your extensions!) [Florian; !361]
+* networkAgent: Advise users when WPS support is available [Lubomir; !329]
+* Performance improvements [Carlos; #832, #815]
+* Fix drag-and-drop with wacom pens [Carlos; #540]
+* Fix CAPS LOCK indication on wayland [Carlos; #762881]
+* Show details of non-sensitive notifications on lock screen [Philip; #726]
+* Refine extension-prefs' error UI [Florian; !193]
+* Add switch-to-application-n keybindings [Florian; #648000]
+* Remove top bar translucency [Florian; #408]
+* Support emojis and keypads in on-screen keyboard [Carlos; #675]
+* Don't allow popups to re-enable keyboard shortcuts on lock screen
+  (CVE-2019-3820) [Florian, Ray; #851]
+* Replace app menu [Florian; #624]
+* Include commonly copied+pasted extension helpers [Florian; !150]
+* Misc. bug fixes and cleanups [Florian, Daniel, Philip, Sergio, Pascal,
+  Georges, verdre, Carlos, Christopher; #780, #909, !316, !308, !309, #915,
+  !350, !362, !357, !365, !366, !283, !367, #942, !371, !373, !374, !343,
+  !375, !292, !317, !377, !379, !346, !383, #953, !388]
+
+Contributors:
+  Sergio Costas, Christopher Davis, Bilal Elmoussaoui, Takao Fujiwara,
+  Carlos Garnacho, Niels De Graef, Christian Kellner, Ignat Loskutov,
+  Florian Müllner, Georges Basile Stavracas Neto, Pascal Nowack, Lubomir Rintel,
+  Jakub Steiner, Ray Strode, verdre, Daniel van Vugt, Philip Withnall
+
+Translators:
+  Daniel Mustieles [es], Carmen Bianca BAKKER [eo], Charles Monzat [fr],
+  Pieter Schalk Schoeman [af], Jordi Mas [ca], Matej Urbančič [sl],
+  Fran Dieguez [gl], Balázs Úr [hu], A S Alam [pa], Fabio Tomat [fur],
+  Aurimas Černius [lt], Piotr Drąg [pl], Marek Cernocky [cs], Ryuta Fujii [ja]
+
+3.31.4
+======
+* Improve icon grid performance [Daniel; #174]
+* Remove browser plugin [Michael; #766776]
+* Add DBus API for introspecting the application state [Jonas, Olivier; !326]
+* Always allow leaving the overview via the hot-corner [Pascal; #429]
+* Misc. bug fixes [Florian, Jasper, Andrea, Sam, Dani, Cosimo, Jonas, Carlos;
+  #643595, #673767, !293, #783, #781, !298, !297, #782, !301, !314, !305, #799,
+  #632, !327]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Michael Catanzaro, Cosimo Cecchi, daniruiz,
+  Olivier Fourdan, Carlos Garnacho, Sam Hewitt, Andre Klapper, Florian Müllner,
+  Pascal Nowack, Jasper St. Pierre, RyuzakiKK, Marco Trevisan (Treviño),
+  João Paulo Rechi Vita, Daniel van Vugt
+
+Translators:
+  Kristjan SCHMIDT [eo], Matej Urbančič [sl], Daniel Mustieles [es],
+  Fabio Tomat [fur], Emin Tufan Çetin [tr], Anders Jonsson [sv],
+  Ryuta Fujii [ja]
+
+3.31.2
+======
+* Port away from and remove ShellGenericContainer [Georges; !153]
 * popupMenu: Fix keyboard activation when numlock is active [Andrea; #550]
 * Do not block all shortcuts while app folders are expanded [Florian; #648]
 * Fix regression in handling new input sources [Carlos; #691]
+* Reask password after udisk errors for no/wrong passwords [Sebastian; #640]
 * Improve performance of app icon animations [Daniel; !253, !261]
-* Respect natural-scroll setting for workspace swipe gesture [Erik; #516]
+* Avoid focus changes when updating keyboard options [Takao; #391]
 * notifications: Support icon theme names in 'image-path' hint [Marco; !285]
+* Respect natural-scroll setting for workspace swipe gesture [Erik; #516]
 * Confine window preview titles to workspace area [Florian; !214]
-* Misc. bug fixes [Florian, Cosimo; #602, #693, #768, #430, !286]
+* Misc. bug fixes [Florian, Carmen, Georges, Cosimo, Carlos; #602, #693,
+  #666, #647, !66, #768, #430, !286, !258, !287, gtk#1447]
 
 Contributors:
-  Andrea Azzarone, Cosimo Cecchi, Erik Duxstad, Carlos Garnacho,
-  Florian Müllner, Didier Roche, Marco Trevisan (Treviño), verdre,
-  Daniel van Vugt
+  Andrea Azzarone, Carmen Bianca Bakker, Cosimo Cecchi, Sergio Costas,
+  Erik Duxstad, Takao Fujiwara, Carlos Garnacho, Florian Müllner,
+  Georges Basile Stavracas Neto, Sebastian Pinnau, Didier Roche, Jakub Steiner,
+  Marco Trevisan (Treviño), verdre, Daniel van Vugt
 
 Translators:
-  Rūdolfs Mazurs [lv], Kristjan SCHMIDT [eo], Milo Casagrande [it],
-  Dušan Kazik [sk], gogo [hr], Anish Sheela [ml], Rafael Fontenelle [pt_BR],
-  Daniel Mustieles [es]
+  Kristjan SCHMIDT [eo], Dušan Kazik [sk], Matej Urbančič [sl],
+  Anish Sheela [ml], Rafael Fontenelle [pt_BR], Daniel Mustieles [es]
 
 3.30.1
 ======

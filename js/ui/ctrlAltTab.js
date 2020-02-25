@@ -1,19 +1,13 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported CtrlAltTabManager */
 
-const Clutter = imports.gi.Clutter;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
+const { Clutter, GObject, Meta, Shell, St } = imports.gi;
 
 const Main = imports.ui.main;
 const SwitcherPopup = imports.ui.switcherPopup;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 
 var POPUP_APPICON_SIZE = 96;
-var POPUP_FADE_TIME = 0.1; // seconds
 
 var SortGroup = {
     TOP:    0,
@@ -21,15 +15,13 @@ var SortGroup = {
     BOTTOM: 2
 };
 
-var CtrlAltTabManager = new Lang.Class({
-    Name: 'CtrlAltTabManager',
-
-    _init() {
+var CtrlAltTabManager = class CtrlAltTabManager {
+    constructor() {
         this._items = [];
         this.addGroup(global.window_group, _("Windows"),
                       'focus-windows-symbolic', { sortGroup: SortGroup.TOP,
                                                   focusCallback: this._focusWindows.bind(this) });
-    },
+    }
 
     addGroup(root, name, icon, params) {
         let item = Params.parse(params, { sortGroup: SortGroup.MIDDLE,
@@ -41,10 +33,10 @@ var CtrlAltTabManager = new Lang.Class({
         item.iconName = icon;
 
         this._items.push(item);
-        root.connect('destroy', () => { this.removeGroup(root); });
+        root.connect('destroy', () => this.removeGroup(root));
         if (root instanceof St.Widget)
             global.focus_manager.add_group(root);
-    },
+    }
 
     removeGroup(root) {
         if (root instanceof St.Widget)
@@ -55,14 +47,14 @@ var CtrlAltTabManager = new Lang.Class({
                 return;
             }
         }
-    },
+    }
 
     focusGroup(item, timestamp) {
         if (item.focusCallback)
             item.focusCallback(timestamp);
         else
-            item.root.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false);
-    },
+            item.root.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
+    }
 
     // Sort the items into a consistent order; panel first, tray last,
     // and everything else in between, sorted by X coordinate, so that
@@ -72,12 +64,11 @@ var CtrlAltTabManager = new Lang.Class({
         if (a.sortGroup != b.sortGroup)
             return a.sortGroup - b.sortGroup;
 
-        let ax, bx, y;
-        [ax, y] = a.proxy.get_transformed_position();
-        [bx, y] = b.proxy.get_transformed_position();
+        let [ax] = a.proxy.get_transformed_position();
+        let [bx] = b.proxy.get_transformed_position();
 
         return ax - bx;
-    },
+    }
 
     popup(backward, binding, mask) {
         // Start with the set of focus groups that are currently mapped
@@ -102,7 +93,9 @@ var CtrlAltTabManager = new Lang.Class({
                     if (app)
                         icon = app.create_icon_texture(POPUP_APPICON_SIZE);
                     else
-                        icon = textureCache.bind_cairo_surface_property(windows[i], 'icon');
+                        icon = textureCache.bind_cairo_surface_property(windows[i],
+                                                                        'icon',
+                                                                        POPUP_APPICON_SIZE);
                 }
 
                 items.push({ name: windows[i].title,
@@ -125,27 +118,25 @@ var CtrlAltTabManager = new Lang.Class({
             this._popup = new CtrlAltTabPopup(items);
             this._popup.show(backward, binding, mask);
 
-            this._popup.actor.connect('destroy',
-                                      () => {
-                                          this._popup = null;
-                                      });
+            this._popup.connect('destroy',
+                                () => {
+                                    this._popup = null;
+                                });
         }
-    },
+    }
 
     _focusWindows(timestamp) {
         global.display.focus_default_window(timestamp);
     }
-});
+};
 
-var CtrlAltTabPopup = new Lang.Class({
-    Name: 'CtrlAltTabPopup',
-    Extends: SwitcherPopup.SwitcherPopup,
-
+var CtrlAltTabPopup = GObject.registerClass(
+class CtrlAltTabPopup extends SwitcherPopup.SwitcherPopup {
     _init(items) {
-        this.parent(items);
+        super._init(items);
 
         this._switcherList = new CtrlAltTabSwitcher(this._items);
-    },
+    }
 
     _keyPressHandler(keysym, action) {
         if (action == Meta.KeyBindingAction.SWITCH_PANELS)
@@ -160,24 +151,22 @@ var CtrlAltTabPopup = new Lang.Class({
             return Clutter.EVENT_PROPAGATE;
 
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _finish(time) {
-        this.parent(time);
+        super._finish(time);
         Main.ctrlAltTabManager.focusGroup(this._items[this._selectedIndex], time);
-    },
+    }
 });
 
-var CtrlAltTabSwitcher = new Lang.Class({
-    Name: 'CtrlAltTabSwitcher',
-    Extends: SwitcherPopup.SwitcherList,
-
+var CtrlAltTabSwitcher = GObject.registerClass(
+class CtrlAltTabSwitcher extends SwitcherPopup.SwitcherList {
     _init(items) {
-        this.parent(true);
+        super._init(true);
 
         for (let i = 0; i < items.length; i++)
             this._addIcon(items[i]);
-    },
+    }
 
     _addIcon(item) {
         let box = new St.BoxLayout({ style_class: 'alt-tab-app',

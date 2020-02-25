@@ -1,26 +1,18 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Dash */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
+const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
-const Mainloop = imports.mainloop;
 
 const AppDisplay = imports.ui.appDisplay;
 const AppFavorites = imports.ui.appFavorites;
 const DND = imports.ui.dnd;
 const IconGrid = imports.ui.iconGrid;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
-const Workspace = imports.ui.workspace;
 
-var DASH_ANIMATION_TIME = 0.2;
-var DASH_ITEM_LABEL_SHOW_TIME = 0.15;
-var DASH_ITEM_LABEL_HIDE_TIME = 0.1;
+var DASH_ANIMATION_TIME = 200;
+var DASH_ITEM_LABEL_SHOW_TIME = 150;
+var DASH_ITEM_LABEL_HIDE_TIME = 100;
 var DASH_ITEM_HOVER_TIMEOUT = 300;
 
 function getAppFromSource(source) {
@@ -31,78 +23,77 @@ function getAppFromSource(source) {
     }
 }
 
+var DashIcon = class DashIcon extends AppDisplay.AppIcon {
+    constructor(app) {
+        super(app, {
+            setSizeManually: true,
+            showLabel: false
+        });
+    }
+
+    // Disable all DnD methods
+    _onDragBegin() {
+    }
+
+    _onDragEnd() {
+    }
+
+    handleDragOver() {
+        return DND.DragMotionResult.CONTINUE;
+    }
+
+    acceptDrop() {
+        return false;
+    }
+};
+
 // A container like StBin, but taking the child's scale into account
 // when requesting a size
-var DashItemContainer = new Lang.Class({
-    Name: 'DashItemContainer',
-    Extends: St.Widget,
-
+var DashItemContainer = GObject.registerClass(
+class DashItemContainer extends St.Widget {
     _init() {
-        this.parent({ style_class: 'dash-item-container' });
+        super._init({ style_class: 'dash-item-container',
+                      pivot_point: new Clutter.Point({ x: .5, y: .5 }),
+                      scale_x: 0,
+                      scale_y: 0,
+                      opacity: 0,
+                      x_expand: true,
+                      x_align: Clutter.ActorAlign.CENTER });
 
         this._labelText = "";
-        this.label = new St.Label({ style_class: 'dash-label'});
+        this.label = new St.Label({ style_class: 'dash-label' });
         this.label.hide();
         Main.layoutManager.addChrome(this.label);
         this.label_actor = this.label;
 
         this.child = null;
-        this._childScale = 0;
-        this._childOpacity = 0;
         this.animatingOut = false;
 
+        this.connect('notify::scale-x', () => this.queue_relayout());
+        this.connect('notify::scale-y', () => this.queue_relayout());
+
         this.connect('destroy', () => {
+            if (this.child != null)
+                this.child.destroy();
             this.label.destroy();
         });
-    },
-
-    vfunc_allocate(box, flags) {
-        this.set_allocation(box, flags);
-
-        if (this.child == null)
-            return;
-
-        let availWidth = box.x2 - box.x1;
-        let availHeight = box.y2 - box.y1;
-        let [minChildWidth, minChildHeight, natChildWidth, natChildHeight] =
-            this.child.get_preferred_size();
-        let [childScaleX, childScaleY] = this.child.get_scale();
-
-        let childWidth = Math.min(natChildWidth * childScaleX, availWidth);
-        let childHeight = Math.min(natChildHeight * childScaleY, availHeight);
-
-        let childBox = new Clutter.ActorBox();
-        childBox.x1 = (availWidth - childWidth) / 2;
-        childBox.y1 = (availHeight - childHeight) / 2;
-        childBox.x2 = childBox.x1 + childWidth;
-        childBox.y2 = childBox.y1 + childHeight;
-
-        this.child.allocate(childBox, flags);
-    },
+    }
 
     vfunc_get_preferred_height(forWidth) {
         let themeNode = this.get_theme_node();
-
-        if (this.child == null)
-            return [0, 0];
-
         forWidth = themeNode.adjust_for_width(forWidth);
-        let [minHeight, natHeight] = this.child.get_preferred_height(forWidth);
-        return themeNode.adjust_preferred_height(minHeight * this.child.scale_y,
-                                                 natHeight * this.child.scale_y);
-    },
+        let [minHeight, natHeight] = super.vfunc_get_preferred_height(forWidth);
+        return themeNode.adjust_preferred_height(minHeight * this.scale_y,
+                                                 natHeight * this.scale_y);
+    }
 
     vfunc_get_preferred_width(forHeight) {
         let themeNode = this.get_theme_node();
-
-        if (this.child == null)
-            return [0, 0];
-
         forHeight = themeNode.adjust_for_height(forHeight);
-        let [minWidth, natWidth] = this.child.get_preferred_width(forHeight);
-        return themeNode.adjust_preferred_width(minWidth * this.child.scale_y,
-                                                natWidth * this.child.scale_y);
-    },
+        let [minWidth, natWidth] = super.vfunc_get_preferred_width(forHeight);
+        return themeNode.adjust_preferred_width(minWidth * this.scale_x,
+                                                natWidth * this.scale_x);
+    }
 
     showLabel() {
         if (!this._labelText)
@@ -117,7 +108,7 @@ var DashItemContainer = new Lang.Class({
         let itemHeight = this.allocation.y2 - this.allocation.y1;
 
         let labelHeight = this.label.get_height();
-        let yOffset = Math.floor((itemHeight - labelHeight) / 2)
+        let yOffset = Math.floor((itemHeight - labelHeight) / 2);
 
         let y = stageY + yOffset;
 
@@ -131,28 +122,26 @@ var DashItemContainer = new Lang.Class({
             x = stageX + this.get_width() + xOffset;
 
         this.label.set_position(x, y);
-        Tweener.addTween(this.label,
-                         { opacity: 255,
-                           time: DASH_ITEM_LABEL_SHOW_TIME,
-                           transition: 'easeOutQuad',
-                         });
-    },
+        this.label.ease({
+            opacity: 255,
+            duration: DASH_ITEM_LABEL_SHOW_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
+    }
 
     setLabelText(text) {
         this._labelText = text;
         this.child.accessible_name = text;
-    },
+    }
 
     hideLabel() {
-        Tweener.addTween(this.label,
-                         { opacity: 0,
-                           time: DASH_ITEM_LABEL_HIDE_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this.label.hide();
-                           }
-                         });
-    },
+        this.label.ease({
+            opacity: 0,
+            duration: DASH_ITEM_LABEL_HIDE_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.label.hide()
+        });
+    }
 
     setChild(actor) {
         if (this.child == actor)
@@ -162,24 +151,21 @@ var DashItemContainer = new Lang.Class({
 
         this.child = actor;
         this.add_actor(this.child);
-
-        this.child.set_scale_with_gravity(this._childScale, this._childScale,
-                                          Clutter.Gravity.CENTER);
-        this.child.set_opacity(this._childOpacity);
-    },
+    }
 
     show(animate) {
         if (this.child == null)
             return;
 
         let time = animate ? DASH_ANIMATION_TIME : 0;
-        Tweener.addTween(this,
-                         { childScale: 1.0,
-                           childOpacity: 255,
-                           time: time,
-                           transition: 'easeOutQuad'
-                         });
-    },
+        this.ease({
+            scale_x: 1,
+            scale_y: 1,
+            opacity: 255,
+            duration: time,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
+    }
 
     animateOutAndDestroy() {
         this.label.hide();
@@ -190,53 +176,21 @@ var DashItemContainer = new Lang.Class({
         }
 
         this.animatingOut = true;
-        Tweener.addTween(this,
-                         { childScale: 0.0,
-                           childOpacity: 0,
-                           time: DASH_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: () => {
-                               this.destroy();
-                           }
-                         });
-    },
-
-    set childScale(scale) {
-        this._childScale = scale;
-
-        if (this.child == null)
-            return;
-
-        this.child.set_scale_with_gravity(scale, scale,
-                                          Clutter.Gravity.CENTER);
-        this.queue_relayout();
-    },
-
-    get childScale() {
-        return this._childScale;
-    },
-
-    set childOpacity(opacity) {
-        this._childOpacity = opacity;
-
-        if (this.child == null)
-            return;
-
-        this.child.set_opacity(opacity);
-        this.queue_redraw();
-    },
-
-    get childOpacity() {
-        return this._childOpacity;
+        this.ease({
+            scale_x: 0,
+            scale_y: 0,
+            opacity: 0,
+            duration: DASH_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this.destroy()
+        });
     }
 });
 
-var ShowAppsIcon = new Lang.Class({
-    Name: 'ShowAppsIcon',
-    Extends: DashItemContainer,
-
+var ShowAppsIcon = GObject.registerClass(
+class ShowAppsIcon extends DashItemContainer {
     _init() {
-        this.parent();
+        super._init();
 
         this.toggleButton = new St.Button({ style_class: 'show-apps',
                                             track_hover: true,
@@ -244,15 +198,15 @@ var ShowAppsIcon = new Lang.Class({
                                             toggle_mode: true });
         this._iconActor = null;
         this.icon = new IconGrid.BaseIcon(_("Show Applications"),
-                                           { setSizeManually: true,
-                                             showLabel: false,
-                                             createIcon: this._createIcon.bind(this) });
-        this.toggleButton.add_actor(this.icon.actor);
+                                          { setSizeManually: true,
+                                            showLabel: false,
+                                            createIcon: this._createIcon.bind(this) });
+        this.toggleButton.add_actor(this.icon);
         this.toggleButton._delegate = this;
 
         this.setChild(this.toggleButton);
         this.setDragApp(null);
-    },
+    }
 
     _createIcon(size) {
         this._iconActor = new St.Icon({ icon_name: 'view-app-grid-symbolic',
@@ -260,7 +214,7 @@ var ShowAppsIcon = new Lang.Class({
                                         style_class: 'show-apps-icon',
                                         track_hover: true });
         return this._iconActor;
-    },
+    }
 
     _canRemoveApp(app) {
         if (app == null)
@@ -272,7 +226,7 @@ var ShowAppsIcon = new Lang.Class({
         let id = app.get_id();
         let isFavorite = AppFavorites.getAppFavorites().isFavorite(id);
         return isFavorite;
-    },
+    }
 
     setDragApp(app) {
         let canRemove = this._canRemoveApp(app);
@@ -285,16 +239,16 @@ var ShowAppsIcon = new Lang.Class({
             this.setLabelText(_("Remove from Favorites"));
         else
             this.setLabelText(_("Show Applications"));
-    },
+    }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (!this._canRemoveApp(getAppFromSource(source)))
             return DND.DragMotionResult.NO_DROP;
 
         return DND.DragMotionResult.MOVE_DROP;
-    },
+    }
 
-    acceptDrop(source, actor, x, y, time) {
+    acceptDrop(source, _actor, _x, _y, _time) {
         let app = getAppFromSource(source);
         if (!this._canRemoveApp(app))
             return false;
@@ -310,36 +264,30 @@ var ShowAppsIcon = new Lang.Class({
     }
 });
 
-var DragPlaceholderItem = new Lang.Class({
-    Name: 'DragPlaceholderItem',
-    Extends: DashItemContainer,
-
+var DragPlaceholderItem = GObject.registerClass(
+class DragPlaceholderItem extends DashItemContainer {
     _init() {
-        this.parent();
+        super._init();
         this.setChild(new St.Bin({ style_class: 'placeholder' }));
     }
 });
 
-var EmptyDropTargetItem = new Lang.Class({
-    Name: 'EmptyDropTargetItem',
-    Extends: DashItemContainer,
-
+var EmptyDropTargetItem = GObject.registerClass(
+class EmptyDropTargetItem extends DashItemContainer {
     _init() {
-        this.parent();
+        super._init();
         this.setChild(new St.Bin({ style_class: 'empty-dash-drop-target' }));
     }
 });
 
-var DashActor = new Lang.Class({
-    Name: 'DashActor',
-    Extends: St.Widget,
-
+var DashActor = GObject.registerClass(
+class DashActor extends St.Widget {
     _init() {
         let layout = new Clutter.BoxLayout({ orientation: Clutter.Orientation.VERTICAL });
-        this.parent({ name: 'dash',
+        super._init({ name: 'dash',
                       layout_manager: layout,
                       clip_to_allocation: true });
-    },
+    }
 
     vfunc_allocate(box, flags) {
         let contentBox = this.get_theme_node().get_content_box(box);
@@ -348,7 +296,7 @@ var DashActor = new Lang.Class({
         this.set_allocation(box, flags);
 
         let [appIcons, showAppsButton] = this.get_children();
-        let [showAppsMinHeight, showAppsNatHeight] = showAppsButton.get_preferred_height(availWidth);
+        let [, showAppsNatHeight] = showAppsButton.get_preferred_height(availWidth);
 
         let childBox = new Clutter.ActorBox();
         childBox.x1 = contentBox.x1;
@@ -360,7 +308,7 @@ var DashActor = new Lang.Class({
         childBox.y1 = contentBox.y2 - showAppsNatHeight;
         childBox.y2 = contentBox.y2;
         showAppsButton.allocate(childBox, flags);
-    },
+    }
 
     vfunc_get_preferred_height(forWidth) {
         // We want to request the natural height of all our children
@@ -368,24 +316,22 @@ var DashActor = new Lang.Class({
         // then calls BoxLayout), but we only request the showApps
         // button as the minimum size
 
-        let [, natHeight] = this.parent(forWidth);
+        let [, natHeight] = super.vfunc_get_preferred_height(forWidth);
 
         let themeNode = this.get_theme_node();
         let adjustedForWidth = themeNode.adjust_for_width(forWidth);
         let [, showAppsButton] = this.get_children();
-        let [minHeight, ] = showAppsButton.get_preferred_height(adjustedForWidth);
-        [minHeight, ] = themeNode.adjust_preferred_height(minHeight, natHeight);
+        let [minHeight] = showAppsButton.get_preferred_height(adjustedForWidth);
+        [minHeight] = themeNode.adjust_preferred_height(minHeight, natHeight);
 
         return [minHeight, natHeight];
     }
 });
 
-const baseIconSizes = [ 16, 22, 24, 32, 48, 64 ];
+const baseIconSizes = [16, 22, 24, 32, 48, 64];
 
-var Dash = new Lang.Class({
-    Name: 'Dash',
-
-    _init() {
+var Dash = class Dash {
+    constructor() {
         this._maxHeight = -1;
         this.iconSize = 64;
         this._shownInitially = false;
@@ -405,8 +351,7 @@ var Dash = new Lang.Class({
         this._container.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
 
         this._showAppsIcon = new ShowAppsIcon();
-        this._showAppsIcon.childScale = 1;
-        this._showAppsIcon.childOpacity = 255;
+        this._showAppsIcon.show(false);
         this._showAppsIcon.icon.setIconSize(this.iconSize);
         this._hookUpLabel(this._showAppsIcon);
 
@@ -442,7 +387,7 @@ var Dash = new Lang.Class({
         // Translators: this is the name of the dock/favorites area on
         // the left of the overview
         Main.ctrlAltTabManager.addGroup(this.actor, _("Dash"), 'user-bookmarks-symbolic');
-    },
+    }
 
     _onDragBegin() {
         this._dragCancelled = false;
@@ -456,26 +401,26 @@ var Dash = new Lang.Class({
             this._box.insert_child_at_index(this._emptyDropTarget, 0);
             this._emptyDropTarget.show(true);
         }
-    },
+    }
 
     _onDragCancelled() {
         this._dragCancelled = true;
         this._endDrag();
-    },
+    }
 
     _onDragEnd() {
         if (this._dragCancelled)
             return;
 
         this._endDrag();
-    },
+    }
 
     _endDrag() {
         this._clearDragPlaceholder();
         this._clearEmptyDropTarget();
         this._showAppsIcon.setDragApp(null);
         DND.removeDragMonitor(this._dragMonitor);
-    },
+    }
 
     _onDragMotion(dragEvent) {
         let app = getAppFromSource(dragEvent.source);
@@ -494,18 +439,18 @@ var Dash = new Lang.Class({
             this._showAppsIcon.setDragApp(null);
 
         return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
     _appIdListToHash(apps) {
         let ids = {};
         for (let i = 0; i < apps.length; i++)
             ids[apps[i].get_id()] = apps[i];
         return ids;
-    },
+    }
 
     _queueRedisplay() {
         Main.queueDeferredWork(this._workId);
-    },
+    }
 
     _hookUpLabel(item, appIcon) {
         item.child.connect('notify::hover', () => {
@@ -525,22 +470,10 @@ var Dash = new Lang.Class({
                 this._syncLabel(item, appIcon);
             });
         }
-    },
+    }
 
     _createAppItem(app) {
-        let appIcon = new AppDisplay.AppIcon(app,
-                                             { setSizeManually: true,
-                                               showLabel: false });
-        if (appIcon._draggable) {
-            appIcon._draggable.connect('drag-begin',
-                                       () => {
-                                           appIcon.actor.opacity = 50;
-                                       });
-            appIcon._draggable.connect('drag-end',
-                                       () => {
-                                           appIcon.actor.opacity = 255;
-                                       });
-        }
+        let appIcon = new DashIcon(app);
 
         appIcon.connect('menu-state-changed',
                         (appIcon, opened) => {
@@ -559,20 +492,20 @@ var Dash = new Lang.Class({
         this._hookUpLabel(item, appIcon);
 
         return item;
-    },
+    }
 
     _itemMenuStateChanged(item, opened) {
         // When the menu closes, it calls sync_hover, which means
         // that the notify::hover handler does everything we need to.
         if (opened) {
             if (this._showLabelTimeoutId > 0) {
-                Mainloop.source_remove(this._showLabelTimeoutId);
+                GLib.source_remove(this._showLabelTimeoutId);
                 this._showLabelTimeoutId = 0;
             }
 
             item.hideLabel();
         }
-    },
+    }
 
     _syncLabel(item, appIcon) {
         let shouldShow = appIcon ? appIcon.shouldShowTooltip() : item.child.get_hover();
@@ -580,7 +513,7 @@ var Dash = new Lang.Class({
         if (shouldShow) {
             if (this._showLabelTimeoutId == 0) {
                 let timeout = this._labelShowing ? 0 : DASH_ITEM_HOVER_TIMEOUT;
-                this._showLabelTimeoutId = Mainloop.timeout_add(timeout,
+                this._showLabelTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, timeout,
                     () => {
                         this._labelShowing = true;
                         item.showLabel();
@@ -589,17 +522,17 @@ var Dash = new Lang.Class({
                     });
                 GLib.Source.set_name_by_id(this._showLabelTimeoutId, '[gnome-shell] item.showLabel');
                 if (this._resetHoverTimeoutId > 0) {
-                    Mainloop.source_remove(this._resetHoverTimeoutId);
+                    GLib.source_remove(this._resetHoverTimeoutId);
                     this._resetHoverTimeoutId = 0;
                 }
             }
         } else {
             if (this._showLabelTimeoutId > 0)
-                Mainloop.source_remove(this._showLabelTimeoutId);
+                GLib.source_remove(this._showLabelTimeoutId);
             this._showLabelTimeoutId = 0;
             item.hideLabel();
             if (this._labelShowing) {
-                this._resetHoverTimeoutId = Mainloop.timeout_add(DASH_ITEM_HOVER_TIMEOUT,
+                this._resetHoverTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, DASH_ITEM_HOVER_TIMEOUT,
                     () => {
                         this._labelShowing = false;
                         this._resetHoverTimeoutId = 0;
@@ -608,7 +541,7 @@ var Dash = new Lang.Class({
                 GLib.Source.set_name_by_id(this._resetHoverTimeoutId, '[gnome-shell] this._labelShowing');
             }
         }
-    },
+    }
 
     _adjustIconSize() {
         // For the icon size, we only consider children which are "proper"
@@ -638,22 +571,18 @@ var Dash = new Lang.Class({
         let firstButton = iconChildren[0].child;
         let firstIcon = firstButton._delegate.icon;
 
-        let minHeight, natHeight;
-        let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-
-        // Enforce the current icon size during the size request
+        // Enforce valid spacings during the size request
         firstIcon.icon.ensure_style();
-        let [currentWidth, currentHeight] = firstIcon.icon.get_size();
-        firstIcon.icon.set_size(this.iconSize * scaleFactor, this.iconSize * scaleFactor);
-        [minHeight, natHeight] = firstButton.get_preferred_height(-1);
-        firstIcon.icon.set_size(currentWidth, currentHeight);
+        let [, iconHeight] = firstIcon.icon.get_preferred_height(-1);
+        let [, buttonHeight] = firstButton.get_preferred_height(-1);
 
         // Subtract icon padding and box spacing from the available height
-        availHeight -= iconChildren.length * (natHeight - this.iconSize * scaleFactor) +
+        availHeight -= iconChildren.length * (buttonHeight - iconHeight) +
                        (iconChildren.length - 1) * spacing;
 
         let availSize = availHeight / iconChildren.length;
 
+        let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         let iconSizes = baseIconSizes.map(s => s * scaleFactor);
 
         let newIconSize = baseIconSizes[0];
@@ -691,14 +620,14 @@ var Dash = new Lang.Class({
             icon.icon.set_size(icon.icon.width * scale,
                                icon.icon.height * scale);
 
-            Tweener.addTween(icon.icon,
-                             { width: targetWidth,
-                               height: targetHeight,
-                               time: DASH_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                             });
+            icon.icon.ease({
+                width: targetWidth,
+                height: targetHeight,
+                duration: DASH_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD
+            });
         }
-    },
+    }
 
     _redisplay() {
         let favorites = AppFavorites.getAppFavorites().getFavoriteMap();
@@ -706,10 +635,10 @@ var Dash = new Lang.Class({
         let running = this._appSystem.get_running();
 
         let children = this._box.get_children().filter(actor => {
-                return actor.child &&
-                       actor.child._delegate &&
-                       actor.child._delegate.app;
-            });
+            return actor.child &&
+                   actor.child._delegate &&
+                   actor.child._delegate.app;
+        });
         // Apps currently in the dash
         let oldApps = children.map(actor => actor.child._delegate.app);
         // Apps supposed to be in the dash
@@ -758,14 +687,14 @@ var Dash = new Lang.Class({
             }
 
             // App removed at oldIndex
-            if (oldApp && newApps.indexOf(oldApp) == -1) {
+            if (oldApp && !newApps.includes(oldApp)) {
                 removedActors.push(children[oldIndex]);
                 oldIndex++;
                 continue;
             }
 
             // App added at newIndex
-            if (newApp && oldApps.indexOf(newApp) == -1) {
+            if (newApp && !oldApps.includes(newApp)) {
                 addedItems.push({ app: newApp,
                                   item: this._createAppItem(newApp),
                                   pos: newIndex });
@@ -774,8 +703,8 @@ var Dash = new Lang.Class({
             }
 
             // App moved
-            let nextApp = newApps.length > newIndex + 1 ? newApps[newIndex + 1]
-                                                        : null;
+            let nextApp = newApps.length > newIndex + 1
+                ? newApps[newIndex + 1] : null;
             let insertHere = nextApp && nextApp == oldApp;
             let alreadyRemoved = removedActors.reduce((result, actor) => {
                 let removedApp = actor.child._delegate.app;
@@ -827,7 +756,7 @@ var Dash = new Lang.Class({
         // Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=692744
         // Without it, StBoxLayout may use a stale size cache
         this._box.queue_relayout();
-    },
+    }
 
     _clearDragPlaceholder() {
         if (this._dragPlaceholder) {
@@ -839,16 +768,16 @@ var Dash = new Lang.Class({
             this._dragPlaceholder = null;
         }
         this._dragPlaceholderPos = -1;
-    },
+    }
 
     _clearEmptyDropTarget() {
         if (this._emptyDropTarget) {
             this._emptyDropTarget.animateOutAndDestroy();
             this._emptyDropTarget = null;
         }
-    },
+    }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, actor, x, y, _time) {
         let app = getAppFromSource(source);
 
         // Don't allow favoriting of transient apps
@@ -923,10 +852,10 @@ var Dash = new Lang.Class({
             return DND.DragMotionResult.MOVE_DROP;
 
         return DND.DragMotionResult.COPY_DROP;
-    },
+    }
 
     // Draggable target interface
-    acceptDrop(source, actor, x, y, time) {
+    acceptDrop(source, _actor, _x, _y, _time) {
         let app = getAppFromSource(source);
 
         // Don't allow favoriting of transient apps
@@ -957,7 +886,7 @@ var Dash = new Lang.Class({
                 favPos++;
         }
 
-        // No drag placeholder means we don't wan't to favorite the app
+        // No drag placeholder means we don't want to favorite the app
         // and we are dragging it to its original position
         if (!this._dragPlaceholder)
             return true;
@@ -973,6 +902,5 @@ var Dash = new Lang.Class({
 
         return true;
     }
-});
-
+};
 Signals.addSignalMethods(Dash.prototype);

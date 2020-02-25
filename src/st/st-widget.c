@@ -37,14 +37,15 @@
 
 #include "st-label.h"
 #include "st-private.h"
+#include "st-settings.h"
 #include "st-texture-cache.h"
 #include "st-theme-context.h"
 #include "st-theme-node-transition.h"
 #include "st-theme-node-private.h"
+#include "st-drawing-area.h"
 
 #include "st-widget-accessible.h"
 
-#include <gtk/gtk.h>
 #include <atk/atk-enum-types.h>
 
 /* This is set in stone and also hard-coded in GDK. */
@@ -65,6 +66,8 @@ struct _StWidgetPrivate
   StThemeNodeTransition *transition_animation;
 
   guint is_style_dirty : 1;
+  guint first_child_dirty : 1;
+  guint last_child_dirty : 1;
   guint draw_bg_color : 1;
   guint draw_border_internal : 1;
   guint track_hover : 1;
@@ -72,6 +75,7 @@ struct _StWidgetPrivate
   guint can_focus : 1;
 
   gulong texture_file_changed_id;
+  guint update_child_styles_id;
 
   AtkObject *accessible;
   AtkRole accessible_role;
@@ -80,11 +84,8 @@ struct _StWidgetPrivate
   ClutterActor *label_actor;
   gchar        *accessible_name;
 
-  /* Even though Clutter has first_child/last_child properties,
-   * we need to keep track of the old first/last children so
-   * that we can remove the pseudo classes on them. */
-  StWidget *prev_last_child;
-  StWidget *prev_first_child;
+  StWidget *last_visible_child;
+  StWidget *first_visible_child;
 
   StThemeNodePaintState paint_states[2];
   int current_paint_state : 2;
@@ -114,20 +115,23 @@ enum
   PROP_CAN_FOCUS,
   PROP_LABEL_ACTOR,
   PROP_ACCESSIBLE_ROLE,
-  PROP_ACCESSIBLE_NAME
+  PROP_ACCESSIBLE_NAME,
+
+  N_PROPS
 };
+
+static GParamSpec *props[N_PROPS] = { NULL, };
 
 enum
 {
   STYLE_CHANGED,
   POPUP_MENU,
+  RESOURCE_SCALE_CHANGED,
 
   LAST_SIGNAL
 };
 
 static guint signals[LAST_SIGNAL] = { 0, };
-
-gfloat st_slow_down_factor = 1.0;
 
 G_DEFINE_TYPE_WITH_PRIVATE (StWidget, st_widget, CLUTTER_TYPE_ACTOR);
 #define ST_WIDGET_PRIVATE(w) ((StWidgetPrivate *)st_widget_get_instance_private (w))
@@ -136,7 +140,7 @@ static void st_widget_recompute_style (StWidget    *widget,
                                        StThemeNode *old_theme_node);
 static gboolean st_widget_real_navigate_focus (StWidget         *widget,
                                                ClutterActor     *from,
-                                               GtkDirectionType  direction);
+                                               StDirectionType   direction);
 
 static AtkObject * st_widget_get_accessible (ClutterActor *actor);
 
@@ -289,44 +293,17 @@ st_widget_texture_cache_changed (StTextureCache *cache,
 {
   StWidget *actor = ST_WIDGET (user_data);
   StWidgetPrivate *priv = st_widget_get_instance_private (actor);
-  StThemeNode *node = priv->theme_node;
-  StBorderImage *border_image;
   gboolean changed = FALSE;
-  GFile *theme_file;
+  int i;
 
-  if (node == NULL)
-    return;
-
-  theme_file = st_theme_node_get_background_image (node);
-  if ((theme_file != NULL) && g_file_equal (theme_file, file))
+  for (i = 0; i < G_N_ELEMENTS (priv->paint_states); i++)
     {
-      st_theme_node_invalidate_background_image (node);
-      changed = TRUE;
+      StThemeNodePaintState *paint_state = &priv->paint_states[i];
+      changed |= st_theme_node_paint_state_invalidate_for_file (paint_state, file);
     }
 
-  border_image = st_theme_node_get_border_image (node);
-  theme_file = border_image ? st_border_image_get_file (border_image) : NULL;
-  if ((theme_file != NULL) && g_file_equal (theme_file, file))
-    {
-      st_theme_node_invalidate_border_image (node);
-      changed = TRUE;
-    }
-
-  if (changed)
-    {
-      /* If we prerender the background / border, we need to update
-       * the paint state. We should probably implement a method to
-       * the theme node to determine this, but for now, just wipe
-       * the entire paint state.
-       *
-       * Use the existing state instead of a new one because it's
-       * assumed the rest of the state will stay the same.
-       */
-      st_theme_node_paint_state_invalidate (current_paint_state (actor));
-
-      if (clutter_actor_is_mapped (CLUTTER_ACTOR (actor)))
-        clutter_actor_queue_redraw (CLUTTER_ACTOR (actor));
-    }
+  if (changed && clutter_actor_is_mapped (CLUTTER_ACTOR (actor)))
+    clutter_actor_queue_redraw (CLUTTER_ACTOR (actor));
 }
 
 static void
@@ -348,10 +325,12 @@ st_widget_dispose (GObject *gobject)
       priv->texture_file_changed_id = 0;
     }
 
-  g_clear_object (&priv->prev_first_child);
-  g_clear_object (&priv->prev_last_child);
+  g_clear_object (&priv->first_visible_child);
+  g_clear_object (&priv->last_visible_child);
 
   G_OBJECT_CLASS (st_widget_parent_class)->dispose (gobject);
+
+  g_clear_handle_id (&priv->update_child_styles_id, g_source_remove);
 }
 
 static void
@@ -441,10 +420,16 @@ void
 st_widget_paint_background (StWidget *widget)
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+  CoglFramebuffer *framebuffer;
   StThemeNode *theme_node;
   ClutterActorBox allocation;
+  float resource_scale;
   guint8 opacity;
 
+  if (!st_widget_get_resource_scale (widget, &resource_scale))
+    return;
+
+  framebuffer = cogl_get_draw_framebuffer ();
   theme_node = st_widget_get_theme_node (widget);
 
   clutter_actor_get_allocation_box (CLUTTER_ACTOR (widget), &allocation);
@@ -453,14 +438,17 @@ st_widget_paint_background (StWidget *widget)
 
   if (priv->transition_animation)
     st_theme_node_transition_paint (priv->transition_animation,
+                                    framebuffer,
                                     &allocation,
-                                    opacity);
+                                    opacity,
+                                    resource_scale);
   else
     st_theme_node_paint (theme_node,
                          current_paint_state (widget),
-                         cogl_get_draw_framebuffer (),
+                         framebuffer,
                          &allocation,
-                         opacity);
+                         opacity,
+                         resource_scale);
 }
 
 static void
@@ -476,6 +464,7 @@ static void
 st_widget_parent_set (ClutterActor *widget,
                       ClutterActor *old_parent)
 {
+  StWidget *self = ST_WIDGET (widget);
   ClutterActorClass *parent_class;
   ClutterActor *new_parent;
 
@@ -487,7 +476,7 @@ st_widget_parent_set (ClutterActor *widget,
 
   /* don't send the style changed signal if we no longer have a parent actor */
   if (new_parent)
-    st_widget_style_changed (ST_WIDGET (widget));
+    st_widget_style_changed (self);
 }
 
 static void
@@ -598,7 +587,11 @@ get_root_theme_node (ClutterStage *stage)
 StThemeNode *
 st_widget_get_theme_node (StWidget *widget)
 {
-  StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+  StWidgetPrivate *priv;
+
+  g_return_val_if_fail (ST_IS_WIDGET (widget), NULL);
+
+  priv = st_widget_get_instance_private (widget);
 
   if (priv->theme_node == NULL)
     {
@@ -838,13 +831,11 @@ st_widget_real_get_focus_chain (StWidget *widget)
   return g_list_reverse (visible);
 }
 
-
 static void
 st_widget_class_init (StWidgetClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   ClutterActorClass *actor_class = CLUTTER_ACTOR_CLASS (klass);
-  GParamSpec *pspec;
 
   gobject_class->set_property = st_widget_set_property;
   gobject_class->get_property = st_widget_get_property;
@@ -879,25 +870,24 @@ st_widget_class_init (StWidgetClass *klass)
    * The pseudo-class of the actor. Typical values include "hover", "active",
    * "focus".
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_PSEUDO_CLASS,
-                                   g_param_spec_string ("pseudo-class",
-                                                        "Pseudo Class",
-                                                        "Pseudo class for styling",
-                                                        "",
-                                                        ST_PARAM_READWRITE));
+  props[PROP_PSEUDO_CLASS] =
+    g_param_spec_string ("pseudo-class",
+                         "Pseudo Class",
+                         "Pseudo class for styling",
+                         "",
+                         ST_PARAM_READWRITE);
+
   /**
    * StWidget:style-class:
    *
    * The style-class of the actor for use in styling.
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_STYLE_CLASS,
-                                   g_param_spec_string ("style-class",
-                                                        "Style Class",
-                                                        "Style class for styling",
-                                                        "",
-                                                        ST_PARAM_READWRITE));
+  props[PROP_STYLE_CLASS] =
+    g_param_spec_string ("style-class",
+                         "Style Class",
+                         "Style class for styling",
+                         "",
+                         ST_PARAM_READWRITE);
 
   /**
    * StWidget:style:
@@ -905,13 +895,12 @@ st_widget_class_init (StWidgetClass *klass)
    * Inline style information for the actor as a ';'-separated list of
    * CSS properties.
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_STYLE,
-                                   g_param_spec_string ("style",
-                                                        "Style",
-                                                        "Inline style string",
-                                                        "",
-                                                        ST_PARAM_READWRITE));
+  props[PROP_STYLE] =
+     g_param_spec_string ("style",
+                          "Style",
+                          "Inline style string",
+                          "",
+                          ST_PARAM_READWRITE);
 
   /**
    * StWidget:theme:
@@ -919,13 +908,12 @@ st_widget_class_init (StWidgetClass *klass)
    * A theme set on this actor overriding the global theming for this actor
    * and its descendants
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_THEME,
-                                   g_param_spec_object ("theme",
-                                                        "Theme",
-                                                        "Theme override",
-                                                        ST_TYPE_THEME,
-                                                        ST_PARAM_READWRITE));
+  props[PROP_THEME] =
+     g_param_spec_object ("theme",
+                          "Theme",
+                          "Theme override",
+                          ST_TYPE_THEME,
+                          ST_PARAM_READWRITE);
 
   /**
    * StWidget:track-hover:
@@ -936,14 +924,12 @@ st_widget_class_init (StWidgetClass *klass)
    * adjusted automatically as the pointer moves in and out of the
    * widget.
    */
-  pspec = g_param_spec_boolean ("track-hover",
-                                "Track hover",
-                                "Determines whether the widget tracks hover state",
-                                FALSE,
-                                ST_PARAM_READWRITE);
-  g_object_class_install_property (gobject_class,
-                                   PROP_TRACK_HOVER,
-                                   pspec);
+  props[PROP_TRACK_HOVER] =
+     g_param_spec_boolean ("track-hover",
+                           "Track hover",
+                           "Determines whether the widget tracks hover state",
+                           FALSE,
+                           ST_PARAM_READWRITE);
 
   /**
    * StWidget:hover:
@@ -952,68 +938,63 @@ st_widget_class_init (StWidgetClass *klass)
    * only tracked automatically if #StWidget:track-hover is %TRUE, but you can
    * adjust it manually in any case.
    */
-  pspec = g_param_spec_boolean ("hover",
-                                "Hover",
-                                "Whether the pointer is hovering over the widget",
-                                FALSE,
-                                ST_PARAM_READWRITE);
-  g_object_class_install_property (gobject_class,
-                                   PROP_HOVER,
-                                   pspec);
+  props[PROP_HOVER] =
+     g_param_spec_boolean ("hover",
+                           "Hover",
+                           "Whether the pointer is hovering over the widget",
+                           FALSE,
+                           ST_PARAM_READWRITE);
 
   /**
    * StWidget:can-focus:
    *
    * Whether or not the widget can be focused via keyboard navigation.
    */
-  pspec = g_param_spec_boolean ("can-focus",
-                                "Can focus",
-                                "Whether the widget can be focused via keyboard navigation",
-                                FALSE,
-                                ST_PARAM_READWRITE);
-  g_object_class_install_property (gobject_class,
-                                   PROP_CAN_FOCUS,
-                                   pspec);
+  props[PROP_CAN_FOCUS] =
+     g_param_spec_boolean ("can-focus",
+                           "Can focus",
+                           "Whether the widget can be focused via keyboard navigation",
+                           FALSE,
+                           ST_PARAM_READWRITE);
 
   /**
    * ClutterActor:label-actor:
    *
    * An actor that labels this widget.
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_LABEL_ACTOR,
-                                   g_param_spec_object ("label-actor",
-                                                        "Label",
-                                                        "Label that identifies this widget",
-                                                        CLUTTER_TYPE_ACTOR,
-                                                        ST_PARAM_READWRITE));
+  props[PROP_LABEL_ACTOR] =
+     g_param_spec_object ("label-actor",
+                          "Label",
+                          "Label that identifies this widget",
+                          CLUTTER_TYPE_ACTOR,
+                          ST_PARAM_READWRITE);
+
   /**
    * StWidget:accessible-role:
    *
    * The accessible role of this object
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_ACCESSIBLE_ROLE,
-                                   g_param_spec_enum ("accessible-role",
-                                                      "Accessible Role",
-                                                      "The accessible role of this object",
-                                                      ATK_TYPE_ROLE,
-                                                      ATK_ROLE_INVALID,
-                                                      G_PARAM_READWRITE));
-
+  props[PROP_ACCESSIBLE_ROLE] =
+     g_param_spec_enum ("accessible-role",
+                        "Accessible Role",
+                        "The accessible role of this object",
+                        ATK_TYPE_ROLE,
+                        ATK_ROLE_INVALID,
+                        ST_PARAM_READWRITE);
 
   /**
    * StWidget:accessible-name:
    *
    * Object instance's name for assistive technology access.
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_ACCESSIBLE_NAME,
-                                   g_param_spec_string ("accessible-name",
-                                                        "Accessible name",
-                                                        "Object instance's name for assistive technology access.",
-                                                        NULL,
-                                                        ST_PARAM_READWRITE));
+  props[PROP_ACCESSIBLE_NAME] =
+     g_param_spec_string ("accessible-name",
+                          "Accessible name",
+                          "Object instance's name for assistive technology access.",
+                          NULL,
+                          ST_PARAM_READWRITE);
+
+  g_object_class_install_properties (gobject_class, N_PROPS, props);
 
   /**
    * StWidget::style-changed:
@@ -1044,6 +1025,21 @@ st_widget_class_init (StWidgetClass *klass)
                   G_STRUCT_OFFSET (StWidgetClass, popup_menu),
                   NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
+
+  /**
+   * StWidget::resource-scale-changed:
+   * @widget: the #StWidget
+   *
+   * Emitted when the paint scale that the widget will be painted as
+   * changed.
+   */
+  signals[RESOURCE_SCALE_CHANGED] =
+    g_signal_new ("resource-scale-changed",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  G_STRUCT_OFFSET (StWidgetClass, resource_scale_changed),
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 0);
 }
 
 /**
@@ -1072,7 +1068,7 @@ st_widget_set_theme (StWidget  *actor,
 
       st_widget_style_changed (actor);
 
-      g_object_notify (G_OBJECT (actor), "theme");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_THEME]);
     }
 }
 
@@ -1208,7 +1204,7 @@ st_widget_set_style_class_name (StWidget    *actor,
   if (set_class_list (&priv->style_class, style_class_list))
     {
       st_widget_style_changed (actor);
-      g_object_notify (G_OBJECT (actor), "style-class");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_STYLE_CLASS]);
     }
 }
 
@@ -1234,7 +1230,7 @@ st_widget_add_style_class_name (StWidget    *actor,
   if (add_class_name (&priv->style_class, style_class))
     {
       st_widget_style_changed (actor);
-      g_object_notify (G_OBJECT (actor), "style-class");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_STYLE_CLASS]);
     }
 }
 
@@ -1260,7 +1256,7 @@ st_widget_remove_style_class_name (StWidget    *actor,
   if (remove_class_name (&priv->style_class, style_class))
     {
       st_widget_style_changed (actor);
-      g_object_notify (G_OBJECT (actor), "style-class");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_STYLE_CLASS]);
     }
 }
 
@@ -1371,7 +1367,7 @@ st_widget_set_style_pseudo_class (StWidget    *actor,
   if (set_class_list (&priv->pseudo_class, pseudo_class_list))
     {
       st_widget_style_changed (actor);
-      g_object_notify (G_OBJECT (actor), "pseudo-class");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_PSEUDO_CLASS]);
     }
 }
 
@@ -1397,7 +1393,7 @@ st_widget_add_style_pseudo_class (StWidget    *actor,
   if (add_class_name (&priv->pseudo_class, pseudo_class))
     {
       st_widget_style_changed (actor);
-      g_object_notify (G_OBJECT (actor), "pseudo-class");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_PSEUDO_CLASS]);
     }
 }
 
@@ -1422,7 +1418,7 @@ st_widget_remove_style_pseudo_class (StWidget    *actor,
   if (remove_class_name (&priv->pseudo_class, pseudo_class))
     {
       st_widget_style_changed (actor);
-      g_object_notify (G_OBJECT (actor), "pseudo-class");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_PSEUDO_CLASS]);
     }
 }
 
@@ -1452,7 +1448,7 @@ st_widget_set_style (StWidget  *actor,
 
       st_widget_style_changed (actor);
 
-      g_object_notify (G_OBJECT (actor), "style");
+      g_object_notify_by_pspec (G_OBJECT (actor), props[PROP_STYLE]);
     }
 }
 
@@ -1473,12 +1469,104 @@ st_widget_get_style (StWidget *actor)
   return ST_WIDGET_PRIVATE (actor)->inline_style;
 }
 
+/**
+ * st_widget_get_resource_scale:
+ * @widget: A #StWidget
+ * @resource_scale: (out): return location for the resource scale
+ *
+ * Retrieves the resource scale for this #StWidget, if available.
+ *
+ * The resource scale refers to the scale the actor should use for its resources.
+ */
+gboolean
+st_widget_get_resource_scale (StWidget *widget,
+                              float    *resource_scale)
+{
+  return clutter_actor_get_resource_scale (CLUTTER_ACTOR (widget),
+                                           resource_scale);
+}
+
+static void
+st_widget_set_first_visible_child (StWidget     *widget,
+                                   ClutterActor *actor)
+{
+  StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+
+  if (priv->first_visible_child == NULL && actor == NULL)
+    return;
+
+  if (priv->first_visible_child != NULL &&
+      CLUTTER_ACTOR (priv->first_visible_child) == actor)
+    return;
+
+  if (priv->first_visible_child != NULL)
+    {
+      st_widget_remove_style_pseudo_class (priv->first_visible_child, "first-child");
+      g_clear_object (&priv->first_visible_child);
+    }
+
+  if (actor == NULL)
+    return;
+
+  if (ST_IS_WIDGET (actor))
+    {
+      st_widget_add_style_pseudo_class (ST_WIDGET (actor), "first-child");
+      priv->first_visible_child = g_object_ref (ST_WIDGET (actor));
+    }
+}
+
+static void
+st_widget_set_last_visible_child (StWidget     *widget,
+                                  ClutterActor *actor)
+{
+  StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+
+  if (priv->last_visible_child == NULL && actor == NULL)
+    return;
+
+  if (priv->last_visible_child != NULL &&
+      CLUTTER_ACTOR (priv->last_visible_child) == actor)
+    return;
+
+  if (priv->last_visible_child != NULL)
+    {
+      st_widget_remove_style_pseudo_class (priv->last_visible_child, "last-child");
+      g_clear_object (&priv->last_visible_child);
+    }
+
+  if (actor == NULL)
+    return;
+
+  if (ST_IS_WIDGET (actor))
+    {
+      st_widget_add_style_pseudo_class (ST_WIDGET (actor), "last-child");
+      priv->last_visible_child = g_object_ref (ST_WIDGET (actor));
+    }
+}
+
 static void
 st_widget_name_notify (StWidget   *widget,
                        GParamSpec *pspec,
                        gpointer    data)
 {
   st_widget_style_changed (widget);
+}
+
+static void
+st_widget_resource_scale_notify (StWidget   *widget,
+                                 GParamSpec *pspec,
+                                 gpointer    data)
+{
+  StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+  int i;
+
+  for (i = 0; i < G_N_ELEMENTS (priv->paint_states); i++)
+    st_theme_node_paint_state_invalidate (&priv->paint_states[i]);
+
+  g_signal_emit (widget, signals[RESOURCE_SCALE_CHANGED], 0);
+
+  if (clutter_actor_is_mapped (CLUTTER_ACTOR (widget)))
+    clutter_actor_queue_redraw (CLUTTER_ACTOR (widget));
 }
 
 static void
@@ -1497,30 +1585,116 @@ st_widget_reactive_notify (StWidget   *widget,
     st_widget_sync_hover(widget);
 }
 
+static ClutterActor *
+find_nearest_visible_backwards (ClutterActor *actor)
+{
+  ClutterActor *prev = actor;
+
+  while (prev != NULL && !clutter_actor_is_visible (prev))
+    prev = clutter_actor_get_previous_sibling (prev);
+  return prev;
+}
+
+static ClutterActor *
+find_nearest_visible_forward (ClutterActor *actor)
+{
+  ClutterActor *next = actor;
+
+  while (next != NULL && !clutter_actor_is_visible (next))
+    next = clutter_actor_get_next_sibling (next);
+  return next;
+}
+
+static gboolean
+st_widget_update_child_styles (StWidget *widget)
+{
+  StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+
+  if (priv->first_child_dirty)
+    {
+      ClutterActor *first_child;
+
+      priv->first_child_dirty = FALSE;
+
+      first_child = clutter_actor_get_first_child (CLUTTER_ACTOR (widget));
+      st_widget_set_first_visible_child (widget,
+                                         find_nearest_visible_forward (first_child));
+    }
+
+  if (priv->last_child_dirty)
+    {
+      ClutterActor *last_child;
+
+      priv->last_child_dirty = FALSE;
+
+      last_child = clutter_actor_get_last_child (CLUTTER_ACTOR (widget));
+      st_widget_set_last_visible_child (widget,
+                                        find_nearest_visible_backwards (last_child));
+    }
+
+  priv->update_child_styles_id = 0;
+  return G_SOURCE_REMOVE;
+}
+
+static void
+st_widget_queue_child_styles_update (StWidget *widget)
+{
+  StWidgetPrivate *priv = st_widget_get_instance_private (widget);
+
+  if (priv->update_child_styles_id != 0)
+    return;
+
+  priv->update_child_styles_id = g_idle_add ((GSourceFunc) st_widget_update_child_styles, widget);
+}
+
+static void
+st_widget_visible_notify (StWidget   *widget,
+                          GParamSpec *pspec,
+                          gpointer    data)
+{
+  StWidgetPrivate *parent_priv;
+  ClutterActor *actor = CLUTTER_ACTOR (widget);
+  ClutterActor *parent = clutter_actor_get_parent (actor);
+
+  if (parent == NULL || !ST_IS_WIDGET (parent))
+    return;
+
+  parent_priv = st_widget_get_instance_private (ST_WIDGET (parent));
+
+  if (clutter_actor_is_visible (actor))
+    {
+      ClutterActor *before, *after;
+
+      before = clutter_actor_get_previous_sibling (actor);
+      if (find_nearest_visible_backwards (before) == NULL)
+        parent_priv->first_child_dirty = TRUE;
+
+      after = clutter_actor_get_next_sibling (actor);
+      if (find_nearest_visible_forward (after) == NULL)
+        parent_priv->last_child_dirty = TRUE;
+    }
+  else
+    {
+      if (st_widget_has_style_pseudo_class (widget, "first-child"))
+        parent_priv->first_child_dirty = TRUE;
+
+      if (st_widget_has_style_pseudo_class (widget, "last-child"))
+        parent_priv->last_child_dirty = TRUE;
+    }
+
+  if (parent_priv->first_child_dirty || parent_priv->last_child_dirty)
+    st_widget_queue_child_styles_update (ST_WIDGET (parent));
+}
+
 static void
 st_widget_first_child_notify (StWidget   *widget,
                               GParamSpec *pspec,
                               gpointer    data)
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
-  ClutterActor *first_child;
 
-  if (priv->prev_first_child != NULL)
-    {
-      st_widget_remove_style_pseudo_class (priv->prev_first_child, "first-child");
-      g_clear_object (&priv->prev_first_child);
-    }
-
-  first_child = clutter_actor_get_first_child (CLUTTER_ACTOR (widget));
-
-  if (first_child == NULL)
-    return;
-
-  if (ST_IS_WIDGET (first_child))
-    {
-      st_widget_add_style_pseudo_class (ST_WIDGET (first_child), "first-child");
-      priv->prev_first_child = g_object_ref (ST_WIDGET (first_child));
-    }
+  priv->first_child_dirty = TRUE;
+  st_widget_queue_child_styles_update (widget);
 }
 
 static void
@@ -1529,24 +1703,9 @@ st_widget_last_child_notify (StWidget   *widget,
                              gpointer    data)
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
-  ClutterActor *last_child;
 
-  if (priv->prev_last_child != NULL)
-    {
-      st_widget_remove_style_pseudo_class (priv->prev_last_child, "last-child");
-      g_clear_object (&priv->prev_last_child);
-    }
-
-  last_child = clutter_actor_get_last_child (CLUTTER_ACTOR (widget));
-
-  if (last_child == NULL)
-    return;
-
-  if (ST_IS_WIDGET (last_child))
-    {
-      st_widget_add_style_pseudo_class (ST_WIDGET (last_child), "last-child");
-      priv->prev_last_child = g_object_ref (ST_WIDGET (last_child));
-    }
+  priv->last_child_dirty = TRUE;
+  st_widget_queue_child_styles_update (widget);
 }
 
 static void
@@ -1561,8 +1720,10 @@ st_widget_init (StWidget *actor)
 
   /* connect style changed */
   g_signal_connect (actor, "notify::name", G_CALLBACK (st_widget_name_notify), NULL);
+  g_signal_connect (actor, "notify::resource-scale", G_CALLBACK (st_widget_resource_scale_notify), NULL);
   g_signal_connect (actor, "notify::reactive", G_CALLBACK (st_widget_reactive_notify), NULL);
 
+  g_signal_connect (actor, "notify::visible", G_CALLBACK (st_widget_visible_notify), NULL);
   g_signal_connect (actor, "notify::first-child", G_CALLBACK (st_widget_first_child_notify), NULL);
   g_signal_connect (actor, "notify::last-child", G_CALLBACK (st_widget_last_child_notify), NULL);
   priv->texture_file_changed_id = g_signal_connect (st_texture_cache_get_default (), "texture-file-changed",
@@ -1591,7 +1752,8 @@ st_widget_recompute_style (StWidget    *widget,
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
   StThemeNode *new_theme_node = st_widget_get_theme_node (widget);
   int transition_duration;
-  gboolean paint_equal;
+  StSettings *settings;
+  gboolean paint_equal, geometry_equal = FALSE;
   gboolean animations_enabled;
 
   if (new_theme_node == old_theme_node)
@@ -1602,17 +1764,17 @@ st_widget_recompute_style (StWidget    *widget,
 
   _st_theme_node_apply_margins (new_theme_node, CLUTTER_ACTOR (widget));
 
-  if (!old_theme_node ||
-      !st_theme_node_geometry_equal (old_theme_node, new_theme_node))
+  if (old_theme_node)
+    geometry_equal = st_theme_node_geometry_equal (old_theme_node, new_theme_node);
+  if (!geometry_equal)
     clutter_actor_queue_relayout ((ClutterActor *) widget);
 
   transition_duration = st_theme_node_get_transition_duration (new_theme_node);
 
   paint_equal = st_theme_node_paint_equal (old_theme_node, new_theme_node);
 
-  g_object_get (gtk_settings_get_default (),
-                "gtk-enable-animations", &animations_enabled,
-                NULL);
+  settings = st_settings_get ();
+  g_object_get (settings, "enable-animations", &animations_enabled, NULL);
 
   if (animations_enabled && transition_duration > 0)
     {
@@ -1656,7 +1818,32 @@ st_widget_recompute_style (StWidget    *widget,
         st_theme_node_paint_state_invalidate (current_paint_state (widget));
     }
 
-  g_signal_emit (widget, signals[STYLE_CHANGED], 0);
+  /* It is very likely that custom CSS properties are used with StDrawingArea
+     to control the custom drawing, so never omit the ::style-changed signal */
+  if (paint_equal)
+    paint_equal = !ST_IS_DRAWING_AREA (widget);
+
+  if (paint_equal && old_theme_node->font_desc != NULL)
+    paint_equal = pango_font_description_equal (old_theme_node->font_desc,
+                                                st_theme_node_get_font (new_theme_node));
+
+  if (paint_equal && old_theme_node->foreground_computed)
+    {
+      ClutterColor col;
+
+      st_theme_node_get_foreground_color (new_theme_node, &col);
+      paint_equal = clutter_color_equal (&old_theme_node->foreground_color, &col);
+    }
+
+  if (paint_equal && old_theme_node->icon_colors)
+    paint_equal = st_icon_colors_equal (old_theme_node->icon_colors,
+                                        st_theme_node_get_icon_colors (new_theme_node));
+
+  if (!paint_equal || !geometry_equal)
+    g_signal_emit (widget, signals[STYLE_CHANGED], 0);
+  else
+    notify_children_of_style_change ((ClutterActor *) widget);
+
   priv->is_style_dirty = FALSE;
 }
 
@@ -1711,7 +1898,7 @@ st_widget_set_track_hover (StWidget *widget,
   if (priv->track_hover != track_hover)
     {
       priv->track_hover = track_hover;
-      g_object_notify (G_OBJECT (widget), "track-hover");
+      g_object_notify_by_pspec (G_OBJECT (widget), props[PROP_TRACK_HOVER]);
 
       if (priv->track_hover)
         st_widget_sync_hover (widget);
@@ -1766,7 +1953,7 @@ st_widget_set_hover (StWidget *widget,
         st_widget_add_style_pseudo_class (widget, "hover");
       else
         st_widget_remove_style_pseudo_class (widget, "hover");
-      g_object_notify (G_OBJECT (widget), "hover");
+      g_object_notify_by_pspec (G_OBJECT (widget), props[PROP_HOVER]);
     }
 }
 
@@ -1833,7 +2020,7 @@ st_widget_set_can_focus (StWidget *widget,
   if (priv->can_focus != can_focus)
     {
       priv->can_focus = can_focus;
-      g_object_notify (G_OBJECT (widget), "can-focus");
+      g_object_notify_by_pspec (G_OBJECT (widget), props[PROP_CAN_FOCUS]);
     }
 }
 
@@ -1872,7 +2059,7 @@ st_widget_popup_menu (StWidget *self)
 static GList *
 filter_by_position (GList            *children,
                     ClutterActorBox  *rbox,
-                    GtkDirectionType  direction)
+                    StDirectionType   direction)
 {
   ClutterActorBox cbox;
   ClutterVertex abs_vertices[4];
@@ -1892,28 +2079,28 @@ filter_by_position (GList            *children,
        */
       switch (direction)
         {
-        case GTK_DIR_UP:
+        case ST_DIR_UP:
           if (cbox.y2 > rbox->y1 + 0.1)
             continue;
           break;
 
-        case GTK_DIR_DOWN:
+        case ST_DIR_DOWN:
           if (cbox.y1 < rbox->y2 - 0.1)
             continue;
           break;
 
-        case GTK_DIR_LEFT:
+        case ST_DIR_LEFT:
           if (cbox.x2 > rbox->x1 + 0.1)
             continue;
           break;
 
-        case GTK_DIR_RIGHT:
+        case ST_DIR_RIGHT:
           if (cbox.x1 < rbox->x2 - 0.1)
             continue;
           break;
 
-        case GTK_DIR_TAB_BACKWARD:
-        case GTK_DIR_TAB_FORWARD:
+        case ST_DIR_TAB_BACKWARD:
+        case ST_DIR_TAB_FORWARD:
         default:
           g_return_val_if_reached (NULL);
         }
@@ -1970,7 +2157,7 @@ sort_by_distance (gconstpointer  a,
 static gboolean
 st_widget_real_navigate_focus (StWidget         *widget,
                                ClutterActor     *from,
-                               GtkDirectionType  direction)
+                               StDirectionType   direction)
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
   ClutterActor *widget_actor, *focus_child;
@@ -2022,15 +2209,15 @@ st_widget_real_navigate_focus (StWidget         *widget,
     }
 
   children = st_widget_get_focus_chain (widget);
-  if (direction == GTK_DIR_TAB_FORWARD ||
-      direction == GTK_DIR_TAB_BACKWARD)
+  if (direction == ST_DIR_TAB_FORWARD ||
+      direction == ST_DIR_TAB_BACKWARD)
     {
       /* At this point we know that we want to navigate focus to one of
        * @widget's immediate children; the next one after @focus_child, or the
        * first one if @focus_child is %NULL. (With "next" and "first" being
        * determined by @direction.)
        */
-      if (direction == GTK_DIR_TAB_BACKWARD)
+      if (direction == ST_DIR_TAB_BACKWARD)
         children = g_list_reverse (children);
 
       if (focus_child)
@@ -2068,20 +2255,20 @@ st_widget_real_navigate_focus (StWidget         *widget,
           clutter_actor_box_from_vertices (&sort_box, abs_vertices);
           switch (direction)
             {
-            case GTK_DIR_UP:
+            case ST_DIR_UP:
               sort_box.y1 = sort_box.y2;
               break;
-            case GTK_DIR_DOWN:
+            case ST_DIR_DOWN:
               sort_box.y2 = sort_box.y1;
               break;
-            case GTK_DIR_LEFT:
+            case ST_DIR_LEFT:
               sort_box.x1 = sort_box.x2;
               break;
-            case GTK_DIR_RIGHT:
+            case ST_DIR_RIGHT:
               sort_box.x2 = sort_box.x1;
               break;
-            case GTK_DIR_TAB_FORWARD:
-            case GTK_DIR_TAB_BACKWARD:
+            case ST_DIR_TAB_FORWARD:
+            case ST_DIR_TAB_BACKWARD:
             default:
               g_warn_if_reached ();
             }
@@ -2151,7 +2338,7 @@ st_widget_real_navigate_focus (StWidget         *widget,
 gboolean
 st_widget_navigate_focus (StWidget         *widget,
                           ClutterActor     *from,
-                          GtkDirectionType  direction,
+                          StDirectionType   direction,
                           gboolean          wrap_around)
 {
   g_return_val_if_fail (ST_IS_WIDGET (widget), FALSE);
@@ -2261,30 +2448,6 @@ st_describe_actor (ClutterActor *actor)
 }
 
 /**
- * st_set_slow_down_factor:
- * @factor: new slow-down factor
- *
- * Set a global factor applied to all animation durations
- */
-void
-st_set_slow_down_factor (gfloat factor)
-{
-  st_slow_down_factor = factor;
-}
-
-/**
- * st_get_slow_down_factor:
- *
- * Returns: the global factor applied to all animation durations
- */
-gfloat
-st_get_slow_down_factor (void)
-{
-  return st_slow_down_factor;
-}
-
-
-/**
  * st_widget_get_label_actor:
  * @widget: a #StWidget
  *
@@ -2330,7 +2493,7 @@ st_widget_set_label_actor (StWidget     *widget,
       else
         priv->label_actor = NULL;
 
-      g_object_notify (G_OBJECT (widget), "label-actor");
+      g_object_notify_by_pspec (G_OBJECT (widget), props[PROP_LABEL_ACTOR]);
     }
 }
 
@@ -2363,7 +2526,7 @@ st_widget_set_accessible_name (StWidget    *widget,
     g_free (priv->accessible_name);
 
   priv->accessible_name = g_strdup (name);
-  g_object_notify (G_OBJECT (widget), "accessible-name");
+  g_object_notify_by_pspec (G_OBJECT (widget), props[PROP_ACCESSIBLE_NAME]);
 }
 
 /**
@@ -2417,7 +2580,7 @@ st_widget_set_accessible_role (StWidget *widget,
   priv = st_widget_get_instance_private (widget);
   priv->accessible_role = role;
 
-  g_object_notify (G_OBJECT (widget), "accessible-role");
+  g_object_notify_by_pspec (G_OBJECT (widget), props[PROP_ACCESSIBLE_ROLE]);
 }
 
 

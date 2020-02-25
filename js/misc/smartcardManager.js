@@ -1,8 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported getSmartcardManager */
 
 const Gio = imports.gi.Gio;
-const Lang = imports.lang;
-const Shell = imports.gi.Shell;
 const Signals = imports.signals;
 
 const ObjectManager = imports.misc.objectManager;
@@ -26,17 +25,16 @@ function getSmartcardManager() {
     return _smartcardManager;
 }
 
-var SmartcardManager = new Lang.Class({
-    Name: 'SmartcardManager',
-    _init() {
+var SmartcardManager = class {
+    constructor() {
         this._objectManager = new ObjectManager.ObjectManager({ connection: Gio.DBus.session,
                                                                 name: "org.gnome.SettingsDaemon.Smartcard",
                                                                 objectPath: '/org/gnome/SettingsDaemon/Smartcard',
-                                                                knownInterfaces: [ SmartcardTokenIface ],
+                                                                knownInterfaces: [SmartcardTokenIface],
                                                                 onLoaded: this._onLoaded.bind(this) });
         this._insertedTokens = {};
         this._loginToken = null;
-    },
+    }
 
     _onLoaded() {
         let tokens = this._objectManager.getProxiesForInterface('org.gnome.SettingsDaemon.Smartcard.Token');
@@ -53,7 +51,7 @@ var SmartcardManager = new Lang.Class({
             if (interfaceName == 'org.gnome.SettingsDaemon.Smartcard.Token')
                 this._removeToken(proxy);
         });
-    },
+    }
 
     _updateToken(token) {
         let objectPath = token.get_object_path();
@@ -65,7 +63,7 @@ var SmartcardManager = new Lang.Class({
 
         if (token.UsedToLogin)
             this._loginToken = token;
-    },
+    }
 
     _addToken(token) {
         this._updateToken(token);
@@ -85,7 +83,7 @@ var SmartcardManager = new Lang.Class({
         // Emit a smartcard-inserted at startup if it's already plugged in
         if (token.IsInserted)
             this.emit('smartcard-inserted', token);
-    },
+    }
 
     _removeToken(token) {
         let objectPath = token.get_object_path();
@@ -99,11 +97,11 @@ var SmartcardManager = new Lang.Class({
             this._loginToken = null;
 
         token.disconnectAll();
-    },
+    }
 
     hasInsertedTokens() {
         return Object.keys(this._insertedTokens).length > 0;
-    },
+    }
 
     hasInsertedLoginToken() {
         if (!this._loginToken)
@@ -115,5 +113,5 @@ var SmartcardManager = new Lang.Class({
         return true;
     }
 
-});
+};
 Signals.addSignalMethods(SmartcardManager.prototype);

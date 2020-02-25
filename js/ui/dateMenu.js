@@ -1,28 +1,22 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported DateMenuButton */
 
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const GnomeDesktop = imports.gi.GnomeDesktop;
-const GObject = imports.gi.GObject;
-const Gtk = imports.gi.Gtk;
-const GWeather = imports.gi.GWeather;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Pango = imports.gi.Pango;
-const Cairo = imports.cairo;
-const Clutter = imports.gi.Clutter;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
-const Atk = imports.gi.Atk;
+const { Clutter, Gio, GLib, GnomeDesktop,
+        GObject, GWeather, Shell, St } = imports.gi;
 
-const Params = imports.misc.params;
 const Util = imports.misc.util;
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
 const Calendar = imports.ui.calendar;
 const Weather = imports.misc.weather;
 const System = imports.system;
+
+const { loadInterfaceXML } = imports.misc.fileUtils;
+
+const MAX_FORECASTS = 5;
+
+const ClocksIntegrationIface = loadInterfaceXML('org.gnome.Shell.ClocksIntegration');
+const ClocksProxy = Gio.DBusProxy.makeProxyWrapper(ClocksIntegrationIface);
 
 function _isToday(date) {
     let now = new Date();
@@ -31,18 +25,18 @@ function _isToday(date) {
            now.getDate() == date.getDate();
 }
 
-var TodayButton = new Lang.Class({
-    Name: 'TodayButton',
-
-    _init(calendar) {
+var TodayButton = class TodayButton {
+    constructor(calendar) {
         // Having the ability to go to the current date if the user is already
         // on the current date can be confusing. So don't make the button reactive
         // until the selected date changes.
-        this.actor = new St.Button({ style_class: 'datemenu-today-button',
-                                     x_expand: true, x_align: St.Align.START,
-                                     can_focus: true,
-                                     reactive: false
-                                   });
+        this.actor = new St.Button({
+            style_class: 'datemenu-today-button',
+            x_align: St.Align.START,
+            x_expand: true,
+            can_focus: true,
+            reactive: false,
+        });
         this.actor.connect('clicked', () => {
             this._calendar.setDate(new Date(), false);
         });
@@ -61,17 +55,19 @@ var TodayButton = new Lang.Class({
         this._calendar.connect('selected-date-changed', (calendar, date) => {
             // Make the button reactive only if the selected date is not the
             // current date.
-            this.actor.reactive = !_isToday(date)
+            this.actor.reactive = !_isToday(date);
         });
-    },
+    }
 
     setDate(date) {
         this._dayLabel.set_text(date.toLocaleFormat('%A'));
 
         /* Translators: This is the date format to use when the calendar popup is
-         * shown - it is shown just below the time in the shell (e.g. "Tue 9:29 AM").
+         * shown - it is shown just below the time in the top bar (e.g.,
+         * "Tue 9:29 AM").  The string itself should become a full date, e.g.,
+         * "February 17 2015".
          */
-        let dateFormat = Shell.util_translate_time_string (N_("%B %e %Y"));
+        let dateFormat = Shell.util_translate_time_string (N_("%B %-d %Y"));
         this._dateLabel.set_text(date.toLocaleFormat(dateFormat));
 
         /* Translators: This is the accessible name of the date button shown
@@ -81,12 +77,10 @@ var TodayButton = new Lang.Class({
         dateFormat = Shell.util_translate_time_string (N_("%A %B %e %Y"));
         this.actor.accessible_name = date.toLocaleFormat(dateFormat);
     }
-});
+};
 
-var WorldClocksSection = new Lang.Class({
-    Name: 'WorldClocksSection',
-
-    _init() {
+var WorldClocksSection = class WorldClocksSection {
+    constructor() {
         this._clock = new GnomeDesktop.WallClock();
         this._clockNotifyId = 0;
 
@@ -96,7 +90,8 @@ var WorldClocksSection = new Lang.Class({
                                      x_fill: true,
                                      can_focus: true });
         this.actor.connect('clicked', () => {
-            this._clockAppMon.activateApp();
+            if (this._clocksApp)
+                this._clocksApp.activate();
 
             Main.overview.hide();
             Main.panel.closeCalendar();
@@ -109,30 +104,41 @@ var WorldClocksSection = new Lang.Class({
 
         this.actor.child = this._grid;
 
-        this._clockAppMon = new Util.AppSettingsMonitor('org.gnome.clocks.desktop',
-                                                        'org.gnome.clocks');
-        this._clockAppMon.connect('available-changed',
-                                  this._sync.bind(this));
-        this._clockAppMon.watchSetting('world-clocks',
-                                       this._clocksChanged.bind(this));
+        this._clocksApp = null;
+        this._clocksProxy = new ClocksProxy(
+            Gio.DBus.session,
+            'org.gnome.clocks',
+            '/org/gnome/clocks',
+            this._onProxyReady.bind(this),
+            null /* cancellable */,
+            Gio.DBusProxyFlags.DO_NOT_AUTO_START | Gio.DBusProxyFlags.GET_INVALIDATED_PROPERTIES);
+
+        this._settings = new Gio.Settings({
+            schema_id: 'org.gnome.shell.world-clocks'
+        });
+        this._settings.connect('changed', this._clocksChanged.bind(this));
+        this._clocksChanged();
+
+        this._appSystem = Shell.AppSystem.get_default();
+        this._appSystem.connect('installed-changed',
+            this._sync.bind(this));
         this._sync();
-    },
+    }
 
     _sync() {
-        this.actor.visible = this._clockAppMon.available;
-    },
+        this._clocksApp = this._appSystem.lookup_app('org.gnome.clocks.desktop');
+        this.actor.visible = this._clocksApp != null;
+    }
 
-    _clocksChanged(settings) {
+    _clocksChanged() {
         this._grid.destroy_all_children();
         this._locations = [];
 
         let world = GWeather.Location.get_world();
-        let clocks = settings.get_value('world-clocks').deep_unpack();
+        let clocks = this._settings.get_value('locations').deep_unpack();
         for (let i = 0; i < clocks.length; i++) {
-            if (!clocks[i].location)
-                continue;
-            let l = world.deserialize(clocks[i].location);
-            if (l)
+            let l = world.deserialize(clocks[i]);
+            if (l && l.get_timezone() != null)
                 this._locations.push({ location: l });
         }
 
@@ -142,34 +148,46 @@ var WorldClocksSection = new Lang.Class({
         });
 
         let layout = this._grid.layout_manager;
-        let title = (this._locations.length == 0) ? _("Add world clocks…")
-                                                  : _("World Clocks");
+        let title = (this._locations.length == 0)
+            ? _("Add world clocks…")
+            : _("World Clocks");
         let header = new St.Label({ style_class: 'world-clocks-header',
                                     x_align: Clutter.ActorAlign.START,
                                     text: title });
         layout.attach(header, 0, 0, 2, 1);
         this.actor.label_actor = header;
 
+        let localOffset = GLib.DateTime.new_now_local().get_utc_offset();
+
         for (let i = 0; i < this._locations.length; i++) {
             let l = this._locations[i].location;
 
-            let name = l.get_level() == GWeather.LocationLevel.NAMED_TIMEZONE ? l.get_name()
-                                                                              : l.get_city_name();
+            let name = l.get_city_name() || l.get_name();
             let label = new St.Label({ style_class: 'world-clocks-city',
                                        text: name,
                                        x_align: Clutter.ActorAlign.START,
+                                       y_align: Clutter.ActorAlign.CENTER,
                                        x_expand: true });
 
-            let time = new St.Label({ style_class: 'world-clocks-time',
-                                      x_align: Clutter.ActorAlign.END,
-                                      x_expand: true });
+            let time = new St.Label({ style_class: 'world-clocks-time' });
+
+            let otherOffset = this._getTimeAtLocation(l).get_utc_offset();
+            let offset = (otherOffset - localOffset) / GLib.TIME_SPAN_HOUR;
+            let fmt = (Math.trunc(offset) == offset) ? '%s%.0f' : '%s%.1f';
+            let prefix = (offset >= 0) ? '+' : '-';
+            let tz = new St.Label({ style_class: 'world-clocks-timezone',
+                                    text: fmt.format(prefix, Math.abs(offset)),
+                                    x_align: Clutter.ActorAlign.END,
+                                    y_align: Clutter.ActorAlign.CENTER });
 
             if (this._grid.text_direction == Clutter.TextDirection.RTL) {
-                layout.attach(time, 0, i + 1, 1, 1);
-                layout.attach(label, 1, i + 1, 1, 1);
+                layout.attach(tz, 0, i + 1, 1, 1);
+                layout.attach(time, 1, i + 1, 1, 1);
+                layout.attach(label, 2, i + 1, 1, 1);
             } else {
                 layout.attach(label, 0, i + 1, 1, 1);
                 layout.attach(time, 1, i + 1, 1, 1);
+                layout.attach(tz, 2, i + 1, 1, 1);
             }
 
             this._locations[i].actor = time;
@@ -185,22 +203,43 @@ var WorldClocksSection = new Lang.Class({
                 this._clock.disconnect(this._clockNotifyId);
             this._clockNotifyId = 0;
         }
-    },
+    }
+
+    _getTimeAtLocation(location) {
+        let tz = GLib.TimeZone.new(location.get_timezone().get_tzid());
+        return GLib.DateTime.new_now(tz);
+    }
 
     _updateLabels() {
         for (let i = 0; i < this._locations.length; i++) {
             let l = this._locations[i];
-            let tz = GLib.TimeZone.new(l.location.get_timezone().get_tzid());
-            let now = GLib.DateTime.new_now(tz);
+            let now = this._getTimeAtLocation(l.location);
             l.actor.text = Util.formatTime(now, { timeOnly: true });
         }
     }
-});
 
-var WeatherSection = new Lang.Class({
-    Name: 'WeatherSection',
+    _onProxyReady(proxy, error) {
+        if (error) {
+            log(`Failed to create GNOME Clocks proxy: ${error}`);
+            return;
+        }
 
-    _init() {
+        this._clocksProxy.connect('g-properties-changed',
+            this._onClocksPropertiesChanged.bind(this));
+        this._onClocksPropertiesChanged();
+    }
+
+    _onClocksPropertiesChanged() {
+        if (this._clocksProxy.g_name_owner == null)
+            return;
+
+        this._settings.set_value('locations',
+            new GLib.Variant('av', this._clocksProxy.Locations));
+    }
+};
+
+var WeatherSection = class WeatherSection {
+    constructor() {
         this._weatherClient = new Weather.WeatherClient();
 
         this.actor = new St.Button({ style_class: 'weather-button',
@@ -218,115 +257,119 @@ var WeatherSection = new Lang.Class({
         });
 
         let box = new St.BoxLayout({ style_class: 'weather-box',
-                                      vertical: true });
+                                     vertical: true });
 
         this.actor.child = box;
 
-        box.add_child(new St.Label({ style_class: 'weather-header',
-                                     x_align: Clutter.ActorAlign.START,
-                                     text: _("Weather") }));
+        let titleBox = new St.BoxLayout();
+        titleBox.add_child(new St.Label({ style_class: 'weather-header',
+                                          x_align: Clutter.ActorAlign.START,
+                                          x_expand: true,
+                                          text: _("Weather") }));
+        box.add_child(titleBox);
 
-        this._conditionsLabel = new St.Label({ style_class: 'weather-conditions',
-                                               x_align: Clutter.ActorAlign.START });
-        this._conditionsLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
-        this._conditionsLabel.clutter_text.line_wrap = true;
-        box.add_child(this._conditionsLabel);
+        this._titleLocation = new St.Label({ style_class: 'weather-header location',
+                                             x_align: Clutter.ActorAlign.END });
+        titleBox.add_child(this._titleLocation);
+
+        let layout = new Clutter.GridLayout({ orientation: Clutter.Orientation.VERTICAL });
+        this._forecastGrid = new St.Widget({ style_class: 'weather-grid',
+                                             layout_manager: layout });
+        layout.hookup_style(this._forecastGrid);
+        box.add_child(this._forecastGrid);
 
         this._weatherClient.connect('changed', this._sync.bind(this));
         this._sync();
-    },
+    }
 
-    _getSummary(info, capitalize=false) {
-        let options = capitalize ? GWeather.FormatOptions.SENTENCE_CAPITALIZATION
-                                 : GWeather.FormatOptions.NO_CAPITALIZATION;
-
-        let [ok, phenomenon, qualifier] = info.get_value_conditions();
-        if (ok)
-            return new GWeather.Conditions({ significant: true,
-                                             phenomenon,
-                                             qualifier }).to_string_full(options);
-
-        let [, sky] = info.get_value_sky();
-        return GWeather.Sky.to_string_full(sky, options);
-    },
-
-    _sameSummary(info1, info2) {
-        let [ok1, phenom1, qualifier1] = info1.get_value_conditions();
-        let [ok2, phenom2, qualifier2] = info2.get_value_conditions();
-        if (ok1 || ok2)
-            return ok1 == ok2 && phenom1 == phenom2 && qualifier1 == qualifier2;
-
-        let [, sky1] = info1.get_value_sky();
-        let [, sky2] = info2.get_value_sky();
-        return sky1 == sky2;
-    },
-
-    _getSummaryText() {
+    _getInfos() {
         let info = this._weatherClient.info;
         let forecasts = info.get_forecast_list();
-        if (forecasts.length == 0) // No forecasts, just current conditions
-            return '%s.'.format(this._getSummary(info, true));
 
         let current = info;
         let infos = [info];
         for (let i = 0; i < forecasts.length; i++) {
-            let [ok, timestamp] = forecasts[i].get_value_update();
-            if (!_isToday(new Date(timestamp * 1000)))
+            let [ok_, timestamp] = forecasts[i].get_value_update();
+            let datetime = new Date(timestamp * 1000);
+            if (!_isToday(datetime))
                 continue; // Ignore forecasts from other days
 
-            if (this._sameSummary(current, forecasts[i]))
-                continue; // Ignore consecutive runs of equal summaries
+            [ok_, timestamp] = current.get_value_update();
+            let currenttime = new Date(timestamp * 1000);
+            if (currenttime.getHours() == datetime.getHours())
+                continue; // Enforce a minimum interval of 1h
 
             current = forecasts[i];
-            if (infos.push(current) == 3)
-                break; // Use a maximum of three summaries
+            if (infos.push(current) == MAX_FORECASTS)
+                break; // Use a maximum of five forecasts
         }
+        return infos;
+    }
 
-        let fmt;
-        switch(infos.length) {
-            /* Translators: %s is a weather condition like "Clear sky"; see
-               libgweather for the possible condition strings. If at all
-               possible, the sentence should match the grammatical case etc. of
-               the inserted conditions. */
-            case 1: fmt = _("%s all day."); break;
+    _addForecasts() {
+        let layout = this._forecastGrid.layout_manager;
 
-            /* Translators: %s is a weather condition like "Clear sky"; see
-               libgweather for the possible condition strings. If at all
-               possible, the sentence should match the grammatical case etc. of
-               the inserted conditions. */
-            case 2: fmt = _("%s, then %s later."); break;
+        let infos = this._getInfos();
+        if (this._forecastGrid.text_direction == Clutter.TextDirection.RTL)
+            infos.reverse();
 
-            /* Translators: %s is a weather condition like "Clear sky"; see
-               libgweather for the possible condition strings. If at all
-               possible, the sentence should match the grammatical case etc. of
-               the inserted conditions. */
-            case 3: fmt = _("%s, then %s, followed by %s later."); break;
-        }
-        let summaries = infos.map((info, i) => {
-            let capitalize = i == 0 && fmt.startsWith('%s');
-            return this._getSummary(info, capitalize);
+        let col = 0;
+        infos.forEach(fc => {
+            let [ok_, timestamp] = fc.get_value_update();
+            let timeStr = Util.formatTime(new Date(timestamp * 1000), {
+                timeOnly: true
+            });
+
+            let icon = new St.Icon({ style_class: 'weather-forecast-icon',
+                                     icon_name: fc.get_symbolic_icon_name(),
+                                     x_align: Clutter.ActorAlign.CENTER,
+                                     x_expand: true });
+            let temp = new St.Label({ style_class: 'weather-forecast-temp',
+                                      text: fc.get_temp_summary(),
+                                      x_align: Clutter.ActorAlign.CENTER });
+            let time = new St.Label({ style_class: 'weather-forecast-time',
+                                      text: timeStr,
+                                      x_align: Clutter.ActorAlign.CENTER });
+
+            layout.attach(icon, col, 0, 1, 1);
+            layout.attach(temp, col, 1, 1, 1);
+            layout.attach(time, col, 2, 1, 1);
+            col++;
         });
-        return String.prototype.format.apply(fmt, summaries);
-    },
+    }
 
-    _getLabelText() {
-        if (!this._weatherClient.hasLocation)
-            return _("Select a location…");
+    _setStatusLabel(text) {
+        let layout = this._forecastGrid.layout_manager;
+        let label = new St.Label({ text });
+        layout.attach(label, 0, 0, 1, 1);
+    }
 
-        if (this._weatherClient.loading)
-            return _("Loading…");
+    _updateForecasts() {
+        this._forecastGrid.destroy_all_children();
+
+        if (!this._weatherClient.hasLocation) {
+            this._setStatusLabel(_("Select a location…"));
+            return;
+        }
 
         let info = this._weatherClient.info;
-        if (info.is_valid())
-            return this._getSummaryText() + ' ' +
-                   /* Translators: %s is a temperature with unit, e.g. "23℃" */
-                   _("Feels like %s.").format(info.get_apparent());
+        this._titleLocation.text = info.get_location().get_name();
+
+        if (this._weatherClient.loading) {
+            this._setStatusLabel(_("Loading…"));
+            return;
+        }
+
+        if (info.is_valid()) {
+            this._addForecasts();
+            return;
+        }
 
         if (info.network_error())
-            return _("Go online for weather information");
-
-        return _("Weather information is currently unavailable");
-    },
+            this._setStatusLabel(_("Go online for weather information"));
+        else
+            this._setStatusLabel(_("Weather information is currently unavailable"));
+    }
 
     _sync() {
         this.actor.visible = this._weatherClient.available;
@@ -334,14 +377,14 @@ var WeatherSection = new Lang.Class({
         if (!this.actor.visible)
             return;
 
-        this._conditionsLabel.text = this._getLabelText();
+        this._titleLocation.visible = this._weatherClient.hasLocation;
+
+        this._updateForecasts();
     }
-});
+};
 
-var MessagesIndicator = new Lang.Class({
-    Name: 'MessagesIndicator',
-
-    _init() {
+var MessagesIndicator = class MessagesIndicator {
+    constructor() {
         this.actor = new St.Icon({ icon_name: 'message-indicator-symbolic',
                                    icon_size: 16,
                                    visible: false, y_expand: true,
@@ -354,63 +397,60 @@ var MessagesIndicator = new Lang.Class({
         Main.messageTray.connect('queue-changed', this._updateCount.bind(this));
 
         let sources = Main.messageTray.getSources();
-        sources.forEach(source => { this._onSourceAdded(null, source); });
-    },
+        sources.forEach(source => this._onSourceAdded(null, source));
+    }
 
     _onSourceAdded(tray, source) {
         source.connect('count-updated', this._updateCount.bind(this));
         this._sources.push(source);
         this._updateCount();
-    },
+    }
 
     _onSourceRemoved(tray, source) {
         this._sources.splice(this._sources.indexOf(source), 1);
         this._updateCount();
-    },
+    }
 
     _updateCount() {
         let count = 0;
-        this._sources.forEach(source => { count += source.unseenCount; });
+        this._sources.forEach(source => (count += source.unseenCount));
         count -= Main.messageTray.queueCount;
 
         this.actor.visible = (count > 0);
     }
-});
+};
 
-var IndicatorPad = new Lang.Class({
-    Name: 'IndicatorPad',
-    Extends: St.Widget,
-
+var IndicatorPad = GObject.registerClass(
+class IndicatorPad extends St.Widget {
     _init(actor) {
         this._source = actor;
-        this._source.connect('notify::visible', () => { this.queue_relayout(); });
-        this.parent();
-    },
+        this._source.connect('notify::visible', () => this.queue_relayout());
+        this._source.connect('notify::size', () => this.queue_relayout());
+        super._init();
+    }
 
-    vfunc_get_preferred_width(container, forHeight) {
+    vfunc_get_preferred_width(forHeight) {
         if (this._source.visible)
             return this._source.get_preferred_width(forHeight);
         return [0, 0];
-    },
+    }
 
-    vfunc_get_preferred_height(container, forWidth) {
+    vfunc_get_preferred_height(forWidth) {
         if (this._source.visible)
             return this._source.get_preferred_height(forWidth);
         return [0, 0];
     }
 });
 
-var FreezableBinLayout = new Lang.Class({
-    Name: 'FreezableBinLayout',
-    Extends: Clutter.BinLayout,
-
+var FreezableBinLayout = GObject.registerClass(
+class FreezableBinLayout extends Clutter.BinLayout {
     _init() {
-        this.parent();
+        super._init();
 
         this._frozen = false;
         this._savedWidth = [NaN, NaN];
         this._savedHeight = [NaN, NaN];
-    },
+    }
 
     set frozen(v) {
         if (this._frozen == v)
@@ -419,22 +459,22 @@ var FreezableBinLayout = new Lang.Class({
         this._frozen = v;
         if (!this._frozen)
             this.layout_changed();
-    },
+    }
 
     vfunc_get_preferred_width(container, forHeight) {
         if (!this._frozen || this._savedWidth.some(isNaN))
-            return this.parent(container, forHeight);
+            return super.vfunc_get_preferred_width(container, forHeight);
         return this._savedWidth;
-    },
+    }
 
     vfunc_get_preferred_height(container, forWidth) {
         if (!this._frozen || this._savedHeight.some(isNaN))
-            return this.parent(container, forWidth);
+            return super.vfunc_get_preferred_height(container, forWidth);
         return this._savedHeight;
-    },
+    }
 
     vfunc_allocate(container, allocation, flags) {
-        this.parent(container, allocation, flags);
+        super.vfunc_allocate(container, allocation, flags);
 
         let [width, height] = allocation.get_size();
         this._savedWidth = [width, width];
@@ -442,35 +482,30 @@ var FreezableBinLayout = new Lang.Class({
     }
 });
 
-var CalendarColumnLayout = new Lang.Class({
-    Name: 'CalendarColumnLayout',
-    Extends: Clutter.BoxLayout,
-
+var CalendarColumnLayout = GObject.registerClass(
+class CalendarColumnLayout extends Clutter.BoxLayout {
     _init(actor) {
-        this.parent({ orientation: Clutter.Orientation.VERTICAL });
+        super._init({ orientation: Clutter.Orientation.VERTICAL });
         this._calActor = actor;
-    },
+    }
 
     vfunc_get_preferred_width(container, forHeight) {
         if (!this._calActor || this._calActor.get_parent() != container)
-            return this.parent(container, forHeight);
+            return super.vfunc_get_preferred_width(container, forHeight);
         return this._calActor.get_preferred_width(forHeight);
     }
 });
 
-var DateMenuButton = new Lang.Class({
-    Name: 'DateMenuButton',
-    Extends: PanelMenu.Button,
-
+var DateMenuButton = GObject.registerClass(
+class DateMenuButton extends PanelMenu.Button {
     _init() {
-        let item;
         let hbox;
         let vbox;
 
         let menuAlignment = 0.5;
         if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL)
             menuAlignment = 1.0 - menuAlignment;
-        this.parent(menuAlignment);
+        super._init(menuAlignment);
 
         this._clockDisplay = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
         this._indicator = new MessagesIndicator();
@@ -480,10 +515,9 @@ var DateMenuButton = new Lang.Class({
         box.add_actor(this._clockDisplay);
         box.add_actor(this._indicator.actor);
 
-        this.actor.label_actor = this._clockDisplay;
-        this.actor.add_actor(box);
-        this.actor.add_style_class_name ('clock-display');
-
+        this.label_actor = this._clockDisplay;
+        this.add_actor(box);
+        this.add_style_class_name ('clock-display');
 
         let layout = new FreezableBinLayout();
         let bin = new St.Widget({ layout_manager: layout });
@@ -530,7 +564,7 @@ var DateMenuButton = new Lang.Class({
         this._displaysSection = new St.ScrollView({ style_class: 'datemenu-displays-section vfade',
                                                     x_expand: true, x_fill: true,
                                                     overlay_scrollbars: true });
-        this._displaysSection.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
+        this._displaysSection.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
         vbox.add_actor(this._displaysSection);
 
         let displaysBox = new St.BoxLayout({ vertical: true,
@@ -551,11 +585,11 @@ var DateMenuButton = new Lang.Class({
 
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
-    },
+    }
 
     _getEventSource() {
         return new Calendar.DBusEventSource();
-    },
+    }
 
     _setEventSource(eventSource) {
         if (this._eventSource)
@@ -565,7 +599,7 @@ var DateMenuButton = new Lang.Class({
         this._messageList.setEventSource(eventSource);
 
         this._eventSource = eventSource;
-    },
+    }
 
     _updateTimeZone() {
         // SpiderMonkey caches the time zone so we must explicitly clear it
@@ -574,7 +608,7 @@ var DateMenuButton = new Lang.Class({
         System.clearDateCaches();
 
         this._calendar.updateTimeZone();
-    },
+    }
 
     _sessionUpdated() {
         let eventSource;

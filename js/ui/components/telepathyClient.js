@@ -1,20 +1,14 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Component */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
+const { Clutter, Gio, GLib, GObject, St } = imports.gi;
 const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Signals = imports.signals;
-const St = imports.gi.St;
 
 var Tpl = null;
 var Tp = null;
 try {
-    Tpl = imports.gi.TelepathyLogger;
-    Tp = imports.gi.TelepathyGLib;
-} catch(e) {
+    ({ TelepathyGLib: Tp, TelepathyLogger: Tpl } = imports.gi);
+} catch (e) {
     log('Telepathy is not available, chat integration will be disabled.');
 }
 
@@ -23,7 +17,6 @@ const Main = imports.ui.main;
 const MessageList = imports.ui.messageList;
 const MessageTray = imports.ui.messageTray;
 const Params = imports.misc.params;
-const PopupMenu = imports.ui.popupMenu;
 const Util = imports.misc.util;
 
 const HAVE_TP = (Tp != null && Tpl != null);
@@ -47,10 +40,8 @@ var NotificationDirection = {
     RECEIVED: 'chat-received'
 };
 
-var N_ = s => s;
-
 function makeMessageFromTpMessage(tpMessage, direction) {
-    let [text, flags] = tpMessage.to_text();
+    let [text, flags_] = tpMessage.to_text();
 
     let timestamp = tpMessage.get_sent_timestamp();
     if (timestamp == 0)
@@ -79,17 +70,15 @@ function makeMessageFromTplEvent(event) {
     };
 }
 
-var TelepathyComponent = new Lang.Class({
-    Name: 'TelepathyComponent',
-
-    _init() {
+var TelepathyComponent = class {
+    constructor() {
         this._client = null;
 
         if (!HAVE_TP)
             return; // Telepathy isn't available
 
         this._client = new TelepathyClient();
-    },
+    }
 
     enable() {
         if (!this._client)
@@ -98,12 +87,12 @@ var TelepathyComponent = new Lang.Class({
         try {
             this._client.register();
         } catch (e) {
-            throw new Error('Couldn\'t register Telepathy client. Error: \n' + e);
+            throw new Error(`Could not register Telepathy client. Error: ${e}`);
         }
 
         if (!this._client.account_manager.is_prepared(Tp.AccountManager.get_feature_quark_core()))
             this._client.account_manager.prepare_async(null, null);
-    },
+    }
 
     disable() {
         if (!this._client)
@@ -111,12 +100,10 @@ var TelepathyComponent = new Lang.Class({
 
         this._client.unregister();
     }
-});
+};
 
-var TelepathyClient = HAVE_TP ? new Lang.Class({
-    Name: 'TelepathyClient',
-    Extends: Tp.BaseClient,
-
+var TelepathyClient = HAVE_TP ? GObject.registerClass(
+class TelepathyClient extends Tp.BaseClient {
     _init() {
         // channel path -> ChatSource
         this._chatSources = {};
@@ -140,7 +127,7 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         // channel matching its filters is detected.
         // The second argument, recover, means _observeChannels will be run
         // for any existing channel as well.
-        this.parent({ name: 'GnomeShell',
+        super._init({ name: 'GnomeShell',
                       account_manager: this._accountManager,
                       uniquify_name: true });
 
@@ -158,28 +145,28 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         // needed
         this.set_delegated_channels_callback(
             this._delegatedChannelsCb.bind(this));
-    },
+    }
 
-    vfunc_observe_channels(account, conn, channels,
-                                     dispatchOp, requests, context) {
+    vfunc_observe_channels(...args) {
+        let [account, conn, channels, dispatchOp_, requests_, context] = args;
         let len = channels.length;
         for (let i = 0; i < len; i++) {
             let channel = channels[i];
-            let [targetHandle, targetHandleType] = channel.get_handle();
+            let [targetHandle_, targetHandleType] = channel.get_handle();
 
             if (channel.get_invalidated())
-              continue;
+                continue;
 
             /* Only observe contact text channels */
             if ((!(channel instanceof Tp.TextChannel)) ||
                targetHandleType != Tp.HandleType.CONTACT)
-               continue;
+                continue;
 
             this._createChatSource(account, conn, channel, channel.get_target_contact());
         }
 
         context.accept();
-    },
+    }
 
     _createChatSource(account, conn, channel, contact) {
         if (this._chatSources[channel.get_object_path()])
@@ -191,13 +178,13 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         source.connect('destroy', () => {
             delete this._chatSources[channel.get_object_path()];
         });
-    },
+    }
 
-    vfunc_handle_channels(account, conn, channels, requests,
-                                    user_action_time, context) {
+    vfunc_handle_channels(...args) {
+        let [account, conn, channels, requests_, userActionTime_, context] = args;
         this._handlingChannels(account, conn, channels, true);
         context.accept();
-    },
+    }
 
     _handlingChannels(account, conn, channels, notify) {
         let len = channels.length;
@@ -211,7 +198,7 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
             }
 
             if (channel.get_invalidated())
-              continue;
+                continue;
 
             // 'notify' will be true when coming from an actual HandleChannels
             // call, and not when from a successful Claim call. The point is
@@ -231,10 +218,10 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
                     source.notify();
             }
         }
-    },
+    }
 
-    vfunc_add_dispatch_operation(account, conn, channels,
-                                           dispatchOp, context) {
+    vfunc_add_dispatch_operation(...args) {
+        let [account, conn, channels, dispatchOp, context] = args;
         let channel = channels[0];
         let chanType = channel.get_channel_type();
 
@@ -249,10 +236,10 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
         else
             context.fail(new Tp.Error({ code: Tp.Error.INVALID_ARGUMENT,
                                         message: 'Unsupported channel type' }));
-    },
+    }
 
     _approveTextChannel(account, conn, channel, dispatchOp, context) {
-        let [targetHandle, targetHandleType] = channel.get_handle();
+        let [targetHandle_, targetHandleType] = channel.get_handle();
 
         if (targetHandleType != Tp.HandleType.CONTACT) {
             context.fail(new Tp.Error({ code: Tp.Error.INVALID_ARGUMENT,
@@ -266,29 +253,26 @@ var TelepathyClient = HAVE_TP ? new Lang.Class({
                 dispatchOp.claim_with_finish(result);
                 this._handlingChannels(account, conn, [channel], false);
             } catch (err) {
-                log('Failed to Claim channel: ' + err);
+                log(`Failed to Claim channel: ${err}`);
             }
         });
 
         context.accept();
-    },
+    }
 
-    _delegatedChannelsCb(client, channels) {
+    _delegatedChannelsCb(_client, _channels) {
         // Nothing to do as we don't make a distinction between observed and
         // handled channels.
-    },
+    }
 }) : null;
 
-var ChatSource = new Lang.Class({
-    Name: 'ChatSource',
-    Extends: MessageTray.Source,
+var ChatSource = class extends MessageTray.Source {
+    constructor(account, conn, channel, contact, client) {
+        super(contact.get_alias());
 
-    _init(account, conn, channel, contact, client) {
         this._account = account;
         this._contact = contact;
         this._client = client;
-
-        this.parent(contact.get_alias());
 
         this.isChat = true;
         this._pendingMessages = [];
@@ -313,7 +297,7 @@ var ChatSource = new Lang.Class({
         Main.messageTray.add(this);
 
         this._getLogMessages();
-    },
+    }
 
     _ensureNotification() {
         if (this._notification)
@@ -329,13 +313,13 @@ var ChatSource = new Lang.Class({
             this._notification = null;
         });
         this.pushNotification(this._notification);
-    },
+    }
 
     _createPolicy() {
         if (this._account.protocol_name == 'irc')
             return new MessageTray.NotificationApplicationPolicy('org.gnome.Polari');
         return new MessageTray.NotificationApplicationPolicy('empathy');
-    },
+    }
 
     createBanner() {
         this._banner = new ChatNotificationBanner(this._notification);
@@ -348,7 +332,7 @@ var ChatSource = new Lang.Class({
         });
 
         return this._banner;
-    },
+    }
 
     _updateAlias() {
         let oldAlias = this.title;
@@ -360,7 +344,7 @@ var ChatSource = new Lang.Class({
         this.setTitle(newAlias);
         if (this._notification)
             this._notification.appendAliasChange(oldAlias, newAlias);
-    },
+    }
 
     getIcon() {
         let file = this._contact.get_avatar_file();
@@ -369,36 +353,36 @@ var ChatSource = new Lang.Class({
         } else {
             return new Gio.ThemedIcon({ name: 'avatar-default' });
         }
-    },
+    }
 
     getSecondaryIcon() {
         let iconName;
         let presenceType = this._contact.get_presence_type();
 
         switch (presenceType) {
-            case Tp.ConnectionPresenceType.AVAILABLE:
-                iconName = 'user-available';
-                break;
-            case Tp.ConnectionPresenceType.BUSY:
-                iconName = 'user-busy';
-                break;
-            case Tp.ConnectionPresenceType.OFFLINE:
-                iconName = 'user-offline';
-                break;
-            case Tp.ConnectionPresenceType.HIDDEN:
-                iconName = 'user-invisible';
-                break;
-            case Tp.ConnectionPresenceType.AWAY:
-                iconName = 'user-away';
-                break;
-            case Tp.ConnectionPresenceType.EXTENDED_AWAY:
-                iconName = 'user-idle';
-                break;
-            default:
-                iconName = 'user-offline';
-       }
-       return new Gio.ThemedIcon({ name: iconName });
-    },
+        case Tp.ConnectionPresenceType.AVAILABLE:
+            iconName = 'user-available';
+            break;
+        case Tp.ConnectionPresenceType.BUSY:
+            iconName = 'user-busy';
+            break;
+        case Tp.ConnectionPresenceType.OFFLINE:
+            iconName = 'user-offline';
+            break;
+        case Tp.ConnectionPresenceType.HIDDEN:
+            iconName = 'user-invisible';
+            break;
+        case Tp.ConnectionPresenceType.AWAY:
+            iconName = 'user-away';
+            break;
+        case Tp.ConnectionPresenceType.EXTENDED_AWAY:
+            iconName = 'user-idle';
+            break;
+        default:
+            iconName = 'user-offline';
+        }
+        return new Gio.ThemedIcon({ name: iconName });
+    }
 
     _updateAvatarIcon() {
         this.iconUpdated();
@@ -406,7 +390,7 @@ var ChatSource = new Lang.Class({
             this._notification.update(this._notification.title,
                                       this._notification.bannerBodyText,
                                       { gicon: this.getIcon() });
-    },
+    }
 
     open() {
         Main.overview.hide();
@@ -415,7 +399,7 @@ var ChatSource = new Lang.Class({
         if (this._client.is_handling_channel(this._channel)) {
             // We are handling the channel, try to pass it to Empathy or Polari
             // (depending on the channel type)
-            // We don't check if either app is availble - mission control will
+            // We don't check if either app is available - mission control will
             // fallback to something else if activation fails
 
             let target;
@@ -431,7 +415,7 @@ var ChatSource = new Lang.Class({
 
             cd.present_channel_async(this._channel, global.get_current_time(), null);
         }
-    },
+    }
 
     _getLogMessages() {
         let logManager = Tpl.LogManager.dup_singleton();
@@ -440,10 +424,10 @@ var ChatSource = new Lang.Class({
         logManager.get_filtered_events_async(this._account, entity,
                                              Tpl.EventTypeMask.TEXT, SCROLLBACK_HISTORY_LINES,
                                              null, this._displayPendingMessages.bind(this));
-    },
+    }
 
     _displayPendingMessages(logManager, result) {
-        let [success, events] = logManager.get_filtered_events_finish(result);
+        let [success_, events] = logManager.get_filtered_events_finish(result);
 
         let logMessages = events.map(makeMessageFromTplEvent);
         this._ensureNotification();
@@ -493,7 +477,7 @@ var ChatSource = new Lang.Class({
 
         if (pendingMessages.length > 0)
             this.notify();
-    },
+    }
 
     destroy(reason) {
         if (this._client.is_handling_channel(this._channel)) {
@@ -527,25 +511,25 @@ var ChatSource = new Lang.Class({
         this._contact.disconnect(this._notifyAvatarId);
         this._contact.disconnect(this._presenceChangedId);
 
-        this.parent(reason);
-    },
+        super.destroy(reason);
+    }
 
     _channelClosed() {
         this.destroy(MessageTray.NotificationDestroyedReason.SOURCE_CLOSED);
-    },
+    }
 
     /* All messages are new messages for Telepathy sources */
     get count() {
         return this._pendingMessages.length;
-    },
+    }
 
     get unseenCount() {
         return this.count;
-    },
+    }
 
     get countVisible() {
         return this.count > 0;
-    },
+    }
 
     _messageReceived(channel, message) {
         if (message.get_message_type() == Tp.ChannelTextMessageType.DELIVERY_REPORT)
@@ -561,11 +545,11 @@ var ChatSource = new Lang.Class({
         // Wait a bit before notifying for the received message, a handler
         // could ack it in the meantime.
         if (this._notifyTimeoutId != 0)
-            Mainloop.source_remove(this._notifyTimeoutId);
-        this._notifyTimeoutId = Mainloop.timeout_add(500,
+            GLib.source_remove(this._notifyTimeoutId);
+        this._notifyTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500,
             this._notifyTimeout.bind(this));
         GLib.Source.set_name_by_id(this._notifyTimeoutId, '[gnome-shell] this._notifyTimeout');
-    },
+    }
 
     _notifyTimeout() {
         if (this._pendingMessages.length != 0)
@@ -574,19 +558,19 @@ var ChatSource = new Lang.Class({
         this._notifyTimeoutId = 0;
 
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     // This is called for both messages we send from
     // our client and other clients as well.
-    _messageSent(channel, message, flags, token) {
+    _messageSent(channel, message, _flags, _token) {
         this._ensureNotification();
         message = makeMessageFromTpMessage(message, NotificationDirection.SENT);
         this._notification.appendMessage(message);
-    },
+    }
 
     notify() {
-        this.parent(this._notification);
-    },
+        super.notify(this._notification);
+    }
 
     respond(text) {
         let type;
@@ -599,9 +583,9 @@ var ChatSource = new Lang.Class({
 
         let msg = Tp.ClientMessage.new_text(type, text);
         this._channel.send_message_async(msg, 0, (src, result) => {
-            this._channel.send_message_finish(result); 
+            this._channel.send_message_finish(result);
         });
-    },
+    }
 
     setChatState(state) {
         // We don't want to send COMPOSING every time a letter is typed into
@@ -611,17 +595,17 @@ var ChatSource = new Lang.Class({
         // keep track of it with the ChatStateChanged signal but it is good
         // enough right now.
         if (state != this._chatState) {
-          this._chatState = state;
-          this._channel.set_chat_state_async(state, null);
+            this._chatState = state;
+            this._channel.set_chat_state_async(state, null);
         }
-    },
+    }
 
-    _presenceChanged(contact, presence, status, message) {
+    _presenceChanged(_contact, _presence, _status, _message) {
         if (this._notification)
             this._notification.update(this._notification.title,
                                       this._notification.bannerBodyText,
                                       { secondaryGIcon: this.getSecondaryIcon() });
-    },
+    }
 
     _pendingRemoved(channel, message) {
         let idx = this._pendingMessages.indexOf(message);
@@ -634,35 +618,32 @@ var ChatSource = new Lang.Class({
         if (this._pendingMessages.length == 0 &&
             this._banner && !this._banner.expanded)
             this._banner.hide();
-    },
+    }
 
     _ackMessages() {
         // Don't clear our messages here, tp-glib will send a
         // 'pending-message-removed' for each one.
         this._channel.ack_all_pending_messages_async(null);
     }
-});
+};
 
-var ChatNotification = new Lang.Class({
-    Name: 'ChatNotification',
-    Extends: MessageTray.Notification,
-
-    _init(source) {
-        this.parent(source, source.title, null,
-                    { secondaryGIcon: source.getSecondaryIcon() });
+var ChatNotification = class extends MessageTray.Notification {
+    constructor(source) {
+        super(source, source.title, null,
+              { secondaryGIcon: source.getSecondaryIcon() });
         this.setUrgency(MessageTray.Urgency.HIGH);
         this.setResident(true);
 
         this.messages = [];
         this._timestampTimeoutId = 0;
-    },
+    }
 
     destroy(reason) {
         if (this._timestampTimeoutId)
-            Mainloop.source_remove(this._timestampTimeoutId);
+            GLib.source_remove(this._timestampTimeoutId);
         this._timestampTimeoutId = 0;
-        this.parent(reason);
-    },
+        super.destroy(reason);
+    }
 
     /**
      * appendMessage:
@@ -672,7 +653,7 @@ var ChatNotification = new Lang.Class({
      *   sender: the name of the sender,
      *   timestamp: the time the message was sent
      *   direction: a #NotificationDirection
-     * 
+     *
      * @noTimestamp: Whether to add a timestamp. If %true, no timestamp
      *   will be added, regardless of the difference since the
      *   last timestamp
@@ -692,15 +673,15 @@ var ChatNotification = new Lang.Class({
                         { datetime: GLib.DateTime.new_from_unix_local (message.timestamp),
                           bannerMarkup: true });
 
-        let group = (message.direction == NotificationDirection.RECEIVED ?
-                     'received' : 'sent');
+        let group = (message.direction == NotificationDirection.RECEIVED
+            ? 'received' : 'sent');
 
         this._append({ body: messageBody,
                        group: group,
                        styles: styles,
                        timestamp: message.timestamp,
                        noTimestamp: noTimestamp });
-    },
+    }
 
     _filterMessages() {
         if (this.messages.length < 1)
@@ -715,8 +696,8 @@ var ChatNotification = new Lang.Class({
         // SCROLLBACK_RECENT_LENGTH previous messages. Otherwise
         // we'll keep SCROLLBACK_IDLE_LENGTH messages.
 
-        let maxLength = (lastMessageTime < currentTime - SCROLLBACK_RECENT_TIME) ?
-            SCROLLBACK_IDLE_LENGTH : SCROLLBACK_RECENT_LENGTH;
+        let maxLength = (lastMessageTime < currentTime - SCROLLBACK_RECENT_TIME)
+            ? SCROLLBACK_IDLE_LENGTH : SCROLLBACK_RECENT_LENGTH;
 
         let filteredHistory = this.messages.filter(item => item.realMessage);
         if (filteredHistory.length > maxLength) {
@@ -725,7 +706,7 @@ var ChatNotification = new Lang.Class({
             for (let i = 0; i < expired.length; i++)
                 this.emit('message-removed', expired[i]);
         }
-    },
+    }
 
     /**
      * _append:
@@ -747,7 +728,7 @@ var ChatNotification = new Lang.Class({
 
         // Reset the old message timeout
         if (this._timestampTimeoutId)
-            Mainloop.source_remove(this._timestampTimeoutId);
+            GLib.source_remove(this._timestampTimeoutId);
         this._timestampTimeoutId = 0;
 
         let message = { realMessage: props.group != 'meta',
@@ -765,7 +746,8 @@ var ChatNotification = new Lang.Class({
             } else {
                 // Schedule a new timestamp in SCROLLBACK_IMMEDIATE_TIME
                 // from the timestamp of the message.
-                this._timestampTimeoutId = Mainloop.timeout_add_seconds(
+                this._timestampTimeoutId = GLib.timeout_add_seconds(
+                    GLib.PRIORITY_DEFAULT,
                     SCROLLBACK_IMMEDIATE_TIME - (currentTime - timestamp),
                     this.appendTimestamp.bind(this));
                 GLib.Source.set_name_by_id(this._timestampTimeoutId, '[gnome-shell] this.appendTimestamp');
@@ -773,7 +755,7 @@ var ChatNotification = new Lang.Class({
         }
 
         this._filterMessages();
-    },
+    }
 
     appendTimestamp() {
         this._timestampTimeoutId = 0;
@@ -784,7 +766,7 @@ var ChatNotification = new Lang.Class({
         this._filterMessages();
 
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     appendAliasChange(oldAlias, newAlias) {
         oldAlias = GLib.markup_escape_text(oldAlias, -1);
@@ -800,24 +782,19 @@ var ChatNotification = new Lang.Class({
 
         this._filterMessages();
     }
-});
+};
 
-var ChatLineBox = new Lang.Class({
-    Name: 'ChatLineBox',
-    Extends: St.BoxLayout,
-
+var ChatLineBox = GObject.registerClass(
+class ChatLineBox extends St.BoxLayout {
     vfunc_get_preferred_height(forWidth) {
-        let [, natHeight] = this.parent(forWidth);
+        let [, natHeight] = super.vfunc_get_preferred_height(forWidth);
         return [natHeight, natHeight];
     }
 });
 
-var ChatNotificationBanner = new Lang.Class({
-    Name: 'ChatNotificationBanner',
-    Extends: MessageTray.NotificationBanner,
-
-    _init(notification) {
-        this.parent(notification);
+var ChatNotificationBanner = class extends MessageTray.NotificationBanner {
+    constructor(notification) {
+        super(notification);
 
         this._responseEntry = new St.Entry({ style_class: 'chat-response',
                                              x_expand: true,
@@ -835,8 +812,8 @@ var ChatNotificationBanner = new Lang.Class({
         });
 
         this._scrollArea = new St.ScrollView({ style_class: 'chat-scrollview vfade',
-                                               vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-                                               hscrollbar_policy: Gtk.PolicyType.NEVER,
+                                               vscrollbar_policy: St.PolicyType.AUTOMATIC,
+                                               hscrollbar_policy: St.PolicyType.NEVER,
                                                visible: this.expanded });
         this._contentArea = new St.BoxLayout({ style_class: 'chat-body',
                                                vertical: true });
@@ -880,14 +857,14 @@ var ChatNotificationBanner = new Lang.Class({
 
         for (let i = this.notification.messages.length - 1; i >= 0; i--)
             this._addMessage(this.notification.messages[i]);
-    },
+    }
 
     _onDestroy() {
-        this.parent();
+        super._onDestroy();
         this.notification.disconnect(this._messageAddedId);
         this.notification.disconnect(this._messageRemovedId);
         this.notification.disconnect(this._timestampChangedId);
-    },
+    }
 
     scrollTo(side) {
         let adjustment = this._scrollArea.vscroll.adjustment;
@@ -895,11 +872,11 @@ var ChatNotificationBanner = new Lang.Class({
             adjustment.value = adjustment.lower;
         else if (side == St.Side.BOTTOM)
             adjustment.value = adjustment.upper;
-    },
+    }
 
     hide() {
         this.emit('done-displaying');
-    },
+    }
 
     _addMessage(message) {
         let highlighter = new MessageList.URLHighlighter(message.body, true, true);
@@ -921,7 +898,7 @@ var ChatNotificationBanner = new Lang.Class({
         this._messageActors.set(message, lineBox);
 
         this._updateTimestamp(message);
-    },
+    }
 
     _updateTimestamp(message) {
         let actor = this._messageActors.get(message);
@@ -942,7 +919,7 @@ var ChatNotificationBanner = new Lang.Class({
 
             actor.add_actor(timeLabel);
         }
-    },
+    }
 
     _onEntryActivated() {
         let text = this._responseEntry.get_text();
@@ -955,7 +932,7 @@ var ChatNotificationBanner = new Lang.Class({
         // see Source._messageSent
         this._responseEntry.set_text('');
         this.notification.source.respond(text);
-    },
+    }
 
     _composingStopTimeout() {
         this._composingTimeoutId = 0;
@@ -963,7 +940,7 @@ var ChatNotificationBanner = new Lang.Class({
         this.notification.source.setChatState(Tp.ChannelChatState.PAUSED);
 
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     _onEntryChanged() {
         let text = this._responseEntry.get_text();
@@ -975,14 +952,15 @@ var ChatNotificationBanner = new Lang.Class({
 
         // Remove composing timeout.
         if (this._composingTimeoutId > 0) {
-            Mainloop.source_remove(this._composingTimeoutId);
+            GLib.source_remove(this._composingTimeoutId);
             this._composingTimeoutId = 0;
         }
 
         if (text != '') {
             this.notification.source.setChatState(Tp.ChannelChatState.COMPOSING);
 
-            this._composingTimeoutId = Mainloop.timeout_add_seconds(
+            this._composingTimeoutId = GLib.timeout_add_seconds(
+                GLib.PRIORITY_DEFAULT,
                 COMPOSING_STOP_TIMEOUT,
                 this._composingStopTimeout.bind(this));
             GLib.Source.set_name_by_id(this._composingTimeoutId, '[gnome-shell] this._composingStopTimeout');
@@ -990,6 +968,6 @@ var ChatNotificationBanner = new Lang.Class({
             this.notification.source.setChatState(Tp.ChannelChatState.ACTIVE);
         }
     }
-});
+};
 
 var Component = TelepathyComponent;

@@ -1,10 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported canLock, getLoginManager, registerSessionWithGDM */
 
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Shell = imports.gi.Shell;
+const { GLib, Gio } = imports.gi;
 const Signals = imports.signals;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
@@ -47,9 +44,31 @@ function canLock() {
 
         let version = result.deep_unpack()[0].deep_unpack();
         return haveSystemd() && versionCompare('3.5.91', version);
-    } catch(e) {
+    } catch (e) {
         return false;
     }
+}
+
+
+function registerSessionWithGDM() {
+    log("Registering session with GDM");
+    Gio.DBus.system.call('org.gnome.DisplayManager',
+                         '/org/gnome/DisplayManager/Manager',
+                         'org.gnome.DisplayManager.Manager',
+                         'RegisterSession',
+                         GLib.Variant.new('(a{sv})', [{}]), null,
+                         Gio.DBusCallFlags.NONE, -1, null,
+        (source, result) => {
+            try {
+                source.call_finish(result);
+            } catch (e) {
+                if (!e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+                    log(`Error registering session with GDM: ${e.message}`);
+                else
+                    log("Not calling RegisterSession(): method not exported, GDM too old?");
+            }
+        }
+    );
 }
 
 let _loginManager = null;
@@ -70,10 +89,8 @@ function getLoginManager() {
     return _loginManager;
 }
 
-var LoginManagerSystemd = new Lang.Class({
-    Name: 'LoginManagerSystemd',
-
-    _init() {
+var LoginManagerSystemd = class {
+    constructor() {
         this._proxy = new SystemdLoginManager(Gio.DBus.system,
                                               'org.freedesktop.login1',
                                               '/org/freedesktop/login1');
@@ -82,7 +99,7 @@ var LoginManagerSystemd = new Lang.Class({
                                                '/org/freedesktop/login1/user/self');
         this._proxy.connectSignal('PrepareForSleep',
                                   this._prepareForSleep.bind(this));
-    },
+    }
 
     getCurrentSessionProxy(callback) {
         if (this._currentSession) {
@@ -93,7 +110,7 @@ var LoginManagerSystemd = new Lang.Class({
         let sessionId = GLib.getenv('XDG_SESSION_ID');
         if (!sessionId) {
             log('Unset XDG_SESSION_ID, getCurrentSessionProxy() called outside a user session. Asking logind directly.');
-            let [session, objectPath] = this._userProxy.Display;
+            let [session, objectPath_] = this._userProxy.Display;
             if (session) {
                 log(`Will monitor session ${session}`);
                 sessionId = session;
@@ -129,7 +146,7 @@ var LoginManagerSystemd = new Lang.Class({
                 callback(this._currentSession);
             }
         });
-    },
+    }
 
     canSuspend(asyncCallback) {
         this._proxy.CanSuspendRemote((result, error) => {
@@ -141,7 +158,7 @@ var LoginManagerSystemd = new Lang.Class({
                 asyncCallback(canSuspend, needsAuth);
             }
         });
-    },
+    }
 
     listSessions(asyncCallback) {
         this._proxy.ListSessionsRemote((result, error) => {
@@ -150,11 +167,11 @@ var LoginManagerSystemd = new Lang.Class({
             else
                 asyncCallback(result[0]);
         });
-    },
+    }
 
     suspend() {
         this._proxy.SuspendRemote(true);
-    },
+    }
 
     inhibit(reason, callback) {
         let inVariant = GLib.Variant.new('(ssss)',
@@ -166,46 +183,44 @@ var LoginManagerSystemd = new Lang.Class({
             (proxy, result) => {
                 let fd = -1;
                 try {
-                    let [outVariant, fdList] = proxy.call_with_unix_fd_list_finish(result);
+                    let [outVariant_, fdList] = proxy.call_with_unix_fd_list_finish(result);
                     fd = fdList.steal_fds()[0];
                     callback(new Gio.UnixInputStream({ fd: fd }));
-                } catch(e) {
+                } catch (e) {
                     logError(e, "Error getting systemd inhibitor");
                     callback(null);
                 }
             });
-    },
+    }
 
     _prepareForSleep(proxy, sender, [aboutToSuspend]) {
         this.emit('prepare-for-sleep', aboutToSuspend);
     }
-});
+};
 Signals.addSignalMethods(LoginManagerSystemd.prototype);
 
-var LoginManagerDummy = new Lang.Class({
-    Name: 'LoginManagerDummy',
-
-    getCurrentSessionProxy(callback) {
+var LoginManagerDummy = class {
+    getCurrentSessionProxy(_callback) {
         // we could return a DummySession object that fakes whatever callers
         // expect (at the time of writing: connect() and connectSignal()
         // methods), but just never calling the callback should be safer
-    },
+    }
 
     canSuspend(asyncCallback) {
         asyncCallback(false, false);
-    },
+    }
 
     listSessions(asyncCallback) {
         asyncCallback([]);
-    },
+    }
 
     suspend() {
         this.emit('prepare-for-sleep', true);
         this.emit('prepare-for-sleep', false);
-    },
+    }
 
     inhibit(reason, callback) {
         callback(null);
     }
-});
+};
 Signals.addSignalMethods(LoginManagerDummy.prototype);

@@ -1,10 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported sleep, waitLeisure, createTestWindow, waitTestWindows,
+            destroyTestWindows, defineScriptEvent, scriptEvent,
+            collectStatistics, runPerfScript */
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const { Gio, GLib, Meta, Shell } = imports.gi;
 
 const Main = imports.ui.main;
 const Params = imports.misc.params;
@@ -40,16 +39,13 @@ const { loadInterfaceXML } = imports.misc.fileUtils;
  * 'yield Scripting.sleep(500);'
  */
 function sleep(milliseconds) {
-    let cb;
-
-    let id = Mainloop.timeout_add(milliseconds, () => {
-        if (cb)
-            cb();
-        return GLib.SOURCE_REMOVE;
+    return new Promise(resolve => {
+        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, milliseconds, () => {
+            resolve();
+            return GLib.SOURCE_REMOVE;
+        });
+        GLib.Source.set_name_by_id(id, '[gnome-shell] sleep');
     });
-    GLib.Source.set_name_by_id(id, '[gnome-shell] sleep');
-
-    return callback => { cb = callback; };
 }
 
 /**
@@ -60,14 +56,9 @@ function sleep(milliseconds) {
  * 'yield Scripting.waitLeisure();'
  */
 function waitLeisure() {
-    let cb;
-
-    global.run_at_leisure(() => {
-       if (cb)
-           cb();
+    return new Promise(resolve => {
+        global.run_at_leisure(resolve);
     });
-
-    return callback => { cb = callback; };
 }
 
 const PerfHelperIface = loadInterfaceXML('org.gnome.Shell.PerfHelper');
@@ -85,25 +76,16 @@ function _getPerfHelper() {
 }
 
 function _callRemote(obj, method, ...args) {
-    let cb;
-    let errcb;
+    return new Promise((resolve, reject) => {
+        args.push((result, excp) => {
+            if (excp)
+                reject(excp);
+            else
+                resolve();
+        });
 
-    args.push((result, excp) => {
-         if (excp) {
-             if (errcb)
-                 errcb(excp);
-         } else {
-             if (cb)
-                 cb();
-         }
+        method.apply(obj, args);
     });
-
-    method.apply(obj, args);
-
-    return (callback, error_callback) => {
-        cb = callback;
-        errcb = error_callback;
-    };
 }
 
 /**
@@ -170,7 +152,7 @@ function destroyTestWindows() {
  * within a performance automation script
  */
 function defineScriptEvent(name, description) {
-    Shell.PerfLog.get_default().define_event("script." + name,
+    Shell.PerfLog.get_default().define_event(`script.${name}`,
                                              description,
                                              "");
 }
@@ -183,7 +165,7 @@ function defineScriptEvent(name, description) {
  * previously defined with defineScriptEvent
  */
 function scriptEvent(name) {
-    Shell.PerfLog.get_default().event("script." + name);
+    Shell.PerfLog.get_default().event(`script.${name}`);
 }
 
 /**
@@ -195,34 +177,13 @@ function collectStatistics() {
     Shell.PerfLog.get_default().collect_statistics();
 }
 
-function _step(g, finish, onError) {
-    try {
-        let waitFunction = g.next();
-        waitFunction(() => {
-                         _step(g, finish, onError);
-                     },
-                     err => {
-                         if (onError)
-                             onError(err);
-                     });
-    } catch (err) {
-        if (err instanceof StopIteration) {
-            if (finish)
-                finish();
-        } else {
-            if (onError)
-                onError(err);
-        }
-    }
-}
-
 function _collect(scriptModule, outputFile) {
     let eventHandlers = {};
 
     for (let f in scriptModule) {
         let m = /([A-Za-z]+)_([A-Za-z]+)/.exec(f);
         if (m)
-            eventHandlers[m[1] + "." + m[2]] = scriptModule[f];
+            eventHandlers[`${m[1]}.${m[2]}`] = scriptModule[f];
     }
 
     Shell.PerfLog.get_default().replay(
@@ -265,15 +226,15 @@ function _collect(scriptModule, outputFile) {
             // Extra checks here because JSON.stringify generates
             // invalid JSON for undefined values
             if (metric.description == null) {
-                log("Error: No description found for metric " + name);
+                log(`Error: No description found for metric ${name}`);
                 continue;
             }
             if (metric.units == null) {
-                log("Error: No units found for metric " + name);
+                log(`Error: No units found for metric ${name}`);
                 continue;
             }
             if (metric.value == null) {
-                log("Error: No value found for metric " + name);
+                log(`Error: No value found for metric ${name}`);
                 continue;
             }
 
@@ -282,10 +243,10 @@ function _collect(scriptModule, outputFile) {
             first = false;
 
             Shell.write_string_to_stream(out,
-                                         '{ "name": ' + JSON.stringify(name) + ',\n' +
-                                         '    "description": ' + JSON.stringify(metric.description) + ',\n' +
-                                         '    "units": ' + JSON.stringify(metric.units) + ',\n' +
-                                         '    "value": ' + JSON.stringify(metric.value) + ' }');
+                                         `{ "name": ${JSON.stringify(name)},\n` +
+                                         `    "description": ${JSON.stringify(metric.description)},\n` +
+                                         `    "units": ${JSON.stringify(metric.units)},\n` +
+                                         `    "value": ${JSON.stringify(metric.value)} }`);
         }
         Shell.write_string_to_stream(out, ' ]');
 
@@ -304,8 +265,8 @@ function _collect(scriptModule, outputFile) {
         print ('------------------------------------------------------------');
         for (let i = 0; i < metrics.length; i++) {
             let metric = metrics[i];
-            print ('# ' + scriptModule.METRICS[metric].description);
-            print (metric + ': ' +  scriptModule.METRICS[metric].value + scriptModule.METRICS[metric].units);
+            print (`# ${scriptModule.METRICS[metric].description}`);
+            print (`${metric}: ${scriptModule.METRICS[metric].value}${scriptModule.METRICS[metric].units}`);
         }
         print ('------------------------------------------------------------');
     }
@@ -351,23 +312,23 @@ function _collect(scriptModule, outputFile) {
  * After running the script and collecting statistics from the
  * event log, GNOME Shell will exit.
  **/
-function runPerfScript(scriptModule, outputFile) {
+async function runPerfScript(scriptModule, outputFile) {
     Shell.PerfLog.get_default().set_enabled(true);
 
-    let g = scriptModule.run();
+    for (let step of scriptModule.run()) {
+        try {
+            await step; // eslint-disable-line no-await-in-loop
+        } catch (err) {
+            log(`Script failed: ${err}\n${err.stack}`);
+            Meta.exit(Meta.ExitCode.ERROR);
+        }
+    }
 
-    _step(g,
-          () => {
-              try {
-                  _collect(scriptModule, outputFile);
-              } catch (err) {
-                  log("Script failed: " + err + "\n" + err.stack);
-                  Meta.exit(Meta.ExitCode.ERROR);
-              }
-              Meta.exit(Meta.ExitCode.SUCCESS);
-          },
-         err => {
-             log("Script failed: " + err + "\n" + err.stack);
-             Meta.exit(Meta.ExitCode.ERROR);
-         });
+    try {
+        _collect(scriptModule, outputFile);
+    } catch (err) {
+        log(`Script failed: ${err}\n${err.stack}`);
+        Meta.exit(Meta.ExitCode.ERROR);
+    }
+    Meta.exit(Meta.ExitCode.SUCCESS);
 }

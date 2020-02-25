@@ -16,8 +16,6 @@
 #include <locale.h>
 
 #include <X11/extensions/Xfixes.h>
-#include <canberra.h>
-#include <canberra-gtk.h>
 #include <clutter/x11/clutter-x11.h>
 #include <gdk/gdkx.h>
 #include <gio/gio.h>
@@ -31,10 +29,9 @@
 #include <meta/meta-workspace-manager.h>
 #include <meta/meta-x11-display.h>
 
-#ifdef HAVE_SYSTEMD
-#include <systemd/sd-journal.h>
-#include <errno.h>
-#include <unistd.h>
+#ifdef HAVE_GNOME_SYSTEMD
+#define GNOME_DESKTOP_USE_UNSTABLE_API
+#include <libgnome-desktop/gnome-systemd.h>
 #endif
 
 /* Memory report bits */
@@ -51,6 +48,7 @@
 #include "shell-perf-log.h"
 #include "shell-window-tracker.h"
 #include "shell-wm.h"
+#include "shell-util.h"
 #include "st.h"
 
 static ShellGlobal *the_object = NULL;
@@ -59,12 +57,9 @@ struct _ShellGlobal {
   GObject parent;
 
   ClutterStage *stage;
-  Window stage_xwindow;
 
   MetaDisplay *meta_display;
   MetaWorkspaceManager *workspace_manager;
-  GdkDisplay *gdk_display;
-  MetaX11Display *x11_display;
   Display *xdisplay;
 
   char *session_mode;
@@ -87,8 +82,7 @@ struct _ShellGlobal {
   GSList *leisure_closures;
   guint leisure_function_id;
 
-  /* For sound notifications */
-  ca_context *sound_context;
+  GHashTable *save_ops;
 
   gboolean has_modal;
   gboolean frame_timestamps;
@@ -120,6 +114,7 @@ enum {
 enum
 {
  NOTIFY_ERROR,
+ LOCATE_POINTER,
  LAST_SIGNAL
 };
 
@@ -275,15 +270,6 @@ shell_global_init (ShellGlobal *global)
 
   global->settings = g_settings_new ("org.gnome.shell");
 
-  global->sound_context = ca_gtk_context_get ();
-  ca_context_change_props (global->sound_context,
-                           CA_PROP_APPLICATION_NAME, "GNOME Shell",
-                           CA_PROP_APPLICATION_ID, "org.gnome.Shell",
-                           CA_PROP_APPLICATION_ICON_NAME, "start-here",
-                           CA_PROP_APPLICATION_LANGUAGE, setlocale (LC_MESSAGES, NULL),
-                           NULL);
-  ca_context_open (global->sound_context);
-
   if (shell_js)
     {
       int i, j;
@@ -325,6 +311,10 @@ shell_global_init (ShellGlobal *global)
                                      NULL);
 
   g_strfreev (search_path);
+
+  global->save_ops = g_hash_table_new_full (g_file_hash,
+                                            (GEqualFunc) g_file_equal,
+                                            g_object_unref, g_object_unref);
 }
 
 static void
@@ -343,6 +333,8 @@ shell_global_finalize (GObject *object)
   g_free (global->session_mode);
   g_free (global->imagedir);
   g_free (global->userdatadir);
+
+  g_hash_table_unref (global->save_ops);
 
   G_OBJECT_CLASS(shell_global_parent_class)->finalize (object);
 }
@@ -365,6 +357,13 @@ shell_global_class_init (ShellGlobalClass *klass)
                     G_TYPE_NONE, 2,
                     G_TYPE_STRING,
                     G_TYPE_STRING);
+  shell_global_signals[LOCATE_POINTER] =
+      g_signal_new ("locate-pointer",
+                    G_TYPE_FROM_CLASS (klass),
+                    G_SIGNAL_RUN_LAST,
+                    0,
+                    NULL, NULL, NULL,
+                    G_TYPE_NONE, 0);
 
   g_object_class_install_property (gobject_class,
                                    PROP_SESSION_MODE,
@@ -372,7 +371,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Session Mode",
                                                         "The session mode to use",
                                                         "user",
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SCREEN_WIDTH,
@@ -380,7 +379,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                      "Screen Width",
                                                      "Screen width, in pixels",
                                                      0, G_MAXINT, 1,
-                                                     G_PARAM_READABLE));
+                                                     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_SCREEN_HEIGHT,
@@ -388,14 +387,14 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                      "Screen Height",
                                                      "Screen height, in pixels",
                                                      0, G_MAXINT, 1,
-                                                     G_PARAM_READABLE));
+                                                     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_DISPLAY,
                                    g_param_spec_object ("display",
                                                         "Display",
                                                         "Metacity display object for the shell",
                                                         META_TYPE_DISPLAY,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_WORKSPACE_MANAGER,
@@ -403,7 +402,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Workspace manager",
                                                         "Workspace manager",
                                                         META_TYPE_WORKSPACE_MANAGER,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_STAGE,
@@ -411,14 +410,14 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Stage",
                                                         "Stage holding the desktop scene graph",
                                                         CLUTTER_TYPE_ACTOR,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_WINDOW_GROUP,
                                    g_param_spec_object ("window-group",
                                                         "Window Group",
                                                         "Actor holding window actors",
                                                         CLUTTER_TYPE_ACTOR,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                      PROP_TOP_WINDOW_GROUP,
@@ -426,7 +425,7 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                           "Top Window Group",
                                                           "Actor holding override-redirect windows",
                                                           CLUTTER_TYPE_ACTOR,
-                                                          G_PARAM_READABLE));
+                                                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
                                    PROP_WINDOW_MANAGER,
@@ -434,56 +433,56 @@ shell_global_class_init (ShellGlobalClass *klass)
                                                         "Window Manager",
                                                         "Window management interface",
                                                         SHELL_TYPE_WM,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_SETTINGS,
                                    g_param_spec_object ("settings",
                                                         "Settings",
                                                         "GSettings instance for gnome-shell configuration",
                                                         G_TYPE_SETTINGS,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_DATADIR,
                                    g_param_spec_string ("datadir",
                                                         "Data directory",
                                                         "Directory containing gnome-shell data files",
                                                         NULL,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_IMAGEDIR,
                                    g_param_spec_string ("imagedir",
                                                         "Image directory",
                                                         "Directory containing gnome-shell image files",
                                                         NULL,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_USERDATADIR,
                                    g_param_spec_string ("userdatadir",
                                                         "User data directory",
                                                         "Directory containing gnome-shell user data",
                                                         NULL,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_FOCUS_MANAGER,
                                    g_param_spec_object ("focus-manager",
                                                         "Focus manager",
                                                         "The shell's StFocusManager",
                                                         ST_TYPE_FOCUS_MANAGER,
-                                                        G_PARAM_READABLE));
+                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_FRAME_TIMESTAMPS,
                                    g_param_spec_boolean ("frame-timestamps",
                                                          "Frame Timestamps",
                                                          "Whether to log frame timestamps in the performance log",
                                                          FALSE,
-                                                         G_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
                                    PROP_FRAME_FINISH_TIMESTAMP,
                                    g_param_spec_boolean ("frame-finish-timestamp",
                                                          "Frame Finish Timestamps",
                                                          "Whether at the end of a frame to call glFinish and log paintCompletedTimestamp",
                                                          FALSE,
-                                                         G_PARAM_READWRITE));
+                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 /*
@@ -621,11 +620,12 @@ static void
 sync_input_region (ShellGlobal *global)
 {
   MetaDisplay *display = global->meta_display;
+  MetaX11Display *x11_display = meta_display_get_x11_display (display);
 
   if (global->has_modal)
-    meta_set_stage_input_region (display, None);
+    meta_x11_display_set_stage_input_region (x11_display, None);
   else
-    meta_set_stage_input_region (display, global->input_region);
+    meta_x11_display_set_stage_input_region (x11_display, global->input_region);
 }
 
 /**
@@ -647,6 +647,9 @@ shell_global_set_stage_input_region (ShellGlobal *global,
   GSList *r;
 
   g_return_if_fail (SHELL_IS_GLOBAL (global));
+
+  if (meta_is_wayland_compositor ())
+    return;
 
   nrects = g_slist_length (rectangles);
   rects = g_new (XRectangle, nrects);
@@ -835,6 +838,13 @@ entry_cursor_func (StEntry  *entry,
                            use_ibeam ? META_CURSOR_IBEAM : META_CURSOR_DEFAULT);
 }
 
+static void
+on_x11_display_closed (MetaDisplay *display,
+                       ShellGlobal *global)
+{
+  g_signal_handlers_disconnect_by_data (global->stage, global);
+}
+
 void
 _shell_global_set_plugin (ShellGlobal *global,
                           MetaPlugin  *plugin)
@@ -852,23 +862,17 @@ _shell_global_set_plugin (ShellGlobal *global,
   display = meta_plugin_get_display (plugin);
   global->meta_display = display;
   global->workspace_manager = meta_display_get_workspace_manager (display);
-  global->x11_display = meta_display_get_x11_display (display);
-  global->xdisplay = meta_x11_display_get_xdisplay (global->x11_display);
-
-  global->gdk_display = gdk_x11_lookup_xdisplay (global->xdisplay);
 
   global->stage = CLUTTER_STAGE (meta_get_stage_for_display (display));
 
-  if (meta_is_wayland_compositor ())
+  if (!meta_is_wayland_compositor ())
     {
-      global->stage_xwindow = None;
-    }
-  else
-    {
-      global->stage_xwindow = clutter_x11_get_stage_window (global->stage);
+      MetaX11Display *x11_display = meta_display_get_x11_display (display);
+      global->xdisplay = meta_x11_display_get_xdisplay (x11_display);
     }
 
   st_entry_set_cursor_func (entry_cursor_func, global);
+  st_clipboard_set_selection (meta_display_get_selection (display));
 
   g_signal_connect (global->stage, "notify::width",
                     G_CALLBACK (global_stage_notify_width), global);
@@ -903,6 +907,10 @@ _shell_global_set_plugin (ShellGlobal *global,
                     G_CALLBACK (focus_actor_changed), global);
   g_signal_connect (global->meta_display, "notify::focus-window",
                     G_CALLBACK (focus_window_changed), global);
+
+  if (global->xdisplay)
+    g_signal_connect_object (global->meta_display, "x11-display-closing",
+                             G_CALLBACK (on_x11_display_closed), global, 0);
 
   backend = meta_get_backend ();
   settings = meta_backend_get_settings (backend);
@@ -941,13 +949,17 @@ shell_global_begin_modal (ShellGlobal       *global,
                           guint32           timestamp,
                           MetaModalOptions  options)
 {
+  if (!meta_display_get_compositor (global->meta_display))
+    return FALSE;
+
   /* Make it an error to call begin_modal while we already
    * have a modal active. */
   if (global->has_modal)
     return FALSE;
 
   global->has_modal = meta_plugin_begin_modal (global->plugin, options, timestamp);
-  sync_input_region (global);
+  if (!meta_is_wayland_compositor ())
+    sync_input_region (global);
   return global->has_modal;
 }
 
@@ -961,6 +973,9 @@ void
 shell_global_end_modal (ShellGlobal *global,
                         guint32      timestamp)
 {
+  if (!meta_display_get_compositor (global->meta_display))
+    return;
+
   if (!global->has_modal)
     return;
 
@@ -977,7 +992,8 @@ shell_global_end_modal (ShellGlobal *global,
     meta_display_focus_default_window (global->meta_display,
                                        get_current_time_maybe_roundtrip (global));
 
-  sync_input_region (global);
+  if (!meta_is_wayland_compositor ())
+    sync_input_region (global);
 }
 
 /* Code to close all file descriptors before we exec; copied from gspawn.c in GLib.
@@ -1170,52 +1186,6 @@ shell_global_reexec_self (ShellGlobal *global)
 }
 
 /**
- * shell_global_log_structured:
- * @message: A message to print
- * @keys: (allow-none) (array zero-terminated=1) (element-type utf8): Optional structured data
- *
- * Log structured data in an operating-system specific fashion.  The
- * parameter @opts should be an array of UTF-8 KEY=VALUE strings.
- * This function does not support binary data.  See
- * http://www.freedesktop.org/software/systemd/man/systemd.journal-fields.html
- * or more information about fields that can be used on a systemd
- * system.
- *
- */
-void
-shell_global_log_structured (const char *message,
-                             const char *const *keys)
-{
-#ifdef HAVE_SYSTEMD
-    const char *const*iter;
-    char *msgkey;
-    guint i, n_opts;
-    struct iovec *iovs;
-
-    for (n_opts = 0, iter = keys; *iter; iter++, n_opts++)
-        ;
-
-    n_opts++; /* Add one for MESSAGE= */
-    iovs = g_alloca (sizeof (struct iovec) * n_opts);
-
-    for (i = 0, iter = keys; *iter; iter++, i++) {
-        iovs[i].iov_base = (char*)keys[i];
-        iovs[i].iov_len = strlen (keys[i]);
-    }
-    g_assert(i == n_opts-1);
-    msgkey = g_strconcat ("MESSAGE=", message, NULL);
-    iovs[i].iov_base = msgkey;
-    iovs[i].iov_len = strlen (msgkey);
-
-    // The code location isn't useful since we're wrapping
-    sd_journal_sendv (iovs, n_opts);
-    g_free (msgkey);
-#else
-    g_print ("%s\n", message);
-#endif
-}
-
-/**
  * shell_global_notify_error:
  * @global: a #ShellGlobal
  * @msg: Error message
@@ -1232,34 +1202,6 @@ shell_global_notify_error (ShellGlobal  *global,
                            const char   *details)
 {
   g_signal_emit_by_name (global, "notify-error", msg, details);
-}
-
-/**
- * shell_global_init_xdnd:
- * @global: the #ShellGlobal
- *
- * Enables tracking of Xdnd events
- */
-void shell_global_init_xdnd (ShellGlobal *global)
-{
-  Window output_window = meta_get_overlay_window (global->meta_display);
-  long xdnd_version = 5;
-
-  XChangeProperty (global->xdisplay, global->stage_xwindow,
-                   gdk_x11_get_xatom_by_name ("XdndAware"), XA_ATOM,
-                   32, PropModeReplace, (const unsigned char *)&xdnd_version, 1);
-
-  XChangeProperty (global->xdisplay, output_window,
-                   gdk_x11_get_xatom_by_name ("XdndProxy"), XA_WINDOW,
-                   32, PropModeReplace, (const unsigned char *)&global->stage_xwindow, 1);
-
-  /*
-   * XdndProxy is additionally set on the proxy window as verification that the
-   * XdndProxy property on the target window isn't a left-over
-   */
-  XChangeProperty (global->xdisplay, global->stage_xwindow,
-                   gdk_x11_get_xatom_by_name ("XdndProxy"), XA_WINDOW,
-                   32, PropModeReplace, (const unsigned char *)&global->stage_xwindow, 1);
 }
 
 /**
@@ -1372,6 +1314,32 @@ shell_global_get_current_time (ShellGlobal *global)
   return clutter_get_current_event_time ();
 }
 
+#ifdef HAVE_GNOME_SYSTEMD
+static void
+shell_global_app_launched_cb (GAppLaunchContext *context,
+                              GAppInfo          *info,
+                              GVariant          *platform_data,
+                              gpointer           user_data)
+{
+  gint32 pid;
+  const gchar *app_name;
+
+  if (!g_variant_lookup (platform_data, "pid", "i", &pid))
+    return;
+
+  app_name = g_app_info_get_id (info);
+  if (app_name == NULL)
+    app_name = g_app_info_get_executable (info);
+
+  /* Start async request; we don't care about the result */
+  gnome_start_systemd_scope (app_name,
+                             pid,
+                             NULL,
+                             NULL,
+                             NULL, NULL, NULL);
+}
+#endif
+
 /**
  * shell_global_create_app_launch_context:
  * @global: A #ShellGlobal
@@ -1388,24 +1356,33 @@ shell_global_create_app_launch_context (ShellGlobal *global,
                                         guint32      timestamp,
                                         int          workspace)
 {
-  GdkAppLaunchContext *context;
+  MetaWorkspaceManager *workspace_manager = global->workspace_manager;
+  MetaStartupNotification *sn;
+  MetaLaunchContext *context;
+  MetaWorkspace *ws = NULL;
 
-  context = gdk_display_get_app_launch_context (global->gdk_display);
+  sn = meta_display_get_startup_notification (global->meta_display);
+  context = meta_startup_notification_create_launcher (sn);
 
   if (timestamp == 0)
     timestamp = shell_global_get_current_time (global);
-  gdk_app_launch_context_set_timestamp (context, timestamp);
+  meta_launch_context_set_timestamp (context, timestamp);
 
   if (workspace < 0)
-    {
-      MetaWorkspaceManager *workspace_manager = global->workspace_manager;
+    ws = meta_workspace_manager_get_active_workspace (workspace_manager);
+  else
+    ws = meta_workspace_manager_get_workspace_by_index (workspace_manager, workspace);
 
-      workspace =
-        meta_workspace_manager_get_active_workspace_index (workspace_manager);
-    }
-  gdk_app_launch_context_set_desktop (context, workspace);
+  meta_launch_context_set_workspace (context, ws);
 
-  return (GAppLaunchContext *)context;
+#ifdef HAVE_GNOME_SYSTEMD
+  g_signal_connect (context,
+                    "launched",
+                    G_CALLBACK (shell_global_app_launched_cb),
+                    NULL);
+#endif
+
+  return (GAppLaunchContext *) context;
 }
 
 typedef struct
@@ -1546,178 +1523,6 @@ shell_global_run_at_leisure (ShellGlobal         *global,
     schedule_leisure_functions (global);
 }
 
-static void
-build_ca_proplist_for_event (ca_proplist  *props,
-                             const char   *event_property,
-                             const char   *event_id,
-                             const char   *event_description,
-                             ClutterEvent *for_event)
-{
-  ca_proplist_sets (props, event_property, event_id);
-  ca_proplist_sets (props, CA_PROP_EVENT_DESCRIPTION, event_description);
-  ca_proplist_sets (props, CA_PROP_CANBERRA_CACHE_CONTROL, "volatile");
-
-  if (for_event)
-    {
-      if (clutter_event_type (for_event) != CLUTTER_KEY_PRESS &&
-          clutter_event_type (for_event) != CLUTTER_KEY_RELEASE)
-        {
-          ClutterPoint point;
-
-          clutter_event_get_position (for_event, &point);
-
-          ca_proplist_setf (props, CA_PROP_EVENT_MOUSE_X, "%d", (int)point.x);
-          ca_proplist_setf (props, CA_PROP_EVENT_MOUSE_Y, "%d", (int)point.y);
-        }
-
-      if (clutter_event_type (for_event) == CLUTTER_BUTTON_PRESS ||
-          clutter_event_type (for_event) == CLUTTER_BUTTON_RELEASE)
-        {
-          gint button;
-
-          button = clutter_event_get_button (for_event);
-          ca_proplist_setf (props, CA_PROP_EVENT_MOUSE_BUTTON, "%d", button);
-        }
-    }
-}
-
-/**
- * shell_global_play_theme_sound:
- * @global: the #ShellGlobal
- * @id: an id, used to cancel later (0 if not needed)
- * @name: the sound name
- * @for_event: (nullable): a #ClutterEvent in response to which the sound is played
- *
- * Plays a simple sound picked according to Freedesktop sound theme.
- * Really just a workaround for libcanberra not being introspected.
- */
-void
-shell_global_play_theme_sound (ShellGlobal  *global,
-                               guint         id,
-                               const char   *name,
-                               const char   *description,
-                               ClutterEvent *for_event)
-{
-  ca_proplist *props;
-
-  ca_proplist_create (&props);
-  build_ca_proplist_for_event (props, CA_PROP_EVENT_ID, name, description, for_event);
-
-  ca_context_play_full (global->sound_context, id, props, NULL, NULL);
-
-  ca_proplist_destroy (props);
-}
-
-/**
- * shell_global_play_theme_sound_full:
- * @global: the #ShellGlobal
- * @id: an id, used to cancel later (0 if not needed)
- * @name: the sound name
- * @description: the localized description of the event that triggered this alert
- * @for_event: (nullable): a #ClutterEvent in response to which the sound is played
- * @application_id: application on behalf of which the sound is played
- * @application_name:
- *
- * Plays a simple sound picked according to Freedesktop sound theme.
- * Really just a workaround for libcanberra not being introspected.
- */
-void
-shell_global_play_theme_sound_full (ShellGlobal  *global,
-                                    guint         id,
-                                    const char   *name,
-                                    const char   *description,
-                                    ClutterEvent *for_event,
-                                    const char   *application_id,
-                                    const char   *application_name)
-{
-  ca_proplist *props;
-
-  ca_proplist_create (&props);
-  build_ca_proplist_for_event (props, CA_PROP_EVENT_ID, name, description, for_event);
-  ca_proplist_sets (props, CA_PROP_APPLICATION_ID, application_id);
-  ca_proplist_sets (props, CA_PROP_APPLICATION_NAME, application_name);
-
-  ca_context_play_full (global->sound_context, id, props, NULL, NULL);
-
-  ca_proplist_destroy (props);
-}
-
-/**
- * shell_global_play_sound_file_full:
- * @global: the #ShellGlobal
- * @id: an id, used to cancel later (0 if not needed)
- * @file_name: the file name to play
- * @description: the localized description of the event that triggered this alert
- * @for_event: (nullable): a #ClutterEvent in response to which the sound is played
- * @application_id: application on behalf of which the sound is played
- * @application_name:
- *
- * Like shell_global_play_theme_sound_full(), but with an explicit path
- * instead of a themed sound.
- */
-void
-shell_global_play_sound_file_full  (ShellGlobal  *global,
-                                    guint         id,
-                                    const char   *file_name,
-                                    const char   *description,
-                                    ClutterEvent *for_event,
-                                    const char   *application_id,
-                                    const char   *application_name)
-{
-  ca_proplist *props;
-
-  ca_proplist_create (&props);
-  build_ca_proplist_for_event (props, CA_PROP_MEDIA_FILENAME, file_name, description, for_event);
-  ca_proplist_sets (props, CA_PROP_APPLICATION_ID, application_id);
-  ca_proplist_sets (props, CA_PROP_APPLICATION_NAME, application_name);
-
-  ca_context_play_full (global->sound_context, id, props, NULL, NULL);
-
-  ca_proplist_destroy (props);
-}
-
-/**
- * shell_global_play_sound_file:
- * @global: the #ShellGlobal
- * @id: an id, used to cancel later (0 if not needed)
- * @file_name: the file name to play
- * @description: the localized description of the event that triggered this alert
- * @for_event: (nullable): a #ClutterEvent in response to which the sound is played
- *
- * Like shell_global_play_theme_sound(), but with an explicit path
- * instead of a themed sound.
- */
-void
-shell_global_play_sound_file (ShellGlobal  *global,
-                              guint         id,
-                              const char   *file_name,
-                              const char   *description,
-                              ClutterEvent *for_event)
-{
-  ca_proplist *props;
-
-  ca_proplist_create (&props);
-  build_ca_proplist_for_event (props, CA_PROP_MEDIA_FILENAME, file_name, description, for_event);
-
-  ca_context_play_full (global->sound_context, id, props, NULL, NULL);
-
-  ca_proplist_destroy (props);
-}
-
-/**
- * shell_global_cancel_theme_sound:
- * @global: the #ShellGlobal
- * @id: the id previously passed to shell_global_play_theme_sound()
- *
- * Cancels a sound notification.
- */
-void
-shell_global_cancel_theme_sound (ShellGlobal *global,
-                                 guint id)
-{
-  ca_context_cancel (global->sound_context, id);
-}
-
 const char *
 shell_global_get_session_mode (ShellGlobal *global)
 {
@@ -1727,20 +1532,78 @@ shell_global_get_session_mode (ShellGlobal *global)
 }
 
 static void
-save_variant (GFile      *dir,
-              const char *property_name,
-              GVariant   *variant)
+delete_variant_cb (GObject      *object,
+                   GAsyncResult *result,
+                   gpointer      user_data)
+{
+  ShellGlobal *global = user_data;
+  GError *error = NULL;
+
+  if (!g_file_delete_finish (G_FILE (object), result, &error))
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
+          !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
+        {
+          g_warning ("Could not delete runtime/persistent state file: %s\n",
+                     error->message);
+        }
+
+      g_error_free (error);
+    }
+
+  g_hash_table_remove (global->save_ops, object);
+}
+
+static void
+replace_variant_cb (GObject      *object,
+                    GAsyncResult *result,
+                    gpointer      user_data)
+{
+  ShellGlobal *global = user_data;
+  GError *error = NULL;
+
+  if (!g_file_replace_contents_finish (G_FILE (object), result, NULL, &error))
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        {
+          g_warning ("Could not replace runtime/persistent state file: %s\n",
+                     error->message);
+        }
+
+      g_error_free (error);
+    }
+
+  g_hash_table_remove (global->save_ops, object);
+}
+
+static void
+save_variant (ShellGlobal *global,
+              GFile       *dir,
+              const char  *property_name,
+              GVariant    *variant)
 {
   GFile *path = g_file_get_child (dir, property_name);
+  GCancellable *cancellable;
+
+  cancellable = g_hash_table_lookup (global->save_ops, path);
+  g_cancellable_cancel (cancellable);
+
+  cancellable = g_cancellable_new ();
+  g_hash_table_insert (global->save_ops, g_object_ref (path), cancellable);
 
   if (variant == NULL || g_variant_get_data (variant) == NULL)
-    (void) g_file_delete (path, NULL, NULL);
+    {
+      g_file_delete_async (path, G_PRIORITY_DEFAULT, cancellable,
+                           delete_variant_cb, global);
+    }
   else
     {
-      gsize size = g_variant_get_size (variant);
-      g_file_replace_contents (path, g_variant_get_data (variant), size,
-                               NULL, FALSE, G_FILE_CREATE_REPLACE_DESTINATION,
-                               NULL, NULL, NULL);
+      g_file_replace_contents_async (path,
+                                     g_variant_get_data (variant),
+                                     g_variant_get_size (variant),
+                                     NULL, FALSE,
+                                     G_FILE_CREATE_REPLACE_DESTINATION,
+                                     cancellable, replace_variant_cb, global);
     }
 
   g_object_unref (path);
@@ -1770,7 +1633,7 @@ load_variant (GFile      *dir,
   else
     {
       GBytes *bytes = g_mapped_file_get_bytes (mfile);
-      res = g_variant_new_from_bytes (G_VARIANT_TYPE (property_type), bytes, TRUE);
+      res = g_variant_new_from_bytes (G_VARIANT_TYPE (property_type), bytes, FALSE);
       g_bytes_unref (bytes);
       g_mapped_file_unref (mfile);
     }
@@ -1794,7 +1657,7 @@ shell_global_set_runtime_state (ShellGlobal  *global,
                                 const char   *property_name,
                                 GVariant     *variant)
 {
-  save_variant (global->runtime_state_path, property_name, variant);
+  save_variant (global, global->runtime_state_path, property_name, variant);
 }
 
 /**
@@ -1829,7 +1692,7 @@ shell_global_set_persistent_state (ShellGlobal *global,
                                    const char  *property_name,
                                    GVariant    *variant)
 {
-  save_variant (global->userdatadir_path, property_name, variant);
+  save_variant (global, global->userdatadir_path, property_name, variant);
 }
 
 /**
@@ -1849,4 +1712,10 @@ shell_global_get_persistent_state (ShellGlobal  *global,
                                    const char   *property_name)
 {
   return load_variant (global->userdatadir_path, property_type, property_name);
+}
+
+void
+_shell_global_locate_pointer (ShellGlobal *global)
+{
+  g_signal_emit (global, shell_global_signals[LOCATE_POINTER], 0);
 }

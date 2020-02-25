@@ -1,28 +1,20 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported WorkspaceThumbnail, ThumbnailsBox */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
 
 const Background = imports.ui.background;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
-const WindowManager = imports.ui.windowManager;
 const Workspace = imports.ui.workspace;
 const WorkspacesView = imports.ui.workspacesView;
 
 // The maximum size of a thumbnail is 1/10 the width and height of the screen
-let MAX_THUMBNAIL_SCALE = 1/10.;
+let MAX_THUMBNAIL_SCALE = 1 / 10.;
 
-var RESCALE_ANIMATION_TIME = 0.2;
-var SLIDE_ANIMATION_TIME = 0.2;
+var RESCALE_ANIMATION_TIME = 200;
+var SLIDE_ANIMATION_TIME = 200;
 
 // When we create workspaces by dragging, we add a "cut" into the top and
 // bottom of each workspace so that the user doesn't have to hit the
@@ -35,29 +27,25 @@ var MUTTER_SCHEMA = 'org.gnome.mutter';
 
 /* A layout manager that requests size only for primary_actor, but then allocates
    all using a fixed layout */
-var PrimaryActorLayout = new Lang.Class({
-    Name: 'PrimaryActorLayout',
-    Extends: Clutter.FixedLayout,
-
+var PrimaryActorLayout = GObject.registerClass(
+class PrimaryActorLayout extends Clutter.FixedLayout {
     _init(primaryActor) {
-        this.parent();
+        super._init();
 
         this.primaryActor = primaryActor;
-    },
+    }
 
     vfunc_get_preferred_width(container, forHeight) {
         return this.primaryActor.get_preferred_width(forHeight);
-    },
+    }
 
     vfunc_get_preferred_height(container, forWidth) {
         return this.primaryActor.get_preferred_height(forWidth);
-    },
+    }
 });
 
-var WindowClone = new Lang.Class({
-    Name: 'WindowClone',
-
-    _init(realWindow) {
+var WindowClone = class {
+    constructor(realWindow) {
         this.clone = new Clutter.Clone({ source: realWindow });
 
         /* Can't use a Shell.GenericContainer because of DND and reparenting... */
@@ -108,7 +96,7 @@ var WindowClone = new Lang.Class({
             return true;
         };
         this.metaWindow.foreach_transient(iter);
-    },
+    }
 
     // Find the actor just below us, respecting reparenting done
     // by DND code
@@ -124,7 +112,7 @@ var WindowClone = new Lang.Class({
         } else {
             return this._stackAbove;
         }
-    },
+    }
 
     setStackAbove(actor) {
         this._stackAbove = actor;
@@ -139,15 +127,15 @@ var WindowClone = new Lang.Class({
             this.actor.lower_bottom();
         else
             this.actor.raise(actualAbove);
-    },
+    }
 
     destroy() {
         this.actor.destroy();
-    },
+    }
 
     addAttachedDialog(win) {
         this._doAddAttachedDialog(win, win.get_compositor_private());
-    },
+    }
 
     _doAddAttachedDialog(metaDialog, realDialog) {
         let clone = new Clutter.Clone({ source: realDialog });
@@ -160,7 +148,7 @@ var WindowClone = new Lang.Class({
             clone.destroy();
         });
         this.actor.add_child(clone);
-    },
+    }
 
     _updateDialogPosition(realDialog, cloneDialog) {
         let metaDialog = realDialog.meta_window;
@@ -168,11 +156,11 @@ var WindowClone = new Lang.Class({
         let rect = this.metaWindow.get_frame_rect();
 
         cloneDialog.set_position(dialogRect.x - rect.x, dialogRect.y - rect.y);
-    },
+    }
 
     _onPositionChanged() {
         this.actor.set_position(this.realWindow.x, this.realWindow.y);
-    },
+    }
 
     _disconnectSignals() {
         this.actor.get_children().forEach(child => {
@@ -181,7 +169,7 @@ var WindowClone = new Lang.Class({
             realWindow.disconnect(child._updateId);
             realWindow.disconnect(child._destroyId);
         });
-    },
+    }
 
     _onDestroy() {
         this._disconnectSignals();
@@ -194,13 +182,13 @@ var WindowClone = new Lang.Class({
         }
 
         this.disconnectAll();
-    },
+    }
 
     _onButtonRelease(actor, event) {
         this.emit('selected', event.get_time());
 
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onTouchEvent(actor, event) {
         if (event.type() != Clutter.EventType.TOUCH_END ||
@@ -209,18 +197,18 @@ var WindowClone = new Lang.Class({
 
         this.emit('selected', event.get_time());
         return Clutter.EVENT_STOP;
-    },
+    }
 
-    _onDragBegin(draggable, time) {
+    _onDragBegin(_draggable, _time) {
         this.inDrag = true;
         this.emit('drag-begin');
-    },
+    }
 
-    _onDragCancelled(draggable, time) {
+    _onDragCancelled(_draggable, _time) {
         this.emit('drag-cancelled');
-    },
+    }
 
-    _onDragEnd(draggable, time, snapback) {
+    _onDragEnd(_draggable, _time, _snapback) {
         this.inDrag = false;
 
         // We may not have a parent if DnD completed successfully, in
@@ -236,41 +224,52 @@ var WindowClone = new Lang.Class({
 
         this.emit('drag-end');
     }
-});
+};
 Signals.addSignalMethods(WindowClone.prototype);
 
 
 var ThumbnailState = {
-    NEW   :         0,
-    ANIMATING_IN :  1,
+    NEW:            0,
+    ANIMATING_IN:   1,
     NORMAL:         2,
-    REMOVING :      3,
-    ANIMATING_OUT : 4,
-    ANIMATED_OUT :  5,
-    COLLAPSING :    6,
-    DESTROYED :     7
+    REMOVING:       3,
+    ANIMATING_OUT:  4,
+    ANIMATED_OUT:   5,
+    COLLAPSING:     6,
+    DESTROYED:      7
 };
 
 /**
  * @metaWorkspace: a #Meta.Workspace
  */
-var WorkspaceThumbnail = new Lang.Class({
-    Name: 'WorkspaceThumbnail',
-
+var WorkspaceThumbnail = GObject.registerClass({
+    Properties: {
+        'collapse-fraction': GObject.ParamSpec.double(
+            'collapse-fraction', 'collapse-fraction', 'collapse-fraction',
+            GObject.ParamFlags.READWRITE,
+            0, 1, 0),
+        'slide-position': GObject.ParamSpec.double(
+            'slide-position', 'slide-position', 'slide-position',
+            GObject.ParamFlags.READWRITE,
+            0, 1, 0),
+    }
+}, class WorkspaceThumbnail extends St.Widget {
     _init(metaWorkspace) {
+        super._init({
+            clip_to_allocation: true,
+            style_class: 'workspace-thumbnail'
+        });
+        this._delegate = this;
+
         this.metaWorkspace = metaWorkspace;
         this.monitorIndex = Main.layoutManager.primaryIndex;
 
         this._removed = false;
 
-        this.actor = new St.Widget({ clip_to_allocation: true,
-                                     style_class: 'workspace-thumbnail' });
-        this.actor._delegate = this;
-
         this._contents = new Clutter.Actor();
-        this.actor.add_child(this._contents);
+        this.add_child(this._contents);
 
-        this.actor.connect('destroy', this._onDestroy.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
 
         this._createBackground();
 
@@ -300,7 +299,7 @@ var WorkspaceThumbnail = new Lang.Class({
 
         // Track window changes
         this._windowAddedId = this.metaWorkspace.connect('window-added',
-                                                          this._windowAdded.bind(this));
+                                                         this._windowAdded.bind(this));
         this._windowRemovedId = this.metaWorkspace.connect('window-removed',
                                                            this._windowRemoved.bind(this));
         this._windowEnteredMonitorId = global.display.connect('window-entered-monitor',
@@ -311,27 +310,22 @@ var WorkspaceThumbnail = new Lang.Class({
         this.state = ThumbnailState.NORMAL;
         this._slidePosition = 0; // Fully slid in
         this._collapseFraction = 0; // Not collapsed
-    },
+    }
 
     _createBackground() {
         this._bgManager = new Background.BackgroundManager({ monitorIndex: Main.layoutManager.primaryIndex,
                                                              container: this._contents,
                                                              vignette: false });
-    },
+    }
 
     setPorthole(x, y, width, height) {
-        this.actor.set_size(width, height);
+        this.set_size(width, height);
         this._contents.set_position(-x, -y);
-    },
+    }
 
     _lookupIndex(metaWindow) {
-        for (let i = 0; i < this._windows.length; i++) {
-            if (this._windows[i].metaWindow == metaWindow) {
-                return i;
-            }
-        }
-        return -1;
-    },
+        return this._windows.findIndex(w => w.metaWindow == metaWindow);
+    }
 
     syncStacking(stackIndices) {
         this._windows.sort((a, b) => {
@@ -342,7 +336,6 @@ var WorkspaceThumbnail = new Lang.Class({
 
         for (let i = 0; i < this._windows.length; i++) {
             let clone = this._windows[i];
-            let metaWindow = clone.metaWindow;
             if (i == 0) {
                 clone.setStackAbove(this._bgManager.backgroundActor);
             } else {
@@ -350,31 +343,41 @@ var WorkspaceThumbnail = new Lang.Class({
                 clone.setStackAbove(previousClone.actor);
             }
         }
-    },
+    }
 
-    set slidePosition(slidePosition) {
+    // eslint-disable-next-line camelcase
+    set slide_position(slidePosition) {
+        if (this._slidePosition == slidePosition)
+            return;
         this._slidePosition = slidePosition;
-        this.actor.queue_relayout();
-    },
+        this.notify('slide-position');
+        this.queue_relayout();
+    }
 
-    get slidePosition() {
+    // eslint-disable-next-line camelcase
+    get slide_position() {
         return this._slidePosition;
-    },
+    }
 
-    set collapseFraction(collapseFraction) {
+    // eslint-disable-next-line camelcase
+    set collapse_fraction(collapseFraction) {
+        if (this._collapseFraction == collapseFraction)
+            return;
         this._collapseFraction = collapseFraction;
-        this.actor.queue_relayout();
-    },
+        this.notify('collapse-fraction');
+        this.queue_relayout();
+    }
 
-    get collapseFraction() {
+    // eslint-disable-next-line camelcase
+    get collapse_fraction() {
         return this._collapseFraction;
-    },
+    }
 
     _doRemoveWindow(metaWin) {
         let clone = this._removeWindowClone(metaWin);
         if (clone)
             clone.destroy();
-    },
+    }
 
     _doAddWindow(metaWin) {
         if (this._removed)
@@ -385,7 +388,7 @@ var WorkspaceThumbnail = new Lang.Class({
         if (!win) {
             // Newly-created windows are added to a workspace before
             // the compositor finds out about them...
-            let id = Mainloop.idle_add(() => {
+            let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 if (!this._removed &&
                     metaWin.get_compositor_private() &&
                     metaWin.get_workspace() == this.metaWorkspace)
@@ -396,7 +399,7 @@ var WorkspaceThumbnail = new Lang.Class({
             return;
         }
 
-        if (this._allWindows.indexOf(metaWin) == -1) {
+        if (!this._allWindows.includes(metaWin)) {
             let minimizedChangedId = metaWin.connect('notify::minimized',
                                                      this._updateMinimized.bind(this));
             this._allWindows.push(metaWin);
@@ -405,7 +408,7 @@ var WorkspaceThumbnail = new Lang.Class({
 
         // We might have the window in our list already if it was on all workspaces and
         // now was moved to this workspace
-        if (this._lookupIndex (metaWin) != -1)
+        if (this._lookupIndex(metaWin) != -1)
             return;
 
         if (!this._isMyWindow(win))
@@ -418,7 +421,7 @@ var WorkspaceThumbnail = new Lang.Class({
             while (parent.is_attached_dialog())
                 parent = parent.get_transient_for();
 
-            let idx = this._lookupIndex (parent);
+            let idx = this._lookupIndex(parent);
             if (idx < 0) {
                 // parent was not created yet, it will take care
                 // of the dialog when created
@@ -428,11 +431,11 @@ var WorkspaceThumbnail = new Lang.Class({
             let clone = this._windows[idx];
             clone.addAttachedDialog(metaWin);
         }
-    },
+    }
 
     _windowAdded(metaWorkspace, metaWin) {
         this._doAddWindow(metaWin);
-    },
+    }
 
     _windowRemoved(metaWorkspace, metaWin) {
         let index = this._allWindows.indexOf(metaWin);
@@ -443,31 +446,26 @@ var WorkspaceThumbnail = new Lang.Class({
         }
 
         this._doRemoveWindow(metaWin);
-    },
+    }
 
     _windowEnteredMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doAddWindow(metaWin);
         }
-    },
+    }
 
     _windowLeftMonitor(metaDisplay, monitorIndex, metaWin) {
         if (monitorIndex == this.monitorIndex) {
             this._doRemoveWindow(metaWin);
         }
-    },
+    }
 
     _updateMinimized(metaWin) {
         if (metaWin.minimized)
             this._doRemoveWindow(metaWin);
         else
             this._doAddWindow(metaWin);
-    },
-
-    destroy() {
-        if (this.actor)
-          this.actor.destroy();
-    },
+    }
 
     workspaceRemoved() {
         if (this._removed)
@@ -482,32 +480,31 @@ var WorkspaceThumbnail = new Lang.Class({
 
         for (let i = 0; i < this._allWindows.length; i++)
             this._allWindows[i].disconnect(this._minimizedChangedIds[i]);
-    },
+    }
 
-    _onDestroy(actor) {
+    _onDestroy() {
         this.workspaceRemoved();
 
         if (this._bgManager) {
-          this._bgManager.destroy();
-          this._bgManager = null;
+            this._bgManager.destroy();
+            this._bgManager = null;
         }
 
         this._windows = [];
-        this.actor = null;
-    },
+    }
 
     // Tests if @actor belongs to this workspace and monitor
     _isMyWindow(actor) {
         let win = actor.meta_window;
         return win.located_on_workspace(this.metaWorkspace) &&
             (win.get_monitor() == this.monitorIndex);
-    },
+    }
 
     // Tests if @win should be shown in the Overview
     _isOverviewWindow(win) {
         return !win.get_meta_window().skip_taskbar &&
                win.get_meta_window().showing_on_its_workspace();
-    },
+    }
 
     // Create a clone of a (non-desktop) window and add it to the window list
     _addWindowClone(win) {
@@ -538,17 +535,17 @@ var WorkspaceThumbnail = new Lang.Class({
         this._windows.push(clone);
 
         return clone;
-    },
+    }
 
     _removeWindowClone(metaWin) {
         // find the position of the window in our list
-        let index = this._lookupIndex (metaWin);
+        let index = this._lookupIndex(metaWin);
 
         if (index == -1)
             return null;
 
         return this._windows.splice(index, 1).pop();
-    },
+    }
 
     activate(time) {
         if (this.state > ThumbnailState.NORMAL)
@@ -561,10 +558,10 @@ var WorkspaceThumbnail = new Lang.Class({
             Main.overview.hide();
         else
             this.metaWorkspace.activate(time);
-    },
+    }
 
     // Draggable target interface used only by ThumbnailsBox
-    handleDragOverInternal(source, time) {
+    handleDragOverInternal(source, actor, time) {
         if (source == Main.xdndHandler) {
             this.metaWorkspace.activate(time);
             return DND.DragMotionResult.CONTINUE;
@@ -575,13 +572,15 @@ var WorkspaceThumbnail = new Lang.Class({
 
         if (source.realWindow && !this._isMyWindow(source.realWindow))
             return DND.DragMotionResult.MOVE_DROP;
-        if (source.shellWorkspaceLaunch)
+        if (source.app && source.app.can_open_new_window())
+            return DND.DragMotionResult.COPY_DROP;
+        if (!source.app && source.shellWorkspaceLaunch)
             return DND.DragMotionResult.COPY_DROP;
 
         return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
-    acceptDropInternal(source, time) {
+    acceptDropInternal(source, actor, time) {
         if (this.state > ThumbnailState.NORMAL)
             return false;
 
@@ -600,8 +599,16 @@ var WorkspaceThumbnail = new Lang.Class({
 
             metaWindow.change_workspace_by_index(this.metaWorkspace.index(), false);
             return true;
-        } else if (source.shellWorkspaceLaunch) {
-            source.shellWorkspaceLaunch({ workspace: this.metaWorkspace ? this.metaWorkspace.index() : -1,
+        } else if (source.app && source.app.can_open_new_window()) {
+            if (source.animateLaunchAtPos)
+                source.animateLaunchAtPos(actor.x, actor.y);
+
+            source.app.open_new_window(this.metaWorkspace.index());
+            return true;
+        } else if (!source.app && source.shellWorkspaceLaunch) {
+            // While unused in our own drag sources, shellWorkspaceLaunch allows
+            // extensions to define custom actions for their drag sources.
+            source.shellWorkspaceLaunch({ workspace: this.metaWorkspace.index(),
                                           timestamp: time });
             return true;
         }
@@ -610,20 +617,25 @@ var WorkspaceThumbnail = new Lang.Class({
     }
 });
 
-Signals.addSignalMethods(WorkspaceThumbnail.prototype);
 
-
-var ThumbnailsBox = new Lang.Class({
-    Name: 'ThumbnailsBox',
-
+var ThumbnailsBox = GObject.registerClass({
+    Properties: {
+        'indicator-y': GObject.ParamSpec.double(
+            'indicator-y', 'indicator-y', 'indicator-y',
+            GObject.ParamFlags.READWRITE,
+            0, Infinity, 0),
+        'scale': GObject.ParamSpec.double(
+            'scale', 'scale', 'scale',
+            GObject.ParamFlags.READWRITE,
+            0, Infinity, 0)
+    }
+}, class ThumbnailsBox extends St.Widget {
     _init() {
-        this.actor = new Shell.GenericContainer({ reactive: true,
-                                                  style_class: 'workspace-thumbnails',
-                                                  request_mode: Clutter.RequestMode.WIDTH_FOR_HEIGHT });
-        this.actor.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this.actor.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this.actor.connect('allocate', this._allocate.bind(this));
-        this.actor._delegate = this;
+        super._init({ reactive: true,
+                      style_class: 'workspace-thumbnails',
+                      request_mode: Clutter.RequestMode.WIDTH_FOR_HEIGHT });
+
+        this._delegate = this;
 
         let indicator = new St.Bin({ style_class: 'workspace-thumbnail-indicator' });
 
@@ -631,12 +643,16 @@ var ThumbnailsBox = new Lang.Class({
         Shell.util_set_hidden_from_pick(indicator, true);
 
         this._indicator = indicator;
-        this.actor.add_actor(indicator);
+        this.add_actor(indicator);
+
+        // The porthole is the part of the screen we're showing in the thumbnails
+        this._porthole = { width: global.stage.width, height: global.stage.height,
+                           x: global.stage.x, y: global.stage.y };
 
         this._dropWorkspace = -1;
         this._dropPlaceholderPos = -1;
         this._dropPlaceholder = new St.Bin({ style_class: 'placeholder' });
-        this.actor.add_actor(this._dropPlaceholder);
+        this.add_actor(this._dropPlaceholder);
         this._spliceIndex = -1;
 
         this._targetScale = 0;
@@ -652,9 +668,9 @@ var ThumbnailsBox = new Lang.Class({
 
         this._thumbnails = [];
 
-        this.actor.connect('button-press-event', () => Clutter.EVENT_STOP);
-        this.actor.connect('button-release-event', this._onButtonRelease.bind(this));
-        this.actor.connect('touch-event', this._onTouchEvent.bind(this));
+        this.connect('button-press-event', () => Clutter.EVENT_STOP);
+        this.connect('button-release-event', this._onButtonRelease.bind(this));
+        this.connect('touch-event', this._onTouchEvent.bind(this));
 
         Main.overview.connect('showing',
                               this._createThumbnails.bind(this));
@@ -684,38 +700,39 @@ var ThumbnailsBox = new Lang.Class({
                 this._createThumbnails();
         });
 
+        global.display.connect('workareas-changed',
+                               this._updatePorthole.bind(this));
+
         this._switchWorkspaceNotifyId = 0;
         this._nWorkspacesNotifyId = 0;
         this._syncStackingId = 0;
         this._workareasChangedId = 0;
-    },
+    }
 
     _updateSwitcherVisibility() {
         let workspaceManager = global.workspace_manager;
 
-        this.actor.visible =
+        this.visible =
             this._settings.get_boolean('dynamic-workspaces') ||
                 workspaceManager.n_workspaces > 1;
-    },
+    }
 
     _activateThumbnailAtPoint(stageX, stageY, time) {
-        let [r, x, y] = this.actor.transform_stage_point(stageX, stageY);
+        let [r_, x_, y] = this.transform_stage_point(stageX, stageY);
 
-        for (let i = 0; i < this._thumbnails.length; i++) {
-            let thumbnail = this._thumbnails[i]
-            let [w, h] = thumbnail.actor.get_transformed_size();
-            if (y >= thumbnail.actor.y && y <= thumbnail.actor.y + h) {
-                thumbnail.activate(time);
-                break;
-            }
-        }
-    },
+        let thumbnail = this._thumbnails.find(t => {
+            let [, h] = t.get_transformed_size();
+            return y >= t.y && y <= t.y + h;
+        });
+        if (thumbnail)
+            thumbnail.activate(time);
+    }
 
     _onButtonRelease(actor, event) {
         let [stageX, stageY] = event.get_coords();
         this._activateThumbnailAtPoint(stageX, stageY, event.get_time());
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onTouchEvent(actor, event) {
         if (event.type() == Clutter.EventType.TOUCH_END &&
@@ -725,7 +742,7 @@ var ThumbnailsBox = new Lang.Class({
         }
 
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onDragBegin() {
         this._dragCancelled = false;
@@ -733,50 +750,53 @@ var ThumbnailsBox = new Lang.Class({
             dragMotion: this._onDragMotion.bind(this)
         };
         DND.addDragMonitor(this._dragMonitor);
-    },
+    }
 
     _onDragEnd() {
         if (this._dragCancelled)
             return;
 
         this._endDrag();
-    },
+    }
 
     _onDragCancelled() {
         this._dragCancelled = true;
         this._endDrag();
-    },
+    }
 
     _endDrag() {
         this._clearDragPlaceholder();
         DND.removeDragMonitor(this._dragMonitor);
-    },
+    }
 
     _onDragMotion(dragEvent) {
-        if (!this.actor.contains(dragEvent.targetActor))
+        if (!this.contains(dragEvent.targetActor))
             this._onLeave();
         return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
     _onLeave() {
         this._clearDragPlaceholder();
-    },
+    }
 
     _clearDragPlaceholder() {
         if (this._dropPlaceholderPos == -1)
             return;
 
         this._dropPlaceholderPos = -1;
-        this.actor.queue_relayout();
-    },
+        this.queue_relayout();
+    }
 
     // Draggable target interface
     handleDragOver(source, actor, x, y, time) {
-        if (!source.realWindow && !source.shellWorkspaceLaunch && source != Main.xdndHandler)
+        if (!source.realWindow &&
+            (!source.app || !source.app.can_open_new_window()) &&
+            (source.app || !source.shellWorkspaceLaunch) &&
+            source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
         let canCreateWorkspaces = Meta.prefs_get_dynamic_workspaces();
-        let spacing = this.actor.get_theme_node().get_length('spacing');
+        let spacing = this.get_theme_node().get_length('spacing');
 
         this._dropWorkspace = -1;
         let placeholderPos = -1;
@@ -784,17 +804,17 @@ var ThumbnailsBox = new Lang.Class({
         if (this._dropPlaceholderPos == 0)
             targetBase = this._dropPlaceholder.y;
         else
-            targetBase = this._thumbnails[0].actor.y;
+            targetBase = this._thumbnails[0].y;
         let targetTop = targetBase - spacing - WORKSPACE_CUT_SIZE;
         let length = this._thumbnails.length;
         for (let i = 0; i < length; i ++) {
             // Allow the reorder target to have a 10px "cut" into
             // each side of the thumbnail, to make dragging onto the
             // placeholder easier
-            let [w, h] = this._thumbnails[i].actor.get_transformed_size();
+            let [, h] = this._thumbnails[i].get_transformed_size();
             let targetBottom = targetBase + WORKSPACE_CUT_SIZE;
             let nextTargetBase = targetBase + h + spacing;
-            let nextTargetTop =  nextTargetBase - spacing - ((i == length - 1) ? 0: WORKSPACE_CUT_SIZE);
+            let nextTargetTop =  nextTargetBase - spacing - ((i == length - 1) ? 0 : WORKSPACE_CUT_SIZE);
 
             // Expand the target to include the placeholder, if it exists.
             if (i == this._dropPlaceholderPos)
@@ -805,7 +825,7 @@ var ThumbnailsBox = new Lang.Class({
                 break;
             } else if (y > targetBottom && y <= nextTargetTop) {
                 this._dropWorkspace = i;
-                break
+                break;
             }
 
             targetBase = nextTargetBase;
@@ -814,22 +834,24 @@ var ThumbnailsBox = new Lang.Class({
 
         if (this._dropPlaceholderPos != placeholderPos) {
             this._dropPlaceholderPos = placeholderPos;
-            this.actor.queue_relayout();
+            this.queue_relayout();
         }
 
         if (this._dropWorkspace != -1)
-            return this._thumbnails[this._dropWorkspace].handleDragOverInternal(source, time);
+            return this._thumbnails[this._dropWorkspace].handleDragOverInternal(source, actor, time);
         else if (this._dropPlaceholderPos != -1)
             return source.realWindow ? DND.DragMotionResult.MOVE_DROP : DND.DragMotionResult.COPY_DROP;
         else
             return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
     acceptDrop(source, actor, x, y, time) {
         if (this._dropWorkspace != -1) {
-            return this._thumbnails[this._dropWorkspace].acceptDropInternal(source, time);
+            return this._thumbnails[this._dropWorkspace].acceptDropInternal(source, actor, time);
         } else if (this._dropPlaceholderPos != -1) {
-            if (!source.realWindow && !source.shellWorkspaceLaunch)
+            if (!source.realWindow &&
+                (!source.app || !source.app.can_open_new_window()) &&
+                (source.app || !source.shellWorkspaceLaunch))
                 return false;
 
             let isWindow = !!source.realWindow;
@@ -846,9 +868,19 @@ var ThumbnailsBox = new Lang.Class({
                 if (source.metaWindow.get_monitor() != thumbMonitor)
                     source.metaWindow.move_to_monitor(thumbMonitor);
                 source.metaWindow.change_workspace_by_index(newWorkspaceIndex, true);
-            } else if (source.shellWorkspaceLaunch) {
+            } else if (source.app && source.app.can_open_new_window()) {
+                if (source.animateLaunchAtPos)
+                    source.animateLaunchAtPos(actor.x, actor.y);
+
+                source.app.open_new_window(newWorkspaceIndex);
+            } else if (!source.app && source.shellWorkspaceLaunch) {
+                // While unused in our own drag sources, shellWorkspaceLaunch allows
+                // extensions to define custom actions for their drag sources.
                 source.shellWorkspaceLaunch({ workspace: newWorkspaceIndex,
                                               timestamp: time });
+            }
+
+            if (source.app || (!source.app && source.shellWorkspaceLaunch)) {
                 // This new workspace will be automatically removed if the application fails
                 // to open its first window within some time, as tracked by Shell.WindowTracker.
                 // Here, we only add a very brief timeout to avoid the _immediate_ removal of the
@@ -862,7 +894,7 @@ var ThumbnailsBox = new Lang.Class({
             // an old one which just became empty)
             let thumbnail = this._thumbnails[newWorkspaceIndex];
             this._setThumbnailState(thumbnail, ThumbnailState.NEW);
-            thumbnail.slidePosition = 1;
+            thumbnail.slide_position = 1;
 
             this._queueUpdateStates();
 
@@ -870,7 +902,7 @@ var ThumbnailsBox = new Lang.Class({
         } else {
             return false;
         }
-    },
+    }
 
     _createThumbnails() {
         let workspaceManager = global.workspace_manager;
@@ -881,6 +913,13 @@ var ThumbnailsBox = new Lang.Class({
         this._nWorkspacesNotifyId =
             workspaceManager.connect('notify::n-workspaces',
                                      this._workspacesChanged.bind(this));
+        this._workspacesReorderedId =
+            workspaceManager.connect('workspaces-reordered', () => {
+                this._thumbnails.sort((a, b) => {
+                    return a.metaWorkspace.index() - b.metaWorkspace.index();
+                });
+                this.queue_relayout();
+            });
         this._syncStackingId =
             Main.overview.connect('windows-restacked',
                                   this._syncStacking.bind(this));
@@ -897,7 +936,7 @@ var ThumbnailsBox = new Lang.Class({
         this.addThumbnails(0, workspaceManager.n_workspaces);
 
         this._updateSwitcherVisibility();
-    },
+    }
 
     _destroyThumbnails() {
         if (this._thumbnails.length == 0)
@@ -912,6 +951,11 @@ var ThumbnailsBox = new Lang.Class({
             workspaceManager.disconnect(this._nWorkspacesNotifyId);
             this._nWorkspacesNotifyId = 0;
         }
+        if (this._workspacesReorderedId > 0) {
+            let workspaceManager = global.workspace_manager;
+            workspaceManager.disconnect(this._workspacesReorderedId);
+            this._workspacesReorderedId = 0;
+        }
 
         if (this._syncStackingId > 0) {
             Main.overview.disconnect(this._syncStackingId);
@@ -921,8 +965,7 @@ var ThumbnailsBox = new Lang.Class({
         for (let w = 0; w < this._thumbnails.length; w++)
             this._thumbnails[w].destroy();
         this._thumbnails = [];
-        this._porthole = null;
-    },
+    }
 
     _workspacesChanged() {
         let validThumbnails =
@@ -930,7 +973,6 @@ var ThumbnailsBox = new Lang.Class({
         let workspaceManager = global.workspace_manager;
         let oldNumWorkspaces = validThumbnails.length;
         let newNumWorkspaces = workspaceManager.n_workspaces;
-        let active = workspaceManager.get_active_workspace_index();
 
         if (newNumWorkspaces > oldNumWorkspaces) {
             this.addThumbnails(oldNumWorkspaces, newNumWorkspaces - oldNumWorkspaces);
@@ -949,25 +991,23 @@ var ThumbnailsBox = new Lang.Class({
         }
 
         this._updateSwitcherVisibility();
-    },
+    }
 
     addThumbnails(start, count) {
         let workspaceManager = global.workspace_manager;
 
-        if (!this._ensurePorthole())
-            return;
         for (let k = start; k < start + count; k++) {
             let metaWorkspace = workspaceManager.get_workspace_by_index(k);
             let thumbnail = new WorkspaceThumbnail(metaWorkspace);
             thumbnail.setPorthole(this._porthole.x, this._porthole.y,
                                   this._porthole.width, this._porthole.height);
             this._thumbnails.push(thumbnail);
-            this.actor.add_actor(thumbnail.actor);
+            this.add_actor(thumbnail);
 
             if (start > 0 && this._spliceIndex == -1) {
                 // not the initial fill, and not splicing via DND
                 thumbnail.state = ThumbnailState.NEW;
-                thumbnail.slidePosition = 1; // start slid out
+                thumbnail.slide_position = 1; // start slid out
                 this._haveNewThumbnails = true;
             } else {
                 thumbnail.state = ThumbnailState.NORMAL;
@@ -983,7 +1023,7 @@ var ThumbnailsBox = new Lang.Class({
 
         // Clear the splice index, we got the message
         this._spliceIndex = -1;
-    },
+    }
 
     removeThumbnails(start, count) {
         let currentPos = 0;
@@ -1002,36 +1042,46 @@ var ThumbnailsBox = new Lang.Class({
         }
 
         this._queueUpdateStates();
-    },
+    }
 
     _syncStacking(overview, stackIndices) {
         for (let i = 0; i < this._thumbnails.length; i++)
             this._thumbnails[i].syncStacking(stackIndices);
-    },
+    }
 
     set scale(scale) {
+        if (this._scale == scale)
+            return;
+
         this._scale = scale;
-        this.actor.queue_relayout();
-    },
+        this.notify('scale');
+        this.queue_relayout();
+    }
 
     get scale() {
         return this._scale;
-    },
+    }
 
-    set indicatorY(indicatorY) {
+    // eslint-disable-next-line camelcase
+    set indicator_y(indicatorY) {
+        if (this._indicatorY == indicatorY)
+            return;
+
         this._indicatorY = indicatorY;
-        this.actor.queue_relayout();
-    },
+        this.notify('indicator-y');
+        this.queue_relayout();
+    }
 
-    get indicatorY() {
+    // eslint-disable-next-line camelcase
+    get indicator_y() {
         return this._indicatorY;
-    },
+    }
 
     _setThumbnailState(thumbnail, state) {
         this._stateCounts[thumbnail.state]--;
         thumbnail.state = state;
         this._stateCounts[thumbnail.state]++;
-    },
+    }
 
     _iterateStateThumbnails(state, callback) {
         if (this._stateCounts[state] == 0)
@@ -1041,16 +1091,7 @@ var ThumbnailsBox = new Lang.Class({
             if (this._thumbnails[i].state == state)
                 callback.call(this, this._thumbnails[i]);
         }
-    },
-
-    _tweenScale() {
-        Tweener.addTween(this,
-                         { scale: this._targetScale,
-                           time: RESCALE_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._queueUpdateStates,
-                           onCompleteScope: this });
-    },
+    }
 
     _updateStates() {
         this._stateUpdateQueued = false;
@@ -1063,15 +1104,14 @@ var ThumbnailsBox = new Lang.Class({
         this._iterateStateThumbnails(ThumbnailState.REMOVING, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.ANIMATING_OUT);
 
-            Tweener.addTween(thumbnail,
-                             { slidePosition: 1,
-                               time: SLIDE_ANIMATION_TIME,
-                               transition: 'linear',
-                               onComplete: () => {
-                                   this._setThumbnailState(thumbnail, ThumbnailState.ANIMATED_OUT);
-                                   this._queueUpdateStates();
-                               }
-                             });
+            thumbnail.ease_property('slide-position', 1, {
+                duration: SLIDE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.LINEAR,
+                onComplete: () => {
+                    this._setThumbnailState(thumbnail, ThumbnailState.ANIMATED_OUT);
+                    this._queueUpdateStates();
+                }
+            });
         });
 
         // As long as things are sliding out, don't proceed
@@ -1080,27 +1120,29 @@ var ThumbnailsBox = new Lang.Class({
 
         // Once that's complete, we can start scaling to the new size and collapse any removed thumbnails
         this._iterateStateThumbnails(ThumbnailState.ANIMATED_OUT, thumbnail => {
-            this.actor.set_skip_paint(thumbnail.actor, true);
             this._setThumbnailState(thumbnail, ThumbnailState.COLLAPSING);
-            Tweener.addTween(thumbnail,
-                             { collapseFraction: 1,
-                               time: RESCALE_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this._stateCounts[thumbnail.state]--;
-                                   thumbnail.state = ThumbnailState.DESTROYED;
+            thumbnail.ease_property('collapse-fraction', 1, {
+                duration: RESCALE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._stateCounts[thumbnail.state]--;
+                    thumbnail.state = ThumbnailState.DESTROYED;
 
-                                   let index = this._thumbnails.indexOf(thumbnail);
-                                   this._thumbnails.splice(index, 1);
-                                   thumbnail.destroy();
+                    let index = this._thumbnails.indexOf(thumbnail);
+                    this._thumbnails.splice(index, 1);
+                    thumbnail.destroy();
 
-                                   this._queueUpdateStates();
-                               }
-                             });
+                    this._queueUpdateStates();
+                }
+            });
         });
 
         if (this._pendingScaleUpdate) {
-            this._tweenScale();
+            this.ease_property('scale', this._targetScale, {
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                duration: RESCALE_ANIMATION_TIME,
+                onComplete: () => this._queueUpdateStates()
+            });
             this._pendingScaleUpdate = false;
         }
 
@@ -1111,16 +1153,15 @@ var ThumbnailsBox = new Lang.Class({
         // And then slide in any new thumbnails
         this._iterateStateThumbnails(ThumbnailState.NEW, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.ANIMATING_IN);
-            Tweener.addTween(thumbnail,
-                             { slidePosition: 0,
-                               time: SLIDE_ANIMATION_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete: () => {
-                                   this._setThumbnailState(thumbnail, ThumbnailState.NORMAL);
-                               }
-                             });
+            thumbnail.ease_property('slide-position', 0, {
+                duration: SLIDE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._setThumbnailState(thumbnail, ThumbnailState.NORMAL);
+                }
+            });
         });
-    },
+    }
 
     _queueUpdateStates() {
         if (this._stateUpdateQueued)
@@ -1130,41 +1171,31 @@ var ThumbnailsBox = new Lang.Class({
                        this._updateStates.bind(this));
 
         this._stateUpdateQueued = true;
-    },
+    }
 
-    _getPreferredHeight(actor, forWidth, alloc) {
+    vfunc_get_preferred_height(_forWidth) {
         // Note that for getPreferredWidth/Height we cheat a bit and skip propagating
         // the size request to our children because we know how big they are and know
         // that the actors aren't depending on the virtual functions being called.
-
-        if (!this._ensurePorthole()) {
-            alloc.min_size = -1;
-            alloc.natural_size = -1;
-            return;
-        }
-
         let workspaceManager = global.workspace_manager;
-        let themeNode = this.actor.get_theme_node();
+        let themeNode = this.get_theme_node();
 
         let spacing = themeNode.get_length('spacing');
         let nWorkspaces = workspaceManager.n_workspaces;
         let totalSpacing = (nWorkspaces - 1) * spacing;
 
-        alloc.min_size = totalSpacing;
-        alloc.natural_size = totalSpacing + nWorkspaces * this._porthole.height * MAX_THUMBNAIL_SCALE;
-    },
+        let naturalHeight = totalSpacing + nWorkspaces * this._porthole.height * MAX_THUMBNAIL_SCALE;
 
-    _getPreferredWidth(actor, forHeight, alloc) {
-        if (!this._ensurePorthole()) {
-            alloc.min_size = -1;
-            alloc.natural_size = -1;
-            return;
-        }
+        return themeNode.adjust_preferred_height(totalSpacing, naturalHeight);
+    }
 
+    vfunc_get_preferred_width(forHeight) {
         let workspaceManager = global.workspace_manager;
-        let themeNode = this.actor.get_theme_node();
+        let themeNode = this.get_theme_node();
 
-        let spacing = this.actor.get_theme_node().get_length('spacing');
+        forHeight = themeNode.adjust_for_height(forHeight);
+
+        let spacing = themeNode.get_length('spacing');
         let nWorkspaces = workspaceManager.n_workspaces;
         let totalSpacing = (nWorkspaces - 1) * spacing;
 
@@ -1174,30 +1205,32 @@ var ThumbnailsBox = new Lang.Class({
         scale = Math.min(scale, MAX_THUMBNAIL_SCALE);
 
         let width = Math.round(this._porthole.width * scale);
-        alloc.min_size = width;
-        alloc.natural_size = width;
-    },
 
-    // The "porthole" is the portion of the screen that we show in the
-    // workspaces
-    _ensurePorthole() {
-        if (!Main.layoutManager.primaryMonitor || !Main.overview.visible)
-            return false;
+        return themeNode.adjust_preferred_width(width, width);
+    }
 
-        if (!this._porthole)
+    _updatePorthole() {
+        if (!Main.layoutManager.primaryMonitor)
+            this._porthole = { width: global.stage.width, height: global.stage.height,
+                               x: global.stage.x, y: global.stage.y };
+        else
             this._porthole = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
 
-        return true;
-    },
+        this.queue_relayout();
+    }
 
-    _allocate(actor, box, flags) {
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
+
         let rtl = (Clutter.get_default_text_direction () == Clutter.TextDirection.RTL);
 
         if (this._thumbnails.length == 0) // not visible
             return;
 
         let workspaceManager = global.workspace_manager;
-        let themeNode = this.actor.get_theme_node();
+        let themeNode = this.get_theme_node();
+
+        box = themeNode.get_content_box(box);
 
         let portholeWidth = this._porthole.width;
         let portholeHeight = this._porthole.height;
@@ -1261,21 +1294,21 @@ var ThumbnailsBox = new Lang.Class({
             let thumbnail = this._thumbnails[i];
 
             if (i > 0)
-                y += spacing - Math.round(thumbnail.collapseFraction * spacing);
+                y += spacing - Math.round(thumbnail.collapse_fraction * spacing);
 
             let x1, x2;
             if (rtl) {
-                x1 = box.x1 + slideOffset * thumbnail.slidePosition;
+                x1 = box.x1 + slideOffset * thumbnail.slide_position;
                 x2 = x1 + thumbnailWidth;
             } else {
-                x1 = box.x2 - thumbnailWidth + slideOffset * thumbnail.slidePosition;
+                x1 = box.x2 - thumbnailWidth + slideOffset * thumbnail.slide_position;
                 x2 = x1 + thumbnailWidth;
             }
 
             if (i == this._dropPlaceholderPos) {
-                let [minHeight, placeholderHeight] = this._dropPlaceholder.get_preferred_height(-1);
+                let [, placeholderHeight] = this._dropPlaceholder.get_preferred_height(-1);
                 childBox.x1 = x1;
-                childBox.x2 = x1 + thumbnailWidth;
+                childBox.x2 = x2;
                 childBox.y1 = Math.round(y);
                 childBox.y2 = Math.round(y + placeholderHeight);
                 this._dropPlaceholder.allocate(childBox, flags);
@@ -1305,13 +1338,13 @@ var ThumbnailsBox = new Lang.Class({
             childBox.y1 = y1;
             childBox.y2 = y1 + portholeHeight;
 
-            thumbnail.actor.set_scale(roundedHScale, roundedVScale);
-            thumbnail.actor.allocate(childBox, flags);
+            thumbnail.set_scale(roundedHScale, roundedVScale);
+            thumbnail.allocate(childBox, flags);
 
             // We round the collapsing portion so that we don't get thumbnails resizing
             // during an animation due to differences in rounded, but leave the uncollapsed
             // portion unrounded so that non-animating we end up with the right total
-            y += thumbnailHeight - Math.round(thumbnailHeight * thumbnail.collapseFraction);
+            y += thumbnailHeight - Math.round(thumbnailHeight * thumbnail.collapse_fraction);
         }
 
         if (rtl) {
@@ -1326,32 +1359,24 @@ var ThumbnailsBox = new Lang.Class({
         childBox.y1 = indicatorY1 - indicatorTopFullBorder;
         childBox.y2 = (indicatorY2 ? indicatorY2 : (indicatorY1 + thumbnailHeight)) + indicatorBottomFullBorder;
         this._indicator.allocate(childBox, flags);
-    },
+    }
 
-    _activeWorkspaceChanged(wm, from, to, direction) {
-        let thumbnail;
+    _activeWorkspaceChanged(_wm, _from, _to, _direction) {
         let workspaceManager = global.workspace_manager;
         let activeWorkspace = workspaceManager.get_active_workspace();
-        for (let i = 0; i < this._thumbnails.length; i++) {
-            if (this._thumbnails[i].metaWorkspace == activeWorkspace) {
-                thumbnail = this._thumbnails[i];
-                break;
-            }
-        }
+        let thumbnail = this._thumbnails.find(t => t.metaWorkspace == activeWorkspace);
 
         this._animatingIndicator = true;
         let indicatorThemeNode = this._indicator.get_theme_node();
         let indicatorTopFullBorder = indicatorThemeNode.get_padding(St.Side.TOP) + indicatorThemeNode.get_border_width(St.Side.TOP);
-        this.indicatorY = this._indicator.allocation.y1 + indicatorTopFullBorder;
-        Tweener.addTween(this,
-                         { indicatorY: thumbnail.actor.allocation.y1,
-                           time: WorkspacesView.WORKSPACE_SWITCH_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete() {
-                               this._animatingIndicator = false;
-                               this._queueUpdateStates();
-                           },
-                           onCompleteScope: this
-                         });
+        this.indicator_y = this._indicator.allocation.y1 + indicatorTopFullBorder;
+        this.ease_property('indicator-y', thumbnail.allocation.y1, {
+            progress_mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            duration: WorkspacesView.WORKSPACE_SWITCH_TIME,
+            onComplete: () => {
+                this._animatingIndicator = false;
+                this._queueUpdateStates();
+            }
+        });
     }
 });

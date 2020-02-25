@@ -1,11 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported GrabHelper */
 
-const Clutter = imports.gi.Clutter;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
+const { Clutter, St } = imports.gi;
 
 const Main = imports.ui.main;
 const Params = imports.misc.params;
@@ -46,10 +42,11 @@ function _popGrabHelper(grabHelper) {
 // your code just needs to deal with it; you shouldn't adjust behavior directly
 // after you call ungrab(), but instead pass an 'onUngrab' callback when you
 // call grab().
-var GrabHelper = new Lang.Class({
-    Name: 'GrabHelper',
+var GrabHelper = class GrabHelper {
+    constructor(owner, params) {
+        if (!(owner instanceof Clutter.Actor))
+            throw new Error('GrabHelper owner must be a Clutter.Actor');
 
-    _init(owner, params) {
         this._owner = owner;
         this._modalParams = params;
 
@@ -59,7 +56,7 @@ var GrabHelper = new Lang.Class({
         this._ignoreUntilRelease = false;
 
         this._modalCount = 0;
-    },
+    }
 
     // addActor:
     // @actor: an actor
@@ -71,7 +68,7 @@ var GrabHelper = new Lang.Class({
             this.removeActor(actor);
         });
         this._actors.push(actor);
-    },
+    }
 
     // removeActor:
     // @actor: an actor
@@ -86,31 +83,31 @@ var GrabHelper = new Lang.Class({
             actor.disconnect(actor.__grabHelperDestroyId);
             delete actor.__grabHelperDestroyId;
         }
-    },
+    }
 
     _isWithinGrabbedActor(actor) {
         let currentActor = this.currentGrab.actor;
         while (actor) {
-            if (this._actors.indexOf(actor) != -1)
+            if (this._actors.includes(actor))
                 return true;
             if (actor == currentActor)
                 return true;
             actor = actor.get_parent();
         }
         return false;
-    },
+    }
 
     get currentGrab() {
         return this._grabStack[this._grabStack.length - 1] || {};
-    },
+    }
 
     get grabbed() {
         return this._grabStack.length > 0;
-    },
+    }
 
     get grabStack() {
         return this._grabStack;
-    },
+    }
 
     _findStackIndex(actor) {
         if (!actor)
@@ -121,7 +118,7 @@ var GrabHelper = new Lang.Class({
                 return i;
         }
         return -1;
-    },
+    }
 
     _actorInGrabStack(actor) {
         while (actor) {
@@ -131,11 +128,11 @@ var GrabHelper = new Lang.Class({
             actor = actor.get_parent();
         }
         return -1;
-    },
+    }
 
     isActorGrabbed(actor) {
         return this._findStackIndex(actor) >= 0;
-    },
+    }
 
     // grab:
     // @params: A bunch of parameters, see below
@@ -190,12 +187,12 @@ var GrabHelper = new Lang.Class({
         if (params.focus) {
             params.focus.grab_key_focus();
         } else if (newFocus && hadFocus) {
-            if (!newFocus.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false))
+            if (!newFocus.navigate_focus(null, St.DirectionType.TAB_FORWARD, false))
                 newFocus.grab_key_focus();
         }
 
         return true;
-    },
+    }
 
     _takeModalGrab() {
         let firstGrab = (this._modalCount == 0);
@@ -208,7 +205,7 @@ var GrabHelper = new Lang.Class({
 
         this._modalCount++;
         return true;
-    },
+    }
 
     _releaseModalGrab() {
         this._modalCount--;
@@ -221,7 +218,7 @@ var GrabHelper = new Lang.Class({
 
         Main.popModal(this._owner);
         global.sync_pointer();
-    },
+    }
 
     // ignoreRelease:
     //
@@ -231,7 +228,7 @@ var GrabHelper = new Lang.Class({
     // the next release event.
     ignoreRelease() {
         this._ignoreUntilRelease = true;
-    },
+    }
 
     // ungrab:
     // @params: The parameters for the grab; see below.
@@ -274,7 +271,7 @@ var GrabHelper = new Lang.Class({
             if (poppedGrab.savedFocus)
                 poppedGrab.savedFocus.grab_key_focus();
         }
-    },
+    }
 
     onCapturedEvent(event) {
         let type = event.type();
@@ -322,5 +319,5 @@ var GrabHelper = new Lang.Class({
         }
 
         return Clutter.EVENT_STOP;
-    },
-});
+    }
+};

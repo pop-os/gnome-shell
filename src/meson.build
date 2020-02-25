@@ -6,6 +6,10 @@ subdir('hotplug-sniffer')
 subdir('st')
 subdir('tray')
 
+if get_option('extensions_tool')
+  subdir('extensions-tool')
+endif
+
 script_data = configuration_data()
 script_data.set('bindir', bindir)
 script_data.set('datadir', datadir)
@@ -16,7 +20,13 @@ script_data.set('pkglibdir', pkglibdir)
 script_data.set('PYTHON', python.path())
 script_data.set('VERSION', meson.project_version())
 
-foreach tool : ['gnome-shell-extension-tool', 'gnome-shell-perf-tool']
+script_tools = ['gnome-shell-perf-tool']
+
+if get_option('extensions_tool')
+  script_tools += 'gnome-shell-extension-tool'
+endif
+
+foreach tool : script_tools
   configure_file(
     input: tool + '.in',
     output: tool,
@@ -49,7 +59,6 @@ gnome_shell_deps = [
   cogl_pango_dep,
   startup_dep,
   gi_dep,
-  canberra_dep, canberra_gtk_dep,
   polkit_dep,
   gcr_dep,
   libsystemd_dep
@@ -61,43 +70,22 @@ gnome_shell_deps += recorder_deps
 tools_cflags = '-DLOCALEDIR="@0@"'.format(localedir)
 tools_deps = [gio_dep, gjs_dep]
 
-libshell_menu_gir_sources = [
+libshell_menu_sources = [
   'gtkactionmuxer.h',
   'gtkactionmuxer.c',
   'gtkactionobservable.h',
   'gtkactionobservable.c',
   'gtkactionobserver.h',
-  'gtkactionobserver.c',
-  'gtkmenutrackeritem.c',
-  'gtkmenutrackeritem.h'
-]
-
-libshell_menu_no_gir_sources= [
-  'gtkmenutracker.c',
-  'gtkmenutracker.h'
+  'gtkactionobserver.c'
 ]
 
 libshell_menu = library('gnome-shell-menu',
-  sources: libshell_menu_gir_sources + libshell_menu_no_gir_sources,
+  sources: libshell_menu_sources,
   dependencies: [gio_dep, clutter_dep],
   include_directories: conf_inc,
   build_rpath: mutter_typelibdir,
   install_rpath: mutter_typelibdir,
   install_dir: pkglibdir,
-  install: true
-)
-
-libshell_menu_gir = gnome.generate_gir(libshell_menu,
-  sources: libshell_menu_gir_sources,
-  nsversion: '0.1',
-  namespace: 'ShellMenu',
-  identifier_prefix: 'Gtk',
-  symbol_prefix: 'gtk',
-  includes: ['Gio-2.0', libst_gir[0]],
-  dependencies: [mutter_dep],
-  extra_args: ['--quiet'],
-  install_dir_gir: pkgdatadir,
-  install_dir_typelib: pkglibdir,
   install: true
 )
 
@@ -108,8 +96,7 @@ libshell_public_headers = [
   'shell-app-system.h',
   'shell-app-usage.h',
   'shell-embedded-window.h',
-  'shell-generic-container.h',
-  'shell-glsl-quad.h',
+  'shell-glsl-effect.h',
   'shell-gtk-embed.h',
   'shell-global.h',
   'shell-invert-lightness-effect.h',
@@ -144,15 +131,12 @@ libshell_sources = [
   'shell-app-usage.c',
   'shell-embedded-window.c',
   'shell-embedded-window-private.h',
-  'shell-generic-container.c',
   'shell-global.c',
-  'shell-glsl-quad.c',
+  'shell-glsl-effect.c',
   'shell-gtk-embed.c',
   'shell-invert-lightness-effect.c',
   'shell-keyring-prompt.c',
   'shell-keyring-prompt.h',
-  'shell-menu-tracker.c',
-  'shell-menu-tracker.h',
   'shell-mount-operation.c',
   'shell-perf-log.c',
   'shell-polkit-authentication-agent.c',
@@ -208,7 +192,7 @@ libshell_no_gir_sources += dbus_generated
 
 libshell = library('gnome-shell',
   sources: libshell_gir_sources + libshell_no_gir_sources,
-  dependencies: gnome_shell_deps + [libshell_menu_dep, libst_dep, mutter_dep, m_dep],
+  dependencies: gnome_shell_deps + [libshell_menu_dep, libst_dep, mutter_dep, gnome_desktop_dep, m_dep],
   include_directories: [conf_inc, st_inc, include_directories('tray')],
   c_args: gnome_shell_cflags,
   link_with: [libtray],
@@ -234,7 +218,6 @@ endif
 
 libshell_gir_includes += [
   libgvc_gir[0],
-  libshell_menu_gir[0],
   libst_gir[0]
 ]
 

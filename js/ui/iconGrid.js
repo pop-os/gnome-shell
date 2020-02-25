@@ -1,28 +1,22 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported BaseIcon, IconGrid, PaginatedIconGrid */
 
-const Clutter = imports.gi.Clutter;
-const Gtk = imports.gi.Gtk;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const Signals = imports.signals;
-const St = imports.gi.St;
+const { Clutter, GLib, GObject, Meta, St } = imports.gi;
 
-const Lang = imports.lang;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
 const Main = imports.ui.main;
 
 var ICON_SIZE = 96;
 var MIN_ICON_SIZE = 16;
 
-var EXTRA_SPACE_ANIMATION_TIME = 0.25;
+var EXTRA_SPACE_ANIMATION_TIME = 250;
 
-var ANIMATION_TIME_IN = 0.350;
-var ANIMATION_TIME_OUT = 1/2 * ANIMATION_TIME_IN;
-var ANIMATION_MAX_DELAY_FOR_ITEM = 2/3 * ANIMATION_TIME_IN;
-var ANIMATION_BASE_DELAY_FOR_ITEM = 1/4 * ANIMATION_MAX_DELAY_FOR_ITEM;
-var ANIMATION_MAX_DELAY_OUT_FOR_ITEM = 2/3 * ANIMATION_TIME_OUT;
-var ANIMATION_FADE_IN_TIME_FOR_ITEM = 1/4 * ANIMATION_TIME_IN;
+var ANIMATION_TIME_IN = 350;
+var ANIMATION_TIME_OUT = 1 / 2 * ANIMATION_TIME_IN;
+var ANIMATION_MAX_DELAY_FOR_ITEM = 2 / 3 * ANIMATION_TIME_IN;
+var ANIMATION_BASE_DELAY_FOR_ITEM = 1 / 4 * ANIMATION_MAX_DELAY_FOR_ITEM;
+var ANIMATION_MAX_DELAY_OUT_FOR_ITEM = 2 / 3 * ANIMATION_TIME_OUT;
+var ANIMATION_FADE_IN_TIME_FOR_ITEM = 1 / 4 * ANIMATION_TIME_IN;
 
 var ANIMATION_BOUNCE_ICON_SCALE = 1.1;
 
@@ -32,11 +26,10 @@ var AnimationDirection = {
 };
 
 var APPICON_ANIMATION_OUT_SCALE = 3;
-var APPICON_ANIMATION_OUT_TIME = 0.25;
+var APPICON_ANIMATION_OUT_TIME = 250;
 
-var BaseIcon = new Lang.Class({
-    Name: 'BaseIcon',
-
+var BaseIcon = GObject.registerClass(
+class BaseIcon extends St.Bin {
     _init(label, params) {
         params = Params.parse(params, { createIcon: null,
                                         setSizeManually: false,
@@ -46,32 +39,28 @@ var BaseIcon = new Lang.Class({
         if (params.showLabel)
             styleClass += ' overview-icon-with-label';
 
-        this.actor = new St.Bin({ style_class: styleClass,
-                                  x_fill: true,
-                                  y_fill: true });
-        this.actor._delegate = this;
-        this.actor.connect('style-changed', this._onStyleChanged.bind(this));
-        this.actor.connect('destroy', this._onDestroy.bind(this));
+        super._init({ style_class: styleClass,
+                      x_fill: true,
+                      y_fill: true });
 
-        this._spacing = 0;
+        this.connect('destroy', this._onDestroy.bind(this));
 
-        let box = new Shell.GenericContainer();
-        box.connect('allocate', this._allocate.bind(this));
-        box.connect('get-preferred-width',
-                    this._getPreferredWidth.bind(this));
-        box.connect('get-preferred-height',
-                    this._getPreferredHeight.bind(this));
-        this.actor.set_child(box);
+        this._box = new St.BoxLayout({ vertical: true });
+        this.set_child(this._box);
 
         this.iconSize = ICON_SIZE;
         this._iconBin = new St.Bin({ x_align: St.Align.MIDDLE,
                                      y_align: St.Align.MIDDLE });
 
-        box.add_actor(this._iconBin);
+        this._box.add_actor(this._iconBin);
 
         if (params.showLabel) {
             this.label = new St.Label({ text: label });
-            box.add_actor(this.label);
+            this.label.clutter_text.set({
+                x_align: Clutter.ActorAlign.CENTER,
+                y_align: Clutter.ActorAlign.CENTER
+            });
+            this._box.add_actor(this.label);
         } else {
             this.label = null;
         }
@@ -84,63 +73,18 @@ var BaseIcon = new Lang.Class({
 
         let cache = St.TextureCache.get_default();
         this._iconThemeChangedId = cache.connect('icon-theme-changed', this._onIconThemeChanged.bind(this));
-    },
+    }
 
-    _allocate(actor, box, flags) {
-        let availWidth = box.x2 - box.x1;
-        let availHeight = box.y2 - box.y1;
-
-        let iconSize = availHeight;
-
-        let [iconMinHeight, iconNatHeight] = this._iconBin.get_preferred_height(-1);
-        let [iconMinWidth, iconNatWidth] = this._iconBin.get_preferred_width(-1);
-        let preferredHeight = iconNatHeight;
-
-        let childBox = new Clutter.ActorBox();
-
-        if (this.label) {
-            let [labelMinHeight, labelNatHeight] = this.label.get_preferred_height(-1);
-            preferredHeight += this._spacing + labelNatHeight;
-
-            let labelHeight = availHeight >= preferredHeight ? labelNatHeight
-                                                             : labelMinHeight;
-            iconSize -= this._spacing + labelHeight;
-
-            childBox.x1 = 0;
-            childBox.x2 = availWidth;
-            childBox.y1 = iconSize + this._spacing;
-            childBox.y2 = childBox.y1 + labelHeight;
-            this.label.allocate(childBox, flags);
-        }
-
-        childBox.x1 = Math.floor((availWidth - iconNatWidth) / 2);
-        childBox.y1 = Math.floor((iconSize - iconNatHeight) / 2);
-        childBox.x2 = childBox.x1 + iconNatWidth;
-        childBox.y2 = childBox.y1 + iconNatHeight;
-        this._iconBin.allocate(childBox, flags);
-    },
-
-    _getPreferredWidth(actor, forHeight, alloc) {
-        this._getPreferredHeight(actor, -1, alloc);
-    },
-
-    _getPreferredHeight(actor, forWidth, alloc) {
-        let [iconMinHeight, iconNatHeight] = this._iconBin.get_preferred_height(forWidth);
-        alloc.min_size = iconMinHeight;
-        alloc.natural_size = iconNatHeight;
-
-        if (this.label) {
-            let [labelMinHeight, labelNatHeight] = this.label.get_preferred_height(forWidth);
-            alloc.min_size += this._spacing + labelMinHeight;
-            alloc.natural_size += this._spacing + labelNatHeight;
-        }
-    },
+    vfunc_get_preferred_width(_forHeight) {
+        // Return the actual height to keep the squared aspect
+        return this.get_preferred_height(-1);
+    }
 
     // This can be overridden by a subclass, or by the createIcon
     // parameter to _init()
-    createIcon(size) {
-        throw new Error('no implementation of createIcon in ' + this);
-    },
+    createIcon(_size) {
+        throw new GObject.NotImplementedError(`createIcon in ${this.constructor.name}`);
+    }
 
     setIconSize(size) {
         if (!this._setSizeManually)
@@ -150,7 +94,7 @@ var BaseIcon = new Lang.Class({
             return;
 
         this._createIconTexture(size);
-    },
+    }
 
     _createIconTexture(size) {
         if (this.icon)
@@ -159,11 +103,11 @@ var BaseIcon = new Lang.Class({
         this.icon = this.createIcon(this.iconSize);
 
         this._iconBin.child = this.icon;
-    },
+    }
 
-    _onStyleChanged() {
-        let node = this.actor.get_theme_node();
-        this._spacing = node.get_length('spacing');
+    vfunc_style_changed() {
+        super.vfunc_style_changed();
+        let node = this.get_theme_node();
 
         let size;
         if (this._setSizeManually) {
@@ -177,7 +121,7 @@ var BaseIcon = new Lang.Class({
             return;
 
         this._createIconTexture(size);
-    },
+    }
 
     _onDestroy() {
         if (this._iconThemeChangedId > 0) {
@@ -185,29 +129,42 @@ var BaseIcon = new Lang.Class({
             cache.disconnect(this._iconThemeChangedId);
             this._iconThemeChangedId = 0;
         }
-    },
+    }
 
     _onIconThemeChanged() {
         this._createIconTexture(this.iconSize);
-    },
+    }
 
     animateZoomOut() {
         // Animate only the child instead of the entire actor, so the
         // styles like hover and running are not applied while
         // animating.
-        zoomOutActor(this.actor.child);
+        zoomOutActor(this.child);
+    }
+
+    animateZoomOutAtPos(x, y) {
+        zoomOutActorAtPos(this.child, x, y);
+    }
+
+    update() {
+        this._createIconTexture(this.iconSize);
     }
 });
 
 function clamp(value, min, max) {
     return Math.max(Math.min(value, max), min);
-};
+}
 
 function zoomOutActor(actor) {
+    let [x, y] = actor.get_transformed_position();
+    zoomOutActorAtPos(actor, x, y);
+}
+
+function zoomOutActorAtPos(actor, x, y) {
     let actorClone = new Clutter.Clone({ source: actor,
                                          reactive: false });
     let [width, height] = actor.get_transformed_size();
-    let [x, y] = actor.get_transformed_position();
+
     actorClone.set_size(width, height);
     actorClone.set_position(x, y);
     actorClone.opacity = 255;
@@ -224,24 +181,26 @@ function zoomOutActor(actor) {
     let containedX = clamp(scaledX, monitor.x, monitor.x + monitor.width - scaledWidth);
     let containedY = clamp(scaledY, monitor.y, monitor.y + monitor.height - scaledHeight);
 
-    Tweener.addTween(actorClone,
-                     { time: APPICON_ANIMATION_OUT_TIME,
-                       scale_x: APPICON_ANIMATION_OUT_SCALE,
-                       scale_y: APPICON_ANIMATION_OUT_SCALE,
-                       translation_x: containedX - scaledX,
-                       translation_y: containedY - scaledY,
-                       opacity: 0,
-                       transition: 'easeOutQuad',
-                       onComplete() {
-                           actorClone.destroy();
-                       }
-                    });
+    actorClone.ease({
+        scale_x: APPICON_ANIMATION_OUT_SCALE,
+        scale_y: APPICON_ANIMATION_OUT_SCALE,
+        translation_x: containedX - scaledX,
+        translation_y: containedY - scaledY,
+        opacity: 0,
+        duration: APPICON_ANIMATION_OUT_TIME,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => actorClone.destroy()
+    });
 }
 
-var IconGrid = new Lang.Class({
-    Name: 'IconGrid',
-
+var IconGrid = GObject.registerClass({
+    Signals: { 'animation-done': {},
+               'child-focused': { param_types: [Clutter.Actor.$gtype] } },
+}, class IconGrid extends St.Widget {
     _init(params) {
+        super._init({ style_class: 'icon-grid',
+                      y_align: Clutter.ActorAlign.START });
+
         params = Params.parse(params, { rowLimit: null,
                                         columnLimit: null,
                                         minRows: 1,
@@ -262,78 +221,100 @@ var IconGrid = new Lang.Class({
         this.rightPadding = 0;
         this.leftPadding = 0;
 
-        this.actor = new St.BoxLayout({ style_class: 'icon-grid',
-                                        vertical: true });
+        this._updateIconSizesLaterId = 0;
+
         this._items = [];
         this._clonesAnimating = [];
         // Pulled from CSS, but hardcode some defaults here
         this._spacing = 0;
         this._hItemSize = this._vItemSize = ICON_SIZE;
         this._fixedHItemSize = this._fixedVItemSize = undefined;
-        this._grid = new Shell.GenericContainer();
-        this.actor.add(this._grid, { expand: true, y_align: St.Align.START });
-        this.actor.connect('style-changed', this._onStyleChanged.bind(this));
+        this.connect('style-changed', this._onStyleChanged.bind(this));
 
         // Cancel animations when hiding the overview, to avoid icons
         // swarming into the void ...
-        this.actor.connect('notify::mapped', () => {
-            if (!this.actor.mapped)
-                this._cancelAnimation();
+        this.connect('notify::mapped', () => {
+            if (!this.mapped)
+                this._resetAnimationActors();
         });
 
-        this._grid.connect('get-preferred-width', this._getPreferredWidth.bind(this));
-        this._grid.connect('get-preferred-height', this._getPreferredHeight.bind(this));
-        this._grid.connect('allocate', this._allocate.bind(this));
-        this._grid.connect('actor-added', this._childAdded.bind(this));
-        this._grid.connect('actor-removed', this._childRemoved.bind(this));
-    },
+        this.connect('actor-added', this._childAdded.bind(this));
+        this.connect('actor-removed', this._childRemoved.bind(this));
+        this.connect('destroy', this._onDestroy.bind(this));
+    }
+
+    _onDestroy() {
+        if (this._updateIconSizesLaterId) {
+            Meta.later_remove (this._updateIconSizesLaterId);
+            this._updateIconSizesLaterId = 0;
+        }
+    }
 
     _keyFocusIn(actor) {
-        this.emit('key-focus-in', actor);
-    },
+        this.emit('child-focused', actor);
+    }
 
     _childAdded(grid, child) {
         child._iconGridKeyFocusInId = child.connect('key-focus-in', this._keyFocusIn.bind(this));
-    },
+
+        child._paintVisible = child.opacity > 0;
+        child._opacityChangedId = child.connect('notify::opacity', () => {
+            let paintVisible = child._paintVisible;
+            child._paintVisible = child.opacity > 0;
+            if (paintVisible !== child._paintVisible)
+                this.queue_relayout();
+        });
+    }
 
     _childRemoved(grid, child) {
         child.disconnect(child._iconGridKeyFocusInId);
-    },
+        delete child._iconGridKeyFocusInId;
 
-    _getPreferredWidth(grid, forHeight, alloc) {
+        child.disconnect(child._opacityChangedId);
+        delete child._opacityChangedId;
+        delete child._paintVisible;
+    }
+
+    vfunc_get_preferred_width(_forHeight) {
         if (this._fillParent)
             // Ignore all size requests of children and request a size of 0;
             // later we'll allocate as many children as fit the parent
-            return;
+            return [0, 0];
 
-        let nChildren = this._grid.get_n_children();
-        let nColumns = this._colLimit ? Math.min(this._colLimit,
-                                                 nChildren)
-                                      : nChildren;
+        let nChildren = this.get_n_children();
+        let nColumns = this._colLimit
+            ? Math.min(this._colLimit, nChildren)
+            : nChildren;
         let totalSpacing = Math.max(0, nColumns - 1) * this._getSpacing();
         // Kind of a lie, but not really an issue right now.  If
         // we wanted to support some sort of hidden/overflow that would
         // need higher level design
-        alloc.min_size = this._getHItemSize() + this.leftPadding + this.rightPadding;
-        alloc.natural_size = nColumns * this._getHItemSize() + totalSpacing + this.leftPadding + this.rightPadding;
-    },
+        let minSize = this._getHItemSize() + this.leftPadding + this.rightPadding;
+        let natSize = nColumns * this._getHItemSize() + totalSpacing + this.leftPadding + this.rightPadding;
+
+        return this.get_theme_node().adjust_preferred_width(minSize, natSize);
+    }
 
     _getVisibleChildren() {
-        return this._grid.get_children().filter(actor => actor.visible);
-    },
+        return this.get_children().filter(actor => actor.visible);
+    }
 
-    _getPreferredHeight(grid, forWidth, alloc) {
+    vfunc_get_preferred_height(forWidth) {
         if (this._fillParent)
             // Ignore all size requests of children and request a size of 0;
             // later we'll allocate as many children as fit the parent
-            return;
+            return [0, 0];
 
+        let themeNode = this.get_theme_node();
         let children = this._getVisibleChildren();
         let nColumns;
+
+        forWidth = themeNode.adjust_for_width(forWidth);
+
         if (forWidth < 0)
             nColumns = children.length;
         else
-            [nColumns, ] = this._computeLayout(forWidth);
+            [nColumns] = this._computeLayout(forWidth);
 
         let nRows;
         if (nColumns > 0)
@@ -344,16 +325,21 @@ var IconGrid = new Lang.Class({
             nRows = Math.min(nRows, this._rowLimit);
         let totalSpacing = Math.max(0, nRows - 1) * this._getSpacing();
         let height = nRows * this._getVItemSize() + totalSpacing + this.topPadding + this.bottomPadding;
-        alloc.min_size = height;
-        alloc.natural_size = height;
-    },
 
-    _allocate(grid, box, flags) {
+        return themeNode.adjust_preferred_height(height, height);
+    }
+
+    vfunc_allocate(box, flags) {
+        this.set_allocation(box, flags);
+
+        let themeNode = this.get_theme_node();
+        box = themeNode.get_content_box(box);
+
         if (this._fillParent) {
             // Reset the passed in box to fill the parent
-            let parentBox = this.actor.get_parent().allocation;
-            let gridBox = this.actor.get_theme_node().get_content_box(parentBox);
-            box = this._grid.get_theme_node().get_content_box(gridBox);
+            let parentBox = this.get_parent().allocation;
+            let gridBox = themeNode.get_content_box(parentBox);
+            box = themeNode.get_content_box(gridBox);
         }
 
         let children = this._getVisibleChildren();
@@ -363,17 +349,18 @@ var IconGrid = new Lang.Class({
         let [nColumns, usedWidth] = this._computeLayout(availWidth);
 
         let leftEmptySpace;
-        switch(this._xAlign) {
-            case St.Align.START:
-                leftEmptySpace = 0;
-                break;
-            case St.Align.MIDDLE:
-                leftEmptySpace = Math.floor((availWidth - usedWidth) / 2);
-                break;
-            case St.Align.END:
-                leftEmptySpace = availWidth - usedWidth;
+        switch (this._xAlign) {
+        case St.Align.START:
+            leftEmptySpace = 0;
+            break;
+        case St.Align.MIDDLE:
+            leftEmptySpace = Math.floor((availWidth - usedWidth) / 2);
+            break;
+        case St.Align.END:
+            leftEmptySpace = availWidth - usedWidth;
         }
 
+        let animating = this._clonesAnimating.length > 0;
         let x = box.x1 + leftEmptySpace + this.leftPadding;
         let y = box.y1 + this.topPadding;
         let columnIndex = 0;
@@ -383,10 +370,11 @@ var IconGrid = new Lang.Class({
 
             if (this._rowLimit && rowIndex >= this._rowLimit ||
                 this._fillParent && childBox.y2 > availHeight - this.bottomPadding) {
-                this._grid.set_skip_paint(children[i], true);
+                children[i].opacity = 0;
             } else {
+                if (!animating)
+                    children[i].opacity = 255;
                 children[i].allocate(childBox, flags);
-                this._grid.set_skip_paint(children[i], false);
             }
 
             columnIndex++;
@@ -402,36 +390,75 @@ var IconGrid = new Lang.Class({
                 x += this._getHItemSize() + spacing;
             }
         }
-    },
+    }
+
+    vfunc_get_paint_volume(paintVolume) {
+        // Setting the paint volume does not make sense when we don't have
+        // any allocation
+        if (!this.has_allocation())
+            return false;
+
+        let themeNode = this.get_theme_node();
+        let allocationBox = this.get_allocation_box();
+        let paintBox = themeNode.get_paint_box(allocationBox);
+
+        let origin = new Clutter.Vertex();
+        origin.x = paintBox.x1 - allocationBox.x1;
+        origin.y = paintBox.y1 - allocationBox.y1;
+        origin.z = 0.0;
+
+        paintVolume.set_origin(origin);
+        paintVolume.set_width(paintBox.x2 - paintBox.x1);
+        paintVolume.set_height(paintBox.y2 - paintBox.y1);
+
+        if (this.get_clip_to_allocation())
+            return true;
+
+        for (let child = this.get_first_child();
+            child != null;
+            child = child.get_next_sibling()) {
+
+            if (!child.visible || !child.opacity)
+                continue;
+
+            let childVolume = child.get_transformed_paint_volume(this);
+            if (!childVolume)
+                return false;
+
+            paintVolume.union(childVolume);
+        }
+
+        return true;
+    }
 
     /**
      * Intended to be override by subclasses if they need a different
      * set of items to be animated.
      */
     _getChildrenToAnimate() {
-        return this._getVisibleChildren();
-    },
+        return this._getVisibleChildren().filter(child => child.opacity > 0);
+    }
 
-    _cancelAnimation() {
-        this._clonesAnimating.forEach(clone => { clone.destroy(); });
-        this._clonesAnimating = [];
-    },
-
-    _animationDone() {
+    _resetAnimationActors() {
         this._clonesAnimating.forEach(clone => {
             clone.source.reactive = true;
             clone.source.opacity = 255;
             clone.destroy();
         });
         this._clonesAnimating = [];
+    }
+
+    _animationDone() {
+        this._resetAnimationActors();
         this.emit('animation-done');
-    },
+    }
 
     animatePulse(animationDirection) {
         if (animationDirection != AnimationDirection.IN)
-            throw new Error("Pulse animation only implements 'in' animation direction");
+            throw new GObject.NotImplementedError("Pulse animation only implements " +
+                                                  "'in' animation direction");
 
-        this._cancelAnimation();
+        this._resetAnimationActors();
 
         let actors = this._getChildrenToAnimate();
         if (actors.length == 0) {
@@ -454,30 +481,32 @@ var IconGrid = new Lang.Class({
             let delay = index / actors.length * maxDelay;
             let bounceUpTime = ANIMATION_TIME_IN / 4;
             let isLastItem = index == actors.length - 1;
-            Tweener.addTween(actor,
-                            { time: bounceUpTime,
-                              transition: 'easeInOutQuad',
-                              delay: delay,
-                              scale_x: ANIMATION_BOUNCE_ICON_SCALE,
-                              scale_y: ANIMATION_BOUNCE_ICON_SCALE,
-                              onComplete: () => {
-                                  Tweener.addTween(actor,
-                                                   { time: ANIMATION_TIME_IN - bounceUpTime,
-                                                     transition: 'easeInOutQuad',
-                                                     scale_x: 1,
-                                                     scale_y: 1,
-                                                     onComplete: () => {
-                                                        if (isLastItem)
-                                                            this._animationDone();
-                                                    }
-                                                   });
-                              }
-                            });
+            actor.ease({
+                scale_x: ANIMATION_BOUNCE_ICON_SCALE,
+                scale_y: ANIMATION_BOUNCE_ICON_SCALE,
+                duration: bounceUpTime,
+                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                delay: delay,
+                onComplete: () => {
+                    let duration = ANIMATION_TIME_IN - bounceUpTime;
+                    actor.ease({
+                        scale_x: 1,
+                        scale_y: 1,
+                        duration,
+                        mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                        onComplete: () => {
+                            if (isLastItem)
+                                this._animationDone();
+                            actor.reactive = true;
+                        }
+                    });
+                }
+            });
         }
-    },
+    }
 
     animateSpring(animationDirection, sourceActor) {
-        this._cancelAnimation();
+        this._resetAnimationActors();
 
         let actors = this._getChildrenToAnimate();
         if (actors.length == 0) {
@@ -514,7 +543,7 @@ var IconGrid = new Lang.Class({
             this._clonesAnimating.push(actorClone);
             Main.uiGroup.add_actor(actorClone);
 
-            let [width, height,,] = this._getAllocatedChildSizeAndSpacing(actor);
+            let [width, height] = this._getAllocatedChildSizeAndSpacing(actor);
             actorClone.set_size(width, height);
             let scaleX = sourceScaledWidth / width;
             let scaleY = sourceScaledHeight / height;
@@ -531,21 +560,25 @@ var IconGrid = new Lang.Class({
 
                 let delay = (1 - (actor._distance - minDist) / normalization) * ANIMATION_MAX_DELAY_FOR_ITEM;
                 let [finalX, finalY]  = actor._transformedPosition;
-                movementParams = { time: ANIMATION_TIME_IN,
-                                   transition: 'easeInOutQuad',
-                                   delay: delay,
-                                   x: finalX,
-                                   y: finalY,
-                                   scale_x: 1,
-                                   scale_y: 1,
-                                   onComplete: () => {
-                                       if (isLastItem)
-                                           this._animationDone();
-                                   }};
-                fadeParams = { time: ANIMATION_FADE_IN_TIME_FOR_ITEM,
-                               transition: 'easeInOutQuad',
-                               delay: delay,
-                               opacity: 255 };
+                movementParams = {
+                    x: finalX,
+                    y: finalY,
+                    scale_x: 1,
+                    scale_y: 1,
+                    duration: ANIMATION_TIME_IN,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay
+                };
+
+                if (isLastItem)
+                    movementParams.onComplete = this._animationDone.bind(this);
+
+                fadeParams = {
+                    opacity: 255,
+                    duration: ANIMATION_FADE_IN_TIME_FOR_ITEM,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay
+                };
             } else {
                 let isLastItem = actor._distance == maxDist;
 
@@ -553,28 +586,31 @@ var IconGrid = new Lang.Class({
                 actorClone.set_position(startX, startY);
 
                 let delay = (actor._distance - minDist) / normalization * ANIMATION_MAX_DELAY_OUT_FOR_ITEM;
-                movementParams = { time: ANIMATION_TIME_OUT,
-                                   transition: 'easeInOutQuad',
-                                   delay: delay,
-                                   x: adjustedSourcePositionX,
-                                   y: adjustedSourcePositionY,
-                                   scale_x: scaleX,
-                                   scale_y: scaleY,
-                                   onComplete: () => {
-                                       if (isLastItem)
-                                           this._animationDone();
-                                   }};
-                fadeParams = { time: ANIMATION_FADE_IN_TIME_FOR_ITEM,
-                               transition: 'easeInOutQuad',
-                               delay: ANIMATION_TIME_OUT + delay - ANIMATION_FADE_IN_TIME_FOR_ITEM,
-                               opacity: 0 };
+                movementParams = {
+                    x: adjustedSourcePositionX,
+                    y: adjustedSourcePositionY,
+                    scale_x: scaleX,
+                    scale_y: scaleY,
+                    duration: ANIMATION_TIME_OUT,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay
+                };
+
+                if (isLastItem)
+                    movementParams.onComplete = this._animationDone.bind(this);
+
+                fadeParams = {
+                    opacity: 0,
+                    duration: ANIMATION_FADE_IN_TIME_FOR_ITEM,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    delay: ANIMATION_TIME_OUT + delay - ANIMATION_FADE_IN_TIME_FOR_ITEM
+                };
             }
 
-
-            Tweener.addTween(actorClone, movementParams);
-            Tweener.addTween(actorClone, fadeParams);
+            actorClone.ease(movementParams);
+            actorClone.ease(fadeParams);
         }
-    },
+    }
 
     _getAllocatedChildSizeAndSpacing(child) {
         let [,, natWidth, natHeight] = child.get_preferred_size();
@@ -583,7 +619,7 @@ var IconGrid = new Lang.Class({
         let height = Math.min(this._getVItemSize(), natHeight);
         let ySpacing = Math.max(0, height - natHeight) / 2;
         return [width, height, xSpacing, ySpacing];
-    },
+    }
 
     _calculateChildBox(child, x, y, box) {
         /* Center the item in its allocation horizontally */
@@ -601,17 +637,19 @@ var IconGrid = new Lang.Class({
         childBox.x2 = childBox.x1 + width;
         childBox.y2 = childBox.y1 + height;
         return childBox;
-    },
+    }
 
     columnsForWidth(rowWidth) {
         return this._computeLayout(rowWidth)[0];
-    },
+    }
 
     getRowLimit() {
         return this._rowLimit;
-    },
+    }
 
     _computeLayout(forWidth) {
+        this.ensure_style();
+
         let nColumns = 0;
         let usedWidth = this.leftPadding + this.rightPadding;
         let spacing = this._getSpacing();
@@ -626,15 +664,15 @@ var IconGrid = new Lang.Class({
             usedWidth -= spacing;
 
         return [nColumns, usedWidth];
-    },
+    }
 
     _onStyleChanged() {
-        let themeNode = this.actor.get_theme_node();
+        let themeNode = this.get_theme_node();
         this._spacing = themeNode.get_length('spacing');
         this._hItemSize = themeNode.get_length('-shell-grid-horizontal-item-size') || ICON_SIZE;
         this._vItemSize = themeNode.get_length('-shell-grid-vertical-item-size') || ICON_SIZE;
-        this._grid.queue_relayout();
-    },
+        this.queue_relayout();
+    }
 
     nRows(forWidth) {
         let children = this._getVisibleChildren();
@@ -643,74 +681,74 @@ var IconGrid = new Lang.Class({
         if (this._rowLimit)
             nRows = Math.min(nRows, this._rowLimit);
         return nRows;
-    },
+    }
 
     rowsForHeight(forHeight) {
         return Math.floor((forHeight - (this.topPadding + this.bottomPadding) + this._getSpacing()) / (this._getVItemSize() + this._getSpacing()));
-    },
+    }
 
     usedHeightForNRows(nRows) {
         return (this._getVItemSize() + this._getSpacing()) * nRows - this._getSpacing() + this.topPadding + this.bottomPadding;
-    },
+    }
 
     usedWidth(forWidth) {
         return this.usedWidthForNColumns(this.columnsForWidth(forWidth));
-    },
+    }
 
     usedWidthForNColumns(columns) {
         let usedWidth = columns  * (this._getHItemSize() + this._getSpacing());
         usedWidth -= this._getSpacing();
         return usedWidth + this.leftPadding + this.rightPadding;
-    },
+    }
 
     removeAll() {
         this._items = [];
-        this._grid.remove_all_children();
-    },
+        this.remove_all_children();
+    }
 
     destroyAll() {
         this._items = [];
-        this._grid.destroy_all_children();
-    },
+        this.destroy_all_children();
+    }
 
     addItem(item, index) {
-        if (!item.icon instanceof BaseIcon)
+        if (!(item.icon instanceof BaseIcon))
             throw new Error('Only items with a BaseIcon icon property can be added to IconGrid');
 
         this._items.push(item);
         if (index !== undefined)
-            this._grid.insert_child_at_index(item.actor, index);
+            this.insert_child_at_index(item.actor, index);
         else
-            this._grid.add_actor(item.actor);
-    },
+            this.add_actor(item.actor);
+    }
 
     removeItem(item) {
-        this._grid.remove_child(item.actor);
-    },
+        this.remove_child(item.actor);
+    }
 
     getItemAtIndex(index) {
-        return this._grid.get_child_at_index(index);
-    },
+        return this.get_child_at_index(index);
+    }
 
     visibleItemsCount() {
-        return this._grid.get_n_children() - this._grid.get_n_skip_paint();
-    },
+        return this.get_children().filter(c => c.is_visible()).length;
+    }
 
     setSpacing(spacing) {
         this._fixedSpacing = spacing;
-    },
+    }
 
     _getSpacing() {
         return this._fixedSpacing ? this._fixedSpacing : this._spacing;
-    },
+    }
 
     _getHItemSize() {
         return this._fixedHItemSize ? this._fixedHItemSize : this._hItemSize;
-    },
+    }
 
     _getVItemSize() {
         return this._fixedVItemSize ? this._fixedVItemSize : this._vItemSize;
-    },
+    }
 
     _updateSpacingForSize(availWidth, availHeight) {
         let maxEmptyVArea = availHeight - this._minRows * this._getVItemSize();
@@ -720,8 +758,8 @@ var IconGrid = new Lang.Class({
         if (this._padWithSpacing) {
             // minRows + 1 because we want to put spacing before the first row, so it is like we have one more row
             // to divide the empty space
-            maxVSpacing = Math.floor(maxEmptyVArea / (this._minRows +1));
-            maxHSpacing = Math.floor(maxEmptyHArea / (this._minColumns +1));
+            maxVSpacing = Math.floor(maxEmptyVArea / (this._minRows + 1));
+            maxHSpacing = Math.floor(maxEmptyHArea / (this._minColumns + 1));
         } else {
             if (this._minRows <=  1)
                 maxVSpacing = maxEmptyVArea;
@@ -743,7 +781,7 @@ var IconGrid = new Lang.Class({
         this.setSpacing(spacing);
         if (this._padWithSpacing)
             this.topPadding = this.rightPadding = this.bottomPadding = this.leftPadding = spacing;
-    },
+    }
 
     /**
      * This function must to be called before iconGrid allocation,
@@ -753,116 +791,118 @@ var IconGrid = new Lang.Class({
         this._fixedHItemSize = this._hItemSize;
         this._fixedVItemSize = this._vItemSize;
         this._updateSpacingForSize(availWidth, availHeight);
-        let spacing = this._getSpacing();
 
         if (this.columnsForWidth(availWidth) < this._minColumns || this.rowsForHeight(availHeight) < this._minRows) {
-            let neededWidth = this.usedWidthForNColumns(this._minColumns) - availWidth ;
-            let neededHeight = this.usedHeightForNRows(this._minRows) - availHeight ;
+            let neededWidth = this.usedWidthForNColumns(this._minColumns) - availWidth;
+            let neededHeight = this.usedHeightForNRows(this._minRows) - availHeight;
 
-            let neededSpacePerItem = (neededWidth > neededHeight) ? Math.ceil(neededWidth / this._minColumns)
-                                                                  : Math.ceil(neededHeight / this._minRows);
+            let neededSpacePerItem = (neededWidth > neededHeight)
+                ? Math.ceil(neededWidth / this._minColumns)
+                : Math.ceil(neededHeight / this._minRows);
             this._fixedHItemSize = Math.max(this._hItemSize - neededSpacePerItem, MIN_ICON_SIZE);
             this._fixedVItemSize = Math.max(this._vItemSize - neededSpacePerItem, MIN_ICON_SIZE);
 
             this._updateSpacingForSize(availWidth, availHeight);
         }
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
-                       this._updateIconSizes.bind(this));
-    },
+        if (!this._updateIconSizesLaterId)
+            this._updateIconSizesLaterId = Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
+                                                          this._updateIconSizes.bind(this));
+    }
 
     // Note that this is ICON_SIZE as used by BaseIcon, not elsewhere in IconGrid; it's a bit messed up
     _updateIconSizes() {
+        this._updateIconSizesLaterId = 0;
         let scale = Math.min(this._fixedHItemSize, this._fixedVItemSize) / Math.max(this._hItemSize, this._vItemSize);
         let newIconSize = Math.floor(ICON_SIZE * scale);
         for (let i in this._items) {
             this._items[i].icon.setIconSize(newIconSize);
         }
+        return GLib.SOURCE_REMOVE;
     }
 });
-Signals.addSignalMethods(IconGrid.prototype);
 
-var PaginatedIconGrid = new Lang.Class({
-    Name: 'PaginatedIconGrid',
-    Extends: IconGrid,
-
+var PaginatedIconGrid = GObject.registerClass({
+    Signals: { 'space-opened': {},
+               'space-closed': {} },
+}, class PaginatedIconGrid extends IconGrid {
     _init(params) {
-        this.parent(params);
+        super._init(params);
         this._nPages = 0;
         this.currentPage = 0;
         this._rowsPerPage = 0;
         this._spaceBetweenPages = 0;
         this._childrenPerPage = 0;
-    },
+    }
 
-    _getPreferredHeight(grid, forWidth, alloc) {
-        alloc.min_size = (this._availableHeightPerPageForItems() + this.bottomPadding + this.topPadding) * this._nPages + this._spaceBetweenPages * this._nPages;
-        alloc.natural_size = (this._availableHeightPerPageForItems() + this.bottomPadding + this.topPadding) * this._nPages + this._spaceBetweenPages * this._nPages;
-    },
+    vfunc_get_preferred_height(_forWidth) {
+        let height = (this._availableHeightPerPageForItems() + this.bottomPadding + this.topPadding) * this._nPages + this._spaceBetweenPages * this._nPages;
+        return [height, height];
+    }
 
-    _allocate(grid, box, flags) {
-         if (this._childrenPerPage == 0)
+    vfunc_allocate(box, flags) {
+        if (this._childrenPerPage == 0)
             log('computePages() must be called before allocate(); pagination will not work.');
+
+        this.set_allocation(box, flags);
 
         if (this._fillParent) {
             // Reset the passed in box to fill the parent
-            let parentBox = this.actor.get_parent().allocation;
-            let gridBox = this.actor.get_theme_node().get_content_box(parentBox);
-            box = this._grid.get_theme_node().get_content_box(gridBox);
+            let parentBox = this.get_parent().allocation;
+            let gridBox = this.get_theme_node().get_content_box(parentBox);
+            box = this.get_theme_node().get_content_box(gridBox);
         }
         let children = this._getVisibleChildren();
         let availWidth = box.x2 - box.x1;
-        let availHeight = box.y2 - box.y1;
         let spacing = this._getSpacing();
         let [nColumns, usedWidth] = this._computeLayout(availWidth);
 
         let leftEmptySpace;
-        switch(this._xAlign) {
-            case St.Align.START:
-                leftEmptySpace = 0;
-                break;
-            case St.Align.MIDDLE:
-                leftEmptySpace = Math.floor((availWidth - usedWidth) / 2);
-                break;
-            case St.Align.END:
-                leftEmptySpace = availWidth - usedWidth;
+        switch (this._xAlign) {
+        case St.Align.START:
+            leftEmptySpace = 0;
+            break;
+        case St.Align.MIDDLE:
+            leftEmptySpace = Math.floor((availWidth - usedWidth) / 2);
+            break;
+        case St.Align.END:
+            leftEmptySpace = availWidth - usedWidth;
         }
 
         let x = box.x1 + leftEmptySpace + this.leftPadding;
         let y = box.y1 + this.topPadding;
         let columnIndex = 0;
-        let rowIndex = 0;
 
         for (let i = 0; i < children.length; i++) {
             let childBox = this._calculateChildBox(children[i], x, y, box);
             children[i].allocate(childBox, flags);
-            this._grid.set_skip_paint(children[i], false);
+            children[i].show();
 
             columnIndex++;
             if (columnIndex == nColumns) {
                 columnIndex = 0;
-                rowIndex++;
             }
             if (columnIndex == 0) {
                 y += this._getVItemSize() + spacing;
                 if ((i + 1) % this._childrenPerPage == 0)
                     y +=  this._spaceBetweenPages - spacing + this.bottomPadding + this.topPadding;
                 x = box.x1 + leftEmptySpace + this.leftPadding;
-            } else
+            } else {
                 x += this._getHItemSize() + spacing;
+            }
         }
-    },
+    }
 
-    // Overriden from IconGrid
+    // Overridden from IconGrid
     _getChildrenToAnimate() {
-        let children = this._getVisibleChildren();
+        let children = super._getChildrenToAnimate();
         let firstIndex = this._childrenPerPage * this.currentPage;
         let lastIndex = firstIndex + this._childrenPerPage;
 
         return children.slice(firstIndex, lastIndex);
-    },
+    }
 
     _computePages(availWidthPerPage, availHeightPerPage) {
-        let [nColumns, usedWidth] = this._computeLayout(availWidthPerPage);
+        let [nColumns, usedWidth_] = this._computeLayout(availWidthPerPage);
         let nRows;
         let children = this._getVisibleChildren();
         if (nColumns > 0)
@@ -872,49 +912,46 @@ var PaginatedIconGrid = new Lang.Class({
         if (this._rowLimit)
             nRows = Math.min(nRows, this._rowLimit);
 
-        let spacing = this._getSpacing();
         // We want to contain the grid inside the parent box with padding
         this._rowsPerPage = this.rowsForHeight(availHeightPerPage);
         this._nPages = Math.ceil(nRows / this._rowsPerPage);
         this._spaceBetweenPages = availHeightPerPage - (this.topPadding + this.bottomPadding) - this._availableHeightPerPageForItems();
         this._childrenPerPage = nColumns * this._rowsPerPage;
-    },
+    }
 
     adaptToSize(availWidth, availHeight) {
-        this.parent(availWidth, availHeight);
+        super.adaptToSize(availWidth, availHeight);
         this._computePages(availWidth, availHeight);
-    },
+    }
 
     _availableHeightPerPageForItems() {
         return this.usedHeightForNRows(this._rowsPerPage) - (this.topPadding + this.bottomPadding);
-    },
+    }
 
     nPages() {
         return this._nPages;
-    },
+    }
 
     getPageHeight() {
         return this._availableHeightPerPageForItems();
-    },
+    }
 
     getPageY(pageNumber) {
         if (!this._nPages)
             return 0;
 
-        let firstPageItem = pageNumber * this._childrenPerPage
+        let firstPageItem = pageNumber * this._childrenPerPage;
         let childBox = this._getVisibleChildren()[firstPageItem].get_allocation_box();
         return childBox.y1 - this.topPadding;
-    },
+    }
 
     getItemPage(item) {
         let children = this._getVisibleChildren();
         let index = children.indexOf(item);
-        if (index == -1) {
+        if (index == -1)
             throw new Error('Item not found.');
-            return 0;
-        }
         return Math.floor(index / this._childrenPerPage);
-    },
+    }
 
     /**
     * openExtraSpace:
@@ -927,18 +964,16 @@ var PaginatedIconGrid = new Lang.Class({
     openExtraSpace(sourceItem, side, nRows) {
         let children = this._getVisibleChildren();
         let index = children.indexOf(sourceItem.actor);
-        if (index == -1) {
+        if (index == -1)
             throw new Error('Item not found.');
-            return;
-        }
+
         let pageIndex = Math.floor(index / this._childrenPerPage);
         let pageOffset = pageIndex * this._childrenPerPage;
 
         let childrenPerRow = this._childrenPerPage / this._rowsPerPage;
         let sourceRow = Math.floor((index - pageOffset) / childrenPerRow);
 
-        let nRowsAbove = (side == St.Side.TOP) ? sourceRow + 1
-                                               : sourceRow;
+        let nRowsAbove = (side == St.Side.TOP) ? sourceRow + 1 : sourceRow;
         let nRowsBelow = this._rowsPerPage - nRowsAbove;
 
         let nRowsUp, nRowsDown;
@@ -962,31 +997,32 @@ var PaginatedIconGrid = new Lang.Class({
             this._translatedChildren = [];
             this.emit('space-opened');
         } else {
-            this._translateChildren(childrenUp, Gtk.DirectionType.UP, nRowsUp);
-            this._translateChildren(childrenDown, Gtk.DirectionType.DOWN, nRowsDown);
+            this._translateChildren(childrenUp, St.DirectionType.UP, nRowsUp);
+            this._translateChildren(childrenDown, St.DirectionType.DOWN, nRowsDown);
             this._translatedChildren = childrenUp.concat(childrenDown);
         }
-    },
+    }
 
     _translateChildren(children, direction, nRows) {
         let translationY = nRows * (this._getVItemSize() + this._getSpacing());
         if (translationY == 0)
             return;
 
-        if (direction == Gtk.DirectionType.UP)
+        if (direction == St.DirectionType.UP)
             translationY *= -1;
 
         for (let i = 0; i < children.length; i++) {
             children[i].translation_y = 0;
-            let params = { translation_y: translationY,
-                           time: EXTRA_SPACE_ANIMATION_TIME,
-                           transition: 'easeInOutQuad'
-                         };
+            let params = {
+                translation_y: translationY,
+                duration: EXTRA_SPACE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD
+            };
             if (i == (children.length - 1))
-                params.onComplete = () => { this.emit('space-opened'); };
-            Tweener.addTween(children[i], params);
+                params.onComplete = () => this.emit('space-opened');
+            children[i].ease(params);
         }
-    },
+    }
 
     closeExtraSpace() {
         if (!this._translatedChildren || !this._translatedChildren.length) {
@@ -997,13 +1033,12 @@ var PaginatedIconGrid = new Lang.Class({
         for (let i = 0; i < this._translatedChildren.length; i++) {
             if (!this._translatedChildren[i].translation_y)
                 continue;
-            Tweener.addTween(this._translatedChildren[i],
-                             { translation_y: 0,
-                               time: EXTRA_SPACE_ANIMATION_TIME,
-                               transition: 'easeInOutQuad',
-                               onComplete: () => { this.emit('space-closed'); }
-                             });
+            this._translatedChildren[i].ease({
+                translation_y: 0,
+                duration: EXTRA_SPACE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                onComplete: () => this.emit('space-closed')
+            });
         }
     }
 });
-Signals.addSignalMethods(PaginatedIconGrid.prototype);

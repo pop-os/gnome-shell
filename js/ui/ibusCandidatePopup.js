@@ -1,23 +1,19 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported CandidatePopup */
 
-const Clutter = imports.gi.Clutter;
-const IBus = imports.gi.IBus;
-const Lang = imports.lang;
+const { Clutter, IBus, St } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
 
 const BoxPointer = imports.ui.boxpointer;
 const Main = imports.ui.main;
 
 var MAX_CANDIDATES_PER_PAGE = 16;
 
-var DEFAULT_INDEX_LABELS = [ '1', '2', '3', '4', '5', '6', '7', '8',
-                             '9', '0', 'a', 'b', 'c', 'd', 'e', 'f' ];
+var DEFAULT_INDEX_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8',
+                            '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'];
 
-var CandidateArea = new Lang.Class({
-    Name: 'CandidateArea',
-
-    _init() {
+var CandidateArea = class CandidateArea {
+    constructor() {
         this.actor = new St.BoxLayout({ vertical: true,
                                         reactive: true,
                                         visible: false });
@@ -42,14 +38,14 @@ var CandidateArea = new Lang.Class({
 
         this.actor.connect('scroll-event', (actor, event) => {
             let direction = event.get_scroll_direction();
-            switch(direction) {
+            switch (direction) {
             case Clutter.ScrollDirection.UP:
                 this.emit('cursor-up');
                 break;
             case Clutter.ScrollDirection.DOWN:
                 this.emit('cursor-down');
                 break;
-            };
+            }
             return Clutter.EVENT_PROPAGATE;
         });
 
@@ -74,7 +70,7 @@ var CandidateArea = new Lang.Class({
 
         this._orientation = -1;
         this._cursorPosition = 0;
-    },
+    }
 
     setOrientation(orientation) {
         if (this._orientation == orientation)
@@ -95,7 +91,7 @@ var CandidateArea = new Lang.Class({
             this._previousButton.child.icon_name = 'go-up-symbolic';
             this._nextButton.child.icon_name = 'go-down-symbolic';
         }
-    },
+    }
 
     setCandidates(indexes, candidates, cursorPosition, cursorVisible) {
         for (let i = 0; i < MAX_CANDIDATES_PER_PAGE; ++i) {
@@ -114,7 +110,7 @@ var CandidateArea = new Lang.Class({
         this._cursorPosition = cursorPosition;
         if (cursorVisible)
             this._candidateBoxes[cursorPosition].add_style_pseudo_class('selected');
-    },
+    }
 
     updateButtons(wrapsAround, page, nPages) {
         if (nPages < 2) {
@@ -124,18 +120,19 @@ var CandidateArea = new Lang.Class({
         this._buttonBox.show();
         this._previousButton.reactive = wrapsAround || page > 0;
         this._nextButton.reactive = wrapsAround || page < nPages - 1;
-    },
-});
+    }
+};
 Signals.addSignalMethods(CandidateArea.prototype);
 
-var CandidatePopup = new Lang.Class({
-    Name: 'CandidatePopup',
+var CandidatePopup = class CandidatePopup {
+    constructor() {
+        this._dummyCursor = new St.Widget({ opacity: 0 });
+        Main.layoutManager.uiGroup.add_actor(this._dummyCursor);
 
-    _init() {
         this._boxPointer = new BoxPointer.BoxPointer(St.Side.TOP);
-        this._boxPointer.actor.visible = false;
-        this._boxPointer.actor.style_class = 'candidate-popup-boxpointer';
-        Main.layoutManager.addChrome(this._boxPointer.actor);
+        this._boxPointer.visible = false;
+        this._boxPointer.style_class = 'candidate-popup-boxpointer';
+        Main.layoutManager.addChrome(this._boxPointer);
 
         let box = new St.BoxLayout({ style_class: 'candidate-popup-content',
                                      vertical: true });
@@ -171,7 +168,7 @@ var CandidatePopup = new Lang.Class({
         });
 
         this._panelService = null;
-    },
+    }
 
     setPanelService(panelService) {
         this._panelService = panelService;
@@ -188,7 +185,7 @@ var CandidatePopup = new Lang.Class({
                 let window = global.display.focus_window.get_compositor_private();
                 this._setDummyCursorGeometry(window.x + x, window.y + y, w, h);
             });
-        } catch(e) {
+        } catch (e) {
             // Only recent IBus versions have support for this signal
             // which is used for wayland clients. In order to work
             // with older IBus versions we can silently ignore the
@@ -205,29 +202,29 @@ var CandidatePopup = new Lang.Class({
                 this._setTextAttributes(this._preeditText.clutter_text,
                                         attrs);
         });
-        panelService.connect('show-preedit-text', ps => {
+        panelService.connect('show-preedit-text', () => {
             this._preeditText.show();
             this._updateVisibility();
         });
-        panelService.connect('hide-preedit-text', ps => {
+        panelService.connect('hide-preedit-text', () => {
             this._preeditText.hide();
             this._updateVisibility();
         });
-        panelService.connect('update-auxiliary-text', (ps, text, visible) => {
+        panelService.connect('update-auxiliary-text', (_ps, text, visible) => {
             this._auxText.visible = visible;
             this._updateVisibility();
 
             this._auxText.text = text.get_text();
         });
-        panelService.connect('show-auxiliary-text', ps => {
+        panelService.connect('show-auxiliary-text', () => {
             this._auxText.show();
             this._updateVisibility();
         });
-        panelService.connect('hide-auxiliary-text', ps => {
+        panelService.connect('hide-auxiliary-text', () => {
             this._auxText.hide();
             this._updateVisibility();
         });
-        panelService.connect('update-lookup-table', (ps, lookupTable, visible) => {
+        panelService.connect('update-lookup-table', (_ps, lookupTable, visible) => {
             this._candidateArea.actor.visible = visible;
             this._updateVisibility();
 
@@ -241,8 +238,8 @@ var CandidatePopup = new Lang.Class({
 
             let indexes = [];
             let indexLabel;
-            for (let i = 0; indexLabel = lookupTable.get_label(i); ++i)
-                 indexes.push(indexLabel.get_text());
+            for (let i = 0; (indexLabel = lookupTable.get_label(i)); ++i)
+                indexes.push(indexLabel.get_text());
 
             Main.keyboard.resetSuggestions();
 
@@ -263,25 +260,27 @@ var CandidatePopup = new Lang.Class({
             this._candidateArea.setOrientation(lookupTable.get_orientation());
             this._candidateArea.updateButtons(lookupTable.is_round(), page, nPages);
         });
-        panelService.connect('show-lookup-table', ps => {
+        panelService.connect('show-lookup-table', () => {
             this._candidateArea.actor.show();
             this._updateVisibility();
         });
-        panelService.connect('hide-lookup-table', ps => {
+        panelService.connect('hide-lookup-table', () => {
             this._candidateArea.actor.hide();
             this._updateVisibility();
         });
-        panelService.connect('focus-out', ps => {
-            this._boxPointer.hide(BoxPointer.PopupAnimation.NONE);
+        panelService.connect('focus-out', () => {
+            this._boxPointer.close(BoxPointer.PopupAnimation.NONE);
             Main.keyboard.resetSuggestions();
         });
-    },
+    }
 
     _setDummyCursorGeometry(x, y, w, h) {
-        Main.layoutManager.setDummyCursorGeometry(x, y, w, h);
-        if (this._boxPointer.actor.visible)
-            this._boxPointer.setPosition(Main.layoutManager.dummyCursor, 0);
-    },
+        this._dummyCursor.set_position(Math.round(x), Math.round(y));
+        this._dummyCursor.set_size(Math.round(w), Math.round(h));
+
+        if (this._boxPointer.visible)
+            this._boxPointer.setPosition(this._dummyCursor, 0);
+    }
 
     _updateVisibility() {
         let isVisible = (!Main.keyboard.visible &&
@@ -290,18 +289,18 @@ var CandidatePopup = new Lang.Class({
                           this._candidateArea.actor.visible));
 
         if (isVisible) {
-            this._boxPointer.setPosition(Main.layoutManager.dummyCursor, 0);
-            this._boxPointer.show(BoxPointer.PopupAnimation.NONE);
-            this._boxPointer.actor.raise_top();
+            this._boxPointer.setPosition(this._dummyCursor, 0);
+            this._boxPointer.open(BoxPointer.PopupAnimation.NONE);
+            this._boxPointer.raise_top();
         } else {
-            this._boxPointer.hide(BoxPointer.PopupAnimation.NONE);
+            this._boxPointer.close(BoxPointer.PopupAnimation.NONE);
         }
-    },
+    }
 
     _setTextAttributes(clutterText, ibusAttrList) {
         let attr;
-        for (let i = 0; attr = ibusAttrList.get(i); ++i)
+        for (let i = 0; (attr = ibusAttrList.get(i)); ++i)
             if (attr.get_attr_type() == IBus.AttrType.BACKGROUND)
                 clutterText.set_selection(attr.get_start_index(), attr.get_end_index());
     }
-});
+};

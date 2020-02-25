@@ -3,6 +3,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -19,12 +20,18 @@
 #include <glib/gi18n-lib.h>
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gdk/gdkx.h>
-#include <meta/meta-shaped-texture.h>
 
 #include <locale.h>
 #ifdef HAVE__NL_TIME_FIRST_WEEKDAY
 #include <langinfo.h>
+#endif
+
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#else
+/* So we don't need to add ifdef's everywhere */
+#define sd_notify(u, m)            do {} while (0)
+#define sd_notifyf(u, m, ...)      do {} while (0)
 #endif
 
 static void
@@ -145,13 +152,9 @@ shell_util_format_date (const char *format,
                         gint64      time_ms)
 {
   GDateTime *datetime;
-  GTimeVal tv;
   char *result;
 
-  tv.tv_sec = time_ms / 1000;
-  tv.tv_usec = (time_ms % 1000) * 1000;
-
-  datetime = g_date_time_new_from_timeval_local (&tv);
+  datetime = g_date_time_new_from_unix_local (time_ms / 1000);
   if (!datetime) /* time_ms is out of range of GDateTime */
     return g_strdup ("");
 
@@ -235,14 +238,21 @@ shell_util_translate_time_string (const char *str)
   const char *locale = g_getenv ("LC_TIME");
   const char *res;
   char *sep;
+  locale_t old_loc;
+  locale_t loc = (locale_t) 0;
 
   if (locale)
-    setlocale (LC_MESSAGES, locale);
+    loc = newlocale (LC_MESSAGES_MASK, locale, (locale_t) 0);
+
+  old_loc = uselocale (loc);
 
   sep = strchr (str, '\004');
   res = g_dpgettext (NULL, str, sep ? sep - str + 1 : 0);
 
-  setlocale (LC_MESSAGES, "");
+  uselocale (old_loc);
+
+  if (loc != (locale_t) 0)
+    freelocale (loc);
 
   return res;
 }
@@ -367,24 +377,6 @@ shell_util_create_pixbuf_from_data (const guchar      *data,
                                    (GdkPixbufDestroyNotify) g_free, NULL);
 }
 
-void
-shell_util_cursor_tracker_to_clutter (MetaCursorTracker *tracker,
-                                      ClutterTexture    *texture)
-{
-  CoglTexture *sprite;
-
-  sprite = meta_cursor_tracker_get_sprite (tracker);
-  if (sprite)
-    {
-      clutter_actor_show (CLUTTER_ACTOR (texture));
-      clutter_texture_set_cogl_texture (texture, sprite);
-    }
-  else
-    {
-      clutter_actor_hide (CLUTTER_ACTOR (texture));
-    }
-}
-
 typedef const gchar *(*ShellGLGetString) (GLenum);
 
 static const gchar *
@@ -435,19 +427,17 @@ canvas_draw_cb (ClutterContent *content,
  * @window_actor: a #MetaWindowActor
  * @window_rect: a #MetaRectangle
  *
- * Returns: (transfer full): a new #ClutterContent
+ * Returns: (transfer full) (nullable): a new #ClutterContent
  */
 ClutterContent *
 shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
                                          MetaRectangle   *window_rect)
 {
-  ClutterActor *texture;
   ClutterContent *content;
   cairo_surface_t *surface;
   cairo_rectangle_int_t clip;
   gfloat actor_x, actor_y;
 
-  texture = meta_window_actor_get_texture (window_actor);
   clutter_actor_get_position (CLUTTER_ACTOR (window_actor), &actor_x, &actor_y);
 
   clip.x = window_rect->x - (gint) actor_x;
@@ -455,12 +445,15 @@ shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
   clip.width = window_rect->width;
   clip.height = window_rect->height;
 
-  surface = meta_shaped_texture_get_image (META_SHAPED_TEXTURE (texture),
-                                           &clip);
+  surface = meta_window_actor_get_image (window_actor, &clip);
+
+  if (!surface)
+    return NULL;
 
   content = clutter_canvas_new ();
   clutter_canvas_set_size (CLUTTER_CANVAS (content),
-                           clip.width, clip.height);
+                           cairo_image_surface_get_width (surface),
+                           cairo_image_surface_get_height (surface));
   g_signal_connect (content, "draw",
                     G_CALLBACK (canvas_draw_cb), surface);
   clutter_content_invalidate (content);
@@ -474,31 +467,20 @@ shell_util_composite_capture_images (ClutterCapture  *captures,
                                      int              n_captures,
                                      int              x,
                                      int              y,
-                                     int              width,
-                                     int              height)
+                                     int              target_width,
+                                     int              target_height,
+                                     float            target_scale)
 {
   int i;
-  double target_scale;
   cairo_format_t format;
   cairo_surface_t *image;
   cairo_t *cr;
 
   g_assert (n_captures > 0);
-
-  target_scale = 0.0;
-  for (i = 0; i < n_captures; i++)
-    {
-      ClutterCapture *capture = &captures[i];
-      double capture_scale = 1.0;
-
-      cairo_surface_get_device_scale (capture->image, &capture_scale, NULL);
-      target_scale = MAX (target_scale, capture_scale);
-    }
+  g_assert (target_scale > 0.0f);
 
   format = cairo_image_surface_get_format (captures[0].image);
-  image = cairo_image_surface_create (format,
-                                      width * target_scale,
-                                      height * target_scale);
+  image = cairo_image_surface_create (format, target_width, target_height);
   cairo_surface_set_device_scale (image, target_scale, target_scale);
 
   cr = cairo_create (image);
@@ -625,4 +607,71 @@ shell_util_check_cloexec_fds (void)
 {
   fdwalk (check_cloexec, NULL);
   g_info ("Open fd CLOEXEC check complete");
+}
+
+static void
+on_systemd_call_cb (GObject      *source,
+                    GAsyncResult *res,
+                    gpointer      user_data)
+{
+  g_autoptr (GVariant) reply = NULL;
+  g_autoptr (GError) error = NULL;
+  const gchar *command = user_data;
+
+  reply = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source),
+                                         res, &error);
+  if (error)
+    g_warning ("Could not issue '%s' systemd call", command);
+}
+
+static gboolean
+shell_util_systemd_call (const char  *command,
+                         const char  *unit,
+                         const char  *mode,
+                         GError     **error)
+{
+  g_autoptr (GDBusConnection) connection = NULL;
+
+  connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, error);
+
+  if (connection == NULL)
+    return FALSE;
+
+  g_dbus_connection_call (connection,
+                          "org.freedesktop.systemd1",
+                          "/org/freedesktop/systemd1",
+                          "org.freedesktop.systemd1.Manager",
+                          command,
+                          g_variant_new ("(ss)",
+                                         unit, mode),
+                          NULL,
+                          G_DBUS_CALL_FLAGS_NONE,
+                          -1, NULL,
+                          on_systemd_call_cb,
+                          (gpointer) command);
+  return TRUE;
+}
+
+gboolean
+shell_util_start_systemd_unit (const char  *unit,
+                               const char  *mode,
+                               GError     **error)
+{
+  return shell_util_systemd_call ("StartUnit", unit, mode, error);
+}
+
+gboolean
+shell_util_stop_systemd_unit (const char  *unit,
+                              const char  *mode,
+                              GError     **error)
+{
+  return shell_util_systemd_call ("StopUnit", unit, mode, error);
+}
+
+void
+shell_util_sd_notify (void)
+{
+  /* We only use NOTIFY_SOCKET exactly once; unset it so it doesn't remain in
+   * our environment. */
+  sd_notify (1, "READY=1");
 }

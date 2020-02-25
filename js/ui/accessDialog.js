@@ -1,10 +1,5 @@
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Pango = imports.gi.Pango;
-const Shell = imports.gi.Shell;
-const St = imports.gi.St;
+/* exported AccessDialogDBus */
+const { Clutter, Gio, GLib, GObject, Shell } = imports.gi;
 
 const CheckBox = imports.ui.checkBox;
 const Dialog = imports.ui.dialog;
@@ -21,12 +16,10 @@ var DialogResponse = {
     CLOSED: 2
 };
 
-var AccessDialog = new Lang.Class({
-    Name: 'AccessDialog',
-    Extends: ModalDialog.ModalDialog,
-
+var AccessDialog = GObject.registerClass(
+class AccessDialog extends ModalDialog.ModalDialog {
     _init(invocation, handle, title, subtitle, body, options) {
-        this.parent({ styleClass: 'access-dialog' });
+        super._init({ styleClass: 'access-dialog' });
 
         this._invocation = invocation;
         this._handle = handle;
@@ -38,7 +31,7 @@ var AccessDialog = new Lang.Class({
             options[option] = options[option].deep_unpack();
 
         this._buildLayout(title, subtitle, body, options);
-    },
+    }
 
     _buildLayout(title, subtitle, body, options) {
         // No support for non-modal system dialogs, so ignore the option
@@ -77,17 +70,17 @@ var AccessDialog = new Lang.Class({
         this.addButton({ label: grantLabel,
                          action: () => {
                              this._sendResponse(DialogResponse.OK);
-                         }});
-    },
+                         } });
+    }
 
     open() {
-        this.parent();
+        super.open();
 
         let connection = this._invocation.get_connection();
         this._requestExported = this._request.export(connection, this._handle);
-    },
+    }
 
-    CloseAsync(invocation, params) {
+    CloseAsync(invocation, _params) {
         if (this._invocation.get_sender() != invocation.get_sender()) {
             invocation.return_error_literal(Gio.DBusError,
                                             Gio.DBusError.ACCESS_DENIED,
@@ -96,7 +89,7 @@ var AccessDialog = new Lang.Class({
         }
 
         this._sendResponse(DialogResponse.CLOSED);
-    },
+    }
 
     _sendResponse(response) {
         if (this._requestExported)
@@ -120,10 +113,8 @@ var AccessDialog = new Lang.Class({
     }
 });
 
-var AccessDialogDBus = new Lang.Class({
-    Name: 'AccessDialogDBus',
-
-    _init() {
+var AccessDialogDBus = class {
+    constructor() {
         this._accessDialog = null;
 
         this._windowTracker = Shell.WindowTracker.get_default();
@@ -132,7 +123,7 @@ var AccessDialogDBus = new Lang.Class({
         this._dbusImpl.export(Gio.DBus.session, '/org/freedesktop/portal/desktop');
 
         Gio.DBus.session.own_name('org.freedesktop.impl.portal.desktop.gnome', Gio.BusNameOwnerFlags.REPLACE, null, null);
-    },
+    }
 
     AccessDialogAsync(params, invocation) {
         if (this._accessDialog) {
@@ -142,10 +133,10 @@ var AccessDialogDBus = new Lang.Class({
             return;
         }
 
-        let [handle, appId, parentWindow, title, subtitle, body, options] = params;
+        let [handle, appId, parentWindow_, title, subtitle, body, options] = params;
         // We probably want to use parentWindow and global.display.focus_window
         // for this check in the future
-        if (appId && appId + '.desktop' != this._windowTracker.focus_app.id) {
+        if (appId && `${appId}.desktop` != this._windowTracker.focus_app.id) {
             invocation.return_error_literal(Gio.DBusError,
                                             Gio.DBusError.ACCESS_DENIED,
                                             'Only the focused app is allowed to show a system access dialog');
@@ -156,8 +147,8 @@ var AccessDialogDBus = new Lang.Class({
                                       subtitle, body, options);
         dialog.open();
 
-        dialog.connect('closed', () => { this._accessDialog = null; });
+        dialog.connect('closed', () => (this._accessDialog = null));
 
         this._accessDialog = dialog;
     }
-});
+};

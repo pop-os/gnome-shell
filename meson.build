@@ -1,12 +1,17 @@
 project('gnome-shell', 'c',
-  version: '3.30.2',
+  version: '3.34.3',
   meson_version: '>= 0.47.0',
   license: 'GPLv2+'
 )
 
+split_version = meson.project_version().split('.')
+
 # We depend on a specific version of the libmutter API. The mutter variants of
 # the Cogl and Clutter libraries also use this API version.
-mutter_api_version = '3'
+# The API version is increased automatically each development cycle,
+# starting with 0 in 3.23.x
+api_version = (split_version[1].to_int() - 23) / 2
+mutter_api_version = '@0@'.format(api_version)
 
 clutter_pc = 'mutter-clutter-' + mutter_api_version
 cogl_pc = 'mutter-cogl-' + mutter_api_version
@@ -14,20 +19,19 @@ cogl_pango_pc = 'mutter-cogl-pango-' + mutter_api_version
 libmutter_pc = 'libmutter-' + mutter_api_version
 
 croco_req = '>= 0.6.8'
-ecal_req = '>= 3.5.3'
+ecal_req = '>= 3.33.1'
 eds_req = '>= 3.17.2'
 gcr_req = '>= 3.7.5'
-gdesktop_req = '>= 3.7.90'
 gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
-gjs_req = '>= 1.47.0'
+gjs_req = '>= 1.57.3'
 gtk_req = '>= 3.15.0'
-json_glib_req = '>= 0.13.2'
-mutter_req = '>= 3.30.1'
+mutter_req = '>= 3.34.0'
 polkit_req = '>= 0.100'
-schemas_req = '>= 3.27.90'
+schemas_req = '>= 3.33.1'
 startup_req = '>= 0.11'
 ibus_req = '>= 1.5.2'
+gnome_desktop_req = '>= 3.32'
 
 bt_req = '>= 3.9.0'
 gst_req = '>= 0.11.92'
@@ -54,12 +58,9 @@ convertdir = join_paths(datadir, 'GConf', 'gsettings')
 desktopdir = join_paths(datadir, 'applications')
 ifacedir = join_paths(datadir, 'dbus-1', 'interfaces')
 localedir = join_paths(datadir, 'locale')
-mozplugindir = join_paths(libdir, 'mozilla', 'plugins')
 portaldir = join_paths(datadir, 'xdg-desktop-portal', 'portals')
 schemadir = join_paths(datadir, 'glib-2.0', 'schemas')
 servicedir = join_paths(datadir, 'dbus-1', 'services')
-
-plugindir = get_variable('BROWSER_PLUGIN_DIR', mozplugindir)
 
 # XXX: Once https://github.com/systemd/systemd/issues/9595 is fixed and we can
 # depend on this version, replace with something like:
@@ -76,9 +77,7 @@ else
 endif
 
 atk_bridge_dep = dependency('atk-bridge-2.0')
-canberra_dep = dependency('libcanberra')
-canberra_gtk_dep = dependency('libcanberra-gtk3')
-ecal_dep = dependency('libecal-1.2', version: ecal_req)
+ecal_dep = dependency('libecal-2.0', version: ecal_req)
 eds_dep = dependency('libedataserver-1.2', version: eds_req)
 gcr_dep = dependency('gcr-base-3', version: gcr_req)
 gdk_x11_dep = dependency('gdk-x11-3.0')
@@ -99,6 +98,7 @@ startup_dep = dependency('libstartup-notification-1.0', version: startup_req)
 ibus_dep = dependency('ibus-1.0', version: ibus_req)
 x11_dep = dependency('x11')
 schemas_dep = dependency('gsettings-desktop-schemas', version: schemas_req)
+gnome_desktop_dep = dependency('gnome-desktop-3.0', version: gnome_desktop_req)
 
 bt_dep = dependency('gnome-bluetooth-1.0', version: bt_req, required: false)
 gst_dep = dependency('gstreamer-1.0', version: gst_req, required: false)
@@ -134,14 +134,19 @@ else
   have_systemd = false
 endif
 
-if get_option('browser_plugin')
-  json_glib_dep = dependency('json-glib-1.0', version: json_glib_req)
-
-  subdir('browser-plugin')
+if get_option('extensions_tool')
+  autoar_dep = dependency('gnome-autoar-0')
+  json_dep = dependency('json-glib-1.0')
 endif
+
+bash_completion = dependency('bash-completion', required: false)
 
 if get_option('man')
   xsltproc = find_program('xsltproc')
+
+  if get_option('extensions_tool')
+    a2x = find_program('a2x')
+  endif
 
   subdir('man')
 endif
@@ -174,9 +179,66 @@ cdata.set('HAVE__NL_TIME_FIRST_WEEKDAY',
   cc.has_header_symbol('langinfo.h', '_NL_TIME_FIRST_WEEKDAY')
 )
 
+# New API added in gnome-desktop3 3.34.2/3.35.2
+cdata.set('HAVE_GNOME_SYSTEMD',
+  cc.has_header('libgnome-desktop/gnome-systemd.h', dependencies: gnome_desktop_dep)
+)
+
 cdata.set('HAVE_FDWALK',
           cc.has_function('fdwalk')
 )
+
+buildtype = get_option('buildtype')
+if buildtype != 'plain'
+  all_warnings = [
+    '-fno-strict-aliasing',
+    '-Wpointer-arith',
+    '-Wmissing-declarations',
+    '-Wimplicit-function-declaration',
+    '-Wformat=2',
+    '-Wformat-nonliteral',
+    '-Wformat-security',
+    '-Wstrict-prototypes',
+    '-Wmissing-prototypes',
+    '-Wnested-externs',
+    '-Wold-style-definition',
+    '-Wundef',
+    '-Wunused',
+    '-Wcast-align',
+    '-Wmissing-noreturn',
+    '-Wmissing-format-attribute',
+    '-Wmissing-include-dirs',
+    '-Wlogical-op',
+    '-Wignored-qualifiers',
+    '-Werror=redundant-decls',
+    '-Werror=implicit',
+    '-Werror=nonnull',
+    '-Werror=init-self',
+    '-Werror=main',
+    '-Werror=missing-braces',
+    '-Werror=sequence-point',
+    '-Werror=return-type',
+    '-Werror=trigraphs',
+    '-Werror=array-bounds',
+    '-Werror=write-strings',
+    '-Werror=address',
+    '-Werror=int-to-pointer-cast',
+    '-Werror=pointer-to-int-cast',
+    '-Werror=empty-body',
+    '-Werror=write-strings',
+  ]
+  supported_warnings = cc.get_supported_arguments(all_warnings)
+  add_project_arguments(supported_warnings, language: 'c')
+endif
+
+if get_option('debug')
+  debug_c_args = [
+    '-DG_ENABLE_DEBUG',
+    '-fno-omit-frame-pointer'
+  ]
+  supported_debug_c_args = cc.get_supported_arguments(debug_c_args)
+  add_project_arguments(supported_debug_c_args, language: 'c')
+endif
 
 config_h = configure_file(
   input: 'config.h.meson',
@@ -198,6 +260,8 @@ libgvc = subproject('gvc',
   ]
 )
 libgvc_gir = libgvc.get_variable('libgvc_gir')
+
+po_dir = join_paths(meson.current_source_dir(), 'po')
 
 subdir('js')
 subdir('src')

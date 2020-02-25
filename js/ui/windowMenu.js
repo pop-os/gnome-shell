@@ -1,22 +1,15 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*
+/* exported WindowMenuManager */
 
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const St = imports.gi.St;
-const Shell = imports.gi.Shell;
+const { GLib, Meta, St } = imports.gi;
 
 const BoxPointer = imports.ui.boxpointer;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
-const RemoteMenu = imports.ui.remoteMenu;
 
-var WindowMenu = new Lang.Class({
-    Name: 'WindowMenu',
-    Extends: PopupMenu.PopupMenu,
-
-    _init(window, sourceActor) {
-        this.parent(sourceActor, 0, St.Side.TOP);
+var WindowMenu = class extends PopupMenu.PopupMenu {
+    constructor(window, sourceActor) {
+        super(sourceActor, 0, St.Side.TOP);
 
         this.actor.add_style_class_name('window-menu');
 
@@ -24,7 +17,7 @@ var WindowMenu = new Lang.Class({
         this.actor.hide();
 
         this._buildMenu(window);
-    },
+    }
 
     _buildMenu(window) {
         let type = window.get_window_type();
@@ -50,13 +43,13 @@ var WindowMenu = new Lang.Class({
             item.setSensitive(false);
 
         item = this.addAction(_("Move"), event => {
-            window.begin_grab_op(Meta.GrabOp.KEYBOARD_MOVING, true, event.get_time());
+            this._grabAction(window, Meta.GrabOp.KEYBOARD_MOVING, event.get_time());
         });
         if (!window.allows_move())
             item.setSensitive(false);
 
         item = this.addAction(_("Resize"), event => {
-            window.begin_grab_op(Meta.GrabOp.KEYBOARD_RESIZING_UNKNOWN, true, event.get_time());
+            this._grabAction(window, Meta.GrabOp.KEYBOARD_RESIZING_UNKNOWN, event.get_time());
         });
         if (!window.allows_resize())
             item.setSensitive(false);
@@ -177,43 +170,46 @@ var WindowMenu = new Lang.Class({
         if (!window.can_close())
             item.setSensitive(false);
     }
-});
 
-var AppMenu = new Lang.Class({
-    Name: 'AppMenu',
-    Extends: RemoteMenu.RemoteMenu,
+    _grabAction(window, grabOp, time) {
+        if (global.display.get_grab_op() == Meta.GrabOp.NONE) {
+            window.begin_grab_op(grabOp, true, time);
+            return;
+        }
 
-    _init(window, sourceActor) {
-        let app = Shell.WindowTracker.get_default().get_window_app(window);
+        let waitId = 0;
+        let id = global.display.connect('grab-op-end', display => {
+            display.disconnect(id);
+            GLib.source_remove(waitId);
 
-        this.parent(sourceActor, app.menu, app.action_group);
+            window.begin_grab_op(grabOp, true, time);
+        });
 
-        this.actor.add_style_class_name('fallback-app-menu');
-        let variant = window.get_gtk_theme_variant();
-        if (variant)
-            this.actor.add_style_class_name(variant);
-
-        Main.layoutManager.uiGroup.add_actor(this.actor);
-        this.actor.hide();
+        waitId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            global.display.disconnect(id);
+            return GLib.SOURCE_REMOVE;
+        });
     }
-});
+};
 
-var WindowMenuManager = new Lang.Class({
-    Name: 'WindowMenuManager',
-
-    _init() {
-        this._manager = new PopupMenu.PopupMenuManager({ actor: Main.layoutManager.dummyCursor });
+var WindowMenuManager = class {
+    constructor() {
+        this._manager = new PopupMenu.PopupMenuManager(Main.layoutManager.dummyCursor);
 
         this._sourceActor = new St.Widget({ reactive: true, visible: false });
         this._sourceActor.connect('button-press-event', () => {
             this._manager.activeMenu.toggle();
         });
         Main.uiGroup.add_actor(this._sourceActor);
-    },
+    }
 
     showWindowMenuForWindow(window, type, rect) {
-        let menuType = (type == Meta.WindowMenuType.WM) ? WindowMenu : AppMenu;
-        let menu = new menuType(window, this._sourceActor);
+        if (!Main.sessionMode.hasWmMenus)
+            return;
+
+        if (type != Meta.WindowMenuType.WM)
+            throw new Error('Unsupported window menu type');
+        let menu = new WindowMenu(window, this._sourceActor);
 
         this._manager.addMenu(menu);
 
@@ -228,8 +224,8 @@ var WindowMenuManager = new Lang.Class({
         this._sourceActor.set_position(rect.x, rect.y);
         this._sourceActor.show();
 
-        menu.open(BoxPointer.PopupAnimation.NONE);
-        menu.actor.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false);
+        menu.open(BoxPointer.PopupAnimation.FADE);
+        menu.actor.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
         menu.connect('open-state-changed', (menu_, isOpen) => {
             if (isOpen)
                 return;
@@ -239,4 +235,4 @@ var WindowMenuManager = new Lang.Class({
             window.disconnect(destroyId);
         });
     }
-});
+};

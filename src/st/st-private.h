@@ -33,13 +33,9 @@ G_BEGIN_DECLS
 
 #define I_(str)         (g_intern_static_string ((str)))
 
-#define ST_PARAM_READABLE     \
-        (G_PARAM_READABLE |     \
-         G_PARAM_STATIC_NICK | G_PARAM_STATIC_NAME | G_PARAM_STATIC_BLURB)
-
-#define ST_PARAM_READWRITE    \
-        (G_PARAM_READABLE | G_PARAM_WRITABLE | \
-         G_PARAM_STATIC_NICK | G_PARAM_STATIC_NAME | G_PARAM_STATIC_BLURB)
+#define ST_PARAM_READABLE  (G_PARAM_READABLE  | G_PARAM_STATIC_STRINGS)
+#define ST_PARAM_WRITABLE  (G_PARAM_WRITABLE  | G_PARAM_STATIC_STRINGS)
+#define ST_PARAM_READWRITE (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)
 
 G_END_DECLS
 
@@ -63,13 +59,15 @@ CoglPipeline * _st_create_texture_pipeline (CoglTexture *src_texture);
 
 /* Helper for widgets which need to draw additional shadows */
 CoglPipeline * _st_create_shadow_pipeline (StShadow    *shadow_spec,
-                                           CoglTexture *src_texture);
+                                           CoglTexture *src_texture,
+                                           float        resource_scale);
 CoglPipeline * _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
                                                       ClutterActor *actor);
 cairo_pattern_t *_st_create_shadow_cairo_pattern (StShadow        *shadow_spec,
                                                   cairo_pattern_t *src_pattern);
 
 void _st_paint_shadow_with_opacity (StShadow        *shadow_spec,
+                                    CoglFramebuffer *framebuffer,
                                     CoglPipeline    *shadow_pipeline,
                                     ClutterActorBox *box,
                                     guint8           paint_opacity);

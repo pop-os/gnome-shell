@@ -1,25 +1,20 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const Lang = imports.lang;
-const Pango = imports.gi.Pango;
+const { Clutter, Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
 
 const Animation = imports.ui.animation;
 const Batch = imports.gdm.batch;
 const GdmUtil = imports.gdm.util;
 const Params = imports.misc.params;
 const ShellEntry = imports.ui.shellEntry;
-const Tweener = imports.ui.tweener;
 const UserWidget = imports.ui.userWidget;
 
 var DEFAULT_BUTTON_WELL_ICON_SIZE = 16;
-var DEFAULT_BUTTON_WELL_ANIMATION_DELAY = 1.0;
-var DEFAULT_BUTTON_WELL_ANIMATION_TIME = 0.3;
+var DEFAULT_BUTTON_WELL_ANIMATION_DELAY = 1000;
+var DEFAULT_BUTTON_WELL_ANIMATION_TIME = 300;
 
-var MESSAGE_FADE_OUT_ANIMATION_TIME = 0.5;
+var MESSAGE_FADE_OUT_ANIMATION_TIME = 500;
 
 var AuthPromptMode = {
     UNLOCK_ONLY: 0,
@@ -38,10 +33,8 @@ var BeginRequestType = {
     DONT_PROVIDE_USERNAME: 1
 };
 
-var AuthPrompt = new Lang.Class({
-    Name: 'AuthPrompt',
-
-    _init(gdmClient, mode) {
+var AuthPrompt = class {
+    constructor(gdmClient, mode) {
         this.verificationStatus = AuthPromptStatus.NOT_VERIFYING;
 
         this._gdmClient = gdmClient;
@@ -65,23 +58,23 @@ var AuthPrompt = new Lang.Class({
         this.smartcardDetected = this._userVerifier.smartcardDetected;
 
         this.connect('next', () => {
-                this.updateSensitivity(false);
-                this.startSpinning();
-                if (this._queryingService) {
-                    this._userVerifier.answerQuery(this._queryingService, this._entry.text);
-                } else {
-                    this._preemptiveAnswer = this._entry.text;
-                }
-            });
+            this.updateSensitivity(false);
+            this.startSpinning();
+            if (this._queryingService) {
+                this._userVerifier.answerQuery(this._queryingService, this._entry.text);
+            } else {
+                this._preemptiveAnswer = this._entry.text;
+            }
+        });
 
         this.actor = new St.BoxLayout({ style_class: 'login-dialog-prompt-layout',
                                         vertical: true });
         this.actor.connect('destroy', this._onDestroy.bind(this));
         this.actor.connect('key-press-event', (actor, event) => {
-                if (event.get_key_symbol() == Clutter.KEY_Escape)
-                    this.cancel();
-                return Clutter.EVENT_PROPAGATE;
-            });
+            if (event.get_key_symbol() == Clutter.KEY_Escape)
+                this.cancel();
+            return Clutter.EVENT_PROPAGATE;
+        });
 
         this._userWell = new St.Bin({ x_fill: true,
                                       x_align: St.Align.START });
@@ -99,7 +92,7 @@ var AuthPrompt = new Lang.Class({
                          x_align: St.Align.START });
         this._entry = new St.Entry({ style_class: 'login-dialog-prompt-entry',
                                      can_focus: true });
-        ShellEntry.addContextMenu(this._entry, { isPassword: true });
+        ShellEntry.addContextMenu(this._entry, { isPassword: true, actionMode: Shell.ActionMode.NONE });
 
         this.actor.add(this._entry,
                        { expand: true,
@@ -118,7 +111,7 @@ var AuthPrompt = new Lang.Class({
         this._buttonBox = new St.BoxLayout({ style_class: 'login-dialog-button-box',
                                              vertical: false });
         this.actor.add(this._buttonBox,
-                       { expand:  true,
+                       { expand: true,
                          x_align: St.Align.MIDDLE,
                          y_align: St.Align.END });
 
@@ -127,17 +120,16 @@ var AuthPrompt = new Lang.Class({
 
         this._initButtons();
 
-        let spinnerIcon = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/process-working.svg');
-        this._spinner = new Animation.AnimatedIcon(spinnerIcon, DEFAULT_BUTTON_WELL_ICON_SIZE);
+        this._spinner = new Animation.Spinner(DEFAULT_BUTTON_WELL_ICON_SIZE);
         this._spinner.actor.opacity = 0;
         this._spinner.actor.show();
         this._defaultButtonWell.add_child(this._spinner.actor);
-    },
+    }
 
     _onDestroy() {
         this._userVerifier.destroy();
         this._userVerifier = null;
-    },
+    }
 
     _initButtons() {
         this.cancelButton = new St.Button({ style_class: 'modal-dialog-button button',
@@ -145,7 +137,7 @@ var AuthPrompt = new Lang.Class({
                                             reactive: true,
                                             can_focus: true,
                                             label: _("Cancel") });
-        this.cancelButton.connect('clicked', () => { this.cancel(); });
+        this.cancelButton.connect('clicked', () => this.cancel());
         this._buttonBox.add(this.cancelButton,
                             { expand: false,
                               x_fill: false,
@@ -164,7 +156,7 @@ var AuthPrompt = new Lang.Class({
                                           reactive: true,
                                           can_focus: true,
                                           label: _("Next") });
-        this.nextButton.connect('clicked', () => { this.emit('next'); });
+        this.nextButton.connect('clicked', () => this.emit('next'));
         this.nextButton.add_style_pseudo_class('default');
         this._buttonBox.add(this.nextButton,
                             { expand: false,
@@ -185,7 +177,7 @@ var AuthPrompt = new Lang.Class({
             if (this.nextButton.reactive)
                 this.emit('next');
         });
-    },
+    }
 
     _onAskQuestion(verifier, serviceName, question, passwordChar) {
         if (this._queryingService)
@@ -211,12 +203,12 @@ var AuthPrompt = new Lang.Class({
 
         this.updateSensitivity(true);
         this.emit('prompted');
-    },
+    }
 
     _onOVirtUserAuthenticated() {
         if (this.verificationStatus != AuthPromptStatus.VERIFICATION_SUCCEEDED)
             this.reset();
-    },
+    }
 
     _onSmartcardStatusChanged() {
         this.smartcardDetected = this._userVerifier.smartcardDetected;
@@ -235,12 +227,12 @@ var AuthPrompt = new Lang.Class({
 
         if (this.verificationStatus != AuthPromptStatus.VERIFICATION_SUCCEEDED)
             this.reset();
-    },
+    }
 
     _onShowMessage(userVerifier, message, type) {
         this.setMessage(message, type);
         this.emit('prompted');
-    },
+    }
 
     _onVerificationFailed(userVerifier, canRetry) {
         this._queryingService = null;
@@ -249,22 +241,22 @@ var AuthPrompt = new Lang.Class({
         this.updateSensitivity(canRetry);
         this.setActorInDefaultButtonWell(null);
         this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
-    },
+    }
 
     _onVerificationComplete() {
         this.setActorInDefaultButtonWell(null);
         this.verificationStatus = AuthPromptStatus.VERIFICATION_SUCCEEDED;
         this.cancelButton.reactive = false;
-    },
+    }
 
     _onReset() {
         this.verificationStatus = AuthPromptStatus.NOT_VERIFYING;
         this.reset();
-    },
+    }
 
     addActorToDefaultButtonWell(actor) {
         this._defaultButtonWell.add_child(actor);
-    },
+    }
 
     setActorInDefaultButtonWell(actor, animate) {
         if (!this._defaultButtonWellActor &&
@@ -274,7 +266,7 @@ var AuthPrompt = new Lang.Class({
         let oldActor = this._defaultButtonWellActor;
 
         if (oldActor)
-            Tweener.removeTweens(oldActor);
+            oldActor.remove_all_transitions();
 
         let wasSpinner;
         if (oldActor == this._spinner.actor)
@@ -297,19 +289,18 @@ var AuthPrompt = new Lang.Class({
                         this._spinner.stop();
                 }
             } else {
-                Tweener.addTween(oldActor,
-                                 { opacity: 0,
-                                   time: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
-                                   delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
-                                   transition: 'linear',
-                                   onCompleteScope: this,
-                                   onComplete() {
-                                      if (wasSpinner) {
-                                          if (this._spinner)
-                                              this._spinner.stop();
-                                      }
-                                   }
-                                 });
+                oldActor.ease({
+                    opacity: 0,
+                    duration: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
+                    delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
+                    mode: Clutter.AnimationMode.LINEAR,
+                    onComplete: () => {
+                        if (wasSpinner) {
+                            if (this._spinner)
+                                this._spinner.stop();
+                        }
+                    }
+                });
             }
         }
 
@@ -320,33 +311,34 @@ var AuthPrompt = new Lang.Class({
             if (!animate)
                 actor.opacity = 255;
             else
-                Tweener.addTween(actor,
-                                 { opacity: 255,
-                                   time: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
-                                   delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
-                                   transition: 'linear' });
+                actor.ease({
+                    opacity: 255,
+                    duration: DEFAULT_BUTTON_WELL_ANIMATION_TIME,
+                    delay: DEFAULT_BUTTON_WELL_ANIMATION_DELAY,
+                    mode: Clutter.AnimationMode.LINEAR
+                });
         }
 
         this._defaultButtonWellActor = actor;
-    },
+    }
 
     startSpinning() {
         this.setActorInDefaultButtonWell(this._spinner.actor, true);
-    },
+    }
 
     stopSpinning() {
         this.setActorInDefaultButtonWell(null, false);
-    },
+    }
 
     clear() {
         this._entry.text = '';
         this.stopSpinning();
-    },
+    }
 
     setPasswordChar(passwordChar) {
         this._entry.clutter_text.set_password_char(passwordChar);
         this._entry.menu.isPassword = passwordChar != '';
-    },
+    }
 
     setQuestion(question) {
         this._label.set_text(question);
@@ -355,7 +347,7 @@ var AuthPrompt = new Lang.Class({
         this._entry.show();
 
         this._entry.grab_key_focus();
-    },
+    }
 
     getAnswer() {
         let text;
@@ -368,18 +360,18 @@ var AuthPrompt = new Lang.Class({
         }
 
         return text;
-    },
+    }
 
     _fadeOutMessage() {
         if (this._message.opacity == 0)
             return;
-        Tweener.removeTweens(this._message);
-        Tweener.addTween(this._message,
-                         { opacity: 0,
-                           time: MESSAGE_FADE_OUT_ANIMATION_TIME,
-                           transition: 'easeOutQuad'
-                         });
-    },
+        this._message.remove_all_transitions();
+        this._message.ease({
+            opacity: 0,
+            duration: MESSAGE_FADE_OUT_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD
+        });
+    }
 
     setMessage(message, type) {
         if (type == GdmUtil.MessageType.ERROR)
@@ -393,24 +385,24 @@ var AuthPrompt = new Lang.Class({
             this._message.remove_style_class_name('login-dialog-message-hint');
 
         if (message) {
-            Tweener.removeTweens(this._message);
+            this._message.remove_all_transitions();
             this._message.text = message;
             this._message.opacity = 255;
         } else {
             this._message.opacity = 0;
         }
-    },
+    }
 
     _updateNextButtonSensitivity(sensitive) {
         this.nextButton.reactive = sensitive;
         this.nextButton.can_focus = sensitive;
-    },
+    }
 
     updateSensitivity(sensitive) {
         this._updateNextButtonSensitivity(sensitive && (this._entry.text.length > 0 || this.verificationStatus == AuthPromptStatus.VERIFYING));
         this._entry.reactive = sensitive;
         this._entry.clutter_text.editable = sensitive;
-    },
+    }
 
     hide() {
         this.setActorInDefaultButtonWell(null, true);
@@ -421,7 +413,7 @@ var AuthPrompt = new Lang.Class({
 
         this.updateSensitivity(true);
         this._entry.set_text('');
-    },
+    }
 
     setUser(user) {
         let oldChild = this._userWell.get_child();
@@ -432,7 +424,7 @@ var AuthPrompt = new Lang.Class({
             let userWidget = new UserWidget.UserWidget(user);
             this._userWell.set_child(userWidget.actor);
         }
-    },
+    }
 
     reset() {
         let oldStatus = this.verificationStatus;
@@ -470,7 +462,7 @@ var AuthPrompt = new Lang.Class({
         }
 
         this.emit('reset', beginRequestType);
-    },
+    }
 
     addCharacter(unichar) {
         if (!this._entry.visible)
@@ -478,7 +470,7 @@ var AuthPrompt = new Lang.Class({
 
         this._entry.grab_key_focus();
         this._entry.clutter_text.insert_unichar(unichar);
-    },
+    }
 
     begin(params) {
         params = Params.parse(params, { userName: null,
@@ -492,7 +484,7 @@ var AuthPrompt = new Lang.Class({
 
         this._userVerifier.begin(params.userName, hold);
         this.verificationStatus = AuthPromptStatus.VERIFYING;
-    },
+    }
 
     finish(onComplete) {
         if (!this._userVerifier.hasPendingMessages) {
@@ -506,7 +498,7 @@ var AuthPrompt = new Lang.Class({
             this._userVerifier.clear();
             onComplete();
         });
-    },
+    }
 
     cancel() {
         if (this.verificationStatus == AuthPromptStatus.VERIFICATION_SUCCEEDED) {
@@ -515,5 +507,5 @@ var AuthPrompt = new Lang.Class({
         this.reset();
         this.emit('cancelled');
     }
-});
+};
 Signals.addSignalMethods(AuthPrompt.prototype);

@@ -1,23 +1,37 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ExtensionState, ExtensionType, getCurrentExtension,
+   getSettings, initTranslations, isOutOfDate, installImporter,
+   serializeExtension, deserializeExtension */
 
 // Common utils for the extension system and the extension
 // preferences tool
 
-const Lang = imports.lang;
-const Signals = imports.signals;
+const { Gio, GLib } = imports.gi;
 
-const Gio = imports.gi.Gio;
+const Gettext = imports.gettext;
+const Lang = imports.lang;
 
 const Config = imports.misc.config;
-const FileUtils = imports.misc.fileUtils;
 
 var ExtensionType = {
     SYSTEM: 1,
     PER_USER: 2
 };
 
-// Maps uuid -> metadata object
-var extensions = {};
+var ExtensionState = {
+    ENABLED: 1,
+    DISABLED: 2,
+    ERROR: 3,
+    OUT_OF_DATE: 4,
+    DOWNLOADING: 5,
+    INITIALIZED: 6,
+
+    // Used as an error state for operations on unknown extensions,
+    // should never be in a real extensionMeta object.
+    UNINSTALLED: 99
+};
+
+const SERIALIZED_PROPERTIES = ['type', 'state', 'path', 'error', 'hasPrefs', 'canChange'];
 
 /**
  * getCurrentExtension:
@@ -31,7 +45,7 @@ function getCurrentExtension() {
     // Search for an occurrence of an extension stack frame
     // Start at 1 because 0 is the stack frame of this function
     for (let i = 1; i < stack.length; i++) {
-        if (stack[i].indexOf('/gnome-shell/extensions/') > -1) {
+        if (stack[i].includes('/gnome-shell/extensions/')) {
             extensionStackLine = stack[i];
             break;
         }
@@ -49,19 +63,83 @@ function getCurrentExtension() {
     if (!match)
         return null;
 
+    // local import, as the module is used from outside the gnome-shell process
+    // as well (not this function though)
+    let extensionManager = imports.ui.main.extensionManager;
+
     let path = match[1];
     let file = Gio.File.new_for_path(path);
 
     // Walk up the directory tree, looking for an extension with
     // the same UUID as a directory name.
     while (file != null) {
-        let extension = extensions[file.get_basename()];
+        let extension = extensionManager.lookup(file.get_basename());
         if (extension !== undefined)
             return extension;
         file = file.get_parent();
     }
 
     return null;
+}
+
+/**
+ * initTranslations:
+ * @domain: (optional): the gettext domain to use
+ *
+ * Initialize Gettext to load translations from extensionsdir/locale.
+ * If @domain is not provided, it will be taken from metadata['gettext-domain']
+ */
+function initTranslations(domain) {
+    let extension = getCurrentExtension();
+
+    if (!extension)
+        throw new Error('initTranslations() can only be called from extensions');
+
+    domain = domain || extension.metadata['gettext-domain'];
+
+    // Expect USER extensions to have a locale/ subfolder, otherwise assume a
+    // SYSTEM extension that has been installed in the same prefix as the shell
+    let localeDir = extension.dir.get_child('locale');
+    if (localeDir.query_exists(null))
+        Gettext.bindtextdomain(domain, localeDir.get_path());
+    else
+        Gettext.bindtextdomain(domain, Config.LOCALEDIR);
+}
+
+/**
+ * getSettings:
+ * @schema: (optional): the GSettings schema id
+ *
+ * Builds and returns a GSettings schema for @schema, using schema files
+ * in extensionsdir/schemas. If @schema is omitted, it is taken from
+ * metadata['settings-schema'].
+ */
+function getSettings(schema) {
+    let extension = getCurrentExtension();
+
+    if (!extension)
+        throw new Error('getSettings() can only be called from extensions');
+
+    schema = schema || extension.metadata['settings-schema'];
+
+    const GioSSS = Gio.SettingsSchemaSource;
+
+    // Expect USER extensions to have a schemas/ subfolder, otherwise assume a
+    // SYSTEM extension that has been installed in the same prefix as the shell
+    let schemaDir = extension.dir.get_child('schemas');
+    let schemaSource;
+    if (schemaDir.query_exists(null))
+        schemaSource = GioSSS.new_from_directory(schemaDir.get_path(),
+                                                 GioSSS.get_default(),
+                                                 false);
+    else
+        schemaSource = GioSSS.get_default();
+
+    let schemaObj = schemaSource.lookup(schema, true);
+    if (!schemaObj)
+        throw new Error(`Schema ${schema} could not be found for extension ${extension.metadata.uuid}. Please check your installation`);
+
+    return new Gio.Settings({ settings_schema: schemaObj });
 }
 
 /**
@@ -87,8 +165,8 @@ function versionCheck(required, current) {
         let requiredArray = required[i].split('.');
         if (requiredArray[0] == major &&
             requiredArray[1] == minor &&
-            (requiredArray[2] == point ||
-             (requiredArray[2] == undefined && parseInt(minor) % 2 == 0)))
+            ((requiredArray[2] === undefined && parseInt(minor) % 2 == 0) ||
+             requiredArray[2] == point))
             return true;
     }
     return false;
@@ -101,54 +179,50 @@ function isOutOfDate(extension) {
     return false;
 }
 
-function createExtensionObject(uuid, dir, type) {
-    let info;
+function serializeExtension(extension) {
+    let obj = {};
+    Lang.copyProperties(extension.metadata, obj);
 
-    let metadataFile = dir.get_child('metadata.json');
-    if (!metadataFile.query_exists(null)) {
-        throw new Error('Missing metadata.json');
-    }
+    SERIALIZED_PROPERTIES.forEach(prop => {
+        obj[prop] = extension[prop];
+    });
 
-    let metadataContents, success, tag;
-    try {
-        [success, metadataContents, tag] = metadataFile.load_contents(null);
-        if (metadataContents instanceof Uint8Array)
-            metadataContents = imports.byteArray.toString(metadataContents);
-    } catch (e) {
-        throw new Error('Failed to load metadata.json: ' + e);
-    }
-    let meta;
-    try {
-        meta = JSON.parse(metadataContents);
-    } catch (e) {
-        throw new Error('Failed to parse metadata.json: ' + e);
-    }
-
-    let requiredProperties = ['uuid', 'name', 'description', 'shell-version'];
-    for (let i = 0; i < requiredProperties.length; i++) {
-        let prop = requiredProperties[i];
-        if (!meta[prop]) {
-            throw new Error('missing "' + prop + '" property in metadata.json');
+    let res = {};
+    for (let key in obj) {
+        let val = obj[key];
+        let type;
+        switch (typeof val) {
+        case 'string':
+            type = 's';
+            break;
+        case 'number':
+            type = 'd';
+            break;
+        case 'boolean':
+            type = 'b';
+            break;
+        default:
+            continue;
         }
+        res[key] = GLib.Variant.new(type, val);
     }
 
-    if (uuid != meta.uuid) {
-        throw new Error('uuid "' + meta.uuid + '" from metadata.json does not match directory name "' + uuid + '"');
+    return res;
+}
+
+function deserializeExtension(variant) {
+    let res = { metadata: {} };
+    for (let prop in variant) {
+        let val = variant[prop].unpack();
+        if (SERIALIZED_PROPERTIES.includes(prop))
+            res[prop] = val;
+        else
+            res.metadata[prop] = val;
     }
-
-    let extension = {};
-
-    extension.metadata = meta;
-    extension.uuid = meta.uuid;
-    extension.type = type;
-    extension.dir = dir;
-    extension.path = dir.get_path();
-    extension.error = '';
-    extension.hasPrefs = dir.get_child('prefs.js').query_exists(null);
-
-    extensions[uuid] = extension;
-
-    return extension;
+    // add the 2 additional properties to create a valid extension object, as createExtensionObject()
+    res.uuid = res.metadata.uuid;
+    res.dir = Gio.File.new_for_path(res.path);
+    return res;
 }
 
 function installImporter(extension) {
@@ -159,38 +233,3 @@ function installImporter(extension) {
     extension.imports = imports[extension.uuid];
     imports.searchPath = oldSearchPath;
 }
-
-var ExtensionFinder = new Lang.Class({
-    Name: 'ExtensionFinder',
-
-    _loadExtension(extensionDir, info, perUserDir) {
-        let fileType = info.get_file_type();
-        if (fileType != Gio.FileType.DIRECTORY)
-            return;
-        let uuid = info.get_name();
-        let existing = extensions[uuid];
-        if (existing) {
-            log('Extension %s already installed in %s. %s will not be loaded'.format(uuid, existing.path, extensionDir.get_path()));
-            return;
-        }
-
-        let extension;
-        let type = extensionDir.has_prefix(perUserDir) ? ExtensionType.PER_USER
-                                                       : ExtensionType.SYSTEM;
-        try {
-            extension = createExtensionObject(uuid, extensionDir, type);
-        } catch(e) {
-            logError(e, 'Could not load extension %s'.format(uuid));
-            return;
-        }
-        this.emit('extension-found', extension);
-    },
-
-    scanExtensions() {
-        let perUserDir = Gio.File.new_for_path(global.userdatadir);
-        FileUtils.collectFromDatadirs('extensions', true, (dir, info) => {
-            this._loadExtension(dir, info, perUserDir);
-        });
-    }
-});
-Signals.addSignalMethods(ExtensionFinder.prototype);

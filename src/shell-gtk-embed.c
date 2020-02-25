@@ -4,6 +4,7 @@
 
 #include "shell-embedded-window-private.h"
 #include "shell-global.h"
+#include "shell-util.h"
 
 #include <gdk/gdkx.h>
 #include <meta/display.h>
@@ -93,6 +94,10 @@ shell_gtk_embed_window_created_cb (MetaDisplay   *display,
       /* Hide the original actor otherwise it will appear in the scene
          as a normal window */
       clutter_actor_set_opacity (window_actor, 0);
+
+      /* Also make sure it (or any of its children) doesn't block
+         events on wayland */
+      shell_util_set_hidden_from_pick (window_actor, TRUE);
 
       /* Set an empty input shape on the window so that it can't get
          any input. This probably isn't the ideal way to achieve this.
@@ -275,7 +280,7 @@ shell_gtk_embed_allocate (ClutterActor          *actor,
 {
   ShellGtkEmbed *embed = SHELL_GTK_EMBED (actor);
   ShellGtkEmbedPrivate *priv = shell_gtk_embed_get_instance_private (embed);
-  float wx = 0.0, wy = 0.0, x, y, ax, ay;
+  float wx, wy;
 
   CLUTTER_ACTOR_CLASS (shell_gtk_embed_parent_class)->
     allocate (actor, box, flags);
@@ -283,16 +288,7 @@ shell_gtk_embed_allocate (ClutterActor          *actor,
   /* Find the actor's new coordinates in terms of the stage (which is
    * priv->window's parent window.
    */
-  while (actor)
-    {
-      clutter_actor_get_position (actor, &x, &y);
-      clutter_actor_get_anchor_point (actor, &ax, &ay);
-
-      wx += x - ax;
-      wy += y - ay;
-
-      actor = clutter_actor_get_parent (actor);
-    }
+  clutter_actor_get_transformed_position (actor, &wx, &wy);
 
   _shell_embedded_window_allocate (priv->window,
                                    (int)(0.5 + wx), (int)(0.5 + wy),

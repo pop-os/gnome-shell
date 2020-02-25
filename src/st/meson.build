@@ -12,11 +12,13 @@ st_headers = [
   'st-generic-accessible.h',
   'st-icon.h',
   'st-icon-colors.h',
+  'st-image-content.h',
   'st-label.h',
-  'st-private.h',
   'st-scrollable.h',
   'st-scroll-bar.h',
   'st-scroll-view.h',
+  'st-scroll-view-fade.h',
+  'st-settings.h',
   'st-shadow.h',
   'st-texture-cache.h',
   'st-theme.h',
@@ -65,11 +67,14 @@ st_sources = [
   'st-generic-accessible.c',
   'st-icon.c',
   'st-icon-colors.c',
+  'st-image-content.c',
   'st-label.c',
   'st-private.c',
   'st-scrollable.c',
   'st-scroll-bar.c',
   'st-scroll-view.c',
+  'st-scroll-view-fade.c',
+  'st-settings.c',
   'st-shadow.c',
   'st-texture-cache.c',
   'st-theme.c',
@@ -88,12 +93,7 @@ st_enums = gnome.mkenums_simple('st-enum-types',
 #endif'''
 )
 
-st_gir_sources = st_sources + st_private_headers + st_headers + st_enums
-
-st_non_gir_sources = [
-  'st-scroll-view-fade.c',
-  'st-scroll-view-fade.h'
-]
+st_gir_sources = st_sources + st_headers + st_enums
 
 data_to_c = find_program(meson.source_root() + '/src/data-to-c.pl')
 
@@ -119,9 +119,10 @@ st_cflags = [
 
 # Currently meson requires a shared library for building girs
 libst = shared_library('st-1.0',
-  sources: st_gir_sources + st_non_gir_sources,
+  sources: st_gir_sources,
   c_args: st_cflags,
-  dependencies: [clutter_dep, gtk_dep, croco_dep, x11_dep, m_dep],
+  dependencies: [clutter_dep, gtk_dep, croco_dep, mutter_dep, m_dep],
+  build_rpath: mutter_typelibdir,
   install_rpath: mutter_typelibdir,
   install_dir: pkglibdir,
   install: true
@@ -134,15 +135,20 @@ libst_dep = declare_dependency(link_with: libst,
 test_theme = executable('test-theme',
   sources: 'test-theme.c',
   c_args: st_cflags,
-  dependencies: [clutter_dep, gtk_dep],
+  dependencies: [mutter_dep, gtk_dep],
+  build_rpath: mutter_typelibdir,
   link_with: libst
+)
+
+test('CSS styling support', test_theme,
+  workdir: meson.current_source_dir()
 )
 
 libst_gir = gnome.generate_gir(libst,
   sources: st_gir_sources,
   nsversion: '1.0',
   namespace: 'St',
-  includes: ['Clutter-' + mutter_api_version, 'Cally-' + mutter_api_version, 'Gtk-3.0'],
+  includes: ['Clutter-' + mutter_api_version, 'Cally-' + mutter_api_version, 'Meta-' + mutter_api_version, 'Gtk-3.0'],
   dependencies: [mutter_dep],
   include_directories: include_directories('..'),
   extra_args: ['-DST_COMPILATION', '--quiet'],

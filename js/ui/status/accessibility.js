@@ -1,11 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported ATIndicator */
 
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const St = imports.gi.St;
+const { Gio, GLib, GObject, St } = imports.gi;
 
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
@@ -29,44 +25,41 @@ const KEY_VISUAL_BELL               = 'visual-bell';
 const DESKTOP_INTERFACE_SCHEMA      = 'org.gnome.desktop.interface';
 const KEY_GTK_THEME                 = 'gtk-theme';
 const KEY_ICON_THEME                = 'icon-theme';
-const KEY_WM_THEME                  = 'theme';
 const KEY_TEXT_SCALING_FACTOR       = 'text-scaling-factor';
 
 const HIGH_CONTRAST_THEME           = 'HighContrast';
 
-var ATIndicator = new Lang.Class({
-    Name: 'ATIndicator',
-    Extends: PanelMenu.Button,
-
+var ATIndicator = GObject.registerClass(
+class ATIndicator extends PanelMenu.Button {
     _init() {
-        this.parent(0.0, _("Accessibility"));
+        super._init(0.5, _("Accessibility"));
 
         this._hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
         this._hbox.add_child(new St.Icon({ style_class: 'system-status-icon',
                                            icon_name: 'preferences-desktop-accessibility-symbolic' }));
         this._hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
 
-        this.actor.add_child(this._hbox);
+        this.add_child(this._hbox);
 
         this._a11ySettings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
-        this._a11ySettings.connect('changed::' + KEY_ALWAYS_SHOW, this._queueSyncMenuVisibility.bind(this));
+        this._a11ySettings.connect(`changed::${KEY_ALWAYS_SHOW}`, this._queueSyncMenuVisibility.bind(this));
 
         let highContrast = this._buildHCItem();
         this.menu.addMenuItem(highContrast);
 
         let magnifier = this._buildItem(_("Zoom"), APPLICATIONS_SCHEMA,
-                                                   'screen-magnifier-enabled');
+                                        'screen-magnifier-enabled');
         this.menu.addMenuItem(magnifier);
 
         let textZoom = this._buildFontItem();
         this.menu.addMenuItem(textZoom);
 
         let screenReader = this._buildItem(_("Screen Reader"), APPLICATIONS_SCHEMA,
-                                                               'screen-reader-enabled');
+                                           'screen-reader-enabled');
         this.menu.addMenuItem(screenReader);
 
         let screenKeyboard = this._buildItem(_("Screen Keyboard"), APPLICATIONS_SCHEMA,
-                                                                   'screen-keyboard-enabled');
+                                             'screen-keyboard-enabled');
         this.menu.addMenuItem(screenKeyboard);
 
         let visualBell = this._buildItem(_("Visual Alerts"), WM_SCHEMA, KEY_VISUAL_BELL);
@@ -85,7 +78,7 @@ var ATIndicator = new Lang.Class({
         this.menu.addMenuItem(mouseKeys);
 
         this._syncMenuVisibility();
-    },
+    }
 
     _syncMenuVisibility() {
         this._syncMenuVisibilityIdle = 0;
@@ -93,49 +86,70 @@ var ATIndicator = new Lang.Class({
         let alwaysShow = this._a11ySettings.get_boolean(KEY_ALWAYS_SHOW);
         let items = this.menu._getMenuItems();
 
-        this.actor.visible = alwaysShow || items.some(f => !!f.state);
+        this.visible = alwaysShow || items.some(f => !!f.state);
 
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     _queueSyncMenuVisibility() {
         if (this._syncMenuVisibilityIdle)
             return;
 
-        this._syncMenuVisibilityIdle = Mainloop.idle_add(this._syncMenuVisibility.bind(this));
+        this._syncMenuVisibilityIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT, this._syncMenuVisibility.bind(this));
         GLib.Source.set_name_by_id(this._syncMenuVisibilityIdle, '[gnome-shell] this._syncMenuVisibility');
-    },
+    }
 
-    _buildItemExtended(string, initial_value, writable, on_set) {
-        let widget = new PopupMenu.PopupSwitchMenuItem(string, initial_value);
+    _buildItemExtended(string, initialValue, writable, onSet) {
+        let widget = new PopupMenu.PopupSwitchMenuItem(string, initialValue);
         if (!writable)
             widget.actor.reactive = false;
         else
             widget.connect('toggled', item => {
-                on_set(item.state);
+                onSet(item.state);
             });
         return widget;
-    },
+    }
 
     _buildItem(string, schema, key) {
         let settings = new Gio.Settings({ schema_id: schema });
-        settings.connect('changed::'+key, () => {
+        let widget = this._buildItemExtended(string,
+            settings.get_boolean(key),
+            settings.is_writable(key),
+            enabled => settings.set_boolean(key, enabled));
+
+        settings.connect(`changed::${key}`, () => {
             widget.setToggleState(settings.get_boolean(key));
 
             this._queueSyncMenuVisibility();
         });
 
-        let widget = this._buildItemExtended(string,
-            settings.get_boolean(key),
-            settings.is_writable(key),
-            enabled => settings.set_boolean(key, enabled));
         return widget;
-    },
+    }
 
     _buildHCItem() {
         let interfaceSettings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });
-        let wmSettings = new Gio.Settings({ schema_id: WM_SCHEMA });
-        interfaceSettings.connect('changed::' + KEY_GTK_THEME, () => {
+        let gtkTheme = interfaceSettings.get_string(KEY_GTK_THEME);
+        let iconTheme = interfaceSettings.get_string(KEY_ICON_THEME);
+        let hasHC = (gtkTheme == HIGH_CONTRAST_THEME);
+        let highContrast = this._buildItemExtended(
+            _("High Contrast"),
+            hasHC,
+            interfaceSettings.is_writable(KEY_GTK_THEME) &&
+            interfaceSettings.is_writable(KEY_ICON_THEME),
+            enabled => {
+                if (enabled) {
+                    interfaceSettings.set_string(KEY_GTK_THEME, HIGH_CONTRAST_THEME);
+                    interfaceSettings.set_string(KEY_ICON_THEME, HIGH_CONTRAST_THEME);
+                } else if (!hasHC) {
+                    interfaceSettings.set_string(KEY_GTK_THEME, gtkTheme);
+                    interfaceSettings.set_string(KEY_ICON_THEME, iconTheme);
+                } else {
+                    interfaceSettings.reset(KEY_GTK_THEME);
+                    interfaceSettings.reset(KEY_ICON_THEME);
+                }
+            });
+
+        interfaceSettings.connect(`changed::${KEY_GTK_THEME}`, () => {
             let value = interfaceSettings.get_string(KEY_GTK_THEME);
             if (value == HIGH_CONTRAST_THEME) {
                 highContrast.setToggleState(true);
@@ -146,48 +160,32 @@ var ATIndicator = new Lang.Class({
 
             this._queueSyncMenuVisibility();
         });
-        interfaceSettings.connect('changed::' + KEY_ICON_THEME, () => {
+
+        interfaceSettings.connect(`changed::${KEY_ICON_THEME}`, () => {
             let value = interfaceSettings.get_string(KEY_ICON_THEME);
             if (value != HIGH_CONTRAST_THEME)
                 iconTheme = value;
         });
-        wmSettings.connect('changed::' + KEY_WM_THEME, () => {
-            let value = wmSettings.get_string(KEY_WM_THEME);
-            if (value != HIGH_CONTRAST_THEME)
-                wmTheme = value;
-        });
 
-        let gtkTheme = interfaceSettings.get_string(KEY_GTK_THEME);
-        let iconTheme = interfaceSettings.get_string(KEY_ICON_THEME);
-        let wmTheme = wmSettings.get_string(KEY_WM_THEME);
-        let hasHC = (gtkTheme == HIGH_CONTRAST_THEME);
-        let highContrast = this._buildItemExtended(
-            _("High Contrast"),
-            hasHC,
-            interfaceSettings.is_writable(KEY_GTK_THEME) &&
-            interfaceSettings.is_writable(KEY_ICON_THEME) &&
-            wmSettings.is_writable(KEY_WM_THEME),
-            enabled => {
-                if (enabled) {
-                    interfaceSettings.set_string(KEY_GTK_THEME, HIGH_CONTRAST_THEME);
-                    interfaceSettings.set_string(KEY_ICON_THEME, HIGH_CONTRAST_THEME);
-                    wmSettings.set_string(KEY_WM_THEME, HIGH_CONTRAST_THEME);
-                } else if(!hasHC) {
-                    interfaceSettings.set_string(KEY_GTK_THEME, gtkTheme);
-                    interfaceSettings.set_string(KEY_ICON_THEME, iconTheme);
-                    wmSettings.set_string(KEY_WM_THEME, wmTheme);
-                } else {
-                    interfaceSettings.reset(KEY_GTK_THEME);
-                    interfaceSettings.reset(KEY_ICON_THEME);
-                    wmSettings.reset(KEY_WM_THEME);
-                }
-            });
         return highContrast;
-    },
+    }
 
     _buildFontItem() {
         let settings = new Gio.Settings({ schema_id: DESKTOP_INTERFACE_SCHEMA });
-        settings.connect('changed::' + KEY_TEXT_SCALING_FACTOR, () => {
+        let factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
+        let initialSetting = (factor > 1.0);
+        let widget = this._buildItemExtended(_("Large Text"),
+            initialSetting,
+            settings.is_writable(KEY_TEXT_SCALING_FACTOR),
+            enabled => {
+                if (enabled)
+                    settings.set_double(
+                        KEY_TEXT_SCALING_FACTOR, DPI_FACTOR_LARGE);
+                else
+                    settings.reset(KEY_TEXT_SCALING_FACTOR);
+            });
+
+        settings.connect(`changed::${KEY_TEXT_SCALING_FACTOR}`, () => {
             let factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
             let active = (factor > 1.0);
             widget.setToggleState(active);
@@ -195,18 +193,6 @@ var ATIndicator = new Lang.Class({
             this._queueSyncMenuVisibility();
         });
 
-        let factor = settings.get_double(KEY_TEXT_SCALING_FACTOR);
-        let initial_setting = (factor > 1.0);
-        let widget = this._buildItemExtended(_("Large Text"),
-            initial_setting,
-            settings.is_writable(KEY_TEXT_SCALING_FACTOR),
-            enabled => {
-                if (enabled)
-                    settings.set_double(KEY_TEXT_SCALING_FACTOR,
-                                        DPI_FACTOR_LARGE);
-                else
-                    settings.reset(KEY_TEXT_SCALING_FACTOR);
-            });
         return widget;
     }
 });

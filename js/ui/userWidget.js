@@ -1,14 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 //
 // A widget showing the user avatar and name
+/* exported UserWidget */
 
-const Clutter = imports.gi.Clutter;
-const AccountsService = imports.gi.AccountsService;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const Lang = imports.lang;
-const St = imports.gi.St;
+const { Clutter, GLib, GObject, St } = imports.gi;
 
 const Params = imports.misc.params;
 
@@ -19,14 +14,12 @@ var AVATAR_ICON_SIZE = 64;
 // Copyright (C) 2004-2005 James M. Cape <jcape@ignore-your.tv>.
 // Copyright (C) 2008,2009 Red Hat, Inc.
 
-var Avatar = new Lang.Class({
-    Name: 'Avatar',
-
-    _init(user, params) {
+var Avatar = class {
+    constructor(user, params) {
         this._user = user;
         params = Params.parse(params, { reactive: false,
                                         iconSize: AVATAR_ICON_SIZE,
-                                        styleClass: 'framed-user-icon' });
+                                        styleClass: 'user-icon' });
         this._iconSize = params.iconSize;
 
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
@@ -39,12 +32,12 @@ var Avatar = new Lang.Class({
         // Monitor the scaling factor to make sure we recreate the avatar when needed.
         let themeContext = St.ThemeContext.get_for_stage(global.stage);
         themeContext.connect('notify::scale-factor', this.update.bind(this));
-    },
+    }
 
     setSensitive(sensitive) {
         this.actor.can_focus = sensitive;
         this.actor.reactive = sensitive;
-    },
+    }
 
     update() {
         let iconFile = this._user.get_icon_file();
@@ -52,26 +45,26 @@ var Avatar = new Lang.Class({
             iconFile = null;
 
         if (iconFile) {
-            let file = Gio.File.new_for_path(iconFile);
             this.actor.child = null;
-            this.actor.style = 'background-image: url("%s");'.format(iconFile);
+            let { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+            this.actor.set_size(
+                this._iconSize * scaleFactor,
+                this._iconSize * scaleFactor);
+            this.actor.style = `
+                background-image: url("${iconFile}");
+                background-size: cover;`;
         } else {
             this.actor.style = null;
             this.actor.child = new St.Icon({ icon_name: 'avatar-default-symbolic',
                                              icon_size: this._iconSize });
         }
-
-        let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        this.actor.set_size(this._iconSize * scaleFactor, this._iconSize * scaleFactor);
     }
-});
+};
 
-var UserWidgetLabel = new Lang.Class({
-    Name: 'UserWidgetLabel',
-    Extends: St.Widget,
-
+var UserWidgetLabel = GObject.registerClass(
+class UserWidgetLabel extends St.Widget {
     _init(user) {
-        this.parent({ layout_manager: new Clutter.BinLayout() });
+        super._init({ layout_manager: new Clutter.BinLayout() });
 
         this._user = user;
 
@@ -95,7 +88,7 @@ var UserWidgetLabel = new Lang.Class({
         // the actor is destroyed (which is guaranteed to be as part of a normal
         // destroy() call from JS, possibly from some ancestor)
         this.connect('destroy', this._onDestroy.bind(this));
-    },
+    }
 
     _onDestroy() {
         if (this._userLoadedId != 0) {
@@ -107,7 +100,7 @@ var UserWidgetLabel = new Lang.Class({
             this._user.disconnect(this._userChangedId);
             this._userChangedId = 0;
         }
-    },
+    }
 
     vfunc_allocate(box, flags) {
         this.set_allocation(box, flags);
@@ -115,11 +108,7 @@ var UserWidgetLabel = new Lang.Class({
         let availWidth = box.x2 - box.x1;
         let availHeight = box.y2 - box.y1;
 
-        let [minRealNameWidth, minRealNameHeight,
-             natRealNameWidth, natRealNameHeight] = this._realNameLabel.get_preferred_size();
-
-        let [minUserNameWidth, minUserNameHeight,
-             natUserNameWidth, natUserNameHeight] = this._userNameLabel.get_preferred_size();
+        let [, , natRealNameWidth] = this._realNameLabel.get_preferred_size();
 
         if (natRealNameWidth <= availWidth)
             this._currentLabel = this._realNameLabel;
@@ -134,11 +123,11 @@ var UserWidgetLabel = new Lang.Class({
         childBox.y2 = availHeight;
 
         this._currentLabel.allocate(childBox, flags);
-    },
+    }
 
     vfunc_paint() {
         this._currentLabel.paint();
-    },
+    }
 
     _updateUser() {
         if (this._user.is_loaded) {
@@ -148,13 +137,11 @@ var UserWidgetLabel = new Lang.Class({
             this._realNameLabel.text = '';
             this._userNameLabel.text = '';
         }
-    },
+    }
 });
 
-var UserWidget = new Lang.Class({
-    Name: 'UserWidget',
-
-    _init(user) {
+var UserWidget = class {
+    constructor(user) {
         this._user = user;
 
         this.actor = new St.BoxLayout({ style_class: 'user-widget',
@@ -173,7 +160,7 @@ var UserWidget = new Lang.Class({
         this._userLoadedId = this._user.connect('notify::is-loaded', this._updateUser.bind(this));
         this._userChangedId = this._user.connect('changed', this._updateUser.bind(this));
         this._updateUser();
-    },
+    }
 
     _onDestroy() {
         if (this._userLoadedId != 0) {
@@ -185,9 +172,9 @@ var UserWidget = new Lang.Class({
             this._user.disconnect(this._userChangedId);
             this._userChangedId = 0;
         }
-    },
+    }
 
     _updateUser() {
         this._avatar.update();
     }
-});
+};

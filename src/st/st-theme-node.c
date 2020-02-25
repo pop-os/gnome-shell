@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "st-settings.h"
 #include "st-theme-private.h"
 #include "st-theme-context.h"
 #include "st-theme-node-private.h"
@@ -39,20 +40,12 @@ static const ClutterColor DEFAULT_SUCCESS_COLOR = { 0x4e, 0x9a, 0x06, 0xff };
 static const ClutterColor DEFAULT_WARNING_COLOR = { 0xf5, 0x79, 0x3e, 0xff };
 static const ClutterColor DEFAULT_ERROR_COLOR = { 0xcc, 0x00, 0x00, 0xff };
 
-extern gfloat st_slow_down_factor;
-
 G_DEFINE_TYPE (StThemeNode, st_theme_node, G_TYPE_OBJECT)
 
 static void
 st_theme_node_init (StThemeNode *node)
 {
   node->transition_duration = -1;
-  node->background_texture = COGL_INVALID_HANDLE;
-  node->background_pipeline = COGL_INVALID_HANDLE;
-  node->background_shadow_pipeline = COGL_INVALID_HANDLE;
-  node->border_slices_texture = COGL_INVALID_HANDLE;
-  node->border_slices_pipeline = COGL_INVALID_HANDLE;
-  node->color_pipeline = COGL_INVALID_HANDLE;
 
   st_theme_node_paint_state_init (&node->cached_state);
 }
@@ -117,9 +110,11 @@ st_theme_node_dispose (GObject *gobject)
       node->icon_colors = NULL;
     }
 
-  if (node->theme)
-    g_signal_handlers_disconnect_by_func (node->theme,
-                                          on_custom_stylesheets_changed, node);
+  if (node->theme && node->stylesheets_changed_id)
+    {
+      g_signal_handler_disconnect (node->theme, node->stylesheets_changed_id);
+      node->stylesheets_changed_id = 0;
+    }
 
   st_theme_node_paint_state_free (&node->cached_state);
 
@@ -140,48 +135,20 @@ st_theme_node_finalize (GObject *object)
 
   maybe_free_properties (node);
 
-  if (node->font_desc)
-    {
-      pango_font_description_free (node->font_desc);
-      node->font_desc = NULL;
-    }
+  g_clear_pointer (&node->font_desc, pango_font_description_free);
 
-  if (node->box_shadow)
-    {
-      st_shadow_unref (node->box_shadow);
-      node->box_shadow = NULL;
-    }
+  g_clear_pointer (&node->box_shadow, st_shadow_unref);
+  g_clear_pointer (&node->background_image_shadow, st_shadow_unref);
+  g_clear_pointer (&node->text_shadow, st_shadow_unref);
 
-  if (node->background_image_shadow)
-    {
-      st_shadow_unref (node->background_image_shadow);
-      node->background_image_shadow = NULL;
-    }
+  g_clear_object (&node->background_image);
 
-  if (node->text_shadow)
-    {
-      st_shadow_unref (node->text_shadow);
-      node->text_shadow = NULL;
-    }
-
-  if (node->background_image)
-    {
-      g_object_unref (node->background_image);
-      node->background_image = NULL;
-    }
-
-  if (node->background_texture != COGL_INVALID_HANDLE)
-    cogl_handle_unref (node->background_texture);
-  if (node->background_pipeline != COGL_INVALID_HANDLE)
-    cogl_handle_unref (node->background_pipeline);
-  if (node->background_shadow_pipeline != COGL_INVALID_HANDLE)
-    cogl_handle_unref (node->background_shadow_pipeline);
-  if (node->border_slices_texture != COGL_INVALID_HANDLE)
-    cogl_handle_unref (node->border_slices_texture);
-  if (node->border_slices_pipeline != COGL_INVALID_HANDLE)
-    cogl_handle_unref (node->border_slices_pipeline);
-  if (node->color_pipeline != COGL_INVALID_HANDLE)
-    cogl_handle_unref (node->color_pipeline);
+  cogl_clear_object (&node->background_texture);
+  cogl_clear_object (&node->background_pipeline);
+  cogl_clear_object (&node->background_shadow_pipeline);
+  cogl_clear_object (&node->border_slices_texture);
+  cogl_clear_object (&node->border_slices_pipeline);
+  cogl_clear_object (&node->color_pipeline);
 
   G_OBJECT_CLASS (st_theme_node_parent_class)->finalize (object);
 }
@@ -264,8 +231,9 @@ st_theme_node_new (StThemeContext    *context,
   if (theme != NULL)
     {
       node->theme = g_object_ref (theme);
-      g_signal_connect (node->theme, "custom-stylesheets-changed",
-                        G_CALLBACK (on_custom_stylesheets_changed), node);
+      node->stylesheets_changed_id =
+        g_signal_connect (node->theme, "custom-stylesheets-changed",
+                          G_CALLBACK (on_custom_stylesheets_changed), node);
     }
 
   node->element_type = element_type;
@@ -1170,10 +1138,14 @@ get_length_from_term_int (StThemeNode *node,
 {
   double value;
   GetFromTermResult result;
+  int scale_factor;
 
   result = get_length_from_term (node, term, use_parent_font, &value);
   if (result == VALUE_FOUND)
-    *length = (int) (0.5 + value);
+    {
+      g_object_get (node->context, "scale-factor", &scale_factor, NULL);
+      *length = (int) ((value / scale_factor) + 0.5) * scale_factor;
+    }
   return result;
 }
 
@@ -2375,18 +2347,23 @@ st_theme_node_get_margin (StThemeNode *node,
 int
 st_theme_node_get_transition_duration (StThemeNode *node)
 {
+  StSettings *settings;
   gdouble value = 0.0;
+  gdouble factor;
 
   g_return_val_if_fail (ST_IS_THEME_NODE (node), 0);
 
+  settings = st_settings_get ();
+  g_object_get (settings, "slow-down-factor", &factor, NULL);
+
   if (node->transition_duration > -1)
-    return st_slow_down_factor * node->transition_duration;
+    return factor * node->transition_duration;
 
   st_theme_node_lookup_time (node, "transition-duration", FALSE, &value);
 
   node->transition_duration = (int)value;
 
-  return st_slow_down_factor * node->transition_duration;
+  return factor * node->transition_duration;
 }
 
 StIconStyle

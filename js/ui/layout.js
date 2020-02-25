@@ -1,13 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported MonitorConstraint, LayoutManager */
 
-const Clutter = imports.gi.Clutter;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Signals = imports.signals;
-const St = imports.gi.St;
 
 const Background = imports.ui.background;
 const BackgroundMenu = imports.ui.backgroundMenu;
@@ -16,17 +11,17 @@ const LoginManager = imports.misc.loginManager;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
-const Tweener = imports.ui.tweener;
+const Ripples = imports.ui.ripples;
 
-var STARTUP_ANIMATION_TIME = 0.5;
-var KEYBOARD_ANIMATION_TIME = 0.15;
-var BACKGROUND_FADE_ANIMATION_TIME = 1.0;
+var STARTUP_ANIMATION_TIME = 500;
+var KEYBOARD_ANIMATION_TIME = 150;
+var BACKGROUND_FADE_ANIMATION_TIME = 1000;
 
 var HOT_CORNER_PRESSURE_THRESHOLD = 100; // pixels
 var HOT_CORNER_PRESSURE_TIMEOUT = 1000; // ms
 
 function isPopupMetaWindow(actor) {
-    switch(actor.meta_window.get_window_type()) {
+    switch (actor.meta_window.get_window_type()) {
     case Meta.WindowType.DROPDOWN_MENU:
     case Meta.WindowType.POPUP_MENU:
     case Meta.WindowType.COMBO:
@@ -36,33 +31,33 @@ function isPopupMetaWindow(actor) {
     }
 }
 
-var MonitorConstraint = new Lang.Class({
-    Name: 'MonitorConstraint',
-    Extends: Clutter.Constraint,
-    Properties: {'primary': GObject.ParamSpec.boolean('primary', 
-                                                      'Primary', 'Track primary monitor',
-                                                      GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                      false),
-                 'index': GObject.ParamSpec.int('index',
-                                                'Monitor index', 'Track specific monitor',
-                                                GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                -1, 64, -1),
-                 'work-area': GObject.ParamSpec.boolean('work-area',
-                                                        'Work-area', 'Track monitor\'s work-area',
-                                                        GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
-                                                        false)},
-
+var MonitorConstraint = GObject.registerClass({
+    Properties: {
+        'primary': GObject.ParamSpec.boolean('primary',
+                                             'Primary', 'Track primary monitor',
+                                             GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                             false),
+        'index': GObject.ParamSpec.int('index',
+                                       'Monitor index', 'Track specific monitor',
+                                       GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                       -1, 64, -1),
+        'work-area': GObject.ParamSpec.boolean('work-area',
+                                               'Work-area', 'Track monitor\'s work-area',
+                                               GObject.ParamFlags.READABLE | GObject.ParamFlags.WRITABLE,
+                                               false)
+    },
+}, class MonitorConstraint extends Clutter.Constraint {
     _init(props) {
         this._primary = false;
         this._index = -1;
         this._workArea = false;
 
-        this.parent(props);
-    },
+        super._init(props);
+    }
 
     get primary() {
         return this._primary;
-    },
+    }
 
     set primary(v) {
         if (v)
@@ -71,11 +66,11 @@ var MonitorConstraint = new Lang.Class({
         if (this.actor)
             this.actor.queue_relayout();
         this.notify('primary');
-    },
+    }
 
     get index() {
         return this._index;
-    },
+    }
 
     set index(v) {
         this._primary = false;
@@ -83,12 +78,14 @@ var MonitorConstraint = new Lang.Class({
         if (this.actor)
             this.actor.queue_relayout();
         this.notify('index');
-    },
+    }
 
+    // eslint-disable-next-line camelcase
     get work_area() {
         return this._workArea;
-    },
+    }
 
+    // eslint-disable-next-line camelcase
     set work_area(v) {
         if (v == this._workArea)
             return;
@@ -96,7 +93,7 @@ var MonitorConstraint = new Lang.Class({
         if (this.actor)
             this.actor.queue_relayout();
         this.notify('work-area');
-    },
+    }
 
     vfunc_set_actor(actor) {
         if (actor) {
@@ -124,8 +121,8 @@ var MonitorConstraint = new Lang.Class({
             this._workareasChangedId = 0;
         }
 
-        this.parent(actor);
-    },
+        super.vfunc_set_actor(actor);
+    }
 
     vfunc_update_allocation(actor, actorBox) {
         if (!this._primary && this._index < 0)
@@ -153,21 +150,33 @@ var MonitorConstraint = new Lang.Class({
     }
 });
 
-var Monitor = new Lang.Class({
-    Name: 'Monitor',
-
-    _init(index, geometry) {
+var Monitor = class Monitor {
+    constructor(index, geometry, geometryScale) {
         this.index = index;
         this.x = geometry.x;
         this.y = geometry.y;
         this.width = geometry.width;
         this.height = geometry.height;
-    },
+        this.geometry_scale = geometryScale;
+    }
 
     get inFullscreen() {
         return global.display.get_monitor_in_fullscreen(this.index);
     }
-})
+};
+
+const UiActor = GObject.registerClass(
+class UiActor extends St.Widget {
+    vfunc_get_preferred_width (_forHeight) {
+        let width = global.stage.width;
+        return [width, width];
+    }
+
+    vfunc_get_preferred_height (_forWidth) {
+        let height = global.stage.height;
+        return [height, height];
+    }
+});
 
 const defaultParams = {
     trackFullscreen: false,
@@ -175,10 +184,17 @@ const defaultParams = {
     affectsInputRegion: true
 };
 
-var LayoutManager = new Lang.Class({
-    Name: 'LayoutManager',
-
+var LayoutManager = GObject.registerClass({
+    Signals: { 'hot-corners-changed': {},
+               'startup-complete': {},
+               'startup-prepared': {},
+               'monitors-changed': {},
+               'system-modal-opened': {},
+               'keyboard-visible-changed': { param_types: [GObject.TYPE_BOOLEAN] } },
+}, class LayoutManager extends GObject.Object {
     _init() {
+        super._init();
+
         this._rtl = (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL);
         this.monitors = [];
         this.primaryMonitor = null;
@@ -203,37 +219,32 @@ var LayoutManager = new Lang.Class({
         global.stage.no_clear_hint = true;
 
         // Set up stage hierarchy to group all UI actors under one container.
-        this.uiGroup = new Shell.GenericContainer({ name: 'uiGroup' });
+        this.uiGroup = new UiActor({ name: 'uiGroup' });
         this.uiGroup.set_flags(Clutter.ActorFlags.NO_LAYOUT);
-        this.uiGroup.connect('allocate', (actor, box, flags) => {
-            let children = actor.get_children();
-            for (let i = 0; i < children.length; i++)
-                children[i].allocate_preferred_size(flags);
-        });
-        this.uiGroup.connect('get-preferred-width', (actor, forHeight, alloc) => {
-            let width = global.stage.width;
-            [alloc.min_size, alloc.natural_size] = [width, width];
-        });
-        this.uiGroup.connect('get-preferred-height', (actor, forWidth, alloc) => {
-            let height = global.stage.height;
-            [alloc.min_size, alloc.natural_size] = [height, height];
-        });
+
+        global.stage.add_child(this.uiGroup);
 
         global.stage.remove_actor(global.window_group);
         this.uiGroup.add_actor(global.window_group);
 
-        global.stage.add_child(this.uiGroup);
+        // Using addChrome() to add actors to uiGroup will position actors
+        // underneath the top_window_group.
+        // To insert actors at the top of uiGroup, we use addTopChrome() or
+        // add the actor directly using uiGroup.add_actor().
+        global.stage.remove_actor(global.top_window_group);
+        this.uiGroup.add_actor(global.top_window_group);
 
         this.overviewGroup = new St.Widget({ name: 'overviewGroup',
                                              visible: false,
                                              reactive: true });
         this.addChrome(this.overviewGroup);
 
-        this.screenShieldGroup = new St.Widget({ name: 'screenShieldGroup',
-                                                 visible: false,
-                                                 clip_to_allocation: true,
-                                                 layout_manager: new Clutter.BinLayout(),
-                                               });
+        this.screenShieldGroup = new St.Widget({
+            name: 'screenShieldGroup',
+            visible: false,
+            clip_to_allocation: true,
+            layout_manager: new Clutter.BinLayout(),
+        });
         this.addChrome(this.screenShieldGroup);
 
         this.panelBox = new St.BoxLayout({ name: 'panelBox',
@@ -250,16 +261,13 @@ var LayoutManager = new Lang.Class({
         this.keyboardBox = new St.BoxLayout({ name: 'keyboardBox',
                                               reactive: true,
                                               track_hover: true });
-        this.addChrome(this.keyboardBox);
+        this.addTopChrome(this.keyboardBox);
         this._keyboardHeightNotifyId = 0;
 
         // A dummy actor that tracks the mouse or text cursor, based on the
         // position and size set in setDummyCursorGeometry.
-        this.dummyCursor = new St.Widget({ width: 0, height: 0, visible: false });
+        this.dummyCursor = new St.Widget({ width: 0, height: 0, opacity: 0 });
         this.uiGroup.add_actor(this.dummyCursor);
-
-        global.stage.remove_actor(global.top_window_group);
-        this.uiGroup.add_actor(global.top_window_group);
 
         let feedbackGroup = Meta.get_feedback_group_for_display(global.display);
         global.stage.remove_actor(feedbackGroup);
@@ -269,6 +277,13 @@ var LayoutManager = new Lang.Class({
         global.window_group.add_child(this._backgroundGroup);
         this._backgroundGroup.lower_bottom();
         this._bgManagers = [];
+
+        this._interfaceSettings = new Gio.Settings({
+            schema_id: 'org.gnome.desktop.interface'
+        });
+
+        this._interfaceSettings.connect('changed::enable-hot-corners',
+                                        this._updateHotCorners.bind(this));
 
         // Need to update struts on new workspaces when they are added
         let workspaceManager = global.workspace_manager;
@@ -297,33 +312,33 @@ var LayoutManager = new Lang.Class({
                     Meta.Background.refresh_all();
                 });
         }
-    },
+    }
 
     // This is called by Main after everything else is constructed
     init() {
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
 
         this._loadBackground();
-    },
+    }
 
     showOverview() {
         this.overviewGroup.show();
 
         this._inOverview = true;
         this._updateVisibility();
-    },
+    }
 
     hideOverview() {
         this.overviewGroup.hide();
 
         this._inOverview = false;
         this._updateVisibility();
-    },
+    }
 
     _sessionUpdated() {
         this._updateVisibility();
         this._queueUpdateRegions();
-    },
+    }
 
     _updateMonitors() {
         let display = global.display;
@@ -331,7 +346,9 @@ var LayoutManager = new Lang.Class({
         this.monitors = [];
         let nMonitors = display.get_n_monitors();
         for (let i = 0; i < nMonitors; i++)
-            this.monitors.push(new Monitor(i, display.get_monitor_geometry(i)));
+            this.monitors.push(new Monitor(i,
+                                           display.get_monitor_geometry(i),
+                                           display.get_monitor_scale(i)));
 
         if (nMonitors == 0) {
             this.primaryIndex = this.bottomIndex = -1;
@@ -361,7 +378,7 @@ var LayoutManager = new Lang.Class({
             this.primaryMonitor = null;
             this.bottomMonitor = null;
         }
-    },
+    }
 
     _updateHotCorners() {
         // destroy old hot corners
@@ -370,6 +387,11 @@ var LayoutManager = new Lang.Class({
                 corner.destroy();
         });
         this.hotCorners = [];
+
+        if (!this._interfaceSettings.get_boolean('enable-hot-corners')) {
+            this.emit('hot-corners-changed');
+            return;
+        }
 
         let size = this.panelBox.height;
 
@@ -420,11 +442,11 @@ var LayoutManager = new Lang.Class({
         }
 
         this.emit('hot-corners-changed');
-    },
+    }
 
     _addBackgroundMenu(bgManager) {
         BackgroundMenu.addBackgroundMenu(bgManager.backgroundActor, this);
-    },
+    }
 
     _createBackgroundManager(monitorIndex) {
         let bgManager = new Background.BackgroundManager({ container: this._backgroundGroup,
@@ -435,7 +457,7 @@ var LayoutManager = new Lang.Class({
         this._addBackgroundMenu(bgManager);
 
         return bgManager;
-    },
+    }
 
     _showSecondaryBackgrounds() {
         for (let i = 0; i < this.monitors.length; i++) {
@@ -443,13 +465,14 @@ var LayoutManager = new Lang.Class({
                 let backgroundActor = this._bgManagers[i].backgroundActor;
                 backgroundActor.show();
                 backgroundActor.opacity = 0;
-                Tweener.addTween(backgroundActor,
-                                 { opacity: 255,
-                                   time: BACKGROUND_FADE_ANIMATION_TIME,
-                                   transition: 'easeOutQuad' });
+                backgroundActor.ease({
+                    opacity: 255,
+                    duration: BACKGROUND_FADE_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD
+                });
             }
         }
-    },
+    }
 
     _updateBackgrounds() {
         let i;
@@ -468,13 +491,13 @@ var LayoutManager = new Lang.Class({
             if (i != this.primaryIndex && this._startingUp)
                 bgManager.backgroundActor.hide();
         }
-    },
+    }
 
     _updateKeyboardBox() {
         this.keyboardBox.set_position(this.keyboardMonitor.x,
                                       this.keyboardMonitor.y + this.keyboardMonitor.height);
         this.keyboardBox.set_size(this.keyboardMonitor.width, -1);
-    },
+    }
 
     _updateBoxes() {
         this.screenShieldGroup.set_position(0, 0);
@@ -487,7 +510,7 @@ var LayoutManager = new Lang.Class({
         this.panelBox.set_size(this.primaryMonitor.width, -1);
 
         this.keyboardIndex = this.primaryIndex;
-    },
+    }
 
     _panelBoxChanged() {
         this._updatePanelBarrier();
@@ -497,7 +520,7 @@ var LayoutManager = new Lang.Class({
             if (corner)
                 corner.setBarrierSize(size);
         });
-    },
+    }
 
     _updatePanelBarrier() {
         if (this._rightPanelBarrier) {
@@ -516,7 +539,7 @@ var LayoutManager = new Lang.Class({
                                                          x2: primary.x + primary.width, y2: primary.y + this.panelBox.height,
                                                          directions: Meta.BarrierDirection.NEGATIVE_X });
         }
-    },
+    }
 
     _monitorsChanged() {
         this._updateMonitors();
@@ -528,7 +551,7 @@ var LayoutManager = new Lang.Class({
         this._queueUpdateRegions();
 
         this.emit('monitors-changed');
-    },
+    }
 
     _isAboveOrBelowPrimary(monitor) {
         let primary = this.monitors[this.primaryIndex];
@@ -542,16 +565,16 @@ var LayoutManager = new Lang.Class({
             return true;
 
         return false;
-    },
+    }
 
     get currentMonitor() {
         let index = global.display.get_current_monitor();
         return this.monitors[index];
-    },
+    }
 
     get keyboardMonitor() {
         return this.monitors[this.keyboardIndex];
-    },
+    }
 
     get focusIndex() {
         let i = Main.layoutManager.primaryIndex;
@@ -561,22 +584,22 @@ var LayoutManager = new Lang.Class({
         else if (global.display.focus_window != null)
             i = global.display.focus_window.get_monitor();
         return i;
-    },
+    }
 
     get focusMonitor() {
         if (this.focusIndex < 0)
             return null;
         return this.monitors[this.focusIndex];
-    },
+    }
 
     set keyboardIndex(v) {
         this._keyboardIndex = v;
         this._updateKeyboardBox();
-    },
+    }
 
     get keyboardIndex() {
         return this._keyboardIndex;
-    },
+    }
 
     _loadBackground() {
         if (!this.primaryMonitor) {
@@ -599,7 +622,7 @@ var LayoutManager = new Lang.Class({
 
             this._prepareStartupAnimation();
         });
-    },
+    }
 
     // Startup Animations
     //
@@ -665,7 +688,7 @@ var LayoutManager = new Lang.Class({
             return GLib.SOURCE_REMOVE;
         });
         GLib.Source.set_name_by_id(id, '[gnome-shell] this._startupAnimation');
-    },
+    }
 
     _startupAnimation() {
         if (Meta.is_restart())
@@ -674,27 +697,27 @@ var LayoutManager = new Lang.Class({
             this._startupAnimationGreeter();
         else
             this._startupAnimationSession();
-    },
+    }
 
     _startupAnimationGreeter() {
-        Tweener.addTween(this.panelBox,
-                         { translation_y: 0,
-                           time: STARTUP_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._startupAnimationComplete,
-                           onCompleteScope: this });
-    },
+        this.panelBox.ease({
+            translation_y: 0,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._startupAnimationComplete()
+        });
+    }
 
     _startupAnimationSession() {
-        Tweener.addTween(this.uiGroup,
-                         { scale_x: 1,
-                           scale_y: 1,
-                           opacity: 255,
-                           time: STARTUP_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._startupAnimationComplete,
-                           onCompleteScope: this });
-    },
+        this.uiGroup.ease({
+            scale_x: 1,
+            scale_y: 1,
+            opacity: 255,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._startupAnimationComplete()
+        });
+    }
 
     _startupAnimationComplete() {
         this._coverPane.destroy();
@@ -715,20 +738,21 @@ var LayoutManager = new Lang.Class({
         this._queueUpdateRegions();
 
         this.emit('startup-complete');
-    },
+    }
 
     showKeyboard() {
         this.keyboardBox.show();
-        Tweener.addTween(this.keyboardBox,
-                         { anchor_y: this.keyboardBox.height,
-                           opacity: 255,
-                           time: KEYBOARD_ANIMATION_TIME,
-                           transition: 'easeOutQuad',
-                           onComplete: this._showKeyboardComplete,
-                           onCompleteScope: this
-                         });
+        this.keyboardBox.ease({
+            anchor_y: this.keyboardBox.height,
+            opacity: 255,
+            duration: KEYBOARD_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._showKeyboardComplete();
+            }
+        });
         this.emit('keyboard-visible-changed', true);
-    },
+    }
 
     _showKeyboardComplete() {
         // Poke Chrome to update the input shape; it doesn't notice
@@ -738,29 +762,30 @@ var LayoutManager = new Lang.Class({
         this._keyboardHeightNotifyId = this.keyboardBox.connect('notify::height', () => {
             this.keyboardBox.anchor_y = this.keyboardBox.height;
         });
-    },
+    }
 
     hideKeyboard(immediate) {
         if (this._keyboardHeightNotifyId) {
             this.keyboardBox.disconnect(this._keyboardHeightNotifyId);
             this._keyboardHeightNotifyId = 0;
         }
-        Tweener.addTween(this.keyboardBox,
-                         { anchor_y: 0,
-                           opacity: 0,
-                           time: immediate ? 0 : KEYBOARD_ANIMATION_TIME,
-                           transition: 'easeInQuad',
-                           onComplete: this._hideKeyboardComplete,
-                           onCompleteScope: this
-                         });
+        this.keyboardBox.ease({
+            anchor_y: 0,
+            opacity: 0,
+            duration: immediate ? 0 : KEYBOARD_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onComplete: () => {
+                this._hideKeyboardComplete();
+            }
+        });
 
         this.emit('keyboard-visible-changed', false);
-    },
+    }
 
     _hideKeyboardComplete() {
         this.keyboardBox.hide();
         this._updateRegions();
-    },
+    }
 
     // setDummyCursorGeometry:
     //
@@ -775,7 +800,7 @@ var LayoutManager = new Lang.Class({
     setDummyCursorGeometry(x, y, w, h) {
         this.dummyCursor.set_position(Math.round(x), Math.round(y));
         this.dummyCursor.set_size(Math.round(w), Math.round(h));
-    },
+    }
 
     // addChrome:
     // @actor: an actor to add to the chrome
@@ -801,7 +826,17 @@ var LayoutManager = new Lang.Class({
         if (this.uiGroup.contains(global.top_window_group))
             this.uiGroup.set_child_below_sibling(actor, global.top_window_group);
         this._trackActor(actor, params);
-    },
+    }
+
+    // addTopChrome:
+    // @actor: an actor to add to the chrome
+    // @params: (optional) additional params
+    //
+    // Like addChrome(), but adds @actor above all windows, including popups.
+    addTopChrome(actor, params) {
+        this.uiGroup.add_actor(actor);
+        this._trackActor(actor, params);
+    }
 
     // trackChrome:
     // @actor: a descendant of the chrome to begin tracking
@@ -813,7 +848,7 @@ var LayoutManager = new Lang.Class({
     // @params can have any of the same values as in addChrome(),
     // though some possibilities don't make sense. By default, @actor has
     // the same params as its chrome ancestor.
-    trackChrome(actor, params) {
+    trackChrome(actor, params = {}) {
         let ancestor = actor.get_parent();
         let index = this._findActor(ancestor);
         while (ancestor && index == -1) {
@@ -821,19 +856,18 @@ var LayoutManager = new Lang.Class({
             index = this._findActor(ancestor);
         }
 
-        let ancestorData = ancestor ? this._trackedActors[index]
-                                    : defaultParams;
-        if (!params)
-            params = {};
+        let ancestorData = ancestor
+            ? this._trackedActors[index]
+            : defaultParams;
         // We can't use Params.parse here because we want to drop
         // the extra values like ancestorData.actor
         for (let prop in defaultParams) {
-            if (!params.hasOwnProperty(prop))
+            if (!Object.prototype.hasOwnProperty.call(params, prop))
                 params[prop] = ancestorData[prop];
         }
 
         this._trackActor(actor, params);
-    },
+    }
 
     // untrackChrome:
     // @actor: an actor previously tracked via trackChrome()
@@ -841,7 +875,7 @@ var LayoutManager = new Lang.Class({
     // Undoes the effect of trackChrome()
     untrackChrome(actor) {
         this._untrackActor(actor);
-    },
+    }
 
     // removeChrome:
     // @actor: a chrome actor
@@ -850,7 +884,7 @@ var LayoutManager = new Lang.Class({
     removeChrome(actor) {
         this.uiGroup.remove_actor(actor);
         this._untrackActor(actor);
-    },
+    }
 
     _findActor(actor) {
         for (let i = 0; i < this._trackedActors.length; i++) {
@@ -859,7 +893,7 @@ var LayoutManager = new Lang.Class({
                 return i;
         }
         return -1;
-    },
+    }
 
     _trackActor(actor, params) {
         if (this._findActor(actor) != -1)
@@ -879,7 +913,7 @@ var LayoutManager = new Lang.Class({
         this._trackedActors.push(actorData);
         this._updateActorVisibility(actorData);
         this._queueUpdateRegions();
-    },
+    }
 
     _untrackActor(actor) {
         let i = this._findActor(actor);
@@ -894,7 +928,7 @@ var LayoutManager = new Lang.Class({
         actor.disconnect(actorData.destroyId);
 
         this._queueUpdateRegions();
-    },
+    }
 
     _updateActorVisibility(actorData) {
         if (!actorData.trackFullscreen)
@@ -904,7 +938,7 @@ var LayoutManager = new Lang.Class({
         actorData.actor.visible = !(global.window_group.visible &&
                                     monitor &&
                                     monitor.inFullscreen);
-    },
+    }
 
     _updateVisibility() {
         let windowsVisible = Main.sessionMode.hasWindows && !this._inOverview;
@@ -913,7 +947,7 @@ var LayoutManager = new Lang.Class({
         global.top_window_group.visible = windowsVisible;
 
         this._trackedActors.forEach(this._updateActorVisibility.bind(this));
-    },
+    }
 
     getWorkAreaForMonitor(monitorIndex) {
         // Assume that all workspaces will have the same
@@ -921,7 +955,7 @@ var LayoutManager = new Lang.Class({
         let workspaceManager = global.workspace_manager;
         let ws = workspaceManager.get_workspace_by_index(0);
         return ws.get_work_area_for_monitor(monitorIndex);
-    },
+    }
 
     // This call guarantees that we return some monitor to simplify usage of it
     // In practice all tracked actors should be visible on some monitor anyway
@@ -930,14 +964,14 @@ var LayoutManager = new Lang.Class({
         let [w, h] = actor.get_transformed_size();
         let rect = new Meta.Rectangle({ x: x, y: y, width: w, height: h });
         return global.display.get_monitor_index_for_rect(rect);
-    },
+    }
 
     findMonitorForActor(actor) {
         let index = this.findIndexForActor(actor);
         if (index >= 0 && index < this.monitors.length)
             return this.monitors[index];
         return null;
-    },
+    }
 
     _queueUpdateRegions() {
         if (this._startingUp)
@@ -946,19 +980,19 @@ var LayoutManager = new Lang.Class({
         if (!this._updateRegionIdle)
             this._updateRegionIdle = Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
                                                     this._updateRegions.bind(this));
-    },
+    }
 
     _getWindowActorsForWorkspace(workspace) {
         return global.get_window_actors().filter(actor => {
             let win = actor.meta_window;
             return win.located_on_workspace(workspace);
         });
-    },
+    }
 
     _updateFullscreen() {
         this._updateVisibility();
         this._queueUpdateRegions();
-    },
+    }
 
     _windowsRestacked() {
         let changed = false;
@@ -970,7 +1004,7 @@ var LayoutManager = new Lang.Class({
             this._updateVisibility();
             this._queueUpdateRegions();
         }
-    },
+    }
 
     _updateRegions() {
         if (this._updateRegionIdle) {
@@ -981,11 +1015,6 @@ var LayoutManager = new Lang.Class({
         // No need to update when we have a modal.
         if (Main.modalCount > 0)
             return GLib.SOURCE_REMOVE;
-
-        // Bug workaround - get_transformed_position()/get_transformed_size() don't work after
-        // a change in stage size until the first pick or paint.
-        // https://bugzilla.gnome.org/show_bug.cgi?id=761565
-        global.stage.get_actor_at_pos(Clutter.PickMode.ALL, 0, 0);
 
         let rects = [], struts = [], i;
         let isPopupMenuVisible = global.top_window_group.get_children().some(isPopupMetaWindow);
@@ -1042,25 +1071,25 @@ var LayoutManager = new Lang.Class({
                         side = Meta.Side.RIGHT;
                     else
                         continue;
-                } else if (x1 <= monitor.x)
+                } else if (x1 <= monitor.x) {
                     side = Meta.Side.LEFT;
-                else if (y1 <= monitor.y)
+                } else if (y1 <= monitor.y) {
                     side = Meta.Side.TOP;
-                else if (x2 >= monitor.x + monitor.width)
+                } else if (x2 >= monitor.x + monitor.width) {
                     side = Meta.Side.RIGHT;
-                else if (y2 >= monitor.y + monitor.height)
+                } else if (y2 >= monitor.y + monitor.height) {
                     side = Meta.Side.BOTTOM;
-                else
+                } else {
                     continue;
+                }
 
-                let strutRect = new Meta.Rectangle({ x: x1, y: y1, width: x2 - x1, height: y2 - y1});
+                let strutRect = new Meta.Rectangle({ x: x1, y: y1, width: x2 - x1, height: y2 - y1 });
                 let strut = new Meta.Strut({ rect: strutRect, side: side });
                 struts.push(strut);
             }
         }
 
-        if (!Meta.is_wayland_compositor())
-            global.set_stage_input_region(rects);
+        global.set_stage_input_region(rects);
         this._isPopupWindowVisible = isPopupMenuVisible;
 
         let workspaceManager = global.workspace_manager;
@@ -1070,25 +1099,22 @@ var LayoutManager = new Lang.Class({
         }
 
         return GLib.SOURCE_REMOVE;
-    },
+    }
 
     modalEnded() {
         // We don't update the stage input region while in a modal,
         // so queue an update now.
         this._queueUpdateRegions();
-    },
+    }
 });
-Signals.addSignalMethods(LayoutManager.prototype);
 
 
 // HotCorner:
 //
 // This class manages a "hot corner" that can toggle switching to
 // overview.
-var HotCorner = new Lang.Class({
-    Name: 'HotCorner',
-
-    _init(layoutManager, monitor, x, y) {
+var HotCorner = class HotCorner {
+    constructor(layoutManager, monitor, x, y) {
         // We use this flag to mark the case where the user has entered the
         // hot corner and has not left both the hot corner and a surrounding
         // guard area (the "environs"). This avoids triggering the hot corner
@@ -1108,15 +1134,16 @@ var HotCorner = new Lang.Class({
                                                     Shell.ActionMode.OVERVIEW);
         this._pressureBarrier.connect('trigger', this._toggleOverview.bind(this));
 
-        // Cache the three ripples instead of dynamically creating and destroying them.
-        this._ripple1 = new St.BoxLayout({ style_class: 'ripple-box', opacity: 0, visible: false });
-        this._ripple2 = new St.BoxLayout({ style_class: 'ripple-box', opacity: 0, visible: false });
-        this._ripple3 = new St.BoxLayout({ style_class: 'ripple-box', opacity: 0, visible: false });
+        let px = 0.0;
+        let py = 0.0;
+        if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL) {
+            px = 1.0;
+            py = 0.0;
+        }
 
-        layoutManager.uiGroup.add_actor(this._ripple1);
-        layoutManager.uiGroup.add_actor(this._ripple2);
-        layoutManager.uiGroup.add_actor(this._ripple3);
-    },
+        this._ripples = new Ripples.Ripples(px, py, 'ripple-box');
+        this._ripples.addTo(layoutManager.uiGroup);
+    }
 
     setBarrierSize(size) {
         if (this._verticalBarrier) {
@@ -1151,7 +1178,7 @@ var HotCorner = new Lang.Class({
             this._pressureBarrier.addBarrier(this._verticalBarrier);
             this._pressureBarrier.addBarrier(this._horizontalBarrier);
         }
-    },
+    }
 
     _setupFallbackCornerIfNeeded(layoutManager) {
         if (!global.display.supports_extended_barriers()) {
@@ -1186,7 +1213,7 @@ var HotCorner = new Lang.Class({
             this._corner.connect('leave-event',
                                  this._onCornerLeft.bind(this));
         }
-    },
+    }
 
     destroy() {
         this.setBarrierSize(0);
@@ -1195,67 +1222,28 @@ var HotCorner = new Lang.Class({
 
         if (this.actor)
             this.actor.destroy();
-    },
 
-    _animRipple(ripple, delay, time, startScale, startOpacity, finalScale) {
-        // We draw a ripple by using a source image and animating it scaling
-        // outwards and fading away. We want the ripples to move linearly
-        // or it looks unrealistic, but if the opacity of the ripple goes
-        // linearly to zero it fades away too quickly, so we use Tweener's
-        // 'onUpdate' to give a non-linear curve to the fade-away and make
-        // it more visible in the middle section.
-
-        ripple._opacity = startOpacity;
-
-        if (ripple.get_text_direction() == Clutter.TextDirection.RTL)
-            ripple.set_anchor_point_from_gravity(Clutter.Gravity.NORTH_EAST);
-
-        ripple.visible = true;
-        ripple.opacity = 255 * Math.sqrt(startOpacity);
-        ripple.scale_x = ripple.scale_y = startScale;
-
-        ripple.x = this._x;
-        ripple.y = this._y;
-
-        Tweener.addTween(ripple, { _opacity: 0,
-                                   scale_x: finalScale,
-                                   scale_y: finalScale,
-                                   delay: delay,
-                                   time: time,
-                                   transition: 'linear',
-                                   onUpdate() { ripple.opacity = 255 * Math.sqrt(ripple._opacity); },
-                                   onComplete() { ripple.visible = false; } });
-    },
-
-    _rippleAnimation() {
-        // Show three concentric ripples expanding outwards; the exact
-        // parameters were found by trial and error, so don't look
-        // for them to make perfect sense mathematically
-
-        //                              delay  time  scale opacity => scale
-        this._animRipple(this._ripple1, 0.0,   0.83,  0.25,  1.0,     1.5);
-        this._animRipple(this._ripple2, 0.05,  1.0,   0.0,   0.7,     1.25);
-        this._animRipple(this._ripple3, 0.35,  1.0,   0.0,   0.3,     1);
-    },
+        this._ripples.destroy();
+    }
 
     _toggleOverview() {
-        if (this._monitor.inFullscreen)
+        if (this._monitor.inFullscreen && !Main.overview.visible)
             return;
 
         if (Main.overview.shouldToggleByCornerOrButton()) {
-            this._rippleAnimation();
+            this._ripples.playAnimation(this._x, this._y);
             Main.overview.toggle();
         }
-    },
+    }
 
-    handleDragOver(source, actor, x, y, time) {
+    handleDragOver(source, _actor, _x, _y, _time) {
         if (source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
         this._toggleOverview();
 
         return DND.DragMotionResult.CONTINUE;
-    },
+    }
 
     _onCornerEntered() {
         if (!this._entered) {
@@ -1263,26 +1251,24 @@ var HotCorner = new Lang.Class({
             this._toggleOverview();
         }
         return Clutter.EVENT_PROPAGATE;
-    },
+    }
 
     _onCornerLeft(actor, event) {
         if (event.get_related() != this.actor)
             this._entered = false;
         // Consume event, otherwise this will confuse onEnvironsLeft
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onEnvironsLeft(actor, event) {
         if (event.get_related() != this._corner)
             this._entered = false;
         return Clutter.EVENT_PROPAGATE;
     }
-});
+};
 
-var PressureBarrier = new Lang.Class({
-    Name: 'PressureBarrier',
-
-    _init(threshold, timeout, actionMode) {
+var PressureBarrier = class PressureBarrier {
+    constructor(threshold, timeout, actionMode) {
         this._threshold = threshold;
         this._timeout = timeout;
         this._actionMode = actionMode;
@@ -1291,57 +1277,57 @@ var PressureBarrier = new Lang.Class({
 
         this._isTriggered = false;
         this._reset();
-    },
+    }
 
     addBarrier(barrier) {
         barrier._pressureHitId = barrier.connect('hit', this._onBarrierHit.bind(this));
         barrier._pressureLeftId = barrier.connect('left', this._onBarrierLeft.bind(this));
 
         this._barriers.push(barrier);
-    },
+    }
 
     _disconnectBarrier(barrier) {
         barrier.disconnect(barrier._pressureHitId);
         barrier.disconnect(barrier._pressureLeftId);
-    },
+    }
 
     removeBarrier(barrier) {
         this._disconnectBarrier(barrier);
         this._barriers.splice(this._barriers.indexOf(barrier), 1);
-    },
+    }
 
     destroy() {
         this._barriers.forEach(this._disconnectBarrier.bind(this));
         this._barriers = [];
-    },
+    }
 
     setEventFilter(filter) {
         this._eventFilter = filter;
-    },
+    }
 
     _reset() {
         this._barrierEvents = [];
         this._currentPressure = 0;
         this._lastTime = 0;
-    },
+    }
 
     _isHorizontal(barrier) {
         return barrier.y1 == barrier.y2;
-    },
+    }
 
     _getDistanceAcrossBarrier(barrier, event) {
         if (this._isHorizontal(barrier))
             return Math.abs(event.dy);
         else
             return Math.abs(event.dx);
-    },
+    }
 
     _getDistanceAlongBarrier(barrier, event) {
         if (this._isHorizontal(barrier))
             return Math.abs(event.dx);
         else
             return Math.abs(event.dy);
-    },
+    }
 
     _trimBarrierEvents() {
         // Events are guaranteed to be sorted in time order from
@@ -1351,7 +1337,7 @@ var PressureBarrier = new Lang.Class({
         let threshold = this._lastTime - this._timeout;
 
         while (i < this._barrierEvents.length) {
-            let [time, distance] = this._barrierEvents[i];
+            let [time, distance_] = this._barrierEvents[i];
             if (time >= threshold)
                 break;
             i++;
@@ -1360,26 +1346,26 @@ var PressureBarrier = new Lang.Class({
         let firstNewEvent = i;
 
         for (i = 0; i < firstNewEvent; i++) {
-            let [time, distance] = this._barrierEvents[i];
+            let [time_, distance] = this._barrierEvents[i];
             this._currentPressure -= distance;
         }
 
         this._barrierEvents = this._barrierEvents.slice(firstNewEvent);
-    },
+    }
 
-    _onBarrierLeft(barrier, event) {
+    _onBarrierLeft(barrier, _event) {
         barrier._isHit = false;
         if (this._barriers.every(b => !b._isHit)) {
             this._reset();
             this._isTriggered = false;
         }
-    },
+    }
 
     _trigger() {
         this._isTriggered = true;
         this.emit('trigger');
         this._reset();
-    },
+    }
 
     _onBarrierHit(barrier, event) {
         barrier._isHit = true;
@@ -1421,5 +1407,5 @@ var PressureBarrier = new Lang.Class({
         if (this._currentPressure >= this._threshold)
             this._trigger();
     }
-});
+};
 Signals.addSignalMethods(PressureBarrier.prototype);

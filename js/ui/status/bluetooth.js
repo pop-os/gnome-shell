@@ -1,8 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+/* exported Indicator */
 
-const Gio = imports.gi.Gio;
-const GnomeBluetooth = imports.gi.GnomeBluetooth;
-const Lang = imports.lang;
+const { Gio, GnomeBluetooth } = imports.gi;
 
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
@@ -18,12 +17,9 @@ const RfkillManagerProxy = Gio.DBusProxy.makeProxyWrapper(RfkillManagerInterface
 
 const HAD_BLUETOOTH_DEVICES_SETUP = 'had-bluetooth-devices-setup';
 
-var Indicator = new Lang.Class({
-    Name: 'BTIndicator',
-    Extends: PanelMenu.SystemIndicator,
-
-    _init() {
-        this.parent();
+var Indicator = class extends PanelMenu.SystemIndicator {
+    constructor() {
+        super();
 
         this._indicator = this._addIndicator();
         this._indicator.icon_name = 'bluetooth-active-symbolic';
@@ -59,7 +55,7 @@ var Indicator = new Lang.Class({
         this._model.connect('row-inserted', this._sync.bind(this));
         Main.sessionMode.connect('updated', this._sync.bind(this));
         this._sync();
-    },
+    }
 
     _getDefaultAdapter() {
         let [ret, iter] = this._model.get_iter_first();
@@ -73,7 +69,7 @@ var Indicator = new Lang.Class({
             ret = this._model.iter_next(iter);
         }
         return null;
-    },
+    }
 
     // nDevices is the number of devices setup for the current default
     // adapter if one exists and is powered. If unpowered or unavailable,
@@ -85,7 +81,7 @@ var Indicator = new Lang.Class({
     _getNDevices() {
         let adapter = this._getDefaultAdapter();
         if (!adapter)
-            return [ this._hadSetupDevices ? 1 : -1, -1 ];
+            return [this._hadSetupDevices ? 1 : -1, -1];
 
         let nConnectedDevices = 0;
         let nDevices = 0;
@@ -110,11 +106,11 @@ var Indicator = new Lang.Class({
             global.settings.set_boolean(HAD_BLUETOOTH_DEVICES_SETUP, this._hadSetupDevices);
         }
 
-        return [ nDevices, nConnectedDevices];
-    },
+        return [nDevices, nConnectedDevices];
+    }
 
     _sync() {
-        let [ nDevices, nConnectedDevices ] = this._getNDevices();
+        let [nDevices, nConnectedDevices] = this._getNDevices();
         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
 
         this.menu.setSensitive(sensitive);
@@ -123,9 +119,9 @@ var Indicator = new Lang.Class({
         // Remember if there were setup devices and show the menu
         // if we've seen setup devices and we're not hard blocked
         if (nDevices > 0)
-            this._item.actor.visible = !this._proxy.BluetoothHardwareAirplaneMode;
+            this._item.visible = !this._proxy.BluetoothHardwareAirplaneMode;
         else
-            this._item.actor.visible = this._proxy.BluetoothHasAirplaneMode && !this._proxy.BluetoothAirplaneMode;
+            this._item.visible = this._proxy.BluetoothHasAirplaneMode && !this._proxy.BluetoothAirplaneMode;
 
         if (nConnectedDevices > 0)
             /* Translators: this is the number of connected bluetooth devices */
@@ -136,5 +132,5 @@ var Indicator = new Lang.Class({
             this._item.label.text = _("On");
 
         this._toggleItem.label.text = this._proxy.BluetoothAirplaneMode ? _("Turn On") : _("Turn Off");
-    },
-});
+    }
+};

@@ -51,8 +51,12 @@ enum
   PROP_0,
 
   PROP_CLUTTER_TEXT,
-  PROP_TEXT
+  PROP_TEXT,
+
+  N_PROPS
 };
+
+static GParamSpec *props[N_PROPS] = { NULL, };
 
 struct _StLabelPrivate
 {
@@ -197,31 +201,50 @@ st_label_paint (ClutterActor *actor)
 
   if (shadow_spec)
     {
-      ClutterActorBox allocation;
-      float width, height;
+      float resource_scale;
 
-      clutter_actor_get_allocation_box (priv->label, &allocation);
-      clutter_actor_box_get_size (&allocation, &width, &height);
-
-      if (priv->text_shadow_pipeline == NULL ||
-          width != priv->shadow_width ||
-          height != priv->shadow_height)
+      if (clutter_actor_get_resource_scale (priv->label, &resource_scale))
         {
-          g_clear_pointer (&priv->text_shadow_pipeline, cogl_object_unref);
+          ClutterActorBox allocation;
+          float width, height;
 
-          priv->shadow_width = width;
-          priv->shadow_height = height;
-          priv->text_shadow_pipeline = _st_create_shadow_pipeline_from_actor (shadow_spec, priv->label);
+          clutter_actor_get_allocation_box (priv->label, &allocation);
+          clutter_actor_box_get_size (&allocation, &width, &height);
+
+          width *= resource_scale;
+          height *= resource_scale;
+
+          if (priv->text_shadow_pipeline == NULL ||
+              width != priv->shadow_width ||
+              height != priv->shadow_height)
+            {
+              g_clear_pointer (&priv->text_shadow_pipeline, cogl_object_unref);
+
+              priv->shadow_width = width;
+              priv->shadow_height = height;
+              priv->text_shadow_pipeline =
+                _st_create_shadow_pipeline_from_actor (shadow_spec,
+                                                       priv->label);
+            }
+
+          if (priv->text_shadow_pipeline != NULL)
+            _st_paint_shadow_with_opacity (shadow_spec,
+                                           cogl_get_draw_framebuffer (),
+                                           priv->text_shadow_pipeline,
+                                           &allocation,
+                                           clutter_actor_get_paint_opacity (priv->label));
         }
-
-      if (priv->text_shadow_pipeline != NULL)
-        _st_paint_shadow_with_opacity (shadow_spec,
-                                       priv->text_shadow_pipeline,
-                                       &allocation,
-                                       clutter_actor_get_paint_opacity (priv->label));
     }
 
   clutter_actor_paint (priv->label);
+}
+
+static void
+st_label_resource_scale_changed (StWidget *widget)
+{
+  StLabelPrivate *priv = ST_LABEL (widget)->priv;
+
+  g_clear_pointer (&priv->text_shadow_pipeline, cogl_object_unref);
 }
 
 static void
@@ -230,7 +253,6 @@ st_label_class_init (StLabelClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   ClutterActorClass *actor_class = CLUTTER_ACTOR_CLASS (klass);
   StWidgetClass *widget_class = ST_WIDGET_CLASS (klass);
-  GParamSpec *pspec;
 
   gobject_class->set_property = st_label_set_property;
   gobject_class->get_property = st_label_get_property;
@@ -242,21 +264,24 @@ st_label_class_init (StLabelClass *klass)
   actor_class->get_preferred_height = st_label_get_preferred_height;
 
   widget_class->style_changed = st_label_style_changed;
+  widget_class->resource_scale_changed = st_label_resource_scale_changed;
   widget_class->get_accessible_type = st_label_accessible_get_type;
 
-  pspec = g_param_spec_object ("clutter-text",
-			       "Clutter Text",
-			       "Internal ClutterText actor",
-			       CLUTTER_TYPE_TEXT,
-			       G_PARAM_READABLE);
-  g_object_class_install_property (gobject_class, PROP_CLUTTER_TEXT, pspec);
+  props[PROP_CLUTTER_TEXT] =
+      g_param_spec_object ("clutter-text",
+                           "Clutter Text",
+                           "Internal ClutterText actor",
+                           CLUTTER_TYPE_TEXT,
+                           ST_PARAM_READABLE);
 
-  pspec = g_param_spec_string ("text",
-                               "Text",
-                               "Text of the label",
-                               NULL, G_PARAM_READWRITE);
-  g_object_class_install_property (gobject_class, PROP_TEXT, pspec);
+  props[PROP_TEXT] =
+      g_param_spec_string ("text",
+                           "Text",
+                           "Text of the label",
+                           NULL,
+                           ST_PARAM_READWRITE);
 
+  g_object_class_install_properties (gobject_class, N_PROPS, props);
 }
 
 static void
@@ -338,7 +363,7 @@ st_label_set_text (StLabel     *label,
 
       clutter_text_set_text (ctext, text);
 
-      g_object_notify (G_OBJECT (label), "text");
+      g_object_notify_by_pspec (G_OBJECT (label), props[PROP_TEXT]);
     }
 }
 

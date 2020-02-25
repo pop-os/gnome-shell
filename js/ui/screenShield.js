@@ -1,19 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const AccountsService = imports.gi.AccountsService;
+const { AccountsService, Clutter, Cogl, Gio, GLib,
+        GnomeDesktop, GObject, Meta, Shell, St } = imports.gi;
 const Cairo = imports.cairo;
-const Clutter = imports.gi.Clutter;
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GnomeDesktop = imports.gi.GnomeDesktop;
-const Gtk = imports.gi.Gtk;
-const Lang = imports.lang;
-const Mainloop = imports.mainloop;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
 const Signals = imports.signals;
-const St = imports.gi.St;
-const TweenerEquations = imports.tweener.equations;
 
 const Background = imports.ui.background;
 const GnomeSession = imports.misc.gnomeSession;
@@ -26,8 +16,8 @@ const Overview = imports.ui.overview;
 const MessageTray = imports.ui.messageTray;
 const ShellDBus = imports.ui.shellDBus;
 const SmartcardManager = imports.misc.smartcardManager;
-const Tweener = imports.ui.tweener;
-const Util = imports.misc.util;
+
+const { adjustAnimationTime } = imports.ui.environment;
 
 const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
 const LOCK_ENABLED_KEY = 'lock-enabled';
@@ -43,7 +33,7 @@ var ARROW_DRAG_THRESHOLD = 0.1;
 
 // Parameters for the arrow animation
 var N_ARROWS = 3;
-var ARROW_ANIMATION_TIME = 0.6;
+var ARROW_ANIMATION_TIME = 600;
 var ARROW_ANIMATION_PEAK_OPACITY = 0.4;
 var ARROW_IDLE_TIME = 30000; // ms
 
@@ -53,31 +43,33 @@ var SUMMARY_ICON_SIZE = 48;
 // - STANDARD_FADE_TIME is used when the session goes idle
 // - MANUAL_FADE_TIME is used for lowering the shield when asked by the user,
 //   or when cancelling the dialog
-// - BACKGROUND_FADE_TIME is used when the background changes to crossfade to new background
 // - CURTAIN_SLIDE_TIME is used when raising the shield before unlocking
-var STANDARD_FADE_TIME = 10;
-var MANUAL_FADE_TIME = 0.3;
-var BACKGROUND_FADE_TIME = 1.0;
-var CURTAIN_SLIDE_TIME = 0.3;
+var STANDARD_FADE_TIME = 10000;
+var MANUAL_FADE_TIME = 300;
+var CURTAIN_SLIDE_TIME = 300;
 
-var Clock = new Lang.Class({
-    Name: 'ScreenShieldClock',
-
-    _init() {
+var Clock = class {
+    constructor() {
         this.actor = new St.BoxLayout({ style_class: 'screen-shield-clock',
                                         vertical: true });
 
-        this._time = new St.Label({ style_class: 'screen-shield-clock-time' });
-        this._date = new St.Label({ style_class: 'screen-shield-clock-date' });
+        this._time = new St.Label({
+            style_class: 'screen-shield-clock-time',
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        this._date = new St.Label({
+            style_class: 'screen-shield-clock-date',
+            x_align: Clutter.ActorAlign.CENTER,
+        });
 
-        this.actor.add(this._time, { x_align: St.Align.MIDDLE });
-        this.actor.add(this._date, { x_align: St.Align.MIDDLE });
+        this.actor.add_child(this._time);
+        this.actor.add_child(this._date);
 
         this._wallClock = new GnomeDesktop.WallClock({ time_only: true });
         this._wallClock.connect('notify::clock', this._updateClock.bind(this));
 
         this._updateClock();
-    },
+    }
 
     _updateClock() {
         this._time.text = this._wallClock.clock;
@@ -87,29 +79,27 @@ var Clock = new Lang.Class({
            long format */
         let dateFormat = Shell.util_translate_time_string(N_("%A, %B %d"));
         this._date.text = date.toLocaleFormat(dateFormat);
-    },
+    }
 
     destroy() {
         this.actor.destroy();
         this._wallClock.run_dispose();
     }
-});
+};
 
-var NotificationsBox = new Lang.Class({
-    Name: 'NotificationsBox',
-
-    _init() {
+var NotificationsBox = class {
+    constructor() {
         this.actor = new St.BoxLayout({ vertical: true,
                                         name: 'screenShieldNotifications',
                                         style_class: 'screen-shield-notifications-container' });
 
         this._scrollView = new St.ScrollView({ x_fill: false, x_align: St.Align.START,
-                                               hscrollbar_policy: Gtk.PolicyType.NEVER });
+                                               hscrollbar_policy: St.PolicyType.NEVER });
         this._notificationBox = new St.BoxLayout({ vertical: true,
                                                    style_class: 'screen-shield-notifications-container' });
         this._scrollView.add_actor(this._notificationBox);
 
-        this.actor.add(this._scrollView, { x_fill: true, x_align: St.Align.START });
+        this.actor.add_child(this._scrollView);
 
         this._sources = new Map();
         Main.messageTray.getSources().forEach(source => {
@@ -118,7 +108,7 @@ var NotificationsBox = new Lang.Class({
         this._updateVisibility();
 
         this._sourceAddedId = Main.messageTray.connect('source-added', this._sourceAdded.bind(this));
-    },
+    }
 
     destroy() {
         if (this._sourceAddedId) {
@@ -132,28 +122,28 @@ var NotificationsBox = new Lang.Class({
         }
 
         this.actor.destroy();
-    },
+    }
 
     _updateVisibility() {
         this._notificationBox.visible =
             this._notificationBox.get_children().some(a => a.visible);
 
         this.actor.visible = this._notificationBox.visible;
-    },
+    }
 
     _makeNotificationCountText(count, isChat) {
         if (isChat)
             return ngettext("%d new message", "%d new messages", count).format(count);
         else
             return ngettext("%d new notification", "%d new notifications", count).format(count);
-    },
+    }
 
     _makeNotificationSource(source, box) {
         let sourceActor = new MessageTray.SourceActor(source, SUMMARY_ICON_SIZE);
-        box.add(sourceActor.actor, { y_fill: true });
+        box.add_child(sourceActor);
 
         let textBox = new St.BoxLayout({ vertical: true });
-        box.add(textBox, { y_fill: false, y_align: St.Align.START });
+        box.add_child(textBox);
 
         let title = new St.Label({ text: source.title,
                                    style_class: 'screen-shield-notification-label' });
@@ -166,17 +156,17 @@ var NotificationsBox = new Lang.Class({
 
         box.visible = count != 0;
         return [title, countLabel];
-    },
+    }
 
     _makeNotificationDetailedSource(source, box) {
         let sourceActor = new MessageTray.SourceActor(source, SUMMARY_ICON_SIZE);
         let sourceBin = new St.Bin({ y_align: St.Align.START,
                                      x_align: St.Align.START,
-                                     child: sourceActor.actor });
+                                     child: sourceActor });
         box.add(sourceBin);
 
         let textBox = new St.BoxLayout({ vertical: true });
-        box.add(textBox, { y_fill: false, y_align: St.Align.START });
+        box.add_child(textBox);
 
         let title = new St.Label({ text: source.title,
                                    style_class: 'screen-shield-notification-label' });
@@ -191,8 +181,9 @@ var NotificationsBox = new Lang.Class({
 
             let body = '';
             if (n.bannerBodyText) {
-                body = n.bannerBodyMarkup ? n.bannerBodyText
-                                          : GLib.markup_escape_text(n.bannerBodyText, -1);
+                body = n.bannerBodyMarkup
+                    ? n.bannerBodyText
+                    : GLib.markup_escape_text(n.bannerBodyText, -1);
             }
 
             let label = new St.Label({ style_class: 'screen-shield-notification-count-text' });
@@ -204,7 +195,12 @@ var NotificationsBox = new Lang.Class({
 
         box.visible = visible;
         return [title, null];
-    },
+    }
+
+    _shouldShowDetails(source) {
+        return source.policy.detailsInLockScreen ||
+               source.narrowestPrivacyScope == MessageTray.PrivacyScope.SYSTEM;
+    }
 
     _showSource(source, obj, box) {
         if (obj.detailed) {
@@ -214,12 +210,12 @@ var NotificationsBox = new Lang.Class({
         }
 
         box.visible = obj.visible && (source.unseenCount > 0);
-    },
+    }
 
     _sourceAdded(tray, source, initial) {
         let obj = {
             visible: source.policy.showInLockScreen,
-            detailed: source.policy.detailsInLockScreen,
+            detailed: this._shouldShowDetails(source),
             sourceDestroyId: 0,
             sourceCountChangedId: 0,
             sourceTitleChangedId: 0,
@@ -232,7 +228,7 @@ var NotificationsBox = new Lang.Class({
         obj.sourceBox = new St.BoxLayout({ style_class: 'screen-shield-notification-source',
                                            x_expand: true });
         this._showSource(source, obj, obj.sourceBox);
-        this._notificationBox.add(obj.sourceBox, { x_fill: false, x_align: St.Align.START });
+        this._notificationBox.add_child(obj.sourceBox);
 
         obj.sourceCountChangedId = source.connect('count-updated', source => {
             this._countChanged(source, obj);
@@ -256,34 +252,40 @@ var NotificationsBox = new Lang.Class({
             // block scrollbars while animating, if they're not needed now
             let boxHeight = this._notificationBox.height;
             if (this._scrollView.height >= boxHeight)
-                this._scrollView.vscrollbar_policy = Gtk.PolicyType.NEVER;
+                this._scrollView.vscrollbar_policy = St.PolicyType.NEVER;
 
             let widget = obj.sourceBox;
             let [, natHeight] = widget.get_preferred_height(-1);
             widget.height = 0;
-            Tweener.addTween(widget,
-                             { height: natHeight,
-                               transition: 'easeOutQuad',
-                               time: 0.25,
-                               onComplete() {
-                                   this._scrollView.vscrollbar_policy = Gtk.PolicyType.AUTOMATIC;
-                                   widget.set_height(-1);
-                               },
-                               onCompleteScope: this
-                             });
+            widget.ease({
+                height: natHeight,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                duration: 250,
+                onComplete: () => {
+                    this._scrollView.vscrollbar_policy = St.PolicyType.AUTOMATIC;
+                    widget.set_height(-1);
+                }
+            });
 
             this._updateVisibility();
             if (obj.sourceBox.visible)
                 this.emit('wake-up-screen');
         }
-    },
+    }
 
     _titleChanged(source, obj) {
         obj.titleLabel.text = source.title;
-    },
+    }
 
     _countChanged(source, obj) {
-        if (obj.detailed) {
+        // A change in the number of notifications may change whether we show
+        // details.
+        let newDetailed = this._shouldShowDetails(source);
+        let oldDetailed = obj.detailed;
+
+        obj.detailed = newDetailed;
+
+        if (obj.detailed || oldDetailed != newDetailed) {
             // A new notification was pushed, or a previous notification was destroyed.
             // Give up, and build the list again.
 
@@ -300,7 +302,7 @@ var NotificationsBox = new Lang.Class({
         this._updateVisibility();
         if (obj.sourceBox.visible)
             this.emit('wake-up-screen');
-    },
+    }
 
     _visibleChanged(source, obj) {
         if (obj.visible == source.policy.showInLockScreen)
@@ -312,23 +314,24 @@ var NotificationsBox = new Lang.Class({
         this._updateVisibility();
         if (obj.sourceBox.visible)
             this.emit('wake-up-screen');
-    },
+    }
 
     _detailedChanged(source, obj) {
-        if (obj.detailed == source.policy.detailsInLockScreen)
+        let newDetailed = this._shouldShowDetails(source);
+        if (obj.detailed == newDetailed)
             return;
 
-        obj.detailed = source.policy.detailsInLockScreen;
+        obj.detailed = newDetailed;
 
         obj.sourceBox.destroy_all_children();
         obj.titleLabel = obj.countLabel = null;
         this._showSource(source, obj, obj.sourceBox);
-    },
+    }
 
     _onSourceDestroy(source, obj) {
         this._removeSource(source, obj);
         this._updateVisibility();
-    },
+    }
 
     _removeSource(source, obj) {
         obj.sourceBox.destroy();
@@ -340,16 +343,14 @@ var NotificationsBox = new Lang.Class({
         source.policy.disconnect(obj.policyChangedId);
 
         this._sources.delete(source);
-    },
-});
+    }
+};
 Signals.addSignalMethods(NotificationsBox.prototype);
 
-var Arrow = new Lang.Class({
-    Name: 'Arrow',
-    Extends: St.Bin,
-
+var Arrow = GObject.registerClass(
+class ScreenShieldArrow extends St.Bin {
     _init(params) {
-        this.parent(params);
+        super._init(params);
         this.x_fill = this.y_fill = true;
 
         this._drawingArea = new St.DrawingArea();
@@ -358,7 +359,7 @@ var Arrow = new Lang.Class({
 
         this._shadowHelper = null;
         this._shadowWidth = this._shadowHeight = 0;
-    },
+    }
 
     _drawArrow(arrow) {
         let cr = arrow.get_context();
@@ -372,27 +373,27 @@ var Arrow = new Lang.Class({
         cr.setLineWidth(thickness);
 
         cr.moveTo(thickness / 2, h - thickness / 2);
-        cr.lineTo(w/2, thickness);
+        cr.lineTo(w / 2, thickness);
         cr.lineTo(w - thickness / 2, h - thickness / 2);
         cr.stroke();
         cr.$dispose();
-    },
+    }
 
     vfunc_get_paint_volume(volume) {
-        if (!this.parent(volume))
+        if (!super.vfunc_get_paint_volume(volume))
             return false;
 
         if (!this._shadow)
             return true;
 
-        let shadow_box = new Clutter.ActorBox();
-        this._shadow.get_box(this._drawingArea.get_allocation_box(), shadow_box);
+        let shadowBox = new Clutter.ActorBox();
+        this._shadow.get_box(this._drawingArea.get_allocation_box(), shadowBox);
 
-        volume.set_width(Math.max(shadow_box.x2 - shadow_box.x1, volume.get_width()));
-        volume.set_height(Math.max(shadow_box.y2 - shadow_box.y1, volume.get_height()));
+        volume.set_width(Math.max(shadowBox.x2 - shadowBox.x1, volume.get_width()));
+        volume.set_height(Math.max(shadowBox.y2 - shadowBox.y1, volume.get_height()));
 
         return true;
-    },
+    }
 
     vfunc_style_changed() {
         let node = this.get_theme_node();
@@ -402,8 +403,8 @@ var Arrow = new Lang.Class({
         else
             this._shadowHelper = null;
 
-        this.parent();
-    },
+        super.vfunc_style_changed();
+    }
 
     vfunc_paint() {
         if (this._shadowHelper) {
@@ -411,7 +412,9 @@ var Arrow = new Lang.Class({
 
             let allocation = this._drawingArea.get_allocation_box();
             let paintOpacity = this._drawingArea.get_paint_opacity();
-            this._shadowHelper.paint(allocation, paintOpacity);
+            let framebuffer = Cogl.get_draw_framebuffer();
+
+            this._shadowHelper.paint(framebuffer, allocation, paintOpacity);
         }
 
         this._drawingArea.paint();
@@ -430,20 +433,19 @@ function clamp(value, min, max) {
  * This will ensure that the screen blanks at the right time when it fades out.
  * https://bugzilla.gnome.org/show_bug.cgi?id=668703 explains the dependency.
  */
-var ScreenShield = new Lang.Class({
-    Name: 'ScreenShield',
-
-    _init() {
+var ScreenShield = class {
+    constructor() {
         this.actor = Main.layoutManager.screenShieldGroup;
 
         this._lockScreenState = MessageTray.State.HIDDEN;
-        this._lockScreenGroup = new St.Widget({ x_expand: true,
-                                                y_expand: true,
-                                                reactive: true,
-                                                can_focus: true,
-                                                name: 'lockScreenGroup',
-                                                visible: false,
-                                              });
+        this._lockScreenGroup = new St.Widget({
+            x_expand: true,
+            y_expand: true,
+            reactive: true,
+            can_focus: true,
+            name: 'lockScreenGroup',
+            visible: false,
+        });
         this._lockScreenGroup.connect('key-press-event',
                                       this._onLockScreenKeyPress.bind(this));
         this._lockScreenGroup.connect('scroll-event',
@@ -534,18 +536,18 @@ var ScreenShield = new Lang.Class({
         this._loginManager.getCurrentSessionProxy(sessionProxy => {
             this._loginSession = sessionProxy;
             this._loginSession.connectSignal('Lock',
-                                             () => { this.lock(false); });
+                                             () => this.lock(false));
             this._loginSession.connectSignal('Unlock',
-                                             () => { this.deactivate(false); });
+                                             () => this.deactivate(false));
             this._loginSession.connect('g-properties-changed', this._syncInhibitor.bind(this));
             this._syncInhibitor();
         });
 
         this._settings = new Gio.Settings({ schema_id: SCREENSAVER_SCHEMA });
-        this._settings.connect('changed::' + LOCK_ENABLED_KEY, this._syncInhibitor.bind(this));
+        this._settings.connect(`changed::${LOCK_ENABLED_KEY}`, this._syncInhibitor.bind(this));
 
         this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
-        this._lockSettings.connect('changed::' + DISABLE_LOCK_KEY, this._syncInhibitor.bind(this));
+        this._lockSettings.connect(`changed::${DISABLE_LOCK_KEY}`, this._syncInhibitor.bind(this));
 
         this._isModal = false;
         this._hasLockScreen = false;
@@ -573,7 +575,7 @@ var ScreenShield = new Lang.Class({
         this._cursorTracker = Meta.CursorTracker.get_for_display(global.display);
 
         this._syncInhibitor();
-    },
+    }
 
     _setActive(active) {
         let prevIsActive = this._isActive;
@@ -586,7 +588,7 @@ var ScreenShield = new Lang.Class({
             this._loginSession.SetLockedHintRemote(active);
 
         this._syncInhibitor();
-    },
+    }
 
     _createBackground(monitorIndex) {
         let monitor = Main.layoutManager.monitors[monitorIndex];
@@ -604,7 +606,7 @@ var ScreenShield = new Lang.Class({
         this._bgManagers.push(bgManager);
 
         this._backgroundGroup.add_child(widget);
-    },
+    }
 
     _updateBackgrounds() {
         for (let i = 0; i < this._bgManagers.length; i++)
@@ -615,7 +617,7 @@ var ScreenShield = new Lang.Class({
 
         for (let i = 0; i < Main.layoutManager.monitors.length; i++)
             this._createBackground(i);
-    },
+    }
 
     _liftShield(onPrimary, velocity) {
         if (this._isLocked) {
@@ -624,7 +626,7 @@ var ScreenShield = new Lang.Class({
         } else {
             this.deactivate(true /* animate */);
         }
-    },
+    }
 
     _maybeCancelDialog() {
         if (!this._dialog)
@@ -639,7 +641,7 @@ var ScreenShield = new Lang.Class({
         } else {
             this._dialog = null;
         }
-    },
+    }
 
     _becomeModal() {
         if (this._isModal)
@@ -654,7 +656,7 @@ var ScreenShield = new Lang.Class({
         this._isModal = Main.pushModal(this.actor, { options: Meta.ModalOptions.POINTER_ALREADY_GRABBED,
                                                      actionMode: Shell.ActionMode.LOCK_SCREEN });
         return this._isModal;
-    },
+    }
 
     _onLockScreenKeyPress(actor, event) {
         let symbol = event.get_key_symbol();
@@ -684,7 +686,7 @@ var ScreenShield = new Lang.Class({
 
         this._liftShield(true, 0);
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _onLockScreenScroll(actor, event) {
         if (this._lockScreenState != MessageTray.State.SHOWN)
@@ -704,7 +706,7 @@ var ScreenShield = new Lang.Class({
         }
 
         return Clutter.EVENT_STOP;
-    },
+    }
 
     _syncInhibitor() {
         let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY);
@@ -723,7 +725,7 @@ var ScreenShield = new Lang.Class({
                 this._inhibitor.close(null);
             this._inhibitor = null;
         }
-    },
+    }
 
     _prepareForSleep(loginManager, aboutToSuspend) {
         if (aboutToSuspend) {
@@ -732,7 +734,7 @@ var ScreenShield = new Lang.Class({
         } else {
             this._wakeUpScreen();
         }
-    },
+    }
 
     _animateArrows() {
         let arrows = this._arrowContainer.get_children();
@@ -740,71 +742,72 @@ var ScreenShield = new Lang.Class({
         let maxOpacity = 255 * ARROW_ANIMATION_PEAK_OPACITY;
         for (let i = 0; i < arrows.length; i++) {
             arrows[i].opacity = 0;
-            Tweener.addTween(arrows[i],
-                             { opacity: 0,
-                               delay: unitaryDelay * (N_ARROWS - (i + 1)),
-                               time: ARROW_ANIMATION_TIME,
-                               transition(t, b, c, d) {
-                                 if (t < d/2)
-                                     return TweenerEquations.easeOutQuad(t, 0, maxOpacity, d/2);
-                                 else
-                                     return TweenerEquations.easeInQuad(t - d/2, maxOpacity, -maxOpacity, d/2);
-                               }
-                             });
+            arrows[i].ease({
+                opacity: maxOpacity,
+                delay: unitaryDelay * (N_ARROWS - (i + 1)),
+                duration: ARROW_ANIMATION_TIME / 2,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    arrows[i].ease({
+                        opacity: 0,
+                        duration: ARROW_ANIMATION_TIME / 2,
+                        mode: Clutter.AnimationMode.EASE_IN_QUAD
+                    });
+                }
+            });
         }
 
         return GLib.SOURCE_CONTINUE;
-    },
+    }
 
     _onDragBegin() {
-        Tweener.removeTweens(this._lockScreenGroup);
+        this._lockScreenGroup.remove_all_transitions();
         this._lockScreenState = MessageTray.State.HIDING;
 
         if (this._isLocked)
             this._ensureUnlockDialog(false, false);
 
         return true;
-    },
+    }
 
     _onDragMotion() {
-	let [origX, origY] = this._dragAction.get_press_coords(0);
-	let [currentX, currentY] = this._dragAction.get_motion_coords(0);
+        let [, origY] = this._dragAction.get_press_coords(0);
+        let [, currentY] = this._dragAction.get_motion_coords(0);
 
-	let newY = currentY - origY;
-	newY = clamp(newY, -global.stage.height, 0);
+        let newY = currentY - origY;
+        newY = clamp(newY, -global.stage.height, 0);
 
-	this._lockScreenGroup.y = newY;
+        this._lockScreenGroup.y = newY;
 
-	return true;
-    },
+        return true;
+    }
 
-    _onDragEnd(action, actor, eventX, eventY, modifiers) {
+    _onDragEnd(_action, _actor, _eventX, _eventY, _modifiers) {
         if (this._lockScreenState != MessageTray.State.HIDING)
             return;
         if (this._lockScreenGroup.y < -(ARROW_DRAG_THRESHOLD * global.stage.height)) {
             // Complete motion automatically
-	    let [velocity, velocityX, velocityY] = this._dragAction.get_velocity(0);
+            let [velocity_, velocityX_, velocityY] = this._dragAction.get_velocity(0);
             this._liftShield(true, -velocityY);
         } else {
             // restore the lock screen to its original place
             // try to use the same speed as the normal animation
             let h = global.stage.height;
-            let time = MANUAL_FADE_TIME * (-this._lockScreenGroup.y) / h;
-            Tweener.removeTweens(this._lockScreenGroup);
-            Tweener.addTween(this._lockScreenGroup,
-                             { y: 0,
-                               time: time,
-                               transition: 'easeInQuad',
-                               onComplete() {
-                                   this._lockScreenGroup.fixed_position_set = false;
-                                   this._lockScreenState = MessageTray.State.SHOWN;
-                               },
-                               onCompleteScope: this,
-                             });
+            let duration = MANUAL_FADE_TIME * (-this._lockScreenGroup.y) / h;
+            this._lockScreenGroup.remove_all_transitions();
+            this._lockScreenGroup.ease({
+                y: 0,
+                duration,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => {
+                    this._lockScreenGroup.fixed_position_set = false;
+                    this._lockScreenState = MessageTray.State.SHOWN;
+                }
+            });
 
             this._maybeCancelDialog();
         }
-    },
+    }
 
     _onStatusChanged(status) {
         if (status != GnomeSession.PresenceStatus.IDLE)
@@ -812,16 +815,8 @@ var ScreenShield = new Lang.Class({
 
         this._maybeCancelDialog();
 
-        if (this._longLightbox.actor.visible ||
-            this._isActive) {
-            // We're either shown and active, or in the process of
-            // showing.
-            // The latter is a very unlikely condition (it requires
-            // idle-delay < 20), but in any case we have nothing
-            // to do at this point: either isActive is true, or
-            // it will soon be.
-            // isActive can also be true if the lightbox is hidden,
-            // in case the shield is down and the user hasn't unlocked yet
+        if (this._longLightbox.actor.visible) {
+            // We're in the process of showing.
             return;
         }
 
@@ -844,18 +839,22 @@ var ScreenShield = new Lang.Class({
         let shouldLock = this._settings.get_boolean(LOCK_ENABLED_KEY) && !this._isLocked;
 
         if (shouldLock) {
-            let lockTimeout = Math.max(STANDARD_FADE_TIME, this._settings.get_uint(LOCK_DELAY_KEY));
-            this._lockTimeoutId = Mainloop.timeout_add(lockTimeout * 1000,
-                                                       () => {
-                                                           this._lockTimeoutId = 0;
-                                                           this.lock(false);
-                                                           return GLib.SOURCE_REMOVE;
-                                                       });
+            let lockTimeout = Math.max(
+                adjustAnimationTime(STANDARD_FADE_TIME),
+                this._settings.get_uint(LOCK_DELAY_KEY) * 1000);
+            this._lockTimeoutId = GLib.timeout_add(
+                GLib.PRIORITY_DEFAULT,
+                lockTimeout,
+                () => {
+                    this._lockTimeoutId = 0;
+                    this.lock(false);
+                    return GLib.SOURCE_REMOVE;
+                });
             GLib.Source.set_name_by_id(this._lockTimeoutId, '[gnome-shell] this.lock');
         }
 
         this._activateFade(this._longLightbox, STANDARD_FADE_TIME);
-    },
+    }
 
     _activateFade(lightbox, time) {
         Main.uiGroup.set_child_above_sibling(lightbox.actor, null);
@@ -863,7 +862,7 @@ var ScreenShield = new Lang.Class({
 
         if (this._becameActiveId == 0)
             this._becameActiveId = this.idleMonitor.add_user_active_watch(this._onUserBecameActive.bind(this));
-    },
+    }
 
     _onUserBecameActive() {
         // This function gets called here when the user becomes active
@@ -893,15 +892,15 @@ var ScreenShield = new Lang.Class({
         } else {
             this.deactivate(false);
         }
-    },
+    }
 
     _onLongLightboxShown() {
         this.activate(false);
-    },
+    }
 
     _onShortLightboxShown() {
         this._completeLockScreenShown();
-    },
+    }
 
     showDialog() {
         if (!this._becomeModal()) {
@@ -915,7 +914,7 @@ var ScreenShield = new Lang.Class({
         this._isLocked = true;
         if (this._ensureUnlockDialog(true, true))
             this._hideLockScreen(false, 0);
-    },
+    }
 
     _hideLockScreenComplete() {
         if (Main.sessionMode.currentMode == 'lock-screen')
@@ -925,10 +924,10 @@ var ScreenShield = new Lang.Class({
         this._lockScreenGroup.hide();
 
         if (this._dialog) {
-            this._dialog.actor.grab_key_focus();
-            this._dialog.actor.navigate_focus(null, Gtk.DirectionType.TAB_FORWARD, false);
+            this._dialog.grab_key_focus();
+            this._dialog.navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
         }
-    },
+    }
 
     _hideLockScreen(animate, velocity) {
         if (this._lockScreenState == MessageTray.State.HIDDEN)
@@ -936,7 +935,7 @@ var ScreenShield = new Lang.Class({
 
         this._lockScreenState = MessageTray.State.HIDING;
 
-        Tweener.removeTweens(this._lockScreenGroup);
+        this._lockScreenGroup.remove_all_transitions();
 
         if (animate) {
             // Tween the lock screen out of screen
@@ -945,23 +944,23 @@ var ScreenShield = new Lang.Class({
             // if velocity is specified, it's in pixels per milliseconds
             let h = global.stage.height;
             let delta = (h + this._lockScreenGroup.y);
-            let min_velocity = global.stage.height / (CURTAIN_SLIDE_TIME * 1000);
+            let minVelocity = global.stage.height / CURTAIN_SLIDE_TIME;
 
-            velocity = Math.max(min_velocity, velocity);
-            let time = (delta / velocity) / 1000;
+            velocity = Math.max(minVelocity, velocity);
+            let duration = delta / velocity;
 
-            Tweener.addTween(this._lockScreenGroup,
-                             { y: -h,
-                               time: time,
-                               transition: 'easeInQuad',
-                               onComplete: this._hideLockScreenComplete.bind(this),
-                             });
+            this._lockScreenGroup.ease({
+                y: -h,
+                duration,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => this._hideLockScreenComplete()
+            });
         } else {
             this._hideLockScreenComplete();
         }
 
         this._cursorTracker.set_pointer_visible(true);
-    },
+    }
 
     _ensureUnlockDialog(onPrimary, allowCancel) {
         if (!this._dialog) {
@@ -989,12 +988,12 @@ var ScreenShield = new Lang.Class({
 
         this._dialog.allowCancel = allowCancel;
         return true;
-    },
+    }
 
     _onUnlockFailed() {
         this._resetLockScreen({ animateLockScreen: true,
                                 fadeToBlack: false });
-    },
+    }
 
     _resetLockScreen(params) {
         // Don't reset the lock screen unless it is completely hidden
@@ -1015,17 +1014,15 @@ var ScreenShield = new Lang.Class({
 
         if (params.animateLockScreen) {
             this._lockScreenGroup.y = -global.screen_height;
-            Tweener.removeTweens(this._lockScreenGroup);
-            Tweener.addTween(this._lockScreenGroup,
-                             { y: 0,
-                               time: MANUAL_FADE_TIME,
-                               transition: 'easeOutQuad',
-                               onComplete() {
-                                   this._lockScreenShown({ fadeToBlack: fadeToBlack,
-                                                           animateFade: true });
-                               },
-                               onCompleteScope: this
-                             });
+            this._lockScreenGroup.remove_all_transitions();
+            this._lockScreenGroup.ease({
+                y: 0,
+                duration: MANUAL_FADE_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._lockScreenShown({ fadeToBlack, animateFade: true });
+                }
+            });
         } else {
             this._lockScreenGroup.fixed_position_set = false;
             this._lockScreenShown({ fadeToBlack: fadeToBlack,
@@ -1036,13 +1033,13 @@ var ScreenShield = new Lang.Class({
 
         if (Main.sessionMode.currentMode != 'lock-screen')
             Main.sessionMode.pushMode('lock-screen');
-    },
+    }
 
     _startArrowAnimation() {
         this._arrowActiveWatchId = 0;
 
         if (!this._arrowAnimationId) {
-            this._arrowAnimationId = Mainloop.timeout_add(6000, this._animateArrows.bind(this));
+            this._arrowAnimationId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 6000, this._animateArrows.bind(this));
             GLib.Source.set_name_by_id(this._arrowAnimationId, '[gnome-shell] this._animateArrows');
             this._animateArrows();
         }
@@ -1050,21 +1047,21 @@ var ScreenShield = new Lang.Class({
         if (!this._arrowWatchId)
             this._arrowWatchId = this.idleMonitor.add_idle_watch(ARROW_IDLE_TIME,
                                                                  this._pauseArrowAnimation.bind(this));
-    },
+    }
 
     _pauseArrowAnimation() {
         if (this._arrowAnimationId) {
-            Mainloop.source_remove(this._arrowAnimationId);
+            GLib.source_remove(this._arrowAnimationId);
             this._arrowAnimationId = 0;
         }
 
         if (!this._arrowActiveWatchId)
             this._arrowActiveWatchId = this.idleMonitor.add_user_active_watch(this._startArrowAnimation.bind(this));
-    },
+    }
 
     _stopArrowAnimation() {
         if (this._arrowAnimationId) {
-            Mainloop.source_remove(this._arrowAnimationId);
+            GLib.source_remove(this._arrowAnimationId);
             this._arrowAnimationId = 0;
         }
         if (this._arrowActiveWatchId) {
@@ -1075,7 +1072,7 @@ var ScreenShield = new Lang.Class({
             this.idleMonitor.remove_watch(this._arrowWatchId);
             this._arrowWatchId = 0;
         }
-    },
+    }
 
     _checkArrowAnimation() {
         let idleTime = this.idleMonitor.get_idletime();
@@ -1084,7 +1081,7 @@ var ScreenShield = new Lang.Class({
             this._startArrowAnimation();
         else
             this._pauseArrowAnimation();
-    },
+    }
 
     _lockScreenShown(params) {
         if (this._dialog && !this._isGreeter) {
@@ -1111,7 +1108,7 @@ var ScreenShield = new Lang.Class({
         if (params.fadeToBlack && params.animateFade) {
             // Take a beat
 
-            let id = Mainloop.timeout_add(1000 * MANUAL_FADE_TIME, () => {
+            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, MANUAL_FADE_TIME, () => {
                 this._activateFade(this._shortLightbox, MANUAL_FADE_TIME);
                 return GLib.SOURCE_REMOVE;
             });
@@ -1122,12 +1119,12 @@ var ScreenShield = new Lang.Class({
 
             this._completeLockScreenShown();
         }
-    },
+    }
 
     _completeLockScreenShown() {
         this._setActive(true);
         this.emit('lock-screen-shown');
-    },
+    }
 
     // Some of the actors in the lock screen are heavy in
     // resources, so we only create them when needed
@@ -1142,24 +1139,21 @@ var ScreenShield = new Lang.Class({
                                                          vertical: true,
                                                          style_class: 'screen-shield-contents-box' });
         this._clock = new Clock();
-        this._lockScreenContentsBox.add(this._clock.actor, { x_fill: true,
-                                                             y_fill: true });
+        this._lockScreenContentsBox.add_child(this._clock.actor);
 
         this._lockScreenContents.add_actor(this._lockScreenContentsBox);
 
         this._notificationsBox = new NotificationsBox();
         this._wakeUpScreenId = this._notificationsBox.connect('wake-up-screen', this._wakeUpScreen.bind(this));
-        this._lockScreenContentsBox.add(this._notificationsBox.actor, { x_fill: true,
-                                                                        y_fill: true,
-                                                                        expand: true });
+        this._lockScreenContentsBox.add_child(this._notificationsBox.actor);
 
         this._hasLockScreen = true;
-    },
+    }
 
     _wakeUpScreen() {
         this._onUserBecameActive();
         this.emit('wake-up-screen');
-    },
+    }
 
     _clearLockScreen() {
         this._clock.destroy();
@@ -1176,26 +1170,26 @@ var ScreenShield = new Lang.Class({
         this._lockScreenContentsBox.destroy();
 
         this._hasLockScreen = false;
-    },
+    }
 
     get locked() {
         return this._isLocked;
-    },
+    }
 
     get active() {
         return this._isActive;
-    },
+    }
 
     get activationTime() {
         return this._activationTime;
-    },
+    }
 
     deactivate(animate) {
         if (this._dialog)
-            this._dialog.finish(() => { this._continueDeactivate(animate); });
+            this._dialog.finish(() => this._continueDeactivate(animate));
         else
             this._continueDeactivate(animate);
-    },
+    }
 
     _continueDeactivate(animate) {
         this._hideLockScreen(animate, 0);
@@ -1229,15 +1223,14 @@ var ScreenShield = new Lang.Class({
             this._isModal = false;
         }
 
-        Tweener.addTween(this._lockDialogGroup, {
+        this._lockDialogGroup.ease({
             scale_x: 0,
             scale_y: 0,
-            time: animate ? Overview.ANIMATION_TIME : 0,
-            transition: 'easeOutQuad',
-            onComplete: this._completeDeactivate.bind(this),
-            onCompleteScope: this
+            duration: animate ? Overview.ANIMATION_TIME : 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._completeDeactivate()
         });
-    },
+    }
 
     _completeDeactivate() {
         if (this._dialog) {
@@ -1255,7 +1248,7 @@ var ScreenShield = new Lang.Class({
         }
 
         if (this._lockTimeoutId != 0) {
-            Mainloop.source_remove(this._lockTimeoutId);
+            GLib.source_remove(this._lockTimeoutId);
             this._lockTimeoutId = 0;
         }
 
@@ -1264,7 +1257,7 @@ var ScreenShield = new Lang.Class({
         this._isLocked = false;
         this.emit('locked-changed');
         global.set_runtime_state(LOCKED_STATE_STR, null);
-    },
+    }
 
     activate(animate) {
         if (this._activationTime == 0)
@@ -1296,11 +1289,11 @@ var ScreenShield = new Lang.Class({
         // blank during the animation.
         // This is not a problem for the idle fade case, because we
         // activate without animation in that case.
-    },
+    }
 
     lock(animate) {
         if (this._lockSettings.get_boolean(DISABLE_LOCK_KEY)) {
-            log('Screen lock is locked down, not locking') // lock, lock - who's there?
+            log('Screen lock is locked down, not locking'); // lock, lock - who's there?
             return;
         }
 
@@ -1328,7 +1321,7 @@ var ScreenShield = new Lang.Class({
         this.activate(animate);
 
         this.emit('locked-changed');
-    },
+    }
 
     // If the previous shell crashed, and gnome-session restarted us, then re-lock
     lockIfWasLocked() {
@@ -1339,7 +1332,8 @@ var ScreenShield = new Lang.Class({
             return;
         Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
             this.lock(false);
+            return GLib.SOURCE_REMOVE;
         });
     }
-});
+};
 Signals.addSignalMethods(ScreenShield.prototype);

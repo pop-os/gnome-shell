@@ -22,29 +22,26 @@
  */
 
 const Atspi = imports.gi.Atspi;
-const Lang = imports.lang;
 const Signals = imports.signals;
 
 const CARETMOVED        = 'object:text-caret-moved';
 const STATECHANGED      = 'object:state-changed';
 
-var FocusCaretTracker = new Lang.Class({
-    Name: 'FocusCaretTracker',
-
-    _init() {
+var FocusCaretTracker = class FocusCaretTracker {
+    constructor() {
         this._atspiListener = Atspi.EventListener.new(this._onChanged.bind(this));
 
         this._atspiInited = false;
         this._focusListenerRegistered = false;
         this._caretListenerRegistered = false;
-    },
+    }
 
     _onChanged(event) {
         if (event.type.indexOf(STATECHANGED) == 0)
             this.emit('focus-changed', event);
         else if (event.type == CARETMOVED)
             this.emit('caret-moved', event);
-    },
+    }
 
     _initAtspi() {
         if (!this._atspiInited && Atspi.init() == 0) {
@@ -52,17 +49,17 @@ var FocusCaretTracker = new Lang.Class({
             this._atspiInited = true;
         }
 
-	return this._atspiInited;
-    },
+        return this._atspiInited;
+    }
 
     registerFocusListener() {
         if (!this._initAtspi() || this._focusListenerRegistered)
             return;
 
-        this._atspiListener.register(STATECHANGED + ':focused');
-        this._atspiListener.register(STATECHANGED + ':selected');
+        this._atspiListener.register(`${STATECHANGED}:focused`);
+        this._atspiListener.register(`${STATECHANGED}:selected`);
         this._focusListenerRegistered = true;
-    },
+    }
 
     registerCaretListener() {
         if (!this._initAtspi() || this._caretListenerRegistered)
@@ -70,16 +67,16 @@ var FocusCaretTracker = new Lang.Class({
 
         this._atspiListener.register(CARETMOVED);
         this._caretListenerRegistered = true;
-    },
+    }
 
     deregisterFocusListener() {
         if (!this._focusListenerRegistered)
             return;
 
-        this._atspiListener.deregister(STATECHANGED + ':focused');
-        this._atspiListener.deregister(STATECHANGED + ':selected');
+        this._atspiListener.deregister(`${STATECHANGED}:focused`);
+        this._atspiListener.deregister(`${STATECHANGED}:selected`);
         this._focusListenerRegistered = false;
-    },
+    }
 
     deregisterCaretListener() {
         if (!this._caretListenerRegistered)
@@ -88,5 +85,5 @@ var FocusCaretTracker = new Lang.Class({
         this._atspiListener.deregister(CARETMOVED);
         this._caretListenerRegistered = false;
     }
-});
+};
 Signals.addSignalMethods(FocusCaretTracker.prototype);
