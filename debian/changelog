@@ -1,4 +1,4 @@
-gnome-shell (3.35.91-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.35.91-1ubuntu1) focal; urgency=medium
 
   * Merge with Debian. Remaining changes:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -68,7 +68,7 @@ gnome-shell (3.35.91-1ubuntu1) UNRELEASED; urgency=medium
     - Refreshed
   * debian/{control,patches}: Build depend on gjs 1.58.1-2ubuntu1
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 Feb 2020 06:48:10 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 Feb 2020 14:36:57 +0100
 
 gnome-shell (3.35.91-1) experimental; urgency=medium
 
