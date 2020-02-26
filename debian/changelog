@@ -54,6 +54,7 @@ gnome-shell (3.35.91-1ubuntu1) UNRELEASED; urgency=medium
     - Bump breaks on gnome-shell-extension-ubuntu-dock (<< 67ubuntu20.04.1)
     - Bump breaks on gnome-shell-extension-dashtodock (<< 67+git20200225-1)
     - Bump breaks on yaru-theme (<< 20.04.2)
+    - Build depend and Depend on gjs 1.58.1-2ubuntu1
   * d/p/st-scroll-view-Remove-scrollbars-references-on-dispose.patch,
   * d/p/volume-Add-back-sound-feedback-on-scroll.patch:
     - Dropped, applied upstream
@@ -61,10 +62,13 @@ gnome-shell (3.35.91-1ubuntu1) UNRELEASED; urgency=medium
     - Simplify: just change the default background color to match Yaru
   * d/p/ubuntu/lock_on_suspend.patch:
     - Update to use string formatting not to confuse gettext with templates
+  * d/p/ubuntu/meson-Depend-on-gjs-1.58.1.patch:
+    - Lower the dependency on gjs 1.58.1
   * debian/patches:
     - Refreshed
+  * debian/{control,patches}: Build depend on gjs 1.58.1-2ubuntu1
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 19 Feb 2020 19:01:04 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 Feb 2020 06:48:10 +0100
 
 gnome-shell (3.35.91-1) experimental; urgency=medium
 
