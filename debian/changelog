@@ -1,3 +1,12 @@
+gnome-shell (3.35.91-1ubuntu2) UNRELEASED; urgency=medium
+
+  * control: Fix package for Yaru Breaks. It's called `yaru-theme-gnome-shell`
+    and not `yaru-theme`
+  * control: Bump Breaks on appindicator and desktop-icons.
+    These have been updated for GNOME 3.36
+
+ -- Iain Lane <iain.lane@canonical.com>  Thu, 27 Feb 2020 15:35:06 +0000
+
 gnome-shell (3.35.91-1ubuntu1) focal; urgency=medium
 
   * Merge with Debian. Remaining changes:
@@ -23,9 +32,6 @@ gnome-shell (3.35.91-1ubuntu1) focal; urgency=medium
       - Allow user switching when using LightDM.
     + ubuntu/lock_on_suspend.patch
       - Respect Ubuntu's lock-on-suspend setting.
-    + ubuntu/gdm.patch
-      - as gdm is system-wide and not session-wide, ensure gdm has an ubuntu
-        styling by default, not impacting the gnome user session though.
     + ubuntu/background_login.patch
       - Change default background color as we modified the default GDM color
         for our ubuntu session.
