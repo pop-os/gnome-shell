@@ -1,8 +1,14 @@
 gnome-shell (3.35.92-1) UNRELEASED; urgency=medium
 
+  [ Iain Lane ]
   * New upstream release
+  * control: Bump mutter deps to .92
+  * Style-looking-glass-variant-independant.patch: Drop, upstream
 
- -- Iain Lane <laney@debian.org>  Tue, 03 Mar 2020 16:08:15 +0000
+  [ Marco Trevisan (Treviño) ]
+  * Breaks on dashtodock minor than 67+git20200225-1
+
+ -- Iain Lane <laney@debian.org>  Tue, 03 Mar 2020 16:16:26 +0000
 
 gnome-shell (3.35.91-1) experimental; urgency=medium
 
