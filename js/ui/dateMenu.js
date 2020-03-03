@@ -454,6 +454,8 @@ class MessagesIndicator extends St.Icon {
         let sources = Main.messageTray.getSources();
         sources.forEach(source => this._onSourceAdded(null, source));
 
+        this._sync();
+
         this.connect('destroy', () => {
             this._settings.run_dispose();
             this._settings = null;
@@ -485,26 +487,6 @@ class MessagesIndicator extends St.Icon {
             ? 'notifications-disabled-symbolic'
             : 'message-indicator-symbolic';
         this.visible = doNotDisturb || this._count > 0;
-    }
-});
-
-var IndicatorPad = GObject.registerClass(
-class IndicatorPad extends St.Widget {
-    _init(actor) {
-        this._source = actor;
-        this._source.connect('notify::size', () => this.queue_relayout());
-        super._init();
-        this._source.bind_property('visible',
-            this, 'visible',
-            GObject.BindingFlags.SYNC_CREATE);
-    }
-
-    vfunc_get_preferred_width(forHeight) {
-        return this._source.get_preferred_width(forHeight);
-    }
-
-    vfunc_get_preferred_height(forWidth) {
-        return this._source.get_preferred_height(forWidth);
     }
 });
 
@@ -568,16 +550,24 @@ class DateMenuButton extends PanelMenu.Button {
         let hbox;
         let vbox;
 
-        let menuAlignment = 0.5;
-        if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL)
-            menuAlignment = 1.0 - menuAlignment;
-        super._init(menuAlignment);
+        super._init(0.5);
 
-        this._clockDisplay = new St.Label({ y_align: Clutter.ActorAlign.CENTER });
+        this._clockDisplay = new St.Label({ style_class: 'clock' });
+        this._clockDisplay.clutter_text.y_align = Clutter.ActorAlign.CENTER;
+
         this._indicator = new MessagesIndicator();
 
+        const indicatorPad = new St.Widget();
+        this._indicator.bind_property('visible',
+            indicatorPad, 'visible',
+            GObject.BindingFlags.SYNC_CREATE);
+        indicatorPad.add_constraint(new Clutter.BindConstraint({
+            source: this._indicator,
+            coordinate: Clutter.BindCoordinate.SIZE,
+        }));
+
         let box = new St.BoxLayout({ style_class: 'clock-display-box' });
-        box.add_actor(new IndicatorPad(this._indicator));
+        box.add_actor(indicatorPad);
         box.add_actor(this._clockDisplay);
         box.add_actor(this._indicator);
 
@@ -630,7 +620,7 @@ class DateMenuButton extends PanelMenu.Button {
         this._displaysSection = new St.ScrollView({ style_class: 'datemenu-displays-section vfade',
                                                     x_expand: true,
                                                     overlay_scrollbars: true });
-        this._displaysSection.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+        this._displaysSection.set_policy(St.PolicyType.NEVER, St.PolicyType.EXTERNAL);
         vbox.add_actor(this._displaysSection);
 
         let displaysBox = new St.BoxLayout({ vertical: true,

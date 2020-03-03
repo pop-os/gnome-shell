@@ -18,8 +18,6 @@ const IDLE_TIMEOUT = 2 * 60;
 // The timeout before showing the unlock hint (in seconds)
 const HINT_TIMEOUT = 4;
 
-const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
-
 const CROSSFADE_TIME = 300;
 const FADE_OUT_TRANSLATION = 200;
 const FADE_OUT_SCALE = 0.3;
@@ -478,7 +476,6 @@ var UnlockDialog = GObject.registerClass({
             accessible_role: Atk.Role.WINDOW,
             style_class: 'login-dialog',
             visible: false,
-            can_focus: true,
             reactive: true,
         });
 
@@ -558,12 +555,14 @@ var UnlockDialog = GObject.registerClass({
         // Switch User button
         this._otherUserButton = new St.Button({
             style_class: 'modal-dialog-button button switch-user-button',
-            can_focus: true,
-            reactive: true,
+            accessible_name: _('Log in as another user'),
+            reactive: false,
+            opacity: 0,
             x_align: Clutter.ActorAlign.END,
             y_align: Clutter.ActorAlign.END,
             child: new St.Icon({ icon_name: 'system-users-symbolic' }),
         });
+        this._otherUserButton.set_pivot_point(0.5, 0.5);
         this._otherUserButton.connect('clicked', this._otherUserClicked.bind(this));
 
         let screenSaverSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.screensaver' });
@@ -571,7 +570,7 @@ var UnlockDialog = GObject.registerClass({
             this._otherUserButton, 'visible', Gio.SettingsBindFlags.GET);
 
         // Main Box
-        let mainBox = new Clutter.Actor();
+        let mainBox = new St.Widget();
         mainBox.add_constraint(new Layout.MonitorConstraint({ primary: true }));
         mainBox.add_child(this._stack);
         mainBox.add_child(this._notificationsBox);
@@ -624,7 +623,6 @@ var UnlockDialog = GObject.registerClass({
             container: widget,
             monitorIndex,
             controlPosition: false,
-            settingsSchema: SCREENSAVER_SCHEMA,
         });
 
         this._bgManagers.push(bgManager);
@@ -669,7 +667,7 @@ var UnlockDialog = GObject.registerClass({
         this._promptBox.add_child(this._authPrompt);
 
         this._authPrompt.reset();
-        this._updateSensitivity(true);
+        this._authPrompt.updateSensitivity(true);
     }
 
     _maybeDestroyAuthPrompt() {
@@ -683,13 +681,6 @@ var UnlockDialog = GObject.registerClass({
             this._authPrompt.destroy();
             this._authPrompt = null;
         }
-    }
-
-    _updateSensitivity(sensitive) {
-        this._authPrompt.updateSensitivity(sensitive);
-
-        this._otherUserButton.reactive = sensitive;
-        this._otherUserButton.can_focus = sensitive;
     }
 
     _showClock() {
@@ -723,6 +714,11 @@ var UnlockDialog = GObject.registerClass({
         this._promptBox.visible = progress > 0;
         this._clock.visible = progress < 1;
 
+        this._otherUserButton.set({
+            reactive: progress > 0,
+            can_focus: progress > 0,
+        });
+
         const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
 
         this._promptBox.set({
@@ -737,6 +733,12 @@ var UnlockDialog = GObject.registerClass({
             scale_x: FADE_OUT_SCALE + (1 - FADE_OUT_SCALE) * (1 - progress),
             scale_y: FADE_OUT_SCALE + (1 - FADE_OUT_SCALE) * (1 - progress),
             translation_y: -FADE_OUT_TRANSLATION * progress * scaleFactor,
+        });
+
+        this._otherUserButton.set({
+            opacity: 255 * progress,
+            scale_x: FADE_OUT_SCALE + (1 - FADE_OUT_SCALE) * progress,
+            scale_y: FADE_OUT_SCALE + (1 - FADE_OUT_SCALE) * progress,
         });
     }
 
