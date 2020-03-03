@@ -1,4 +1,4 @@
-gnome-shell (3.35.92-1) UNRELEASED; urgency=medium
+gnome-shell (3.35.92-1) experimental; urgency=medium
 
   [ Iain Lane ]
   * New upstream release
@@ -8,7 +8,7 @@ gnome-shell (3.35.92-1) UNRELEASED; urgency=medium
   [ Marco Trevisan (Treviño) ]
   * Breaks on dashtodock minor than 67+git20200225-1
 
- -- Iain Lane <laney@debian.org>  Tue, 03 Mar 2020 16:16:26 +0000
+ -- Iain Lane <laney@debian.org>  Tue, 03 Mar 2020 16:37:58 +0000
 
 gnome-shell (3.35.91-1) experimental; urgency=medium
 
