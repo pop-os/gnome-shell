@@ -1,3 +1,9 @@
+gnome-shell (3.35.91-1ubuntu2pop1) focal; urgency=medium
+
+  * Port to Pop 
+
+ -- Michael Aaron Murphy <michael@system76.com>  Tue, 03 Mar 2020 14:32:57 -0700
+
 gnome-shell (3.35.91-1ubuntu2) focal; urgency=medium
 
   * control: Fix package for Yaru Breaks. It's called `yaru-theme-gnome-shell`
@@ -333,6 +339,13 @@ gnome-shell (3.34.1-1) unstable; urgency=medium
   * control: Require mutter 3.34.1
 
  -- Iain Lane <laney@debian.org>  Wed, 09 Oct 2019 11:20:28 +0100
+
+gnome-shell (3.34.0-1ubuntu1pop0) eoan; urgency=medium
+
+  * pop-dark-theme.patch: look for dark gnome-shell theme when dark GTK theme
+    is selected
+
+ -- Jeremy Soller <jeremy@system76.com>  Mon, 07 Oct 2019 09:01:55 -0600
 
 gnome-shell (3.34.0-2) unstable; urgency=medium
 
