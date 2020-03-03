@@ -1,10 +1,10 @@
-gnome-shell (3.35.92-1) UNRELEASED; urgency=medium
+gnome-shell (3.35.92-1) experimental; urgency=medium
 
   * New upstream release
   * control: Bump mutter deps to .92
   * Style-looking-glass-variant-independant.patch: Drop, upstream
 
- -- Iain Lane <laney@debian.org>  Tue, 03 Mar 2020 16:16:26 +0000
+ -- Iain Lane <laney@debian.org>  Tue, 03 Mar 2020 16:37:58 +0000
 
 gnome-shell (3.35.91-1) experimental; urgency=medium
 
