@@ -1,9 +1,9 @@
-gnome-shell (3.35.92-2) UNRELEASED; urgency=medium
+gnome-shell (3.35.92-2) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * debian/control: Breaks on dashtodock minor than 67+git20200225-1
 
- -- Iain Lane <laney@debian.org>  Wed, 04 Mar 2020 09:14:14 +0000
+ -- Iain Lane <laney@debian.org>  Wed, 04 Mar 2020 09:24:55 +0000
 
 gnome-shell (3.35.92-1) experimental; urgency=medium
 
