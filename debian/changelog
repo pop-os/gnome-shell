@@ -1,4 +1,4 @@
-gnome-shell (3.36.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.36.0-1) experimental; urgency=medium
 
   * New upstream release
     + Allow session modes to specify alternative resource name
@@ -15,7 +15,7 @@ gnome-shell (3.36.0-1) UNRELEASED; urgency=medium
       safe side.
     + Bump mutter and gnome-desktop BDs per meson.build
 
- -- Iain Lane <laney@debian.org>  Mon, 16 Mar 2020 11:52:27 +0000
+ -- Iain Lane <laney@debian.org>  Mon, 16 Mar 2020 15:25:22 +0000
 
 gnome-shell (3.35.92-2) experimental; urgency=medium
 
