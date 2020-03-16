@@ -1,8 +1,21 @@
 gnome-shell (3.36.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
+    + Allow session modes to specify alternative resource name
+    + Don't require gsd-xsettings for X11 support on wayland
+    + Fix crash on startup with topIcons* extension enabled
+    + Fix ibus support in Xorg session
+    + Fix illegible app folder titles with light theme
+    + Fix link to location settings in aggregate menu
+    + Fix off-by-1900 error in date conversions
+    + Improve Extensions D-Bus API
+    + Really fix visual glitch in sliders
+  * control:
+    + Breaks: gnome-shell-extension-appindicator << 33 to be on the
+      safe side.
+    + Bump mutter and gnome-desktop BDs per meson.build
 
- -- Iain Lane <laney@debian.org>  Mon, 16 Mar 2020 10:43:02 +0000
+ -- Iain Lane <laney@debian.org>  Mon, 16 Mar 2020 11:52:27 +0000
 
 gnome-shell (3.35.92-2) experimental; urgency=medium
 
