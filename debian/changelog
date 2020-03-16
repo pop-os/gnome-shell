@@ -1,3 +1,9 @@
+gnome-shell (3.36.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Iain Lane <laney@debian.org>  Mon, 16 Mar 2020 10:43:02 +0000
+
 gnome-shell (3.35.92-2) experimental; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
