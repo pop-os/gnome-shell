@@ -112,7 +112,8 @@ Recommends: bolt (>= 0.3),
             unzip
 Suggests: gir1.2-telepathyglib-0.12,
           gir1.2-telepathylogger-0.2 (>= 0.8.0)
-Breaks: gnome-shell-extension-autohidetopbar (<< 20180511-2~),
+Breaks: gnome-shell-extension-appindicator (<< 33),
+        gnome-shell-extension-autohidetopbar (<< 20180511-2~),
         gnome-shell-extension-caffeine (<< 0~git20171229-3~),
         gnome-shell-extension-dash-to-panel (<= 18-1),
         gnome-shell-extension-dashtodock (<< 67+git20200225-1),
