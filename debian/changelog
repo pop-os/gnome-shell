@@ -1,4 +1,4 @@
-gnome-shell (3.36.0-2) UNRELEASED; urgency=medium
+gnome-shell (3.36.0-2) experimental; urgency=medium
 
   * Split gnome-shell-extension-prefs out into its own binary package.
     It's not useful and arguably misleading to show this to everybody by
@@ -13,7 +13,7 @@ gnome-shell (3.36.0-2) UNRELEASED; urgency=medium
       - d/p/st-texture-cache-Fix-invalid-memory-write-related-to-X11-.patch
       - d/p/windowManager-Do-not-shutdown-ibus-xsettings-on-X11-compo.patch
 
- -- Iain Lane <laney@debian.org>  Thu, 19 Mar 2020 17:56:57 +0000
+ -- Iain Lane <laney@debian.org>  Thu, 19 Mar 2020 20:37:04 +0000
 
 gnome-shell (3.36.0-1) experimental; urgency=medium
 
