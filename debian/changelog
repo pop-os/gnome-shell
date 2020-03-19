@@ -1,3 +1,20 @@
+gnome-shell (3.36.0-2) UNRELEASED; urgency=medium
+
+  * Split gnome-shell-extension-prefs out into its own binary package.
+    It's not useful and arguably misleading to show this to everybody by
+    default, since it is only a tool for enabling/disabling extensions you
+    have already installed - and we don't provide any out of the box.
+    Perhaps it'd be useful for individual extensions to cause this to be
+    installed via Recommends.
+  * Cherry-pick a few patches from 3.36.1; see patch descriptions for more
+    details.
+      - d/p/St-Ensure-to-update-entry-hint-visibility-with-IM-preedit.patch
+      - d/p/ibusManager-fix-ibus-launch-error-because-of-wrong-method.patch
+      - d/p/st-texture-cache-Fix-invalid-memory-write-related-to-X11-.patch
+      - d/p/windowManager-Do-not-shutdown-ibus-xsettings-on-X11-compo.patch
+
+ -- Iain Lane <laney@debian.org>  Thu, 19 Mar 2020 17:56:57 +0000
+
 gnome-shell (3.36.0-1) experimental; urgency=medium
 
   * New upstream release
