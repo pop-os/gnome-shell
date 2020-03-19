@@ -16,7 +16,7 @@ Forwarded: yes
  2 files changed, 73 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index c7dd628..a2cb516 100644
+index a02cab6..b958291 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
 @@ -952,22 +952,38 @@ var LayoutManager = GObject.registerClass({
@@ -63,7 +63,7 @@ index c7dd628..a2cb516 100644
          if (this._startingUp)
              return;
 diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
-index 844a150..9db01d9 100644
+index 1c935b9..36e45c0 100644
 --- a/js/ui/magnifier.js
 +++ b/js/ui/magnifier.js
 @@ -45,6 +45,8 @@ var MouseSpriteContent = GObject.registerClass({
@@ -161,7 +161,7 @@ index 844a150..9db01d9 100644
      /**
       * showSystemCursor:
       * Show the system mouse pointer.
-@@ -231,6 +280,8 @@ var Magnifier = class Magnifier {
+@@ -239,6 +288,8 @@ var Magnifier = class Magnifier {
              this.xMouse = xMouse;
              this.yMouse = yMouse;
  
