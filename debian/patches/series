@@ -1,5 +1,8 @@
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
-Style-looking-glass-variant-independant.patch
+ibusManager-fix-ibus-launch-error-because-of-wrong-method.patch
+windowManager-Do-not-shutdown-ibus-xsettings-on-X11-compo.patch
+st-texture-cache-Fix-invalid-memory-write-related-to-X11-.patch
+St-Ensure-to-update-entry-hint-visibility-with-IM-preedit.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch

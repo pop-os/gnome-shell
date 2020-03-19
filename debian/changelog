@@ -1,3 +1,54 @@
+gnome-shell (3.36.0-2) experimental; urgency=medium
+
+  * Split gnome-shell-extension-prefs out into its own binary package.
+    It's not useful and arguably misleading to show this to everybody by
+    default, since it is only a tool for enabling/disabling extensions you
+    have already installed - and we don't provide any out of the box.
+    Perhaps it'd be useful for individual extensions to cause this to be
+    installed via Recommends.
+  * Cherry-pick a few patches from 3.36.1; see patch descriptions for more
+    details.
+      - d/p/St-Ensure-to-update-entry-hint-visibility-with-IM-preedit.patch
+      - d/p/ibusManager-fix-ibus-launch-error-because-of-wrong-method.patch
+      - d/p/st-texture-cache-Fix-invalid-memory-write-related-to-X11-.patch
+      - d/p/windowManager-Do-not-shutdown-ibus-xsettings-on-X11-compo.patch
+
+ -- Iain Lane <laney@debian.org>  Thu, 19 Mar 2020 20:37:04 +0000
+
+gnome-shell (3.36.0-1) experimental; urgency=medium
+
+  * New upstream release
+    + Allow session modes to specify alternative resource name
+    + Don't require gsd-xsettings for X11 support on wayland
+    + Fix crash on startup with topIcons* extension enabled
+    + Fix ibus support in Xorg session
+    + Fix illegible app folder titles with light theme
+    + Fix link to location settings in aggregate menu
+    + Fix off-by-1900 error in date conversions
+    + Improve Extensions D-Bus API
+    + Really fix visual glitch in sliders
+  * control:
+    + Breaks: gnome-shell-extension-appindicator << 33 to be on the
+      safe side.
+    + Bump mutter and gnome-desktop BDs per meson.build
+
+ -- Iain Lane <laney@debian.org>  Mon, 16 Mar 2020 15:25:22 +0000
+
+gnome-shell (3.35.92-2) experimental; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/control: Breaks on dashtodock minor than 67+git20200225-1
+
+ -- Iain Lane <laney@debian.org>  Wed, 04 Mar 2020 09:24:55 +0000
+
+gnome-shell (3.35.92-1) experimental; urgency=medium
+
+  * New upstream release
+  * control: Bump mutter deps to .92
+  * Style-looking-glass-variant-independant.patch: Drop, upstream
+
+ -- Iain Lane <laney@debian.org>  Tue, 03 Mar 2020 16:37:58 +0000
+
 gnome-shell (3.35.91-1ubuntu2) focal; urgency=medium
 
   * control: Fix package for Yaru Breaks. It's called `yaru-theme-gnome-shell`
