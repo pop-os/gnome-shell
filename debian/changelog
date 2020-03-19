@@ -52,6 +52,11 @@ gnome-shell (3.36.0-2ubuntu1) UNRELEASED; urgency=medium
   * debian/patches: Refresh
   * d/p/overview-Fade-in-out-over-the-desktop-instead-of-replacin.patch:
     - Fade in/out the desktop instead of replacing it (LP: #1847712)
+  * Ubuntu bugs resolved since 3.35.91-1ubuntu2:
+    - gnome-shell crashed when enable-animations was false (LP: #1866044)
+    - Overview animations were not reliably smooth (LP: #1725180)
+    - Higher than necessary CPU usage on mouse movement (LP: #1848951)
+    - Extension's preferences did not load (LP: #1866146)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Mar 2020 07:22:50 +0100
 
