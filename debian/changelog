@@ -6,8 +6,8 @@ gnome-shell (3.36.0-2ubuntu1) UNRELEASED; urgency=medium
     - Higher than necessary CPU usage on mouse movement (LP: #1848951)
     - Extension's preferences did not load (LP: #1866146)
   * debian/control:
-    - Breaks yaru (<< 20.04.3)
-    - Breaks gnome-session (<< 3.35.3-1ubuntu4) as per gdm yaru gresources
+    - Breaks yaru (<< 20.04.3~)
+    - Breaks gnome-session (<< 3.35.3-1ubuntu4~) as per gdm yaru gresources
     - Breaks gnome-shell-extension-ubuntu-dock (<< 67ubuntu20.04.3)
     - Update Vcs-* to point to salsa ubuntu branches
   * ubuntu.json: Use Yaru gresource file for theming in ubuntu mode
