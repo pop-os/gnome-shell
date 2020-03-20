@@ -1,6 +1,28 @@
 gnome-shell (3.36.0-2ubuntu1) UNRELEASED; urgency=medium
 
-  * Merge with Debian. Remaining changes:
+  * Merge with Debian. Ubuntu bugs resolved since 3.35.91-1ubuntu2:
+    - gnome-shell crashed when enable-animations was false (LP: #1866044)
+    - Overview animations were not reliably smooth (LP: #1725180)
+    - Higher than necessary CPU usage on mouse movement (LP: #1848951)
+    - Extension's preferences did not load (LP: #1866146)
+  * debian/control:
+    - Breaks yaru (<< 20.04.3)
+    - Breaks gnome-session (<< 3.35.3-1ubuntu4) as per gdm yaru gresources
+    - Breaks gnome-shell-extension-ubuntu-dock (<< 67ubuntu20.04.3)
+    - Update Vcs-* to point to salsa ubuntu branches
+  * ubuntu.json: Use Yaru gresource file for theming in ubuntu mode
+  * debian/patches: Refresh
+  * d/p/overview-Fade-in-out-over-the-desktop-instead-of-replacin.patch:
+    - Fade in/out the desktop instead of replacing it (LP: #1847712)
+  * d/p/ubuntu/gdm_alternatives.patch:
+    - Set the default theme resource for gdm session to 'gdm3-theme.gresource'
+    - Alias the default gnome-shell.css to gdm3.css
+  * gnome-shell-common.install: Don't install compiled css file anymore
+  * gnome-shell-common.{preinst,prerm}:
+    - Remove obsolete alternative gdm3.css symlink
+  * gnome-shell-common.postinst:
+    - Set gnome-shell-theme.gresource as alternative for gdm3-theme.gresource
+  * Remaining changes from debian:
     + Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
       gnome-themes-standard-data, gnome-backgrounds
     + Add some Recommends:
@@ -8,7 +30,6 @@ gnome-shell (3.36.0-2ubuntu1) UNRELEASED; urgency=medium
       - xserver-xorg-legacy
       - yaru-theme-gnome-shell for the default ubuntu theming
     + Update debian/gbp.conf with Ubuntu settings
-    + gnome-shell-common.install: Install Ubuntu mode
     + gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
     + ubuntu/desktop_detect.patch:
       - add caching for desktop detection to avoid querying the current
@@ -44,19 +65,6 @@ gnome-shell (3.36.0-2ubuntu1) UNRELEASED; urgency=medium
     + magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
       - Show monitor scaled cursor when magnifier is enabled
     + Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
-  * debian/control:
-    - Breaks yaru (<< 20.04.3)
-    - Breaks gnome-shell-extension-ubuntu-dock (<< 67ubuntu20.04.3)
-    - Update Vcs-* to point to salsa ubuntu branches
-  * ubuntu.json: Use Yaru gresource file for theming in ubuntu mode
-  * debian/patches: Refresh
-  * d/p/overview-Fade-in-out-over-the-desktop-instead-of-replacin.patch:
-    - Fade in/out the desktop instead of replacing it (LP: #1847712)
-  * Ubuntu bugs resolved since 3.35.91-1ubuntu2:
-    - gnome-shell crashed when enable-animations was false (LP: #1866044)
-    - Overview animations were not reliably smooth (LP: #1725180)
-    - Higher than necessary CPU usage on mouse movement (LP: #1848951)
-    - Extension's preferences did not load (LP: #1866146)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Mar 2020 07:22:50 +0100
 
