@@ -1,4 +1,4 @@
-gnome-shell (3.36.0-2ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.36.0-2ubuntu1) focal; urgency=medium
 
   * Merge with Debian. Ubuntu bugs resolved since 3.35.91-1ubuntu2:
     - gnome-shell crashed when enable-animations was false (LP: #1866044)
@@ -66,7 +66,7 @@ gnome-shell (3.36.0-2ubuntu1) UNRELEASED; urgency=medium
       - Show monitor scaled cursor when magnifier is enabled
     + Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 19 Mar 2020 07:22:50 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 20 Mar 2020 17:29:04 +0000
 
 gnome-shell (3.36.0-2) experimental; urgency=medium
 
