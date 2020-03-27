@@ -146,10 +146,10 @@ index 6750586..732a780 100644
    g_signal_connect (shell_global_get (), "notify::debug-flags",
                      G_CALLBACK (global_notify_debug_flags), NULL);
 diff --git a/src/shell-global.c b/src/shell-global.c
-index 5887802..c899b67 100644
+index 41d777c..4c4d087 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
-@@ -1857,11 +1857,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
+@@ -1913,11 +1913,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
  /**
   * shell_global_set_debug_flags:
   * @global: a #ShellGlobal

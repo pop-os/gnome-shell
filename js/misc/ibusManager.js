@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported getIBusManager */
 
-const { Gio, GLib, IBus } = imports.gi;
+const { Gio, GLib, IBus, Meta } = imports.gi;
 const Signals = imports.signals;
 
 const IBusCandidatePopup = imports.ui.ibusCandidatePopup;
@@ -55,13 +55,18 @@ var IBusManager = class {
         this._ibus.set_watch_ibus_signal(true);
         this._ibus.connect('global-engine-changed', this._engineChanged.bind(this));
 
-        this._spawn();
+        this._spawn(Meta.is_wayland_compositor() ? [] : ['--xim']);
     }
 
     _spawn(extraArgs = []) {
         try {
             let cmdLine = ['ibus-daemon', '--panel', 'disable', ...extraArgs];
-            Gio.Subprocess.new(cmdLine, Gio.SubprocessFlags.NONE);
+            let launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.NONE);
+            // Forward the right X11 Display for ibus-x11
+            let display = GLib.getenv('GNOME_SETUP_DISPLAY');
+            if (display)
+                launcher.setenv('DISPLAY', display, true);
+            launcher.launch(cmdLine);
         } catch (e) {
             log(`Failed to launch ibus-daemon: ${e.message}`);
         }

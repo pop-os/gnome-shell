@@ -12,6 +12,9 @@ imports.gi.versions.TelepathyLogger = '0.2';
 
 const { Clutter, GLib, GObject, Meta, Shell, St } = imports.gi;
 const Gettext = imports.gettext;
+const System = imports.system;
+
+let _localTimeZone = null;
 
 // We can't import shell JS modules yet, because they may have
 // variable initializations, etc, that depend on init() already having
@@ -111,6 +114,11 @@ function _easeActor(actor, params) {
         autoReverse = params.autoReverse;
     delete params.autoReverse;
 
+    // repeatCount doesn't include the initial iteration
+    const numIterations = repeatCount + 1;
+    // whether the transition should finish where it started
+    const isReversed = autoReverse && numIterations % 2 === 0;
+
     if (params.mode != undefined)
         actor.set_easing_mode(params.mode);
     delete params.mode;
@@ -122,7 +130,8 @@ function _easeActor(actor, params) {
     let animatedProps = Object.keys(params).map(p => p.replace('_', '-', 'g'));
     animatedProps.forEach(p => actor.remove_transition(p));
 
-    actor.set(params);
+    if (actor.get_easing_duration() > 0 || !isReversed)
+        actor.set(params);
     actor.restore_easing_state();
 
     let transition = animatedProps.map(p => actor.get_transition(p))
@@ -161,6 +170,11 @@ function _easeActorProperty(actor, propName, target, params) {
         autoReverse = params.autoReverse;
     delete params.autoReverse;
 
+    // repeatCount doesn't include the initial iteration
+    const numIterations = repeatCount + 1;
+    // whether the transition should finish where it started
+    const isReversed = autoReverse && numIterations % 2 === 0;
+
     // Copy Clutter's behavior for implicit animations, see
     // should_skip_implicit_transition()
     if (actor instanceof Clutter.Actor && !actor.mapped)
@@ -174,7 +188,9 @@ function _easeActorProperty(actor, propName, target, params) {
 
     if (duration == 0) {
         let [obj, prop] = _getPropertyTarget(actor, propName);
-        obj[prop] = target;
+
+        if (!isReversed)
+            obj[prop] = target;
 
         Meta.disable_unredirect_for_display(global.display);
         callback(true);
@@ -291,9 +307,25 @@ function init() {
         }
     };
 
+    // Override to clear our own timezone cache as well
+    const origClearDateCaches = System.clearDateCaches;
+    System.clearDateCaches = function () {
+        _localTimeZone = null;
+        origClearDateCaches();
+    };
+
     // Work around https://bugzilla.mozilla.org/show_bug.cgi?id=508783
     Date.prototype.toLocaleFormat = function (format) {
-        let dt = GLib.DateTime.new_from_unix_local(this.getTime() / 1000);
+        if (_localTimeZone === null)
+            _localTimeZone = GLib.TimeZone.new_local();
+
+        let dt = GLib.DateTime.new(_localTimeZone,
+            this.getFullYear(),
+            this.getMonth() + 1,
+            this.getDate(),
+            this.getHours(),
+            this.getMinutes(),
+            this.getSeconds());
         return dt ? dt.format(format) : '';
     };
 

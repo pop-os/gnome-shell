@@ -2,9 +2,6 @@
 
 set -e
 
-# Allow the gnome-shell process to change its priority.
-setcap CAP_SYS_NICE=+ep /usr/bin/gnome-shell
-
 case "$1" in
     configure)
         # trigger an update notification that recommends a reboot

@@ -55,6 +55,7 @@ var AuthPrompt = GObject.registerClass({
 
         this._gdmClient = gdmClient;
         this._mode = mode;
+        this._defaultButtonWellActor = null;
 
         let reauthenticationOnly;
         if (this._mode == AuthPromptMode.UNLOCK_ONLY)
@@ -81,7 +82,7 @@ var AuthPrompt = GObject.registerClass({
         });
         this.add_child(this._userWell);
 
-        this._hasCancelButton = this._mode === AuthPromptStatus.UNLOCK_OR_LOG_IN;
+        this._hasCancelButton = this._mode === AuthPromptMode.UNLOCK_OR_LOG_IN;
 
         this._initEntryRow();
 
@@ -131,9 +132,10 @@ var AuthPrompt = GObject.registerClass({
 
         this.cancelButton = new St.Button({
             style_class: 'modal-dialog-button button cancel-button',
+            accessible_name: _('Cancel'),
             button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
             reactive: this._hasCancelButton,
-            can_focus: true,
+            can_focus: this._hasCancelButton,
             x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.CENTER,
             child: new St.Icon({ icon_name: 'go-previous-symbolic' }),
@@ -284,6 +286,7 @@ var AuthPrompt = GObject.registerClass({
         this.setActorInDefaultButtonWell(null);
         this.verificationStatus = AuthPromptStatus.VERIFICATION_SUCCEEDED;
         this.cancelButton.reactive = false;
+        this.cancelButton.can_focus = false;
     }
 
     _onReset() {
@@ -452,6 +455,7 @@ var AuthPrompt = GObject.registerClass({
         let oldStatus = this.verificationStatus;
         this.verificationStatus = AuthPromptStatus.NOT_VERIFYING;
         this.cancelButton.reactive = this._hasCancelButton;
+        this.cancelButton.can_focus = this._hasCancelButton;
         this._preemptiveAnswer = null;
 
         if (this._userVerifier)

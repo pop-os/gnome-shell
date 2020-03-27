@@ -896,12 +896,35 @@ var WindowManager = class {
             }
         });
 
-        global.display.connect('x11-display-opened', () => {
+        global.display.connect('init-xserver', (display, task) => {
             IBusManager.getIBusManager().restartDaemon(['--xim']);
-            Shell.util_start_systemd_unit('gnome-session-x11-services.target', 'fail');
+            Shell.util_start_systemd_unit('gsd-xsettings.target', 'fail');
+
+            /* Leave this watchdog timeout so don't block indefinitely here */
+            let timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {
+                Gio.DBus.session.unwatch_name(watchId);
+                log('Warning: Failed to start gsd-xsettings');
+                task.return_boolean(true);
+                timeoutId = 0;
+                return GLib.SOURCE_REMOVE;
+            });
+
+            /* When gsd-xsettings daemon is started, we are good to resume */
+            let watchId = Gio.DBus.session.watch_name(
+                'org.gnome.SettingsDaemon.XSettings',
+                Gio.BusNameWatcherFlags.NONE,
+                () => {
+                    Gio.DBus.session.unwatch_name(watchId);
+                    if (timeoutId > 0) {
+                        task.return_boolean(true);
+                        GLib.source_remove(timeoutId);
+                    }
+                },
+                null);
+            return true;
         });
         global.display.connect('x11-display-closing', () => {
-            Shell.util_stop_systemd_unit('gnome-session-x11-services.target', 'fail');
+            Shell.util_stop_systemd_unit('gsd-xsettings.target', 'fail');
             IBusManager.getIBusManager().restartDaemon();
         });
 
@@ -1259,7 +1282,6 @@ var WindowManager = class {
         actorClone.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
         actorClone.set_position(oldFrameRect.x, oldFrameRect.y);
         actorClone.set_size(oldFrameRect.width, oldFrameRect.height);
-        Main.uiGroup.add_actor(actorClone);
 
         if (this._clearAnimationInfo(actor))
             this._shellwm.completed_size_change(actor);
@@ -1289,6 +1311,8 @@ var WindowManager = class {
 
         this._resizePending.delete(actor);
         this._resizing.add(actor);
+
+        Main.uiGroup.add_child(actorClone);
 
         // Now scale and fade out the clone
         actorClone.ease({
