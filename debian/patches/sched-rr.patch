@@ -17,7 +17,7 @@ Index: gnome-shell/src/main.c
  #include <cogl-pango/cogl-pango.h>
  #include <clutter/clutter.h>
  #include <clutter/x11/clutter-x11.h>
-@@ -516,6 +521,16 @@ main (int argc, char **argv)
+@@ -568,6 +573,16 @@ main (int argc, char **argv)
    char *debug_flags_string;
    int ecode;
  
