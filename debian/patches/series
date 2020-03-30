@@ -1,3 +1,6 @@
+keyboard-Don-t-include-keyboard-devices-when-updating-las.patch
+layout-Use-translation_y-of-0-to-hide-keyboard.patch
+keyboard-Hide-keyboardBox-after-destroying-the-keyboard.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 ibusManager-fix-ibus-launch-error-because-of-wrong-method.patch
 windowManager-Do-not-shutdown-ibus-xsettings-on-X11-compo.patch
@@ -15,7 +18,6 @@ main-add-backtrace-crashes-all-and-backtrace-all.patch
 sessionMode-add-support-for-debugFlags-parameter.patch
 st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch
 magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch
-overview-Fade-in-out-over-the-desktop-instead-of-replacin.patch
 ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
 ubuntu/secure_mode_extension.patch
