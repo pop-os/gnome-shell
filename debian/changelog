@@ -1,14 +1,14 @@
-gnome-shell (3.36.0-2ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (3.36.0-2ubuntu2) focal; urgency=medium
 
   * d/p/overview-Fade-in-out-over-the-desktop-instead-of-replacin.patch:
-    - Drop patch to fade in/out the desktop instead of replacing it
-      (LP: #1868896, #1868911)
+    - Drop patch to fade in/out the desktop instead of replacing it, it causes
+      some bugs. (LP: #1868896, #1868911)
   * d/p/keyboard-Don-t-include-keyboard-devices-when-updating-las.patch,
     d/p/keyboard-Hide-keyboardBox-after-destroying-the-keyboard.patch,
     d/p/layout-Use-translation_y-of-0-to-hide-keyboard.patch:
     - Fix OSK leaves dask mask after being hidden (LP: #1845623)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 30 Mar 2020 18:29:20 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 30 Mar 2020 17:49:05 +0100
 
 gnome-shell (3.36.0-2ubuntu1) focal; urgency=medium
 
