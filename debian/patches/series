@@ -1,3 +1,6 @@
+keyboard-Don-t-include-keyboard-devices-when-updating-las.patch
+layout-Use-translation_y-of-0-to-hide-keyboard.patch
+keyboard-Hide-keyboardBox-after-destroying-the-keyboard.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 ibusManager-fix-ibus-launch-error-because-of-wrong-method.patch
 windowManager-Do-not-shutdown-ibus-xsettings-on-X11-compo.patch

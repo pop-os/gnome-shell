@@ -1,0 +1,47 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Sat, 28 Mar 2020 14:15:09 +0100
+Subject: keyboard: Don't include keyboard devices when updating lastDevice
+
+We're dealing with attached keyboards now using the touch_mode property
+of ClutterSeat: If a device has a keyboard attached, the touch-mode is
+FALSE and we won't automatically show the OSK on touches, also the
+touch-mode gets set to FALSE when an external keyboard is being plugged
+in, so that also hides the OSK automatically.
+
+With that, we can now ignore keyboard devices when updating the last
+used device and no longer have to special-case our own virtual devices.
+
+Because there was no special-case for the virtual device we use on
+Wayland now, this fixes a bug where the keyboard disappeared after
+touching keys like Enter or Backspace.
+
+Fixes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2287
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1142
+
+Applied-Upstream: 3.36.1
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/commit/8dfed7e7
+---
+ js/ui/keyboard.js | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index 635d9b1..61e36de 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -1120,10 +1120,11 @@ var KeyboardManager = class KeyBoardManager {
+ 
+         this._lastDevice = null;
+         Meta.get_backend().connect('last-device-changed', (backend, device) => {
+-            if (device.get_device_name().indexOf('XTEST') < 0) {
+-                this._lastDevice = device;
+-                this._syncEnabled();
+-            }
++            if (device.device_type === Clutter.InputDeviceType.KEYBOARD_DEVICE)
++                return;
++
++            this._lastDevice = device;
++            this._syncEnabled();
+         });
+         this._syncEnabled();
+     }
