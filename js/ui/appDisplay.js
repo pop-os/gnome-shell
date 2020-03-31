@@ -71,15 +71,9 @@ function _getFolderName(folder) {
     let name = folder.get_string('name');
 
     if (folder.get_boolean('translate')) {
-        let keyfile = new GLib.KeyFile();
-        let path = 'desktop-directories/%s'.format(name);
-
-        try {
-            keyfile.load_from_data_dirs(path, GLib.KeyFileFlags.NONE);
-            name = keyfile.get_locale_string('Desktop Entry', 'Name', null);
-        } catch (e) {
-            return name;
-        }
+        let translated = Shell.util_get_translated_folder_name(name);
+        if (translated !== null)
+            return translated;
     }
 
     return name;
@@ -120,15 +114,9 @@ function _findBestFolderName(apps) {
     }, commonCategories);
 
     for (let category of commonCategories) {
-        let keyfile = new GLib.KeyFile();
-        let path = 'desktop-directories/%s.directory'.format(category);
-
-        try {
-            keyfile.load_from_data_dirs(path, GLib.KeyFileFlags.NONE);
-            return keyfile.get_locale_string('Desktop Entry', 'Name', null);
-        } catch (e) {
-            continue;
-        }
+        let translated = Shell.util_get_translated_folder_name(category);
+        if (translated !== null)
+            return translated;
     }
 
     return null;
@@ -204,6 +192,9 @@ var BaseAppView = GObject.registerClass({
             this._items.set(icon.id, icon);
         });
 
+        this._animateLaterId = 0;
+        this._viewLoadedHandlerId = 0;
+        this._viewIsReady = true;
         this.emit('view-loaded');
     }
 
@@ -253,6 +244,18 @@ var BaseAppView = GObject.registerClass({
             Main.overview.dash.showAppsButton);
     }
 
+    _clearAnimateLater() {
+        if (this._animateLaterId) {
+            Meta.later_remove(this._animateLaterId);
+            this._animateLaterId = 0;
+        }
+        if (this._viewLoadedHandlerId) {
+            this.disconnect(this._viewLoadedHandlerId);
+            this._viewLoadedHandlerId = 0;
+        }
+        this._grid.opacity = 255;
+    }
+
     animate(animationDirection, onComplete) {
         if (onComplete) {
             let animationDoneId = this._grid.connect('animation-done', () => {
@@ -261,11 +264,28 @@ var BaseAppView = GObject.registerClass({
             });
         }
 
+        this._clearAnimateLater();
+
         if (animationDirection == IconGrid.AnimationDirection.IN) {
-            let id = this._grid.connect('paint', () => {
-                this._grid.disconnect(id);
-                this._doSpringAnimation(animationDirection);
-            });
+            const doSpringAnimationLater = laterType => {
+                this._animateLaterId = Meta.later_add(laterType,
+                    () => {
+                        this._animateLaterId = 0;
+                        this._doSpringAnimation(animationDirection);
+                        return GLib.SOURCE_REMOVE;
+                    });
+            };
+
+            if (this._viewIsReady) {
+                this._grid.opacity = 0;
+                doSpringAnimationLater(Meta.LaterType.IDLE);
+            } else {
+                this._viewLoadedHandlerId = this.connect('view-loaded',
+                    () => {
+                        this._clearAnimateLater();
+                        doSpringAnimationLater(Meta.LaterType.BEFORE_REDRAW);
+                    });
+            }
         } else {
             this._doSpringAnimation(animationDirection);
         }
@@ -387,15 +407,19 @@ var AllView = GObject.registerClass({
         this._lastOvershootY = -1;
         this._lastOvershootTimeoutId = 0;
 
+        this._viewIsReady = false;
+
         Main.overview.connect('hidden', () => this.goToPage(0));
 
         this._redisplayWorkId = Main.initializeDeferredWork(this, this._redisplay.bind(this));
 
         Shell.AppSystem.get_default().connect('installed-changed', () => {
+            this._viewIsReady = false;
             Main.queueDeferredWork(this._redisplayWorkId);
         });
         this._folderSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders' });
         this._folderSettings.connect('changed::folder-children', () => {
+            this._viewIsReady = false;
             Main.queueDeferredWork(this._redisplayWorkId);
         });
 
@@ -431,6 +455,10 @@ var AllView = GObject.registerClass({
 
     _redisplay() {
         super._redisplay();
+
+        this._folderIcons.forEach(icon => {
+            icon.view._redisplay();
+        });
         this._refilterApps();
     }
 
@@ -699,8 +727,6 @@ var AllView = GObject.registerClass({
 
             // Toggle search entry
             Main.overview.searchEntry.reactive = !isOpen;
-            Main.overview.searchEntry.clutter_text.reactive = !isOpen;
-            Main.overview.searchEntry.clutter_text.editable = !isOpen;
 
             this._displayingPopup = isOpen;
         });
@@ -1259,8 +1285,8 @@ var AppSearchProvider = class AppSearchProvider {
         let results = [];
         groups.forEach(group => {
             group = group.filter(appID => {
-                let app = Gio.DesktopAppInfo.new(appID);
-                return app && app.should_show();
+                const app = this._appSys.lookup_app(appID);
+                return app && app.app_info.should_show();
             });
             results = results.concat(group.sort(
                 (a, b) => usage.compare(a, b)
@@ -1308,7 +1334,7 @@ class FolderView extends BaseAppView {
             x_expand: true,
             y_expand: true,
         });
-        this._scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+        this._scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.EXTERNAL);
         this.add_actor(this._scrollView);
 
         let scrollableContainer = new St.BoxLayout({
@@ -1324,7 +1350,6 @@ class FolderView extends BaseAppView {
         action.connect('pan', this._onPan.bind(this));
         this._scrollView.add_action(action);
 
-        this._folder.connect('changed', this._redisplay.bind(this));
         this._redisplay();
     }
 
@@ -1429,6 +1454,22 @@ class FolderView extends BaseAppView {
         return apps;
     }
 
+    addApp(app) {
+        let folderApps = this._folder.get_strv('apps');
+        folderApps.push(app.id);
+
+        this._folder.set_strv('apps', folderApps);
+
+        // Also remove from 'excluded-apps' if the app id is listed
+        // there. This is only possible on categories-based folders.
+        let excludedApps = this._folder.get_strv('excluded-apps');
+        let index = excludedApps.indexOf(app.id);
+        if (index >= 0) {
+            excludedApps.splice(index, 1);
+            this._folder.set_strv('excluded-apps', excludedApps);
+        }
+    }
+
     removeApp(app) {
         let folderApps = this._folder.get_strv('apps');
         let index = folderApps.indexOf(app.id);
@@ -1459,8 +1500,6 @@ class FolderView extends BaseAppView {
         } else {
             this._folder.set_strv('apps', folderApps);
         }
-
-        return true;
     }
 });
 
@@ -1494,26 +1533,26 @@ var FolderIcon = GObject.registerClass({
 
         this.view = new FolderView(this._folder, id, parentView);
 
-        this._itemDragBeginId = Main.overview.connect(
-            'item-drag-begin', this._onDragBegin.bind(this));
-        this._itemDragEndId = Main.overview.connect(
-            'item-drag-end', this._onDragEnd.bind(this));
+        this._iconIsHovering = false;
 
         this.connect('destroy', this._onDestroy.bind(this));
 
-        this._folder.connect('changed', this._redisplay.bind(this));
-        this._redisplay();
+        this._folderChangedId = this._folder.connect(
+            'changed', this._sync.bind(this));
+        this._sync();
     }
 
     _onDestroy() {
-        Main.overview.disconnect(this._itemDragBeginId);
-        Main.overview.disconnect(this._itemDragEndId);
+        if (this._dragMonitor) {
+            DND.removeDragMonitor(this._dragMonitor);
+            this._dragMonitor = null;
+        }
 
         this.view.destroy();
 
-        if (this._spaceReadySignalId) {
-            this._parentView.disconnect(this._spaceReadySignalId);
-            this._spaceReadySignalId = 0;
+        if (this._folderChangedId) {
+            this._folder.disconnect(this._folderChangedId);
+            delete this._folderChangedId;
         }
 
         if (this._dialog)
@@ -1541,27 +1580,30 @@ var FolderIcon = GObject.registerClass({
         return this.view.getAllItems().map(item => item.id);
     }
 
-    _onDragBegin() {
-        this._dragMonitor = {
-            dragMotion: this._onDragMotion.bind(this),
-        };
-        DND.addDragMonitor(this._dragMonitor);
+    _setHoveringByDnd(hovering) {
+        if (this._iconIsHovering == hovering)
+            return;
+
+        this._iconIsHovering = hovering;
+
+        if (hovering) {
+            this._dragMonitor = {
+                dragMotion: this._onDragMotion.bind(this),
+            };
+            DND.addDragMonitor(this._dragMonitor);
+            this.add_style_pseudo_class('drop');
+        } else {
+            DND.removeDragMonitor(this._dragMonitor);
+            this.remove_style_pseudo_class('drop');
+        }
     }
 
     _onDragMotion(dragEvent) {
-        let target = dragEvent.targetActor;
-
-        if (!this.contains(target) || !this._canAccept(dragEvent.source))
-            this.remove_style_pseudo_class('drop');
-        else
-            this.add_style_pseudo_class('drop');
+        if (!this.contains(dragEvent.targetActor) ||
+            !this._canAccept(dragEvent.source))
+            this._setHoveringByDnd(false);
 
         return DND.DragMotionResult.CONTINUE;
-    }
-
-    _onDragEnd() {
-        this.remove_style_pseudo_class('drop');
-        DND.removeDragMonitor(this._dragMonitor);
     }
 
     _canAccept(source) {
@@ -1582,27 +1624,18 @@ var FolderIcon = GObject.registerClass({
         if (!this._canAccept(source))
             return DND.DragMotionResult.NO_DROP;
 
+        this._setHoveringByDnd(true);
+
         return DND.DragMotionResult.MOVE_DROP;
     }
 
     acceptDrop(source) {
+        this._setHoveringByDnd(false);
+
         if (!this._canAccept(source))
             return false;
 
-        let app = source.app;
-        let folderApps = this._folder.get_strv('apps');
-        folderApps.push(app.id);
-
-        this._folder.set_strv('apps', folderApps);
-
-        // Also remove from 'excluded-apps' if the app id is listed
-        // there. This is only possible on categories-based folders.
-        let excludedApps = this._folder.get_strv('excluded-apps');
-        let index = excludedApps.indexOf(app.id);
-        if (index >= 0) {
-            excludedApps.splice(index, 1);
-            this._folder.set_strv('excluded-apps', excludedApps);
-        }
+        this.view.addApp(source.app);
 
         return true;
     }
@@ -1617,11 +1650,11 @@ var FolderIcon = GObject.registerClass({
         this.emit('name-changed');
     }
 
-    _redisplay() {
+    _sync() {
+        this.emit('apps-changed');
         this._updateName();
         this.visible = this.view.getAllItems().length > 0;
         this.icon.update();
-        this.emit('apps-changed');
     }
 
     _createIcon(iconSize) {
@@ -1902,6 +1935,7 @@ var AppFolderDialog = GObject.registerClass({
 
     vfunc_allocate(box, flags) {
         let contentBox = this.get_theme_node().get_content_box(box);
+        contentBox = this._viewBox.get_theme_node().get_content_box(contentBox);
 
         let [, entryBoxHeight] = this._entryBox.get_size();
         let spacing = this._viewBox.layout_manager.spacing;
@@ -1909,6 +1943,8 @@ var AppFolderDialog = GObject.registerClass({
         this._view.adaptToSize(
             contentBox.get_width(),
             contentBox.get_height() - entryBoxHeight - spacing);
+
+        this._view._grid.topPadding = 0;
 
         super.vfunc_allocate(box, flags);
 
@@ -2025,7 +2061,6 @@ var AppIcon = GObject.registerClass({
 
         this._delegate = this;
 
-        this._hasDndHover = false;
         this._folderPreviewId = 0;
 
         // Get the isDraggable property without passing it on to the BaseIcon:
@@ -2074,11 +2109,7 @@ var AppIcon = GObject.registerClass({
             });
         }
 
-        this._dragMonitor = null;
-        this._itemDragBeginId = Main.overview.connect(
-            'item-drag-begin', this._onDragBegin.bind(this));
-        this._itemDragEndId = Main.overview.connect(
-            'item-drag-end', this._onDragEnd.bind(this));
+        this._otherIconIsHovering = false;
 
         this._menuTimeoutId = 0;
         this._stateChangedId = this.app.connect('notify::state', () => {
@@ -2090,9 +2121,6 @@ var AppIcon = GObject.registerClass({
     }
 
     _onDestroy() {
-        Main.overview.disconnect(this._itemDragBeginId);
-        Main.overview.disconnect(this._itemDragEndId);
-
         if (this._folderPreviewId > 0) {
             GLib.source_remove(this._folderPreviewId);
             this._folderPreviewId = 0;
@@ -2339,7 +2367,17 @@ var AppIcon = GObject.registerClass({
     }
 
     _setHoveringByDnd(hovering) {
+        if (this._otherIconIsHovering == hovering)
+            return;
+
+        this._otherIconIsHovering = hovering;
+
         if (hovering) {
+            this._dragMonitor = {
+                dragMotion: this._onDragMotion.bind(this),
+            };
+            DND.addDragMonitor(this._dragMonitor);
+
             if (this._folderPreviewId > 0)
                 return;
 
@@ -2351,6 +2389,8 @@ var AppIcon = GObject.registerClass({
                     return GLib.SOURCE_REMOVE;
                 });
         } else {
+            DND.removeDragMonitor(this._dragMonitor);
+
             if (this._folderPreviewId > 0) {
                 GLib.source_remove(this._folderPreviewId);
                 this._folderPreviewId = 0;
@@ -2360,30 +2400,11 @@ var AppIcon = GObject.registerClass({
         }
     }
 
-    _onDragBegin() {
-        this._dragMonitor = {
-            dragMotion: this._onDragMotion.bind(this),
-        };
-        DND.addDragMonitor(this._dragMonitor);
-    }
-
     _onDragMotion(dragEvent) {
-        let target = dragEvent.targetActor;
-        let isHovering = target == this || this.contains(target);
-        let canDrop = this._canAccept(dragEvent.source);
-        let hasDndHover = isHovering && canDrop;
-
-        if (this._hasDndHover != hasDndHover) {
-            this._setHoveringByDnd(hasDndHover);
-            this._hasDndHover = hasDndHover;
-        }
+        if (!this.contains(dragEvent.targetActor))
+            this._setHoveringByDnd(false);
 
         return DND.DragMotionResult.CONTINUE;
-    }
-
-    _onDragEnd() {
-        this.remove_style_pseudo_class('drop');
-        DND.removeDragMonitor(this._dragMonitor);
     }
 
     handleDragOver(source) {
@@ -2392,6 +2413,8 @@ var AppIcon = GObject.registerClass({
 
         if (!this._canAccept(source))
             return DND.DragMotionResult.CONTINUE;
+
+        this._setHoveringByDnd(true);
 
         return DND.DragMotionResult.MOVE_DROP;
     }
@@ -2437,7 +2460,7 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
         Main.uiGroup.add_actor(this.actor);
     }
 
-    _redisplay() {
+    _rebuildMenu() {
         this.removeAll();
 
         let windows = this._source.app.get_windows().filter(
@@ -2554,7 +2577,7 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
     }
 
     popup(_activatingButton) {
-        this._redisplay();
+        this._rebuildMenu();
         this.open();
     }
 };

@@ -64,8 +64,6 @@
 
 #include "st-widget-accessible.h"
 
-#define HAS_FOCUS(actor) (clutter_actor_get_stage (actor) && clutter_stage_get_key_focus ((ClutterStage *) clutter_actor_get_stage (actor)) == actor)
-
 
 /* properties */
 enum
@@ -232,6 +230,7 @@ st_entry_update_hint_visibility (StEntry *self)
   StEntryPrivate *priv = ST_ENTRY_PRIV (self);
   gboolean hint_visible =
     priv->hint_actor != NULL &&
+    !clutter_text_has_preedit (CLUTTER_TEXT (priv->entry)) &&
     strcmp (clutter_text_get_text (CLUTTER_TEXT (priv->entry)), "") == 0;
 
   if (priv->hint_actor)
@@ -515,6 +514,26 @@ st_entry_allocate (ClutterActor          *actor,
 }
 
 static void
+clutter_text_reactive_changed_cb (ClutterActor *text,
+                                  GParamSpec   *pspec,
+                                  gpointer      user_data)
+{
+  ClutterActor *stage;
+
+  if (clutter_actor_get_reactive (text))
+    return;
+
+  if (!clutter_actor_has_key_focus (text))
+    return;
+
+  stage = clutter_actor_get_stage (text);
+  if (stage == NULL)
+    return;
+
+  clutter_stage_set_key_focus (CLUTTER_STAGE (stage), NULL);
+}
+
+static void
 clutter_text_focus_in_cb (ClutterText  *text,
                           ClutterActor *actor)
 {
@@ -528,6 +547,13 @@ clutter_text_focus_out_cb (ClutterText  *text,
 {
   st_widget_remove_style_pseudo_class (ST_WIDGET (actor), "focus");
   clutter_text_set_cursor_visible (text, FALSE);
+}
+
+static void
+clutter_text_cursor_changed (ClutterText *text,
+                             StEntry     *entry)
+{
+  st_entry_update_hint_visibility (entry);
 }
 
 static void
@@ -971,6 +997,13 @@ st_entry_init (StEntry *entry)
                               "single-line-mode", TRUE,
                               NULL);
 
+  g_object_bind_property (G_OBJECT (entry), "reactive",
+                          priv->entry, "reactive",
+                          G_BINDING_DEFAULT);
+
+  g_signal_connect(priv->entry, "notify::reactive",
+                   G_CALLBACK (clutter_text_reactive_changed_cb), entry);
+
   g_signal_connect (priv->entry, "key-focus-in",
                     G_CALLBACK (clutter_text_focus_in_cb), entry);
 
@@ -979,6 +1012,9 @@ st_entry_init (StEntry *entry)
 
   g_signal_connect (priv->entry, "button-press-event",
                     G_CALLBACK (clutter_text_button_press_event), entry);
+
+  g_signal_connect (priv->entry, "cursor-changed",
+                    G_CALLBACK (clutter_text_cursor_changed), entry);
 
   g_signal_connect (priv->entry, "notify::text",
                     G_CALLBACK (clutter_text_changed_cb), entry);

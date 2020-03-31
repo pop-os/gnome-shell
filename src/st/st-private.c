@@ -115,17 +115,37 @@ _st_set_text_from_style (ClutterText *text,
   StTextDecoration decoration;
   PangoAttrList *attribs = NULL;
   const PangoFontDescription *font;
+  PangoAttribute *foreground;
   StTextAlign align;
   gdouble spacing;
   gchar *font_features;
-
-  st_theme_node_get_foreground_color (theme_node, &color);
-  clutter_text_set_color (text, &color);
 
   font = st_theme_node_get_font (theme_node);
   clutter_text_set_font_description (text, (PangoFontDescription *) font);
 
   attribs = pango_attr_list_new ();
+
+  st_theme_node_get_foreground_color (theme_node, &color);
+  clutter_text_set_cursor_color (text, &color);
+  foreground = pango_attr_foreground_new (color.red * 255,
+                                          color.green * 255,
+                                          color.blue * 255);
+  pango_attr_list_insert (attribs, foreground);
+
+  if (color.alpha != 255)
+    {
+      PangoAttribute *alpha;
+
+      /* An alpha value of 0 means "system inherited", so the
+       * minimum regular value is 1.
+       */
+      if (color.alpha == 0)
+        alpha = pango_attr_foreground_alpha_new (1);
+      else
+        alpha = pango_attr_foreground_alpha_new (color.alpha * 255);
+
+      pango_attr_list_insert (attribs, alpha);
+    }
 
   decoration = st_theme_node_get_text_decoration (theme_node);
   if (decoration)

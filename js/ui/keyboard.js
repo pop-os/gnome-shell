@@ -498,7 +498,7 @@ var Key = GObject.registerClass({
 var KeyboardModel = class {
     constructor(groupName) {
         let names = [groupName];
-        if (names.includes('+'))
+        if (groupName.includes('+'))
             names.push(groupName.replace(/\+.*/, ''));
         names.push('us');
 
@@ -1120,10 +1120,11 @@ var KeyboardManager = class KeyBoardManager {
 
         this._lastDevice = null;
         Meta.get_backend().connect('last-device-changed', (backend, device) => {
-            if (device.get_device_name().indexOf('XTEST') < 0) {
-                this._lastDevice = device;
-                this._syncEnabled();
-            }
+            if (device.device_type === Clutter.InputDeviceType.KEYBOARD_DEVICE)
+                return;
+
+            this._lastDevice = device;
+            this._syncEnabled();
         });
         this._syncEnabled();
     }
@@ -1148,9 +1149,9 @@ var KeyboardManager = class KeyBoardManager {
             this._keyboard = new Keyboard();
         } else if (!enabled && this._keyboard) {
             this._keyboard.setCursorLocation(null);
-            Main.layoutManager.hideKeyboard(true);
             this._keyboard.destroy();
             this._keyboard = null;
+            Main.layoutManager.hideKeyboard(true);
         }
     }
 
@@ -1868,6 +1869,10 @@ var KeyboardController = class {
         Main.inputMethod.disconnect(this._notifyContentPurposeId);
         Main.inputMethod.disconnect(this._notifyContentHintsId);
         Main.inputMethod.disconnect(this._notifyInputPanelStateId);
+
+        // Make sure any buttons pressed by the virtual device are released
+        // immediately instead of waiting for the next GC cycle
+        this._virtualDevice.run_dispose();
     }
 
     _onSourcesModified() {
