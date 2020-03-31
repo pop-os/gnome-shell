@@ -223,7 +223,7 @@ var BroadbandModem = GObject.registerClass({
 }, class BroadbandModem extends ModemBase {
     _init(path, capabilities) {
         super._init({ capabilities });
-        this._proxy = new BroadbandModemProxy(Gio.DBus.system, 'org.freedesktop.ModemManager', path);
+        this._proxy = new BroadbandModemProxy(Gio.DBus.system, 'org.freedesktop.ModemManager1', path);
         this._proxy_3gpp = new BroadbandModem3gppProxy(Gio.DBus.system, 'org.freedesktop.ModemManager1', path);
         this._proxy_cdma = new BroadbandModemCdmaProxy(Gio.DBus.system, 'org.freedesktop.ModemManager1', path);
 
@@ -249,7 +249,7 @@ var BroadbandModem = GObject.registerClass({
     }
 
     _reloadSignalQuality() {
-        let [quality, recent_] = this.SignalQuality;
+        let [quality, recent_] = this._proxy.SignalQuality;
         this._setSignalQuality(quality);
     }
 

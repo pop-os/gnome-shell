@@ -180,14 +180,27 @@ class WorldClocksSection extends St.Button {
 
             let time = new St.Label({ style_class: 'world-clocks-time' });
 
-            let otherOffset = this._getTimeAtLocation(l).get_utc_offset();
-            let offset = (otherOffset - localOffset) / GLib.TIME_SPAN_HOUR;
-            let fmt = Math.trunc(offset) == offset ? '%s%.0f' : '%s%.1f';
-            let prefix = offset >= 0 ? '+' : '-';
-            let tz = new St.Label({ style_class: 'world-clocks-timezone',
-                                    text: fmt.format(prefix, Math.abs(offset)),
-                                    x_align: Clutter.ActorAlign.END,
-                                    y_align: Clutter.ActorAlign.CENTER });
+            const utcOffset = this._getTimeAtLocation(l).get_utc_offset();
+            const offsetCurrentTz = utcOffset - localOffset;
+            const offsetHours = Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR;
+            const offsetMinutes =
+                (Math.abs(offsetCurrentTz) % GLib.TIME_SPAN_HOUR) /
+                GLib.TIME_SPAN_MINUTE;
+
+            const prefix = offsetCurrentTz >= 0 ? '+' : '-';
+            const text = offsetMinutes === 0
+                ? '%s%d'.format(prefix, offsetHours)
+                : '%s%d\u2236%d'.format(prefix, offsetHours, offsetMinutes);
+
+            const tz = new St.Label({
+                style_class: 'world-clocks-timezone',
+                text,
+                x_align: Clutter.ActorAlign.END,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+
+            time.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+            tz.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
 
             if (this._grid.text_direction == Clutter.TextDirection.RTL) {
                 layout.attach(tz, 0, i + 1, 1, 1);
@@ -384,6 +397,20 @@ class WeatherSection extends St.Button {
         layout.attach(label, 0, 0, 1, 1);
     }
 
+    _findBestLocationName(loc) {
+        const locName = loc.get_name();
+
+        if (loc.get_level() === GWeather.LocationLevel.CITY ||
+            !loc.has_coords())
+            return locName;
+
+        const world = GWeather.Location.get_world();
+        const city = world.find_nearest_city(...loc.get_coords());
+        const cityName = city.get_name();
+
+        return locName.includes(cityName) ? cityName : locName;
+    }
+
     _updateForecasts() {
         this._forecastGrid.destroy_all_children();
 
@@ -392,13 +419,8 @@ class WeatherSection extends St.Button {
             return;
         }
 
-        let info = this._weatherClient.info;
-        let loc = info.get_location();
-        if (loc.get_level() !== GWeather.LocationLevel.CITY && loc.has_coords()) {
-            let world = GWeather.Location.get_world();
-            loc = world.find_nearest_city(...loc.get_coords());
-        }
-        this._titleLocation.text = loc.get_name();
+        const { info } = this._weatherClient;
+        this._titleLocation.text = this._findBestLocationName(info.location);
 
         if (this._weatherClient.loading) {
             this._setStatusLabel(_("Loading…"));
