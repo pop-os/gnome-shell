@@ -9,6 +9,7 @@ Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.
 Uploaders: Iain Lane <laney@debian.org>, Laurent Bigonville <bigon@debian.org>
 Build-Depends: appstream,
                asciidoc-base,
+               bash-completion,
                dbus <!nocheck>,
                debhelper-compat (= 12),
                dh-sequence-gir,
