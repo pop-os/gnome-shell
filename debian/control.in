@@ -3,7 +3,8 @@ Section: gnome
 Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
 Uploaders: @GNOME_TEAM@
-Build-Depends: asciidoc-base,
+Build-Depends: appstream,
+               asciidoc-base,
                dbus <!nocheck>,
                debhelper-compat (= 12),
                dh-sequence-gir,
