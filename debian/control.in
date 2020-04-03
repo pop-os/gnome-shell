@@ -57,7 +57,7 @@ Build-Depends: appstream,
                xvfb <!nocheck>,
                xwayland <!nocheck>
 Rules-Requires-Root: no
-Standards-Version: 4.4.1
+Standards-Version: 4.5.0
 Homepage: https://wiki.gnome.org/Projects/GnomeShell
 Vcs-Git: https://salsa.debian.org/gnome-team/gnome-shell.git
 Vcs-Browser: https://salsa.debian.org/gnome-team/gnome-shell
