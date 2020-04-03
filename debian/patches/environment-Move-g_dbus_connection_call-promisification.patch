@@ -1,0 +1,47 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 19 Dec 2019 20:50:37 +0100
+Subject: environment: Move g_dbus_connection_call() promisification
+
+Commit 83c6b2ab promisified the method in endSessionDialog, which means
+that after the module is imported, every caller will get the promisifed
+version. That can be a bit surprising in completely unrelated modules,
+so commit 764527c8 (on master) moved the promisification of more common
+methods into environment, as that's initialized early and expected to be
+shared between anything else.
+
+Do the same for the call() method on the stable branch.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2551
+
+Origin: upstream, 3.36.2
+---
+ js/ui/endSessionDialog.js | 2 --
+ js/ui/environment.js      | 2 ++
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/endSessionDialog.js b/js/ui/endSessionDialog.js
+index 44747ea..cd6e712 100644
+--- a/js/ui/endSessionDialog.js
++++ b/js/ui/endSessionDialog.js
+@@ -29,8 +29,6 @@ const UserWidget = imports.ui.userWidget;
+ 
+ const { loadInterfaceXML } = imports.misc.fileUtils;
+ 
+-Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+-
+ const _ITEM_ICON_SIZE = 64;
+ 
+ const EndSessionDialogIface = loadInterfaceXML('org.gnome.SessionManager.EndSessionDialog');
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index 6764bd2..d1724a4 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -14,6 +14,8 @@ const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
+ const Gettext = imports.gettext;
+ const System = imports.system;
+ 
++Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
++
+ let _localTimeZone = null;
+ 
+ // We can't import shell JS modules yet, because they may have

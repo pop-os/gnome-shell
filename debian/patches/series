@@ -1,1 +1,13 @@
+Update-Friulian-translation.patch
+Update-Chinese-Taiwan-translation.patch
+appDisplay-Clear-animateLater-callbacks-when-unmapping.patch
+Update-Persian-translation.patch
+main-Don-t-override-DesktopAppInfo-desktop-if-already-GNO.patch
+Update-Finnish-translation.patch
+Update-Basque-translation.patch
+Update-Serbian-translation.patch
+appDisplay-Don-t-clear-signal-handler-id-before-emitting.patch
+app-cache-Fix-cache-for-folder-translations.patch
+environment-Move-g_dbus_connection_call-promisification.patch
+js-Account-for-promisified-call-method.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch

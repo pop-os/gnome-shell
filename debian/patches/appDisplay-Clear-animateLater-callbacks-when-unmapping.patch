@@ -1,0 +1,38 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Tue, 31 Mar 2020 17:00:58 +0000
+Subject: appDisplay: Clear animateLater callbacks when unmapping
+
+In some situations we could end up not with lingering 'view-loaded'
+handler. This could result in delayed spring animate-in being initiated,
+e.g. after a minute after the activities overview was already closed.
+
+Fix this by removing any lingering signal or later handlers when
+unmapping.
+
+Fixes: 5c33fe4a0a4eb4ed
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1155
+
+(cherry picked from commit f49b58cf97e167dca74b902fe1bf21d296495113)
+
+Origin: upstream, 3.36.2
+---
+ js/ui/appDisplay.js | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
+index 2d57a6d..98aa121 100644
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -291,6 +291,11 @@ var BaseAppView = GObject.registerClass({
+         }
+     }
+ 
++    vfunc_unmap() {
++        this._clearAnimateLater();
++        super.vfunc_unmap();
++    }
++
+     animateSwitch(animationDirection) {
+         this.remove_all_transitions();
+         this._grid.remove_all_transitions();
