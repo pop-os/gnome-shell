@@ -1,4 +1,6 @@
-gnome-shell (3.36.1-1) UNRELEASED; urgency=medium
+gnome-shell (3.36.1-1) experimental; urgency=medium
+
+  * Team upload
 
   [ Simon McVittie ]
   * New upstream release
@@ -9,12 +11,14 @@ gnome-shell (3.36.1-1) UNRELEASED; urgency=medium
   * d/patches: Update from upstream gnome-3-36 branch up to commit
     3.36.1-12-g3a863ee34
     - Translation updates
-    - Bug fixes
+    - Don't override DesktopAppInfo desktop in Ubuntu's GNOME session,
+      so NotShowIn=ubuntu works (LP: #1869905)
+    - Various other bug fixes
 
   [ Laurent Bigonville ]
   * debian/control.in: Bump gir1.2-gnomedesktop-3.0 (build-)dependency
 
- -- Simon McVittie <smcv@debian.org>  Fri, 03 Apr 2020 14:19:29 +0100
+ -- Simon McVittie <smcv@debian.org>  Fri, 03 Apr 2020 14:23:59 +0100
 
 gnome-shell (3.36.0-2) experimental; urgency=medium
 
