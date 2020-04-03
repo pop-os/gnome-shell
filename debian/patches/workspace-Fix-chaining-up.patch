@@ -1,0 +1,26 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Fri, 3 Apr 2020 14:43:16 +0200
+Subject: workspace: Fix chaining up
+
+Gah, accidentally dropped the 'vfunc' prefix :-(
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1172
+
+Origin: upstream, 3.36.2, commit:15e72da648830e5d766e629abb39cbbff8a2e277
+---
+ js/ui/workspace.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/workspace.js b/js/ui/workspace.js
+index 0f69a90..8abd422 100644
+--- a/js/ui/workspace.js
++++ b/js/ui/workspace.js
+@@ -404,7 +404,7 @@ var WindowClone = GObject.registerClass({
+             return true;
+         }
+ 
+-        return super.key_press_event(keyEvent);
++        return super.vfunc_key_press_event(keyEvent);
+     }
+ 
+     _onClicked() {
