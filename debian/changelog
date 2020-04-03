@@ -1,8 +1,20 @@
 gnome-shell (3.36.1-1) UNRELEASED; urgency=medium
 
+  [ Simon McVittie ]
   * New upstream release
+  * Drop patches that were applied upstream
+  * Build-depend on appstream, for its gettext .its integration
+  * Install new AppStream metadata for extensions tool
+  * Install bash completion for gnome-extensions CLI
+  * d/patches: Update from upstream gnome-3-36 branch up to commit
+    3.36.1-12-g3a863ee34
+    - Translation updates
+    - Bug fixes
 
- -- Simon McVittie <smcv@debian.org>  Tue, 31 Mar 2020 19:03:22 +0100
+  [ Laurent Bigonville ]
+  * debian/control.in: Bump gir1.2-gnomedesktop-3.0 (build-)dependency
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 03 Apr 2020 14:19:29 +0100
 
 gnome-shell (3.36.0-2) experimental; urgency=medium
 
