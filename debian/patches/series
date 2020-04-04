@@ -14,7 +14,6 @@ extensions-app-Do-not-expand-headerbar-switch.patch
 workspace-Fix-chaining-up.patch
 extensionSystem-Add-method-for-opening-extension-prefs.patch
 extensionUtils-Add-openPrefs-convenience-method.patch
-st-icon-Only-load-default-fallback-icon-if-an-icon-was-se.patch
 screenShield-Switch-lightboxes-off-before-unlock-transiti.patch
 screenShield-Wake-up-on-deactivate.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
