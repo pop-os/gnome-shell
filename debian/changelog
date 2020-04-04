@@ -1,11 +1,12 @@
-gnome-shell (3.36.1-2) UNRELEASED; urgency=medium
+gnome-shell (3.36.1-2) experimental; urgency=medium
 
+  * Team upload
   * d/patches: Update from upstream gnome-3-36 branch up to commit
     3.36.1-19-gdfcc5ffb1
     - Drop commit c89d6a63 for now, there seems to be some doubt as to
       whether it is fully correct
 
- -- Simon McVittie <smcv@debian.org>  Fri, 03 Apr 2020 23:15:00 +0100
+ -- Simon McVittie <smcv@debian.org>  Sat, 04 Apr 2020 12:17:51 +0100
 
 gnome-shell (3.36.1-1) experimental; urgency=medium
 
