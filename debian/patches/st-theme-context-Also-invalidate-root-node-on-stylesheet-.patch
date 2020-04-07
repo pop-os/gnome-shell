@@ -1,0 +1,42 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Mon, 6 Apr 2020 00:11:27 +0000
+Subject: st/theme-context: Also invalidate root node on stylesheet changes
+
+Since commit 6a42d7726119c538d260e54cdbe2f31e5fbeb03c we invalidate the
+cached properties for each theme node on stylesheet changes by iterating
+over the hashtable of the theme context instead of listening to the
+signal in each individual theme node.
+
+That commit forgot one particular node though that's not stored in the
+hashtable, but using the `priv->root_node` property instead: The theme
+node that belongs to the stage.
+
+So make sure we also invalidate the cached properties of the stage theme
+node on stylesheet changes. This fixes various crashes that happened
+with extensions providing custom stylesheets (emitting the
+"custom-stylesheets-changed" signal on every extension enable/disable),
+trying to access an already freed CSS property of the stage.
+
+Fixes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2584
+
+(cherry picked from commit bc973b80d77ba36e29fbeba27a2bed9e2ea6cf09)
+
+Origin: upstream, 3.36.2, commit:025647f585ce4cfacd8758908b04addf1df0ae8a
+---
+ src/st/st-theme-context.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/st/st-theme-context.c b/src/st/st-theme-context.c
+index de112aa..bc0f89a 100644
+--- a/src/st/st-theme-context.c
++++ b/src/st/st-theme-context.c
+@@ -297,6 +297,9 @@ on_custom_stylesheets_changed (StTheme        *theme,
+   GHashTableIter iter;
+   StThemeNode *node;
+ 
++  if (context->root_node)
++    _st_theme_node_reset_for_stylesheet_change (context->root_node);
++
+   g_hash_table_iter_init (&iter, context->nodes);
+ 
+   while (g_hash_table_iter_next (&iter, (gpointer *) &node, NULL))

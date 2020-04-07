@@ -1,0 +1,31 @@
+From: Georges Basile Stavracas Neto <georges.stavracas@gmail.com>
+Date: Mon, 6 Apr 2020 11:19:28 -0300
+Subject: animation: Set size through CSS
+
+Pretty much the same case of the previous commit: we want this size
+to be scale-dependant, and using the width and height properties of
+ClutterActor doesn't automatically update.
+
+Use CSS to set the width and height.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1176
+
+Origin: upstream, 3.36.2, commit:a6783692c5f6307c0e2264201381ebfcb9c66c8c
+---
+ js/ui/animation.js | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/js/ui/animation.js b/js/ui/animation.js
+index 2344851..fa8cad9 100644
+--- a/js/ui/animation.js
++++ b/js/ui/animation.js
+@@ -15,8 +15,7 @@ class Animation extends St.Bin {
+         const themeContext = St.ThemeContext.get_for_stage(global.stage);
+ 
+         super._init({
+-            width: width * themeContext.scale_factor,
+-            height: height * themeContext.scale_factor,
++            style: `width: ${width}px; height: ${height}px;`,
+         });
+ 
+         this.connect('destroy', this._onDestroy.bind(this));
