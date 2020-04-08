@@ -18,7 +18,7 @@ Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
  2 files changed, 21 insertions(+)
 
 diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
-index 5f6e74b..244c148 100644
+index 08ebc2f..b178030 100644
 --- a/js/ui/extensionDownloader.js
 +++ b/js/ui/extensionDownloader.js
 @@ -4,6 +4,7 @@
@@ -44,7 +44,7 @@ index 5f6e74b..244c148 100644
      let message = Soup.form_request_new_from_hash('GET', REPOSITORY_URL_INFO, params);
  
      _httpSession.queue_message(message, () => {
-@@ -124,6 +133,9 @@ function checkForUpdates() {
+@@ -139,6 +148,9 @@ function checkForUpdates() {
              return;
          if (extension.hasUpdate)
              return;
@@ -55,7 +55,7 @@ index 5f6e74b..244c148 100644
      });
  
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
-index 3f2ee35..5a990fa 100644
+index 21ee8a1..f38c859 100644
 --- a/js/ui/extensionSystem.js
 +++ b/js/ui/extensionSystem.js
 @@ -4,6 +4,7 @@
@@ -66,7 +66,7 @@ index 3f2ee35..5a990fa 100644
  const ExtensionDownloader = imports.ui.extensionDownloader;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
-@@ -351,6 +352,10 @@ var ExtensionManager = class {
+@@ -375,6 +376,10 @@ var ExtensionManager = class {
          this.loadExtension(newExtension);
      }
  
@@ -77,7 +77,7 @@ index 3f2ee35..5a990fa 100644
      _callExtensionInit(uuid) {
          if (!Main.sessionMode.allowExtensions)
              return false;
-@@ -527,6 +532,10 @@ var ExtensionManager = class {
+@@ -559,6 +564,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;
