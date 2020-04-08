@@ -1,8 +1,61 @@
-gnome-shell (3.36.0-2ubuntu3) UNRELEASED; urgency=medium
+gnome-shell (3.36.1-4ubuntu1) UNRELEASED; urgency=medium
 
   * debian/patches: Don't override DestkopAppInfo desktop env (LP: #1869905)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 08 Apr 2020 23:29:33 +0200
+
+gnome-shell (3.36.1-4) experimental; urgency=medium
+
+  * Team upload
+  * extensions-app: Patch back in basic compatibility with old invocation.
+    There are enough extensions in Debian that rely on being able to
+    run "gnome-shell-extension-prefs <extension-UUID>" that we can't
+    really drop this immediately.
+    Mitigates: #956162, #956163, #956164, #956165, #956166, #956167,
+    #956168, #956169, #956170, #956171, #956172
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 08 Apr 2020 11:19:11 +0100
+
+gnome-shell (3.36.1-3) experimental; urgency=medium
+
+  * Team upload
+  * Require an ibus version where #955769 (LP#1869641) has been fixed
+  * d/patches: Update from upstream gnome-3-36 branch up to commit
+    3.36.1-31-ga6783692c
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 07 Apr 2020 18:27:29 +0100
+
+gnome-shell (3.36.1-2) experimental; urgency=medium
+
+  * Team upload
+  * d/patches: Update from upstream gnome-3-36 branch up to commit
+    3.36.1-19-gdfcc5ffb1
+    - Drop commit c89d6a63 for now, there seems to be some doubt as to
+      whether it is fully correct
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 04 Apr 2020 12:17:51 +0100
+
+gnome-shell (3.36.1-1) experimental; urgency=medium
+
+  * Team upload
+
+  [ Simon McVittie ]
+  * New upstream release
+  * Drop patches that were applied upstream
+  * Build-depend on appstream, for its gettext .its integration
+  * Install new AppStream metadata for extensions tool
+  * Install bash completion for gnome-extensions CLI
+  * d/patches: Update from upstream gnome-3-36 branch up to commit
+    3.36.1-12-g3a863ee34
+    - Translation updates
+    - Don't override DesktopAppInfo desktop in Ubuntu's GNOME session,
+      so NotShowIn=ubuntu works (LP: #1869905)
+    - Various other bug fixes
+
+  [ Laurent Bigonville ]
+  * debian/control.in: Bump gir1.2-gnomedesktop-3.0 (build-)dependency
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 03 Apr 2020 14:23:59 +0100
 
 gnome-shell (3.36.0-2ubuntu2) focal; urgency=medium
 

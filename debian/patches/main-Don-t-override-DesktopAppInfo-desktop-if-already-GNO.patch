@@ -1,5 +1,5 @@
 From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
-Date: Tue, 31 Mar 2020 20:13:46 +0200
+Date: Tue, 31 Mar 2020 18:13:46 +0000
 Subject: main: Don't override DesktopAppInfo desktop if already GNOME
 
 During the shell initialization we call the (deprecated) function to
@@ -21,15 +21,15 @@ running as nested in some other environment, so keeping it.
 
 https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/1156
 
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/a0def2394
-Bug-Ubuntu: https://bugs.launchpad.net/bugs/1869905
-Applied-Upstream: 3.36.2
+(cherry picked from commit a0def239408b389020c8d2dc634ab0250e2d9721)
+
+Origin: upstream, 3.36.2
 ---
  js/ui/main.js | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index 843bd32..2d96e39 100644
+index ebf9b33..bb579c3 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
 @@ -132,7 +132,9 @@ function start() {

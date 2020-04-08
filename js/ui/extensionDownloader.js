@@ -56,6 +56,15 @@ function uninstallExtension(uuid) {
         return false;
 
     FileUtils.recursivelyDeleteDir(extension.dir, true);
+
+    try {
+        const updatesDir = Gio.File.new_for_path(GLib.build_filenamev(
+            [global.userdatadir, 'extension-updates', extension.uuid]));
+        FileUtils.recursivelyDeleteDir(updatesDir, true);
+    } catch (e) {
+        // not an error
+    }
+
     return true;
 }
 
@@ -99,6 +108,9 @@ function gotExtensionZipFile(session, message, uuid, dir, callback, errback) {
 }
 
 function downloadExtensionUpdate(uuid) {
+    if (!Main.extensionManager.updatesSupported)
+        return;
+
     let dir = Gio.File.new_for_path(
         GLib.build_filenamev([global.userdatadir, 'extension-updates', uuid]));
 
@@ -117,6 +129,9 @@ function downloadExtensionUpdate(uuid) {
 }
 
 function checkForUpdates() {
+    if (!Main.extensionManager.updatesSupported)
+        return;
+
     let metadatas = {};
     Main.extensionManager.getUuids().forEach(uuid => {
         let extension = Main.extensionManager.lookup(uuid);
@@ -126,6 +141,9 @@ function checkForUpdates() {
             return;
         metadatas[uuid] = extension.metadata;
     });
+
+    if (Object.keys(metadatas).length === 0)
+        return; // nothing to update
 
     let versionCheck = global.settings.get_boolean(
         'disable-extension-version-validation');
@@ -144,9 +162,7 @@ function checkForUpdates() {
         let operations = JSON.parse(message.response_body.data);
         for (let uuid in operations) {
             let operation = operations[uuid];
-            if (operation == 'blacklist')
-                uninstallExtension(uuid);
-            else if (operation == 'upgrade' || operation == 'downgrade')
+            if (operation === 'upgrade' || operation === 'downgrade')
                 downloadExtensionUpdate(uuid);
         }
     });

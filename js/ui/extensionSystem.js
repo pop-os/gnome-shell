@@ -60,6 +60,11 @@ var ExtensionManager = class {
         ExtensionDownloader.checkForUpdates();
     }
 
+    get updatesSupported() {
+        const appSys = Shell.AppSystem.get_default();
+        return appSys.lookup_app('org.gnome.Extensions.desktop') !== null;
+    }
+
     lookup(uuid) {
         return this._extensions.get(uuid);
     }
@@ -481,6 +486,9 @@ var ExtensionManager = class {
     }
 
     _installExtensionUpdates() {
+        if (!this.updatesSupported)
+            return;
+
         FileUtils.collectFromDatadirs('extension-updates', true, (dir, info) => {
             let fileType = info.get_file_type();
             if (fileType !== Gio.FileType.DIRECTORY)
@@ -489,9 +497,14 @@ var ExtensionManager = class {
             let extensionDir = Gio.File.new_for_path(
                 GLib.build_filenamev([global.userdatadir, 'extensions', uuid]));
 
-            FileUtils.recursivelyDeleteDir(extensionDir, false);
-            FileUtils.recursivelyMoveDir(dir, extensionDir);
-            FileUtils.recursivelyDeleteDir(dir, true);
+            try {
+                FileUtils.recursivelyDeleteDir(extensionDir, false);
+                FileUtils.recursivelyMoveDir(dir, extensionDir);
+            } catch (e) {
+                log('Failed to install extension updates for %s'.format(uuid));
+            } finally {
+                FileUtils.recursivelyDeleteDir(dir, true);
+            }
         });
     }
 

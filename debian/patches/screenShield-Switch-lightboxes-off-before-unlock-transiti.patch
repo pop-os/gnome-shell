@@ -1,0 +1,40 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 1 Apr 2020 12:48:10 +0000
+Subject: screenShield: Switch lightboxes off before unlock transition
+
+There is no point in animating a transition with fullscreen black
+rectangles stacked on top, so switch them off before rather than
+after the transition.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1158
+
+(cherry picked from commit fb6ead2881525676d49a331c726200a5d78cb65c)
+
+Origin: upstream, 3.36.2, commit:8b80a4cf4da39a76ca9a304b11d68913cbd3f527
+---
+ js/ui/screenShield.js | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
+index de43d3d..1107a5c 100644
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
+@@ -519,6 +519,9 @@ var ScreenShield = class {
+             this._isModal = false;
+         }
+ 
++        this._longLightbox.lightOff();
++        this._shortLightbox.lightOff();
++
+         this._lockDialogGroup.ease({
+             translation_y: -global.screen_height,
+             duration: Overview.ANIMATION_TIME,
+@@ -533,8 +536,6 @@ var ScreenShield = class {
+             this._dialog = null;
+         }
+ 
+-        this._longLightbox.lightOff();
+-        this._shortLightbox.lightOff();
+         this.actor.hide();
+ 
+         if (this._becameActiveId != 0) {

@@ -1,0 +1,47 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 19 Dec 2019 20:50:37 +0100
+Subject: js: Account for promisified call() method
+
+A promisified method expects the callback parameter to be either
+a function (in which case the original method is called normally)
+or omitted altogether (in which case a Promise is returned).
+
+The call to open application details in Software does neither and
+passes null instead, which will result in a warning (because no
+function argument means a promise will be used, but not omitting
+the parameter means we end up with too many arguments).
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2551
+
+Origin: upstream, 3.36.2
+---
+ js/ui/appDisplay.js | 2 +-
+ js/ui/panel.js      | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
+index 5be8261..e109b02 100644
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -2561,7 +2561,7 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
+                                  'org.gtk.Actions', 'Activate',
+                                  GLib.Variant.new('(sava{sv})',
+                                                   ['details', [args], null]),
+-                                 null, 0, -1, null, null);
++                                 null, 0, -1, null);
+                         Main.overview.hide();
+                     });
+                 });
+diff --git a/js/ui/panel.js b/js/ui/panel.js
+index 43f2ddc..095b400 100644
+--- a/js/ui/panel.js
++++ b/js/ui/panel.js
+@@ -100,7 +100,7 @@ class AppMenu extends PopupMenu.PopupMenu {
+                          'org.gtk.Actions', 'Activate',
+                          GLib.Variant.new('(sava{sv})',
+                                           ['details', [args], null]),
+-                         null, 0, -1, null, null);
++                         null, 0, -1, null);
+             });
+         });
+ 

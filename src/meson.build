@@ -115,6 +115,7 @@ endif
 
 libshell_private_headers = [
   'shell-app-private.h',
+  'shell-app-cache-private.h',
   'shell-app-system-private.h',
   'shell-global-private.h',
   'shell-window-tracker-private.h',
@@ -154,7 +155,9 @@ if have_networkmanager
   libshell_sources += 'shell-network-agent.c'
 endif
 
-libshell_private_sources = []
+libshell_private_sources = [
+  'shell-app-cache.c',
+]
 
 if enable_recorder
     libshell_sources += ['shell-recorder.c']
@@ -246,15 +249,6 @@ executable('gnome-shell', 'main.c',
   install: true
 )
 
-executable('gnome-shell-extension-prefs',
-  'gnome-shell-extension-prefs.c', prefs_resources,
-  c_args: tools_cflags,
-  dependencies: tools_deps,
-  include_directories: [conf_inc],
-  install: true
-)
-
-
 if have_networkmanager
   executable('gnome-shell-portal-helper',
     'gnome-shell-portal-helper.c', portal_resources,
@@ -274,7 +268,7 @@ executable('gnome-shell-perf-helper', 'shell-perf-helper.c',
 )
 
 executable('run-js-test', 'run-js-test.c',
-  dependencies: [mutter_dep, gio_dep, gjs_dep],
+  dependencies: [mutter_dep, gio_dep, gi_dep, gjs_dep],
   include_directories: [conf_inc],
   link_with: libshell,
   build_rpath: mutter_typelibdir,

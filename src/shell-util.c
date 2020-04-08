@@ -16,6 +16,7 @@
 #include <GL/gl.h>
 #include <cogl/cogl.h>
 
+#include "shell-app-cache-private.h"
 #include "shell-util.h"
 #include <glib/gi18n-lib.h>
 #include <gtk/gtk.h>
@@ -288,6 +289,68 @@ shell_get_file_contents_utf8_sync (const char *path,
       return NULL;
     }
   return contents;
+}
+
+static void
+touch_file (GTask        *task,
+            gpointer      object,
+            gpointer      task_data,
+            GCancellable *cancellable)
+{
+  GFile *file = object;
+  g_autoptr (GFile) parent = NULL;
+  g_autoptr (GFileOutputStream) stream = NULL;
+  GError *error = NULL;
+
+  parent = g_file_get_parent (file);
+  g_file_make_directory_with_parents (parent, cancellable, &error);
+
+  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+    {
+      g_task_return_error (task, error);
+      return;
+    }
+  g_clear_error (&error);
+
+  stream = g_file_create (file, G_FILE_CREATE_NONE, cancellable, &error);
+
+  if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_EXISTS))
+    {
+      g_task_return_error (task, error);
+      return;
+    }
+  g_clear_error (&error);
+
+  if (stream)
+    g_output_stream_close (G_OUTPUT_STREAM (stream), NULL, NULL);
+
+  g_task_return_boolean (task, stream != NULL);
+}
+
+void
+shell_util_touch_file_async (GFile               *file,
+                             GAsyncReadyCallback  callback,
+                             gpointer             user_data)
+{
+  g_autoptr (GTask) task = NULL;
+
+  g_return_if_fail (G_IS_FILE (file));
+
+  task = g_task_new (file, NULL, callback, user_data);
+  g_task_set_source_tag (task, shell_util_touch_file_async);
+
+  g_task_run_in_thread (task, touch_file);
+}
+
+gboolean
+shell_util_touch_file_finish (GFile         *file,
+                              GAsyncResult  *res,
+                              GError       **error)
+{
+  g_return_val_if_fail (G_IS_FILE (file), FALSE);
+  g_return_val_if_fail (G_IS_TASK (res), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (res), error);
 }
 
 /**
@@ -664,4 +727,19 @@ shell_util_has_x11_display_extension (MetaDisplay *display,
 
   xdisplay = meta_x11_display_get_xdisplay (x11_display);
   return XQueryExtension (xdisplay, extension, &op, &event, &error);
+}
+
+/**
+ * shell_util_get_translated_folder_name:
+ * @name: the untranslated folder name
+ *
+ * Attempts to translate the folder @name using translations provided
+ * by .directory files.
+ *
+ * Returns: (nullable): a translated string or %NULL
+ */
+char *
+shell_util_get_translated_folder_name (const char *name)
+{
+  return shell_app_cache_translate_folder (shell_app_cache_get_default (), name);
 }
