@@ -1,3 +1,9 @@
+gnome-shell (3.36.0-2ubuntu3) UNRELEASED; urgency=medium
+
+  * debian/patches: Don't override DestkopAppInfo desktop env (LP: #1869905)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 08 Apr 2020 23:29:33 +0200
+
 gnome-shell (3.36.0-2ubuntu2) focal; urgency=medium
 
   * d/p/overview-Fade-in-out-over-the-desktop-instead-of-replacin.patch:
