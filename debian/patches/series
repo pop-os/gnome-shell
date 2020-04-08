@@ -30,3 +30,4 @@ st-theme-node-Use-the-node-s-scale-factor.patch
 appDisplay-Set-the-folder-icon-geometry-through-CSS.patch
 animation-Set-size-through-CSS.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
+extensions-app-Add-back-minimal-compatibility-with-older-.patch

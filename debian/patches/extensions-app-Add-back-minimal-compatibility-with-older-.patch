@@ -1,0 +1,49 @@
+From: Simon McVittie <smcv@debian.org>
+Date: Wed, 8 Apr 2020 11:01:06 +0100
+Subject: extensions-app: Add back minimal compatibility with older versions
+
+There are enough extensions in Debian that rely on being able to
+run "gnome-shell-extension-prefs <extension-UUID>" that we can't
+really drop this immediately.
+
+Mitigates: #956162, #956163, #956164, #956165, #956166, #956167,
+#956168, #956169, #956170, #956171, #956172
+
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ .../js/gnome-shell-extension-prefs.in              | 26 ++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/subprojects/extensions-app/js/gnome-shell-extension-prefs.in b/subprojects/extensions-app/js/gnome-shell-extension-prefs.in
+index dc6d627..c4dbb30 100644
+--- a/subprojects/extensions-app/js/gnome-shell-extension-prefs.in
++++ b/subprojects/extensions-app/js/gnome-shell-extension-prefs.in
+@@ -1,2 +1,28 @@
+ #!/bin/sh
++
++compat_launch () {
++    cat <<'EOF' >&2
++WARNING: Passing an extension UUID as a command-line argument to
++gnome-shell-extension-prefs is deprecated.
++
++In GNOME Shell extensions, use ExtensionUtils.openPrefs()
++(sample code:
++https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator/pull/203)
++
++In other modules, call the OpenExtensionPrefs D-Bus method instead.
++
++EOF
++    exec gdbus call \
++        --session \
++        --dest=org.gnome.Shell.Extensions \
++        -o /org/gnome/Shell/Extensions \
++        -m org.gnome.Shell.Extensions.OpenExtensionPrefs \
++        "'$1'" "''" "@a{sv} {}" \
++        >/dev/null
++}
++
++if [ $# = 1 ] && [ "x${1#-}" = "x$1" ]; then
++    compat_launch "$1"
++fi
++
+ @gjs@ @pkgdatadir@/@app_id@ "$@"
