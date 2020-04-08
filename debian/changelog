@@ -1,3 +1,15 @@
+gnome-shell (3.36.1-4) experimental; urgency=medium
+
+  * Team upload
+  * extensions-app: Patch back in basic compatibility with old invocation.
+    There are enough extensions in Debian that rely on being able to
+    run "gnome-shell-extension-prefs <extension-UUID>" that we can't
+    really drop this immediately.
+    Mitigates: #956162, #956163, #956164, #956165, #956166, #956167,
+    #956168, #956169, #956170, #956171, #956172
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 08 Apr 2020 11:19:11 +0100
+
 gnome-shell (3.36.1-3) experimental; urgency=medium
 
   * Team upload
