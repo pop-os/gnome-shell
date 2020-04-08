@@ -1,6 +1,64 @@
 gnome-shell (3.36.1-4ubuntu1) UNRELEASED; urgency=medium
 
-  * debian/patches: Don't override DestkopAppInfo desktop env (LP: #1869905)
+  * Merge with debian, with new upstream releases and cherry-picked fixes:
+    - Lockscreen password field is stretched on enter (LP: #1869916)
+    - Downscaled lockscreen background with fractional scaling (LP: #1866851)
+    - Volume keys doesn't always produce a sound (LP: #1870958)
+    - Shell crashes when using show-apps button in dock (LP: #1868659)
+    - App folders improvements
+    - Don't load app infos in the main thread
+  * debian/patches:
+    - Refreshed
+  * d/p/ubuntu/desktop_detect.patch:
+    - No need to include desktop.js into the prefs gresources anymore
+  * Remaining changes with debian:
+    - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    - Add some Recommends:
+      + ubuntu-session (| gnome-session) to have the ubuntu session available
+      + xserver-xorg-legacy
+      + yaru-theme-gnome-shell for the default ubuntu theming
+    - Update debian/gbp.conf with Ubuntu settings
+    - gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    - ubuntu/desktop_detect.patch:
+      + add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    - ubuntu/smarter_alt_tab.patch:
+      + quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    - ubuntu/lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - ubuntu/lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - ubuntu/background_login.patch
+      + Change default background color as we modified the default GDM color
+        for our ubuntu session.
+    - ubuntu/gdm_alternatives.patch
+      + Add support for GDM3 theme alternatives
+    - optional-hot-corner.patch
+      + enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    - main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      + Improve debug JS tracing for crash reports
+    - st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch:
+      + Fix crash on theme changes
+    - ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      + stop searches when requested from UI
+    - magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      + Show monitor scaled cursor when magnifier is enabled
+    - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
+
+  [ Daniel van Vugt ]
+  * d/p/ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch:
+     Stop the Ubuntu logo from disappearing and fading back in on the login
+     screen (LP: #1867133)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 08 Apr 2020 23:29:33 +0200
 
