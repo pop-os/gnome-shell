@@ -1,4 +1,4 @@
-gnome-shell (3.36.1-4ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.36.1-4ubuntu1) focal; urgency=medium
 
   * Merge with debian, with new upstream releases and cherry-picked fixes:
     - Lockscreen password field is stretched on enter (LP: #1869916)
@@ -60,7 +60,7 @@ gnome-shell (3.36.1-4ubuntu1) UNRELEASED; urgency=medium
      Stop the Ubuntu logo from disappearing and fading back in on the login
      screen (LP: #1867133)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 08 Apr 2020 23:29:33 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 09 Apr 2020 14:57:47 +0200
 
 gnome-shell (3.36.1-4) experimental; urgency=medium
 
