@@ -1,9 +1,11 @@
-gnome-shell (3.36.1-5) UNRELEASED; urgency=medium
+gnome-shell (3.36.1-5) unstable; urgency=medium
 
   * Team upload
+  * Merge changelog from unstable
   * Upload to unstable (transition: #954422)
+  * d/gbp.conf: Follow upstream/3.36.x branch
 
- -- Simon McVittie <smcv@debian.org>  Fri, 10 Apr 2020 15:14:53 +0100
+ -- Simon McVittie <smcv@debian.org>  Fri, 10 Apr 2020 17:56:07 +0100
 
 gnome-shell (3.34.4-1) unstable; urgency=medium
 
