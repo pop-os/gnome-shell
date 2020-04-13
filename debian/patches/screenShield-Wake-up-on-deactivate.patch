@@ -1,0 +1,37 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 31 Mar 2020 19:07:59 +0000
+Subject: screenShield: Wake up on deactivate()
+
+Usually the screen is woken up before the shield is deactivated, but
+it is also possible to unlock the session programmatically via the
+org.gnome.ScreenSaver D-Bus API.
+
+The intention is very likely not to unlock a turned off screen in
+that case. Nor does it seem like a good idea to change the lock
+state without any indication.
+
+Waking up the screen is more likely to meet expectations and is
+more reasonable too, so do that.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1158
+
+(cherry picked from commit fbe2e30f389a10b5b155ab7b2179d9fd718e762b)
+
+Origin: upstream, 3.36.2, commit:dfcc5ffb1e2b7a8e5ad59b1f83133c06a5b8ff7c
+---
+ js/ui/screenShield.js | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
+index 1107a5c..86221a3 100644
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
+@@ -498,6 +498,8 @@ var ScreenShield = class {
+         if (Main.sessionMode.currentMode == 'unlock-dialog')
+             Main.sessionMode.popMode('unlock-dialog');
+ 
++        this.emit('wake-up-screen');
++
+         if (this._isGreeter) {
+             // We don't want to "deactivate" any more than
+             // this. In particular, we don't want to drop

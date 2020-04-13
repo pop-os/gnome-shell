@@ -1,0 +1,51 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Thu, 2 Apr 2020 17:47:52 +0000
+Subject: appDisplay: Don't clear signal handler id before emitting
+
+Otherwise we won't clear the 'view-loaded' handler after it was emitted.
+
+Also move field initialization to the correct place, i.e. the init
+function of the base class.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1169
+
+(cherry picked from commit a9df4e7516cd78f27c92d13fc53942e4c9fb365c)
+
+Origin: upstream, 3.36.2
+---
+ js/ui/appDisplay.js | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
+index 98aa121..5be8261 100644
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -157,6 +157,10 @@ var BaseAppView = GObject.registerClass({
+ 
+         this._items = new Map();
+         this._orderedItems = [];
++
++        this._animateLaterId = 0;
++        this._viewLoadedHandlerId = 0;
++        this._viewIsReady = false;
+     }
+ 
+     _childFocused(_actor) {
+@@ -192,8 +196,6 @@ var BaseAppView = GObject.registerClass({
+             this._items.set(icon.id, icon);
+         });
+ 
+-        this._animateLaterId = 0;
+-        this._viewLoadedHandlerId = 0;
+         this._viewIsReady = true;
+         this.emit('view-loaded');
+     }
+@@ -412,8 +414,6 @@ var AllView = GObject.registerClass({
+         this._lastOvershootY = -1;
+         this._lastOvershootTimeoutId = 0;
+ 
+-        this._viewIsReady = false;
+-
+         Main.overview.connect('hidden', () => this.goToPage(0));
+ 
+         this._redisplayWorkId = Main.initializeDeferredWork(this, this._redisplay.bind(this));

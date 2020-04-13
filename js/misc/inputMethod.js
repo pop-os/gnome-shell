@@ -97,8 +97,13 @@ class InputMethod extends Clutter.InputMethod {
         this.commit(text.get_text());
     }
 
-    _onDeleteSurroundingText() {
-        this.delete_surrounding();
+    _onDeleteSurroundingText(_context, offset, nchars) {
+        try {
+            this.delete_surrounding(offset, nchars);
+        } catch (e) {
+            // We may get out of bounds for negative offset on older mutter
+            this.delete_surrounding(0, nchars + offset);
+        }
     }
 
     _onUpdatePreeditText(_context, text, pos, visible) {

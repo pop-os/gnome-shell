@@ -1,0 +1,814 @@
+From: Danial Behzadi <dani.behzi@ubuntu.com>
+Date: Wed, 1 Apr 2020 01:42:46 +0000
+Subject: Update Persian translation
+
+Origin: upstream, 3.36.2
+---
+ po/fa.po | 429 +++++++++++++++++++++++++++++++--------------------------------
+ 1 file changed, 214 insertions(+), 215 deletions(-)
+
+diff --git a/po/fa.po b/po/fa.po
+index fefae45..c859dea 100644
+--- a/po/fa.po
++++ b/po/fa.po
+@@ -9,8 +9,8 @@ msgid ""
+ msgstr ""
+ "Project-Id-Version: gnome-shell master\n"
+ "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/gnome-shell/issues\n"
+-"POT-Creation-Date: 2020-03-19 14:34+0000\n"
+-"PO-Revision-Date: 2020-03-20 23:31+0000\n"
++"POT-Creation-Date: 2020-03-31 07:15+0000\n"
++"PO-Revision-Date: 2020-03-31 20:35+0430\n"
+ "Last-Translator: Danial Behzadi <dani.behzi@ubuntu.com>\n"
+ "Language-Team: Persian <>\n"
+ "Language: fa\n"
+@@ -366,63 +366,12 @@ msgstr ""
+ msgid "Network Login"
+ msgstr "ورود شبکه‌ای"
+ 
+-#: js/extensionPrefs/data/metainfo/org.gnome.Extensions.metainfo.xml.in:5
+-#: js/extensionPrefs/data/org.gnome.Extensions.desktop.in.in:4
+-#: js/extensionPrefs/js/main.js:242
+-#: js/extensionPrefs/data/ui/extensions-window.ui:61
+-msgid "Extensions"
+-msgstr "افزونه‌ها"
+-
+-#: js/extensionPrefs/data/metainfo/org.gnome.Extensions.metainfo.xml.in:6
+-#: js/extensionPrefs/js/main.js:243
+-msgid "Manage your GNOME Extensions"
+-msgstr "مدیریت افزونه‌های پوستهٔ گنوم"
+-
+-#: js/extensionPrefs/data/metainfo/org.gnome.Extensions.metainfo.xml.in:35
+-msgid ""
+-"GNOME Extensions handles updating extensions, configuring extension preferences "
+-"and removing or disabling unwanted extensions."
+-msgstr ""
+-"افزونه‌های گنوم به‌روز رسانی، پیکربندی، برداشتن یا از کار انداختن افزونه‌ها را "
+-"مدیریت می‌کند."
+-
+-#: js/extensionPrefs/data/org.gnome.Extensions.desktop.in.in:7
+-msgid "Configure GNOME Shell Extensions"
+-msgstr "پیکربندی افزونه‌های پوستهٔ گنوم"
+-
+-#: js/extensionPrefs/js/main.js:164
+-#, javascript-format
+-msgid "Remove “%s”?"
+-msgstr "برداشتن «%s»؟"
+-
+-#: js/extensionPrefs/js/main.js:165
+-msgid ""
+-"If you remove the extension, you need to return to download it if you want to "
+-"enable it again"
+-msgstr "اگر افزونه را بردارید، باید برای به کار انداختن دوباره‌اش، بارگیریش کنید"
+-
+-#: js/extensionPrefs/js/main.js:168 js/gdm/authPrompt.js:135
+-#: js/ui/audioDeviceSelection.js:57 js/ui/components/networkAgent.js:109
+-#: js/ui/components/polkitAgent.js:139 js/ui/endSessionDialog.js:374
+-#: js/ui/extensionDownloader.js:177 js/ui/shellMountOperation.js:376
+-#: js/ui/shellMountOperation.js:386 js/ui/status/network.js:913
+-msgid "Cancel"
+-msgstr "لغو"
+-
+-#: js/extensionPrefs/js/main.js:169
+-msgid "Remove"
+-msgstr "حذف"
+-
+-#: js/extensionPrefs/js/main.js:241
+-msgid "translator-credits"
+-msgstr "دانیال بهزادی <dani.behzi@ubuntu.com>"
+-
+-#: js/extensionPrefs/js/main.js:285
+-#: js/extensionPrefs/data/ui/extensions-window.ui:223
++#: js/dbusServices/extensions/ui/extension-prefs-dialog.ui:36
++#: subprojects/extensions-app/data/ui/extensions-window.ui:223
+ msgid "Something’s gone wrong"
+ msgstr "اشتباهی صورت گرفت"
+ 
+-#: js/extensionPrefs/js/main.js:292
++#: js/dbusServices/extensions/ui/extension-prefs-dialog.ui:48
+ msgid ""
+ "We’re very sorry, but there’s been a problem: the settings for this extension "
+ "can’t be displayed. We recommend that you report the issue to the extension "
+@@ -431,103 +380,25 @@ msgstr ""
+ "متأسّفیم، ولی مشکلی وجود داشت: تنظیمات این افزونه نمی‌تواند نشان داده شوند. توصیه "
+ "می‌کنیم مشکل را به نگارندهٔ افزونه گزارش دهید."
+ 
+-#: js/extensionPrefs/js/main.js:299
++#: js/dbusServices/extensions/ui/extension-prefs-dialog.ui:82
+ msgid "Technical Details"
+ msgstr "جزییات فنّی"
+ 
+-#: js/extensionPrefs/js/main.js:334
+-msgid "Copy Error"
+-msgstr "رونوشت از خطا"
+-
+-#: js/extensionPrefs/js/main.js:361
++#: js/dbusServices/extensions/ui/extension-prefs-dialog.ui:165
+ msgid "Homepage"
+ msgstr "صفحهٔ خانگی"
+ 
+-#: js/extensionPrefs/js/main.js:362
++#: js/dbusServices/extensions/ui/extension-prefs-dialog.ui:166
+ msgid "Visit extension homepage"
+ msgstr "مشاهدهٔ صفحهٔ خانگی افزونه"
+ 
+-#: js/extensionPrefs/js/main.js:479
+-#, javascript-format
+-msgid "%d extension will be updated on next login."
+-msgid_plural "%d extensions will be updated on next login."
+-msgstr[0] "تعداد %Id افزونه در ورود بعدی به‌روز خواهد شد."
+-msgstr[1] "تعداد %Id افزونه در ورود بعدی به‌روز خواهند شد."
+-
+-#: js/extensionPrefs/data/ui/extension-row.ui:100
+-#: subprojects/extensions-tool/src/command-create.c:211
+-#: subprojects/extensions-tool/src/main.c:173
+-msgid "Description"
+-msgstr "شرح"
+-
+-#: js/extensionPrefs/data/ui/extension-row.ui:123
+-#: subprojects/extensions-tool/src/main.c:185
+-msgid "Version"
+-msgstr "نگارش"
+-
+-#: js/extensionPrefs/data/ui/extension-row.ui:151
+-msgid "Author"
+-msgstr "نگارنده"
+-
+-#: js/extensionPrefs/data/ui/extension-row.ui:175
+-msgid "Website"
+-msgstr "پایگاه وب"
+-
+-#: js/extensionPrefs/data/ui/extension-row.ui:192
+-msgid "Remove…"
+-msgstr "برداشتن…"
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:8
+-msgid "Help"
+-msgstr "راهنما"
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:12
+-msgid "About Extensions"
+-msgstr "دربارهٔ افزونه‌ها"
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:27
+-msgid ""
+-"To find and add extensions, visit <a href=\"https://extensions.gnome.org"
+-"\">extensions.gnome.org</a>."
+-msgstr ""
+-"برای یافتن و افزودن افزونه‌ها، <a href=\"https://extensions.gnome.org\">پایگاه "
+-"افزونه‌های گنوم</a> را ببینید."
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:35
+-msgid "Warning"
+-msgstr "هشدار"
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:46
+-msgid ""
+-"Extensions can cause system issues, including performance problems. If you "
+-"encounter problems with your system, it is recommended to disable all extensions."
+-msgstr ""
+-"افزونه‌ها می‌توانند موجب اشکال‌های سامانه‌ای مانند مشکلات اجرایی شوند. اگر با مشکلاتی "
+-"روی سامانه‌تان مواجه شدید، پیشنهاد مي‌شود تمام افزونه‌ها را از کار بندازید."
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:134
+-msgid "Manually Installed"
+-msgstr "نصب‌شده به صورت دستی"
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:158
+-msgid "Built-In"
+-msgstr "توکار"
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:199
+-msgid "No Installed Extensions"
+-msgstr "هیچ افزونه‌ای نصب نشده"
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:235
+-msgid ""
+-"We’re very sorry, but it was not possible to get the list of installed "
+-"extensions. Make sure you are logged into GNOME and try again."
+-msgstr ""
+-"متأسّفیم، ولی امکان گرفتن فهرست افزونه‌های نصب‌شده نبود. مطمئن شوید که به گنوم وارد "
+-"شده‌اید و دوباره تلاش کنید."
+-
+-#: js/extensionPrefs/data/ui/extensions-window.ui:288
+-msgid "Log Out…"
+-msgstr "خروج…"
++#: js/gdm/authPrompt.js:135 js/ui/audioDeviceSelection.js:57
++#: js/ui/components/networkAgent.js:109 js/ui/components/polkitAgent.js:139
++#: js/ui/endSessionDialog.js:374 js/ui/extensionDownloader.js:181
++#: js/ui/shellMountOperation.js:376 js/ui/shellMountOperation.js:386
++#: js/ui/status/network.js:913 subprojects/extensions-app/js/main.js:148
++msgid "Cancel"
++msgstr "لغو"
+ 
+ #. Cisco LEAP
+ #: js/gdm/authPrompt.js:237 js/ui/components/networkAgent.js:204
+@@ -716,21 +587,21 @@ msgstr[1] "%Id سال پیش"
+ #. Translators: Time in 24h format
+ #: js/misc/util.js:237
+ msgid "%H∶%M"
+-msgstr "%OH:%OM"
++msgstr "%OH∶%OM"
+ 
+ #. Translators: this is the word "Yesterday" followed by a
+ #. time string in 24h format. i.e. "Yesterday, 14:30"
+ #: js/misc/util.js:243
+ #, no-c-format
+ msgid "Yesterday, %H∶%M"
+-msgstr "دیروز، %OH:%OM"
++msgstr "دیروز، %OH∶%OM"
+ 
+ #. Translators: this is the week day name followed by a time
+ #. string in 24h format. i.e. "Monday, 14:30"
+ #: js/misc/util.js:249
+ #, no-c-format
+ msgid "%A, %H∶%M"
+-msgstr "%A، %OH:%OM"
++msgstr "%A، %OH∶%OM"
+ 
+ #. Translators: this is the month name and day number
+ #. followed by a time string in 24h format.
+@@ -738,7 +609,7 @@ msgstr "%A، %OH:%OM"
+ #: js/misc/util.js:255
+ #, no-c-format
+ msgid "%B %-d, %H∶%M"
+-msgstr "%-Od %OB، %OH:%OM"
++msgstr "%-Od %OB، %OH∶%OM"
+ 
+ #. Translators: this is the month name, day number, year
+ #. number followed by a time string in 24h format.
+@@ -746,7 +617,7 @@ msgstr "%-Od %OB، %OH:%OM"
+ #: js/misc/util.js:261
+ #, no-c-format
+ msgid "%B %-d %Y, %H∶%M"
+-msgstr "%-Od %OB %Y، %OH:%OM"
++msgstr "%-Od %OB %Y، %OH∶%OM"
+ 
+ #. Show only the time if date is on today
+ #. eslint-disable-line no-lonely-if
+@@ -760,14 +631,14 @@ msgstr "%Ol∶%OM %Op"
+ #: js/misc/util.js:272
+ #, no-c-format
+ msgid "Yesterday, %l∶%M %p"
+-msgstr "دیروز، %OI:%OM"
++msgstr "دیروز، %Ol∶%OM %p"
+ 
+ #. Translators: this is the week day name followed by a time
+ #. string in 12h format. i.e. "Monday, 2:30 pm"
+ #: js/misc/util.js:278
+ #, no-c-format
+ msgid "%A, %l∶%M %p"
+-msgstr "%A، %Ol:%OM %Op"
++msgstr "%A، %Ol∶%OM %Op"
+ 
+ #. Translators: this is the month name and day number
+ #. followed by a time string in 12h format.
+@@ -775,7 +646,7 @@ msgstr "%A، %Ol:%OM %Op"
+ #: js/misc/util.js:284
+ #, no-c-format
+ msgid "%B %-d, %l∶%M %p"
+-msgstr "%-Od %OB، %Ol:%OM %Op"
++msgstr "%-Od %OB، %Ol∶%OM %Op"
+ 
+ #. Translators: this is the month name, day number, year
+ #. number followed by a time string in 12h format.
+@@ -783,7 +654,7 @@ msgstr "%-Od %OB، %Ol:%OM %Op"
+ #: js/misc/util.js:290
+ #, no-c-format
+ msgid "%B %-d %Y, %l∶%M %p"
+-msgstr "%-Od %OB %Y، %Ol:%OM %Op"
++msgstr "%-Od %OB %Y، %Ol∶%OM %Op"
+ 
+ #. TRANSLATORS: this is the title of the wifi captive portal login window
+ #: js/portalHelper/main.js:41
+@@ -808,44 +679,44 @@ msgstr "رد دسترسی"
+ msgid "Grant Access"
+ msgstr "پذیرفتن دسترسی"
+ 
+-#: js/ui/appDisplay.js:898
++#: js/ui/appDisplay.js:932
+ msgid "Unnamed Folder"
+ msgstr "پوشهٔ بی‌نام"
+ 
+-#: js/ui/appDisplay.js:921
++#: js/ui/appDisplay.js:955
+ msgid "Frequently used applications will appear here"
+ msgstr "برنامه‌های بیشتر استفاده شده در اینجا نمایش داده می‌شود"
+ 
+-#: js/ui/appDisplay.js:1056
++#: js/ui/appDisplay.js:1090
+ msgid "Frequent"
+ msgstr "پُر استفاده"
+ 
+-#: js/ui/appDisplay.js:1063
++#: js/ui/appDisplay.js:1097
+ msgid "All"
+ msgstr "همه"
+ 
+ #. Translators: This is the heading of a list of open windows
+-#: js/ui/appDisplay.js:2446 js/ui/panel.js:75
++#: js/ui/appDisplay.js:2473 js/ui/panel.js:75
+ msgid "Open Windows"
+ msgstr "پنجره‌های باز"
+ 
+-#: js/ui/appDisplay.js:2466 js/ui/panel.js:82
++#: js/ui/appDisplay.js:2493 js/ui/panel.js:82
+ msgid "New Window"
+ msgstr "پنجرهٔ جدید"
+ 
+-#: js/ui/appDisplay.js:2477
++#: js/ui/appDisplay.js:2504
+ msgid "Launch using Dedicated Graphics Card"
+ msgstr "اجرا با کارت گرافیک اختصاصی"
+ 
+-#: js/ui/appDisplay.js:2505 js/ui/dash.js:239
++#: js/ui/appDisplay.js:2532 js/ui/dash.js:239
+ msgid "Remove from Favorites"
+ msgstr "حذف از مورد پسندها"
+ 
+-#: js/ui/appDisplay.js:2511
++#: js/ui/appDisplay.js:2538
+ msgid "Add to Favorites"
+ msgstr "افزودن به مورد پسندها"
+ 
+-#: js/ui/appDisplay.js:2521 js/ui/panel.js:93
++#: js/ui/appDisplay.js:2548 js/ui/panel.js:93
+ msgid "Show Details"
+ msgstr "نمایش جزییات"
+ 
+@@ -875,7 +746,7 @@ msgstr "هدفون‌ها"
+ msgid "Headset"
+ msgstr "هدست"
+ 
+-#: js/ui/audioDeviceSelection.js:68 js/ui/status/volume.js:269
++#: js/ui/audioDeviceSelection.js:68 js/ui/status/volume.js:270
+ msgid "Microphone"
+ msgstr "میکروفون"
+ 
+@@ -1016,7 +887,7 @@ msgstr "بدون رویداد"
+ msgid "Do Not Disturb"
+ msgstr "مزاحم نشوید"
+ 
+-#: js/ui/calendar.js:1171
++#: js/ui/calendar.js:1176
+ msgid "Clear"
+ msgstr "پاک‌سازی"
+ 
+@@ -1160,7 +1031,7 @@ msgstr "متاسفانه اثری نداشت! لطفاً دوباره تلاش 
+ 
+ #. Translators: this is the other person changing their old IM name to their new
+ #. IM name.
+-#: js/ui/components/telepathyClient.js:787
++#: js/ui/components/telepathyClient.js:823
+ #, javascript-format
+ msgid "%s is now known as %s"
+ msgstr "‏%s با عنوان %s شناخته می‌شود"
+@@ -1204,106 +1075,106 @@ msgstr "اقزودن ساعت‌های جهانی…"
+ msgid "World Clocks"
+ msgstr "ساعت‌های جهانی"
+ 
+-#: js/ui/dateMenu.js:279
++#: js/ui/dateMenu.js:289
+ msgid "Weather"
+ msgstr "آب‌وهوا"
+ 
+-#: js/ui/dateMenu.js:394
++#: js/ui/dateMenu.js:418
+ msgid "Select a location…"
+ msgstr "موقعیتی را برگزینید…"
+ 
+-#: js/ui/dateMenu.js:407
++#: js/ui/dateMenu.js:426
+ msgid "Loading…"
+ msgstr "در حال بار کردن…"
+ 
+-#: js/ui/dateMenu.js:417
++#: js/ui/dateMenu.js:436
+ msgid "Go online for weather information"
+ msgstr "برای اطّلاعات آب‌وهوا برخط شوید"
+ 
+-#: js/ui/dateMenu.js:419
++#: js/ui/dateMenu.js:438
+ msgid "Weather information is currently unavailable"
+ msgstr "اطّلاعات آب‌وهو در حال حاضر موجود نیست"
+ 
+-#: js/ui/endSessionDialog.js:37
++#: js/ui/endSessionDialog.js:39
+ #, javascript-format
+ msgctxt "title"
+ msgid "Log Out %s"
+ msgstr "خروج از %s"
+ 
+-#: js/ui/endSessionDialog.js:38
++#: js/ui/endSessionDialog.js:40
+ msgctxt "title"
+ msgid "Log Out"
+ msgstr "خروج"
+ 
+-#: js/ui/endSessionDialog.js:40
++#: js/ui/endSessionDialog.js:42
+ #, javascript-format
+ msgid "%s will be logged out automatically in %d second."
+ msgid_plural "%s will be logged out automatically in %d seconds."
+ msgstr[0] "‏%s به طور خودکار در مدت %Id ثانیه از سامانه خارج خواهد شد."
+ msgstr[1] "‏%s به طور خودکار در مدت %Id ثانیه از سامانه خارج خواهد شد."
+ 
+-#: js/ui/endSessionDialog.js:45
++#: js/ui/endSessionDialog.js:47
+ #, javascript-format
+ msgid "You will be logged out automatically in %d second."
+ msgid_plural "You will be logged out automatically in %d seconds."
+ msgstr[0] "پس از %Id ثانیه به طور خودکار از سامانه خارج می‌شوید."
+ msgstr[1] "پس از %Id ثانیه به طور خودکار از سامانه خارج می‌شوید."
+ 
+-#: js/ui/endSessionDialog.js:51
++#: js/ui/endSessionDialog.js:53
+ msgctxt "button"
+ msgid "Log Out"
+ msgstr "خروج"
+ 
+-#: js/ui/endSessionDialog.js:56
++#: js/ui/endSessionDialog.js:58
+ msgctxt "title"
+ msgid "Power Off"
+ msgstr "خاموش کردن"
+ 
+-#: js/ui/endSessionDialog.js:57
++#: js/ui/endSessionDialog.js:59
+ msgctxt "title"
+ msgid "Install Updates & Power Off"
+ msgstr "نصب به‌روز رسانی‌ها و خاموش کردن"
+ 
+-#: js/ui/endSessionDialog.js:59
++#: js/ui/endSessionDialog.js:61
+ #, javascript-format
+ msgid "The system will power off automatically in %d second."
+ msgid_plural "The system will power off automatically in %d seconds."
+ msgstr[0] "سامانه پس از %Id ثانیه به طور خودکار خاموش می‌شود."
+ msgstr[1] "سامانه پس از %Id ثانیه به طور خودکار خاموش می‌شود."
+ 
+-#: js/ui/endSessionDialog.js:63
++#: js/ui/endSessionDialog.js:65
+ msgctxt "checkbox"
+ msgid "Install pending software updates"
+ msgstr "نصب به‌روز رسانی‌هایِ در انتظار"
+ 
+-#: js/ui/endSessionDialog.js:66 js/ui/endSessionDialog.js:82
++#: js/ui/endSessionDialog.js:68 js/ui/endSessionDialog.js:84
+ msgctxt "button"
+ msgid "Restart"
+ msgstr "راه‌اندازی دوباره"
+ 
+-#: js/ui/endSessionDialog.js:68
++#: js/ui/endSessionDialog.js:70
+ msgctxt "button"
+ msgid "Power Off"
+ msgstr "خاموش کردن"
+ 
+-#: js/ui/endSessionDialog.js:74
++#: js/ui/endSessionDialog.js:76
+ msgctxt "title"
+ msgid "Restart"
+ msgstr "راه‌اندازی دوباره"
+ 
+-#: js/ui/endSessionDialog.js:76
++#: js/ui/endSessionDialog.js:78
+ #, javascript-format
+ msgid "The system will restart automatically in %d second."
+ msgid_plural "The system will restart automatically in %d seconds."
+ msgstr[0] "سامانه پس از %Id ثانیه به طور خودکار دوبارها راه‌اندازی می‌شود."
+ msgstr[1] "سامانه پس از %Id ثانیه به طور خودکار دوبارها راه‌اندازی می‌شود."
+ 
+-#: js/ui/endSessionDialog.js:89
++#: js/ui/endSessionDialog.js:91
+ msgctxt "title"
+ msgid "Restart & Install Updates"
+ msgstr "راه‌اندازی دوباره و نصب به‌روز رسانی‌ها"
+ 
+-#: js/ui/endSessionDialog.js:91
++#: js/ui/endSessionDialog.js:93
+ #, javascript-format
+ msgid "The system will automatically restart and install updates in %d second."
+ msgid_plural ""
+@@ -1315,22 +1186,22 @@ msgstr[1] ""
+ "سامانه پس از %Id ثانیه به طور خودکار دوبارها راه‌اندازی می‌شود و به‌روز رسانیی‌ها را "
+ "نصب می‌کند."
+ 
+-#: js/ui/endSessionDialog.js:97 js/ui/endSessionDialog.js:116
++#: js/ui/endSessionDialog.js:99 js/ui/endSessionDialog.js:118
+ msgctxt "button"
+ msgid "Restart &amp; Install"
+ msgstr "راه‌اندازی دوباره و نصب"
+ 
+-#: js/ui/endSessionDialog.js:98
++#: js/ui/endSessionDialog.js:100
+ msgctxt "button"
+ msgid "Install &amp; Power Off"
+ msgstr "نصب و خاموش کردن"
+ 
+-#: js/ui/endSessionDialog.js:99
++#: js/ui/endSessionDialog.js:101
+ msgctxt "checkbox"
+ msgid "Power off after updates are installed"
+ msgstr "خاموش کردن پس از نصب به‌روز رسانی‌ها"
+ 
+-#: js/ui/endSessionDialog.js:106
++#: js/ui/endSessionDialog.js:108
+ msgctxt "title"
+ msgid "Restart & Install Upgrade"
+ msgstr "راه‌اندازی دوباره و نصب ارتقا"
+@@ -1338,24 +1209,24 @@ msgstr "راه‌اندازی دوباره و نصب ارتقا"
+ #. Translators: This is the text displayed for system upgrades in the
+ #. shut down dialog. First %s gets replaced with the distro name and
+ #. second %s with the distro version to upgrade to
+-#: js/ui/endSessionDialog.js:111
++#: js/ui/endSessionDialog.js:113
+ #, javascript-format
+ msgid ""
+ "%s %s will be installed after restart. Upgrade installation can take a long time: "
+ "ensure that you have backed up and that the computer is plugged in."
+ msgstr ""
+-"پس از راه‌اندازی دوباره %s %s نصب خواهد شد. نصب ارتقا ممکن است زمان زیادی بطول "
+-"بکشد: مطمئن شوید که پشتیبان دارید و رایانه به برق متصل است."
++"پس از راه‌اندازی دوباره %s %s نصب خواهد شد. نصب ارتقا ممکن است زمان زیادی طول "
++"بکشد: مطمئن شوید که پشتیبان دارید و رایانه به برق وصل است."
+ 
+-#: js/ui/endSessionDialog.js:259
++#: js/ui/endSessionDialog.js:261
+ msgid "Running on battery power: Please plug in before installing updates."
+ msgstr "درحال استفاده از باتری: لطفاً پیش از نصب به‌روز رسانی‌ها، به برق بزنید."
+ 
+-#: js/ui/endSessionDialog.js:268
++#: js/ui/endSessionDialog.js:270
+ msgid "Some applications are busy or have unsaved work"
+ msgstr "برخی برنامه‌ها مشغول بوده یا کار ذخیره نشده دارند"
+ 
+-#: js/ui/endSessionDialog.js:273
++#: js/ui/endSessionDialog.js:275
+ msgid "Other users are logged in"
+ msgstr "کاربران دیگری وارد شده هستند"
+ 
+@@ -1371,24 +1242,24 @@ msgstr "%s (دوردست)"
+ msgid "%s (console)"
+ msgstr "%s (پایانه)"
+ 
+-#: js/ui/extensionDownloader.js:181
++#: js/ui/extensionDownloader.js:185
+ msgid "Install"
+ msgstr "نصب"
+ 
+-#: js/ui/extensionDownloader.js:187
++#: js/ui/extensionDownloader.js:191
+ msgid "Install Extension"
+ msgstr "نصب افزونه"
+ 
+-#: js/ui/extensionDownloader.js:188
++#: js/ui/extensionDownloader.js:192
+ #, javascript-format
+ msgid "Download and install “%s” from extensions.gnome.org?"
+ msgstr "بارگیری و نصب «%s» از extensions.gnome.org؟"
+ 
+-#: js/ui/extensionSystem.js:228
++#: js/ui/extensionSystem.js:233
+ msgid "Extension Updates Available"
+ msgstr "به‌روز رسانی‌های افزونه موجودند"
+ 
+-#: js/ui/extensionSystem.js:229
++#: js/ui/extensionSystem.js:234
+ msgid "Extension updates are ready to be installed."
+ msgstr "به‌روز رسانی‌های افزونه‌ها آمادهٔ نصبند."
+ 
+@@ -1533,11 +1404,11 @@ msgstr "نمایش منبع"
+ msgid "Web Page"
+ msgstr "صفحهٔ وب"
+ 
+-#: js/ui/main.js:274
++#: js/ui/main.js:277
+ msgid "Logged in as a privileged user"
+ msgstr "واردشده به عنوان کاربری ممتاز"
+ 
+-#: js/ui/main.js:275
++#: js/ui/main.js:278
+ msgid ""
+ "Running a session as a privileged user should be avoided for security reasons. If "
+ "possible, you should log in as a normal user."
+@@ -1545,15 +1416,15 @@ msgstr ""
+ "به دلایل امنیتی باید از اجرای یک نشست به عنوان کاربری ممتاز خودداری کرد. در صورت "
+ "امکان، با کاربری عادی وارد شوید."
+ 
+-#: js/ui/main.js:281
++#: js/ui/main.js:317
+ msgid "Screen Lock disabled"
+ msgstr "قفل صفحه از کار افتاده"
+ 
+-#: js/ui/main.js:282
++#: js/ui/main.js:318
+ msgid "Screen Locking requires the GNOME display manager."
+ msgstr "قفل صفحه نیاز به مدیر نمایش گنوم دارد."
+ 
+-#: js/ui/messageTray.js:1554
++#: js/ui/messageTray.js:1551
+ msgid "System Information"
+ msgstr "اطلاعات سامانه"
+ 
+@@ -1759,13 +1630,13 @@ msgid "The PIM must be a number or empty."
+ msgstr "PIM باید یک شماره یا خالی باشد."
+ 
+ #. Translators: %s is the Disks application
+-#: js/ui/shellMountOperation.js:469
++#: js/ui/shellMountOperation.js:465
+ #, javascript-format
+ msgid "Unable to start %s"
+ msgstr "نمی‌توان %s را آغاز کرد"
+ 
+ #. Translators: %s is the Disks application
+-#: js/ui/shellMountOperation.js:471
++#: js/ui/shellMountOperation.js:467
+ #, javascript-format
+ msgid "Couldn’t find the %s application"
+ msgstr "نمی‌توان برنامهٔ %s را یافت"
+@@ -2236,11 +2107,11 @@ msgstr "خطای تأیید هویت تاندربولت"
+ msgid "Could not authorize the Thunderbolt device: %s"
+ msgstr "نمی‌توان افزارهٔ تاندربولت را تأیید هویت کرد: %s"
+ 
+-#: js/ui/status/volume.js:150
++#: js/ui/status/volume.js:151
+ msgid "Volume changed"
+ msgstr "بلندی صدا تغییر کرد"
+ 
+-#: js/ui/status/volume.js:221
++#: js/ui/status/volume.js:222
+ msgid "Volume"
+ msgstr "بلندی صدا"
+ 
+@@ -2274,23 +2145,23 @@ msgstr "فقط داخلی"
+ 
+ #. Translators: This is a time format for a date in
+ #. long format
+-#: js/ui/unlockDialog.js:370
++#: js/ui/unlockDialog.js:371
+ msgid "%A %B %-d"
+ msgstr "%A %-Od %OB"
+ 
+-#: js/ui/unlockDialog.js:376
++#: js/ui/unlockDialog.js:377
+ msgid "Swipe up to unlock"
+ msgstr "برای قفل‌گشایی، بالا بکشید"
+ 
+-#: js/ui/unlockDialog.js:377
++#: js/ui/unlockDialog.js:378
+ msgid "Click or press a key to unlock"
+ msgstr "برای قفل‌گشایی، کلیک کرده یا دکمه‌ای را بزنید"
+ 
+-#: js/ui/unlockDialog.js:549
++#: js/ui/unlockDialog.js:550
+ msgid "Unlock Window"
+ msgstr "گشودن قفل پنجره"
+ 
+-#: js/ui/unlockDialog.js:558
++#: js/ui/unlockDialog.js:559
+ msgid "Log in as another user"
+ msgstr "ورود به عنوان کاربری دیگر"
+ 
+@@ -2447,6 +2318,131 @@ msgstr "گذرواژه نمی‌تواند خالی باشد"
+ msgid "Authentication dialog was dismissed by the user"
+ msgstr "محاوره تایید هویت از طرف کاربر رد شد"
+ 
++#: subprojects/extensions-app/data/metainfo/org.gnome.Extensions.metainfo.xml.in:5
++#: subprojects/extensions-app/data/org.gnome.Extensions.desktop.in.in:4
++#: subprojects/extensions-app/js/main.js:182
++#: subprojects/extensions-app/data/ui/extensions-window.ui:61
++msgid "Extensions"
++msgstr "افزونه‌ها"
++
++#: subprojects/extensions-app/data/metainfo/org.gnome.Extensions.metainfo.xml.in:6
++#: subprojects/extensions-app/js/main.js:183
++msgid "Manage your GNOME Extensions"
++msgstr "مدیریت افزونه‌های پوستهٔ گنوم"
++
++#: subprojects/extensions-app/data/metainfo/org.gnome.Extensions.metainfo.xml.in:35
++msgid ""
++"GNOME Extensions handles updating extensions, configuring extension preferences "
++"and removing or disabling unwanted extensions."
++msgstr ""
++"افزونه‌های گنوم به‌روز رسانی، پیکربندی، برداشتن یا از کار انداختن افزونه‌ها را "
++"مدیریت می‌کند."
++
++#: subprojects/extensions-app/data/org.gnome.Extensions.desktop.in.in:7
++msgid "Configure GNOME Shell Extensions"
++msgstr "پیکربندی افزونه‌های پوستهٔ گنوم"
++
++#: subprojects/extensions-app/js/main.js:144
++#, javascript-format
++msgid "Remove “%s”?"
++msgstr "برداشتن «%s»؟"
++
++#: subprojects/extensions-app/js/main.js:145
++msgid ""
++"If you remove the extension, you need to return to download it if you want to "
++"enable it again"
++msgstr "اگر افزونه را بردارید، باید برای به کار انداختن دوباره‌اش، بارگیریش کنید"
++
++#: subprojects/extensions-app/js/main.js:149
++msgid "Remove"
++msgstr "حذف"
++
++#: subprojects/extensions-app/js/main.js:181
++msgid "translator-credits"
++msgstr "دانیال بهزادی <dani.behzi@ubuntu.com>"
++
++#: subprojects/extensions-app/js/main.js:316
++#, javascript-format
++msgid "%d extension will be updated on next login."
++msgid_plural "%d extensions will be updated on next login."
++msgstr[0] "تعداد %Id افزونه در ورود بعدی به‌روز خواهد شد."
++msgstr[1] "تعداد %Id افزونه در ورود بعدی به‌روز خواهند شد."
++
++#: subprojects/extensions-app/data/ui/extension-row.ui:100
++#: subprojects/extensions-tool/src/command-create.c:211
++#: subprojects/extensions-tool/src/main.c:173
++msgid "Description"
++msgstr "شرح"
++
++#: subprojects/extensions-app/data/ui/extension-row.ui:123
++#: subprojects/extensions-tool/src/main.c:185
++msgid "Version"
++msgstr "نگارش"
++
++#: subprojects/extensions-app/data/ui/extension-row.ui:151
++msgid "Author"
++msgstr "نگارنده"
++
++#: subprojects/extensions-app/data/ui/extension-row.ui:175
++msgid "Website"
++msgstr "پایگاه وب"
++
++#: subprojects/extensions-app/data/ui/extension-row.ui:192
++msgid "Remove…"
++msgstr "برداشتن…"
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:8
++msgid "Help"
++msgstr "راهنما"
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:12
++msgid "About Extensions"
++msgstr "دربارهٔ افزونه‌ها"
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:27
++msgid ""
++"To find and add extensions, visit <a href=\"https://extensions.gnome.org"
++"\">extensions.gnome.org</a>."
++msgstr ""
++"برای یافتن و افزودن افزونه‌ها، <a href=\"https://extensions.gnome.org\">پایگاه "
++"افزونه‌های گنوم</a> را ببینید."
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:35
++msgid "Warning"
++msgstr "هشدار"
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:46
++msgid ""
++"Extensions can cause system issues, including performance problems. If you "
++"encounter problems with your system, it is recommended to disable all extensions."
++msgstr ""
++"افزونه‌ها می‌توانند موجب اشکال‌های سامانه‌ای مانند مشکلات اجرایی شوند. اگر با مشکلاتی "
++"روی سامانه‌تان مواجه شدید، پیشنهاد مي‌شود تمام افزونه‌ها را از کار بندازید."
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:134
++msgid "Manually Installed"
++msgstr "نصب‌شده به صورت دستی"
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:158
++msgid "Built-In"
++msgstr "توکار"
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:199
++msgid "No Installed Extensions"
++msgstr "هیچ افزونه‌ای نصب نشده"
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:235
++msgid ""
++"We’re very sorry, but it was not possible to get the list of installed "
++"extensions. Make sure you are logged into GNOME and try again."
++msgstr ""
++"متأسّفیم، ولی امکان گرفتن فهرست افزونه‌های نصب‌شده نبود. مطمئن شوید که به گنوم وارد "
++"شده‌اید و دوباره تلاش کنید."
++
++#: subprojects/extensions-app/data/ui/extensions-window.ui:288
++msgid "Log Out…"
++msgstr "خروج…"
++
+ #. Translators: a file path to an extension directory
+ #: subprojects/extensions-tool/src/command-create.c:125
+ #, c-format
+@@ -2783,6 +2779,9 @@ msgstr[1] "%Iu ورودی"
+ msgid "System Sounds"
+ msgstr "صداهای سامانه"
+ 
++#~ msgid "Copy Error"
++#~ msgstr "رونوشت از خطا"
++
+ #~ msgid "Username…"
+ #~ msgstr "نام‌کاربری…"
+ 

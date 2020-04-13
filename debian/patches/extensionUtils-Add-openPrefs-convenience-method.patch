@@ -1,0 +1,59 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 1 Apr 2020 21:08:38 +0200
+Subject: extensionUtils: Add openPrefs() convenience method
+
+Opening their own preferences is a reasonable desire for extensions,
+so make up for breaking it by adding a convenience method for that
+action.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1163
+
+(cherry picked from commit 8030d9ad323e5c3e45a158a3d09faa75b3c880d8)
+
+Origin: upstream, 3.36.2, commit:856adfd1f1f271da27a270603b9d72e99a91600b
+---
+ js/misc/extensionUtils.js | 25 +++++++++++++++++++++++--
+ 1 file changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/js/misc/extensionUtils.js b/js/misc/extensionUtils.js
+index af2338f..e9697d4 100644
+--- a/js/misc/extensionUtils.js
++++ b/js/misc/extensionUtils.js
+@@ -1,7 +1,7 @@
+ // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+ /* exported ExtensionState, ExtensionType, getCurrentExtension,
+-   getSettings, initTranslations, isOutOfDate, installImporter,
+-   serializeExtension, deserializeExtension */
++   getSettings, initTranslations, openPrefs, isOutOfDate,
++   installImporter, serializeExtension, deserializeExtension */
+ 
+ // Common utils for the extension system and the extension
+ // preferences tool
+@@ -153,6 +153,27 @@ function getSettings(schema) {
+     return new Gio.Settings({ settings_schema: schemaObj });
+ }
+ 
++/**
++ * openPrefs:
++ *
++ * Open the preference dialog of the current extension
++ */
++function openPrefs() {
++    const extension = getCurrentExtension();
++
++    if (!extension)
++        throw new Error('openPrefs() can only be called from extensions');
++
++    try {
++        const extensionManager = imports.ui.main.extensionManager;
++        extensionManager.openExtensionPrefs(extension.uuid, '', {});
++    } catch (e) {
++        if (e.name === 'ImportError')
++            throw new Error('openPrefs() cannot be called from preferences');
++        logError(e, 'Failed to open extension preferences');
++    }
++}
++
+ /**
+  * versionCheck:
+  * @param {string[]} required - an array of versions we're compatible with

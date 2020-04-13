@@ -1,0 +1,45 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Sun, 5 Apr 2020 18:38:21 +0000
+Subject: shell-app: Use container widget for fallback X11 app icons
+
+Just like StIcon does, we should use a container widget for the fallback
+app icon that we get using the cairo surface property. It's needed
+because the widget returned by shell_app_create_icon_texture() can be
+resized freely, while we want the aspect ratio of the actual texture to
+remain the same.
+
+Fixes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2578
+
+(cherry picked from commit 85846d88f034a605f6cb0aa013f2ab80e2f760bd)
+
+Origin: upstream, 3.36.2, commit:b982ce394e57193ce3427cc9e293008a3929b66b
+---
+ src/shell-app.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/src/shell-app.c b/src/shell-app.c
+index 090c6d3..dfa7fe7 100644
+--- a/src/shell-app.c
++++ b/src/shell-app.c
+@@ -218,10 +218,17 @@ window_backed_app_get_icon (ShellApp *app,
+ 
+   if (meta_window_get_client_type (window) == META_WINDOW_CLIENT_TYPE_X11)
+     {
+-      widget = st_texture_cache_bind_cairo_surface_property (st_texture_cache_get_default (),
+-                                                             G_OBJECT (window),
+-                                                             "icon",
+-                                                             scaled_size);
++      StWidget *texture_actor;
++
++      texture_actor =
++        st_texture_cache_bind_cairo_surface_property (st_texture_cache_get_default (),
++                                                      G_OBJECT (window),
++                                                      "icon",
++                                                      scaled_size);
++
++      widget = g_object_new (ST_TYPE_BIN,
++                             "child", texture_actor,
++                             NULL);
+     }
+   else
+     {

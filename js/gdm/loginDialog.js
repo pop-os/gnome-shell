@@ -35,7 +35,6 @@ const UserWidget = imports.ui.userWidget;
 const _FADE_ANIMATION_TIME = 250;
 const _SCROLL_ANIMATION_TIME = 500;
 const _TIMED_LOGIN_IDLE_THRESHOLD = 5.0;
-const _LOGO_ICON_HEIGHT = 48;
 
 var UserListItem = GObject.registerClass({
     Signals: { 'activate': {} },
@@ -178,6 +177,7 @@ var UserList = GObject.registerClass({
     }
 
     vfunc_key_focus_in() {
+        super.vfunc_key_focus_in();
         this._moveFocusToItems();
     }
 
@@ -813,7 +813,7 @@ var LoginDialog = GObject.registerClass({
         if (this._logoFile && this._logoBin.resource_scale > 0) {
             let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
             this._logoBin.add_child(this._textureCache.load_file_async(this._logoFile,
-                                                                       -1, _LOGO_ICON_HEIGHT,
+                                                                       -1, -1,
                                                                        scaleFactor,
                                                                        this._logoBin.resource_scale));
         }

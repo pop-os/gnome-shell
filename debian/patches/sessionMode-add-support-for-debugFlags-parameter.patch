@@ -15,10 +15,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 4 insertions(+)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index 6b180bd..64f7c97 100644
+index bb579c3..68466c6 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
-@@ -117,6 +117,9 @@ function _sessionUpdated() {
+@@ -120,6 +120,9 @@ function _sessionUpdated() {
          if (lookingGlass)
              lookingGlass.close();
      }

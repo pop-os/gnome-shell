@@ -1,0 +1,23 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 2 Apr 2020 17:19:55 +0200
+Subject: extensions-app: Do not expand headerbar switch
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2563
+
+Origin: upstream, 3.36.2, commit:3f8bd1db259ce84e9644e417a90e72f17e844589
+---
+ subprojects/extensions-app/data/ui/extensions-window.ui | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/subprojects/extensions-app/data/ui/extensions-window.ui b/subprojects/extensions-app/data/ui/extensions-window.ui
+index 6195823..19d3d20 100644
+--- a/subprojects/extensions-app/data/ui/extensions-window.ui
++++ b/subprojects/extensions-app/data/ui/extensions-window.ui
+@@ -93,6 +93,7 @@
+           <object class="GtkSwitch">
+             <property name="visible">True</property>
+             <property name="action-name">win.user-extensions-enabled</property>
++            <property name="valign">center</property>
+           </object>
+           <packing>
+             <property name="pack_type">end</property>

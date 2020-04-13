@@ -142,7 +142,7 @@ on_icon_theme_changed (StSettings     *settings,
                        GParamSpec     *pspec,
                        StTextureCache *cache)
 {
-  g_autofree gchar *theme;
+  g_autofree gchar *theme = NULL;
 
   st_texture_cache_evict_icons (cache);
 
@@ -777,7 +777,7 @@ st_texture_cache_bind_weak_notify (gpointer     data,
 {
   StTextureCachePropertyBind *bind = data;
   bind->weakref_active = FALSE;
-  g_clear_signal_handler (&bind->notify_signal_id, bind->source);
+  g_signal_handler_disconnect (bind->source, bind->notify_signal_id);
 }
 
 static void

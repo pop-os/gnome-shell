@@ -15,7 +15,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 66 insertions(+), 21 deletions(-)
 
 diff --git a/src/main.c b/src/main.c
-index 6750586..732a780 100644
+index 91f7198..585a3d6 100644
 --- a/src/main.c
 +++ b/src/main.c
 @@ -35,16 +35,26 @@ extern GType gnome_shell_plugin_get_type (void);
@@ -49,7 +49,7 @@ index 6750586..732a780 100644
  
  static void
  shell_dbus_acquire_name (GDBusProxy  *bus,
-@@ -319,13 +329,23 @@ shell_a11y_init (void)
+@@ -317,13 +327,23 @@ shell_a11y_init (void)
  static void
  shell_update_debug (const char *debug_string)
  {
@@ -79,7 +79,7 @@ index 6750586..732a780 100644
  }
  
  static void
-@@ -420,10 +440,23 @@ reset_signal_handler_to_default (int signo)
+@@ -418,10 +438,23 @@ reset_signal_handler_to_default (int signo)
  static void
  setup_debug_signal_listners (void)
  {
@@ -107,7 +107,7 @@ index 6750586..732a780 100644
  
    if ((_shell_debug & SHELL_DEBUG_BACKTRACE_SEGFAULTS))
      {
-@@ -524,7 +557,8 @@ main (int argc, char **argv)
+@@ -522,7 +555,8 @@ main (int argc, char **argv)
  {
    GOptionContext *ctx;
    GError *error = NULL;
@@ -117,7 +117,7 @@ index 6750586..732a780 100644
    int ecode;
  
    bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-@@ -560,8 +594,14 @@ main (int argc, char **argv)
+@@ -558,8 +592,14 @@ main (int argc, char **argv)
    g_setenv ("GJS_DEBUG_OUTPUT", "stderr", TRUE);
    g_setenv ("GJS_DEBUG_TOPICS", "JS ERROR;JS LOG", TRUE);
  
@@ -134,7 +134,7 @@ index 6750586..732a780 100644
  
    shell_dbus_init (meta_get_replace_current_wm ());
    shell_a11y_init ();
-@@ -576,8 +616,9 @@ main (int argc, char **argv)
+@@ -574,8 +614,9 @@ main (int argc, char **argv)
      session_mode = is_gdm_mode ? (char *)"gdm" : (char *)"user";
  
    _shell_global_init ("session-mode", session_mode,
