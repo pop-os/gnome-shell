@@ -134,6 +134,8 @@ Description: graphical shell for the GNOME desktop
 Package: gnome-shell-common
 Architecture: all
 Depends: ${misc:Depends}
+Breaks: gnome-shell (<< 3.36.1-6~)
+Replaces: gnome-shell (<< 3.36.1-6~)
 Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
 
