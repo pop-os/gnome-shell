@@ -1,3 +1,23 @@
+gnome-shell (3.36.1-5) unstable; urgency=medium
+
+  * Team upload
+  * Merge changelog from unstable
+  * Upload to unstable (transition: #954422)
+  * d/gbp.conf: Follow upstream/3.36.x branch
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 10 Apr 2020 17:56:07 +0100
+
+gnome-shell (3.34.4-1) unstable; urgency=medium
+
+  * Team upload
+  * d/gbp.conf: Switch to debian/unstable branch.
+    debian/master is now in use for 3.35.x.
+  * New upstream release
+  * Apply post-release fixes up to 3.34.4-1-g99d948559
+  * Bump Standards-Version to 4.5.0
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 25 Feb 2020 16:26:07 +0000
+
 gnome-shell (3.36.1-4ubuntu1) focal; urgency=medium
 
   * Merge with debian, with new upstream releases and cherry-picked fixes:
