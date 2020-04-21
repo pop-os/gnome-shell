@@ -157,6 +157,7 @@ Depends: gnome-shell (= ${binary:Version}),
          ${gir:Depends},
          ${misc:Depends},
          ${shlibs:Depends}
+Recommends: chrome-gnome-shell
 Breaks: gnome-shell (<< 3.36.0-2)
 Replaces: gnome-shell (<< 3.36.0-2)
 Description: tool to enable / disable GNOME Shell extensions
