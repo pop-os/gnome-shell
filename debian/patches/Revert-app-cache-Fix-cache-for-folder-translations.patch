@@ -1,0 +1,51 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Mon, 13 Apr 2020 13:41:54 +0000
+Subject: Revert "app-cache: Fix cache for folder translations"
+
+Existing folders as created by gnome-software (including the
+default ones) all have the .directory suffix, so dropping
+the suffix from the keys broke those folders.
+
+This reverts commit 343b3351f172e112e1a70b54956ab3444140fbf4.
+
+(cherry picked from commit c2b518929da809425ccf12f8746a485afae37e7a)
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2623
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1872434
+Origin: upstream, 3.36.2, commit:156e05fe9010e66ec9199625e1e00880bae1d4a8
+---
+ src/shell-app-cache.c | 11 ++---------
+ 1 file changed, 2 insertions(+), 9 deletions(-)
+
+diff --git a/src/shell-app-cache.c b/src/shell-app-cache.c
+index 9b33c7a..15d4734 100644
+--- a/src/shell-app-cache.c
++++ b/src/shell-app-cache.c
+@@ -109,17 +109,11 @@ load_folder (GHashTable *folders,
+ 
+   while ((name = g_dir_read_name (dir)))
+     {
+-      g_autofree gchar *stripped_name = NULL;
+       g_autofree gchar *filename = NULL;
+       g_autoptr(GKeyFile) keyfile = NULL;
+ 
+-      if (!g_str_has_suffix (name, ".directory"))
+-        continue;
+-
+-      stripped_name = g_strndup (name, strlen (name) - strlen (".directory"));
+-
+       /* First added wins */
+-      if (g_hash_table_contains (folders, stripped_name))
++      if (g_hash_table_contains (folders, name))
+         continue;
+ 
+       filename = g_build_filename (path, name, NULL);
+@@ -134,8 +128,7 @@ load_folder (GHashTable *folders,
+                                                      NULL, NULL);
+ 
+           if (translated != NULL)
+-            g_hash_table_insert (folders, g_steal_pointer (&stripped_name),
+-                                 translated);
++            g_hash_table_insert (folders, g_strdup (name), translated);
+         }
+     }
+ }

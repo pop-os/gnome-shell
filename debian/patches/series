@@ -29,5 +29,11 @@ st-theme-node-Consider-scale-factor-when-comparing.patch
 st-theme-node-Use-the-node-s-scale-factor.patch
 appDisplay-Set-the-folder-icon-geometry-through-CSS.patch
 animation-Set-size-through-CSS.patch
+Update-Finnish-translation-1.patch
+Revert-app-cache-Fix-cache-for-folder-translations.patch
+appDisplay-Look-up-directory-instead-of-category-translat.patch
+polkitAgent-Reset-the-session-request-timeout-when-removi.patch
+windowManager-Fix-ngettext-call.patch
+authPrompt-Fix-spinner-alignment.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 extensions-app-Add-back-minimal-compatibility-with-older-.patch

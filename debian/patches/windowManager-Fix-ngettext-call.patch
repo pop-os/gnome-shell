@@ -1,0 +1,34 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 16 Apr 2020 22:49:24 +0000
+Subject: windowManager: Fix ngettext() call
+
+We don't pass the number that allows gettext to decide on the
+correct string, whoops.
+
+Spotted by Alexandre Franke.
+
+(cherry picked from commit 5ec5978d4ab75bbf7e01ce3e6b0968db0a486a6e)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2649
+Origin: upstream, 3.36.2, commit:4895032054fd9a97c4a7147f61cd97fdc9e66c50
+---
+ js/ui/windowManager.js | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/windowManager.js b/js/ui/windowManager.js
+index 21c63b5..ffbec6d 100644
+--- a/js/ui/windowManager.js
++++ b/js/ui/windowManager.js
+@@ -82,8 +82,10 @@ class DisplayChangeDialog extends ModalDialog.ModalDialog {
+     }
+ 
+     _formatCountDown() {
+-        let fmt = ngettext("Settings changes will revert in %d second",
+-                           "Settings changes will revert in %d seconds");
++        const fmt = ngettext(
++            'Settings changes will revert in %d second',
++            'Settings changes will revert in %d seconds',
++            this._countDown);
+         return fmt.format(this._countDown);
+     }
+ 

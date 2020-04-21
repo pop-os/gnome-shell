@@ -1,0 +1,35 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 17 Apr 2020 15:54:52 +0000
+Subject: polkitAgent: Reset the session request timeout when removing it
+
+When handing the resetDialog request we're leaving a source ID alive,
+leading this error:
+
+(gnome-shell:22464): GLib-CRITICAL **: 17:46:11.065: Source ID 12934 was not
+found when attempting to remove it:
+
+== Stack trace for context 0x55c9246916c0 ==
+
+So, reset the source handle to avoid trying to remove it.
+
+(cherry picked from commit f4d90bc127ececb653ee399493839f17932b7622)
+
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1203
+Origin: upstream, 3.36.2, commit:6b24ab572c1248abe104d712569771d66ef39148
+---
+ js/ui/components/polkitAgent.js | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/js/ui/components/polkitAgent.js b/js/ui/components/polkitAgent.js
+index 4bfbde1..1d5a0cc 100644
+--- a/js/ui/components/polkitAgent.js
++++ b/js/ui/components/polkitAgent.js
+@@ -327,6 +327,8 @@ var AuthenticationDialog = GObject.registerClass({
+         }
+ 
+         let resetDialog = () => {
++            this._sessionRequestTimeoutId = 0;
++
+             if (this.state != ModalDialog.State.OPENED)
+                 return;
+ 
