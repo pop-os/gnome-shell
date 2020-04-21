@@ -1,3 +1,15 @@
+gnome-shell (3.36.1-5ubuntu2) focal; urgency=medium
+
+  * Have gnome-shell-extension-prefs recommend chrome-gnome-shell
+    (LP: #1866841)
+    - gnome-shell-extension-prefs recommends visiting
+      extensions.gnome.org to install extensions but that
+      requires chrome-gnome-shell to be installed
+    - GNOME Software 3.36 no longer offers installing
+      GNOME Shell extensions
+
+ -- Jeremy Bicha <jbicha@debian.org>  Tue, 21 Apr 2020 07:48:41 -0400
+
 gnome-shell (3.36.1-5ubuntu1) focal; urgency=medium
 
   * Merge with debian
