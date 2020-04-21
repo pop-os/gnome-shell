@@ -1,3 +1,28 @@
+gnome-shell (3.36.1-6) UNRELEASED; urgency=medium
+
+  [ Laurent Bigonville ]
+  * Move the D-Bus interfaces description files to the -common package.
+    This will make it easier to build some packages, like gnome-terminal,
+    that have a search provider
+
+  [ Simon McVittie ]
+  * Bump build-dependency on libpulse-dev to 13.
+    Apparently stable's libpulse0 (in a partial upgrade) causes gnome-shell
+    to hang, so presumably we need this newer version for something.
+    (Closes: #958025)
+  * Bump AT-SPI dependency to a contemporary version.
+    As with libpulse, there's anecdotal evidence that the version from
+    Debian 10 is too old to work in practice. (Closes: #958025)
+  * Update from upstream gnome-3-36 branch up to 3.36.1-37-g18a5c7436
+    - Fix translated app folder names in overview (LP: #1872434)
+    - Fix misaligned spinner in lock screen
+    - Fix warning when a polkit dialog is reset
+    - Pluralize prompt correctly when asking whether to revert a display
+      setup change
+    - Update Finnish translation
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 21 Apr 2020 10:20:35 +0100
+
 gnome-shell (3.36.1-5) unstable; urgency=medium
 
   * Team upload
