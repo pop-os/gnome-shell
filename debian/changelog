@@ -1,4 +1,6 @@
-gnome-shell (3.36.1+git20200417-1) UNRELEASED; urgency=medium
+gnome-shell (3.36.1+git20200417-1) unstable; urgency=medium
+
+  * Team upload
 
   [ Simon McVittie ]
   * New upstream snapshot from gnome-3-36 branch (3.36.1-37-g18a5c7436)
@@ -30,7 +32,7 @@ gnome-shell (3.36.1+git20200417-1) UNRELEASED; urgency=medium
       GNOME Shell extensions
     (LP: #1866841)
 
- -- Simon McVittie <smcv@debian.org>  Tue, 21 Apr 2020 13:35:13 +0100
+ -- Simon McVittie <smcv@debian.org>  Tue, 21 Apr 2020 13:46:21 +0100
 
 gnome-shell (3.36.1-5) unstable; urgency=medium
 
