@@ -114,7 +114,8 @@ function _findBestFolderName(apps) {
     }, commonCategories);
 
     for (let category of commonCategories) {
-        let translated = Shell.util_get_translated_folder_name(category);
+        const directory = '%s.directory'.format(category);
+        const translated = Shell.util_get_translated_folder_name(directory);
         if (translated !== null)
             return translated;
     }
@@ -157,6 +158,10 @@ var BaseAppView = GObject.registerClass({
 
         this._items = new Map();
         this._orderedItems = [];
+
+        this._animateLaterId = 0;
+        this._viewLoadedHandlerId = 0;
+        this._viewIsReady = false;
     }
 
     _childFocused(_actor) {
@@ -192,8 +197,6 @@ var BaseAppView = GObject.registerClass({
             this._items.set(icon.id, icon);
         });
 
-        this._animateLaterId = 0;
-        this._viewLoadedHandlerId = 0;
         this._viewIsReady = true;
         this.emit('view-loaded');
     }
@@ -289,6 +292,11 @@ var BaseAppView = GObject.registerClass({
         } else {
             this._doSpringAnimation(animationDirection);
         }
+    }
+
+    vfunc_unmap() {
+        this._clearAnimateLater();
+        super.vfunc_unmap();
     }
 
     animateSwitch(animationDirection) {
@@ -406,8 +414,6 @@ var AllView = GObject.registerClass({
 
         this._lastOvershootY = -1;
         this._lastOvershootTimeoutId = 0;
-
-        this._viewIsReady = false;
 
         Main.overview.connect('hidden', () => this.goToPage(0));
 
@@ -1371,12 +1377,12 @@ class FolderView extends BaseAppView {
         });
         layout.hookup_style(icon);
         let subSize = Math.floor(FOLDER_SUBICON_FRACTION * size);
-        let scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
 
         let numItems = this._orderedItems.length;
         let rtl = icon.get_text_direction() == Clutter.TextDirection.RTL;
         for (let i = 0; i < 4; i++) {
-            let bin = new St.Bin({ width: subSize * scale, height: subSize * scale });
+            const style = 'width: %dpx; height: %dpx;'.format(subSize, subSize);
+            let bin = new St.Bin({ style });
             if (i < numItems)
                 bin.child = this._orderedItems[i].app.create_icon_texture(subSize);
             layout.attach(bin, rtl ? (i + 1) % 2 : i % 2, Math.floor(i / 2), 1, 1);
@@ -2556,7 +2562,7 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
                                  'org.gtk.Actions', 'Activate',
                                  GLib.Variant.new('(sava{sv})',
                                                   ['details', [args], null]),
-                                 null, 0, -1, null, null);
+                                 null, 0, -1, null);
                         Main.overview.hide();
                     });
                 });
