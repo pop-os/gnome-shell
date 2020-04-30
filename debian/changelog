@@ -7,7 +7,7 @@ gnome-shell (3.36.2-1) UNRELEASED; urgency=medium
       app icon
     - Fix popup scaling in some HiDPI multi-monitor configurations
     - Fix unintended focus delay after entering the wrong password
-    - Fix a crash when theming changes
+    - Fix a crash when theming changes (LP: #1868440)
     - When searching for system actions, find transliterated ASCII versions
     - Ellipsize long "wrong password" messages
     - Fix stuck lock screen when locked with a system-modal dialog open
