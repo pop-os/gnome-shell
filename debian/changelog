@@ -1,5 +1,6 @@
-gnome-shell (3.36.2-1) UNRELEASED; urgency=medium
+gnome-shell (3.36.2-1) unstable; urgency=medium
 
+  * Team upload
   * New upstream stable release
     - Tone down weekend days with events in calendar
     - Fix crash on physical keyboard detach
@@ -18,7 +19,7 @@ gnome-shell (3.36.2-1) UNRELEASED; urgency=medium
     It's the compiler default with bullseye toolchains.
   * d/watch: Only watch even-numbered (stable) branches
 
- -- Simon McVittie <smcv@debian.org>  Thu, 30 Apr 2020 18:17:16 +0100
+ -- Simon McVittie <smcv@debian.org>  Fri, 01 May 2020 11:28:11 +0100
 
 gnome-shell (3.36.1+git20200417-1) unstable; urgency=medium
 
