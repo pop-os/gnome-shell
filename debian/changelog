@@ -1,3 +1,11 @@
+gnome-shell (3.36.2-1ubuntu1~20.04.1) UNRELEASED; urgency=medium
+
+  * No change backport to focal (LP: #1877212)
+  * debian/gbp.conf: Set branch to ubuntu/focal
+  * debian/control: Update VCS references to focal branch
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 07 May 2020 04:08:23 +0200
+
 gnome-shell (3.36.2-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream release (LP: #1877212)
