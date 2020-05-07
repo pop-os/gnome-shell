@@ -1,4 +1,4 @@
-gnome-shell (3.36.2-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.36.2-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream release (LP: #1877212)
   * debian/patches: Refresh
@@ -46,7 +46,7 @@ gnome-shell (3.36.2-1ubuntu1) UNRELEASED; urgency=medium
       + Show monitor scaled cursor when magnifier is enabled
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 07 May 2020 03:51:15 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 07 May 2020 03:57:06 +0200
 
 gnome-shell (3.36.2-1) unstable; urgency=medium
 
