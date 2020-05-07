@@ -184,7 +184,7 @@ var AuthPrompt = GObject.registerClass({
         });
         this._defaultButtonWell.add_constraint(new Clutter.BindConstraint({
             source: this.cancelButton,
-            coordinate: Clutter.BindCoordinate.SIZE,
+            coordinate: Clutter.BindCoordinate.WIDTH,
         }));
         this._mainBox.add_child(this._defaultButtonWell);
 
@@ -424,7 +424,13 @@ var AuthPrompt = GObject.registerClass({
     }
 
     updateSensitivity(sensitive) {
+        if (this._entry.reactive === sensitive)
+            return;
+
         this._entry.reactive = sensitive;
+
+        if (sensitive)
+            this._entry.grab_key_focus();
     }
 
     vfunc_hide() {

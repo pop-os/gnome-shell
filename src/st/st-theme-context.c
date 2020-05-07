@@ -290,19 +290,6 @@ on_icon_theme_changed (StTextureCache *cache,
   g_source_set_name_by_id (id, "[gnome-shell] changed_idle");
 }
 
-static void
-on_custom_stylesheets_changed (StTheme        *theme,
-                               StThemeContext *context)
-{
-  GHashTableIter iter;
-  StThemeNode *node;
-
-  g_hash_table_iter_init (&iter, context->nodes);
-
-  while (g_hash_table_iter_next (&iter, (gpointer *) &node, NULL))
-    _st_theme_node_reset_for_stylesheet_change (node);
-}
-
 /**
  * st_theme_context_get_for_stage:
  * @stage: a #ClutterStage
@@ -355,9 +342,10 @@ st_theme_context_set_theme (StThemeContext          *context,
       if (context->theme)
         {
           context->stylesheets_changed_id =
-            g_signal_connect (context->theme, "custom-stylesheets-changed",
-                              G_CALLBACK (on_custom_stylesheets_changed),
-                              context);
+            g_signal_connect_swapped (context->theme,
+                                      "custom-stylesheets-changed",
+                                      G_CALLBACK (st_theme_context_changed),
+                                      context);
         }
 
       st_theme_context_changed (context);
@@ -465,4 +453,20 @@ st_theme_context_intern_node (StThemeContext *context,
 
   g_hash_table_add (context->nodes, g_object_ref (node));
   return node;
+}
+
+/**
+ * st_theme_context_get_scale_factor:
+ * @context: a #StThemeContext
+ *
+ * Return the current scale factor of @context.
+ *
+ * Return value: a scale factor
+ */
+int
+st_theme_context_get_scale_factor (StThemeContext *context)
+{
+  g_return_val_if_fail (ST_IS_THEME_CONTEXT (context), -1);
+
+  return context->scale_factor;
 }
