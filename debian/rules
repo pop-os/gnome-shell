@@ -2,7 +2,7 @@
 
 export CCACHE_DISABLE=1
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs -Wl,--as-needed
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
 
 %:
 	dh $@ --with bash_completion

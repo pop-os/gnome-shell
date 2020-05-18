@@ -77,13 +77,6 @@ maybe_free_properties (StThemeNode *node)
     }
 }
 
-void
-_st_theme_node_reset_for_stylesheet_change (StThemeNode *node)
-{
-  maybe_free_properties (node);
-  node->properties_computed = FALSE;
-}
-
 static void
 st_theme_node_dispose (GObject *gobject)
 {
@@ -225,6 +218,7 @@ st_theme_node_new (StThemeContext    *context,
   node->element_classes = split_on_whitespace (element_class);
   node->pseudo_classes = split_on_whitespace (pseudo_class);
   node->inline_style = g_strdup (inline_style);
+  node->cached_scale_factor = st_theme_context_get_scale_factor (context);
 
   return node;
 }
@@ -345,6 +339,7 @@ st_theme_node_equal (StThemeNode *node_a, StThemeNode *node_b)
       node_a->context != node_b->context ||
       node_a->theme != node_b->theme ||
       node_a->element_type != node_b->element_type ||
+      node_a->cached_scale_factor != node_b->cached_scale_factor ||
       g_strcmp0 (node_a->element_id, node_b->element_id) ||
       g_strcmp0 (node_a->inline_style, node_b->inline_style))
     return FALSE;
@@ -396,6 +391,7 @@ st_theme_node_hash (StThemeNode *node)
   hash = hash * 33 + GPOINTER_TO_UINT (node->context);
   hash = hash * 33 + GPOINTER_TO_UINT (node->theme);
   hash = hash * 33 + ((guint) node->element_type);
+  hash = hash * 33 + ((guint) node->cached_scale_factor);
 
   if (node->element_id != NULL)
     hash = hash * 33 + g_str_hash (node->element_id);
@@ -975,9 +971,7 @@ get_length_from_term (StThemeNode *node,
   } type = ABSOLUTE;
 
   double multiplier = 1.0;
-  int scale_factor;
 
-  g_object_get (node->context, "scale-factor", &scale_factor, NULL);
 
   if (term->type != TERM_NUMBER)
     {
@@ -992,7 +986,7 @@ get_length_from_term (StThemeNode *node,
     {
     case NUM_LENGTH_PX:
       type = ABSOLUTE;
-      multiplier = 1 * scale_factor;
+      multiplier = 1 * node->cached_scale_factor;
       break;
     case NUM_LENGTH_PT:
       type = POINTS;
@@ -1123,14 +1117,10 @@ get_length_from_term_int (StThemeNode *node,
 {
   double value;
   GetFromTermResult result;
-  int scale_factor;
 
   result = get_length_from_term (node, term, use_parent_font, &value);
   if (result == VALUE_FOUND)
-    {
-      g_object_get (node->context, "scale-factor", &scale_factor, NULL);
-      *length = (int) ((value / scale_factor) + 0.5) * scale_factor;
-    }
+    *length = (int) ((value / node->cached_scale_factor) + 0.5) * node->cached_scale_factor;
   return result;
 }
 
@@ -3012,7 +3002,6 @@ StBorderImage *
 st_theme_node_get_border_image (StThemeNode *node)
 {
   int i;
-  int scale_factor;
 
   if (node->border_image_computed)
     return node->border_image;
@@ -3021,7 +3010,6 @@ st_theme_node_get_border_image (StThemeNode *node)
   node->border_image_computed = TRUE;
 
   ensure_properties (node);
-  g_object_get (node->context, "scale-factor", &scale_factor, NULL);
 
   for (i = node->n_properties - 1; i >= 0; i--)
     {
@@ -3126,7 +3114,7 @@ st_theme_node_get_border_image (StThemeNode *node)
 
           node->border_image = st_border_image_new (file,
                                                     border_top, border_right, border_bottom, border_left,
-                                                    scale_factor);
+                                                    node->cached_scale_factor);
 
           g_object_unref (file);
 
@@ -3966,6 +3954,9 @@ st_theme_node_geometry_equal (StThemeNode *node,
     return TRUE;
 
   g_return_val_if_fail (ST_IS_THEME_NODE (other), FALSE);
+
+  if (node->cached_scale_factor != other->cached_scale_factor)
+    return FALSE;
 
   _st_theme_node_ensure_geometry (node);
   _st_theme_node_ensure_geometry (other);

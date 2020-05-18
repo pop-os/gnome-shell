@@ -1,8 +1,166 @@
-gnome-shell (3.36.1-4ubuntu1pop1) focal; urgency=medium
+gnome-shell (3.36.2-1ubuntu1~20.04.1pop1) focal; urgency=medium
 
-  * Upstream 
+  * Rebase on latest Ubuntu package
 
- -- Michael Aaron Murphy <michael@system76.com>  Mon, 13 Apr 2020 10:37:37 -0600
+ -- Michael Aaron Murphy <michael@system76.com>  Fri, 15 May 2020 12:16:27 -0600
+
+gnome-shell (3.36.2-1ubuntu1~20.04.1) focal; urgency=medium
+
+  * No change backport to focal (LP: #1877212)
+  * debian/gbp.conf: Set branch to ubuntu/focal
+  * debian/control: Update VCS references to focal branch
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 07 May 2020 04:12:37 +0200
+
+gnome-shell (3.36.2-1ubuntu1) groovy; urgency=medium
+
+  * Merge with debian, including new upstream release (LP: #1877212)
+  * debian/patches: Refresh
+  * Remaining changes with debian:
+    - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    - Add some Recommends:
+      + ubuntu-session (| gnome-session) to have the ubuntu session available
+      + xserver-xorg-legacy
+      + yaru-theme-gnome-shell for the default ubuntu theming
+    - Update debian/gbp.conf with Ubuntu settings
+    - gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    - ubuntu/desktop_detect.patch:
+      + add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    - ubuntu/smarter_alt_tab.patch:
+      + quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    - ubuntu/lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - ubuntu/lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - ubuntu/background_login.patch
+      + Change default background color as we modified the default GDM color
+        for our ubuntu session.
+    - ubuntu/gdm_alternatives.patch
+      + Add support for GDM3 theme alternatives
+    - optional-hot-corner.patch
+      + enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    - main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      + Improve debug JS tracing for crash reports
+    - st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch:
+      + Fix crash on theme changes
+    - ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      + stop searches when requested from UI
+    - magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      + Show monitor scaled cursor when magnifier is enabled
+    - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 07 May 2020 03:57:06 +0200
+
+gnome-shell (3.36.2-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream stable release
+    - Tone down weekend days with events in calendar
+    - Fix crash on physical keyboard detach
+    - Fix crash when creating a new workspace by dragging a favourite
+      app icon
+    - Fix popup scaling in some HiDPI multi-monitor configurations
+    - Fix unintended focus delay after entering the wrong password
+    - Fix a crash when theming changes (LP: #1868440)
+    - When searching for system actions, find transliterated ASCII versions
+    - Ellipsize long "wrong password" messages
+    - Fix stuck lock screen when locked with a system-modal dialog open
+      (LP: #1876837)
+    - Don't apply updates on logout by default, since it isn't always
+      desirable (in particular on-battery status is not detected)
+    - Update translations: cs, pt_BR
+  * d/rules: Drop -Wl,--as-needed.
+    It's the compiler default with bullseye toolchains.
+  * d/watch: Only watch even-numbered (stable) branches
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 01 May 2020 11:28:11 +0100
+
+gnome-shell (3.36.1+git20200417-1) unstable; urgency=medium
+
+  * Team upload
+
+  [ Simon McVittie ]
+  * New upstream snapshot from gnome-3-36 branch (3.36.1-37-g18a5c7436)
+    - Fix translated app folder names in overview (LP: #1872434)
+    - Fix misaligned spinner in lock screen
+    - Fix warning when a polkit dialog is reset
+    - Pluralize prompt correctly when asking whether to revert a display
+      setup change
+    - Update Finnish translation
+  * Bump build-dependency on libpulse-dev to 13.
+    Apparently stable's libpulse0 (in a partial upgrade) causes gnome-shell
+    to hang, so presumably we need this newer version for something.
+    (Closes: #958025)
+  * Bump AT-SPI dependency to a contemporary version.
+    As with libpulse, there's anecdotal evidence that the version from
+    Debian 10 is too old to work in practice. (Closes: #958025)
+
+  [ Laurent Bigonville ]
+  * Move the D-Bus interfaces description files to the -common package.
+    This will make it easier to build some packages, like gnome-terminal,
+    that have a search provider
+
+  [ Jeremy Bicha ]
+  * Have gnome-shell-extension-prefs recommend chrome-gnome-shell
+    (LP: #1866841)
+    - gnome-shell-extension-prefs recommends visiting
+      extensions.gnome.org to install extensions but that
+      requires chrome-gnome-shell to be installed
+    - GNOME Software 3.36 no longer offers installing
+      GNOME Shell extensions
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 21 Apr 2020 13:46:21 +0100
+
+gnome-shell (3.36.1-5ubuntu2) focal; urgency=medium
+
+  * Have gnome-shell-extension-prefs recommend chrome-gnome-shell
+    (LP: #1866841)
+    - gnome-shell-extension-prefs recommends visiting
+      extensions.gnome.org to install extensions but that
+      requires chrome-gnome-shell to be installed
+    - GNOME Software 3.36 no longer offers installing
+      GNOME Shell extensions
+
+ -- Jeremy Bicha <jbicha@debian.org>  Tue, 21 Apr 2020 07:48:41 -0400
+
+gnome-shell (3.36.1-5ubuntu1) focal; urgency=medium
+
+  * Merge with debian
+  * debian/patches: appDisplay: Look up directory- instead of category
+    translations (LP: #1872434)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 15 Apr 2020 03:00:46 +0200
+
+gnome-shell (3.36.1-5) unstable; urgency=medium
+
+  * Team upload
+  * Merge changelog from unstable
+  * Upload to unstable (transition: #954422)
+  * d/gbp.conf: Follow upstream/3.36.x branch
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 10 Apr 2020 17:56:07 +0100
+
+gnome-shell (3.34.4-1) unstable; urgency=medium
+
+  * Team upload
+  * d/gbp.conf: Switch to debian/unstable branch.
+    debian/master is now in use for 3.35.x.
+  * New upstream release
+  * Apply post-release fixes up to 3.34.4-1-g99d948559
+  * Bump Standards-Version to 4.5.0
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 25 Feb 2020 16:26:07 +0000
 
 gnome-shell (3.36.1-4ubuntu1) focal; urgency=medium
 

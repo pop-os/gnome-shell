@@ -132,7 +132,9 @@ function start() {
         notifyError(msg, detail);
     });
 
-    Gio.DesktopAppInfo.set_desktop_env('GNOME');
+    let currentDesktop = GLib.getenv('XDG_CURRENT_DESKTOP');
+    if (!currentDesktop || !currentDesktop.split(':').includes('GNOME'))
+        Gio.DesktopAppInfo.set_desktop_env('GNOME');
 
     sessionMode = new SessionMode.SessionMode();
     sessionMode.connect('updated', _sessionUpdated);
@@ -519,7 +521,9 @@ function pushModal(actor, params) {
     let prevFocusDestroyId;
     if (prevFocus != null) {
         prevFocusDestroyId = prevFocus.connect('destroy', () => {
-            let index = _findModal(actor);
+            const index = modalActorFocusStack.findIndex(
+                record => record.prevFocus === prevFocus);
+
             if (index >= 0)
                 modalActorFocusStack[index].prevFocus = null;
         });
