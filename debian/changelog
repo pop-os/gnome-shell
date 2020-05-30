@@ -1,13 +1,17 @@
-gnome-shell (3.36.2+64+ge74e691d8-1) UNRELEASED; urgency=medium
+gnome-shell (3.36.2+64+ge74e691d8-1) experimental; urgency=medium
 
+  * Team upload
   * New upstream snapshot from the gnome-3-36 branch
     - Fixes a crash when locking the screen with certain extensions
       enabled (Closes: #959883)
   * Drop compatibility glue from gnome-shell-extension-prefs.
     Upstream added a wrapper script which does something mostly
     equivalent.
+  * Install gnome-extensions-app, the new name of
+    gnome-shell-extension-prefs, in the gnome-shell-extension-prefs
+    package
 
- -- Simon McVittie <smcv@debian.org>  Sat, 30 May 2020 14:35:15 +0100
+ -- Simon McVittie <smcv@debian.org>  Sat, 30 May 2020 15:48:25 +0100
 
 gnome-shell (3.36.2-1) unstable; urgency=medium
 
