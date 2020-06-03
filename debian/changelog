@@ -1,6 +1,18 @@
 gnome-shell (3.36.3-1) UNRELEASED; urgency=medium
 
-  * New upstream release
+  * New upstream release (LP: #1881973)
+    - Add gnome-shell-extension-prefs wrapper for compatibility
+    - Fix distorted fallback icons in top bar
+    - Lower timeout for scrolling in overview
+    - Only start systemd units when running under systemd
+    - Fix "ghost" media controls
+    - Fix zombie sockets from extensions downloader
+    - Update world clocks offsets when timezone changes
+    - Fix "Do Not Disturb" setting getting reset on startup
+    - Fix pad OSD glitches
+    - Fix matching notifications by PID
+    - Only allow updates for extensions that aren't cached
+    - Fixed crashes
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 03 Jun 2020 23:41:25 +0200
 
