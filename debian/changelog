@@ -1,3 +1,9 @@
+gnome-shell (3.36.3-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 03 Jun 2020 23:41:25 +0200
+
 gnome-shell (3.36.2+64+ge74e691d8-1) experimental; urgency=medium
 
   * Team upload
