@@ -1,3 +1,36 @@
+gnome-shell (3.36.3-1) unstable; urgency=medium
+
+  * New upstream release (LP: #1881973)
+    - Add gnome-shell-extension-prefs wrapper for compatibility
+    - Fix distorted fallback icons in top bar
+    - Lower timeout for scrolling in overview
+    - Only start systemd units when running under systemd
+    - Fix "ghost" media controls
+    - Fix zombie sockets from extensions downloader
+    - Update world clocks offsets when timezone changes
+    - Fix "Do Not Disturb" setting getting reset on startup
+    - Fix pad OSD glitches
+    - Fix matching notifications by PID
+    - Only allow updates for extensions that aren't cached
+    - Fixed crashes
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 04 Jun 2020 00:07:17 +0200
+
+gnome-shell (3.36.2+64+ge74e691d8-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream snapshot from the gnome-3-36 branch
+    - Fixes a crash when locking the screen with certain extensions
+      enabled (Closes: #959883)
+  * Drop compatibility glue from gnome-shell-extension-prefs.
+    Upstream added a wrapper script which does something mostly
+    equivalent.
+  * Install gnome-extensions-app, the new name of
+    gnome-shell-extension-prefs, in the gnome-shell-extension-prefs
+    package
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 30 May 2020 15:48:25 +0100
+
 gnome-shell (3.36.2-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream release (LP: #1877212)

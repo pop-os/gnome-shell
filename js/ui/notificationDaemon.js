@@ -10,13 +10,6 @@ const Params = imports.misc.params;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
-// Should really be defined in Gio.js
-const BusIface = loadInterfaceXML('org.freedesktop.DBus');
-var BusProxy = Gio.DBusProxy.makeProxyWrapper(BusIface);
-function Bus() {
-    return new BusProxy(Gio.DBus.session, 'org.freedesktop.DBus', '/org/freedesktop/DBus');
-}
-
 const FdoNotificationsIface = loadInterfaceXML('org.freedesktop.Notifications');
 
 var NotificationClosedReason = {
@@ -49,9 +42,7 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         this._dbusImpl.export(Gio.DBus.session, '/org/freedesktop/Notifications');
 
         this._sources = [];
-        this._senderToPid = {};
         this._notifications = {};
-        this._busProxy = new Bus();
 
         this._nextNotificationId = 1;
 
@@ -116,12 +107,9 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
     //
     // If no existing source is found, a new source is created as long as
     // pid is provided.
-    //
-    // Either a pid or ndata.notification is needed to retrieve or
-    // create a source.
     _getSource(title, pid, ndata, sender) {
         if (!pid && !(ndata && ndata.notification))
-            return null;
+            throw new Error('Either a pid or ndata.notification is needed');
 
         // We use notification's source for the notifications we still have
         // around that are getting replaced because we don't keep sources
@@ -218,42 +206,10 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         this._notifications[id] = ndata;
 
         let sender = invocation.get_sender();
-        let pid = this._senderToPid[sender];
+        let pid = hints['sender-pid'];
 
         let source = this._getSource(appName, pid, ndata, sender, null);
-
-        if (source) {
-            this._notifyForSource(source, ndata);
-            return invocation.return_value(GLib.Variant.new('(u)', [id]));
-        }
-
-        if (replacesId) {
-            // There's already a pending call to GetConnectionUnixProcessID,
-            // which will see the new notification data when it finishes,
-            // so we don't have to do anything.
-            return invocation.return_value(GLib.Variant.new('(u)', [id]));
-        }
-
-        this._busProxy.GetConnectionUnixProcessIDRemote(sender, (result, excp) => {
-            // The app may have updated or removed the notification
-            ndata = this._notifications[id];
-            if (!ndata)
-                return;
-
-            if (excp) {
-                logError(excp, 'Call to GetConnectionUnixProcessID failed');
-                return;
-            }
-
-            [pid] = result;
-            source = this._getSource(appName, pid, ndata, sender, null);
-
-            this._senderToPid[sender] = pid;
-            source.connect('destroy', () => {
-                delete this._senderToPid[sender];
-            });
-            this._notifyForSource(source, ndata);
-        });
+        this._notifyForSource(source, ndata);
 
         return invocation.return_value(GLib.Variant.new('(u)', [id]));
     }
@@ -417,11 +373,10 @@ var FdoNotificationDaemonSource = GObject.registerClass(
 class FdoNotificationDaemonSource extends MessageTray.Source {
     _init(title, pid, sender, appId) {
         this.pid = pid;
+        this.initialTitle = title;
         this.app = this._getApp(appId);
 
         super._init(title);
-
-        this.initialTitle = title;
 
         if (this.app)
             this.title = this.app.get_name();
@@ -470,19 +425,20 @@ class FdoNotificationDaemonSource extends MessageTray.Source {
     }
 
     _getApp(appId) {
+        const appSys = Shell.AppSystem.get_default();
         let app;
 
         app = Shell.WindowTracker.get_default().get_app_from_pid(this.pid);
         if (app != null)
             return app;
 
-        if (appId) {
-            app = Shell.AppSystem.get_default().lookup_app('%s.desktop'.format(appId));
-            if (app != null)
-                return app;
-        }
+        if (appId)
+            app = appSys.lookup_app('%s.desktop'.format(appId));
 
-        return null;
+        if (!app)
+            app = appSys.lookup_app('%s.desktop'.format(this.initialTitle));
+
+        return app;
     }
 
     setTitle(title) {

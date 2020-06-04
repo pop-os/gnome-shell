@@ -39,7 +39,7 @@ function toggleState(action) {
 var Application = GObject.registerClass(
 class Application extends Gtk.Application {
     _init() {
-        GLib.set_prgname('gnome-shell-extension-prefs');
+        GLib.set_prgname('gnome-extensions-app');
         super._init({ application_id: 'org.gnome.Extensions' });
     }
 
@@ -334,6 +334,7 @@ var ExtensionRow = GObject.registerClass({
         'versionLabel',
         'authorLabel',
         'updatesIcon',
+        'switch',
         'revealButton',
         'revealer',
     ],
@@ -452,6 +453,9 @@ var ExtensionRow = GObject.registerClass({
         let action = this._actionGroup.lookup('enabled');
         action.set_state(new GLib.Variant('b', state));
         action.enabled = this._canToggle();
+
+        if (!action.enabled)
+            this._switch.active = state;
 
         this._updatesIcon.visible = this.hasUpdate;
 
