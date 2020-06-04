@@ -1,11 +1,11 @@
 project('gnome-extensions-app',
-  version: '3.36.2',
+  version: '3.36.3',
   meson_version: '>= 0.47.0',
   license: 'GPLv2+'
 )
 
 app_id = 'org.gnome.Extensions'
-prgname = 'gnome-shell-extension-prefs'
+prgname = 'gnome-extensions-app'
 
 gnome = import('gnome')
 i18n  = import('i18n')
