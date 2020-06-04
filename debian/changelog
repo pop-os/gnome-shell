@@ -1,3 +1,9 @@
+gnome-shell (3.36.3-1ubuntu1~20.04.1) UNRELEASED; urgency=medium
+
+  * No change backport to focal (LP: #1881973)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 04 Jun 2020 22:32:09 +0200
+
 gnome-shell (3.36.3-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream release:
