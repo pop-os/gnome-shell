@@ -1,3 +1,11 @@
+gnome-shell (3.36.3-1ubuntu2) groovy; urgency=medium
+
+  * d/p/shell-mime-sniffer-Ignore-invalid-file-content-type.patch:
+    - gnome-shell-sniffer, don't crash when opening files with invalid content
+      type (LP: #1865300)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 05 Jun 2020 20:14:47 +0200
+
 gnome-shell (3.36.3-1ubuntu1~20.04.1) focal; urgency=medium
 
   * No change backport to focal (LP: #1881973)

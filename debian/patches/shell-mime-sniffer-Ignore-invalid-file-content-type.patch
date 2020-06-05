@@ -1,0 +1,42 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 5 Jun 2020 14:12:58 +0000
+Subject: shell-mime-sniffer: Ignore invalid file content type
+
+The shell mime sniffer goes through all the files in a directory,
+however in case a file content type is not recognized, the GIO function
+g_file_info_get_content_type() may return NULL, causing a crash when
+looking up into the content type tables, as they are supposed to contain
+strings only and they use `g_str_hash` has func, which doesn't support
+NULL values.
+
+So, in case we get an invalid content type, let's just ignore it,
+without adding it to the cache as we do in the nautilus code that was
+inspiring the sniffer.
+
+Fixes https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2643
+
+
+(cherry picked from commit 46547ae02797558699510595b27857b80c027b5b)
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/46547ae0
+Bug-Ubuntu: https://launchpad.net/bugs/1865300
+Applied-Upstream: 3.37.3
+---
+ src/hotplug-sniffer/shell-mime-sniffer.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/hotplug-sniffer/shell-mime-sniffer.c b/src/hotplug-sniffer/shell-mime-sniffer.c
+index 6c56ecb..7a1c1fe 100644
+--- a/src/hotplug-sniffer/shell-mime-sniffer.c
++++ b/src/hotplug-sniffer/shell-mime-sniffer.c
+@@ -253,7 +253,9 @@ deep_count_one (DeepCountState *state,
+   else
+     {
+       content_type = g_file_info_get_content_type (info);
+-      add_content_type_to_cache (state, content_type);
++
++      if (content_type)
++        add_content_type_to_cache (state, content_type);
+     }
+ }
+ 
