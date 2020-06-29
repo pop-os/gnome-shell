@@ -1,0 +1,38 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 3 Aug 2018 18:51:24 +0200
+Subject: st/scroll-view: Handle the case where scrollbars are NULL
+
+The scrollbars actors in a scroll view can be NULL, in case they get removed
+with a call to `clutter_actor_remove_child` on a scroll-view (and this is
+implemented in st_scroll_view_remove).
+
+So, we should support the case where `priv->{h,v}scroll` are NULL, not to crash
+in `st_widget_style_changed`.
+
+Fixes #467
+
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/467
+BUG-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1725312
+Forwarded: yes, https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/190
+---
+ src/st/st-scroll-view.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
+index 04169b1..7b5f494 100644
+--- a/src/st/st-scroll-view.c
++++ b/src/st/st-scroll-view.c
+@@ -747,8 +747,11 @@ st_scroll_view_style_changed (StWidget *widget)
+   gdouble hfade_offset = st_theme_node_get_length (theme_node, "-st-hfade-offset");
+   st_scroll_view_update_fade_effect (self, vfade_offset, hfade_offset);
+ 
+-  st_widget_style_changed (ST_WIDGET (priv->hscroll));
+-  st_widget_style_changed (ST_WIDGET (priv->vscroll));
++  if (priv->hscroll)
++    st_widget_style_changed (ST_WIDGET (priv->hscroll));
++
++  if (priv->vscroll)
++    st_widget_style_changed (ST_WIDGET (priv->vscroll));
+ 
+   ST_WIDGET_CLASS (st_scroll_view_parent_class)->style_changed (widget);
+ }

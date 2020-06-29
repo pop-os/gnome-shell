@@ -1,0 +1,13 @@
+etc/xdg/autostart/gnome-shell-overrides-migration.desktop
+usr/bin/gnome-extensions
+usr/bin/gnome-shell
+usr/bin/gnome-shell-extension-tool
+usr/bin/gnome-shell-perf-tool
+usr/lib/gnome-shell
+usr/libexec
+usr/share/applications/evolution-calendar.desktop
+usr/share/applications/org.gnome.Shell*.desktop
+usr/share/bash-completion/completions/gnome-extensions
+usr/share/dbus-1/services
+usr/share/man
+usr/share/xdg-desktop-portal

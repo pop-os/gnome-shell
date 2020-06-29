@@ -1,0 +1,42 @@
+From: Jeremy Soller <jeremy@system76.com>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: Add support for GDM3 theme alternatives
+
+GNOME vanilla and systemd76 derivative ships their own GDM theme.
+
+This allows to provide alternative gresource file for gdm3 that must contain
+a `gdm3.css` stylesheet that will be applied.
+
+Bug: https://bugzilla.gnome.org/show_bug.cgi?id=787454
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1715722
+Last-Update: 2017-09-08
+---
+ data/gnome-shell-theme.gresource.xml | 1 +
+ js/ui/sessionMode.js                 | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/data/gnome-shell-theme.gresource.xml b/data/gnome-shell-theme.gresource.xml
+index ac9c3fd..1be79b1 100644
+--- a/data/gnome-shell-theme.gresource.xml
++++ b/data/gnome-shell-theme.gresource.xml
+@@ -7,6 +7,7 @@
+     <file>checkbox-off.svg</file>
+     <file>checkbox.svg</file>
+     <file>dash-placeholder.svg</file>
++    <file alias="gdm3.css">gnome-shell.css</file>
+     <file>gnome-shell.css</file>
+     <file>gnome-shell-high-contrast.css</file>
+     <file alias="icons/message-indicator-symbolic.svg">message-indicator-symbolic.svg</file>
+diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
+index e12fc2e..b3b69b3 100644
+--- a/js/ui/sessionMode.js
++++ b/js/ui/sessionMode.js
+@@ -42,6 +42,8 @@ const _modes = {
+ 
+     'gdm': {
+         hasNotifications: true,
++        stylesheetName: 'gdm3.css',
++        themeResourceName: 'gdm3-theme.gresource',
+         isGreeter: true,
+         isPrimary: true,
+         unlockDialog: imports.gdm.loginDialog.LoginDialog,

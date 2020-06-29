@@ -1,0 +1,10 @@
+debian/source_gnome-shell.py /usr/share/apport/package-hooks
+usr/lib/systemd/user
+usr/share/dbus-1/interfaces
+usr/share/GConf
+usr/share/glib-2.0
+usr/share/gnome-control-center
+usr/share/gnome-shell
+usr/share/icons/hicolor/*/apps/*
+usr/share/locale
+debian/ubuntu-session-mods/ubuntu.json usr/share/gnome-shell/modes/

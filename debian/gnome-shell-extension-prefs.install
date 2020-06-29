@@ -1,0 +1,4 @@
+usr/bin/gnome-extensions-app
+usr/bin/gnome-shell-extension-prefs
+usr/share/applications/org.gnome.Extensions.desktop
+usr/share/metainfo/org.gnome.Extensions.metainfo.xml

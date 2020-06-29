@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+    configure)
+        # trigger an update notification that recommends a reboot
+        # (used by unattended-upgrades etc.)
+        touch /var/run/reboot-required || true
+
+        # same thing for the older update-notifier interface
+        if [ -x /usr/share/update-notifier/notify-reboot-required ]; then
+            /usr/share/update-notifier/notify-reboot-required || true
+        fi
+        ;;
+esac
+
+#DEBHELPER#

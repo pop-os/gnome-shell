@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "remove" ]; then
+  update-alternatives --remove \
+    gdm3-theme.gresource \
+    /usr/share/gnome-shell/gnome-shell-theme.gresource
+
+  # Remove older deprecated themes. Can be removed post 20.04
+  update-alternatives --remove gdm3.css /usr/share/gnome-shell/theme/ubuntu.css || true
+  update-alternatives --remove gdm3.css /usr/share/gnome-shell/theme/gnome-shell.css || true
+fi
+
+#DEBHELPER#

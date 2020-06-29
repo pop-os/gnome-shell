@@ -1,0 +1,61 @@
+# Reporting Shell theme changes to Yaru.
+
+Our default theme is Yaru, it means that any changes, especially breaking changes (meaning, changes that can't be done
+without a theme update) needs to be coordinated between the gnome-shell updates and Yaru. Probably with  a **Breaks:** stenza
+in `debian/control`
+
+## What should be reported?
+
+The upstream GNOME Shell `data/theme/` directory is used as a basis for our Yaru GNOME Shell theme so any change made upstream needs to be reflected in our derivative version. Most of the sass files are under the `gnome-shell-sass/` subdirectory.
+
+Note that Yaru has its own `meson.build` file. Changes there shouldn't be in general reported apart if new assets are installed.
+It should be a simple assessment in general if you need to do anything on the build system side.
+
+## Structure
+
+Ensure you cloned the Yaru repository via `git clone https://github.com/ubuntu/yaru`. The shell theme is under `gnome-shell`.
+It contains two subdirectories:
+ * `upstream/` is the latest upstream sass source we based on. This is the reference.
+ * `src` is the Yaru theme, which is `upstream/` + the yaru modifications.
+
+Basically diffing `upstream` and `src` provides you the difference between the default GNOME Shell theme and our Yaru Shell theme.
+
+## Reporting changes
+
+### Checking what to report
+
+Note: you should do that either recursively, or directly on each file that was modified for the new GNOME Shell release.
+Basically, you can run: `diff -r yaru/gnome-shell/upstream new-gnome-shell-version/data/theme | lsdiff` to get the list between
+latest upstream snapshot in Yaru and current upstream changes.
+
+The easiest way is a 3-way merge diff and manually reporting what makes sense. I personally used `meld` for this and run:
+```
+$ meld yaru/gnome-shell/upstream/<path_to_modified_file_in_new_version> new-gnome-shell-version/data/theme/<path_to_modified_file_in_new_version> yaru/gnome-shell/src/<path_to_modified_file_in_new_version>
+```
+
+Note: as diff, meld can infer the filename (only repeat it once) as long as you point to the correct directory.
+
+You will see a window with 3 columns:
+ * New changes are visible between the first two columns (diff between old upstream and new upstream). You report them,
+as you may see it fit (clicking meld arrow or manually) on the third column.
+ * Second to third column diff is consequently the new additional delta you are introducing, if needed. It should be most
+of the time be null (no diff) or minimal once you are done.
+
+Commit all those changes, don't forget the svg assets.
+
+### Taking a new upstream snapshot
+
+Once done, snapshot the new GNOME Shell upstream directory we based our changes on for the next Shell update involving a new 3 way merge:
+```
+$ rm -r yaru/gnome-shell/upstream/
+$ cp -a new-gnome-shell-version/data/theme/ yaru/gnome-shell/upstream/
+```
+
+### Changing package coordination
+
+Once again, if the changes are breaking, updates the **Breaks:** or other fields between **gnome-shell** and
+**yaru-theme-gnome-shell** to ensure people are getting both updates simultaneously.
+
+### Submitting
+
+Commit that, and submit a MP against https://github.com/ubuntu/yaru.
