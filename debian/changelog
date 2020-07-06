@@ -1,3 +1,9 @@
+gnome-shell (3.36.3-1ubuntu1~20.04.2pop1) UNRELEASED; urgency=medium
+
+  * Bump version
+
+ -- Michael Aaron Murphy <michael@system76.com>  Mon, 06 Jul 2020 12:48:29 -0600
+
 gnome-shell (3.36.3-1ubuntu1~20.04.2) focal; urgency=medium
 
   * No change backport to focal
