@@ -154,7 +154,7 @@ Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
 
 Package: gnome-shell-extension-prefs
-Architecture: linux-any
+Architecture: amd64
 Depends: gnome-shell (= ${binary:Version}),
          gnome-shell-common (= ${source:Version}),
          ${gir:Depends},
