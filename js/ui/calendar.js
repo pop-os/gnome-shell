@@ -220,7 +220,12 @@ class DBusEventSource extends EventSourceBase {
                 }
             }
 
-            this._dbusProxy.connectSignal('Changed', this._onChanged.bind(this));
+            this._dbusProxy.connectSignal('EventsAddedOrUpdated',
+                this._onEventsAddedOrUpdated.bind(this));
+            this._dbusProxy.connectSignal('EventsRemoved',
+                this._onEventsRemoved.bind(this));
+            this._dbusProxy.connectSignal('ClientDisappeared',
+                this._onClientDisappeared.bind(this));
 
             this._dbusProxy.connect('notify::g-name-owner', () => {
                 if (this._dbusProxy.g_name_owner)
@@ -257,7 +262,7 @@ class DBusEventSource extends EventSourceBase {
     }
 
     _resetCache() {
-        this._events = [];
+        this._events = new Map();
         this._lastRequestBegin = null;
         this._lastRequestEnd = null;
     }
@@ -273,28 +278,47 @@ class DBusEventSource extends EventSourceBase {
         this.emit('changed');
     }
 
-    _onChanged() {
-        this._loadEvents(false);
+    _onEventsAddedOrUpdated(dbusProxy, nameOwner, argArray) {
+        const [appointments = []] = argArray;
+        let changed = false;
+
+        for (let n = 0; n < appointments.length; n++) {
+            const [id, summary, allDay, startTime, endTime] = appointments[n];
+            const date = new Date(startTime * 1000);
+            const end = new Date(endTime * 1000);
+            let event = new CalendarEvent(id, date, end, summary, allDay);
+            this._events.set(event.id, event);
+
+            changed = true;
+        }
+
+        if (changed)
+            this.emit('changed');
     }
 
-    _onEventsReceived(results, _error) {
-        let newEvents = [];
-        let appointments = results[0] || [];
-        for (let n = 0; n < appointments.length; n++) {
-            let a = appointments[n];
-            let date = new Date(a[4] * 1000);
-            let end = new Date(a[5] * 1000);
-            let id = a[0];
-            let summary = a[1];
-            let allDay = a[3];
-            let event = new CalendarEvent(id, date, end, summary, allDay);
-            newEvents.push(event);
-        }
-        newEvents.sort((ev1, ev2) => ev1.date.getTime() - ev2.date.getTime());
+    _onEventsRemoved(dbusProxy, nameOwner, argArray) {
+        const [ids = []] = argArray;
 
-        this._events = newEvents;
-        this._isLoading = false;
-        this.emit('changed');
+        let changed = false;
+        for (const id of ids)
+            changed |= this._events.delete(id);
+
+        if (changed)
+            this.emit('changed');
+    }
+
+    _onClientDisappeared(dbusProxy, nameOwner, argArray) {
+        let [sourceUid = ''] = argArray;
+        sourceUid += '\n';
+
+        let changed = false;
+        for (const id of this._events.keys()) {
+            if (id.startsWith(sourceUid))
+                changed |= this._events.delete(id);
+        }
+
+        if (changed)
+            this.emit('changed');
     }
 
     _loadEvents(forceReload) {
@@ -303,33 +327,38 @@ class DBusEventSource extends EventSourceBase {
             return;
 
         if (this._curRequestBegin && this._curRequestEnd) {
-            this._dbusProxy.GetEventsRemote(this._curRequestBegin.getTime() / 1000,
-                                            this._curRequestEnd.getTime() / 1000,
-                                            forceReload,
-                                            this._onEventsReceived.bind(this),
-                                            Gio.DBusCallFlags.NONE);
+            if (forceReload) {
+                this._events.clear();
+                this.emit('changed');
+            }
+            this._dbusProxy.SetTimeRangeRemote(
+                this._curRequestBegin.getTime() / 1000,
+                this._curRequestEnd.getTime() / 1000,
+                forceReload,
+                Gio.DBusCallFlags.NONE);
         }
     }
 
     requestRange(begin, end) {
         if (!(_datesEqual(begin, this._lastRequestBegin) && _datesEqual(end, this._lastRequestEnd))) {
-            this._isLoading = true;
             this._lastRequestBegin = begin;
             this._lastRequestEnd = end;
             this._curRequestBegin = begin;
             this._curRequestEnd = end;
-            this._loadEvents(false);
+            this._loadEvents(true);
+        }
+    }
+
+    *_getFilteredEvents(begin, end) {
+        for (const event of this._events.values()) {
+            if (_dateIntervalsOverlap(event.date, event.end, begin, end))
+                yield event;
         }
     }
 
     getEvents(begin, end) {
-        let result = [];
-        for (let n = 0; n < this._events.length; n++) {
-            let event = this._events[n];
+        let result = [...this._getFilteredEvents(begin, end)];
 
-            if (_dateIntervalsOverlap(event.date, event.end, begin, end))
-                result.push(event);
-        }
         result.sort((event1, event2) => {
             // sort events by end time on ending day
             let d1 = event1.date < begin && event1.end <= end ? event1.end : event1.date;
@@ -343,12 +372,8 @@ class DBusEventSource extends EventSourceBase {
         let dayBegin = _getBeginningOfDay(day);
         let dayEnd = _getEndOfDay(day);
 
-        let events = this.getEvents(dayBegin, dayEnd);
-
-        if (events.length == 0)
-            return false;
-
-        return true;
+        const { done } = this._getFilteredEvents(dayBegin, dayEnd).next();
+        return !done;
     }
 });
 
@@ -700,12 +725,11 @@ var Calendar = GObject.registerClass({
 var EventMessage = GObject.registerClass(
 class EventMessage extends MessageList.Message {
     _init(event, date) {
-        super._init('', event.summary);
+        super._init('', '');
 
-        this._event = event;
         this._date = date;
 
-        this.setTitle(this._formatEventTime());
+        this.update(event);
 
         this._icon = new St.Icon({ icon_name: 'x-office-calendar-symbolic' });
         this.setIcon(this._icon);
@@ -715,6 +739,13 @@ class EventMessage extends MessageList.Message {
         let iconVisible = this.get_parent().has_style_pseudo_class('first-child');
         this._icon.opacity = iconVisible ? 255 : 0;
         super.vfunc_style_changed();
+    }
+
+    update(event) {
+        this._event = event;
+
+        this.setTitle(this._formatEventTime());
+        this.setBody(event.summary);
     }
 
     _formatEventTime() {
@@ -874,7 +905,7 @@ class EventsSection extends MessageList.MessageListSection {
     }
 
     _reloadEvents() {
-        if (this._eventSource.isLoading)
+        if (this._eventSource.isLoading || this._reloading)
             return;
 
         this._reloading = true;
@@ -900,6 +931,7 @@ class EventsSection extends MessageList.MessageListSection {
                 this._messageById.set(event.id, message);
                 this.addMessage(message, false);
             } else {
+                message.update(event);
                 this.moveMessage(message, i, false);
             }
         }
