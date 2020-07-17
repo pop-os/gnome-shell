@@ -1,3 +1,9 @@
+gnome-shell (3.36.4-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 17 Jul 2020 22:30:01 +0200
+
 gnome-shell (3.36.3-1) unstable; urgency=medium
 
   * New upstream release (LP: #1881973)
