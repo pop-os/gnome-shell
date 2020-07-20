@@ -1,3 +1,31 @@
+gnome-shell (3.36.4-1) unstable; urgency=medium
+
+  * New upstream stable release (LP: #1888060)
+    - Hide switch-user button on lock screen if unsupported
+    - Improve world clocks styling
+    - Improve calendar-server performance (Closes: #964851, LP: #1885346)
+    - Fix regressions in redesigned modal dialogs (LP: #1871868)
+    - Better support sandboxed apps with multiple .desktop files
+    - Fix on-screen keyboard size in portrait orientation
+    - Support scrolling anywhere in slider menu items
+    - Fixed crash
+    - Plugged leaks
+  * debian/control:
+    - Bump dependency on ibedataserver1.2 and evolution-data-server to 3.33.1
+  * d/p/shell-mime-sniffer-Ignore-invalid-file-content-type.patch:
+    - Dropped (merged upstream)
+  * d/p/shell-window-tracker-Tighten-sandbox-ID-prefix-check.patch,
+    d/p/extensionDownloader-Fix-check-for-updates-with-several-ex.patch,
+    d/p/Update-Brazilian-Portuguese-translation.patch,
+    d/p/Update-Brazilian-Portuguese-translation-1.patch,
+    d/p/keyboard-Move-named-icons-into-subdirectories.patch,
+    d/p/keyboard-Fix-missing-key-icons-in-numeric-level.patch,
+    d/p/calendar-server-Remove-delay-before-event-emission.patch:
+    - Cherry-picked from upstream stable branch, as they're reiterations to fix
+      issues introduced in various 3.36.x releases.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 15:17:47 +0200
+
 gnome-shell (3.36.3-1ubuntu2) groovy; urgency=medium
 
   * d/p/shell-mime-sniffer-Ignore-invalid-file-content-type.patch:

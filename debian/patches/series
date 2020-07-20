@@ -1,3 +1,10 @@
+shell-window-tracker-Tighten-sandbox-ID-prefix-check.patch
+extensionDownloader-Fix-check-for-updates-with-several-ex.patch
+Update-Brazilian-Portuguese-translation.patch
+Update-Brazilian-Portuguese-translation-1.patch
+keyboard-Move-named-icons-into-subdirectories.patch
+keyboard-Fix-missing-key-icons-in-numeric-level.patch
+calendar-server-Remove-delay-before-event-emission.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 shell-mime-sniffer-Ignore-invalid-file-content-type.patch
 ubuntu/desktop_detect.patch
