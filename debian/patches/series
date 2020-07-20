@@ -6,7 +6,6 @@ keyboard-Move-named-icons-into-subdirectories.patch
 keyboard-Fix-missing-key-icons-in-numeric-level.patch
 calendar-server-Remove-delay-before-event-emission.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
-shell-mime-sniffer-Ignore-invalid-file-content-type.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
