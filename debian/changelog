@@ -1,4 +1,4 @@
-gnome-shell (3.36.4-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.36.4-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream stable release, remaining changes:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -47,7 +47,7 @@ gnome-shell (3.36.4-1ubuntu1) UNRELEASED; urgency=medium
     d/p/ubuntu/secure_mode_extension.patch:
     - Refreshed as pr upstream changes
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 17:34:40 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 18:18:57 +0200
 
 gnome-shell (3.36.4-1) unstable; urgency=medium
 
