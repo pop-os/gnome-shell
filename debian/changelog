@@ -1,4 +1,4 @@
-gnome-shell (3.36.4-1) UNRELEASED; urgency=medium
+gnome-shell (3.36.4-1) unstable; urgency=medium
 
   * New upstream stable release (LP: #1888060)
     - Hide switch-user button on lock screen if unsupported
@@ -24,7 +24,7 @@ gnome-shell (3.36.4-1) UNRELEASED; urgency=medium
     - Cherry-picked from upstream stable branch, as they're reiterations to fix
       issues introduced in various 3.36.x releases.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 17 Jul 2020 22:30:01 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 14:44:33 +0200
 
 gnome-shell (3.36.3-1) unstable; urgency=medium
 
