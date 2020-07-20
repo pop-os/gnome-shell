@@ -24,7 +24,7 @@ gnome-shell (3.36.4-1) unstable; urgency=medium
     - Cherry-picked from upstream stable branch, as they're reiterations to fix
       issues introduced in various 3.36.x releases.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 15:17:28 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 15:17:47 +0200
 
 gnome-shell (3.36.3-1) unstable; urgency=medium
 
