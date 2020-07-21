@@ -1,3 +1,82 @@
+gnome-shell (3.36.4-1ubuntu1) groovy; urgency=medium
+
+  * Merge with debian, including new upstream stable release, remaining changes:
+    - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    - Add some Recommends:
+      + ubuntu-session (| gnome-session) to have the ubuntu session available
+      + xserver-xorg-legacy
+      + yaru-theme-gnome-shell for the default ubuntu theming
+    - Update debian/gbp.conf with Ubuntu settings
+    - gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    - ubuntu/desktop_detect.patch:
+      + add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    - ubuntu/smarter_alt_tab.patch:
+      + quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    - ubuntu/lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - ubuntu/lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - ubuntu/background_login.patch
+      + Change default background color as we modified the default GDM color
+        for our ubuntu session.
+    - ubuntu/gdm_alternatives.patch
+      + Add support for GDM3 theme alternatives
+    - optional-hot-corner.patch
+      + enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    - main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      + Improve debug JS tracing for crash reports
+    - st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch:
+      + Fix crash on theme changes
+    - ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      + stop searches when requested from UI
+    - magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      + Show monitor scaled cursor when magnifier is enabled
+    - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
+  * d/p/ubuntu/gdm_alternatives.patch,
+    d/p/ubuntu/secure_mode_extension.patch:
+    - Refreshed as per upstream changes
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 18:18:57 +0200
+
+gnome-shell (3.36.4-1) unstable; urgency=medium
+
+  * New upstream stable release (LP: #1888060)
+    - Hide switch-user button on lock screen if unsupported
+    - Improve world clocks styling
+    - Improve calendar-server performance (Closes: #964851, LP: #1885346)
+    - Fix regressions in redesigned modal dialogs (LP: #1871868)
+    - Better support sandboxed apps with multiple .desktop files
+    - Fix on-screen keyboard size in portrait orientation
+    - Support scrolling anywhere in slider menu items
+    - Fixed crash
+    - Plugged leaks
+  * debian/control:
+    - Bump dependency on ibedataserver1.2 and evolution-data-server to 3.33.1
+  * d/p/shell-mime-sniffer-Ignore-invalid-file-content-type.patch:
+    - Dropped (merged upstream)
+  * d/p/shell-window-tracker-Tighten-sandbox-ID-prefix-check.patch,
+    d/p/extensionDownloader-Fix-check-for-updates-with-several-ex.patch,
+    d/p/Update-Brazilian-Portuguese-translation.patch,
+    d/p/Update-Brazilian-Portuguese-translation-1.patch,
+    d/p/keyboard-Move-named-icons-into-subdirectories.patch,
+    d/p/keyboard-Fix-missing-key-icons-in-numeric-level.patch,
+    d/p/calendar-server-Remove-delay-before-event-emission.patch:
+    - Cherry-picked from upstream stable branch, as they're reiterations to fix
+      issues introduced in various 3.36.x releases.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 20 Jul 2020 15:17:47 +0200
+
 gnome-shell (3.36.3-1ubuntu1~20.04.2) focal; urgency=medium
 
   * No change backport to focal

@@ -524,6 +524,10 @@ var UnlockDialog = GObject.registerClass({
 
         this._bgManagers = [];
 
+        const themeContext = St.ThemeContext.get_for_stage(global.stage);
+        this._scaleChangedId = themeContext.connect('notify::scale-factor',
+            () => this._updateBackgroundEffects());
+
         this._updateBackgrounds();
         this._monitorsChangedId =
             Main.layoutManager.connect('monitors-changed', this._updateBackgrounds.bind(this));
@@ -566,9 +570,17 @@ var UnlockDialog = GObject.registerClass({
         this._otherUserButton.set_pivot_point(0.5, 0.5);
         this._otherUserButton.connect('clicked', this._otherUserClicked.bind(this));
 
-        let screenSaverSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.screensaver' });
-        screenSaverSettings.bind('user-switch-enabled',
-            this._otherUserButton, 'visible', Gio.SettingsBindFlags.GET);
+        this._screenSaverSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.screensaver' });
+
+        this._userSwitchEnabledId = 0;
+        this._userSwitchEnabledId = this._screenSaverSettings.connect('changed::user-switch-enabled',
+            this._updateUserSwitchVisibility.bind(this));
+
+        this._userLoadedId = 0;
+        this._userLoadedId = this._user.connect('notify::is-loaded',
+            this._updateUserSwitchVisibility.bind(this));
+
+        this._updateUserSwitchVisibility();
 
         // Main Box
         let mainBox = new St.Widget();
@@ -618,6 +630,7 @@ var UnlockDialog = GObject.registerClass({
             y: monitor.y,
             width: monitor.width,
             height: monitor.height,
+            effect: new Shell.BlurEffect({ name: 'blur' }),
         });
 
         let bgManager = new Background.BackgroundManager({
@@ -629,19 +642,17 @@ var UnlockDialog = GObject.registerClass({
         this._bgManagers.push(bgManager);
 
         this._backgroundGroup.add_child(widget);
+    }
 
+    _updateBackgroundEffects() {
         const themeContext = St.ThemeContext.get_for_stage(global.stage);
 
-        let effect = new Shell.BlurEffect({
-            brightness: BLUR_BRIGHTNESS,
-            sigma: BLUR_SIGMA * themeContext.scale_factor,
-        });
-
-        this._scaleChangedId = themeContext.connect('notify::scale-factor', () => {
-            effect.sigma = BLUR_SIGMA * themeContext.scale_factor;
-        });
-
-        widget.add_effect(effect);
+        for (const widget of this._backgroundGroup.get_children()) {
+            widget.get_effect('blur').set({
+                brightness: BLUR_BRIGHTNESS,
+                sigma: BLUR_SIGMA * themeContext.scale_factor,
+            });
+        }
     }
 
     _updateBackgrounds() {
@@ -653,6 +664,7 @@ var UnlockDialog = GObject.registerClass({
 
         for (let i = 0; i < Main.layoutManager.monitors.length; i++)
             this._createBackground(i);
+        this._updateBackgroundEffects();
     }
 
     _ensureAuthPrompt() {
@@ -828,6 +840,21 @@ var UnlockDialog = GObject.registerClass({
             this._gdmClient = null;
             delete this._gdmClient;
         }
+
+        if (this._userLoadedId) {
+            this._user.disconnect(this._userLoadedId);
+            this._userLoadedId = 0;
+        }
+
+        if (this._userSwitchEnabledId) {
+            this._screenSaverSettings.disconnect(this._userSwitchEnabledId);
+            this._userSwitchEnabledId = 0;
+        }
+    }
+
+    _updateUserSwitchVisibility() {
+        this._otherUserButton.visible = this._userManager.can_switch() &&
+            this._screenSaverSettings.get_boolean('user-switch-enabled');
     }
 
     cancel() {
