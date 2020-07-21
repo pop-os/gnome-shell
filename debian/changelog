@@ -1,8 +1,8 @@
-gnome-shell (3.36.4-1ubuntu1~20.04.1) UNRELEASED; urgency=medium
+gnome-shell (3.36.4-1ubuntu1~20.04.1) focal; urgency=medium
 
   * No change backport to focal
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 21 Jul 2020 11:14:50 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 21 Jul 2020 11:37:31 +0200
 
 gnome-shell (3.36.4-1ubuntu1) groovy; urgency=medium
 
