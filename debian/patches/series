@@ -1,5 +1,11 @@
+shell-window-tracker-Tighten-sandbox-ID-prefix-check.patch
+extensionDownloader-Fix-check-for-updates-with-several-ex.patch
+Update-Brazilian-Portuguese-translation.patch
+Update-Brazilian-Portuguese-translation-1.patch
+keyboard-Move-named-icons-into-subdirectories.patch
+keyboard-Fix-missing-key-icons-in-numeric-level.patch
+calendar-server-Remove-delay-before-event-emission.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
-shell-mime-sniffer-Ignore-invalid-file-content-type.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
@@ -16,7 +22,10 @@ ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
 ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
+
+# Pop Shell
 sched-rr.patch
 pop-dark-theme.patch
 ignore-nvidia-only.patch
 always-launch-on-dgpu.patch
+

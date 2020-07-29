@@ -16,7 +16,7 @@ Last-Update: 2017-09-08
  2 files changed, 3 insertions(+)
 
 diff --git a/data/gnome-shell-theme.gresource.xml b/data/gnome-shell-theme.gresource.xml
-index ac9c3fd..1be79b1 100644
+index 6c1b9cd..12d4c25 100644
 --- a/data/gnome-shell-theme.gresource.xml
 +++ b/data/gnome-shell-theme.gresource.xml
 @@ -7,6 +7,7 @@
@@ -26,7 +26,7 @@ index ac9c3fd..1be79b1 100644
 +    <file alias="gdm3.css">gnome-shell.css</file>
      <file>gnome-shell.css</file>
      <file>gnome-shell-high-contrast.css</file>
-     <file alias="icons/message-indicator-symbolic.svg">message-indicator-symbolic.svg</file>
+     <file alias="icons/scalable/status/message-indicator-symbolic.svg">message-indicator-symbolic.svg</file>
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
 index e12fc2e..b3b69b3 100644
 --- a/js/ui/sessionMode.js

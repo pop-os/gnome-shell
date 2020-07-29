@@ -18,7 +18,7 @@ Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
  2 files changed, 21 insertions(+)
 
 diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
-index 90fc5a6..0ae5ecb 100644
+index a7b40f9..14df27c 100644
 --- a/js/ui/extensionDownloader.js
 +++ b/js/ui/extensionDownloader.js
 @@ -4,6 +4,7 @@
@@ -51,9 +51,9 @@ index 90fc5a6..0ae5ecb 100644
 +        // don't updates out of repository mode extension
 +        if (Desktop.is("ubuntu") && Main.extensionManager.isModeExtension(uuid))
 +            return;
-         metadatas[uuid] = extension.metadata;
-     });
- 
+         metadatas[uuid] = {
+             version: extension.metadata.version,
+         };
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
 index 7362a00..4875752 100644
 --- a/js/ui/extensionSystem.js
