@@ -1,0 +1,72 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 8 Jul 2020 11:59:13 +0200
+Subject: shell/window-tracker: Tighten sandbox ID prefix check
+
+Since commit b60836932 we only allow WM_CLASS matches for sandboxed
+applications if the found app's ID is prefixed by the sandbox ID.
+
+The existing check still has a hole in it though: "org.example.Foo"
+and "org.example.FooDevel" are different applications, yet the former
+is a prefix of the latter.
+
+So tighten the check by including a trailing "." in the checked prefix;
+this excludes cases like the above, while still working for the regular
+case of a single .desktop file because our app IDs include the ".desktop"
+suffix.
+
+Spotted by wjt.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1357
+
+Applied-Upstream: 3.36.5
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commits/gnome-3-36/
+---
+ src/shell-window-tracker.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/src/shell-window-tracker.c b/src/shell-window-tracker.c
+index c8b473d..bc00518 100644
+--- a/src/shell-window-tracker.c
++++ b/src/shell-window-tracker.c
+@@ -146,9 +146,13 @@ get_app_from_window_wmclass (MetaWindow  *window)
+   const char *wm_class;
+   const char *wm_instance;
+   const char *sandbox_id;
++  g_autofree char *app_prefix = NULL;
+ 
+   appsys = shell_app_system_get_default ();
++
+   sandbox_id = meta_window_get_sandboxed_app_id (window);
++  if (sandbox_id)
++    app_prefix = g_strdup_printf ("%s.", sandbox_id);
+ 
+   /* Notes on the heuristics used here:
+      much of the complexity here comes from the desire to support
+@@ -188,23 +192,23 @@ get_app_from_window_wmclass (MetaWindow  *window)
+   /* first try a match from WM_CLASS (instance part) to StartupWMClass */
+   wm_instance = meta_window_get_wm_class_instance (window);
+   app = shell_app_system_lookup_startup_wmclass (appsys, wm_instance);
+-  if (app != NULL && check_app_id_prefix (app, sandbox_id))
++  if (app != NULL && check_app_id_prefix (app, app_prefix))
+     return g_object_ref (app);
+ 
+   /* then try a match from WM_CLASS to StartupWMClass */
+   wm_class = meta_window_get_wm_class (window);
+   app = shell_app_system_lookup_startup_wmclass (appsys, wm_class);
+-  if (app != NULL && check_app_id_prefix (app, sandbox_id))
++  if (app != NULL && check_app_id_prefix (app, app_prefix))
+     return g_object_ref (app);
+ 
+   /* then try a match from WM_CLASS (instance part) to .desktop */
+   app = shell_app_system_lookup_desktop_wmclass (appsys, wm_instance);
+-  if (app != NULL && check_app_id_prefix (app, sandbox_id))
++  if (app != NULL && check_app_id_prefix (app, app_prefix))
+     return g_object_ref (app);
+ 
+   /* finally, try a match from WM_CLASS to .desktop */
+   app = shell_app_system_lookup_desktop_wmclass (appsys, wm_class);
+-  if (app != NULL && check_app_id_prefix (app, sandbox_id))
++  if (app != NULL && check_app_id_prefix (app, app_prefix))
+     return g_object_ref (app);
+ 
+   return NULL;
