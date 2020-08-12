@@ -1,3 +1,11 @@
+gnome-shell (3.36.5-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+    - Fix password briefly showing on login dialog during logout if it
+      was previously made visible (CVE-2020-17489, Closes: #968311)
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 12 Aug 2020 21:13:03 +0100
+
 gnome-shell (3.36.4-1) unstable; urgency=medium
 
   * New upstream stable release (LP: #1888060)
