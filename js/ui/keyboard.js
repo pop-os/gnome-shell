@@ -42,7 +42,7 @@ const defaultKeysPost = [
     [[{ width: 1.5, keyval: Clutter.KEY_BackSpace, icon: 'edit-clear-symbolic' }],
      [{ width: 2, keyval: Clutter.KEY_Return, extraClassName: 'enter-key', icon: 'keyboard-enter-symbolic' }],
      [{ label: '=/<', width: 3, level: 3, right: true }],
-     [{ action: 'emoji', icon: 'face-smile-symbolic' }, { action: 'languageMenu', extraClassName: 'layout-key' }, { action: 'hide', extraClassName: 'hide-key' }]],
+     [{ action: 'emoji', icon: 'face-smile-symbolic' }, { action: 'languageMenu', extraClassName: 'layout-key', icon: 'keyboard-layout-filled-symbolic' }, { action: 'hide', extraClassName: 'hide-key', icon: 'go-down-symbolic' }]],
     [[{ width: 1.5, keyval: Clutter.KEY_BackSpace, icon: 'edit-clear-symbolic' }],
      [{ width: 2, keyval: Clutter.KEY_Return, extraClassName: 'enter-key', icon: 'keyboard-enter-symbolic' }],
      [{ label: '?123', width: 3, level: 2, right: true }],
@@ -59,6 +59,24 @@ class AspectContainer extends St.Widget {
     setRatio(relWidth, relHeight) {
         this._ratio = relWidth / relHeight;
         this.queue_relayout();
+    }
+
+    vfunc_get_preferred_width(forHeight) {
+        let [min, nat] = super.vfunc_get_preferred_width(forHeight);
+
+        if (forHeight > 0)
+            nat = forHeight * this._ratio;
+
+        return [min, nat];
+    }
+
+    vfunc_get_preferred_height(forWidth) {
+        let [min, nat] = super.vfunc_get_preferred_height(forWidth);
+
+        if (forWidth > 0)
+            nat = forWidth / this._ratio;
+
+        return [min, nat];
     }
 
     vfunc_allocate(box, flags) {
@@ -1074,8 +1092,8 @@ var Keypad = GObject.registerClass({
             { label: '8', keyval: Clutter.KEY_8, left: 1, top: 2 },
             { label: '9', keyval: Clutter.KEY_9, left: 2, top: 2 },
             { label: '0', keyval: Clutter.KEY_0, left: 1, top: 3 },
-            { label: '⌫', keyval: Clutter.KEY_BackSpace, left: 3, top: 0 },
-            { keyval: Clutter.KEY_Return, extraClassName: 'enter-key', left: 3, top: 1, height: 2 },
+            { keyval: Clutter.KEY_BackSpace, icon: 'edit-clear-symbolic', left: 3, top: 0 },
+            { keyval: Clutter.KEY_Return, extraClassName: 'enter-key', icon: 'keyboard-enter-symbolic', left: 3, top: 1, height: 2 },
         ];
 
         super._init({
@@ -1092,7 +1110,7 @@ var Keypad = GObject.registerClass({
 
         for (let i = 0; i < keys.length; i++) {
             let cur = keys[i];
-            let key = new Key(cur.label || "", []);
+            let key = new Key(cur.label || "", [], cur.icon);
 
             if (keys[i].extraClassName)
                 key.keyButton.add_style_class_name(cur.extraClassName);
@@ -1609,7 +1627,9 @@ class Keyboard extends St.BoxLayout {
              * we allow the OSK being smaller than 1/3rd of the monitor height
              * there.
              */
-            this.height = Math.min(maxHeight, this.get_preferred_height(monitor.width));
+            const forWidth = this.get_theme_node().adjust_for_width(monitor.width);
+            const [, natHeight] = this.get_preferred_height(forWidth);
+            this.height = Math.min(maxHeight, natHeight);
         }
     }
 

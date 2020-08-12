@@ -1,3 +1,49 @@
+3.36.5
+======
+* Fix extension updates when many extensions are installed [Jeremias; !1363]
+* Fix missing icons in on-screen keyboard [Emre; #2631, #3007]
+* Fix delay when showing calendar events [Sebastian; #2992]
+* Fix app picker regressions on small displays [Sebastian; #2234, !1375, !1378]
+* Fix top bar navigation when NumLock is active [Olivier; #550]
+* Delay login animation until wallpaper has loaded [Michael; #734996]
+* Revert changes that caused mispositioning in overview in multi-monitor setups
+  [Robert; #2971]
+* Reset auth prompt on login screen on VT switch before fade in [Ray; #2997]
+* Fix stuck grab when destroying open popup menu [Florian; #3022]
+* Misc. bug fixes and cleanups [Florian, Carlos, Andre, Jonas; !1357, !1371,
+  !1381, #3037, #3005, !1386, !1390]
+
+Contributors:
+  Michael Catanzaro, Jonas Dreßler, Olivier Fourdan, Carlos Garnacho,
+  Sebastian Keller, Robert Mader, Andre Moreira Magalhaes, Florian Müllner,
+  Jeremias Ortega, Ray Strode, Emre Uyguroglu
+
+Translators:
+  Boyuan Yang [zh_CN], Rafael Fontenelle [pt_BR]
+
+3.36.4
+======
+* Hide switch-user button on lock screen if unsupported [Chingkai; #2687]
+* Improve world clocks styling [PrOF-kk; #2825]
+* Improve calendar-server performance [Florian, Milan; #1875]
+* Fix regressions in redesigned modal dialogs [Florian, Jonas; #2491, !1336]
+* Better support sandboxed apps with multiple .desktop files [Florian; #219]
+* Fix on-screen keyboard size in portrait orientation [Florian; #2349]
+* Support scrolling anywhere in slider menu items [Peter; #2795]
+* Fixed crash [Marco; #2643]
+* Plugged leaks [Sebastian, Florian; !1306, !1341]
+* Misc. bug fixes and cleanups [Jonas, Daniel, Florian, Sebastian, MOZGIII,
+  Koki; !1119, !1289, !1331, !1192, !1340, !1327, !1279]
+
+Contributors:
+  Marco Trevisan (Treviño), Chingkai, Milan Crha, Jonas Dreßler, Koki Fukuda,
+  Sebastian Keller, MOZGIII, Robert Mader, Florian Müllner, PrOF-kk,
+  Peter Simonyi, Daniel van Vugt
+
+Translators:
+  Matej Urbančič [sl], sicklylife [ja], Fabio Tomat [fur],
+  Baurzhan Muftakhidinov [kk], Daniel Șerbănescu [ro]
+
 3.36.3
 ======
 * Add gnome-shell-extension-prefs wrapper for compatibility [Florian; !1220]

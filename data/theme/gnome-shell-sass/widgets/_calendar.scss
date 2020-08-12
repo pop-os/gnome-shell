@@ -204,9 +204,11 @@
   .world-clocks-time {
     font-weight: bold;
     color: $fg_color;
-    font-feature-settings: "lnum";
+    font-feature-settings: "tnum";
     @include fontsize($base_font_size);
-    text-align: right;
+
+    &:ltr { text-align: right; }
+    &:rtl { text-align: left; }
   }
 
   // timezone offset label
