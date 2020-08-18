@@ -1,3 +1,9 @@
+gnome-shell (3.36.4-1ubuntu2~build1) groovy; urgency=medium
+
+  * Rebuild with the new libedataserver soname
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Tue, 18 Aug 2020 12:59:03 -0400
+
 gnome-shell (3.36.4-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream stable release, remaining changes:
