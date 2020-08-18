@@ -1,8 +1,17 @@
-gnome-shell (3.36.4-1ubuntu1~20.04.1pop1) focal; urgency=medium
+gnome-shell (3.36.4-1ubuntu1~20.04.2pop1) focal; urgency=medium
 
-  * Upstream update 
+  * Security update from upstream
 
- -- Michael Aaron Murphy <michael@system76.com>  Wed, 29 Jul 2020 06:35:03 -0600
+ -- Michael Aaron Murphy <michael@system76.com>  Tue, 18 Aug 2020 13:17:11 -0600
+
+gnome-shell (3.36.4-1ubuntu1~20.04.2) focal-security; urgency=medium
+
+  * SECURITY UPDATE: password dialog box information disclosure
+    - debian/patches/CVE-2020-17489.patch: reset auth prompt on vt switch
+      before fade in in js/gdm/loginDialog.js.
+    - CVE-2020-17489
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 17 Aug 2020 13:26:51 -0400
 
 gnome-shell (3.36.4-1ubuntu1~20.04.1) focal; urgency=medium
 
