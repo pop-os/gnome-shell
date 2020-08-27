@@ -10,7 +10,7 @@ Last-Update: 2020-03-18
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/js/gdm/loginDialog.js b/js/gdm/loginDialog.js
-index 16a7536..c13163b 100644
+index 9acb01c..388bea4 100644
 --- a/js/gdm/loginDialog.js
 +++ b/js/gdm/loginDialog.js
 @@ -1255,7 +1255,11 @@ var LoginDialog = GObject.registerClass({

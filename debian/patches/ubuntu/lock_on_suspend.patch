@@ -8,7 +8,7 @@ Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
  1 file changed, 5 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 86221a3..2f0ec8e 100644
+index b368162..dbb5cf2 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
 @@ -19,6 +19,7 @@ const { adjustAnimationTime } = imports.ui.environment;
@@ -36,7 +36,7 @@ index 86221a3..2f0ec8e 100644
 +                          this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY);
          let lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
          let inhibit = this._loginSession && this._loginSession.Active &&
-                        !this._isActive && lockEnabled && !lockLocked;
+                        !this._isActive && lockEnabled && !lockLocked && Main.sessionMode.unlockDialog;
 @@ -215,7 +218,7 @@ var ScreenShield = class {
  
      _prepareForSleep(loginManager, aboutToSuspend) {

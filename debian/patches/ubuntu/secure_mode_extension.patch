@@ -55,11 +55,11 @@ index a7b40f9..14df27c 100644
              version: extension.metadata.version,
          };
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
-index 7362a00..4875752 100644
+index 41ef98d..a20a39e 100644
 --- a/js/ui/extensionSystem.js
 +++ b/js/ui/extensionSystem.js
-@@ -4,6 +4,7 @@
- const { GLib, Gio, GObject, Shell, St } = imports.gi;
+@@ -5,6 +5,7 @@ const { GLib, Gio, GObject, Shell, St } = imports.gi;
+ const ByteArray = imports.byteArray;
  const Signals = imports.signals;
  
 +const Desktop = imports.misc.desktop;
@@ -77,7 +77,7 @@ index 7362a00..4875752 100644
      _callExtensionInit(uuid) {
          if (!Main.sessionMode.allowExtensions)
              return false;
-@@ -581,6 +586,10 @@ var ExtensionManager = class {
+@@ -577,6 +582,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;

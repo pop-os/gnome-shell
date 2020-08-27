@@ -54,7 +54,7 @@ index 9502340..8141bc0 100644
    </interface>
  </node>
 diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
-index 62933f7..f6bc805 100644
+index 77ad317..74a700c 100644
 --- a/js/ui/remoteSearch.js
 +++ b/js/ui/remoteSearch.js
 @@ -26,6 +26,7 @@ const SearchProviderIface = `
@@ -94,10 +94,10 @@ index 62933f7..f6bc805 100644
          this.proxy.ActivateResultRemote(id);
      }
 diff --git a/js/ui/search.js b/js/ui/search.js
-index 88f0621..7406fc6 100644
+index 45ef424..11ad70d 100644
 --- a/js/ui/search.js
 +++ b/js/ui/search.js
-@@ -228,7 +228,9 @@ var SearchResultsBase = GObject.registerClass({
+@@ -227,7 +227,9 @@ var SearchResultsBase = GObject.registerClass({
              this._cancellable.cancel();
              this._cancellable.reset();
  
@@ -107,7 +107,7 @@ index 88f0621..7406fc6 100644
                  if (this._cancellable.is_cancelled()) {
                      if (metas.length > 0)
                          log('Search provider %s returned results after the request was canceled'.format(this.provider.id));
-@@ -480,6 +482,10 @@ var SearchResultsView = GObject.registerClass({
+@@ -604,6 +606,10 @@ var SearchResultsView = GObject.registerClass({
  
          this._searchTimeoutId = 0;
          this._cancellable = new Gio.Cancellable();
@@ -118,7 +118,7 @@ index 88f0621..7406fc6 100644
  
          this._registerProvider(new AppDisplay.AppSearchProvider());
  
-@@ -529,11 +535,32 @@ var SearchResultsView = GObject.registerClass({
+@@ -658,11 +664,32 @@ var SearchResultsView = GObject.registerClass({
          }
      }
  
@@ -151,7 +151,7 @@ index 88f0621..7406fc6 100644
          this._defaultResult = null;
          this._startingSearch = false;
  
-@@ -601,6 +628,13 @@ var SearchResultsView = GObject.registerClass({
+@@ -730,6 +757,13 @@ var SearchResultsView = GObject.registerClass({
          if (this._terms.length > 0)
              isSubSearch = searchString.indexOf(previousSearchString) == 0;
  
