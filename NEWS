@@ -1,168 +1,177 @@
-3.36.5
-======
+3.37.91
+=======
+* Fix potential stack overflow in libcroco [Michael; !1404]
+* Fix page removal in app picker [Georges; !1406]
+* Fix "old style" VPN authentication [Florian; !1407]
+* Fix X11 session login [Benjamin; !1418]
+* Fix week number alignment when using font-scaling [Joonas; !1415]
+* Fix lock screen on systems without GLSL shader support [Zephaniah; #3071]
+* Misc. bug fixes and cleanups [Florian, Jonas, Georges, Andre, Will, Björn;
+  !1396, !1359, !1408, !1409, !1414, !1413, !1416, #3073]
+
+Contributors:
+  Jonas Ådahl, Benjamin Berg, Michael Catanzaro, Björn Daase, Joonas Henriksson,
+  Zephaniah E. Loss-Cutler-Hull, Andre Moreira Magalhaes, Florian Müllner,
+  Georges Basile Stavracas Neto, Will Thompson
+
+Translators:
+  Fran Dieguez [gl], Jordi Mas [ca], Daniel Mustieles [es],
+  Florentina Mușat [ro], Akarshan Biswas [bn_IN], Baurzhan Muftakhidinov [kk],
+  Piotr Drąg [pl], Rafael Fontenelle [pt_BR], Emin Tufan Çetin [tr],
+  sicklylife [ja], Danial Behzadi [fa], Jiri Grönroos [fi], Goran Vidović [hr],
+  Matej Urbančič [sl], Boyuan Yang [zh_CN]
+
+3.37.90
+=======
 * Fix extension updates when many extensions are installed [Jeremias; !1363]
 * Fix missing icons in on-screen keyboard [Emre; #2631, #3007]
 * Fix delay when showing calendar events [Sebastian; #2992]
-* Fix app picker regressions on small displays [Sebastian; #2234, !1375, !1378]
+* Allow rearranging items in app picker [Georges; !1284]
 * Fix top bar navigation when NumLock is active [Olivier; #550]
 * Delay login animation until wallpaper has loaded [Michael; #734996]
-* Revert changes that caused mispositioning in overview in multi-monitor setups
-  [Robert; #2971]
 * Reset auth prompt on login screen on VT switch before fade in [Ray; #2997]
-* Fix stuck grab when destroying open popup menu [Florian; #3022]
-* Misc. bug fixes and cleanups [Florian, Carlos, Andre, Jonas; !1357, !1371,
-  !1381, #3037, #3005, !1386, !1390]
+* Move screencasting into a separate service [Jonas Å.; !1372]
+* Replace loaded terms with more descriptive one [Olivier; !1393]
+* Add "Boot Options" support to restart dialog [Hans; !199]
+* Move "Restart" into a separate menu item/dialog [Florian; #2202]
+* Default to not installing updates on low battery [Michael; #2717]
+* Misc. bug fixes and cleanups [Florian, Daniel V., Georges, Jonas Å.,
+  Daniel G., Carlos, Benjamin, Piotr, Andre, Jonas D., Andy; !1357, !1356,
+  #2969, #2969, !1358, !1371, #3005, !1380, #3022, !1381, !895, !1387, !1386,
+  !1385, #3037, !1389, !1390, !1391, !1383, !1399, #2983, !1403]
 
 Contributors:
-  Michael Catanzaro, Jonas Dreßler, Olivier Fourdan, Carlos Garnacho,
-  Sebastian Keller, Robert Mader, Andre Moreira Magalhaes, Florian Müllner,
-  Jeremias Ortega, Ray Strode, Emre Uyguroglu
+  Jonas Ådahl, Benjamin Berg, Michael Catanzaro, Piotr Drąg, Jonas Dreßler,
+  Olivier Fourdan, Carlos Garnacho, Hans de Goede, Andy Holmes,
+  Sebastian Keller, Andre Moreira Magalhaes, Daniel García Moreno,
+  Florian Müllner, Georges Basile Stavracas Neto, Jeremias Ortega, Ray Strode,
+  Emre Uyguroglu, Daniel van Vugt
 
 Translators:
-  Boyuan Yang [zh_CN], Rafael Fontenelle [pt_BR]
+  Tim Sabsch [de], Boyuan Yang [zh_CN], Fabio Tomat [fur],
+  Efstathios Iosifidis [el], Rafael Fontenelle [pt_BR], Yuri Chornoivan [uk],
+  Daniel Șerbănescu [ro], Jordi Mas [ca], Daniel Mustieles [es],
+  Emin Tufan Çetin [tr], Asier Sarasua Garmendia [eu]
 
-3.36.4
+3.37.3
 ======
+* Refactor and clean up window picker
+  [Jonas D., Florian; !1297, !1298, !1305, !1345, !1353]
+* Move calendar events out of notifications list [Florian; !1282]
+* Refine app folder dialogs [Georges; !1301]
 * Hide switch-user button on lock screen if unsupported [Chingkai; #2687]
-* Improve world clocks styling [PrOF-kk; #2825]
-* Improve calendar-server performance [Florian, Milan; #1875]
-* Fix regressions in redesigned modal dialogs [Florian, Jonas; #2491, !1336]
+* Refactor and clean up app picker pagination [Georges; !1271]
+* Add API to retrieve specified mimetypes from clipboards [Carlos; !1321]
+* Support prepending workspace with horizontal layouts [Florian; #2916]
+* Update microphone icon on input volume changes [fludixx; #2902]
+* Cache labels on GPU [Daniel; !1329]
+* Fix regressions in redesigned modal dialogs [Florian, Jonas D.; #2491, !1336]
+* Use GIcon for all application icons [Florian; !1342]
+* Support pre-authenticated logins in vmware environments [yun341; #1983]
 * Better support sandboxed apps with multiple .desktop files [Florian; #219]
 * Fix on-screen keyboard size in portrait orientation [Florian; #2349]
-* Support scrolling anywhere in slider menu items [Peter; #2795]
-* Fixed crash [Marco; #2643]
-* Plugged leaks [Sebastian, Florian; !1306, !1341]
-* Misc. bug fixes and cleanups [Jonas, Daniel, Florian, Sebastian, MOZGIII,
-  Koki; !1119, !1289, !1331, !1192, !1340, !1327, !1279]
+* Plugged leaks [Sebastian, Daniel, Florian; !1306, !1319, !1341]
+* Misc. bug fixes and cleanups [Jonas D., Georges, Marco, Florian, Sebastian,
+  MOZGIII, Daniel, Mariana, Jonas Å.; !1296, !1295, #2643, !1300, !1309,
+  !1119, #2901, !1313, !1251, !1285, !1307, !1318, !1310, !1320, !1327, !1315,
+  !1289, !1331, !1332, !1333, !1334, !1340, !1287, !1308, !1346, !1299, !1343,
+  !1351, !1352, !1322]
 
 Contributors:
-  Marco Trevisan (Treviño), Chingkai, Milan Crha, Jonas Dreßler, Koki Fukuda,
-  Sebastian Keller, MOZGIII, Robert Mader, Florian Müllner, PrOF-kk,
-  Peter Simonyi, Daniel van Vugt
+  Marco Trevisan (Treviño), Chingkai, Jonas Dreßler, Carlos Garnacho,
+  Sebastian Keller, MOZGIII, Florian Müllner, Georges Basile Stavracas Neto,
+  Mariana Picolo, Daniel van Vugt, fludixx, yun341, Jonas Ådahl
 
 Translators:
-  Matej Urbančič [sl], sicklylife [ja], Fabio Tomat [fur],
-  Baurzhan Muftakhidinov [kk], Daniel Șerbănescu [ro]
+  Daniel Mustieles [es], Boyuan Yang [zh_CN], Yuri Chornoivan [uk],
+  Jordi Mas [ca], sicklylife [ja], Emin Tufan Çetin [tr],
+  Baurzhan Muftakhidinov [kk], Florentina Mușat [ro], Aurimas Černius [lt],
+  Rūdolfs Mazurs [lv]
 
-3.36.3
+3.37.2
 ======
-* Add gnome-shell-extension-prefs wrapper for compatibility [Florian; !1220]
-* Fix distorted fallback icons in top bar [Florian; #2578]
-* Lower timeout for scrolling in overview [Alexander; #2602]
+* Add support for "PrefersNonDefaultGPU" desktop key [Bastien; !1226]
 * Only start systemd units when running under systemd
   [Carlos, Florian; #2755, !1242, !1252]
-* Fix "ghost" media controls  [Bryan; #2776]
+* Fix "ghost" media controls [Bryan; #2776]
 * Fix zombie sockets from extensions downloader [Michael; #2774]
 * Update world clocks offsets when timezone changes [Bryan; #2209]
+* Support scrolling anywhere in slider menu items [Peter; #2795]
 * Fix "Do Not Disturb" setting getting reset on startup [Florian; #2804]
-* Fix pad OSD glitches [Carlos; !1290]
-* Fix matching notifications by PID [Florian; #2592]
 * Only allow updates for extensions that aren't cached [Florian; !1248]
-* Fixed crashes [Jonas, Florian; #2709, #2757]
-* Misc. bug fixes and cleanups [Michael, Piotr, Philip, Florian, Amr,
-  AsciiWolf; !1233, !1205, !1229, #2751, !1232, #2796, !1249, !1263,
-  !1277, #2286, !1288, !1291]
+* Fix matching notifications by PID [Florian; #2592]
+* Indicate extension errors in Extensions app [Florian; #2337]
+* Add clipboard API for querying supported mimetypes [Andy; #2819]
+* Add preview to color picker [Florian; #451]
+* Improve world clocks styling [PrOF-kk; #2825]
+* Remove Frequent view from app picker [Georges; !880]
+* Fix pad OSD glitches [Carlos; !1290]
+* Expose actor tree in looking glass [Georges; !1292]
+* Fixed crashes [Jonas D., Florian; #2709, #2757]
+* Misc. bug fixes and cleanups [Florian, AsciiWolf, Michael, Piotr, Ting-Wei,
+  Amr, Alexander, Bryan, Georges, Jonas D., Andy, Björn, Koki, Carlos; !1229,
+  !1231, !1233, !1235, #2578, #2735, #2751, #2602, #2777, !1249, #2796, !1268,
+  !1269, !1265, !1245, !1273, #2816, !1274, !1263, !1188, !1276, #2652, !1277,
+  !1281, #2286, !1267, !1286, !1279, !1288, !1293, !1294, !1291]
 
 Contributors:
-  AsciiWolf, Michael Catanzaro, Philip Chimento, Jonas Dreßler, Bryan Dunsmore,
-  Carlos Garnacho, Amr Ibrahim, Michael Lass, Alexander Mikhaylenko,
-  Florian Müllner
+  AsciiWolf, Michael Catanzaro, Björn Daase, Jonas Dreßler, Bryan Dunsmore,
+  Koki Fukuda, Carlos Garnacho, Andy Holmes, Amr Ibrahim, Soslan Khubulov,
+  Ting-Wei Lan, Michael Lass, Alexander Mikhaylenko, Florian Müllner,
+  Georges Basile Stavracas Neto, Bastien Nocera, PrOF-kk, Peter Simonyi
 
 Translators:
-  Fabio Tomat [fur], Cheng-Chia Tseng [zh_TW], Dušan Kazik [sk],
-  Piotr Drąg [pl], Daniel Mustieles [es], Nathan Follens [nl],
-  Bruce Cowan [en_GB], Florentina Mușat [ro], Yuri Chornoivan [uk],
-  Milo Casagrande [it], Anders Jonsson [sv], Charles Monzat [fr],
-  Daniel Șerbănescu [ro], sicklylife [ja], Kukuh Syafaat [id],
-  Emin Tufan Çetin [tr], Jiri Grönroos [fi], Марко Костић [sr],
-  Christian Kirbach [de], Changwoo Ryu [ko], Aurimas Černius [lt],
-  Matej Urbančič [sl]
+  Fabio Tomat [fur], Cheng-Chia Tseng [zh_TW], Yuri Chornoivan [uk],
+  Dušan Kazik [sk], Piotr Drąg [pl], Soslan Khubulov [os],
+  Daniel Mustieles [es], Nathan Follens [nl], Bruce Cowan [en_GB],
+  Florentina Mușat [ro], Milo Casagrande [it], Anders Jonsson [sv],
+  Charles Monzat [fr], Danial Behzadi [fa], sicklylife [ja], Kukuh Syafaat [id],
+  Jordi Mas [ca], Emin Tufan Çetin [tr], Jiri Grönroos [fi], Марко Костић [sr],
+  Christian Kirbach [de], Changwoo Ryu [ko], Matej Urbančič [sl]
 
-3.36.2
+3.37.1
 ======
+* Improve bluetooth submenu title [Mariana; #2340]
 * Add openPrefs() convenience method for extensions [Florian; !1163]
 * Bring back support for empty StIcons [Andre, Jonas D.; !1173, !1178]
 * Wake up screen when unlocking programmatically [Florian; !1158]
+* Improve extensions tool error reporting [Florian; #2391]
 * Improve handling of scale-factor changes [Georges; !1176]
-* Fix translations of folder names [Florian; #2623]
-* Fix delay on lock screen after entering wrong password [Jonas D.; #2655]
-* Match ASCII alternatives of system actions [Will; #2688]
 * Tone down weekend days with events in calendar [Jakub; #2588]
-* Fix area screenshots on multi-monitor systems [Jonas Å; !1224]
+* Fix showing bluetooth submenu when devices were set up [Florian; !1174]
+* Add support for parental controls filtering [Philip W.; !465]
+* Provide alternative extension templates [Florian; !812]
+* Improve weather section's empty state [Mariana; #2179]
+* Fix translations of folder names [Florian; #2623]
+* Drop Tweener [Jonas Å.; !1200]
+* Match ASCII alternatives of system actions [Will; #2688]
+* Fix delay on lock screen after entering wrong password [Jonas D.; #2655]
+* Use globalThis instead of window [Andy; #2322]
+* Inhibit remote access when disabled by session mode [Jonas Å.; !1210]
+* Improve calendar-server performance [Milan; #1875]
+* Add gnome-shell-extension-prefs wrapper for compatibility [Florian; !1220]
 * Fix stuck lock screen after unlock [Jonas D., Florian; #2446]
 * Fixed crashes [Jonas D., Florian, Carlos; #2584, #2625, !1223, !1218]
-* Misc. bug fixes and cleanups [Jonas Å., Marco, Andre, Florian, Jonas D.;
-  !1155, !1156, !1169, !1168, #2551, #2563, !1172, !1179, !1160, #2562, #2578,
-  !1203, #2649, #2628, #2691, #1615, #2607, !1228]
+* Misc. bug fixes and cleanups [Florian, Jonas Å., Marco, Andre, Georges,
+  Jonas D., Jan, Philip Ch.,, Xiaoguang, Will, Jordan, Matthew, qarmin;
+  !1126, !1155, !1156, !1165, !1168, !1169, #2551, #2563, !1172, !1175, !1179,
+  !1160, #2562, #2578, !1184, #2559, !1186, #2607, !1191, !1194, !1199, !1203,
+  #2649, #2628, !1205, !1206, !1208, !1207, !1211, !1214, !1213, !1192, !1217,
+  !1219, #1615, #2691, !1094, !1177]
 
 Contributors:
-  Marco Trevisan (Treviño), Jonas Dreßler, Carlos Garnacho,
-  Andre Moreira Magalhaes, Florian Müllner, Georges Basile Stavracas Neto,
-  Jakub Steiner, Will Thompson, Jonas Ådahl
+  Marco Trevisan (Treviño), Philip Chimento, Milan Crha, Jonas Dreßler,
+  Carlos Garnacho, Andy Holmes, Matthew Leeds, Andre Moreira Magalhaes,
+  Florian Müllner, Georges Basile Stavracas Neto, Jordan Petridis,
+  Mariana Picolo, Jakub Steiner, Will Thompson, Jan Tojnar, Xiaoguang Wang,
+  Philip Withnall, qarmin, Jonas Ådahl
 
 Translators:
   Fabio Tomat [fur], Cheng-Chia Tseng [zh_TW], Danial Behzadi [fa],
   Jiri Grönroos [fi], Ibai Oihanguren Sala [eu], Марко Костић [sr],
-  Rūdolfs Mazurs [lv], Rafael Fontenelle [pt_BR], Petr Kovář [cs],
-  Daniel Rusek [cs]
-
-3.36.1
-======
-* Improve app folders [Jonas D.; !1011]
-* Fix launching ibus daemon [Alynx; !1080]
-* Do not shutdown ibus/xsettings on X11 compositor restart [Carlos; #2329]
-* Hide hint text in entries when preedit is used [Carlos; !1084]
-* Do not load app infos on main thread [Christian; #2282]
-* Don't expose FDO Notifications interface on main bus name [Florian; !547]
-* Fix icon of mobile broadband connections [Cosimo, Reik; !1097, !1105]
-* Fix high-contrast/symbolic icon mix-up [Florian; #2414]
-* Don't ellipsize times in world clock [Florian; !1090]
-* Only check for extension updates if there are any extensions [Florian; !1100]
-* Fix crash when trying to update removed extensions [Florian; #2343]
-* Make Extensions app available as flatpak [Florian; !1081, !1106, !1087, !1133]
-* Display fractional timezones as hours:minutes [Jonas D.; #2438]
-* Fix assigning pad keybindings [Carlos; #2451]
-* Handle embedded newlines in lock screen notifications [Florian; #2463]
-* Fix OSK layout fallback for unsupported variants [Florian; #2471]
-* Do not apply text color to color glyphs (emojis) [Carlos; #850]
-* Check "Install pending software updates" by default [Michael; #2427]
-* Do not warn about missing GDM on each login [Florian; #2432]
-* Fix telepathy chat notifications [Marco; !1112]
-* Fix offline updates support in end session dialog [Michael; #2276]
-* Fix activating notifications by keyboard [Florian; #2319]
-* Remove handling of 'blacklisted' extensions [Florian; !1132]
-* Only update extensions if Extensions app is installed [Florian; #2346]
-* Improve Norwegian on-screen-keyboard layout [Bjørn; !1073]
-* Fix IM support for deleting surrounding text [Takao; !477]
-* Fix blur effect with fractional scaling [Jonas D.; !1000]
-* Use better location name in weather section [Florian; #2468]
-* Fix glitch in sound feedback on volume changes [Florian; !1147]
-* Fix on-screen keyboard regressions [Jonas D.; !1142]
-* Improve screen-reader support [Luke; #2508, #2517]
-* Fix password entry resize on login/lock screen [Florian; #2423]
-* Fix crash when opening app picker [Jonas Å.; !1154]
-* Misc. bug fixes and cleanups [Florian, Sebastian, Jan, Daniel, Philip, Mario,
-  Ray, Marco, Jonas D., Carlos, Georges; #2298, #2305, !1078, !1077, #2334,
-  #2381, !1093, !1098, #2386, !1108, !1109, !1114, !1076, !1072, !1115, !1088,
-  !1101, #2467, !1121, !1122, #2476, !1123, !1117, !1129, !1113, !1102, !1127,
-  #2238, !1131, !1135, !1136, !849, #2504, #2371, !1146, !1141, #2510, !1150]
-
-Contributors:
-  Marco Trevisan (Treviño), Michael Catanzaro, Cosimo Cecchi, Jonas Dreßler,
-  Takao Fujiwara, Carlos Garnacho, Christian Hergert, Sebastian Keller,
-  Reik Keutterling, Bjørn Lie, Florian Müllner, Jwtiyar Nariman,
-  Georges Basile Stavracas Neto, Mario Sanchez Prada, Ray Strode, Jan Tojnar,
-  Daniel van Vugt, Philip Withnall, Luke Yelavich, Alynx Zhou, Jonas Ådahl
-
-Translators:
-  Марко Костић [sr], Jordi Mas [ca], sicklylife [ja], Marek Černocký [cs],
-  Daniel Rusek [cs], Kjartan Maraas [nb], Tim Sabsch [de], Stas Solovey [ru],
-  Peter Mráz [sk], Rafael Fontenelle [pt_BR], Piotr Drąg [pl],
-  Milo Casagrande [it], Anders Jonsson [sv], Yuri Chornoivan [uk],
-  Kukuh Syafaat [id], Guillaume Bernard [fr], Daniel Mustieles [es],
-  Danial Behzadi [fa], Goran Vidović [hr], Yosef Or Boczko [he],
-  Emin Tufan Çetin [tr], Wolfgang Stöggl [de], Ibai Oihanguren Sala [eu],
-  Jwtiyar Nariman [ckb], Aurimas Černius [lt]
+  Rūdolfs Mazurs [lv], Yuri Chornoivan [uk], Carmen Bianca BAKKER [eo],
+  Dingzhong Chen [zh_CN], Rafael Fontenelle [pt_BR], Petr Kovář [cs],
+  Asier Sarasua Garmendia [eu], Daniel Mustieles [es], Emin Tufan Çetin [tr]
 
 3.36.0
 ======
@@ -276,7 +285,7 @@ Translators:
 * Handle extension updates [Florian; !945]
 * Animate showing and hiding caps-lock warning [Jonas; !952]
 * Support "auto" lengths in CSS [Florian; !971]
-* Turn extension-prefs into the offical Extensions app [Florian; #1968]
+* Turn extension-prefs into the official Extensions app [Florian; #1968]
 * Sandbox the portal helper [Michael; !983]
 * Misc. bug fixes and cleanups [Florian, Björn, Jakub, Alexander, Daniel V.,
   Jonas, nana-4, Carlos, Sebastian, Daniel G., Georges, Piotr; !918, !917,
@@ -565,7 +574,7 @@ Translators:
 ======
 * Fix keeping actors visible in scrollviews [Marco; #1061]
 * Move some chrome above popup windows [Jonas D.; !358]
-* Include 'sandboxed-app-id' in winodw introspection info [Florian; #1289]
+* Include 'sandboxed-app-id' in window introspection info [Florian; #1289]
 * Port to libecal-2.0 [Milan; !501]
 * Support TCRYPT in mount password dialog [segfault; !126]
 * Misc. bug fixes and cleanups [Florian, Marco, Veerasamy; !517, #745, !499,
@@ -1114,7 +1123,7 @@ Translations:
 * gdm: Fix "Not listed" focus indication [Florian; #784040]
 * Fix missing icons in freedesktop notifications [Florian; #784245]
 * gdm: Disable user list when empty [Xiaoguang; #731320]
-* gdm: Allow empty reponse to PAM messages [Ray; #784360]
+* gdm: Allow empty response to PAM messages [Ray; #784360]
 * Fix blocked clicks in shutdown dialog [Florian; #781738]
 * Show OSD popup when changing volume via scroll wheel [Florian; #781028]
 * Refine list search results [Rares; #749957]
@@ -2574,7 +2583,7 @@ Translations:
 * Merge the wayland branch [Giovanni, Neil; #707467]
 * Make search entry behave better in RTL locales [Matthias, Florian; #705779]
 * Allow to change app pages with pageUp/pageDown keys [Carlos; #707979]
-* Set approriate a11y states on expandable menu items [Alejandro; #708038]
+* Set appropriate a11y states on expandable menu items [Alejandro; #708038]
 * Improve page indicator animation [Carlos; #707565]
 * Misc bug fixes and cleanups [Florian, Olivier, Jasper, Giovanni, Magdalen,
   Adel, Carlos, Rico, Joanmarie; #707308, #707430, #707508, #707557, #707600,
@@ -3858,7 +3867,7 @@ Translations:
 * Update the calendar code to use ECalClient [Giovanni; #671177]
 * Update jhbuild script to use the main moduleset [Owen, Will; #668440]
 * StTextureCache: code cleanup, evict unused icons, merge together
-  simulataneous requests for the same icon [Jasper; #670771, #671656, #672273]
+  simultaneous requests for the same icon [Jasper; #670771, #671656, #672273]
 * Clean up St for recent Clutter changes and fix bugs. StContainer and
   StGroup are removed [Jasper, Florian; #670034, #670640, #670904]
 * Code cleanup [Adel, Jasper, Rui; #613194, #671086, #671103]
@@ -3993,7 +4002,7 @@ Translations:
     [Stefano; #664201]
   - Delay rearranging windows in the overview as long as the pointer
     is over a window [Vit; #645325]
-* Add a GConf => DConf migration file for overriden Mutter settings
+* Add a GConf => DConf migration file for overridden Mutter settings
   [Florian; #667636]
 * When a VPN connection is active, show that as the network icon
   [Giovanni; #665115]
@@ -4240,7 +4249,7 @@ Translations:
   - Add fingerprint reader support [Ray; #657823]
   - Add a power button offering the choice of Suspend/Restart/Power off
     [Ray; #657822]
-  - Remove the option to view the current keyboad layout [Matthias; #659164]
+  - Remove the option to view the current keyboard layout [Matthias; #659164]
   - Make Control-Alt-Tab work for full keyboard access [Ray; #659177]
 * Frequently initiate a full garbage collection; Spidermonkey isn't very good
   at tracking the amount of resources we have allocated so this hopefully will
@@ -4457,7 +4466,7 @@ Translations:
 * Fix selection highlighting for light-on-dark entries [Jasper; #643768]
 * Make control-Return in the overview open a new window [Maxim]
 * Delay showing the alt-Tab switcher to reduce visual noise when
-  flipping betweeen windows [Dan; #652346]
+  flipping between windows [Dan; #652346]
 * When we have vertically stacked monitors, put the message tray
   on the bottom one [Dan; #636963]
 * Fix various problems with keynav and the Activities button
@@ -4608,7 +4617,7 @@ Translations:
   - Fix missing device descriptions with multiple devices of the
     same type [Giovanni]
     https://bugzilla.gnome.org/show_bug.cgi?id=646074
-  - Label ad-hoc neworks with an appropriate icon [Dan]
+  - Label ad-hoc networks with an appropriate icon [Dan]
     https://bugzilla.gnome.org/show_bug.cgi?id=646141
   - Fix displaying some devices states as "invalid" [Dan]
     https://bugzilla.gnome.org/show_bug.cgi?id=646946

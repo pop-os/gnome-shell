@@ -2,6 +2,7 @@
 /* exported init connect disconnect */
 
 const { GLib, Gio, GObject, Shell, St } = imports.gi;
+const ByteArray = imports.byteArray;
 const Signals = imports.signals;
 
 const ExtensionDownloader = imports.ui.extensionDownloader;
@@ -230,8 +231,7 @@ var ExtensionManager = class {
             null,
             Gio.DBusCallFlags.NONE,
             -1,
-            null,
-            (conn, res) => conn.call_finish(res));
+            null);
         return true;
     }
 
@@ -261,7 +261,8 @@ var ExtensionManager = class {
         if (!extension)
             return;
 
-        let message = error.toString();
+        const message = error instanceof Error
+            ? error.message : error.toString();
 
         extension.error = message;
         extension.state = ExtensionState.ERROR;
@@ -282,8 +283,7 @@ var ExtensionManager = class {
         let metadataContents, success_;
         try {
             [success_, metadataContents] = metadataFile.load_contents(null);
-            if (metadataContents instanceof Uint8Array)
-                metadataContents = imports.byteArray.toString(metadataContents);
+            metadataContents = ByteArray.toString(metadataContents);
         } catch (e) {
             throw new Error('Failed to load metadata.json: %s'.format(e.toString()));
         }
@@ -486,19 +486,15 @@ var ExtensionManager = class {
 
         // Find and enable all the newly enabled extensions: UUIDs found in the
         // new setting, but not in the old one.
-        newEnabledExtensions.filter(
-            uuid => !this._enabledExtensions.includes(uuid)
-        ).forEach(uuid => {
-            this._callExtensionEnable(uuid);
-        });
+        newEnabledExtensions
+            .filter(uuid => !this._enabledExtensions.includes(uuid))
+            .forEach(uuid => this._callExtensionEnable(uuid));
 
         // Find and disable all the newly disabled extensions: UUIDs found in the
         // old setting, but not in the new one.
-        this._extensionOrder.filter(
-            uuid => !newEnabledExtensions.includes(uuid)
-        ).reverse().forEach(uuid => {
-            this._callExtensionDisable(uuid);
-        });
+        this._extensionOrder
+            .filter(uuid => !newEnabledExtensions.includes(uuid))
+            .reverse().forEach(uuid => this._callExtensionDisable(uuid));
 
         this._enabledExtensions = newEnabledExtensions;
     }

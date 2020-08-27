@@ -1,6 +1,6 @@
 project('gnome-shell', 'c',
-  version: '3.36.5',
-  meson_version: '>= 0.47.0',
+  version: '3.37.91',
+  meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
 
@@ -23,9 +23,9 @@ eds_req = '>= 3.33.1'
 gcr_req = '>= 3.7.5'
 gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
-gjs_req = '>= 1.63.2'
+gjs_req = '>= 1.65.1'
 gtk_req = '>= 3.15.0'
-mutter_req = '>= 3.36.0'
+mutter_req = '>= 3.37.91'
 polkit_req = '>= 0.100'
 schemas_req = '>= 3.33.1'
 startup_req = '>= 0.11'
@@ -63,16 +63,9 @@ portaldir = join_paths(datadir, 'xdg-desktop-portal', 'portals')
 schemadir = join_paths(datadir, 'glib-2.0', 'schemas')
 servicedir = join_paths(datadir, 'dbus-1', 'services')
 
-# XXX: Once https://github.com/systemd/systemd/issues/9595 is fixed and we can
-# depend on this version, replace with something like:
-# systemduserunitdir = systemd_dep.get_pkgconfig_variable('systemduserunitdir',
-#                                                         define_variable: ['prefix', prefix])
-# and uncomment systemd_dep below
-systemduserunitdir = join_paths(prefix, 'lib', 'systemd', 'user')
-
 keybindings_dep = dependency('gnome-keybindings', required: false)
 if keybindings_dep.found()
-  keysdir = keybindings_dep.get_pkgconfig_variable('keysdir')
+  keysdir = keybindings_dep.get_pkgconfig_variable('keysdir', define_variable: ['datadir', datadir])
 else
   keysdir = join_paths(datadir, 'gnome-control-center', 'keybindings')
 endif
@@ -103,9 +96,10 @@ gnome_desktop_dep = dependency('gnome-desktop-3.0', version: gnome_desktop_req)
 bt_dep = dependency('gnome-bluetooth-1.0', version: bt_req, required: false)
 gst_dep = dependency('gstreamer-1.0', version: gst_req, required: false)
 gst_base_dep = dependency('gstreamer-base-1.0', required: false)
+pipewire_dep = dependency('libpipewire-0.3', required: false)
 
 recorder_deps = []
-enable_recorder = gst_dep.found() and gst_base_dep.found()
+enable_recorder = gst_dep.found() and gst_base_dep.found() and pipewire_dep.found()
 if enable_recorder
   recorder_deps += [gst_dep, gst_base_dep, gtk_dep, x11_dep]
 endif
@@ -122,8 +116,9 @@ endif
 
 if get_option('systemd')
   libsystemd_dep = dependency('libsystemd')
-  # XXX: see systemduserunitdir
-  # systemd_dep = dependency('systemd')
+  systemd_dep = dependency('systemd')
+  systemduserunitdir = systemd_dep.get_pkgconfig_variable('systemduserunitdir',
+                                                          define_variable: ['prefix', prefix])
   have_systemd = true
 else
   libsystemd_dep = []
@@ -321,8 +316,6 @@ if get_option('man')
   summary_dirs += { 'mandir': get_option('mandir') }
 endif
 
-if meson.version().version_compare('>= 0.53.0')
-  summary(summary_dirs, section: 'Directories')
-  summary(summary_build, section: 'Build Configuration')
-  summary(summary_options, section: 'Build Options')
-endif
+summary(summary_dirs, section: 'Directories')
+summary(summary_build, section: 'Build Configuration')
+summary(summary_options, section: 'Build Options')

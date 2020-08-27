@@ -50,25 +50,22 @@ function canLock() {
 }
 
 
-function registerSessionWithGDM() {
+async function registerSessionWithGDM() {
     log("Registering session with GDM");
-    Gio.DBus.system.call('org.gnome.DisplayManager',
-                         '/org/gnome/DisplayManager/Manager',
-                         'org.gnome.DisplayManager.Manager',
-                         'RegisterSession',
-                         GLib.Variant.new('(a{sv})', [{}]), null,
-                         Gio.DBusCallFlags.NONE, -1, null,
-        (source, result) => {
-            try {
-                source.call_finish(result);
-            } catch (e) {
-                if (!e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
-                    log(`Error registering session with GDM: ${e.message}`);
-                else
-                    log("Not calling RegisterSession(): method not exported, GDM too old?");
-            }
-        }
-    );
+    try {
+        await Gio.DBus.system.call(
+            'org.gnome.DisplayManager',
+            '/org/gnome/DisplayManager/Manager',
+            'org.gnome.DisplayManager.Manager',
+            'RegisterSession',
+            GLib.Variant.new('(a{sv})', [{}]), null,
+            Gio.DBusCallFlags.NONE, -1, null);
+    } catch (e) {
+        if (!e.matches(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD))
+            log(`Error registering session with GDM: ${e.message}`);
+        else
+            log('Not calling RegisterSession(): method not exported, GDM too old?');
+    }
 }
 
 let _loginManager = null;
@@ -161,6 +158,23 @@ var LoginManagerSystemd = class {
         });
     }
 
+    canRebootToBootLoaderMenu(asyncCallback) {
+        this._proxy.CanRebootToBootLoaderMenuRemote((result, error) => {
+            if (error) {
+                asyncCallback(false, false);
+            } else {
+                const needsAuth = result[0] === 'challenge';
+                const canRebootToBootLoaderMenu = needsAuth || result[0] === 'yes';
+                asyncCallback(canRebootToBootLoaderMenu, needsAuth);
+            }
+        });
+    }
+
+    setRebootToBootLoaderMenu() {
+        /* Parameter is timeout in usec, show to menu for 60 seconds */
+        this._proxy.SetRebootToBootLoaderMenuRemote(60000000);
+    }
+
     listSessions(asyncCallback) {
         this._proxy.ListSessionsRemote((result, error) => {
             if (error)
@@ -174,24 +188,19 @@ var LoginManagerSystemd = class {
         this._proxy.SuspendRemote(true);
     }
 
-    inhibit(reason, callback) {
-        let inVariant = GLib.Variant.new('(ssss)',
-                                         ['sleep',
-                                          'GNOME Shell',
-                                          reason,
-                                          'delay']);
-        this._proxy.call_with_unix_fd_list('Inhibit', inVariant, 0, -1, null, null,
-            (proxy, result) => {
-                let fd = -1;
-                try {
-                    let [outVariant_, fdList] = proxy.call_with_unix_fd_list_finish(result);
-                    fd = fdList.steal_fds()[0];
-                    callback(new Gio.UnixInputStream({ fd }));
-                } catch (e) {
-                    logError(e, "Error getting systemd inhibitor");
-                    callback(null);
-                }
-            });
+    async inhibit(reason, callback) {
+        try {
+            const inVariant = new GLib.Variant('(ssss)',
+                ['sleep', 'GNOME Shell', reason, 'delay']);
+            const [outVariant_, fdList] =
+                await this._proxy.call_with_unix_fd_list('Inhibit',
+                    inVariant, 0, -1, null, null);
+            const [fd] = fdList.steal_fds();
+            callback(new Gio.UnixInputStream({ fd }));
+        } catch (e) {
+            logError(e, 'Error getting systemd inhibitor');
+            callback(null);
+        }
     }
 
     _prepareForSleep(proxy, sender, [aboutToSuspend]) {
@@ -209,6 +218,13 @@ var LoginManagerDummy = class {
 
     canSuspend(asyncCallback) {
         asyncCallback(false, false);
+    }
+
+    canRebootToBootLoaderMenu(asyncCallback) {
+        asyncCallback(false, false);
+    }
+
+    setRebootToBootLoaderMenu() {
     }
 
     listSessions(asyncCallback) {

@@ -3,10 +3,10 @@
             ctrlAltTabManager, padOsdService, osdWindowManager,
             osdMonitorLabeler, shellMountOpDBusService, shellDBusService,
             shellAccessDialogDBusService, shellAudioSelectionDBusService,
-            screenSaverDBus, screencastService, uiGroup, magnifier,
-            xdndHandler, keyboard, kbdA11yDialog, introspectService,
-            start, pushModal, popModal, activateWindow, createLookingGlass,
-            initializeDeferredWork, getThemeStylesheet, setThemeStylesheet */
+            screenSaverDBus, uiGroup, magnifier, xdndHandler, keyboard,
+            kbdA11yDialog, introspectService, start, pushModal, popModal,
+            activateWindow, createLookingGlass, initializeDeferredWork,
+            getThemeStylesheet, setThemeStylesheet */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
@@ -34,7 +34,6 @@ const LoginManager = imports.misc.loginManager;
 const LookingGlass = imports.ui.lookingGlass;
 const NotificationDaemon = imports.ui.notificationDaemon;
 const WindowAttentionHandler = imports.ui.windowAttentionHandler;
-const Screencast = imports.ui.screencast;
 const ScreenShield = imports.ui.screenShield;
 const Scripting = imports.ui.scripting;
 const SessionMode = imports.ui.sessionMode;
@@ -46,6 +45,7 @@ const XdndHandler = imports.ui.xdndHandler;
 const KbdA11yDialog = imports.ui.kbdA11yDialog;
 const LocatePointer = imports.ui.locatePointer;
 const PointerA11yTimeout = imports.ui.pointerA11yTimeout;
+const ParentalControlsManager = imports.misc.parentalControlsManager;
 
 const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
 const STICKY_KEYS_ENABLE = 'stickykeys-enable';
@@ -73,7 +73,6 @@ var shellAudioSelectionDBusService = null;
 var shellDBusService = null;
 var shellMountOpDBusService = null;
 var screenSaverDBus = null;
-var screencastService = null;
 var modalCount = 0;
 var actionMode = Shell.ActionMode.NONE;
 var modalActorFocusStack = [];
@@ -95,6 +94,8 @@ let _oskResource = null;
 
 Gio._promisify(Gio._LocalFilePrototype, 'delete_async', 'delete_finish');
 Gio._promisify(Gio._LocalFilePrototype, 'touch_async', 'touch_finish');
+
+let _remoteAccessInhibited = false;
 
 function _sessionUpdated() {
     if (sessionMode.isPrimary)
@@ -120,12 +121,23 @@ function _sessionUpdated() {
         if (lookingGlass)
             lookingGlass.close();
     }
+
+    let remoteAccessController = global.backend.get_remote_access_controller();
+    if (remoteAccessController) {
+        if (sessionMode.allowScreencast && _remoteAccessInhibited) {
+            remoteAccessController.uninhibit_remote_access();
+            _remoteAccessInhibited = false;
+        } else if (!sessionMode.allowScreencast && !_remoteAccessInhibited) {
+            remoteAccessController.inhibit_remote_access();
+            _remoteAccessInhibited = true;
+        }
+    }
 }
 
 function start() {
     // These are here so we don't break compatibility.
-    global.logError = window.log;
-    global.log = window.log;
+    global.logError = globalThis.log;
+    global.log = globalThis.log;
 
     // Chain up async errors reported from C
     global.connect('notify-error', (global, msg, detail) => {
@@ -140,6 +152,10 @@ function start() {
     sessionMode.connect('updated', _sessionUpdated);
 
     St.Settings.get().connect('notify::gtk-theme', _loadDefaultStylesheet);
+
+    // Initialize ParentalControlsManager before the UI
+    ParentalControlsManager.getDefault();
+
     _initializeUI();
 
     shellAccessDialogDBusService = new AccessDialog.AccessDialogDBus();
@@ -182,7 +198,6 @@ function _initializeUI() {
     uiGroup = layoutManager.uiGroup;
 
     padOsdService = new PadOsd.PadOsdService();
-    screencastService = new Screencast.ScreencastService();
     xdndHandler = new XdndHandler.XdndHandler();
     ctrlAltTabManager = new CtrlAltTab.CtrlAltTabManager();
     osdWindowManager = new OsdWindow.OsdWindowManager();
@@ -799,7 +814,7 @@ function showRestartMessage(message) {
 
 var AnimationsSettings = class {
     constructor() {
-        let backend = Meta.get_backend();
+        let backend = global.backend;
         if (!backend.is_rendering_hardware_accelerated()) {
             St.Settings.get().inhibit_animations();
             return;

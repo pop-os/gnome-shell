@@ -49,7 +49,7 @@
  * inside the #StAdjustment.
  *
  * The second simplification that we make that allows us to implement
- * a straighforward height-for-width negotiation without multiple
+ * a straightforward height-for-width negotiation without multiple
  * allocate passes is that when the scrollbar policy is
  * AUTO, we always reserve space for the scrollbar in the
  * reported minimum and natural size.
@@ -164,7 +164,7 @@ st_scroll_view_get_property (GObject    *object,
 /**
  * st_scroll_view_update_fade_effect:
  * @scroll: a #StScrollView
- * @vfade_offset: The length of the veritcal fade effect, in pixels.
+ * @vfade_offset: The length of the vertical fade effect, in pixels.
  * @hfade_offset: The length of the horizontal fade effect, in pixels.
  *
  * Sets the height of the fade area area in pixels. A value of 0
@@ -172,8 +172,8 @@ st_scroll_view_get_property (GObject    *object,
  */
 void
 st_scroll_view_update_fade_effect (StScrollView *scroll,
-                                   float vfade_offset,
-                                   float hfade_offset)
+                                   float         vfade_offset,
+                                   float         hfade_offset)
 {
   StScrollViewPrivate *priv = ST_SCROLL_VIEW (scroll)->priv;
 
@@ -533,8 +533,7 @@ st_scroll_view_get_preferred_height (ClutterActor *actor,
 
 static void
 st_scroll_view_allocate (ClutterActor          *actor,
-                         const ClutterActorBox *box,
-                         ClutterAllocationFlags flags)
+                         const ClutterActorBox *box)
 {
   ClutterActorBox content_box, child_box;
   gfloat avail_width, avail_height, sb_width, sb_height;
@@ -543,7 +542,7 @@ st_scroll_view_allocate (ClutterActor          *actor,
   StScrollViewPrivate *priv = ST_SCROLL_VIEW (actor)->priv;
   StThemeNode *theme_node = st_widget_get_theme_node (ST_WIDGET (actor));
 
-  clutter_actor_set_allocation (actor, box, flags);
+  clutter_actor_set_allocation (actor, box);
 
   st_theme_node_get_content_box (theme_node, box, &content_box);
 
@@ -641,7 +640,7 @@ st_scroll_view_allocate (ClutterActor          *actor,
   child_box.y1 = content_box.y1;
   child_box.y2 = content_box.y2 - (hscrollbar_visible ? sb_height : 0);
 
-  clutter_actor_allocate (priv->vscroll, &child_box, flags);
+  clutter_actor_allocate (priv->vscroll, &child_box);
 
   /* Horizontal scrollbar */
   if (clutter_actor_get_text_direction (actor) == CLUTTER_TEXT_DIRECTION_RTL)
@@ -657,10 +656,10 @@ st_scroll_view_allocate (ClutterActor          *actor,
   child_box.y1 = content_box.y2 - sb_height;
   child_box.y2 = content_box.y2;
 
-  clutter_actor_allocate (priv->hscroll, &child_box, flags);
+  clutter_actor_allocate (priv->hscroll, &child_box);
 
   /* In case the scrollbar policy is NEVER or EXTERNAL or scrollbars
-   * should be overlayed, we don't trim the content box allocation by
+   * should be overlaid, we don't trim the content box allocation by
    * the scrollbar size.
    * Fold this into the scrollbar sizes to simplify the rest of the
    * computations.
@@ -689,7 +688,7 @@ st_scroll_view_allocate (ClutterActor          *actor,
   child_box.y2 = content_box.y2 - sb_height;
 
   if (priv->child)
-    clutter_actor_allocate (priv->child, &child_box, flags);
+    clutter_actor_allocate (priv->child, &child_box);
 
   if (priv->hscrollbar_visible != hscrollbar_visible)
     {
@@ -758,6 +757,7 @@ st_scroll_view_scroll_event (ClutterActor       *self,
                              ClutterScrollEvent *event)
 {
   StScrollViewPrivate *priv = ST_SCROLL_VIEW (self)->priv;
+  ClutterTextDirection direction;
 
   /* don't handle scroll events if requested not to */
   if (!priv->mouse_scroll)
@@ -766,12 +766,18 @@ st_scroll_view_scroll_event (ClutterActor       *self,
   if (clutter_event_is_pointer_emulated ((ClutterEvent *) event))
     return TRUE;
 
+  direction = clutter_actor_get_text_direction (self);
+
   switch (event->direction)
     {
     case CLUTTER_SCROLL_SMOOTH:
       {
         gdouble delta_x, delta_y;
         clutter_event_get_scroll_delta ((ClutterEvent *)event, &delta_x, &delta_y);
+
+        if (direction == CLUTTER_TEXT_DIRECTION_RTL)
+          delta_x *= -1;
+
         st_adjustment_adjust_for_scroll_event (priv->hadjustment, delta_x);
         st_adjustment_adjust_for_scroll_event (priv->vadjustment, delta_y);
       }
@@ -782,7 +788,18 @@ st_scroll_view_scroll_event (ClutterActor       *self,
       break;
     case CLUTTER_SCROLL_LEFT:
     case CLUTTER_SCROLL_RIGHT:
-      adjust_with_direction (priv->hadjustment, event->direction);
+      if (direction == CLUTTER_TEXT_DIRECTION_RTL)
+        {
+          ClutterScrollDirection dir;
+
+          dir = event->direction == CLUTTER_SCROLL_LEFT ? CLUTTER_SCROLL_RIGHT
+                                                        : CLUTTER_SCROLL_LEFT;
+          adjust_with_direction (priv->hadjustment, dir);
+        }
+      else
+        {
+          adjust_with_direction (priv->hadjustment, event->direction);
+        }
       break;
     default:
       g_warn_if_reached();
@@ -813,6 +830,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
 
   widget_class->style_changed = st_scroll_view_style_changed;
 
+  /**
+   * StScrollView:hscroll:
+   *
+   * The horizontal #StScrollBar for the #StScrollView.
+   */
   props[PROP_HSCROLL] =
     g_param_spec_object ("hscroll",
                          "StScrollBar",
@@ -820,6 +842,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                          ST_TYPE_SCROLL_BAR,
                          ST_PARAM_READABLE);
 
+  /**
+   * StScrollView:vscroll:
+   *
+   * The vertical #StScrollBar for the #StScrollView.
+   */
   props[PROP_VSCROLL] =
     g_param_spec_object ("vscroll",
                          "StScrollBar",
@@ -827,6 +854,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                          ST_TYPE_SCROLL_BAR,
                          ST_PARAM_READABLE);
 
+  /**
+   * StScrollView:vscrollbar-policy:
+   *
+   * The #StPolicyType for when to show the vertical #StScrollBar.
+   */
   props[PROP_VSCROLLBAR_POLICY] =
     g_param_spec_enum ("vscrollbar-policy",
                        "Vertical Scrollbar Policy",
@@ -835,6 +867,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                        ST_POLICY_AUTOMATIC,
                        ST_PARAM_READWRITE);
 
+  /**
+   * StScrollView:hscrollbar-policy:
+   *
+   * The #StPolicyType for when to show the horizontal #StScrollBar.
+   */
   props[PROP_HSCROLLBAR_POLICY] =
     g_param_spec_enum ("hscrollbar-policy",
                        "Horizontal Scrollbar Policy",
@@ -843,6 +880,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                        ST_POLICY_AUTOMATIC,
                        ST_PARAM_READWRITE);
 
+  /**
+   * StScrollView:hscrollbar-visible:
+   *
+   * Whether the horizontal #StScrollBar is visible.
+   */
   props[PROP_HSCROLLBAR_VISIBLE] =
     g_param_spec_boolean ("hscrollbar-visible",
                           "Horizontal Scrollbar Visibility",
@@ -850,6 +892,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                           TRUE,
                           ST_PARAM_READABLE);
 
+  /**
+   * StScrollView:vscrollbar-visible:
+   *
+   * Whether the vertical #StScrollBar is visible.
+   */
   props[PROP_VSCROLLBAR_VISIBLE] =
     g_param_spec_boolean ("vscrollbar-visible",
                           "Vertical Scrollbar Visibility",
@@ -857,6 +904,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                           TRUE,
                           ST_PARAM_READABLE);
 
+  /**
+   * StScrollView:enable-mouse-scrolling:
+   *
+   * Whether to enable automatic mouse wheel scrolling.
+   */
   props[PROP_MOUSE_SCROLL] =
     g_param_spec_boolean ("enable-mouse-scrolling",
                           "Enable Mouse Scrolling",
@@ -864,6 +916,11 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                           TRUE,
                           ST_PARAM_READWRITE);
 
+  /**
+   * StScrollView:overlay-scrollbars:
+   *
+   * Whether scrollbars are painted on top of the content.
+   */
   props[PROP_OVERLAY_SCROLLBARS] =
     g_param_spec_boolean ("overlay-scrollbars",
                           "Use Overlay Scrollbars",
@@ -882,13 +939,17 @@ st_scroll_view_init (StScrollView *self)
   priv->hscrollbar_policy = ST_POLICY_AUTOMATIC;
   priv->vscrollbar_policy = ST_POLICY_AUTOMATIC;
 
-  priv->hadjustment = g_object_new (ST_TYPE_ADJUSTMENT, NULL);
+  priv->hadjustment = g_object_new (ST_TYPE_ADJUSTMENT,
+                                    "actor", self,
+                                    NULL);
   priv->hscroll = g_object_new (ST_TYPE_SCROLL_BAR,
                                 "adjustment", priv->hadjustment,
                                 "vertical", FALSE,
                                 NULL);
 
-  priv->vadjustment = g_object_new (ST_TYPE_ADJUSTMENT, NULL);
+  priv->vadjustment = g_object_new (ST_TYPE_ADJUSTMENT,
+                                    "actor", self,
+                                    NULL);
   priv->vscroll = g_object_new (ST_TYPE_SCROLL_BAR,
                                 "adjustment", priv->vadjustment,
                                 "vertical", TRUE,
@@ -974,6 +1035,13 @@ clutter_container_iface_init (ClutterContainerIface *iface)
   iface->remove = st_scroll_view_remove;
 }
 
+/**
+ * st_scroll_view_new:
+ *
+ * Create a new #StScrollView.
+ *
+ * Returns: (transfer full): a new #StScrollView
+ */
 StWidget *
 st_scroll_view_new (void)
 {
@@ -984,9 +1052,9 @@ st_scroll_view_new (void)
  * st_scroll_view_get_hscroll_bar:
  * @scroll: a #StScrollView
  *
- * Gets the horizontal scrollbar of the scrollbiew
+ * Gets the horizontal #StScrollBar of the #StScrollView.
  *
- * Return value: (transfer none): the horizontal #StScrollBar
+ * Returns: (transfer none): the horizontal scrollbar
  */
 ClutterActor *
 st_scroll_view_get_hscroll_bar (StScrollView *scroll)
@@ -1000,9 +1068,9 @@ st_scroll_view_get_hscroll_bar (StScrollView *scroll)
  * st_scroll_view_get_vscroll_bar:
  * @scroll: a #StScrollView
  *
- * Gets the vertical scrollbar of the scrollbiew
+ * Gets the vertical scrollbar of the #StScrollView.
  *
- * Return value: (transfer none): the vertical #StScrollBar
+ * Returns: (transfer none): the vertical #StScrollBar
  */
 ClutterActor *
 st_scroll_view_get_vscroll_bar (StScrollView *scroll)
@@ -1012,6 +1080,14 @@ st_scroll_view_get_vscroll_bar (StScrollView *scroll)
   return scroll->priv->vscroll;
 }
 
+/**
+ * st_scroll_view_get_column_size:
+ * @scroll: a #StScrollView
+ *
+ * Get the step increment of the horizontal plane.
+ *
+ * Returns: the horizontal step increment
+ */
 gfloat
 st_scroll_view_get_column_size (StScrollView *scroll)
 {
@@ -1026,6 +1102,13 @@ st_scroll_view_get_column_size (StScrollView *scroll)
   return column_size;
 }
 
+/**
+ * st_scroll_view_set_column_size:
+ * @scroll: a #StScrollView
+ * @column_size: horizontal step increment
+ *
+ * Set the step increment of the horizontal plane to @column_size.
+ */
 void
 st_scroll_view_set_column_size (StScrollView *scroll,
                                 gfloat        column_size)
@@ -1048,6 +1131,14 @@ st_scroll_view_set_column_size (StScrollView *scroll,
     }
 }
 
+/**
+ * st_scroll_view_get_row_size:
+ * @scroll: a #StScrollView
+ *
+ * Get the step increment of the vertical plane.
+ *
+ * Returns: the vertical step increment
+ */
 gfloat
 st_scroll_view_get_row_size (StScrollView *scroll)
 {
@@ -1062,6 +1153,13 @@ st_scroll_view_get_row_size (StScrollView *scroll)
   return row_size;
 }
 
+/**
+ * st_scroll_view_set_row_size:
+ * @scroll: a #StScrollView
+ * @row_size: vertical step increment
+ *
+ * Set the step increment of the vertical plane to @row_size.
+ */
 void
 st_scroll_view_set_row_size (StScrollView *scroll,
                              gfloat        row_size)
@@ -1084,6 +1182,13 @@ st_scroll_view_set_row_size (StScrollView *scroll,
     }
 }
 
+/**
+ * st_scroll_view_set_mouse_scrolling:
+ * @scroll: a #StScrollView
+ * @enabled: %TRUE or %FALSE
+ *
+ * Sets automatic mouse wheel scrolling to enabled or disabled.
+ */
 void
 st_scroll_view_set_mouse_scrolling (StScrollView *scroll,
                                     gboolean      enabled)
@@ -1104,6 +1209,14 @@ st_scroll_view_set_mouse_scrolling (StScrollView *scroll,
     }
 }
 
+/**
+ * st_scroll_view_get_mouse_scrolling:
+ * @scroll: a #StScrollView
+ *
+ * Get whether automatic mouse wheel scrolling is enabled or disabled.
+ *
+ * Returns: %TRUE if enabled, %FALSE otherwise
+ */
 gboolean
 st_scroll_view_get_mouse_scrolling (StScrollView *scroll)
 {
@@ -1146,7 +1259,9 @@ st_scroll_view_set_overlay_scrollbars (StScrollView *scroll,
  * st_scroll_view_get_overlay_scrollbars:
  * @scroll: A #StScrollView
  *
- * Gets the value set by st_scroll_view_set_overlay_scrollbars().
+ * Gets whether scrollbars are painted on top of the content.
+ *
+ * Returns: %TRUE if enabled, %FALSE otherwise
  */
 gboolean
 st_scroll_view_get_overlay_scrollbars (StScrollView *scroll)

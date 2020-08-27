@@ -18,11 +18,18 @@ typedef enum {
   SHELL_APP_STATE_RUNNING
 } ShellAppState;
 
+typedef enum {
+  SHELL_APP_LAUNCH_GPU_APP_PREF = 0,
+  SHELL_APP_LAUNCH_GPU_DISCRETE,
+  SHELL_APP_LAUNCH_GPU_DEFAULT
+} ShellAppLaunchGpu;
+
 const char *shell_app_get_id (ShellApp *app);
 
 GDesktopAppInfo *shell_app_get_app_info (ShellApp *app);
 
 ClutterActor *shell_app_create_icon_texture (ShellApp *app, int size);
+GIcon *shell_app_get_icon (ShellApp *app);
 const char *shell_app_get_name (ShellApp *app);
 const char *shell_app_get_description (ShellApp *app);
 gboolean shell_app_is_window_backed (ShellApp *app);
@@ -51,11 +58,11 @@ GSList *shell_app_get_pids (ShellApp *app);
 
 gboolean shell_app_is_on_workspace (ShellApp *app, MetaWorkspace *workspace);
 
-gboolean shell_app_launch (ShellApp     *app,
-                           guint         timestamp,
-                           int           workspace,
-                           gboolean      discrete_gpu,
-                           GError      **error);
+gboolean shell_app_launch (ShellApp           *app,
+                           guint               timestamp,
+                           int                 workspace,
+                           ShellAppLaunchGpu   gpu_pref,
+                           GError            **error);
 
 void shell_app_launch_action (ShellApp        *app,
                               const char      *action_name,

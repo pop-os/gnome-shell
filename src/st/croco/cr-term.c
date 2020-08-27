@@ -77,7 +77,7 @@ cr_term_clear (CRTerm * a_this)
 }
 
 /**
- *Instanciate a #CRTerm.
+ *Instantiate a #CRTerm.
  *@return the newly build instance
  *of #CRTerm.
  */
@@ -96,7 +96,7 @@ cr_term_new (void)
 }
 
 /**
- *Parses an expresion as defined by the css2 spec
+ *Parses an expression as defined by the css2 spec
  *and builds the expression as a list of terms.
  *@param a_buf the buffer to parse.
  *@return a pointer to the first term of the expression or
@@ -291,7 +291,6 @@ cr_term_to_string (CRTerm const * a_this)
         for (cur = a_this; cur; cur = cur->next) {
                 if ((cur->content.str == NULL)
                     && (cur->content.num == NULL)
-                    && (cur->content.str == NULL)
                     && (cur->content.rgb == NULL))
                         continue;
 
@@ -485,7 +484,6 @@ cr_term_one_to_string (CRTerm const * a_this)
 
         if ((a_this->content.str == NULL)
             && (a_this->content.num == NULL)
-            && (a_this->content.str == NULL)
             && (a_this->content.rgb == NULL))
                 return NULL ;
 

@@ -42,6 +42,11 @@ const GsdWacomProxy = Gio.DBusProxy.makeProxyWrapper(GsdWacomIface);
 
 const WINDOW_DIMMER_EFFECT_NAME = "gnome-shell-window-dimmer";
 
+Gio._promisify(Shell,
+    'util_start_systemd_unit', 'util_start_systemd_unit_finish');
+Gio._promisify(Shell,
+    'util_stop_systemd_unit', 'util_stop_systemd_unit_finish');
+
 var DisplayChangeDialog = GObject.registerClass(
 class DisplayChangeDialog extends ModalDialog.ModalDialog {
     _init(wm) {
@@ -901,46 +906,23 @@ var WindowManager = class {
         global.display.connect('init-xserver', (display, task) => {
             IBusManager.getIBusManager().restartDaemon(['--xim']);
 
-            try {
-                if (!Shell.util_start_systemd_unit('gsd-xsettings.target', 'fail'))
-                    log('Not starting gsd-xsettings; waiting for gnome-session to do so');
+            /* Timeout waiting for start job completion after 5 seconds */
+            let cancellable = new Gio.Cancellable();
+            GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {
+                cancellable.cancel();
+                return GLib.SOURCE_REMOVE;
+            });
 
-                /* Leave this watchdog timeout so don't block indefinitely here */
-                let timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {
-                    Gio.DBus.session.unwatch_name(watchId);
-                    log('Warning: Failed to start gsd-xsettings');
-                    task.return_boolean(true);
-                    timeoutId = 0;
-                    return GLib.SOURCE_REMOVE;
-                });
-
-                /* When gsd-xsettings daemon is started, we are good to resume */
-                let watchId = Gio.DBus.session.watch_name(
-                    'org.gnome.SettingsDaemon.XSettings',
-                    Gio.BusNameWatcherFlags.NONE,
-                    () => {
-                        Gio.DBus.session.unwatch_name(watchId);
-                        if (timeoutId > 0) {
-                            task.return_boolean(true);
-                            GLib.source_remove(timeoutId);
-                        }
-                    },
-                    null);
-            } catch (e) {
-                log('Error starting gsd-xsettings: %s'.format(e.message));
-                task.return_boolean(true);
-            }
+            this._startX11Services(task, cancellable);
 
             return true;
         });
         global.display.connect('x11-display-closing', () => {
             if (!Meta.is_wayland_compositor())
                 return;
-            try {
-                Shell.util_stop_systemd_unit('gsd-xsettings.target', 'fail');
-            } catch (e) {
-                log('Error stopping gsd-xsettings: %s'.format(e.message));
-            }
+
+            this._stopX11Services(null);
+
             IBusManager.getIBusManager().restartDaemon();
         });
 
@@ -1006,6 +988,36 @@ var WindowManager = class {
         global.display.connect('in-fullscreen-changed', updateUnfullscreenGesture);
 
         global.stage.add_action(topDragAction);
+    }
+
+    async _startX11Services(task, cancellable) {
+        try {
+            await Shell.util_start_systemd_unit(
+                'gnome-session-x11-services-ready.target', 'fail', cancellable);
+        } catch (e) {
+            // Ignore NOT_SUPPORTED error, which indicates we are not systemd
+            // managed and gnome-session will have taken care of everything
+            // already.
+            // Note that we do log cancellation from here.
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED))
+                log('Error starting X11 services: %s'.format(e.message));
+        } finally {
+            task.return_boolean(true);
+        }
+    }
+
+    async _stopX11Services(cancellable) {
+        try {
+            await Shell.util_stop_systemd_unit(
+                'gnome-session-x11-services.target', 'fail', cancellable);
+        } catch (e) {
+            // Ignore NOT_SUPPORTED error, which indicates we are not systemd
+            // managed and gnome-session will have taken care of everything
+            // already.
+            // Note that we do log cancellation from here.
+            if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED))
+                log('Error stopping X11 services: %s'.format(e.message));
+        }
     }
 
     _showPadOsd(display, device, settings, imagePath, editionMode, monitorIndex) {
@@ -1278,13 +1290,13 @@ var WindowManager = class {
     }
 
     _sizeChangeWindow(shellwm, actor, whichChange, oldFrameRect, _oldBufferRect) {
-        let types = [Meta.WindowType.NORMAL];
-        if (!this._shouldAnimateActor(actor, types)) {
-            shellwm.completed_size_change(actor);
-            return;
-        }
+        const types = [Meta.WindowType.NORMAL];
+        const shouldAnimate =
+            this._shouldAnimateActor(actor, types) &&
+            oldFrameRect.width > 0 &&
+            oldFrameRect.height > 0;
 
-        if (oldFrameRect.width > 0 && oldFrameRect.height > 0)
+        if (shouldAnimate)
             this._prepareAnimationInfo(shellwm, actor, oldFrameRect, whichChange);
         else
             shellwm.completed_size_change(actor);
@@ -1299,17 +1311,24 @@ var WindowManager = class {
         actorClone.set_position(oldFrameRect.x, oldFrameRect.y);
         actorClone.set_size(oldFrameRect.width, oldFrameRect.height);
 
-        if (this._clearAnimationInfo(actor))
+        actor.freeze();
+
+        if (this._clearAnimationInfo(actor)) {
+            log('Old animationInfo removed from actor %s'.format(actor));
             this._shellwm.completed_size_change(actor);
+        }
 
         let destroyId = actor.connect('destroy', () => {
             this._clearAnimationInfo(actor);
         });
 
         this._resizePending.add(actor);
-        actor.__animationInfo = { clone: actorClone,
-                                  oldRect: oldFrameRect,
-                                  destroyId };
+        actor.__animationInfo = {
+            clone: actorClone,
+            oldRect: oldFrameRect,
+            frozen: true,
+            destroyId,
+        };
     }
 
     _sizeChangedWindow(shellwm, actor) {
@@ -1362,13 +1381,17 @@ var WindowManager = class {
         // Now unfreeze actor updates, to get it to the new size.
         // It's important that we don't wait until the animation is completed to
         // do this, otherwise our scale will be applied to the old texture size.
-        shellwm.completed_size_change(actor);
+        actor.thaw();
+        actor.__animationInfo.frozen = false;
     }
 
     _clearAnimationInfo(actor) {
         if (actor.__animationInfo) {
             actor.__animationInfo.clone.destroy();
             actor.disconnect(actor.__animationInfo.destroyId);
+            if (actor.__animationInfo.frozen)
+                actor.thaw();
+
             delete actor.__animationInfo;
             return true;
         }
@@ -1383,10 +1406,13 @@ var WindowManager = class {
             actor.translation_x = 0;
             actor.translation_y = 0;
             this._clearAnimationInfo(actor);
+            this._shellwm.completed_size_change(actor);
         }
 
-        if (this._resizePending.delete(actor))
+        if (this._resizePending.delete(actor)) {
+            this._clearAnimationInfo(actor);
             this._shellwm.completed_size_change(actor);
+        }
     }
 
     _hasAttachedDialogs(window, ignoreWindow) {
@@ -1786,8 +1812,7 @@ var WindowManager = class {
             w.window.get_parent().remove_child(w.window);
             w.parent.add_child(w.window);
 
-            if (w.window.get_meta_window().get_workspace() !=
-                global.workspace_manager.get_active_workspace())
+            if (!w.window.get_meta_window().get_workspace().active)
                 w.window.hide();
         }
         switchData.container.destroy();
@@ -1971,7 +1996,7 @@ var WindowManager = class {
             duration,
             mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
             onComplete: () => {
-                if (newWs !== activeWorkspace)
+                if (!newWs.active)
                     this.actionMoveWorkspace(newWs);
                 this._finishWorkspaceSwitch(switchData);
             },
@@ -2101,8 +2126,16 @@ var WindowManager = class {
             newWs = workspaceManager.get_workspace_by_index(workspaceManager.n_workspaces - 1);
         } else if (isNaN(target)) {
             // Prepend a new workspace dynamically
-            if (workspaceManager.get_active_workspace_index() == 0 &&
-                action == 'move' && target == 'up' && this._isWorkspacePrepended == false) {
+            let prependTarget;
+            if (vertical)
+                prependTarget = 'up';
+            else if (rtl)
+                prependTarget = 'right';
+            else
+                prependTarget = 'left';
+            if (workspaceManager.get_active_workspace_index() === 0 &&
+                action === 'move' && target === prependTarget &&
+                this._isWorkspacePrepended === false) {
                 this.insertWorkspace(0);
                 this._isWorkspacePrepended = true;
             }
@@ -2163,10 +2196,7 @@ var WindowManager = class {
         if (!Main.sessionMode.hasWorkspaces)
             return;
 
-        let workspaceManager = global.workspace_manager;
-        let activeWorkspace = workspaceManager.get_active_workspace();
-
-        if (activeWorkspace != workspace)
+        if (!workspace.active)
             workspace.activate(global.get_current_time());
     }
 
@@ -2174,10 +2204,7 @@ var WindowManager = class {
         if (!Main.sessionMode.hasWorkspaces)
             return;
 
-        let workspaceManager = global.workspace_manager;
-        let activeWorkspace = workspaceManager.get_active_workspace();
-
-        if (activeWorkspace != workspace) {
+        if (!workspace.active) {
             // This won't have any effect for "always sticky" windows
             // (like desktop windows or docks)
 

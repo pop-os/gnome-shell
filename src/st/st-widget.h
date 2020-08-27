@@ -38,6 +38,17 @@ G_BEGIN_DECLS
 #define ST_TYPE_WIDGET                 (st_widget_get_type ())
 G_DECLARE_DERIVABLE_TYPE (StWidget, st_widget, ST, WIDGET, ClutterActor)
 
+/**
+ * StDirectionType:
+ * @ST_DIR_TAB_FORWARD: Move forward.
+ * @ST_DIR_TAB_BACKWARD: Move backward.
+ * @ST_DIR_UP: Move up.
+ * @ST_DIR_DOWN: Move down.
+ * @ST_DIR_LEFT: Move left.
+ * @ST_DIR_RIGHT: Move right.
+ *
+ * Enumeration for focus direction.
+ */
 typedef enum
 {
   ST_DIR_TAB_FORWARD,
@@ -63,7 +74,6 @@ struct _StWidgetClass
   /* signals */
   void     (* style_changed)       (StWidget         *self);
   void     (* popup_menu)          (StWidget         *self);
-  void     (* resource_scale_changed) (StWidget         *self);
 
   /* vfuncs */
 
@@ -135,8 +145,6 @@ StThemeNode *         st_widget_peek_theme_node           (StWidget        *widg
 GList *               st_widget_get_focus_chain           (StWidget        *widget);
 void                  st_widget_paint_background          (StWidget            *widget,
                                                            ClutterPaintContext *paint_context);
-gboolean              st_widget_get_resource_scale        (StWidget        *widget,
-                                                           float           *resource_scale);
 
 /* debug methods */
 char  *st_describe_actor       (ClutterActor *actor);

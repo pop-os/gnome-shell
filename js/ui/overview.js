@@ -245,11 +245,11 @@ var Overview = class {
     _unshadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
         for (let i = 0; i < backgrounds.length; i++) {
-            backgrounds[i].ease_property('brightness', 1.0, {
+            backgrounds[i].ease_property('@content.brightness', 1.0, {
                 duration: SHADE_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
-            backgrounds[i].ease_property('vignette-sharpness', 0.0, {
+            backgrounds[i].ease_property('@content.vignette-sharpness', 0.0, {
                 duration: SHADE_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
@@ -259,14 +259,16 @@ var Overview = class {
     _shadeBackgrounds() {
         let backgrounds = this._backgroundGroup.get_children();
         for (let i = 0; i < backgrounds.length; i++) {
-            backgrounds[i].ease_property('brightness', Lightbox.VIGNETTE_BRIGHTNESS, {
-                duration: SHADE_ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
-            backgrounds[i].ease_property('vignette-sharpness', Lightbox.VIGNETTE_SHARPNESS, {
-                duration: SHADE_ANIMATION_TIME,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
+            backgrounds[i].ease_property('@content.brightness',
+                Lightbox.VIGNETTE_BRIGHTNESS, {
+                    duration: SHADE_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
+            backgrounds[i].ease_property('@content.vignette-sharpness',
+                Lightbox.VIGNETTE_SHARPNESS, {
+                    duration: SHADE_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
         }
     }
 
@@ -401,8 +403,7 @@ var Overview = class {
 
     _getDesktopClone() {
         let windows = global.get_window_actors().filter(
-            w => w.meta_window.get_window_type() == Meta.WindowType.DESKTOP
-        );
+            w => w.meta_window.get_window_type() === Meta.WindowType.DESKTOP);
         if (windows.length == 0)
             return null;
 
@@ -439,19 +440,19 @@ var Overview = class {
         this.emit('windows-restacked', stackIndices);
     }
 
-    beginItemDrag(_source) {
-        this.emit('item-drag-begin');
+    beginItemDrag(source) {
+        this.emit('item-drag-begin', source);
         this._inItemDrag = true;
     }
 
-    cancelledItemDrag(_source) {
-        this.emit('item-drag-cancelled');
+    cancelledItemDrag(source) {
+        this.emit('item-drag-cancelled', source);
     }
 
-    endItemDrag(_source) {
+    endItemDrag(source) {
         if (!this._inItemDrag)
             return;
-        this.emit('item-drag-end');
+        this.emit('item-drag-end', source);
         this._inItemDrag = false;
     }
 
@@ -577,7 +578,7 @@ var Overview = class {
         this._activationTime = GLib.get_monotonic_time() / GLib.USEC_PER_SEC;
 
         Meta.disable_unredirect_for_display(global.display);
-        this.viewSelector.show();
+        this.viewSelector.animateToOverview();
 
         this._overview.opacity = 0;
         this._overview.ease({

@@ -18,7 +18,7 @@
  */
 
 const { AccountsService, Clutter, Gio,
-        GLib, GObject, Pango, Polkit, Shell, St }  = imports.gi;
+        GLib, GObject, Pango, Polkit, Shell, St, UPowerGlib: UPower }  = imports.gi;
 
 const CheckBox = imports.ui.checkBox;
 const Dialog = imports.ui.dialog;
@@ -31,24 +31,30 @@ const { loadInterfaceXML } = imports.misc.fileUtils;
 
 const _ITEM_ICON_SIZE = 64;
 
+const LOW_BATTERY_THRESHOLD = 30;
+
 const EndSessionDialogIface = loadInterfaceXML('org.gnome.SessionManager.EndSessionDialog');
 
 const logoutDialogContent = {
     subjectWithUser: C_("title", "Log Out %s"),
     subject: C_("title", "Log Out"),
     descriptionWithUser(user, seconds) {
-        return ngettext("%s will be logged out automatically in %d second.",
-                        "%s will be logged out automatically in %d seconds.",
-                        seconds).format(user, seconds);
+        return ngettext(
+            '%s will be logged out automatically in %d second.',
+            '%s will be logged out automatically in %d seconds.',
+            seconds).format(user, seconds);
     },
     description(seconds) {
-        return ngettext("You will be logged out automatically in %d second.",
-                        "You will be logged out automatically in %d seconds.",
-                        seconds).format(seconds);
+        return ngettext(
+            'You will be logged out automatically in %d second.',
+            'You will be logged out automatically in %d seconds.',
+            seconds).format(seconds);
     },
     showBatteryWarning: false,
-    confirmButtons: [{ signal: 'ConfirmedLogout',
-                       label: C_("button", "Log Out") }],
+    confirmButtons: [{
+        signal: 'ConfirmedLogout',
+        label: C_('button', 'Log Out'),
+    }],
     showOtherSessions: false,
 };
 
@@ -56,30 +62,36 @@ const shutdownDialogContent = {
     subject: C_("title", "Power Off"),
     subjectWithUpdates: C_("title", "Install Updates & Power Off"),
     description(seconds) {
-        return ngettext("The system will power off automatically in %d second.",
-                        "The system will power off automatically in %d seconds.",
-                        seconds).format(seconds);
+        return ngettext(
+            'The system will power off automatically in %d second.',
+            'The system will power off automatically in %d seconds.',
+            seconds).format(seconds);
     },
     checkBoxText: C_("checkbox", "Install pending software updates"),
     showBatteryWarning: true,
-    confirmButtons: [{ signal: 'ConfirmedReboot',
-                       label: C_("button", "Restart") },
-                     { signal: 'ConfirmedShutdown',
-                       label: C_("button", "Power Off") }],
+    confirmButtons: [{
+        signal: 'ConfirmedShutdown',
+        label: C_('button', 'Power Off'),
+    }],
     iconName: 'system-shutdown-symbolic',
     showOtherSessions: true,
 };
 
 const restartDialogContent = {
     subject: C_("title", "Restart"),
+    subjectWithUpdates: C_('title', 'Install Updates & Restart'),
     description(seconds) {
-        return ngettext("The system will restart automatically in %d second.",
-                        "The system will restart automatically in %d seconds.",
-                        seconds).format(seconds);
+        return ngettext(
+            'The system will restart automatically in %d second.',
+            'The system will restart automatically in %d seconds.',
+            seconds).format(seconds);
     },
-    showBatteryWarning: false,
-    confirmButtons: [{ signal: 'ConfirmedReboot',
-                       label: C_("button", "Restart") }],
+    checkBoxText: C_('checkbox', 'Install pending software updates'),
+    showBatteryWarning: true,
+    confirmButtons: [{
+        signal: 'ConfirmedReboot',
+        label: C_('button', 'Restart'),
+    }],
     iconName: 'view-refresh-symbolic',
     showOtherSessions: true,
 };
@@ -88,13 +100,16 @@ const restartUpdateDialogContent = {
 
     subject: C_("title", "Restart & Install Updates"),
     description(seconds) {
-        return ngettext("The system will automatically restart and install updates in %d second.",
-                        "The system will automatically restart and install updates in %d seconds.",
-                        seconds).format(seconds);
+        return ngettext(
+            'The system will automatically restart and install updates in %d second.',
+            'The system will automatically restart and install updates in %d seconds.',
+            seconds).format(seconds);
     },
     showBatteryWarning: true,
-    confirmButtons: [{ signal: 'ConfirmedReboot',
-                       label: C_("button", "Restart &amp; Install") }],
+    confirmButtons: [{
+        signal: 'ConfirmedReboot',
+        label: C_('button', 'Restart &amp; Install'),
+    }],
     unusedFutureButtonForTranslation: C_("button", "Install &amp; Power Off"),
     unusedFutureCheckBoxForTranslation: C_("checkbox", "Power off after updates are installed"),
     iconName: 'view-refresh-symbolic',
@@ -112,8 +127,10 @@ const restartUpgradeDialogContent = {
     },
     disableTimer: true,
     showBatteryWarning: false,
-    confirmButtons: [{ signal: 'ConfirmedReboot',
-                       label: C_("button", "Restart &amp; Install") }],
+    confirmButtons: [{
+        signal: 'ConfirmedReboot',
+        label: C_('button', 'Restart &amp; Install'),
+    }],
     iconName: 'view-refresh-symbolic',
     showOtherSessions: true,
 };
@@ -142,7 +159,7 @@ const LogindSession = Gio.DBusProxy.makeProxyWrapper(LogindSessionIface);
 const PkOfflineIface = loadInterfaceXML('org.freedesktop.PackageKit.Offline');
 const PkOfflineProxy = Gio.DBusProxy.makeProxyWrapper(PkOfflineIface);
 
-const UPowerIface = loadInterfaceXML('org.freedesktop.UPower');
+const UPowerIface = loadInterfaceXML('org.freedesktop.UPower.Device');
 const UPowerProxy = Gio.DBusProxy.makeProxyWrapper(UPowerIface);
 
 function findAppFromInhibitor(inhibitor) {
@@ -213,6 +230,11 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
                       destroyOnClose: false });
 
         this._loginManager = LoginManager.getLoginManager();
+        this._loginManager.canRebootToBootLoaderMenu(
+            (canRebootToBootLoaderMenu, unusedNeedsAuth) => {
+                this._canRebootToBootLoaderMenu = canRebootToBootLoaderMenu;
+            });
+
         this._userManager = AccountsService.UserManager.get_default();
         this._user = this._userManager.get_user(GLib.get_user_name());
         this._updatesPermission = null;
@@ -224,7 +246,7 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
 
         this._powerProxy = new UPowerProxy(Gio.DBus.system,
                                            'org.freedesktop.UPower',
-                                           '/org/freedesktop/UPower',
+                                           '/org/freedesktop/UPower/devices/DisplayDevice',
                                            (proxy, error) => {
                                                if (error) {
                                                    log(error.message);
@@ -239,6 +261,9 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         this._totalSecondsToStayOpen = 0;
         this._applications = [];
         this._sessions = [];
+        this._capturedEventId = 0;
+        this._rebootButton = null;
+        this._rebootButtonAlt = null;
 
         this.connect('destroy',
                      this._onDestroy.bind(this));
@@ -256,7 +281,7 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
 
         this._batteryWarning = new St.Label({
             style_class: 'end-session-dialog-battery-warning',
-            text: _('Running on battery power: Please plug in before installing updates.'),
+            text: _('Low battery power: please plug in before installing updates.'),
         });
         this._batteryWarning.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         this._batteryWarning.clutter_text.line_wrap = true;
@@ -278,7 +303,7 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         this._dbusImpl.export(Gio.DBus.session, '/org/gnome/SessionManager/EndSessionDialog');
     }
 
-    _onPkOfflineProxyCreated(proxy, error) {
+    async _onPkOfflineProxyCreated(proxy, error) {
         if (error) {
             log(error.message);
             return;
@@ -293,20 +318,43 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         }
 
         // It only makes sense to check for this permission if PackageKit is available.
-        Polkit.Permission.new(
-            'org.freedesktop.packagekit.trigger-offline-update', null, null,
-            (source, res) => {
-                try {
-                    this._updatesPermission = Polkit.Permission.new_finish(res);
-                } catch (e) {
-                    log('No permission to trigger offline updates: %s'.format(e.toString()));
-                }
-            });
+        try {
+            this._updatesPermission = await Polkit.Permission.new(
+                'org.freedesktop.packagekit.trigger-offline-update', null, null);
+        } catch (e) {
+            log('No permission to trigger offline updates: %s'.format(e.toString()));
+        }
     }
 
     _onDestroy() {
         this._user.disconnect(this._userLoadedId);
         this._user.disconnect(this._userChangedId);
+    }
+
+    _isDischargingBattery() {
+        return this._powerProxy.IsPresent &&
+            this._powerProxy.State !== UPower.DeviceState.CHARGING &&
+            this._powerProxy.State !== UPower.DeviceState.FULLY_CHARGED;
+    }
+
+    _isBatteryLow() {
+        return this._isDischargingBattery() && this._powerProxy.Percentage < LOW_BATTERY_THRESHOLD;
+    }
+
+    _shouldShowLowBatteryWarning(dialogContent) {
+        if (!dialogContent.showBatteryWarning)
+            return false;
+
+        if (!this._isBatteryLow())
+            return false;
+
+        if (this._checkBox.checked)
+            return true;
+
+        // Show the warning if updates have already been triggered, but
+        // the user doesn't have enough permissions to cancel them.
+        let updatesAllowed = this._updatesPermission && this._updatesPermission.allowed;
+        return this._updateInfo.UpdatePrepared && this._updateInfo.UpdateTriggered && !updatesAllowed;
     }
 
     _sync() {
@@ -322,10 +370,7 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         if (dialogContent.subjectWithUpdates && this._checkBox.checked)
             subject = dialogContent.subjectWithUpdates;
 
-        if (dialogContent.showBatteryWarning) {
-            this._batteryWarning.visible =
-                this._powerProxy.OnBattery && this._checkBox.checked;
-        }
+        this._batteryWarning.visible = this._shouldShowLowBatteryWarning(dialogContent);
 
         let description;
         let displayTime = _roundSecondsToInterval(this._totalSecondsToStayOpen,
@@ -366,16 +411,38 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         this._sessionSection.visible = hasSessions;
     }
 
-    _updateButtons() {
-        let dialogContent = DialogContent[this._type];
-        let buttons = [{ action: this.cancel.bind(this),
-                         label: _("Cancel"),
-                         key: Clutter.KEY_Escape }];
+    _onCapturedEvent(actor, event) {
+        let altEnabled = false;
 
+        let type = event.type();
+        if (type !== Clutter.EventType.KEY_PRESS && type !== Clutter.EventType.KEY_RELEASE)
+            return Clutter.EVENT_PROPAGATE;
+
+        let key = event.get_key_symbol();
+        if (key !== Clutter.KEY_Alt_L && key !== Clutter.KEY_Alt_R)
+            return Clutter.EVENT_PROPAGATE;
+
+        if (type === Clutter.EventType.KEY_PRESS)
+            altEnabled = true;
+
+        this._rebootButton.visible = !altEnabled;
+        this._rebootButtonAlt.visible = altEnabled;
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _updateButtons() {
+        this.clearButtons();
+
+        this.addButton({ action: this.cancel.bind(this),
+                         label: _("Cancel"),
+                         key: Clutter.KEY_Escape });
+
+        let dialogContent = DialogContent[this._type];
         for (let i = 0; i < dialogContent.confirmButtons.length; i++) {
             let signal = dialogContent.confirmButtons[i].signal;
             let label = dialogContent.confirmButtons[i].label;
-            buttons.push({
+            let button = this.addButton({
                 action: () => {
                     this.close(true);
                     let signalId = this.connect('closed', () => {
@@ -385,9 +452,34 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
                 },
                 label,
             });
-        }
 
-        this.setButtons(buttons);
+            // Add Alt "Boot Options" option to the Reboot button
+            if (this._canRebootToBootLoaderMenu && signal === 'ConfirmedReboot') {
+                this._rebootButton = button;
+                this._rebootButtonAlt = this.addButton({
+                    action: () => {
+                        this.close(true);
+                        let signalId = this.connect('closed', () => {
+                            this.disconnect(signalId);
+                            this._confirmRebootToBootLoaderMenu();
+                        });
+                    },
+                    label: C_('button', 'Boot Options'),
+                });
+                this._rebootButtonAlt.visible = false;
+                this._capturedEventId = global.stage.connect('captured-event',
+                    this._onCapturedEvent.bind(this));
+            }
+        }
+    }
+
+    _stopAltCapture() {
+        if (this._capturedEventId > 0) {
+            global.stage.disconnect(this._capturedEventId);
+            this._capturedEventId = 0;
+        }
+        this._rebootButton = null;
+        this._rebootButtonAlt = null;
     }
 
     close(skipSignal) {
@@ -399,14 +491,21 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
 
     cancel() {
         this._stopTimer();
+        this._stopAltCapture();
         this._dbusImpl.emit_signal('Canceled', null);
         this.close();
+    }
+
+    _confirmRebootToBootLoaderMenu() {
+        this._loginManager.setRebootToBootLoaderMenu();
+        this._confirm('ConfirmedReboot');
     }
 
     _confirm(signal) {
         let callback = () => {
             this._fadeOutDialog();
             this._stopTimer();
+            this._stopAltCapture();
             this._dbusImpl.emit_signal(signal, null);
         };
 
@@ -674,19 +773,17 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         if (dialogContent.showOtherSessions)
             this._loadSessions();
 
-        let updateTriggered = this._updateInfo.UpdateTriggered;
-        let updatePrepared = this._updateInfo.UpdatePrepared;
         let updatesAllowed = this._updatesPermission && this._updatesPermission.allowed;
 
         _setCheckBoxLabel(this._checkBox, dialogContent.checkBoxText || '');
-        this._checkBox.visible = dialogContent.checkBoxText && updatePrepared && updatesAllowed;
-        this._checkBox.checked = updatePrepared && updateTriggered;
+        this._checkBox.visible = dialogContent.checkBoxText && this._updateInfo.UpdatePrepared && updatesAllowed;
 
-        // We show the warning either together with the checkbox, or when
-        // updates have already been triggered, but the user doesn't have
-        // enough permissions to cancel them.
-        this._batteryWarning.visible = dialogContent.showBatteryWarning &&
-                                        (this._checkBox.visible || updatePrepared && updateTriggered && !updatesAllowed);
+        if (this._type === DialogType.UPGRADE_RESTART)
+            this._checkBox.checked = this._checkBox.visible && this._updateInfo.UpdateTriggered && !this._isDischargingBattery();
+        else
+            this._checkBox.checked = this._checkBox.visible && !this._isBatteryLow();
+
+        this._batteryWarning.visible = this._shouldShowLowBatteryWarning(dialogContent);
 
         this._updateButtons();
 

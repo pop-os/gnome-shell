@@ -549,9 +549,7 @@ var WorkspaceThumbnail = GObject.registerClass({
             return;
 
         // a click on the already current workspace should go back to the main view
-        let workspaceManager = global.workspace_manager;
-        let activeWorkspace = workspaceManager.get_active_workspace();
-        if (this.metaWorkspace == activeWorkspace)
+        if (this.metaWorkspace.active)
             Main.overview.hide();
         else
             this.metaWorkspace.activate(time);
@@ -567,7 +565,8 @@ var WorkspaceThumbnail = GObject.registerClass({
         if (this.state > ThumbnailState.NORMAL)
             return DND.DragMotionResult.CONTINUE;
 
-        if (source.realWindow && !this._isMyWindow(source.realWindow))
+        if (source.metaWindow &&
+            !this._isMyWindow(source.metaWindow.get_compositor_private()))
             return DND.DragMotionResult.MOVE_DROP;
         if (source.app && source.app.can_open_new_window())
             return DND.DragMotionResult.COPY_DROP;
@@ -581,8 +580,8 @@ var WorkspaceThumbnail = GObject.registerClass({
         if (this.state > ThumbnailState.NORMAL)
             return false;
 
-        if (source.realWindow) {
-            let win = source.realWindow;
+        if (source.metaWindow) {
+            let win = source.metaWindow.get_compositor_private();
             if (this._isMyWindow(win))
                 return false;
 
@@ -795,7 +794,7 @@ var ThumbnailsBox = GObject.registerClass({
 
     // Draggable target interface
     handleDragOver(source, actor, x, y, time) {
-        if (!source.realWindow &&
+        if (!source.metaWindow &&
             (!source.app || !source.app.can_open_new_window()) &&
             (source.app || !source.shellWorkspaceLaunch) &&
             source != Main.xdndHandler)
@@ -846,7 +845,7 @@ var ThumbnailsBox = GObject.registerClass({
         if (this._dropWorkspace != -1)
             return this._thumbnails[this._dropWorkspace].handleDragOverInternal(source, actor, time);
         else if (this._dropPlaceholderPos != -1)
-            return source.realWindow ? DND.DragMotionResult.MOVE_DROP : DND.DragMotionResult.COPY_DROP;
+            return source.metaWindow ? DND.DragMotionResult.MOVE_DROP : DND.DragMotionResult.COPY_DROP;
         else
             return DND.DragMotionResult.CONTINUE;
     }
@@ -855,12 +854,12 @@ var ThumbnailsBox = GObject.registerClass({
         if (this._dropWorkspace != -1) {
             return this._thumbnails[this._dropWorkspace].acceptDropInternal(source, actor, time);
         } else if (this._dropPlaceholderPos != -1) {
-            if (!source.realWindow &&
+            if (!source.metaWindow &&
                 (!source.app || !source.app.can_open_new_window()) &&
                 (source.app || !source.shellWorkspaceLaunch))
                 return false;
 
-            let isWindow = !!source.realWindow;
+            let isWindow = !!source.metaWindow;
 
             let newWorkspaceIndex;
             [newWorkspaceIndex, this._dropPlaceholderPos] = [this._dropPlaceholderPos, -1];
@@ -1204,8 +1203,8 @@ var ThumbnailsBox = GObject.registerClass({
         this.queue_relayout();
     }
 
-    vfunc_allocate(box, flags) {
-        this.set_allocation(box, flags);
+    vfunc_allocate(box) {
+        this.set_allocation(box);
 
         let rtl = Clutter.get_default_text_direction() == Clutter.TextDirection.RTL;
 
@@ -1299,7 +1298,7 @@ var ThumbnailsBox = GObject.registerClass({
                 childBox.x2 = x2;
                 childBox.y1 = Math.round(y);
                 childBox.y2 = Math.round(y + placeholderHeight);
-                this._dropPlaceholder.allocate(childBox, flags);
+                this._dropPlaceholder.allocate(childBox);
                 Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
                     this._dropPlaceholder.show();
                 });
@@ -1331,7 +1330,7 @@ var ThumbnailsBox = GObject.registerClass({
             childBox.y2 = y1 + portholeHeight;
 
             thumbnail.set_scale(roundedHScale, roundedVScale);
-            thumbnail.allocate(childBox, flags);
+            thumbnail.allocate(childBox);
 
             // We round the collapsing portion so that we don't get thumbnails resizing
             // during an animation due to differences in rounded, but leave the uncollapsed
@@ -1355,6 +1354,6 @@ var ThumbnailsBox = GObject.registerClass({
         childBox.x2 += indicatorRightFullBorder;
         childBox.y1 = indicatorY1 - indicatorTopFullBorder;
         childBox.y2 = indicatorY2 + indicatorBottomFullBorder;
-        this._indicator.allocate(childBox, flags);
+        this._indicator.allocate(childBox);
     }
 });
