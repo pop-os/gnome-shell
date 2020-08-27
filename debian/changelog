@@ -1,4 +1,4 @@
-gnome-shell (3.37.91-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.37.91-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream release, remaining changes:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -51,7 +51,7 @@ gnome-shell (3.37.91-1ubuntu1) UNRELEASED; urgency=medium
       There are not big deals using the current yaru, but better to wait for a
       suynced one.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Aug 2020 23:10:51 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Aug 2020 23:14:01 +0200
 
 gnome-shell (3.37.91-1) experimental; urgency=medium
 
