@@ -18,9 +18,6 @@ override_dh_auto_configure:
 		-Dbash_completion=true \
 		$(CONFFLAGS)
 
-override_dh_missing:
-	dh_missing --fail-missing
-
 override_dh_makeshlibs:
 	dh_makeshlibs -X/usr/lib/gnome-shell/
 
