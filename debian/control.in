@@ -151,5 +151,5 @@ Recommends: chrome-gnome-shell
 Breaks: gnome-shell (<< 3.36.0-2)
 Replaces: gnome-shell (<< 3.36.0-2)
 Description: tool to enable / disable GNOME Shell extensions
-  This package contains a tool which users who use Shell extensions can use to
-  toggle them on and off, and access their preferences.
+ This package contains a tool which users who use Shell extensions can use to
+ toggle them on and off, and access their preferences.
