@@ -1,4 +1,4 @@
-gnome-shell (3.37.91-1) UNRELEASED; urgency=medium
+gnome-shell (3.37.91-1) experimental; urgency=medium
 
   * New upstream release:
     - Inhibit remote access when disabled by session mode
@@ -30,7 +30,7 @@ gnome-shell (3.37.91-1) UNRELEASED; urgency=medium
   * debian/gbp.conf: Point to upstream/latest
   * debian/watch: Monitor unstable versions
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Aug 2020 16:25:33 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Aug 2020 17:34:56 +0200
 
 gnome-shell (3.36.5-1) unstable; urgency=medium
 
