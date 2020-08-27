@@ -165,18 +165,17 @@ st_label_get_preferred_height (ClutterActor *actor,
 
 static void
 st_label_allocate (ClutterActor          *actor,
-                   const ClutterActorBox *box,
-                   ClutterAllocationFlags flags)
+                   const ClutterActorBox *box)
 {
   StLabelPrivate *priv = ST_LABEL (actor)->priv;
   StThemeNode *theme_node = st_widget_get_theme_node (ST_WIDGET (actor));
   ClutterActorBox content_box;
 
-  clutter_actor_set_allocation (actor, box, flags);
+  clutter_actor_set_allocation (actor, box);
 
   st_theme_node_get_content_box (theme_node, box, &content_box);
 
-  clutter_actor_allocate (priv->label, &content_box, flags);
+  clutter_actor_allocate (priv->label, &content_box);
 }
 
 static void
@@ -202,44 +201,42 @@ st_label_paint (ClutterActor        *actor,
 
   if (shadow_spec)
     {
+      ClutterActorBox allocation;
+      float width, height;
       float resource_scale;
 
-      if (clutter_actor_get_resource_scale (priv->label, &resource_scale))
+      clutter_actor_get_allocation_box (priv->label, &allocation);
+      clutter_actor_box_get_size (&allocation, &width, &height);
+
+      resource_scale = clutter_actor_get_resource_scale (priv->label);
+
+      width *= resource_scale;
+      height *= resource_scale;
+
+      if (priv->text_shadow_pipeline == NULL ||
+          width != priv->shadow_width ||
+          height != priv->shadow_height)
         {
-          ClutterActorBox allocation;
-          float width, height;
+          g_clear_pointer (&priv->text_shadow_pipeline, cogl_object_unref);
 
-          clutter_actor_get_allocation_box (priv->label, &allocation);
-          clutter_actor_box_get_size (&allocation, &width, &height);
+          priv->shadow_width = width;
+          priv->shadow_height = height;
+          priv->text_shadow_pipeline =
+            _st_create_shadow_pipeline_from_actor (shadow_spec,
+                                                   priv->label);
+        }
 
-          width *= resource_scale;
-          height *= resource_scale;
+      if (priv->text_shadow_pipeline != NULL)
+        {
+          CoglFramebuffer *framebuffer;
 
-          if (priv->text_shadow_pipeline == NULL ||
-              width != priv->shadow_width ||
-              height != priv->shadow_height)
-            {
-              g_clear_pointer (&priv->text_shadow_pipeline, cogl_object_unref);
-
-              priv->shadow_width = width;
-              priv->shadow_height = height;
-              priv->text_shadow_pipeline =
-                _st_create_shadow_pipeline_from_actor (shadow_spec,
-                                                       priv->label);
-            }
-
-          if (priv->text_shadow_pipeline != NULL)
-            {
-              CoglFramebuffer *framebuffer;
-
-              framebuffer =
-                clutter_paint_context_get_framebuffer (paint_context);
-              _st_paint_shadow_with_opacity (shadow_spec,
-                                             framebuffer,
-                                             priv->text_shadow_pipeline,
-                                             &allocation,
-                                             clutter_actor_get_paint_opacity (priv->label));
-            }
+          framebuffer =
+            clutter_paint_context_get_framebuffer (paint_context);
+          _st_paint_shadow_with_opacity (shadow_spec,
+                                         framebuffer,
+                                         priv->text_shadow_pipeline,
+                                         &allocation,
+                                         clutter_actor_get_paint_opacity (priv->label));
         }
     }
 
@@ -247,11 +244,14 @@ st_label_paint (ClutterActor        *actor,
 }
 
 static void
-st_label_resource_scale_changed (StWidget *widget)
+st_label_resource_scale_changed (ClutterActor *actor)
 {
-  StLabelPrivate *priv = ST_LABEL (widget)->priv;
+  StLabelPrivate *priv = ST_LABEL (actor)->priv;
 
   g_clear_pointer (&priv->text_shadow_pipeline, cogl_object_unref);
+
+  if (CLUTTER_ACTOR_CLASS (st_label_parent_class)->resource_scale_changed)
+    CLUTTER_ACTOR_CLASS (st_label_parent_class)->resource_scale_changed (actor);
 }
 
 static void
@@ -269,11 +269,16 @@ st_label_class_init (StLabelClass *klass)
   actor_class->allocate = st_label_allocate;
   actor_class->get_preferred_width = st_label_get_preferred_width;
   actor_class->get_preferred_height = st_label_get_preferred_height;
+  actor_class->resource_scale_changed = st_label_resource_scale_changed;
 
   widget_class->style_changed = st_label_style_changed;
-  widget_class->resource_scale_changed = st_label_resource_scale_changed;
   widget_class->get_accessible_type = st_label_accessible_get_type;
 
+  /**
+   * StLabel:clutter-text:
+   *
+   * The internal #ClutterText actor supporting the label
+   */
   props[PROP_CLUTTER_TEXT] =
       g_param_spec_object ("clutter-text",
                            "Clutter Text",
@@ -281,6 +286,11 @@ st_label_class_init (StLabelClass *klass)
                            CLUTTER_TYPE_TEXT,
                            ST_PARAM_READABLE);
 
+  /**
+   * StLabel:text:
+   *
+   * The current text being display in the #StLabel.
+   */
   props[PROP_TEXT] =
       g_param_spec_string ("text",
                            "Text",
@@ -294,6 +304,7 @@ st_label_class_init (StLabelClass *klass)
 static void
 st_label_init (StLabel *label)
 {
+  ClutterActor *actor = CLUTTER_ACTOR (label);
   StLabelPrivate *priv;
 
   label->priv = priv = st_label_get_instance_private (label);
@@ -305,14 +316,17 @@ st_label_init (StLabel *label)
   label->priv->shadow_width = -1.;
   label->priv->shadow_height = -1.;
 
-  clutter_actor_add_child (CLUTTER_ACTOR (label), priv->label);
+  clutter_actor_add_child (actor, priv->label);
+
+  clutter_actor_set_offscreen_redirect (actor,
+                                        CLUTTER_OFFSCREEN_REDIRECT_ALWAYS);
 }
 
 /**
  * st_label_new:
- * @text: text to set the label to
+ * @text: (nullable): text to set the label to
  *
- * Create a new #StLabel with the specified label
+ * Create a new #StLabel with the label specified by @text.
  *
  * Returns: a new #StLabel
  */
@@ -331,9 +345,10 @@ st_label_new (const gchar *text)
  * st_label_get_text:
  * @label: a #StLabel
  *
- * Get the text displayed on the label
+ * Get the text displayed on the label.
  *
- * Returns: the text for the label. This must not be freed by the application
+ * Returns: (transfer none): the text for the label. This must not be freed by
+ * the application
  */
 const gchar *
 st_label_get_text (StLabel *label)
@@ -346,9 +361,9 @@ st_label_get_text (StLabel *label)
 /**
  * st_label_set_text:
  * @label: a #StLabel
- * @text: text to set the label to
+ * @text: (nullable): text to set the label to
  *
- * Sets the text displayed on the label
+ * Sets the text displayed by the label.
  */
 void
 st_label_set_text (StLabel     *label,
@@ -378,10 +393,11 @@ st_label_set_text (StLabel     *label,
  * st_label_get_clutter_text:
  * @label: a #StLabel
  *
- * Retrieve the internal #ClutterText so that extra parameters can be set
+ * Retrieve the internal #ClutterText used by @label so that extra parameters
+ * can be set.
  *
- * Returns: (transfer none): ethe #ClutterText used by #StLabel. The label
- * is owned by the #StLabel and should not be unref'ed by the application.
+ * Returns: (transfer none): the #ClutterText used by #StLabel. The actor
+ * is owned by the #StLabel and should not be destroyed by the application.
  */
 ClutterActor*
 st_label_get_clutter_text (StLabel *label)

@@ -78,61 +78,6 @@ shell_util_set_hidden_from_pick (ClutterActor *actor,
 }
 
 /**
- * shell_util_get_transformed_allocation:
- * @actor: a #ClutterActor
- * @box: (out): location to store returned box in stage coordinates
- *
- * This function is similar to a combination of clutter_actor_get_transformed_position(),
- * and clutter_actor_get_transformed_size(), but unlike
- * clutter_actor_get_transformed_size(), it always returns a transform
- * of the current allocation, while clutter_actor_get_transformed_size() returns
- * bad values (the transform of the requested size) if a relayout has been
- * queued.
- *
- * This function is more convenient to use than
- * clutter_actor_get_abs_allocation_vertices() if no transformation is in effect
- * and also works around limitations in the GJS binding of arrays.
- */
-void
-shell_util_get_transformed_allocation (ClutterActor    *actor,
-                                       ClutterActorBox *box)
-{
-  /* Code adapted from clutter-actor.c:
-   * Copyright 2006, 2007, 2008 OpenedHand Ltd
-   */
-  graphene_point3d_t v[4];
-  gfloat x_min, x_max, y_min, y_max;
-  guint i;
-
-  g_return_if_fail (CLUTTER_IS_ACTOR (actor));
-
-  clutter_actor_get_abs_allocation_vertices (actor, v);
-
-  x_min = x_max = v[0].x;
-  y_min = y_max = v[0].y;
-
-  for (i = 1; i < G_N_ELEMENTS (v); ++i)
-    {
-      if (v[i].x < x_min)
-	x_min = v[i].x;
-
-      if (v[i].x > x_max)
-	x_max = v[i].x;
-
-      if (v[i].y < y_min)
-	y_min = v[i].y;
-
-      if (v[i].y > y_max)
-	y_max = v[i].y;
-    }
-
-  box->x1 = x_min;
-  box->y1 = y_min;
-  box->x2 = x_max;
-  box->y2 = y_max;
-}
-
-/**
  * shell_util_get_week_start:
  *
  * Gets the first week day for the current locale, expressed as a
@@ -409,34 +354,6 @@ shell_util_create_pixbuf_from_data (const guchar      *data,
 
 typedef const gchar *(*ShellGLGetString) (GLenum);
 
-static const gchar *
-get_gl_vendor (void)
-{
-  static const gchar *vendor = NULL;
-
-  if (!vendor)
-    {
-      ShellGLGetString gl_get_string;
-      gl_get_string = (ShellGLGetString) cogl_get_proc_address ("glGetString");
-      if (gl_get_string)
-        vendor = gl_get_string (GL_VENDOR);
-    }
-
-  return vendor;
-}
-
-gboolean
-shell_util_need_background_refresh (void)
-{
-  if (!clutter_check_windowing_backend (CLUTTER_WINDOWING_X11))
-    return FALSE;
-
-  if (g_strcmp0 (get_gl_vendor (), "NVIDIA Corporation") == 0)
-    return TRUE;
-
-  return FALSE;
-}
-
 static gboolean
 canvas_draw_cb (ClutterContent *content,
                 cairo_t        *cr,
@@ -639,6 +556,71 @@ shell_util_check_cloexec_fds (void)
   g_info ("Open fd CLOEXEC check complete");
 }
 
+/**
+ * shell_util_get_uid:
+ *
+ * A wrapper around getuid() so that it can be used from JavaScript. This
+ * function will always succeed.
+ *
+ * Returns: the real user ID of the calling process
+ */
+gint
+shell_util_get_uid (void)
+{
+  return getuid ();
+}
+
+typedef struct {
+  GDBusConnection *connection;
+  gchar           *command;
+
+  GCancellable *cancellable;
+  gulong        cancel_id;
+
+  guint    job_watch;
+  gchar   *job;
+} SystemdCall;
+
+static void
+shell_util_systemd_call_data_free (SystemdCall *data)
+{
+  if (data->job_watch)
+    {
+      g_dbus_connection_signal_unsubscribe (data->connection, data->job_watch);
+      data->job_watch = 0;
+    }
+
+  if (data->cancellable)
+    {
+      g_cancellable_disconnect (data->cancellable, data->cancel_id);
+      g_clear_object (&data->cancellable);
+      data->cancel_id = 0;
+    }
+
+  g_clear_object (&data->connection);
+  g_clear_pointer (&data->job, g_free);
+  g_clear_pointer (&data->command, g_free);
+  g_free (data);
+}
+
+static void
+shell_util_systemd_call_cancelled_cb (GCancellable *cancellable,
+                                      GTask        *task)
+{
+  SystemdCall *data = g_task_get_task_data (task);
+
+  /* Task has returned, but data is not yet free'ed, ignore signal. */
+  if (g_task_get_completed (task))
+    return;
+
+  /* We are still in the DBus call; it will return the error. */
+  if (data->job == NULL)
+    return;
+
+  g_task_return_error_if_cancelled (task);
+  g_object_unref (task);
+}
+
 static void
 on_systemd_call_cb (GObject      *source,
                     GAsyncResult *res,
@@ -646,46 +628,143 @@ on_systemd_call_cb (GObject      *source,
 {
   g_autoptr (GVariant) reply = NULL;
   g_autoptr (GError) error = NULL;
-  const gchar *command = user_data;
+  GTask *task = G_TASK (user_data);
+  SystemdCall *data;
 
   reply = g_dbus_connection_call_finish (G_DBUS_CONNECTION (source),
                                          res, &error);
-  if (error)
-    g_warning ("Could not issue '%s' systemd call", command);
+
+  data = g_task_get_task_data (task);
+
+  if (error) {
+    g_warning ("Could not issue '%s' systemd call", data->command);
+    g_task_return_error (task, g_steal_pointer (&error));
+    g_object_unref (task);
+
+    return;
+  }
+
+  g_assert (data->job == NULL);
+  g_variant_get (reply, "(o)", &data->job);
+
+  /* And we wait for the JobRemoved notification. */
 }
 
-static gboolean
-shell_util_systemd_call (const char  *command,
-                         const char  *unit,
-                         const char  *mode,
-                         GError     **error)
+static void
+on_systemd_job_removed_cb (GDBusConnection *connection,
+                           const gchar *sender_name,
+                           const gchar *object_path,
+                           const gchar *interface_name,
+                           const gchar *signal_name,
+                           GVariant *parameters,
+                           gpointer user_data)
 {
+  GTask *task = G_TASK (user_data);
+  SystemdCall *data;
+  guint32 id;
+  const char *path, *unit, *result;
+
+  /* Task has returned, but data is not yet free'ed, ignore signal. */
+  if (g_task_get_completed (task))
+    return;
+
+  data = g_task_get_task_data (task);
+
+  /* No job information yet, ignore. */
+  if (data->job == NULL)
+    return;
+
+  g_variant_get (parameters, "(u&o&s&s)", &id, &path, &unit, &result);
+
+  /* Is it the job we are waiting for? */
+  if (g_strcmp0 (path, data->job) != 0)
+    return;
+
+  /* Task has completed; return the result of the job */
+  if (g_strcmp0 (result, "done") == 0)
+    g_task_return_boolean (task, TRUE);
+  else
+    g_task_return_new_error (task,
+                             G_IO_ERROR,
+                             G_IO_ERROR_FAILED,
+                             "Systemd job completed with status \"%s\"",
+                             result);
+
+  g_object_unref (task);
+}
+
+static void
+shell_util_systemd_call (const char           *command,
+                         const char           *unit,
+                         const char           *mode,
+                         GCancellable         *cancellable,
+                         GAsyncReadyCallback   callback,
+                         gpointer              user_data)
+{
+  g_autoptr (GTask) task = g_task_new (NULL, cancellable, callback, user_data);
+
 #ifdef HAVE_SYSTEMD
   g_autoptr (GDBusConnection) connection = NULL;
+  GError *error = NULL;
+  SystemdCall *data;
   g_autofree char *self_unit = NULL;
   int res;
 
+  connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &error);
+
+  if (connection == NULL) {
+    g_task_return_error (task, error);
+    return;
+  }
+
+  /* We look up the systemd unit that our own process is running in here.
+   * This way we determine whether the session is managed using systemd.
+   */
   res = sd_pid_get_user_unit (getpid (), &self_unit);
 
   if (res == -ENODATA)
     {
-      g_debug ("Not systemd-managed, not doing '%s' on '%s'", mode, unit);
-      return FALSE;
+      g_task_return_new_error (task,
+                               G_IO_ERROR,
+                               G_IO_ERROR_NOT_SUPPORTED,
+                               "Not systemd managed");
+      return;
     }
   else if (res < 0)
     {
-      g_set_error (error,
-                   G_IO_ERROR,
-                   g_io_error_from_errno (-res),
-                   "Error trying to start systemd unit '%s': %s",
-                   unit, g_strerror (-res));
-      return FALSE;
+      g_task_return_new_error (task,
+                               G_IO_ERROR,
+                               g_io_error_from_errno (-res),
+                               "Error fetching own systemd unit: %s",
+                               g_strerror (-res));
+      return;
     }
 
-  connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, error);
+  data = g_new0 (SystemdCall, 1);
+  data->command = g_strdup (command);
+  data->connection = g_object_ref (connection);
+  data->job_watch = g_dbus_connection_signal_subscribe (connection,
+                                                        "org.freedesktop.systemd1",
+                                                        "org.freedesktop.systemd1.Manager",
+                                                        "JobRemoved",
+                                                        "/org/freedesktop/systemd1",
+                                                        NULL,
+                                                        G_DBUS_SIGNAL_FLAGS_NONE,
+                                                        on_systemd_job_removed_cb,
+                                                        task,
+                                                        NULL);
+  g_task_set_task_data (task,
+                        data,
+                        (GDestroyNotify) shell_util_systemd_call_data_free);
 
-  if (connection == NULL)
-    return FALSE;
+  if (cancellable)
+    {
+      data->cancellable = g_object_ref (cancellable);
+      data->cancel_id = g_cancellable_connect (cancellable,
+                                               G_CALLBACK (shell_util_systemd_call_cancelled_cb),
+                                               task,
+                                               NULL);
+    }
 
   g_dbus_connection_call (connection,
                           "org.freedesktop.systemd1",
@@ -694,31 +773,53 @@ shell_util_systemd_call (const char  *command,
                           command,
                           g_variant_new ("(ss)",
                                          unit, mode),
-                          NULL,
+                          G_VARIANT_TYPE ("(o)"),
                           G_DBUS_CALL_FLAGS_NONE,
-                          -1, NULL,
+                          -1, cancellable,
                           on_systemd_call_cb,
-                          (gpointer) command);
-  return TRUE;
-#endif /* HAVE_SYSTEMD */
+                          g_steal_pointer (&task));
+#else /* HAVE_SYSTEMD */
+  g_task_return_new_error (task,
+                           G_IO_ERROR,
+                           G_IO_ERROR_NOT_SUPPORTED,
+                           "systemd not supported by gnome-shell");
+#endif /* !HAVE_SYSTEMD */
+}
 
-  return FALSE;
+void
+shell_util_start_systemd_unit (const char           *unit,
+                               const char           *mode,
+                               GCancellable         *cancellable,
+                               GAsyncReadyCallback   callback,
+                               gpointer              user_data)
+{
+  shell_util_systemd_call ("StartUnit", unit, mode,
+                           cancellable, callback, user_data);
 }
 
 gboolean
-shell_util_start_systemd_unit (const char  *unit,
-                               const char  *mode,
-                               GError     **error)
+shell_util_start_systemd_unit_finish (GAsyncResult  *res,
+                                      GError       **error)
 {
-  return shell_util_systemd_call ("StartUnit", unit, mode, error);
+  return g_task_propagate_boolean (G_TASK (res), error);
+}
+
+void
+shell_util_stop_systemd_unit (const char           *unit,
+                              const char           *mode,
+                              GCancellable         *cancellable,
+                              GAsyncReadyCallback   callback,
+                              gpointer              user_data)
+{
+  shell_util_systemd_call ("StopUnit", unit, mode,
+                           cancellable, callback, user_data);
 }
 
 gboolean
-shell_util_stop_systemd_unit (const char  *unit,
-                              const char  *mode,
-                              GError     **error)
+shell_util_stop_systemd_unit_finish (GAsyncResult  *res,
+                                     GError       **error)
 {
-  return shell_util_systemd_call ("StopUnit", unit, mode, error);
+  return g_task_propagate_boolean (G_TASK (res), error);
 }
 
 void

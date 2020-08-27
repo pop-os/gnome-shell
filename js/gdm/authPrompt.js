@@ -6,10 +6,11 @@ const { Clutter, GObject, Pango, Shell, St } = imports.gi;
 const Animation = imports.ui.animation;
 const Batch = imports.gdm.batch;
 const GdmUtil = imports.gdm.util;
-const Util = imports.misc.util;
+const OVirt = imports.gdm.oVirt;
 const Params = imports.misc.params;
 const ShellEntry = imports.ui.shellEntry;
 const UserWidget = imports.ui.userWidget;
+const Util = imports.misc.util;
 
 var DEFAULT_BUTTON_WELL_ICON_SIZE = 16;
 var DEFAULT_BUTTON_WELL_ANIMATION_DELAY = 1000;
@@ -71,7 +72,7 @@ var AuthPrompt = GObject.registerClass({
         this._userVerifier.connect('verification-complete', this._onVerificationComplete.bind(this));
         this._userVerifier.connect('reset', this._onReset.bind(this));
         this._userVerifier.connect('smartcard-status-changed', this._onSmartcardStatusChanged.bind(this));
-        this._userVerifier.connect('ovirt-user-authenticated', this._onOVirtUserAuthenticated.bind(this));
+        this._userVerifier.connect('credential-manager-authenticated', this._onCredentialManagerAuthenticated.bind(this));
         this.smartcardDetected = this._userVerifier.smartcardDetected;
 
         this.connect('destroy', this._onDestroy.bind(this));
@@ -242,7 +243,7 @@ var AuthPrompt = GObject.registerClass({
         this.emit('prompted');
     }
 
-    _onOVirtUserAuthenticated() {
+    _onCredentialManagerAuthenticated() {
         if (this.verificationStatus != AuthPromptStatus.VERIFICATION_SUCCEEDED)
             this.reset();
     }
@@ -482,7 +483,7 @@ var AuthPrompt = GObject.registerClass({
             // The user is constant at the unlock screen, so it will immediately
             // respond to the request with the username
             beginRequestType = BeginRequestType.PROVIDE_USERNAME;
-        } else if (this._userVerifier.serviceIsForeground(GdmUtil.OVIRT_SERVICE_NAME) ||
+        } else if (this._userVerifier.serviceIsForeground(OVirt.SERVICE_NAME) ||
                    this._userVerifier.serviceIsForeground(GdmUtil.SMARTCARD_SERVICE_NAME)) {
             // We don't need to know the username if the user preempted the login screen
             // with a smartcard or with preauthenticated oVirt credentials

@@ -78,6 +78,7 @@ struct _ShellApp
                           * want (e.g. it will be of TYPE_NORMAL from
                           * the way shell-window-tracker.c works).
                           */
+  GIcon *fallback_icon;
 
   ShellAppRunningState *running_state;
 
@@ -180,66 +181,47 @@ window_backed_app_get_window (ShellApp     *app)
     return NULL;
 }
 
-static ClutterActor *
-window_backed_app_get_icon (ShellApp *app,
-                            int       size)
+/**
+ * shell_app_get_icon:
+ *
+ * Look up the icon for this application
+ *
+ * Return value: (transfer none): A #GIcon
+ */
+GIcon *
+shell_app_get_icon (ShellApp *app)
 {
   MetaWindow *window = NULL;
-  StWidget *widget;
-  int scale, scaled_size;
-  ShellGlobal *global;
-  StThemeContext *context;
 
-  global = shell_global_get ();
-  context = st_theme_context_get_for_stage (shell_global_get_stage (global));
-  g_object_get (context, "scale-factor", &scale, NULL);
+  g_return_val_if_fail (SHELL_IS_APP (app), NULL);
 
-  scaled_size = size * scale;
+  if (app->info)
+    return g_app_info_get_icon (G_APP_INFO (app->info));
+
+  if (app->fallback_icon)
+    return app->fallback_icon;
 
   /* During a state transition from running to not-running for
    * window-backend apps, it's possible we get a request for the icon.
-   * Avoid asserting here and just return an empty image.
+   * Avoid asserting here and just return a fallback icon
    */
   if (app->running_state != NULL)
     window = window_backed_app_get_window (app);
 
-  if (window == NULL)
+  if (window &&
+      meta_window_get_client_type (window) == META_WINDOW_CLIENT_TYPE_X11)
     {
-      ClutterActor *actor;
-
-      actor = clutter_actor_new ();
-      g_object_set (actor,
-                    "opacity", 0,
-                    "width", (float) scaled_size,
-                    "height", (float) scaled_size,
-                    NULL);
-      return actor;
-    }
-
-  if (meta_window_get_client_type (window) == META_WINDOW_CLIENT_TYPE_X11)
-    {
-      StWidget *texture_actor;
-
-      texture_actor =
+      app->fallback_icon =
         st_texture_cache_bind_cairo_surface_property (st_texture_cache_get_default (),
                                                       G_OBJECT (window),
-                                                      "icon",
-                                                      scaled_size);
-
-      widget = g_object_new (ST_TYPE_BIN,
-                             "child", texture_actor,
-                             NULL);
+                                                      "icon");
     }
   else
     {
-      widget = g_object_new (ST_TYPE_ICON,
-                             "icon-size", size,
-                             "icon-name", "application-x-executable",
-                             NULL);
+      app->fallback_icon = g_themed_icon_new ("application-x-executable");
     }
-  st_widget_add_style_class_name (widget, "fallback-app-icon");
 
-  return CLUTTER_ACTOR (widget);
+  return app->fallback_icon;
 }
 
 /**
@@ -257,15 +239,15 @@ shell_app_create_icon_texture (ShellApp   *app,
   GIcon *icon;
   ClutterActor *ret;
 
-  if (app->info == NULL)
-    return window_backed_app_get_icon (app, size);
-
   ret = st_icon_new ();
   st_icon_set_icon_size (ST_ICON (ret), size);
   st_icon_set_fallback_icon_name (ST_ICON (ret), "application-x-executable");
 
-  icon = g_app_info_get_icon (G_APP_INFO (app->info));
+  icon = shell_app_get_icon (app);
   st_icon_set_gicon (ST_ICON (ret), icon);
+
+  if (shell_app_is_window_backed (app))
+    st_widget_add_style_class_name (ST_WIDGET (ret), "fallback-app-icon");
 
   return ret;
 }
@@ -301,7 +283,7 @@ shell_app_get_description (ShellApp *app)
  * shell_app_is_window_backed:
  *
  * A window backed application is one which represents just an open
- * window, i.e. there's no .desktop file assocation, so we don't know
+ * window, i.e. there's no .desktop file association, so we don't know
  * how to launch it again.
  */
 gboolean
@@ -531,7 +513,7 @@ shell_app_activate_full (ShellApp      *app,
       case SHELL_APP_STATE_STOPPED:
         {
           GError *error = NULL;
-          if (!shell_app_launch (app, timestamp, workspace, FALSE, &error))
+          if (!shell_app_launch (app, timestamp, workspace, SHELL_APP_LAUNCH_GPU_APP_PREF, &error))
             {
               char *msg;
               msg = g_strdup_printf (_("Failed to launch “%s”"), shell_app_get_name (app));
@@ -606,7 +588,7 @@ shell_app_open_new_window (ShellApp      *app,
    * instance (Firefox).  There are a few less-sensical cases such
    * as say Pidgin.
    */
-  shell_app_launch (app, 0, workspace, FALSE, NULL);
+  shell_app_launch (app, 0, workspace, SHELL_APP_LAUNCH_GPU_APP_PREF, NULL);
 }
 
 /**
@@ -1158,7 +1140,11 @@ shell_app_get_pids (ShellApp *app)
   for (iter = shell_app_get_windows (app); iter; iter = iter->next)
     {
       MetaWindow *window = iter->data;
-      int pid = meta_window_get_pid (window);
+      pid_t pid = meta_window_get_pid (window);
+
+      if (pid < 1)
+        continue;
+
       /* Note in the (by far) common case, app will only have one pid, so
        * we'll hit the first element, so don't worry about O(N^2) here.
        */
@@ -1285,7 +1271,7 @@ apply_discrete_gpu_env (GAppLaunchContext *context,
   GVariant* variant;
   guint num_children, i;
 
-  proxy = _shell_global_get_switcheroo_control (global);
+  proxy = shell_global_get_switcheroo_control (global);
   if (!proxy)
     {
       g_warning ("Could not apply discrete GPU environment, switcheroo-control not available");
@@ -1328,27 +1314,28 @@ apply_discrete_gpu_env (GAppLaunchContext *context,
       return;
     }
 
-  g_warning ("Could not find discrete GPU data in switcheroo-control");
+  g_debug ("Could not find discrete GPU in switcheroo-control, not applying environment");
 }
 
 /**
  * shell_app_launch:
  * @timestamp: Event timestamp, or 0 for current event timestamp
  * @workspace: Start on this workspace, or -1 for default
- * @discrete_gpu: Whether to start on the discrete GPU
+ * @gpu_pref: the GPU to prefer launching on
  * @error: A #GError
  */
 gboolean
-shell_app_launch (ShellApp     *app,
-                  guint         timestamp,
-                  int           workspace,
-                  gboolean      discrete_gpu,
-                  GError      **error)
+shell_app_launch (ShellApp           *app,
+                  guint               timestamp,
+                  int                 workspace,
+                  ShellAppLaunchGpu   gpu_pref,
+                  GError            **error)
 {
   ShellGlobal *global;
   GAppLaunchContext *context;
   gboolean ret;
   GSpawnFlags flags;
+  gboolean discrete_gpu = FALSE;
 
   if (app->info == NULL)
     {
@@ -1365,6 +1352,11 @@ shell_app_launch (ShellApp     *app,
 
   global = shell_global_get ();
   context = shell_global_create_app_launch_context (global, timestamp, workspace);
+  if (gpu_pref == SHELL_APP_LAUNCH_GPU_APP_PREF)
+    discrete_gpu = g_desktop_app_info_get_boolean (app->info, "PrefersNonDefaultGPU");
+  else
+    discrete_gpu = (gpu_pref == SHELL_APP_LAUNCH_GPU_DISCRETE);
+
   if (discrete_gpu)
     apply_discrete_gpu_env (context, global);
 
@@ -1566,6 +1558,7 @@ shell_app_dispose (GObject *object)
   ShellApp *app = SHELL_APP (object);
 
   g_clear_object (&app->info);
+  g_clear_object (&app->fallback_icon);
 
   while (app->running_state)
     _shell_app_remove_window (app, app->running_state->windows->data);

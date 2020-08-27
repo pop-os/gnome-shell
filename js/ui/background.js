@@ -514,8 +514,8 @@ var SystemBackground = GObject.registerClass({
         super._init({
             meta_display: global.display,
             monitor: 0,
-            background: _systemBackground,
         });
+        this.content.background = _systemBackground;
 
         let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             this.emit('loaded');
@@ -714,13 +714,18 @@ var BackgroundManager = class BackgroundManager {
         }
 
         let newBackgroundActor = this._createBackgroundActor();
-        newBackgroundActor.vignette_sharpness = this.backgroundActor.vignette_sharpness;
-        newBackgroundActor.brightness = this.backgroundActor.brightness;
+
+        const oldContent = this.backgroundActor.content;
+        const newContent = newBackgroundActor.content;
+
+        newContent.vignette_sharpness = oldContent.vignette_sharpness;
+        newContent.brightness = oldContent.brightness;
+
         newBackgroundActor.visible = this.backgroundActor.visible;
 
         this._newBackgroundActor = newBackgroundActor;
 
-        let background = newBackgroundActor.background;
+        const { background } = newBackgroundActor.content;
 
         if (background.isLoaded) {
             this._swapBackgroundActor();
@@ -740,6 +745,8 @@ var BackgroundManager = class BackgroundManager {
         let backgroundActor = new Meta.BackgroundActor({
             meta_display: global.display,
             monitor: this._monitorIndex,
+        });
+        backgroundActor.content.set({
             background,
             vignette: this._vignette,
             vignette_sharpness: 0.5,

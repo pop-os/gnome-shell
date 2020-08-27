@@ -6,7 +6,6 @@ const Signals = imports.signals;
 
 const Background = imports.ui.background;
 const BackgroundMenu = imports.ui.backgroundMenu;
-const LoginManager = imports.misc.loginManager;
 
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
@@ -246,7 +245,7 @@ var LayoutManager = GObject.registerClass({
                                            vertical: true });
         this.addChrome(this.panelBox, { affectsStruts: true,
                                         trackFullscreen: true });
-        this.panelBox.connect('allocation-changed',
+        this.panelBox.connect('notify::allocation',
                               this._panelBoxChanged.bind(this));
 
         this.modalDialogGroup = new St.Widget({ name: 'modalDialogGroup',
@@ -295,18 +294,6 @@ var LayoutManager = GObject.registerClass({
         monitorManager.connect('monitors-changed',
                                this._monitorsChanged.bind(this));
         this._monitorsChanged();
-
-        // NVIDIA drivers don't preserve FBO contents across
-        // suspend/resume, see
-        // https://bugzilla.gnome.org/show_bug.cgi?id=739178
-        if (Shell.util_need_background_refresh()) {
-            LoginManager.getLoginManager().connect('prepare-for-sleep',
-                (lm, suspending) => {
-                    if (suspending)
-                        return;
-                    Meta.Background.refresh_all();
-                });
-        }
     }
 
     // This is called by Main after everything else is constructed
@@ -1215,7 +1202,8 @@ class HotCorner extends Clutter.Actor {
 
             if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL) {
                 this._corner.set_position(this.width - this._corner.width, 0);
-                this.set_anchor_point_from_gravity(Clutter.Gravity.NORTH_EAST);
+                this.set_pivot_point(1.0, 0.0);
+                this.translation_x = -this.width;
             } else {
                 this._corner.set_position(0, 0);
             }

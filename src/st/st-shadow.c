@@ -117,7 +117,7 @@ st_shadow_unref (StShadow *shadow)
  * compare non-identically if they differ only by floating point rounding
  * errors.
  *
- * Return value: %TRUE if the two shadows are identical
+ * Returns: %TRUE if the two shadows are identical
  */
 gboolean
 st_shadow_equal (StShadow *shadow,
@@ -160,7 +160,7 @@ st_shadow_get_box (StShadow              *shadow,
 
   /* Inset shadows are drawn below the border, so returning
    * the original box is not actually correct; still, it's
-   * good enough for the purpose of determing additional space
+   * good enough for the purpose of determining additional space
    * required outside the actor box.
    */
   if (shadow->inset)
@@ -216,6 +216,13 @@ st_shadow_helper_new (StShadow     *shadow)
   return helper;
 }
 
+/**
+ * st_shadow_helper_update:
+ * @helper: a #StShadowHelper
+ * @source: a #ClutterActor
+ *
+ * Update @helper from @source.
+ */
 void
 st_shadow_helper_update (StShadowHelper *helper,
                          ClutterActor   *source)

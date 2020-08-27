@@ -2,6 +2,7 @@
 /* exported KeyboardManager */
 
 const { Clutter, Gio, GLib, GObject, Meta, St } = imports.gi;
+const ByteArray = imports.byteArray;
 const Signals = imports.signals;
 
 const InputSourceManager = imports.ui.status.keyboard;
@@ -79,7 +80,7 @@ class AspectContainer extends St.Widget {
         return [min, nat];
     }
 
-    vfunc_allocate(box, flags) {
+    vfunc_allocate(box) {
         if (box.get_width() > 0 && box.get_height() > 0) {
             let sizeRatio = box.get_width() / box.get_height();
 
@@ -97,7 +98,7 @@ class AspectContainer extends St.Widget {
             }
         }
 
-        super.vfunc_allocate(box, flags);
+        super.vfunc_allocate(box);
     }
 });
 
@@ -532,8 +533,7 @@ var KeyboardModel = class {
     _loadModel(groupName) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/osk-layouts/%s.json'.format(groupName));
         let [success_, contents] = file.load_contents(null);
-        if (contents instanceof Uint8Array)
-            contents = imports.byteArray.toString(contents);
+        contents = ByteArray.toString(contents);
 
         return JSON.parse(contents);
     }
@@ -740,7 +740,7 @@ var EmojiPager = GObject.registerClass({
 
     _onPan(action) {
         let [dist_, dx, dy_] = action.get_motion_delta(0);
-        this.delta = this.delta + dx;
+        this.delta += dx;
 
         if (this._currentKey != null) {
             this._currentKey.cancel();
@@ -953,8 +953,7 @@ var EmojiSelection = GObject.registerClass({
         this.add_child(this._emojiPager);
 
         this._pageIndicator = new PageIndicators.PageIndicators(
-            Clutter.Orientation.HORIZONTAL
-        );
+            Clutter.Orientation.HORIZONTAL);
         this.add_child(this._pageIndicator);
         this._pageIndicator.setReactive(false);
 
@@ -1137,7 +1136,7 @@ var KeyboardManager = class KeyBoardManager {
         this._seat.connect('notify::touch-mode', this._syncEnabled.bind(this));
 
         this._lastDevice = null;
-        Meta.get_backend().connect('last-device-changed', (backend, device) => {
+        global.backend.connect('last-device-changed', (backend, device) => {
             if (device.device_type === Clutter.InputDeviceType.KEYBOARD_DEVICE)
                 return;
 

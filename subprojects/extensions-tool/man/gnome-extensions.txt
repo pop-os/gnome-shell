@@ -42,6 +42,13 @@ DESCRIPTION
 *gnome-extensions* is a utility that makes some common GNOME extensions
 operations available on the command line.
 
+COMMON OPTIONS
+--------------
+All commands except for *help* and *version* handle the following options:
+
+*--quiet*, *-q*::
+Do not print error messages
+
 COMMANDS
 --------
 *help* ['COMMAND']::
@@ -120,6 +127,9 @@ Creates a new extension from a template.
 
   *--uuid*='UUID':::
     Set the unique extension ID in the metadata to 'UUID'
+
+  *--template*='TEMPLATE':::
+    Use 'TEMPLATE' as base for the new extension
 
   *-i*:::
   *--interactive*:::

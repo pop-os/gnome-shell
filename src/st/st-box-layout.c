@@ -53,10 +53,7 @@
 
 #include "st-private.h"
 #include "st-scrollable.h"
-#include "st-box-layout-child.h"
 
-
-static void st_box_container_iface_init (ClutterContainerIface *iface);
 
 enum {
   PROP_0,
@@ -71,16 +68,7 @@ struct _StBoxLayoutPrivate
   StAdjustment *vadjustment;
 };
 
-G_DEFINE_TYPE_WITH_CODE (StBoxLayout, st_box_layout, ST_TYPE_VIEWPORT,
-                         G_ADD_PRIVATE (StBoxLayout)
-                         G_IMPLEMENT_INTERFACE (CLUTTER_TYPE_CONTAINER,
-                                                st_box_container_iface_init));
-
-static void
-st_box_container_iface_init (ClutterContainerIface *iface)
-{
-  iface->child_meta_type = ST_TYPE_BOX_LAYOUT_CHILD;
-}
+G_DEFINE_TYPE_WITH_PRIVATE (StBoxLayout, st_box_layout, ST_TYPE_VIEWPORT);
 
 
 static void
@@ -190,6 +178,12 @@ st_box_layout_class_init (StBoxLayoutClass *klass)
 
   widget_class->style_changed = st_box_layout_style_changed;
 
+  /**
+   * StBoxLayout:vertical:
+   *
+   * A convenience property for the #ClutterBoxLayout:vertical property of the
+   * internal layout for #StBoxLayout.
+   */
   pspec = g_param_spec_boolean ("vertical",
                                 "Vertical",
                                 "Whether the layout should be vertical, rather"
@@ -198,6 +192,12 @@ st_box_layout_class_init (StBoxLayoutClass *klass)
                                 ST_PARAM_READWRITE);
   g_object_class_install_property (object_class, PROP_VERTICAL, pspec);
 
+  /**
+   * StBoxLayout:pack-start:
+   *
+   * A convenience property for the #ClutterBoxLayout:pack-start property of the
+   * internal layout for #StBoxLayout.
+   */
   pspec = g_param_spec_boolean ("pack-start",
                                 "Pack Start",
                                 "Whether to pack items at the start of the box",
@@ -234,8 +234,7 @@ st_box_layout_new (void)
  * @box: A #StBoxLayout
  * @vertical: %TRUE if the layout should be vertical
  *
- * Set the value of the #StBoxLayout::vertical property
- *
+ * Set the value of the #StBoxLayout:vertical property
  */
 void
 st_box_layout_set_vertical (StBoxLayout *box,
@@ -261,7 +260,7 @@ st_box_layout_set_vertical (StBoxLayout *box,
  * st_box_layout_get_vertical:
  * @box: A #StBoxLayout
  *
- * Get the value of the #StBoxLayout::vertical property.
+ * Get the value of the #StBoxLayout:vertical property.
  *
  * Returns: %TRUE if the layout is vertical
  */
@@ -283,8 +282,7 @@ st_box_layout_get_vertical (StBoxLayout *box)
  * @box: A #StBoxLayout
  * @pack_start: %TRUE if the layout should use pack-start
  *
- * Set the value of the #StBoxLayout::pack-start property.
- *
+ * Set the value of the #StBoxLayout:pack-start property.
  */
 void
 st_box_layout_set_pack_start (StBoxLayout *box,
@@ -307,7 +305,7 @@ st_box_layout_set_pack_start (StBoxLayout *box,
  * st_box_layout_get_pack_start:
  * @box: A #StBoxLayout
  *
- * Get the value of the #StBoxLayout::pack-start property.
+ * Get the value of the #StBoxLayout:pack-start property.
  *
  * Returns: %TRUE if pack-start is enabled
  */

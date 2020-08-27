@@ -10,11 +10,20 @@ imports.gi.versions.Gtk = '3.0';
 imports.gi.versions.TelepathyGLib = '0.12';
 imports.gi.versions.TelepathyLogger = '0.2';
 
-const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Meta, Polkit, Shell, St } = imports.gi;
 const Gettext = imports.gettext;
 const System = imports.system;
 
+Gio._promisify(Gio.DataInputStream.prototype, 'fill_async', 'fill_finish');
+Gio._promisify(Gio.DataInputStream.prototype,
+    'read_line_async', 'read_line_finish');
+Gio._promisify(Gio.DBus, 'get', 'get_finish');
 Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+Gio._promisify(Gio.DBusProxy, 'new', 'new_finish');
+Gio._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
+Gio._promisify(Gio.DBusProxy.prototype,
+    'call_with_unix_fd_list', 'call_with_unix_fd_list_finish');
+Gio._promisify(Polkit.Permission, 'new', 'new_finish');
 
 let _localTimeZone = null;
 
@@ -125,7 +134,14 @@ function _easeActor(actor, params) {
         actor.set_easing_mode(params.mode);
     delete params.mode;
 
-    let cleanup = () => Meta.enable_unredirect_for_display(global.display);
+    const prepare = () => {
+        Meta.disable_unredirect_for_display(global.display);
+        global.begin_work();
+    };
+    const cleanup = () => {
+        Meta.enable_unredirect_for_display(global.display);
+        global.end_work();
+    };
     let callback = _makeEaseCallback(params, cleanup);
 
     // cancel overwritten transitions
@@ -140,9 +156,9 @@ function _easeActor(actor, params) {
         .find(t => t !== null);
 
     if (transition && transition.delay)
-        transition.connect('started', () => Meta.disable_unredirect_for_display(global.display));
+        transition.connect('started', () => prepare());
     else
-        Meta.disable_unredirect_for_display(global.display);
+        prepare();
 
     if (transition) {
         transition.set({ repeatCount, autoReverse });
@@ -182,7 +198,14 @@ function _easeActorProperty(actor, propName, target, params) {
     if (actor instanceof Clutter.Actor && !actor.mapped)
         duration = 0;
 
-    let cleanup = () => Meta.enable_unredirect_for_display(global.display);
+    const prepare = () => {
+        Meta.disable_unredirect_for_display(global.display);
+        global.begin_work();
+    };
+    const cleanup = () => {
+        Meta.enable_unredirect_for_display(global.display);
+        global.end_work();
+    };
     let callback = _makeEaseCallback(params, cleanup);
 
     // cancel overwritten transition
@@ -194,7 +217,7 @@ function _easeActorProperty(actor, propName, target, params) {
         if (!isReversed)
             obj[prop] = target;
 
-        Meta.disable_unredirect_for_display(global.display);
+        prepare();
         callback(true);
 
         return;
@@ -213,9 +236,9 @@ function _easeActorProperty(actor, propName, target, params) {
     transition.set_to(target);
 
     if (transition.delay)
-        transition.connect('started', () => Meta.disable_unredirect_for_display(global.display));
+        transition.connect('started', () => prepare());
     else
-        Meta.disable_unredirect_for_display(global.display);
+        prepare();
 
     transition.connect('stopped', (t, finished) => callback(finished));
 }
@@ -236,16 +259,15 @@ function _loggingFunc(...args) {
 }
 
 function init() {
-    // Add some bindings to the global JS namespace; (gjs keeps the web
-    // browser convention of having that namespace be called 'window'.)
-    window.global = Shell.Global.get();
+    // Add some bindings to the global JS namespace
+    globalThis.global = Shell.Global.get();
 
-    window.log = _loggingFunc;
+    globalThis.log = _loggingFunc;
 
-    window._ = Gettext.gettext;
-    window.C_ = Gettext.pgettext;
-    window.ngettext = Gettext.ngettext;
-    window.N_ = s => s;
+    globalThis._ = Gettext.gettext;
+    globalThis.C_ = Gettext.pgettext;
+    globalThis.ngettext = Gettext.ngettext;
+    globalThis.N_ = s => s;
 
     GObject.gtypeNameBasedOnJSPath = true;
 
@@ -275,6 +297,11 @@ function init() {
         // we're not an actor of course, but we implement the same
         // transition API as Clutter.Actor, so this works anyway
         _easeActorProperty(this, 'value', target, params);
+    };
+
+    Clutter.Actor.prototype[Symbol.iterator] = function* () {
+        for (let c = this.get_first_child(); c; c = c.get_next_sibling())
+            yield c;
     };
 
     Clutter.Actor.prototype.toString = function () {
@@ -347,10 +374,12 @@ function init() {
 
     // OK, now things are initialized enough that we can import shell JS
     const Format = imports.format;
-    const Tweener = imports.ui.tweener;
 
-    Tweener.init();
     String.prototype.format = Format.format;
+
+    Math.clamp = function (x, lower, upper) {
+        return Math.min(Math.max(x, lower), upper);
+    };
 }
 
 // adjustAnimationTime:

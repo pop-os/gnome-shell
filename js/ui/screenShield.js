@@ -198,7 +198,7 @@ var ScreenShield = class {
         let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY);
         let lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
         let inhibit = this._loginSession && this._loginSession.Active &&
-                       !this._isActive && lockEnabled && !lockLocked;
+                       !this._isActive && lockEnabled && !lockLocked && Main.sessionMode.unlockDialog;
         if (inhibit) {
             this._loginManager.inhibit(_("GNOME needs to lock the screen"),
                 inhibitor => {
@@ -345,7 +345,7 @@ var ScreenShield = class {
         this._lockDialogGroup.remove_all_transitions();
 
         if (animate) {
-            // Tween the lock screen out of screen
+            // Animate the lock screen out of screen
             // if velocity is not specified (i.e. we come here from pressing ESC),
             // use the same speed regardless of original position
             // if velocity is specified, it's in pixels per milliseconds
@@ -561,7 +561,8 @@ var ScreenShield = class {
         if (this._activationTime == 0)
             this._activationTime = GLib.get_monotonic_time();
 
-        this._ensureUnlockDialog(true);
+        if (!this._ensureUnlockDialog(true))
+            return;
 
         this.actor.show();
 

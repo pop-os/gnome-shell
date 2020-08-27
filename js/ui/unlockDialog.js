@@ -405,7 +405,7 @@ class UnlockDialogLayout extends Clutter.LayoutManager {
         return this._stack.get_preferred_height(forWidth);
     }
 
-    vfunc_allocate(container, box, flags) {
+    vfunc_allocate(container, box) {
         let [width, height] = box.get_size();
 
         let tenthOfHeight = height / 10.0;
@@ -432,7 +432,7 @@ class UnlockDialogLayout extends Clutter.LayoutManager {
         actorBox.x2 = columnX1 + columnWidth;
         actorBox.y2 = actorBox.y1 + maxNotificationsHeight;
 
-        this._notifications.allocate(actorBox, flags);
+        this._notifications.allocate(actorBox);
 
         // Authentication Box
         let stackY = Math.min(
@@ -444,7 +444,7 @@ class UnlockDialogLayout extends Clutter.LayoutManager {
         actorBox.x2 = columnX1 + columnWidth;
         actorBox.y2 = stackY + stackHeight;
 
-        this._stack.allocate(actorBox, flags);
+        this._stack.allocate(actorBox);
 
         // Switch User button
         if (this._switchUserButton.visible) {
@@ -461,7 +461,7 @@ class UnlockDialogLayout extends Clutter.LayoutManager {
             actorBox.x2 = actorBox.x1 + natWidth;
             actorBox.y2 = actorBox.y1 + natHeight;
 
-            this._switchUserButton.allocate(actorBox, flags);
+            this._switchUserButton.allocate(actorBox);
         }
     }
 });
@@ -485,6 +485,7 @@ var UnlockDialog = GObject.registerClass({
         this._gdmClient = new Gdm.Client();
 
         this._adjustment = new St.Adjustment({
+            actor: this,
             lower: 0,
             upper: 2,
             page_size: 1,
@@ -572,11 +573,9 @@ var UnlockDialog = GObject.registerClass({
 
         this._screenSaverSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.screensaver' });
 
-        this._userSwitchEnabledId = 0;
         this._userSwitchEnabledId = this._screenSaverSettings.connect('changed::user-switch-enabled',
             this._updateUserSwitchVisibility.bind(this));
 
-        this._userLoadedId = 0;
         this._userLoadedId = this._user.connect('notify::is-loaded',
             this._updateUserSwitchVisibility.bind(this));
 
@@ -647,11 +646,15 @@ var UnlockDialog = GObject.registerClass({
     _updateBackgroundEffects() {
         const themeContext = St.ThemeContext.get_for_stage(global.stage);
 
-        for (const widget of this._backgroundGroup.get_children()) {
-            widget.get_effect('blur').set({
-                brightness: BLUR_BRIGHTNESS,
-                sigma: BLUR_SIGMA * themeContext.scale_factor,
-            });
+        for (const widget of this._backgroundGroup) {
+            const effect = widget.get_effect('blur');
+
+            if (effect) {
+                effect.set({
+                    brightness: BLUR_BRIGHTNESS,
+                    sigma: BLUR_SIGMA * themeContext.scale_factor,
+                });
+            }
         }
     }
 

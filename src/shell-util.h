@@ -14,9 +14,6 @@ G_BEGIN_DECLS
 void     shell_util_set_hidden_from_pick       (ClutterActor     *actor,
                                                 gboolean          hidden);
 
-void     shell_util_get_transformed_allocation (ClutterActor     *actor,
-                                                ClutterActorBox  *box);
-
 int      shell_util_get_week_start             (void);
 
 const char *shell_util_translate_time_string   (const char *str);
@@ -49,8 +46,6 @@ GdkPixbuf *shell_util_create_pixbuf_from_data (const guchar      *data,
                                                int                height,
                                                int                rowstride);
 
-gboolean shell_util_need_background_refresh (void);
-
 ClutterContent * shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
                                                           MetaRectangle   *window_rect);
 
@@ -64,12 +59,21 @@ cairo_surface_t * shell_util_composite_capture_images (ClutterCapture  *captures
 
 void shell_util_check_cloexec_fds (void);
 
-gboolean shell_util_start_systemd_unit (const char  *unit,
-                                        const char  *mode,
-                                        GError     **error);
-gboolean shell_util_stop_systemd_unit  (const char  *unit,
-                                        const char  *mode,
-                                        GError     **error);
+void   shell_util_start_systemd_unit          (const char           *unit,
+                                               const char           *mode,
+                                               GCancellable         *cancellable,
+                                               GAsyncReadyCallback   callback,
+                                               gpointer              user_data);
+gboolean shell_util_start_systemd_unit_finish (GAsyncResult         *res,
+                                               GError              **error);
+
+void  shell_util_stop_systemd_unit           (const char           *unit,
+                                              const char           *mode,
+                                              GCancellable         *cancellable,
+                                              GAsyncReadyCallback   callback,
+                                              gpointer              user_data);
+gboolean shell_util_stop_systemd_unit_finish (GAsyncResult         *res,
+                                              GError              **error);
 
 void shell_util_sd_notify (void);
 
@@ -77,6 +81,8 @@ gboolean shell_util_has_x11_display_extension (MetaDisplay *display,
                                                const char  *extension);
 
 char *shell_util_get_translated_folder_name (const char *name);
+
+gint shell_util_get_uid (void);
 
 G_END_DECLS
 

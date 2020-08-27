@@ -78,6 +78,7 @@ adjustment_value_notify_cb (StAdjustment *adjustment,
                             GParamSpec   *pspec,
                             StViewport   *viewport)
 {
+  clutter_actor_invalidate_transform (CLUTTER_ACTOR (viewport));
   clutter_actor_queue_relayout (CLUTTER_ACTOR (viewport));
 }
 
@@ -231,8 +232,7 @@ st_viewport_dispose (GObject *object)
 
 static void
 st_viewport_allocate (ClutterActor           *actor,
-                      const ClutterActorBox  *box,
-                      ClutterAllocationFlags  flags)
+                      const ClutterActorBox  *box)
 {
   StViewport *viewport = ST_VIEWPORT (actor);
   StViewportPrivate *priv =
@@ -259,7 +259,7 @@ st_viewport_allocate (ClutterActor           *actor,
    * may not match the minimum sizes reported by the layout manager. When that
    * happens, the content box needs to be adjusted to match the reported minimum
    * sizes before being passed to clutter_layout_manager_allocate() */
-  clutter_actor_set_allocation (actor, box, flags);
+  clutter_actor_set_allocation (actor, box);
 
   content_box = viewport_box;
   if (priv->hadjustment)
@@ -268,7 +268,7 @@ st_viewport_allocate (ClutterActor           *actor,
     content_box.y2 += MAX (0, min_height - avail_height);
 
   clutter_layout_manager_allocate (layout, CLUTTER_CONTAINER (actor),
-                                   &content_box, flags);
+                                   &content_box);
 
   /* update adjustments for scrolling */
   if (priv->vadjustment)
@@ -304,6 +304,26 @@ st_viewport_allocate (ClutterActor           *actor,
     }
 }
 
+static double
+get_hadjustment_value (StViewport *viewport)
+{
+  StViewportPrivate *priv = st_viewport_get_instance_private (viewport);
+  ClutterTextDirection direction;
+  double x, upper, page_size;
+
+  if (!priv->hadjustment)
+    return 0;
+
+  st_adjustment_get_values (priv->hadjustment,
+                            &x, NULL, &upper, NULL, NULL, &page_size);
+
+  direction = clutter_actor_get_text_direction (CLUTTER_ACTOR (viewport));
+  if (direction == CLUTTER_TEXT_DIRECTION_RTL)
+    return upper - page_size - x;
+
+  return x;
+}
+
 static void
 st_viewport_apply_transform (ClutterActor *actor,
                              CoglMatrix   *matrix)
@@ -317,7 +337,7 @@ st_viewport_apply_transform (ClutterActor *actor,
   parent_class->apply_transform (actor, matrix);
 
   if (priv->hadjustment)
-    x = st_adjustment_get_value (priv->hadjustment);
+    x = get_hadjustment_value (viewport);
   else
     x = 0;
 
@@ -339,7 +359,7 @@ get_border_paint_offsets (StViewport *viewport,
   StViewportPrivate *priv = st_viewport_get_instance_private (viewport);
 
   if (priv->hadjustment)
-    *x = st_adjustment_get_value (priv->hadjustment);
+    *x = get_hadjustment_value (viewport);
   else
     *x = 0;
 

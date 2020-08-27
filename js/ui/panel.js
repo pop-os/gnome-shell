@@ -90,18 +90,16 @@ class AppMenu extends PopupMenu.PopupMenu {
 
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        this._detailsItem = this.addAction(_("Show Details"), () => {
+        this._detailsItem = this.addAction(_('Show Details'), async () => {
             let id = this._app.get_id();
             let args = GLib.Variant.new('(ss)', [id, '']);
-            Gio.DBus.get(Gio.BusType.SESSION, null, (o, res) => {
-                let bus = Gio.DBus.get_finish(res);
-                bus.call('org.gnome.Software',
-                         '/org/gnome/Software',
-                         'org.gtk.Actions', 'Activate',
-                         GLib.Variant.new('(sava{sv})',
-                                          ['details', [args], null]),
-                         null, 0, -1, null);
-            });
+            const bus = await Gio.DBus.get(Gio.BusType.SESSION, null);
+            bus.call(
+                'org.gnome.Software',
+                '/org/gnome/Software',
+                'org.gtk.Actions', 'Activate',
+                new GLib.Variant('(sava{sv})', ['details', [args], null]),
+                null, 0, -1, null);
         });
 
         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
@@ -286,7 +284,7 @@ var AppMenuButton = GObject.registerClass({
         this.remove_all_transitions();
         this.ease({
             opacity: 0,
-            mode: Clutter.Animation.EASE_OUT_QUAD,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             duration: Overview.ANIMATION_TIME,
             onComplete: () => this.hide(),
         });
@@ -677,7 +675,7 @@ class PanelCorner extends St.DrawingArea {
         let borderWidth = node.get_length('-panel-corner-border-width');
 
         this.set_size(cornerRadius, borderWidth + cornerRadius);
-        this.set_anchor_point(0, borderWidth);
+        this.translation_y = -borderWidth;
     }
 });
 
@@ -738,13 +736,11 @@ class AggregateMenu extends PanelMenu.Button {
         this._volume = new imports.ui.status.volume.Indicator();
         this._brightness = new imports.ui.status.brightness.Indicator();
         this._system = new imports.ui.status.system.Indicator();
-        this._screencast = new imports.ui.status.screencast.Indicator();
         this._location = new imports.ui.status.location.Indicator();
         this._nightLight = new imports.ui.status.nightLight.Indicator();
         this._thunderbolt = new imports.ui.status.thunderbolt.Indicator();
 
         this._indicators.add_child(this._thunderbolt);
-        this._indicators.add_child(this._screencast);
         this._indicators.add_child(this._location);
         this._indicators.add_child(this._nightLight);
         if (this._network)
@@ -844,8 +840,8 @@ class Panel extends St.Widget {
         return [0,  0];
     }
 
-    vfunc_allocate(box, flags) {
-        this.set_allocation(box, flags);
+    vfunc_allocate(box) {
+        this.set_allocation(box);
 
         let allocWidth = box.x2 - box.x1;
         let allocHeight = box.y2 - box.y1;
@@ -881,13 +877,13 @@ class Panel extends St.Widget {
             childBox.x2 = Math.min(Math.floor(sideWidth),
                                    leftNaturalWidth);
         }
-        this._leftBox.allocate(childBox, flags);
+        this._leftBox.allocate(childBox);
 
         childBox.x1 = Math.ceil(sideWidth);
         childBox.y1 = 0;
         childBox.x2 = childBox.x1 + centerWidth;
         childBox.y2 = allocHeight;
-        this._centerBox.allocate(childBox, flags);
+        this._centerBox.allocate(childBox);
 
         childBox.y1 = 0;
         childBox.y2 = allocHeight;
@@ -901,7 +897,7 @@ class Panel extends St.Widget {
                                    0);
             childBox.x2 = allocWidth;
         }
-        this._rightBox.allocate(childBox, flags);
+        this._rightBox.allocate(childBox);
 
         let cornerWidth, cornerHeight;
 
@@ -911,7 +907,7 @@ class Panel extends St.Widget {
         childBox.x2 = cornerWidth;
         childBox.y1 = allocHeight;
         childBox.y2 = allocHeight + cornerHeight;
-        this._leftCorner.allocate(childBox, flags);
+        this._leftCorner.allocate(childBox);
 
         [, cornerWidth] = this._rightCorner.get_preferred_width(-1);
         [, cornerHeight] = this._rightCorner.get_preferred_height(-1);
@@ -919,7 +915,7 @@ class Panel extends St.Widget {
         childBox.x2 = allocWidth;
         childBox.y1 = allocHeight;
         childBox.y2 = allocHeight + cornerHeight;
-        this._rightCorner.allocate(childBox, flags);
+        this._rightCorner.allocate(childBox);
     }
 
     _tryDragWindow(event) {
@@ -1158,10 +1154,9 @@ class Panel extends St.Widget {
 
     _getDraggableWindowForPosition(stageX) {
         let workspaceManager = global.workspace_manager;
-        let workspace = workspaceManager.get_active_workspace();
-        let allWindowsByStacking = global.display.sort_windows_by_stacking(
-            workspace.list_windows()
-        ).reverse();
+        const windows = workspaceManager.get_active_workspace().list_windows();
+        const allWindowsByStacking =
+            global.display.sort_windows_by_stacking(windows).reverse();
 
         return allWindowsByStacking.find(metaWindow => {
             let rect = metaWindow.get_frame_rect();
