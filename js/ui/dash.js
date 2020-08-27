@@ -292,11 +292,11 @@ class DashActor extends St.Widget {
         });
     }
 
-    vfunc_allocate(box, flags) {
+    vfunc_allocate(box) {
         let contentBox = this.get_theme_node().get_content_box(box);
         let availWidth = contentBox.x2 - contentBox.x1;
 
-        this.set_allocation(box, flags);
+        this.set_allocation(box);
 
         let [appIcons, showAppsButton] = this.get_children();
         let [, showAppsNatHeight] = showAppsButton.get_preferred_height(availWidth);
@@ -306,11 +306,11 @@ class DashActor extends St.Widget {
         childBox.y1 = contentBox.y1;
         childBox.x2 = contentBox.x2;
         childBox.y2 = contentBox.y2 - showAppsNatHeight;
-        appIcons.allocate(childBox, flags);
+        appIcons.allocate(childBox);
 
         childBox.y1 = contentBox.y2 - showAppsNatHeight;
         childBox.y2 = contentBox.y2;
-        showAppsButton.allocate(childBox, flags);
+        showAppsButton.allocate(childBox);
     }
 
     vfunc_get_preferred_height(forWidth) {
@@ -815,7 +815,12 @@ var Dash = GObject.registerClass({
         else
             pos = 0; // always insert at the top when dash is empty
 
-        if (pos != this._dragPlaceholderPos && pos <= numFavorites && this._animatingPlaceholdersCount == 0) {
+        // Put the placeholder after the last favorite if we are not
+        // in the favorites zone
+        if (pos > numFavorites)
+            pos = numFavorites;
+
+        if (pos !== this._dragPlaceholderPos && this._animatingPlaceholdersCount === 0) {
             this._dragPlaceholderPos = pos;
 
             // Don't allow positioning before or after self
@@ -842,11 +847,6 @@ var Dash = GObject.registerClass({
                                             this._dragPlaceholderPos);
             this._dragPlaceholder.show(fadeIn);
         }
-
-        // Remove the drag placeholder if we are not in the
-        // "favorites zone"
-        if (pos > numFavorites)
-            this._clearDragPlaceholder();
 
         if (!this._dragPlaceholder)
             return DND.DragMotionResult.NO_DROP;

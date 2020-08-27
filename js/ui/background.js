@@ -347,6 +347,8 @@ var Background = GObject.registerClass({
             this.set_color(color);
         else
             this.set_gradient(shadingType, color, secondColor);
+
+        this._setLoaded();
     }
 
     _watchFile(file) {
@@ -512,8 +514,8 @@ var SystemBackground = GObject.registerClass({
         super._init({
             meta_display: global.display,
             monitor: 0,
-            background: _systemBackground,
         });
+        this.content.background = _systemBackground;
 
         let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             this.emit('loaded');
@@ -712,13 +714,18 @@ var BackgroundManager = class BackgroundManager {
         }
 
         let newBackgroundActor = this._createBackgroundActor();
-        newBackgroundActor.vignette_sharpness = this.backgroundActor.vignette_sharpness;
-        newBackgroundActor.brightness = this.backgroundActor.brightness;
+
+        const oldContent = this.backgroundActor.content;
+        const newContent = newBackgroundActor.content;
+
+        newContent.vignette_sharpness = oldContent.vignette_sharpness;
+        newContent.brightness = oldContent.brightness;
+
         newBackgroundActor.visible = this.backgroundActor.visible;
 
         this._newBackgroundActor = newBackgroundActor;
 
-        let background = newBackgroundActor.background;
+        const { background } = newBackgroundActor.content;
 
         if (background.isLoaded) {
             this._swapBackgroundActor();
@@ -738,6 +745,8 @@ var BackgroundManager = class BackgroundManager {
         let backgroundActor = new Meta.BackgroundActor({
             meta_display: global.display,
             monitor: this._monitorIndex,
+        });
+        backgroundActor.content.set({
             background,
             vignette: this._vignette,
             vignette_sharpness: 0.5,
@@ -758,9 +767,26 @@ var BackgroundManager = class BackgroundManager {
             this._updateBackgroundActor();
         });
 
+        let loadedSignalId;
+        if (background.isLoaded) {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                this.emit('loaded');
+                return GLib.SOURCE_REMOVE;
+            });
+        } else {
+            loadedSignalId = background.connect('loaded', () => {
+                background.disconnect(loadedSignalId);
+                loadedSignalId = null;
+                this.emit('loaded');
+            });
+        }
+
         backgroundActor.connect('destroy', () => {
             if (changeSignalId)
                 background.disconnect(changeSignalId);
+
+            if (loadedSignalId)
+                background.disconnect(loadedSignalId);
 
             if (backgroundActor.loadedSignalId)
                 background.disconnect(backgroundActor.loadedSignalId);

@@ -1,6 +1,6 @@
 project('gnome-extensions-app',
-  version: '3.36.4',
-  meson_version: '>= 0.47.0',
+  version: '3.37.91',
+  meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
 
@@ -37,6 +37,7 @@ servicedir = join_paths(datadir, 'dbus-1', 'services')
 
 gjs = find_program('gjs')
 appstream_util = find_program('appstream-util', required: false)
+desktop_file_validate = find_program('desktop-file-validate', required: false)
 
 subdir('data')
 subdir('js')
@@ -64,8 +65,6 @@ if not meson.is_subproject()
     'debug': get_option('debug'),
   }
 
-  if meson.version().version_compare('>= 0.53.0')
-    summary(summary_dirs, section: 'Directories')
-    summary(summary_build, section: 'Build Configuration')
-  endif
+  summary(summary_dirs, section: 'Directories')
+  summary(summary_build, section: 'Build Configuration')
 endif

@@ -6,17 +6,17 @@ const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 const AppDisplay = imports.ui.appDisplay;
 const IconGrid = imports.ui.iconGrid;
 const Main = imports.ui.main;
+const ParentalControlsManager = imports.misc.parentalControlsManager;
 const RemoteSearch = imports.ui.remoteSearch;
 const Util = imports.misc.util;
 
 const SEARCH_PROVIDERS_SCHEMA = 'org.gnome.desktop.search-providers';
 
 var MAX_LIST_SEARCH_RESULTS_ROWS = 5;
-var MAX_GRID_SEARCH_RESULTS_ROWS = 1;
 
 var MaxWidthBox = GObject.registerClass(
 class MaxWidthBox extends St.BoxLayout {
-    vfunc_allocate(box, flags) {
+    vfunc_allocate(box) {
         let themeNode = this.get_theme_node();
         let maxWidth = themeNode.get_max_width();
         let availWidth = box.x2 - box.x1;
@@ -28,7 +28,7 @@ class MaxWidthBox extends St.BoxLayout {
             adjustedBox.x2 -= Math.floor(excessWidth / 2);
         }
 
-        super.vfunc_allocate(adjustedBox, flags);
+        super.vfunc_allocate(adjustedBox);
     }
 });
 
@@ -219,8 +219,7 @@ var SearchResultsBase = GObject.registerClass({
 
     _ensureResultActors(results, callback) {
         let metasNeeded = results.filter(
-            resultId => this._resultDisplays[resultId] === undefined
-        );
+            resultId => this._resultDisplays[resultId] === undefined);
 
         if (metasNeeded.length === 0) {
             callback(true);
@@ -349,18 +348,140 @@ class ListSearchResults extends SearchResultsBase {
     }
 });
 
+var GridSearchResultsLayout = GObject.registerClass({
+    Properties: {
+        'spacing': GObject.ParamSpec.int('spacing', 'Spacing', 'Spacing',
+            GObject.ParamFlags.READWRITE, 0, GLib.MAXINT32, 0),
+    },
+}, class GridSearchResultsLayout extends Clutter.LayoutManager {
+    _init() {
+        super._init();
+        this._spacing = 0;
+    }
+
+    vfunc_set_container(container) {
+        this._container = container;
+    }
+
+    vfunc_get_preferred_width(container, forHeight) {
+        let minWidth = 0;
+        let natWidth = 0;
+        let first = true;
+
+        for (let child of container) {
+            if (!child.visible)
+                continue;
+
+            const [childMinWidth, childNatWidth] = child.get_preferred_width(forHeight);
+
+            minWidth = Math.max(minWidth, childMinWidth);
+            natWidth += childNatWidth;
+
+            if (first)
+                first = false;
+            else
+                natWidth += this._spacing;
+        }
+
+        return [minWidth, natWidth];
+    }
+
+    vfunc_get_preferred_height(container, forWidth) {
+        let minHeight = 0;
+        let natHeight = 0;
+
+        for (let child of container) {
+            if (!child.visible)
+                continue;
+
+            const [childMinHeight, childNatHeight] = child.get_preferred_height(forWidth);
+
+            minHeight = Math.max(minHeight, childMinHeight);
+            natHeight = Math.max(natHeight, childNatHeight);
+        }
+
+        return [minHeight, natHeight];
+    }
+
+    vfunc_allocate(container, box) {
+        const width = box.get_width();
+
+        const childBox = new Clutter.ActorBox();
+        childBox.x1 = 0;
+        childBox.y1 = 0;
+
+        let first = true;
+        for (let child of container) {
+            if (!child.visible)
+                continue;
+
+            if (first)
+                first = false;
+            else
+                childBox.x1 += this._spacing;
+
+            const [childWidth] = child.get_preferred_width(-1);
+            const [childHeight] = child.get_preferred_height(-1);
+            childBox.set_size(childWidth, childHeight);
+
+            if (childBox.x1 + childWidth > width)
+                return;
+
+            child.allocate(childBox);
+
+            childBox.x1 += childWidth;
+        }
+    }
+
+    columnsForWidth(width) {
+        if (!this._container)
+            return -1;
+
+        const [minWidth] = this.get_preferred_width(this._container, -1);
+
+        if (minWidth === 0)
+            return -1;
+
+        let nCols = 0;
+        while (width > minWidth) {
+            width -= minWidth;
+            if (nCols > 0)
+                width -= this._spacing;
+            nCols++;
+        }
+
+        return nCols;
+    }
+
+    get spacing() {
+        return this._spacing;
+    }
+
+    set spacing(v) {
+        if (this._spacing === v)
+            return;
+        this._spacing = v;
+        this.layout_changed();
+    }
+});
+
 var GridSearchResults = GObject.registerClass(
 class GridSearchResults extends SearchResultsBase {
     _init(provider, resultsView) {
         super._init(provider, resultsView);
 
-        this._grid = new IconGrid.IconGrid({ rowLimit: MAX_GRID_SEARCH_RESULTS_ROWS,
-                                             xAlign: St.Align.START });
+        this._grid = new St.Widget({ style_class: 'grid-search-results' });
+        this._grid.layout_manager = new GridSearchResultsLayout();
 
-        this._bin = new St.Bin({ x_align: Clutter.ActorAlign.CENTER });
-        this._bin.set_child(this._grid);
+        this._grid.connect('style-changed', () => {
+            const node = this._grid.get_theme_node();
+            this._grid.layout_manager.spacing = node.get_length('spacing');
+        });
 
-        this._resultDisplayBin.set_child(this._bin);
+        this._resultDisplayBin.set_child(new St.Bin({
+            child: this._grid,
+            x_align: Clutter.ActorAlign.CENTER,
+        }));
     }
 
     _onDestroy() {
@@ -400,12 +521,11 @@ class GridSearchResults extends SearchResultsBase {
         if (width == 0)
             return -1;
 
-        let nCols = this._grid.columnsForWidth(width);
-        return nCols * this._grid.getRowLimit();
+        return this._grid.layout_manager.columnsForWidth(width);
     }
 
     _clearResultDisplay() {
-        this._grid.removeAll();
+        this._grid.remove_all_children();
     }
 
     _createResultDisplay(meta) {
@@ -414,14 +534,15 @@ class GridSearchResults extends SearchResultsBase {
     }
 
     _addItem(display) {
-        this._grid.addItem(display);
+        this._grid.add_child(display);
     }
 
     getFirstResult() {
-        if (this._grid.visibleItemsCount() > 0)
-            return this._grid.getItemAtIndex(0);
-        else
-            return null;
+        for (let child of this._grid) {
+            if (child.visible)
+                return child;
+        }
+        return null;
     }
 });
 
@@ -430,6 +551,9 @@ var SearchResultsView = GObject.registerClass({
 }, class SearchResultsView extends St.BoxLayout {
     _init() {
         super._init({ name: 'searchResults', vertical: true });
+
+        this._parentalControlsManager = ParentalControlsManager.getDefault();
+        this._parentalControlsManager.connect('app-filter-changed', this._reloadRemoteProviders.bind(this));
 
         this._content = new MaxWidthBox({
             name: 'searchResultsContent',
@@ -505,6 +629,11 @@ var SearchResultsView = GObject.registerClass({
 
     _registerProvider(provider) {
         provider.searchInProgress = false;
+
+        // Filter out unwanted providers.
+        if (provider.appInfo && !this._parentalControlsManager.shouldShowApp(provider.appInfo))
+            return;
+
         this._providers.push(provider);
         this._ensureProviderDisplay(provider);
     }

@@ -44,7 +44,7 @@ var AuthenticationDialog = GObject.registerClass({
         let bodyContent = new Dialog.MessageDialogContent();
 
         if (userNames.length > 1) {
-            log('polkitAuthenticationAgent: Received %d'.format(userNames.length) +
+            log('polkitAuthenticationAgent: Received %d '.format(userNames.length) +
                 'identities that can be used for authentication. Only ' +
                 'considering one.');
         }
@@ -330,11 +330,13 @@ var AuthenticationDialog = GObject.registerClass({
             this._sessionRequestTimeoutId = 0;
 
             if (this.state != ModalDialog.State.OPENED)
-                return;
+                return GLib.SOURCE_REMOVE;
 
             this._passwordEntry.hide();
             this._cancelButton.grab_key_focus();
             this._okButton.reactive = false;
+
+            return GLib.SOURCE_REMOVE;
         };
 
         if (delay) {

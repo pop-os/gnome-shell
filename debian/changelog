@@ -1,3 +1,47 @@
+gnome-shell (3.37.91-1) experimental; urgency=medium
+
+  * New upstream release:
+    - Inhibit remote access when disabled by session mode
+    - Remove Frequent view from app picker
+    - Allow rearranging items in app picker
+    - Add support for parental controls filtering
+    - Support pre-authenticated logins in vmware environments (LP: #1886592)
+    - Update microphone icon on input volume changes
+    - Support prepending workspace with horizontal layouts
+    - Move calendar events out of notifications list
+    - Expose actor tree in looking glass
+    - Add support for "PrefersNonDefaultGPU" desktop key
+    - Move screencasting into a separate service (needs pipewire)
+    - Default to not installing updates on low battery
+    - Refactor and clean up app picker pagination (LP: #1873725)
+    - Misc fixes and memory improvements
+  * debian/control:
+    - Depend on debhelper-compat = 13
+    - Remove useless dependency on mutter (the binary)
+    - Test depend on gir1.2-upowerglib-1.0
+    - Update build dependencies to match upstream
+    - Remove leading space in gnome-shell-extension-prefs description
+  * debian/patches: Drop them all
+  * debian/rules:
+    - Don't manually set --fail-missing (included in dh 13)
+    - Remove uneeded test environment variables overrides (included in dh 13)
+  * debian/sources/lintian-override:
+    - Override some desktop files related warnings
+  * debian/gbp.conf: Point to upstream/latest
+  * debian/watch: Monitor unstable versions
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Aug 2020 17:34:56 +0200
+
+gnome-shell (3.36.5-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - Fix password briefly showing on login dialog during logout if it
+      was previously made visible (CVE-2020-17489, Closes: #968311)
+  * Drop most patches, applied upstream
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 12 Aug 2020 21:28:22 +0100
+
 gnome-shell (3.36.4-1ubuntu2~build1) groovy; urgency=medium
 
   * Rebuild with the new libedataserver soname

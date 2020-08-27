@@ -589,8 +589,8 @@ var LoginDialog = GObject.registerClass({
         return actorBox;
     }
 
-    vfunc_allocate(dialogBox, flags) {
-        this.set_allocation(dialogBox, flags);
+    vfunc_allocate(dialogBox) {
+        this.set_allocation(dialogBox);
 
         let themeNode = this.get_theme_node();
         dialogBox = themeNode.get_content_box(dialogBox);
@@ -719,19 +719,19 @@ var LoginDialog = GObject.registerClass({
 
         // Finally hand out the allocations
         if (bannerAllocation)
-            this._bannerView.allocate(bannerAllocation, flags);
+            this._bannerView.allocate(bannerAllocation);
 
         if (authPromptAllocation)
-            this._authPrompt.allocate(authPromptAllocation, flags);
+            this._authPrompt.allocate(authPromptAllocation);
 
         if (userSelectionAllocation)
-            this._userSelectionBox.allocate(userSelectionAllocation, flags);
+            this._userSelectionBox.allocate(userSelectionAllocation);
 
         if (logoAllocation)
-            this._logoBin.allocate(logoAllocation, flags);
+            this._logoBin.allocate(logoAllocation);
 
         if (sessionMenuButtonAllocation)
-            this._sessionMenuButton.allocate(sessionMenuButtonAllocation, flags);
+            this._sessionMenuButton.allocate(sessionMenuButtonAllocation);
     }
 
     _ensureUserListLoaded() {
@@ -810,12 +810,13 @@ var LoginDialog = GObject.registerClass({
             return;
 
         this._logoBin.destroy_all_children();
-        if (this._logoFile && this._logoBin.resource_scale > 0) {
+        const resourceScale = this._logoBin.get_resource_scale();
+        if (this._logoFile) {
             let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
             this._logoBin.add_child(this._textureCache.load_file_async(this._logoFile,
                                                                        -1, -1,
                                                                        scaleFactor,
-                                                                       this._logoBin.resource_scale));
+                                                                       resourceScale));
         }
     }
 
@@ -952,16 +953,15 @@ var LoginDialog = GObject.registerClass({
         if (this.opacity == 255 && this._authPrompt.verificationStatus == AuthPrompt.AuthPromptStatus.NOT_VERIFYING)
             return;
 
+        if (this._authPrompt.verificationStatus !== AuthPrompt.AuthPromptStatus.NOT_VERIFYING)
+            this._authPrompt.reset();
+
         this._bindOpacity();
         this.ease({
             opacity: 255,
             duration: _FADE_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => {
-                if (this._authPrompt.verificationStatus != AuthPrompt.AuthPromptStatus.NOT_VERIFYING)
-                    this._authPrompt.reset();
-                this._unbindOpacity();
-            },
+            onComplete: () => this._unbindOpacity(),
         });
     }
 

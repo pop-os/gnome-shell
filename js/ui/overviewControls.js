@@ -52,7 +52,7 @@ var SlideLayout = GObject.registerClass({
         return [minWidth, natWidth];
     }
 
-    vfunc_allocate(container, box, flags) {
+    vfunc_allocate(container, box) {
         let child = container.get_first_child();
 
         let availWidth = Math.round(box.x2 - box.x1);
@@ -73,7 +73,7 @@ var SlideLayout = GObject.registerClass({
         actorBox.y1 = box.y1;
         actorBox.y2 = actorBox.y1 + availHeight;
 
-        child.allocate(actorBox, flags);
+        child.allocate(actorBox);
     }
 
     // eslint-disable-next-line camelcase
@@ -233,7 +233,7 @@ class SlidingControl extends St.Widget {
         // When pageEmpty is received, there's no visible view in the
         // selector; this means we can now safely set the full slide for
         // the next page, since slideIn or slideOut might have been called,
-        // changing the visiblity
+        // changing the visibility
         this.remove_transition('@layout.slide-x');
         this.layout.slide_x = this._getSlide();
         this._updateTranslation();
@@ -395,10 +395,10 @@ class DashSpacer extends St.Widget {
 });
 
 var ControlsLayout = GObject.registerClass({
-    Signals: { 'allocation-changed': { flags: GObject.SignalFlags.RUN_LAST } },
+    Signals: { 'allocation-changed': {} },
 }, class ControlsLayout extends Clutter.BinLayout {
-    vfunc_allocate(container, box, flags) {
-        super.vfunc_allocate(container, box, flags);
+    vfunc_allocate(container, box) {
+        super.vfunc_allocate(container, box);
         this.emit('allocation-changed');
     }
 });
@@ -423,6 +423,7 @@ class ControlsManager extends St.Widget {
         let activeWorkspaceIndex = workspaceManager.get_active_workspace_index();
 
         this._workspaceAdjustment = new St.Adjustment({
+            actor: this,
             value: activeWorkspaceIndex,
             lower: 0,
             page_increment: 1,
@@ -454,8 +455,6 @@ class ControlsManager extends St.Widget {
         this._group.add_child(this.viewSelector);
         this._group.add_actor(this._thumbnailsSlider);
 
-        layout.connect('allocation-changed', this._updateWorkspacesGeometry.bind(this));
-
         Main.overview.connect('showing', this._updateSpacerVisibility.bind(this));
 
         this.connect('destroy', this._onDestroy.bind(this));
@@ -476,26 +475,6 @@ class ControlsManager extends St.Widget {
         // one, causing the adjustment to go out of sync, so update the value
         this._workspaceAdjustment.remove_transition('value');
         this._workspaceAdjustment.value = activeIndex;
-    }
-
-    _updateWorkspacesGeometry() {
-        let [x, y] = this.get_transformed_position();
-        let [width, height] = this.get_transformed_size();
-        let geometry = { x, y, width, height };
-
-        let spacing = this.get_theme_node().get_length('spacing');
-        let dashWidth = this._dashSlider.getVisibleWidth() + spacing;
-        let thumbnailsWidth = this._thumbnailsSlider.getNonExpandedWidth() + spacing;
-
-        geometry.width -= dashWidth;
-        geometry.width -= thumbnailsWidth;
-
-        if (this.get_text_direction() == Clutter.TextDirection.LTR)
-            geometry.x += dashWidth;
-        else
-            geometry.x += thumbnailsWidth;
-
-        this.viewSelector.setWorkspacesFullGeometry(geometry);
     }
 
     _setVisibility() {

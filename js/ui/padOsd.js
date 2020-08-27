@@ -3,6 +3,7 @@
 
 const { Atk, Clutter, GDesktopEnums, Gio,
         GLib, GObject, Gtk, Meta, Pango, Rsvg, St } = imports.gi;
+const ByteArray = imports.byteArray;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
@@ -297,8 +298,7 @@ var PadDiagram = GObject.registerClass({
     _init(params) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/pad-osd.css');
         let [success_, css] = file.load_contents(null);
-        if (css instanceof Uint8Array)
-            css = imports.byteArray.toString(css);
+        css = ByteArray.toString(css);
         this._curEdited = null;
         this._prevEdited = null;
         this._css = css;
@@ -436,11 +436,11 @@ var PadDiagram = GObject.registerClass({
 
         childBox.y1 = y - natHeight / 2;
         childBox.y2 = y + natHeight / 2;
-        child.allocate(childBox, 0);
+        child.allocate(childBox);
     }
 
-    vfunc_allocate(box, flags) {
-        super.vfunc_allocate(box, flags);
+    vfunc_allocate(box) {
+        super.vfunc_allocate(box);
         if (this._handle === null)
             return;
 

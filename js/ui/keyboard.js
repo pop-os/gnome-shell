@@ -2,6 +2,7 @@
 /* exported KeyboardManager */
 
 const { Clutter, Gio, GLib, GObject, Meta, St } = imports.gi;
+const ByteArray = imports.byteArray;
 const Signals = imports.signals;
 
 const InputSourceManager = imports.ui.status.keyboard;
@@ -42,7 +43,7 @@ const defaultKeysPost = [
     [[{ width: 1.5, keyval: Clutter.KEY_BackSpace, icon: 'edit-clear-symbolic' }],
      [{ width: 2, keyval: Clutter.KEY_Return, extraClassName: 'enter-key', icon: 'keyboard-enter-symbolic' }],
      [{ label: '=/<', width: 3, level: 3, right: true }],
-     [{ action: 'emoji', icon: 'face-smile-symbolic' }, { action: 'languageMenu', extraClassName: 'layout-key' }, { action: 'hide', extraClassName: 'hide-key' }]],
+     [{ action: 'emoji', icon: 'face-smile-symbolic' }, { action: 'languageMenu', extraClassName: 'layout-key', icon: 'keyboard-layout-filled-symbolic' }, { action: 'hide', extraClassName: 'hide-key', icon: 'go-down-symbolic' }]],
     [[{ width: 1.5, keyval: Clutter.KEY_BackSpace, icon: 'edit-clear-symbolic' }],
      [{ width: 2, keyval: Clutter.KEY_Return, extraClassName: 'enter-key', icon: 'keyboard-enter-symbolic' }],
      [{ label: '?123', width: 3, level: 2, right: true }],
@@ -79,7 +80,7 @@ class AspectContainer extends St.Widget {
         return [min, nat];
     }
 
-    vfunc_allocate(box, flags) {
+    vfunc_allocate(box) {
         if (box.get_width() > 0 && box.get_height() > 0) {
             let sizeRatio = box.get_width() / box.get_height();
 
@@ -97,7 +98,7 @@ class AspectContainer extends St.Widget {
             }
         }
 
-        super.vfunc_allocate(box, flags);
+        super.vfunc_allocate(box);
     }
 });
 
@@ -532,8 +533,7 @@ var KeyboardModel = class {
     _loadModel(groupName) {
         let file = Gio.File.new_for_uri('resource:///org/gnome/shell/osk-layouts/%s.json'.format(groupName));
         let [success_, contents] = file.load_contents(null);
-        if (contents instanceof Uint8Array)
-            contents = imports.byteArray.toString(contents);
+        contents = ByteArray.toString(contents);
 
         return JSON.parse(contents);
     }
@@ -740,7 +740,7 @@ var EmojiPager = GObject.registerClass({
 
     _onPan(action) {
         let [dist_, dx, dy_] = action.get_motion_delta(0);
-        this.delta = this.delta + dx;
+        this.delta += dx;
 
         if (this._currentKey != null) {
             this._currentKey.cancel();
@@ -953,8 +953,7 @@ var EmojiSelection = GObject.registerClass({
         this.add_child(this._emojiPager);
 
         this._pageIndicator = new PageIndicators.PageIndicators(
-            Clutter.Orientation.HORIZONTAL
-        );
+            Clutter.Orientation.HORIZONTAL);
         this.add_child(this._pageIndicator);
         this._pageIndicator.setReactive(false);
 
@@ -1092,8 +1091,8 @@ var Keypad = GObject.registerClass({
             { label: '8', keyval: Clutter.KEY_8, left: 1, top: 2 },
             { label: '9', keyval: Clutter.KEY_9, left: 2, top: 2 },
             { label: '0', keyval: Clutter.KEY_0, left: 1, top: 3 },
-            { label: '⌫', keyval: Clutter.KEY_BackSpace, left: 3, top: 0 },
-            { keyval: Clutter.KEY_Return, extraClassName: 'enter-key', left: 3, top: 1, height: 2 },
+            { keyval: Clutter.KEY_BackSpace, icon: 'edit-clear-symbolic', left: 3, top: 0 },
+            { keyval: Clutter.KEY_Return, extraClassName: 'enter-key', icon: 'keyboard-enter-symbolic', left: 3, top: 1, height: 2 },
         ];
 
         super._init({
@@ -1110,7 +1109,7 @@ var Keypad = GObject.registerClass({
 
         for (let i = 0; i < keys.length; i++) {
             let cur = keys[i];
-            let key = new Key(cur.label || "", []);
+            let key = new Key(cur.label || "", [], cur.icon);
 
             if (keys[i].extraClassName)
                 key.keyButton.add_style_class_name(cur.extraClassName);
@@ -1137,7 +1136,7 @@ var KeyboardManager = class KeyBoardManager {
         this._seat.connect('notify::touch-mode', this._syncEnabled.bind(this));
 
         this._lastDevice = null;
-        Meta.get_backend().connect('last-device-changed', (backend, device) => {
+        global.backend.connect('last-device-changed', (backend, device) => {
             if (device.device_type === Clutter.InputDeviceType.KEYBOARD_DEVICE)
                 return;
 

@@ -40,7 +40,7 @@ typedef struct _TransferData TransferData;
 struct _TransferData
 {
   StClipboard            *clipboard;
-  StClipboardCallbackFunc callback;
+  GCallback               callback;
   gpointer                user_data;
   GOutputStream          *stream;
 };
@@ -140,22 +140,61 @@ transfer_cb (MetaSelection *selection,
       memcpy (text, g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (data->stream)), data_size);
     }
 
-  data->callback (data->clipboard, text, data->user_data);
+  ((StClipboardCallbackFunc) data->callback) (data->clipboard, text,
+                                              data->user_data);
   g_object_unref (data->stream);
   g_free (data);
   g_free (text);
+}
+
+static void
+transfer_bytes_cb (MetaSelection *selection,
+                   GAsyncResult  *res,
+                   TransferData  *data)
+{
+  GBytes *bytes = NULL;
+
+  if (meta_selection_transfer_finish (selection, res, NULL))
+    bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM (data->stream));
+
+  ((StClipboardContentCallbackFunc) data->callback) (data->clipboard, bytes,
+                                                     data->user_data);
+  g_object_unref (data->stream);
+  g_clear_pointer (&bytes, g_bytes_unref);
+}
+
+/**
+ * st_clipboard_get_mimetypes:
+ * @clipboard: a #StClipboard
+ *
+ * Gets a list of the mimetypes supported by the default #StClipboard.
+ *
+ * Returns: (element-type utf8) (transfer full): the supported mimetypes
+ */
+GList *
+st_clipboard_get_mimetypes (StClipboard     *clipboard,
+                            StClipboardType  type)
+{
+  MetaSelectionType selection_type;
+
+  g_return_val_if_fail (ST_IS_CLIPBOARD (clipboard), NULL);
+  g_return_val_if_fail (meta_selection != NULL, NULL);
+
+  if (!convert_type (type, &selection_type))
+    return NULL;
+
+  return meta_selection_get_mimetypes (meta_selection, selection_type);
 }
 
 /**
  * st_clipboard_get_text:
  * @clipboard: A #StCliboard
  * @type: The type of clipboard data you want
- * @callback: (scope async): function to be called when the text is retreived
+ * @callback: (scope async): function to be called when the text is retrieved
  * @user_data: data to be passed to the callback
  *
  * Request the data from the clipboard in text form. @callback is executed
- * when the data is retreived.
- *
+ * when the data is retrieved.
  */
 void
 st_clipboard_get_text (StClipboard            *clipboard,
@@ -182,7 +221,7 @@ st_clipboard_get_text (StClipboard            *clipboard,
 
   data = g_new0 (TransferData, 1);
   data->clipboard = clipboard;
-  data->callback = callback;
+  data->callback = G_CALLBACK (callback);
   data->user_data = user_data;
   data->stream = g_memory_output_stream_new_resizable ();
 
@@ -195,13 +234,60 @@ st_clipboard_get_text (StClipboard            *clipboard,
 }
 
 /**
+ * st_clipboard_get_content:
+ * @clipboard: A #StCliboard
+ * @type: The type of clipboard data you want
+ * @mimetype: The mimetype to get content for
+ * @callback: (scope async): function to be called when the type is retrieved
+ * @user_data: data to be passed to the callback
+ *
+ * Request the data from the clipboard in #GBytes form. @callback is executed
+ * when the data is retrieved.
+ */
+void
+st_clipboard_get_content (StClipboard                    *clipboard,
+                          StClipboardType                 type,
+                          const gchar                    *mimetype,
+                          StClipboardContentCallbackFunc  callback,
+                          gpointer                        user_data)
+{
+  MetaSelectionType selection_type;
+  TransferData *data;
+
+  g_return_if_fail (ST_IS_CLIPBOARD (clipboard));
+  g_return_if_fail (meta_selection != NULL);
+  g_return_if_fail (callback != NULL);
+
+  if (!mimetype || !convert_type (type, &selection_type))
+    {
+      callback (clipboard, NULL, user_data);
+      return;
+    }
+
+  data = g_new0 (TransferData, 1);
+  data->clipboard = clipboard;
+  data->callback = G_CALLBACK (callback);
+  data->user_data = user_data;
+  data->stream = g_memory_output_stream_new_resizable ();
+
+  meta_selection_transfer_async (meta_selection,
+                                 selection_type,
+                                 mimetype, -1,
+                                 data->stream, NULL,
+                                 (GAsyncReadyCallback) transfer_bytes_cb,
+                                 data);
+}
+
+/**
  * st_clipboard_set_content:
  * @clipboard: A #StClipboard
  * @type: The type of clipboard that you want to set
  * @mimetype: content mimetype
  * @bytes: content data
  *
- * Sets the clipboard content.
+ * Sets the clipboard content to @bytes.
+ *
+ * @mimetype is a semi-colon separated list of mime-type strings.
  **/
 void
 st_clipboard_set_content (StClipboard     *clipboard,
@@ -248,6 +334,13 @@ st_clipboard_set_text (StClipboard     *clipboard,
   g_bytes_unref (bytes);
 }
 
+/**
+ * st_clipboard_set_selection: (skip)
+ *
+ * Sets the #MetaSelection of the default #StClipboard.
+ *
+ * This function is called during the initialization of GNOME Shell.
+ */
 void
 st_clipboard_set_selection (MetaSelection *selection)
 {

@@ -15,6 +15,7 @@ const { ExtensionState, ExtensionType } = ExtensionUtils;
 const GnomeShellIface = loadInterfaceXML('org.gnome.Shell.Extensions');
 const GnomeShellProxy = Gio.DBusProxy.makeProxyWrapper(GnomeShellIface);
 
+Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 Gio._promisify(Shew.WindowExporter.prototype, 'export', 'export_finish');
 
 function loadInterfaceXML(iface) {
@@ -201,10 +202,7 @@ var ExtensionsWindow = GObject.registerClass({
             null,
             Gio.DBusCallFlags.NONE,
             -1,
-            null,
-            (o, res) => {
-                o.call_finish(res);
-            });
+            null);
     }
 
     _sortList(row1, row2) {
@@ -333,6 +331,8 @@ var ExtensionRow = GObject.registerClass({
         'descriptionLabel',
         'versionLabel',
         'authorLabel',
+        'errorLabel',
+        'errorIcon',
         'updatesIcon',
         'switch',
         'revealButton',
@@ -431,6 +431,12 @@ var ExtensionRow = GObject.registerClass({
         return this._extension.hasUpdate || false;
     }
 
+    get hasError() {
+        const { state } = this._extension;
+        return state === ExtensionState.OUT_OF_DATE ||
+               state === ExtensionState.ERROR;
+    }
+
     get type() {
         return this._extension.type;
     }
@@ -447,6 +453,17 @@ var ExtensionRow = GObject.registerClass({
         return this._extension.metadata.version || '';
     }
 
+    get error() {
+        if (!this.hasError)
+            return '';
+
+        if (this._extension.state === ExtensionState.OUT_OF_DATE)
+            return _('The extension is incompatible with the current GNOME version');
+
+        return this._extension.error
+            ? this._extension.error : _('The extension had an error');
+    }
+
     _updateState() {
         let state = this._extension.state === ExtensionState.ENABLED;
 
@@ -458,6 +475,10 @@ var ExtensionRow = GObject.registerClass({
             this._switch.active = state;
 
         this._updatesIcon.visible = this.hasUpdate;
+        this._errorIcon.visible = this.hasError;
+
+        this._errorLabel.label = this.error;
+        this._errorLabel.visible = this.error !== '';
 
         this._versionLabel.label = this.version.toString();
         this._versionLabel.visible = this.version !== '';
@@ -483,7 +504,7 @@ var ExtensionRow = GObject.registerClass({
 function initEnvironment() {
     // Monkey-patch in a "global" object that fakes some Shell utilities
     // that ExtensionUtils depends on.
-    window.global = {
+    globalThis.global = {
         log(...args) {
             print(args.join(', '));
         },

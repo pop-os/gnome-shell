@@ -59,8 +59,8 @@ class ButtonBox extends St.Widget {
         return [0, 0];
     }
 
-    vfunc_allocate(box, flags) {
-        this.set_allocation(box, flags);
+    vfunc_allocate(box) {
+        this.set_allocation(box);
 
         let child = this.get_first_child();
         if (!child)
@@ -83,7 +83,7 @@ class ButtonBox extends St.Widget {
         childBox.y1 = 0;
         childBox.y2 = availHeight;
 
-        child.allocate(childBox, flags);
+        child.allocate(childBox);
     }
 
     _onDestroy() {
@@ -183,10 +183,9 @@ var Button = GObject.registerClass({
     }
 
     _onDestroy() {
-        super._onDestroy();
-
         if (this.menu)
             this.menu.destroy();
+        super._onDestroy();
     }
 });
 

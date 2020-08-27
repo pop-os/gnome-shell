@@ -461,8 +461,7 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
   if (width == 0 || height == 0)
     return NULL;
 
-  if (!clutter_actor_get_resource_scale (actor, &resource_scale))
-    return NULL;
+  resource_scale = clutter_actor_get_resource_scale (actor);
 
   width = ceilf (width * resource_scale);
   height = ceilf (height * resource_scale);
@@ -509,6 +508,8 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
 
       cogl_color_init_from_4ub (&clear_color, 0, 0, 0, 0);
       clutter_actor_get_position (actor, &x, &y);
+      x *= resource_scale;
+      y *= resource_scale;
 
       cogl_framebuffer_clear (fb, COGL_BUFFER_BIT_COLOR, &clear_color);
       cogl_framebuffer_translate (fb, -x, -y, 0);
@@ -517,7 +518,9 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
 
       clutter_actor_set_opacity_override (actor, 255);
 
-      paint_context = clutter_paint_context_new_for_framebuffer (fb);
+      paint_context =
+        clutter_paint_context_new_for_framebuffer (fb, NULL,
+                                                   CLUTTER_PAINT_FLAG_NONE);
       clutter_actor_paint (actor, paint_context);
       clutter_paint_context_destroy (paint_context);
 

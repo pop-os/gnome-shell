@@ -6,7 +6,6 @@ const Signals = imports.signals;
 
 const Background = imports.ui.background;
 const BackgroundMenu = imports.ui.backgroundMenu;
-const LoginManager = imports.misc.loginManager;
 
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
@@ -246,7 +245,7 @@ var LayoutManager = GObject.registerClass({
                                            vertical: true });
         this.addChrome(this.panelBox, { affectsStruts: true,
                                         trackFullscreen: true });
-        this.panelBox.connect('allocation-changed',
+        this.panelBox.connect('notify::allocation',
                               this._panelBoxChanged.bind(this));
 
         this.modalDialogGroup = new St.Widget({ name: 'modalDialogGroup',
@@ -295,18 +294,6 @@ var LayoutManager = GObject.registerClass({
         monitorManager.connect('monitors-changed',
                                this._monitorsChanged.bind(this));
         this._monitorsChanged();
-
-        // NVIDIA drivers don't preserve FBO contents across
-        // suspend/resume, see
-        // https://bugzilla.gnome.org/show_bug.cgi?id=739178
-        if (Shell.util_need_background_refresh()) {
-            LoginManager.getLoginManager().connect('prepare-for-sleep',
-                (lm, suspending) => {
-                    if (suspending)
-                        return;
-                    Meta.Background.refresh_all();
-                });
-        }
     }
 
     // This is called by Main after everything else is constructed
@@ -470,6 +457,15 @@ var LayoutManager = GObject.registerClass({
         }
     }
 
+    _waitLoaded(bgManager) {
+        return new Promise(resolve => {
+            const id = bgManager.connect('loaded', () => {
+                bgManager.disconnect(id);
+                resolve();
+            });
+        });
+    }
+
     _updateBackgrounds() {
         for (let i = 0; i < this._bgManagers.length; i++)
             this._bgManagers[i].destroy();
@@ -477,7 +473,7 @@ var LayoutManager = GObject.registerClass({
         this._bgManagers = [];
 
         if (Main.sessionMode.isGreeter)
-            return;
+            return Promise.resolve();
 
         for (let i = 0; i < this.monitors.length; i++) {
             let bgManager = this._createBackgroundManager(i);
@@ -486,6 +482,8 @@ var LayoutManager = GObject.registerClass({
             if (i != this.primaryIndex && this._startingUp)
                 bgManager.backgroundActor.hide();
         }
+
+        return Promise.all(this._bgManagers.map(this._waitLoaded));
     }
 
     _updateKeyboardBox() {
@@ -644,7 +642,7 @@ var LayoutManager = GObject.registerClass({
     // When starting a normal user session, we want to grow it out of the middle
     // of the screen.
 
-    _prepareStartupAnimation() {
+    async _prepareStartupAnimation() {
         // During the initial transition, add a simple actor to block all events,
         // so they don't get delivered to X11 windows that have been transformed.
         this._coverPane = new Clutter.Actor({ opacity: 0,
@@ -661,8 +659,6 @@ var LayoutManager = GObject.registerClass({
         } else if (Main.sessionMode.isGreeter) {
             this.panelBox.translation_y = -this.panelBox.height;
         } else {
-            this._updateBackgrounds();
-
             // We need to force an update of the regions now before we scale
             // the UI group to get the correct allocation for the struts.
             this._updateRegions();
@@ -678,6 +674,8 @@ var LayoutManager = GObject.registerClass({
             this.uiGroup.scale_x = this.uiGroup.scale_y = 0.75;
             this.uiGroup.opacity = 0;
             global.window_group.set_clip(monitor.x, monitor.y, monitor.width, monitor.height);
+
+            await this._updateBackgrounds();
         }
 
         this.emit('startup-prepared');
@@ -1204,7 +1202,8 @@ class HotCorner extends Clutter.Actor {
 
             if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL) {
                 this._corner.set_position(this.width - this._corner.width, 0);
-                this.set_anchor_point_from_gravity(Clutter.Gravity.NORTH_EAST);
+                this.set_pivot_point(1.0, 0.0);
+                this.translation_x = -this.width;
             } else {
                 this._corner.set_position(0, 0);
             }
@@ -1229,8 +1228,9 @@ class HotCorner extends Clutter.Actor {
             return;
 
         if (Main.overview.shouldToggleByCornerOrButton()) {
-            this._ripples.playAnimation(this._x, this._y);
             Main.overview.toggle();
+            if (Main.overview.animationInProgress)
+                this._ripples.playAnimation(this._x, this._y);
         }
     }
 

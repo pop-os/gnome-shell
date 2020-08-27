@@ -1,6 +1,6 @@
 project('gnome-extensions-tool', 'c',
-  version: '3.36.4',
-  meson_version: '>= 0.47.0',
+  version: '3.37.91',
+  meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
 
@@ -35,11 +35,13 @@ cc = meson.get_compiler('c')
 
 bash_completion = dependency('bash-completion', required: get_option('bash_completion'))
 
+po_dir = meson.source_root() + '/po'
+
 subdir('src')
 
 if bash_completion.found()
   install_data('completion/bash/gnome-extensions',
-    install_dir: bash_completion.get_pkgconfig_variable('completionsdir')
+    install_dir: bash_completion.get_pkgconfig_variable('completionsdir', define_variable: ['datadir', datadir])
   )
 endif
 
@@ -72,9 +74,7 @@ if not meson.is_subproject()
     'bash_completion': bash_completion.found(),
   }
 
-  if meson.version().version_compare('>= 0.53.0')
-    summary(summary_dirs, section: 'Directories')
-    summary(summary_build, section: 'Build Configuration')
-    summary(summary_options, section: 'Build Options')
-  endif
+  summary(summary_dirs, section: 'Directories')
+  summary(summary_build, section: 'Build Configuration')
+  summary(summary_options, section: 'Build Options')
 endif

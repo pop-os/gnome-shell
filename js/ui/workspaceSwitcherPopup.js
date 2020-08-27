@@ -11,7 +11,10 @@ var DISPLAY_TIMEOUT = 600;
 var WorkspaceSwitcherPopupList = GObject.registerClass(
 class WorkspaceSwitcherPopupList extends St.Widget {
     _init() {
-        super._init({ style_class: 'workspace-switcher' });
+        super._init({
+            style_class: 'workspace-switcher',
+            offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
+        });
 
         this._itemSpacing = 0;
         this._childHeight = 0;
@@ -86,8 +89,8 @@ class WorkspaceSwitcherPopupList extends St.Widget {
             return this._getSizeForOppositeOrientation();
     }
 
-    vfunc_allocate(box, flags) {
-        this.set_allocation(box, flags);
+    vfunc_allocate(box) {
+        this.set_allocation(box);
 
         let themeNode = this.get_theme_node();
         box = themeNode.get_content_box(box);
@@ -111,7 +114,7 @@ class WorkspaceSwitcherPopupList extends St.Widget {
             } else {
                 y += this._childHeight + this._itemSpacing;
             }
-            child.allocate(childBox, flags);
+            child.allocate(childBox);
         }
     }
 });
