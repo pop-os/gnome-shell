@@ -829,16 +829,19 @@ var PageManager = GObject.registerClass({
     _init() {
         super._init();
 
+        this._updatingPages = false;
+        this._loadPages();
+
         global.settings.connect('changed::app-picker-layout',
             this._loadPages.bind(this));
 
-        this._loadPages();
     }
 
     _loadPages() {
         const layout = global.settings.get_value('app-picker-layout');
         this._pages = layout.recursiveUnpack();
-        this.emit('layout-changed');
+        if (!this._updatingPages)
+            this.emit('layout-changed');
     }
 
     getAppPosition(appId) {
@@ -869,8 +872,12 @@ var PageManager = GObject.registerClass({
             packedPages.push(pageData);
         }
 
+        this._updatingPages = true;
+
         const variant = new GLib.Variant('aa{sv}', packedPages);
         global.settings.set_value('app-picker-layout', variant);
+
+        this._updatingPages = false;
     }
 
     get pages() {
@@ -888,6 +895,7 @@ class AppDisplay extends BaseAppView {
         });
 
         this._pageManager = new PageManager();
+        this._pageManager.connect('layout-changed', () => this._redisplay());
 
         this._scrollView.add_style_class_name('all-apps');
 
