@@ -25,9 +25,6 @@ override_dh_shlibdeps:
 	# gnome-shell uses mutters private mutter-clutter-1.0.so etc.
 	dh_shlibdeps -l"usr/lib/$(DEB_HOST_MULTIARCH)/mutter"
 
-override_dh_strip:
-	dh_strip --dbgsym-migration='gnome-shell-dbg (<< 3.20.2-2~)'
-
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	dbus-run-session xvfb-run -a dh_auto_test
