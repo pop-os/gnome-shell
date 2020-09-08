@@ -8,8 +8,8 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
 
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFFLAGS = \
-	-Denable-networkmanager=yes \
-	-Denable-systemd=yes
+	-Dnetworkmanager=true \
+	-Dsystemd=true
 endif
 
 override_dh_auto_configure:
