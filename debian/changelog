@@ -1,3 +1,19 @@
+gnome-shell (3.37.92-2) experimental; urgency=medium
+
+  * Team upload
+
+  [ Georges Basile Stavracas Neto ]
+  * debian/rules: Update Meson option names
+  * Depend on gstreamer1.0-pipewire.
+    GNOME Shell's built-in screencast tool was made into a separate
+    service that uses pipewiresrc.
+
+  [ Simon McVittie ]
+  * Require a known-working version of Pipewire
+  * Remove migration path from ancient -dbg packages
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 08 Sep 2020 15:48:11 +0100
+
 gnome-shell (3.37.92-1) experimental; urgency=medium
 
   * Team upload
