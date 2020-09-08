@@ -57,6 +57,7 @@ Build-Depends: appstream,
                meson (>= 0.53.0),
                pkg-config (>= 0.22),
                sassc,
+               systemd [linux-any],
                xauth <!nocheck>,
                xvfb <!nocheck>,
                xwayland <!nocheck>
