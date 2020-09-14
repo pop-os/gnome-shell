@@ -1,8 +1,8 @@
 Index: gnome-shell/js/ui/appDisplay.js
 ===================================================================
---- gnome-shell.orig/js/ui/appDisplay.js	2020-04-20 11:05:31.673300893 -0600
-+++ gnome-shell/js/ui/appDisplay.js	2020-04-20 11:08:07.038630275 -0600
-@@ -2504,7 +2504,10 @@
+--- gnome-shell.orig/js/ui/appDisplay.js	2020-09-11 10:34:06.060077771 -0600
++++ gnome-shell/js/ui/appDisplay.js	2020-09-14 16:59:51.316039692 -0600
+@@ -2791,7 +2791,10 @@
                  this._appendSeparator();
              }
  
@@ -11,42 +11,45 @@ Index: gnome-shell/js/ui/appDisplay.js
 +                vendor != "NVIDIA Corporation" &&
 +                vendor != "nouveau" &&
                  this._source.app.state == Shell.AppState.STOPPED) {
-                 this._onDiscreteGpuMenuItem = this._appendMenuItem(_("Launch using Dedicated Graphics Card"));
-                 this._onDiscreteGpuMenuItem.connect('activate', () => {
+                 const appPrefersNonDefaultGPU = appInfo.get_boolean('PrefersNonDefaultGPU');
+                 const gpuPref = appPrefersNonDefaultGPU
 Index: gnome-shell/src/shell-util.c
 ===================================================================
---- gnome-shell.orig/src/shell-util.c	2020-04-20 11:04:36.062327680 -0600
-+++ gnome-shell/src/shell-util.c	2020-04-20 11:06:59.515758370 -0600
-@@ -408,8 +408,8 @@
+--- gnome-shell.orig/src/shell-util.c	2020-09-11 10:34:06.076077628 -0600
++++ gnome-shell/src/shell-util.c	2020-09-14 16:58:13.576460232 -0600
+@@ -354,6 +354,22 @@
  
  typedef const gchar *(*ShellGLGetString) (GLenum);
  
--static const gchar *
--get_gl_vendor (void)
 +const gchar *
 +shell_util_get_gl_vendor (void)
- {
-   static const gchar *vendor = NULL;
- 
-@@ -430,7 +430,7 @@
-   if (!clutter_check_windowing_backend (CLUTTER_WINDOWING_X11))
-     return FALSE;
- 
--  if (g_strcmp0 (get_gl_vendor (), "NVIDIA Corporation") == 0)
-+  if (g_strcmp0 (shell_util_get_gl_vendor (), "NVIDIA Corporation") == 0)
-     return TRUE;
- 
-   return FALSE;
++{
++  static const gchar *vendor = NULL;
++
++  if (!vendor)
++    {
++      ShellGLGetString gl_get_string;
++      gl_get_string = (ShellGLGetString) cogl_get_proc_address ("glGetString");
++      if (gl_get_string)
++        vendor = gl_get_string (GL_VENDOR);
++    }
++
++  return vendor;
++}
++
+ static gboolean
+ canvas_draw_cb (ClutterContent *content,
+                 cairo_t        *cr,
 Index: gnome-shell/src/shell-util.h
 ===================================================================
---- gnome-shell.orig/src/shell-util.h	2020-04-20 11:04:36.062327680 -0600
-+++ gnome-shell/src/shell-util.h	2020-04-20 11:06:35.672168190 -0600
-@@ -49,6 +49,8 @@
+--- gnome-shell.orig/src/shell-util.h	2020-09-11 10:34:06.076077628 -0600
++++ gnome-shell/src/shell-util.h	2020-09-14 16:58:55.152281394 -0600
+@@ -46,6 +46,8 @@
                                                 int                height,
                                                 int                rowstride);
  
 +const gchar *shell_util_get_gl_vendor (void);
 +
- gboolean shell_util_need_background_refresh (void);
- 
  ClutterContent * shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
+                                                           MetaRectangle   *window_rect);
+ 
