@@ -16,4 +16,4 @@ ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 sched-rr.patch
 pop-dark-theme.patch
-#TODO ignore-nvidia-only.patch
+ignore-nvidia-only.patch
