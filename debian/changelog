@@ -1,8 +1,8 @@
-gnome-shell (3.38.0-1) UNRELEASED; urgency=medium
+gnome-shell (3.38.0-1) experimental; urgency=medium
 
   * New upstream release
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Sep 2020 21:15:11 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 16 Sep 2020 15:03:21 +0200
 
 gnome-shell (3.37.92-3) experimental; urgency=medium
 
