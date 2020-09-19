@@ -1,3 +1,21 @@
+gnome-shell (3.36.6-1) unstable; urgency=medium
+
+  * Team upload
+
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 10 Sep 2020 12:27:18 +0100
+
+gnome-shell (3.36.5-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - Fix password briefly showing on login dialog during logout if it
+      was previously made visible (CVE-2020-17489, Closes: #968311)
+  * Drop most patches, applied upstream
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 12 Aug 2020 21:28:22 +0100
+
 gnome-shell (3.36.4-1ubuntu1~20.04.2) focal-security; urgency=medium
 
   * SECURITY UPDATE: password dialog box information disclosure

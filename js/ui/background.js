@@ -347,6 +347,8 @@ var Background = GObject.registerClass({
             this.set_color(color);
         else
             this.set_gradient(shadingType, color, secondColor);
+
+        this._setLoaded();
     }
 
     _watchFile(file) {
@@ -758,9 +760,26 @@ var BackgroundManager = class BackgroundManager {
             this._updateBackgroundActor();
         });
 
+        let loadedSignalId;
+        if (background.isLoaded) {
+            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                this.emit('loaded');
+                return GLib.SOURCE_REMOVE;
+            });
+        } else {
+            loadedSignalId = background.connect('loaded', () => {
+                background.disconnect(loadedSignalId);
+                loadedSignalId = null;
+                this.emit('loaded');
+            });
+        }
+
         backgroundActor.connect('destroy', () => {
             if (changeSignalId)
                 background.disconnect(changeSignalId);
+
+            if (loadedSignalId)
+                background.disconnect(loadedSignalId);
 
             if (backgroundActor.loadedSignalId)
                 background.disconnect(backgroundActor.loadedSignalId);

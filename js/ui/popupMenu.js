@@ -881,9 +881,10 @@ var PopupMenu = class extends PopupMenuBase {
 
         let state = event.get_state();
 
-        // if user has a modifier down (except capslock)
+        // if user has a modifier down (except capslock and numlock)
         // then don't handle the key press here
         state &= ~Clutter.ModifierType.LOCK_MASK;
+        state &= ~Clutter.ModifierType.MOD2_MASK;
         state &= Clutter.ModifierType.MODIFIER_MASK;
 
         if (state)
@@ -1324,7 +1325,7 @@ var PopupMenuManager = class {
 
     removeMenu(menu) {
         if (menu == this.activeMenu)
-            this._closeMenu(false, menu);
+            this._grabHelper.ungrab({ actor: menu.actor });
 
         let position = this._findMenu(menu);
         if (position == -1) // not a menu we manage
