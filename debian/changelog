@@ -1,3 +1,10 @@
+gnome-shell (3.36.6-1ubuntu0.20.04.1) UNRELEASED; urgency=medium
+
+  * Merge with debian, containing new stable release (LP: #1896334)
+  * debian/patches: Refresh, drop merged CVE-2020-17489.patch
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sat, 19 Sep 2020 17:37:04 +0200
+
 gnome-shell (3.36.6-1) unstable; urgency=medium
 
   * Team upload
