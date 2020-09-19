@@ -18,7 +18,7 @@ Forwarded: not-needed
  1 file changed, 5 insertions(+)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index ddae0de..3a1c496 100644
+index 62411d9..0c50c9c 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
 @@ -103,6 +103,11 @@ const Params = imports.misc.params;
