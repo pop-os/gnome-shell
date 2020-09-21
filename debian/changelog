@@ -1,3 +1,14 @@
+gnome-shell (3.38.0-1ubuntu2) UNRELEASED; urgency=medium
+
+  * debian/control:
+    - Revert "Require a known-working version of Pipewire",
+      Revert "Depend on gstreamer1.0-pipewire",
+      Revert "Enable screencasting support now that pipewire 0.3 is in
+      experimental":
+      + We don't support pipewire in yet
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 21 Sep 2020 18:39:38 +0200
+
 gnome-shell (3.38.0-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream release, remaining changes:
