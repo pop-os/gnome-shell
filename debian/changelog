@@ -1,3 +1,13 @@
+gnome-shell (3.38.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+    - Add screen recordings to recent items
+    - Tweak peek-password feature
+    - Fix workspace glitches in overview
+    - Improve DND behavior in app picker
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 11 Oct 2020 01:48:51 +0200
+
 gnome-shell (3.38.0-2) unstable; urgency=medium
 
   * Team upload
