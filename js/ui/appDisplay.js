@@ -19,7 +19,7 @@ const Params = imports.misc.params;
 const SystemActions = imports.misc.systemActions;
 
 var MENU_POPUP_TIMEOUT = 600;
-var POPDOWN_DIALOG_TIMEOUT = 1500;
+var POPDOWN_DIALOG_TIMEOUT = 500;
 
 var FOLDER_SUBICON_FRACTION = .4;
 
@@ -37,6 +37,9 @@ const OVERSHOOT_THRESHOLD = 20;
 const OVERSHOOT_TIMEOUT = 1000;
 
 const DELAYED_MOVE_TIMEOUT = 200;
+
+const DIALOG_SHADE_NORMAL = Clutter.Color.from_pixel(0x000000cc);
+const DIALOG_SHADE_HIGHLIGHT = Clutter.Color.from_pixel(0x00000055);
 
 let discreteGpuAvailable = false;
 
@@ -188,15 +191,15 @@ var BaseAppView = GObject.registerClass({
 
         // Filter the apps through the user’s parental controls.
         this._parentalControlsManager = ParentalControlsManager.getDefault();
-        this._parentalControlsManager.connect('app-filter-changed', () => {
-            this._redisplay();
-        });
+        this._appFilterChangedId =
+            this._parentalControlsManager.connect('app-filter-changed', () => {
+                this._redisplay();
+            });
 
         // Drag n' Drop
         this._lastOvershoot = -1;
         this._lastOvershootTimeoutId = 0;
-        this._delayedMoveId = 0;
-        this._targetDropPosition = null;
+        this._delayedMoveData = null;
 
         this._dragBeginId = 0;
         this._dragEndId = 0;
@@ -206,6 +209,10 @@ var BaseAppView = GObject.registerClass({
     }
 
     _onDestroy() {
+        if (this._appFilterChangedId > 0) {
+            this._parentalControlsManager.disconnect(this._appFilterChangedId);
+            this._appFilterChangedId = 0;
+        }
         this._removeDelayedMove();
         this._disconnectDnD();
     }
@@ -347,29 +354,40 @@ var BaseAppView = GObject.registerClass({
             return;
         }
 
-        if (!this._targetDropPosition ||
-            this._targetDropPosition.page !== page ||
-            this._targetDropPosition.position !== position) {
+        if (!this._delayedMoveData ||
+            this._delayedMoveData.page !== page ||
+            this._delayedMoveData.position !== position) {
             // Update the item with a small delay
             this._removeDelayedMove();
-            this._targetDropPosition = { page, position };
-
-            this._delayedMoveId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-                DELAYED_MOVE_TIMEOUT, () => {
-                    this._moveItem(source, page, position);
-                    this._targetDropPosition = null;
-                    this._delayedMoveId = 0;
-                    return GLib.SOURCE_REMOVE;
-                });
+            this._delayedMoveData = {
+                page,
+                position,
+                source,
+                destroyId: source.connect('destroy', () => this._removeDelayedMove()),
+                timeoutId: GLib.timeout_add(GLib.PRIORITY_DEFAULT,
+                    DELAYED_MOVE_TIMEOUT, () => {
+                        this._moveItem(source, page, position);
+                        this._delayedMoveData.timeoutId = 0;
+                        this._removeDelayedMove();
+                        return GLib.SOURCE_REMOVE;
+                    }),
+            };
         }
     }
 
     _removeDelayedMove() {
-        if (this._delayedMoveId > 0) {
-            GLib.source_remove(this._delayedMoveId);
-            this._delayedMoveId = 0;
-        }
-        this._targetDropPosition = null;
+        if (!this._delayedMoveData)
+            return;
+
+        const { source, destroyId, timeoutId  } = this._delayedMoveData;
+
+        if (timeoutId > 0)
+            GLib.source_remove(timeoutId);
+
+        if (destroyId > 0)
+            source.disconnect(destroyId);
+
+        this._delayedMoveData = null;
     }
 
     _resetOvershoot() {
@@ -487,8 +505,8 @@ var BaseAppView = GObject.registerClass({
             return false;
 
         // Dropped before the icon was moved
-        if (this._targetDropPosition) {
-            const { page, position } = this._targetDropPosition;
+        if (this._delayedMoveData) {
+            const { page, position } = this._delayedMoveData;
 
             this._moveItem(source, page, position);
             this._removeDelayedMove();
@@ -509,15 +527,10 @@ var BaseAppView = GObject.registerClass({
         return -1;
     }
 
-    _addItem(item, page, position) {
+    _getLinearPosition(page, position) {
         let itemIndex = 0;
 
         if (this._grid.nPages > 0) {
-            // Append icons to the first page with empty slot, starting from
-            // the second page
-            if (this._grid.nPages > 1 && page === -1 && position === -1)
-                page = this._findBestPageToAppend();
-
             const realPage = page === -1 ? this._grid.nPages - 1 : page;
 
             itemIndex = position === -1
@@ -529,6 +542,17 @@ var BaseAppView = GObject.registerClass({
                 itemIndex += pageItems.length;
             }
         }
+
+        return itemIndex;
+    }
+
+    _addItem(item, page, position) {
+        // Append icons to the first page with empty slot, starting from
+        // the second page
+        if (this._grid.nPages > 1 && page === -1 && position === -1)
+            page = this._findBestPageToAppend();
+
+        const itemIndex = this._getLinearPosition(page, position);
 
         this._orderedItems.splice(itemIndex, 0, item);
         this._items.set(item.id, item);
@@ -640,7 +664,6 @@ var BaseAppView = GObject.registerClass({
             this.disconnect(this._viewLoadedHandlerId);
             this._viewLoadedHandlerId = 0;
         }
-        this._grid.opacity = 255;
     }
 
     animate(animationDirection, onComplete) {
@@ -652,6 +675,7 @@ var BaseAppView = GObject.registerClass({
         }
 
         this._clearAnimateLater();
+        this._grid.opacity = 255;
 
         if (animationDirection == IconGrid.AnimationDirection.IN) {
             const doSpringAnimationLater = laterType => {
@@ -670,6 +694,7 @@ var BaseAppView = GObject.registerClass({
                 this._viewLoadedHandlerId = this.connect('view-loaded',
                     () => {
                         this._clearAnimateLater();
+                        this._grid.opacity = 255;
                         doSpringAnimationLater(Meta.LaterType.BEFORE_REDRAW);
                     });
             }
@@ -735,10 +760,14 @@ var BaseAppView = GObject.registerClass({
         if (page === newPage && position === newPosition)
             return;
 
-        if (page !== -1 && position !== -1)
-            this._removeItem(item);
+        // Update the _orderedItems array
+        let index = this._orderedItems.indexOf(item);
+        this._orderedItems.splice(index, 1);
 
-        this._addItem(item, newPage, newPosition);
+        index = this._getLinearPosition(newPage, newPosition);
+        this._orderedItems.splice(index, 0, item);
+
+        this._grid.moveItem(item, newPage, newPosition);
     }
 
     vfunc_allocate(box) {
@@ -851,11 +880,11 @@ var PageManager = GObject.registerClass({
         for (let pageIndex = 0; pageIndex < this._pages.length; pageIndex++) {
             const pageData = this._pages[pageIndex];
 
-            if (!(appId in pageData))
-                continue;
-
-            page = pageIndex;
-            position = pageData[appId].position;
+            if (appId in pageData) {
+                page = pageIndex;
+                position = pageData[appId].position;
+                break;
+            }
         }
 
         return [page, position];
@@ -1079,7 +1108,10 @@ class AppDisplay extends BaseAppView {
             let icon = this._items.get(id);
             if (!icon) {
                 icon = new FolderIcon(id, path, this);
-                icon.connect('apps-changed', this._redisplay.bind(this));
+                icon.connect('apps-changed', () => {
+                    this._redisplay();
+                    this._savePages();
+                });
             }
 
             // Don't try to display empty folders
@@ -1296,8 +1328,17 @@ class AppDisplay extends BaseAppView {
 
         // The hovered AppIcon always passes its own id as the first
         // one, and this is where we want the folder to be created
-        const [folderPage, folderPosition] =
+        let [folderPage, folderPosition] =
             this._grid.getItemPosition(this._items.get(apps[0]));
+
+        // Adjust the final position
+        folderPosition -= apps.reduce((counter, appId) => {
+            const [page, position] =
+                this._grid.getItemPosition(this._items.get(appId));
+            if (page === folderPage && position < folderPosition)
+                counter++;
+            return counter;
+        }, 0);
 
         let appItems = apps.map(id => this._items.get(id).app);
         let folderName = _findBestFolderName(appItems);
@@ -1612,6 +1653,7 @@ class FolderView extends BaseAppView {
         action.connect('pan', this._onPan.bind(this));
         this._scrollView.add_action(action);
 
+        this._deletingFolder = false;
         this._appIds = [];
         this._redisplay();
     }
@@ -1779,30 +1821,38 @@ class FolderView extends BaseAppView {
         if (index >= 0)
             folderApps.splice(index, 1);
 
-        // If this is a categories-based folder, also add it to
-        // the list of excluded apps
-        let categories = this._folder.get_strv('categories');
-        if (categories.length > 0) {
-            let excludedApps = this._folder.get_strv('excluded-apps');
-            excludedApps.push(app.id);
-            this._folder.set_strv('excluded-apps', excludedApps);
-        }
-
         // Remove the folder if this is the last app icon; otherwise,
         // just remove the icon
         if (folderApps.length == 0) {
+            this._deletingFolder = true;
+
             // Resetting all keys deletes the relocatable schema
             let keys = this._folder.settings_schema.list_keys();
-            for (let key of keys)
+            for (const key of keys)
                 this._folder.reset(key);
 
             let settings = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders' });
             let folders = settings.get_strv('folder-children');
             folders.splice(folders.indexOf(this._id), 1);
             settings.set_strv('folder-children', folders);
+
+            this._deletingFolder = false;
         } else {
+            // If this is a categories-based folder, also add it to
+            // the list of excluded apps
+            const categories = this._folder.get_strv('categories');
+            if (categories.length > 0) {
+                const excludedApps = this._folder.get_strv('excluded-apps');
+                excludedApps.push(app.id);
+                this._folder.set_strv('excluded-apps', excludedApps);
+            }
+
             this._folder.set_strv('apps', folderApps);
         }
+    }
+
+    get deletingFolder() {
+        return this._deletingFolder;
     }
 });
 
@@ -1945,6 +1995,9 @@ var FolderIcon = GObject.registerClass({
     }
 
     _sync() {
+        if (this.view.deletingFolder)
+            return;
+
         this.emit('apps-changed');
         this._updateName();
         this.visible = this.view.getAllItems().length > 0;
@@ -2050,6 +2103,8 @@ var AppFolderDialog = GObject.registerClass({
         this._sourceMappedId = 0;
         this._popdownTimeoutId = 0;
         this._needsZoomAndFade = false;
+
+        this._popdownCallbacks = [];
     }
 
     _addFolderNameEntry() {
@@ -2195,7 +2250,7 @@ var AppFolderDialog = GObject.registerClass({
         });
 
         this.ease({
-            background_color: Clutter.Color.from_pixel(0x000000cc),
+            background_color: DIALOG_SHADE_NORMAL,
             duration: FOLDER_DIALOG_ANIMATION_TIME,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
         });
@@ -2254,6 +2309,9 @@ var AppFolderDialog = GObject.registerClass({
                     opacity: 255,
                 });
                 this.hide();
+
+                this._popdownCallbacks.forEach(func => func());
+                this._popdownCallbacks = [];
             },
         });
 
@@ -2346,6 +2404,18 @@ var AppFolderDialog = GObject.registerClass({
         return this.navigate_focus(null, direction, false);
     }
 
+    _setLighterBackground(lighter) {
+        const backgroundColor = lighter
+            ? DIALOG_SHADE_HIGHLIGHT
+            : DIALOG_SHADE_NORMAL;
+
+        this.ease({
+            backgroundColor,
+            duration: FOLDER_DIALOG_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+    }
+
     _withinDialog(x, y) {
         const childExtents = this.child.get_transformed_extents();
         return childExtents.contains_point(new Graphene.Point({ x, y }));
@@ -2357,7 +2427,12 @@ var AppFolderDialog = GObject.registerClass({
 
         this._dragMonitor = {
             dragMotion: dragEvent => {
-                if (this._withinDialog(dragEvent.x, dragEvent.y)) {
+                const withinDialog =
+                    this._withinDialog(dragEvent.x, dragEvent.y);
+
+                this._setLighterBackground(!withinDialog);
+
+                if (withinDialog) {
                     this._removePopdownTimeout();
                     this._removeDragMonitor();
                 }
@@ -2381,6 +2456,7 @@ var AppFolderDialog = GObject.registerClass({
 
     handleDragOver(source, actor, x, y) {
         if (this._withinDialog(x, y)) {
+            this._setLighterBackground(false);
             this._removePopdownTimeout();
             this._removeDragMonitor();
         } else {
@@ -2388,7 +2464,18 @@ var AppFolderDialog = GObject.registerClass({
             this._setupDragMonitor();
         }
 
-        return DND.DragMotionResult.NO_DROP;
+        return DND.DragMotionResult.MOVE_DROP;
+    }
+
+    acceptDrop(source) {
+        const appId = source.id;
+
+        this.popdown(() => {
+            this._view.removeApp(source);
+            this._appDisplay.selectApp(appId);
+        });
+
+        return true;
     }
 
     toggle() {
@@ -2416,7 +2503,16 @@ var AppFolderDialog = GObject.registerClass({
         this.emit('open-state-changed', true);
     }
 
-    popdown() {
+    popdown(callback) {
+        // Either call the callback right away, or wait for the zoom out
+        // animation to finish
+        if (callback) {
+            if (this.visible)
+                this._popdownCallbacks.push(callback);
+            else
+                callback();
+        }
+
         if (!this._isOpen)
             return;
 
