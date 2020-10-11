@@ -55,7 +55,7 @@ libgvc_no_gir_sources = [
 libgvc_deps = [
   dependency('gio-2.0'),
   dependency('gobject-2.0'),
-  dependency('libpulse', version: '>= 2.0'),
+  dependency('libpulse', version: '>= 12.99.3'),
   dependency('libpulse-mainloop-glib')
 ]
 
