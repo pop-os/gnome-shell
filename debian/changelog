@@ -1,4 +1,4 @@
-gnome-shell (3.38.1-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.38.1-1ubuntu1) groovy; urgency=medium
 
   * Merge with debian, including new upstream release, remaining changes:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -45,7 +45,7 @@ gnome-shell (3.38.1-1ubuntu1) UNRELEASED; urgency=medium
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
   * debian/patches: Refresh
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 11 Oct 2020 02:29:59 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 11 Oct 2020 02:43:11 +0200
 
 gnome-shell (3.38.1-1) unstable; urgency=medium
 
