@@ -1,5 +1,11 @@
 gnome-shell (3.38.1-1ubuntu1) groovy; urgency=medium
 
+  * Pop!_OS patches
+
+ -- Jeremy Soller <jeremy@system76.com>  Mon, 19 Oct 2020 10:38:43 -0600
+
+gnome-shell (3.38.1-1ubuntu1) groovy; urgency=medium
+
   * Merge with debian, including new upstream release, remaining changes:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
       gnome-themes-standard-data, gnome-backgrounds
