@@ -1,0 +1,60 @@
+From: Popax21 <matthias.pleschinger@gmail.com>
+Date: Thu, 15 Oct 2020 15:14:55 +0000
+Subject: [PATCH] modemManager: Add property getters
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/25ad32d6
+Bug-Ubuntu: https://launchpad.net/bugs/1902829
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3203
+
+gjs improved its default property getter/setters, and as a result it
+is no longer possible to set read-only properties.
+
+Add proper getters (backed by private properties) to fix the resulting
+errors.
+
+(cherry picked from commit 461bbcff153d7167d22bbf0e80ecbc5397d724cd)
+---
+ js/misc/modemManager.js | 24 ++++++++++++++++++++----
+ 1 file changed, 20 insertions(+), 4 deletions(-)
+
+diff --git a/js/misc/modemManager.js b/js/misc/modemManager.js
+index 0de0b24e2f..5f727f3ca2 100644
+--- a/js/misc/modemManager.js
++++ b/js/misc/modemManager.js
+@@ -111,17 +111,33 @@ var ModemBase = GObject.registerClass({
+             0, 100, 0),
+     },
+ }, class ModemBase extends GObject.Object {
++    _init() {
++        super._init();
++        this._operatorName = null;
++        this._signalQuality = 0;
++    }
++
++    // eslint-disable-next-line camelcase
++    get operator_name() {
++        return this._operatorName;
++    }
++
++    // eslint-disable-next-line camelcase
++    get signal_quality() {
++        return this._signalQuality;
++    }
++
+     _setOperatorName(operatorName) {
+-        if (this.operator_name == operatorName)
++        if (this._operatorName == operatorName)
+             return;
+-        this.operator_name = operatorName;
++        this._operatorName = operatorName;
+         this.notify('operator-name');
+     }
+ 
+     _setSignalQuality(signalQuality) {
+-        if (this.signal_quality == signalQuality)
++        if (this._signalQuality == signalQuality)
+             return;
+-        this.signal_quality = signalQuality;
++        this._signalQuality = signalQuality;
+         this.notify('signal-quality');
+     }
+ });
