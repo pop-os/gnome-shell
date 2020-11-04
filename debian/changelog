@@ -1,10 +1,10 @@
-gnome-shell (3.38.1-1ubuntu1.1) UNRELEASED; urgency=medium
+gnome-shell (3.38.1-1ubuntu1.1) groovy; urgency=medium
 
   * debian/patches/modemManager_Add-property-getters.patch:
     - Cherry picked upstream commit to fix issue with missing "Mobile
       Broadband" item in the system menu (LP: #1902829).
 
- -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Wed, 04 Nov 2020 11:09:00 +0100
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Wed, 04 Nov 2020 17:09:28 +0100
 
 gnome-shell (3.38.1-1ubuntu1) groovy; urgency=medium
 
