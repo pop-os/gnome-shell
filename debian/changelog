@@ -1,6 +1,6 @@
 gnome-shell (3.38.1-1ubuntu1.1) UNRELEASED; urgency=medium
 
-  * debian/patches/ubuntu/modemManager_Add-property-getters.patch:
+  * debian/patches/modemManager_Add-property-getters.patch:
     - Cherry picked upstream commit to fix issue with missing "Mobile
       Broadband" item in the system menu (LP: #1902829).
 
