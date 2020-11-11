@@ -1,0 +1,76 @@
+From: Ray Strode <rstrode@redhat.com>
+Date: Mon, 28 Sep 2020 22:28:08 -0400
+Subject: screenShield: Fix pointer motion signal handler leak
+
+The screen shield code listens for motion events on the stage
+so that it can hide the pointer until the user moves the mouse.
+
+Unfortunately, if the user never moves the mouse, the signal
+handler connection gets leaked.
+
+This commit makes sure the connection gets disconnected when the
+shield goes away.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1459
+
+Origin: upstream, 3.38.2
+---
+ js/ui/screenShield.js | 31 +++++++++++++++++++++----------
+ 1 file changed, 21 insertions(+), 10 deletions(-)
+
+diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
+index 9beece6..fa3a7a8 100644
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
+@@ -336,6 +336,25 @@ var ScreenShield = class {
+         }
+     }
+ 
++    _showPointer() {
++        this._cursorTracker.set_pointer_visible(true);
++
++        if (this._motionId) {
++            global.stage.disconnect(this._motionId);
++            this._motionId = 0;
++        }
++    }
++
++    _hidePointerUntilMotion() {
++        this._motionId = global.stage.connect('captured-event', (stage, event) => {
++            if (event.type() === Clutter.EventType.MOTION)
++                this._showPointer();
++
++            return Clutter.EVENT_PROPAGATE;
++        });
++        this._cursorTracker.set_pointer_visible(false);
++    }
++
+     _hideLockScreen(animate) {
+         if (this._lockScreenState == MessageTray.State.HIDDEN)
+             return;
+@@ -364,7 +383,7 @@ var ScreenShield = class {
+             this._hideLockScreenComplete();
+         }
+ 
+-        this._cursorTracker.set_pointer_visible(true);
++        this._showPointer();
+     }
+ 
+     _ensureUnlockDialog(allowCancel) {
+@@ -435,15 +454,7 @@ var ScreenShield = class {
+     }
+ 
+     _lockScreenShown(params) {
+-        let motionId = global.stage.connect('captured-event', (stage, event) => {
+-            if (event.type() === Clutter.EventType.MOTION) {
+-                this._cursorTracker.set_pointer_visible(true);
+-                global.stage.disconnect(motionId);
+-            }
+-
+-            return Clutter.EVENT_PROPAGATE;
+-        });
+-        this._cursorTracker.set_pointer_visible(false);
++        this._hidePointerUntilMotion();
+ 
+         this._lockScreenState = MessageTray.State.SHOWN;
+ 

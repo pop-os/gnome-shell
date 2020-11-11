@@ -1,0 +1,36 @@
+From: Andre Moreira Magalhaes <andre@endlessm.com>
+Date: Wed, 7 Oct 2020 23:21:04 +0000
+Subject: environment: Handle @content for property transitions
+
+When using `Actor.ease_property` if the property starts with '@' and the
+duration of the transition is zero (which may happen if the actor is not
+mapped even if a non-zero duration was passed to `ease_property`), the
+impl will try getting the actual target object where the property should
+be set.
+
+This works fine for most cases but it currently throws an error when
+passing '@content.*' properties. Fix this by handling '@content' as
+a property of `actor.content` (used by MetaBackgroundActor when
+showing the overview).
+
+(cherry picked from commit cc9f66d78463b69840958d1997800a7a72b0ceb0)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1461
+Origin: upstream, 3.38.2
+---
+ js/ui/environment.js | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index af0300d..e777d65 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -97,6 +97,8 @@ function _getPropertyTarget(actor, propName) {
+         return [actor.get_action(name), prop];
+     case '@constraints':
+         return [actor.get_constraint(name), prop];
++    case '@content':
++        return [actor.content, name];
+     case '@effects':
+         return [actor.get_effect(name), prop];
+     }
