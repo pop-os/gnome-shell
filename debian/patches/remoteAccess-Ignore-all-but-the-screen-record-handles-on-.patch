@@ -1,0 +1,52 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Tue, 13 Oct 2020 14:28:51 +0000
+Subject: remoteAccess: Ignore all but the screen record handles on X11
+
+We still want to show the red dot when recording the screen on X11, so
+only drop the "screen-is-shared" handles when using the X11 session.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1466
+
+(cherry picked from commit a0e87b53ffe8ccf0530f87382ca0cc712a7b993e)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3279
+Origin: upstream, 3.38.2
+---
+ js/ui/status/remoteAccess.js | 17 ++++++++++-------
+ 1 file changed, 10 insertions(+), 7 deletions(-)
+
+diff --git a/js/ui/status/remoteAccess.js b/js/ui/status/remoteAccess.js
+index feafe61..21f6581 100644
+--- a/js/ui/status/remoteAccess.js
++++ b/js/ui/status/remoteAccess.js
+@@ -16,13 +16,6 @@ class RemoteAccessApplet extends PanelMenu.SystemIndicator {
+         if (!controller)
+             return;
+ 
+-        // We can't possibly know about all types of screen sharing on X11, so
+-        // showing these controls on X11 might give a false sense of security.
+-        // Thus, only enable these controls when using Wayland, where we are
+-        // in control of sharing.
+-        if (!Meta.is_wayland_compositor())
+-            return;
+-
+         this._handles = new Set();
+         this._sharedIndicator = null;
+         this._recordingIndicator = null;
+@@ -85,6 +78,16 @@ class RemoteAccessApplet extends PanelMenu.SystemIndicator {
+     }
+ 
+     _onNewHandle(handle) {
++        // We can't possibly know about all types of screen sharing on X11, so
++        // showing these controls on X11 might give a false sense of security.
++        // Thus, only enable these controls when using Wayland, where we are
++        // in control of sharing.
++        //
++        // We still want to show screen recordings though, to indicate when
++        // the built in screen recorder is active, no matter the session type.
++        if (!Meta.is_wayland_compositor() && !handle.is_recording)
++            return;
++
+         this._handles.add(handle);
+         handle.connect('stopped', this._onStopped.bind(this));
+ 

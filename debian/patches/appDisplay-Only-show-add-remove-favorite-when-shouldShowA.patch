@@ -1,0 +1,40 @@
+From: Ian Douglas Scott <idscott@system76.com>
+Date: Fri, 30 Oct 2020 16:57:40 +0000
+Subject: appDisplay: Only show add/remove favorite when shouldShowApp() is
+ true
+
+`shouldShowApp()` is called in `_addFavorite`, so adding a favorite when
+this isn't true won't work. Also, it seems when this is false, favorites
+that do exist won't be shown anyway.
+
+(cherry picked from commit c86c294d2a8cf29be95a98881bbee4a25e92524b)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3342
+Origin: upstream, 3.38.2
+---
+ js/ui/appDisplay.js | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
+index 56b4a58..920fde3 100644
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -2843,6 +2843,8 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
+ 
+         this._source = source;
+ 
++        this._parentalControlsManager = ParentalControlsManager.getDefault();
++
+         this.actor.add_style_class_name('app-well-menu');
+ 
+         // Chain our visibility and lifecycle to that of the source
+@@ -2923,7 +2925,8 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
+                 });
+             }
+ 
+-            let canFavorite = global.settings.is_writable('favorite-apps');
++            let canFavorite = global.settings.is_writable('favorite-apps') &&
++                              this._parentalControlsManager.shouldShowApp(this._source.app.app_info);
+ 
+             if (canFavorite) {
+                 this._appendSeparator();
