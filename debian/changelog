@@ -1,3 +1,19 @@
+gnome-shell (3.38.1-3) experimental; urgency=medium
+
+  * Team upload
+  * Update to upstream gnome-3-38 branch, commit 3.38.1-19-ge93b8263b
+    - Fix a crash with message "Error in freeze/thaw accounting"
+    - Don't crash if taking a per-window screenshot fails
+    - Align audio device selection icons better
+    - Fix typing replies into Telepathy notifications
+    - Fix some memory leaks
+    - Show screen-recorder indication, even in Xorg
+    - Don't play message sounds when "Do not disturb" is enabled
+    - Don't allow adding apps to favorites if they would be hidden anyway
+    - Update translations: bn_IN, es, fur, pt
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 12 Nov 2020 16:45:02 +0000
+
 gnome-shell (3.38.1-2) unstable; urgency=medium
 
   * debian/patches/modemManager_Add-property-getters.patch:
