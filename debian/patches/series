@@ -17,3 +17,4 @@ messageTray-Don-t-play-sound-when-banners-are-disabled.patch
 appDisplay-Only-show-add-remove-favorite-when-shouldShowA.patch
 modemManager_Add-property-getters.patch
 Update-Portuguese-translation-2.patch
+st-bin-Disallow-st_bin_set_child-with-already-parented-ch.patch

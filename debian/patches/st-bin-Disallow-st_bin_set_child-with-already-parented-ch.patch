@@ -1,0 +1,57 @@
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Tue, 24 Nov 2020 17:34:08 +0800
+Subject: st-bin: Disallow st_bin_set_child with already-parented children
+
+Not checking for this would result in `clutter_actor_add_child`
+failing, but StBin keeping a copy in `priv->child`. So later on,
+`st_bin_remove` would never be called on it and this assertion
+would fail and crash the whole shell:
+
+```
+static void
+st_bin_destroy (ClutterActor *actor)
+{
+  StBinPrivate *priv = st_bin_get_instance_private (ST_BIN (actor));
+
+  if (priv->child)
+    clutter_actor_destroy (priv->child);
+  g_assert (priv->child == NULL);
+
+```
+
+By disallowing spurious `st_bin_set_child` calls we now prevent StBin
+from entering such a corrupt state and the above assertion won't fail
+anymore.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1507>
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1898005
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1898910
+Applied-upstream: 3.39.0, commit:244c266c9f59f1758024deb46a0418efe23243a8
+---
+ src/st/st-bin.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/src/st/st-bin.c b/src/st/st-bin.c
+index 2eadd57..e967686 100644
+--- a/src/st/st-bin.c
++++ b/src/st/st-bin.c
+@@ -358,6 +358,19 @@ st_bin_set_child (StBin        *bin,
+   if (priv->child == child)
+     return;
+ 
++  if (child)
++    {
++      ClutterActor *parent = clutter_actor_get_parent (child);
++
++      if (parent)
++        {
++          g_warning ("%s: The provided 'child' actor %p already has a "
++                     "(different) parent %p and can't be made a child of %p.",
++                     G_STRFUNC, child, parent, bin);
++          return;
++        }
++    }
++
+   if (priv->child)
+     clutter_actor_remove_child (CLUTTER_ACTOR (bin), priv->child);
+ 
