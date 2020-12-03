@@ -1,0 +1,36 @@
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Thu, 2 Apr 2020 17:16:27 +0800
+Subject: Keep the Ubuntu logo at full brightness during startup animation
+
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1867133
+Forwarded: not-needed
+Last-Update: 2020-03-18
+---
+ js/gdm/loginDialog.js | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/js/gdm/loginDialog.js b/js/gdm/loginDialog.js
+index 9acb01c..388bea4 100644
+--- a/js/gdm/loginDialog.js
++++ b/js/gdm/loginDialog.js
+@@ -1255,7 +1255,11 @@ var LoginDialog = GObject.registerClass({
+                                         { sortGroup: CtrlAltTab.SortGroup.MIDDLE });
+         this.activate();
+ 
+-        this.opacity = 0;
++        // Clutter doesn't yet fully support invisible parents with forced
++        // visible children and will make everything invisible (flicker) on
++        // the first frame if we start at 0. So we start at 1 instead...
++        this.opacity = 1;
++        this._logoBin.set_opacity_override(255);
+ 
+         Main.pushModal(this, { actionMode: Shell.ActionMode.LOGIN_SCREEN });
+ 
+@@ -1263,6 +1267,7 @@ var LoginDialog = GObject.registerClass({
+             opacity: 255,
+             duration: 1000,
+             mode: Clutter.AnimationMode.EASE_IN_QUAD,
++            onComplete: () => { this._logoBin.set_opacity_override(-1); },
+         });
+ 
+         return true;

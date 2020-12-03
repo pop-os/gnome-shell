@@ -1,0 +1,35 @@
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Tue, 10 Sep 2019 13:13:14 +0100
+Subject: js/ui/background.js: Match 19.10 Yaru purple login screen with
+ noise.
+
+Original author: Didier Roche <didrocks@ubuntu.com>
+Last-Update: 2019-08-30
+Forwarded: not-needed
+
+This way the login animation will appear to expand over the login
+screen (system background) instead of suddenly replacing it.
+Original author: Didier Roche <didrocks@ubuntu.com>
+Author: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Last-Update: 2019-08-30
+Forwarded: not-needed
+---
+ js/ui/background.js | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/js/ui/background.js b/js/ui/background.js
+index ca34451..809a702 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
+@@ -103,6 +103,11 @@ const Params = imports.misc.params;
+ 
+ var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
+ 
++if (imports.misc.desktop.is("ubuntu")) {
++    // Yaru uses darken(#762572, 10%) for #lockDialogGroup
++    [, DEFAULT_BACKGROUND_COLOR] = Clutter.Color.from_string('#4f194c');
++}
++
+ const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
+ const PRIMARY_COLOR_KEY = 'primary-color';
+ const SECONDARY_COLOR_KEY = 'secondary-color';

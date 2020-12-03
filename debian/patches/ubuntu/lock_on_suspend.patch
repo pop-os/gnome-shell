@@ -1,0 +1,48 @@
+From: Tim Lunn <tim@feathertop.org>
+Date: Wed, 20 Jun 2018 19:22:06 +0200
+Subject: add support for the ubuntu lock on suspend option
+
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1063110
+---
+ js/ui/screenShield.js | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
+index b368162..dbb5cf2 100644
+--- a/js/ui/screenShield.js
++++ b/js/ui/screenShield.js
+@@ -19,6 +19,7 @@ const { adjustAnimationTime } = imports.ui.environment;
+ const SCREENSAVER_SCHEMA = 'org.gnome.desktop.screensaver';
+ const LOCK_ENABLED_KEY = 'lock-enabled';
+ const LOCK_DELAY_KEY = 'lock-delay';
++const SUSPEND_LOCK_ENABLED_KEY = 'ubuntu-lock-on-suspend';
+ 
+ const LOCKDOWN_SCHEMA = 'org.gnome.desktop.lockdown';
+ const DISABLE_LOCK_KEY = 'disable-lock-screen';
+@@ -113,6 +114,7 @@ var ScreenShield = class {
+ 
+         this._settings = new Gio.Settings({ schema_id: SCREENSAVER_SCHEMA });
+         this._settings.connect('changed::%s'.format(LOCK_ENABLED_KEY), this._syncInhibitor.bind(this));
++        this._settings.connect('changed::%s'.format(SUSPEND_LOCK_ENABLED_KEY), this._syncInhibitor.bind(this));
+ 
+         this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
+         this._lockSettings.connect('changed::%s'.format(DISABLE_LOCK_KEY), this._syncInhibitor.bind(this));
+@@ -195,7 +197,8 @@ var ScreenShield = class {
+     }
+ 
+     _syncInhibitor() {
+-        let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY);
++        let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY) ||
++                          this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY);
+         let lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
+         let inhibit = this._loginSession && this._loginSession.Active &&
+                        !this._isActive && lockEnabled && !lockLocked && Main.sessionMode.unlockDialog;
+@@ -215,7 +218,7 @@ var ScreenShield = class {
+ 
+     _prepareForSleep(loginManager, aboutToSuspend) {
+         if (aboutToSuspend) {
+-            if (this._settings.get_boolean(LOCK_ENABLED_KEY))
++            if (this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY))
+                 this.lock(true);
+         } else {
+             this._wakeUpScreen();
