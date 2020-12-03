@@ -595,8 +595,11 @@ var WorkspaceLayout = GObject.registerClass({
 
             // The fifth element in the slot array is the WindowPreview
             const index = this._windowSlots.findIndex(s => s[4] === child);
-            if (index === -1)
+            if (index === -1) {
+                log('Couldn\'t find child %s in window slots'.format(child));
+                child.allocate(childBox);
                 continue;
+            }
 
             const [x, y, width, height] = this._windowSlots[index];
             const windowInfo = this._windows.get(child);
@@ -630,6 +633,14 @@ var WorkspaceLayout = GObject.registerClass({
 
             if (windowInfo.currentTransition) {
                 windowInfo.currentTransition.get_interval().set_final(childBox);
+
+                // The timeline of the transition might not have been updated
+                // before this allocation cycle, so make sure the child
+                // still updates needs_allocation to FALSE.
+                // Unfortunately, this relies on the fast paths in
+                // clutter_actor_allocate(), otherwise we'd start a new
+                // transition on the child, replacing the current one.
+                child.allocate(child.allocation);
                 continue;
             }
 
