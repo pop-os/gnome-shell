@@ -1,9 +1,0 @@
-# This is just a launcher for a desktop-required component (evolution)
-gnome-shell: desktop-command-not-in-package usr/share/applications/evolution-calendar.desktop evolution
-
-# gnome-shell ships some desktop files only to provide metadata and icons to some apps
-gnome-shell: desktop-command-not-in-package usr/share/applications/org.gnome.Shell.Extensions.desktop false
-gnome-shell: desktop-command-not-in-package usr/share/applications/org.gnome.Shell.PortalHelper.desktop gapplication
-
-# This is a NoDisplay=true desktop file, so there's no need for it
-gnome-shell: desktop-entry-lacks-main-category usr/share/applications/org.gnome.Shell.desktop
