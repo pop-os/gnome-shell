@@ -1,5 +1,6 @@
-gnome-shell (3.38.2-1) UNRELEASED; urgency=medium
+gnome-shell (3.38.2-1) unstable; urgency=medium
 
+  * Team upload
   * New upstream release
     - Improve app picker spacing on larger resolutions
     - Don't add dialogs to the window preview more than once
@@ -12,8 +13,14 @@ gnome-shell (3.38.2-1) UNRELEASED; urgency=medium
     - Update translations: nb, zh_CN
     - Otherwise functionally equivalent to 3.38.1-3
   * Drop patches that were included in the new upstream release
+  * d/gbp.conf: Use upstream 3.38.x branch.
+    Version 40~alpha was already released, so it's misleading to say that
+    3.38.x is the latest.
+  * Standards-Version: 4.5.1 (no changes required)
+  * Update Lintian overrides
+  * Release to unstable
 
- -- Simon McVittie <smcv@debian.org>  Thu, 03 Dec 2020 09:43:09 +0000
+ -- Simon McVittie <smcv@debian.org>  Thu, 03 Dec 2020 10:40:52 +0000
 
 gnome-shell (3.38.1-3) experimental; urgency=medium
 
