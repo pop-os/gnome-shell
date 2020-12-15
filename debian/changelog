@@ -1,5 +1,13 @@
-gnome-shell (3.36.6-0ubuntu0.20.04.3) UNRELEASED; urgency=medium
+gnome-shell (3.36.7-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
 
+  [ Marco Trevisan (Treviño) ]
+  * New upstream release (LP: #1903764)
+    - Fix potential stack overflow in libcroco
+    - Fix system action search regressions
+    - Fix week number alignment when using font-scaling
+    - Misc. bug fixes and cleanups
+
+  [ Matthew Ruffell ]
   * authPrompt-Properly-get-oVirt-service-name.patch,
     authPrompt-set-value-of-beginRequestType-to-DONT_PROVIDE_.patch,
     gdm-Introduce-vmware-credential-manager-for-pre-authentic.patch,
@@ -7,7 +15,7 @@ gnome-shell (3.36.6-0ubuntu0.20.04.3) UNRELEASED; urgency=medium
     - Enable support for VMware Horizon SSO to ensure compatibility
       with the Horizon Agent (LP: #1886592)
 
- -- Matthew Ruffell <matthew.ruffell@canonical.com>  Mon, 31 Aug 2020 14:35:45 +1200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Dec 2020 05:25:09 +0100
 
 gnome-shell (3.36.6-1ubuntu0.20.04.1) focal; urgency=medium
 
