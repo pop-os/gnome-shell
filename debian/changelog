@@ -1,4 +1,4 @@
-gnome-shell (3.36.7-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
+gnome-shell (3.36.7-0ubuntu0.20.04.1) focal; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * New upstream release (LP: #1903764)
@@ -18,7 +18,7 @@ gnome-shell (3.36.7-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
     - Enable support for VMware Horizon SSO to ensure compatibility
       with the Horizon Agent (LP: #1886592)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Dec 2020 05:40:10 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Dec 2020 05:54:44 +0100
 
 gnome-shell (3.36.6-1ubuntu0.20.04.1) focal; urgency=medium
 
