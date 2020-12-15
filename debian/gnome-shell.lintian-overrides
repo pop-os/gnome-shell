@@ -1,5 +1,18 @@
-# there rpaths are needed to find mutters private clutter fork, mutter-clutter.
-gnome-shell: binary-or-shlib-defines-rpath usr/bin/gnome-shell /usr/lib/*/mutter-*
-gnome-shell: binary-or-shlib-defines-rpath usr/lib/gnome-shell/libgnome-shell-menu.so /usr/lib/*/mutter-*
-gnome-shell: binary-or-shlib-defines-rpath usr/lib/gnome-shell/libgnome-shell.so /usr/lib/*/mutter-*
-gnome-shell: binary-or-shlib-defines-rpath usr/lib/gnome-shell/libst-1.0.so /usr/lib/*/mutter-*
+# These RUNPATHs are needed to find mutter's private clutter fork
+gnome-shell: custom-library-search-path usr/bin/gnome-shell /usr/lib/*/mutter-*
+gnome-shell: custom-library-search-path usr/lib/gnome-shell/libgnome-shell-menu.so /usr/lib/*/mutter-*
+gnome-shell: custom-library-search-path usr/lib/gnome-shell/libgnome-shell.so /usr/lib/*/mutter-*
+gnome-shell: custom-library-search-path usr/lib/gnome-shell/libst-1.0.so /usr/lib/*/mutter-*
+
+# This is just a launcher for a desktop-required component (evolution)
+gnome-shell: desktop-command-not-in-package usr/share/applications/evolution-calendar.desktop evolution
+
+# gnome-shell ships some desktop files only to provide metadata and icons to some apps
+gnome-shell: desktop-command-not-in-package usr/share/applications/org.gnome.Shell.Extensions.desktop false
+gnome-shell: desktop-command-not-in-package usr/share/applications/org.gnome.Shell.PortalHelper.desktop gapplication
+
+# This is a NoDisplay=true desktop file, so there's no need for it
+gnome-shell: desktop-entry-lacks-main-category usr/share/applications/org.gnome.Shell.desktop
+
+# Conceptually a program, only built as a shared library for technical reasons
+gnome-shell: exit-in-shared-library usr/lib/gnome-shell/libgnome-shell.so

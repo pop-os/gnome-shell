@@ -1378,6 +1378,10 @@ var WindowManager = class {
             onStopped: () => this._sizeChangeWindowDone(shellwm, actor),
         });
 
+        // ease didn't animate and cleared the info, we are done
+        if (!actor.__animationInfo)
+            return;
+
         // Now unfreeze actor updates, to get it to the new size.
         // It's important that we don't wait until the animation is completed to
         // do this, otherwise our scale will be applied to the old texture size.
@@ -1613,7 +1617,7 @@ var WindowManager = class {
 
     _destroyWindowDone(shellwm, actor) {
         if (this._destroying.delete(actor)) {
-            let parent = actor.get_meta_window().get_transient_for();
+            const parent = actor.get_meta_window()?.get_transient_for();
             if (parent && actor._parentDestroyId) {
                 parent.disconnect(actor._parentDestroyId);
                 actor._parentDestroyId = 0;
