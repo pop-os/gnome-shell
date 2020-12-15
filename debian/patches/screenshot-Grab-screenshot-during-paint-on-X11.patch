@@ -1,0 +1,89 @@
+From: =?utf-8?q?Jonas_=C3=85dahl?= <jadahl@gmail.com>
+Date: Mon, 14 Dec 2020 14:11:37 +0000
+Subject: screenshot: Grab screenshot during paint on X11
+
+We might not be able to directly paint the stage to an offscreen, if
+there currently is a fullscreen unredirected window. To make it possible
+to take a screenshot in this situation, disable unredirecting, queue a
+frame, and take a screenshot after having painted that frame, before we
+go back being unredirected.
+
+Don't do this on Wayland because it's a waste.
+
+Closes: https://gitlab.gnome.org/GNOME/mutter/-/issues/1453
+
+(cherry picked from commit c09be8b0a9395f5ce0c4210356f6532bd3bfa0c4)
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1536>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/d5fb557b
+---
+ src/shell-screenshot.c | 34 +++++++++++++++++++++++++++++++++-
+ 1 file changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/src/shell-screenshot.c b/src/shell-screenshot.c
+index 2505fc1..1545b86 100644
+--- a/src/shell-screenshot.c
++++ b/src/shell-screenshot.c
+@@ -32,6 +32,7 @@ struct _ShellScreenshotPrivate
+   ShellGlobal *global;
+ 
+   GOutputStream *stream;
++  ShellScreenshotFlag flags;
+ 
+   GDateTime *datetime;
+ 
+@@ -338,6 +339,22 @@ finish_screenshot (ShellScreenshot        *screenshot,
+   return TRUE;
+ }
+ 
++static void
++on_after_paint (ClutterStage     *stage,
++                ClutterStageView *view,
++                GTask            *result)
++{
++  ShellScreenshot *screenshot = g_task_get_task_data (result);
++  ShellScreenshotPrivate *priv = screenshot->priv;
++  MetaDisplay *display = shell_global_get_display (priv->global);
++
++  g_signal_handlers_disconnect_by_func (stage, on_after_paint, result);
++
++  grab_screenshot (screenshot, priv->flags, result);
++
++  meta_enable_unredirect_for_display (display);
++}
++
+ /**
+  * shell_screenshot_screenshot:
+  * @screenshot: the #ShellScreenshot
+@@ -382,6 +399,7 @@ shell_screenshot_screenshot (ShellScreenshot     *screenshot,
+ 
+   result = g_task_new (screenshot, NULL, callback, user_data);
+   g_task_set_source_tag (result, shell_screenshot_screenshot);
++  g_task_set_task_data (result, screenshot, NULL);
+ 
+   priv->stream = g_object_ref (stream);
+ 
+@@ -389,7 +407,21 @@ shell_screenshot_screenshot (ShellScreenshot     *screenshot,
+   if (include_cursor)
+     flags |= SHELL_SCREENSHOT_FLAG_INCLUDE_CURSOR;
+ 
+-  grab_screenshot (screenshot, flags, result);
++  if (meta_is_wayland_compositor ())
++    {
++      grab_screenshot (screenshot, flags, result);
++    }
++  else
++    {
++      MetaDisplay *display = shell_global_get_display (priv->global);
++      ClutterStage *stage = shell_global_get_stage (priv->global);
++
++      meta_disable_unredirect_for_display (display);
++      clutter_actor_queue_redraw (CLUTTER_ACTOR (stage));
++      priv->flags = flags;
++      g_signal_connect (stage, "after-paint",
++                        G_CALLBACK (on_after_paint), result);
++    }
+ }
+ 
+ /**
