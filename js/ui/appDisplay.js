@@ -129,6 +129,12 @@ var BaseAppView = GObject.registerClass({
         this._grid._delegate = this;
         // Standard hack for ClutterBinLayout
         this._grid.x_expand = true;
+        this._grid.connect('pages-changed', () => {
+            this._adjustment.value = 0;
+            this.goToPage(this._grid.currentPage);
+            this._pageIndicators.setNPages(this._grid.nPages);
+            this._pageIndicators.setCurrentPosition(this._grid.currentPage);
+        });
 
         const vertical = orientation === Clutter.Orientation.VERTICAL;
 
@@ -213,6 +219,12 @@ var BaseAppView = GObject.registerClass({
             this._parentalControlsManager.disconnect(this._appFilterChangedId);
             this._appFilterChangedId = 0;
         }
+
+        if (this._swipeTracker) {
+            this._swipeTracker.destroy();
+            delete this._swipeTracker;
+        }
+
         this._removeDelayedMove();
         this._disconnectDnD();
     }
@@ -649,7 +661,6 @@ var BaseAppView = GObject.registerClass({
     }
 
     _doSpringAnimation(animationDirection) {
-        this._grid.opacity = 255;
         this._grid.animateSpring(
             animationDirection,
             Main.overview.dash.showAppsButton);
@@ -667,15 +678,16 @@ var BaseAppView = GObject.registerClass({
     }
 
     animate(animationDirection, onComplete) {
-        if (onComplete) {
-            let animationDoneId = this._grid.connect('animation-done', () => {
-                this._grid.disconnect(animationDoneId);
+        const animationDoneId = this._grid.connect('animation-done', () => {
+            this._grid.disconnect(animationDoneId);
+            this._grid.opacity =
+                animationDirection === IconGrid.AnimationDirection.IN
+                    ? 255 : 0;
+            if (onComplete)
                 onComplete();
-            });
-        }
+        });
 
         this._clearAnimateLater();
-        this._grid.opacity = 255;
 
         if (animationDirection == IconGrid.AnimationDirection.IN) {
             const doSpringAnimationLater = laterType => {
@@ -687,18 +699,18 @@ var BaseAppView = GObject.registerClass({
                     });
             };
 
+            this._grid.opacity = 0;
             if (this._viewIsReady) {
-                this._grid.opacity = 0;
                 doSpringAnimationLater(Meta.LaterType.IDLE);
             } else {
                 this._viewLoadedHandlerId = this.connect('view-loaded',
                     () => {
                         this._clearAnimateLater();
-                        this._grid.opacity = 255;
                         doSpringAnimationLater(Meta.LaterType.BEFORE_REDRAW);
                     });
             }
         } else {
+            this._grid.opacity = 255;
             this._doSpringAnimation(animationDirection);
         }
     }
@@ -834,18 +846,6 @@ var BaseAppView = GObject.registerClass({
         const availHeight = box.get_height();
 
         this._grid.adaptToSize(availWidth, availHeight);
-
-        if (this._availWidth !== availWidth ||
-            this._availHeight !== availHeight ||
-            this._pageIndicators.nPages !== this._grid.nPages) {
-            Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
-                this._adjustment.value = 0;
-                this._grid.currentPage = 0;
-                this._pageIndicators.setNPages(this._grid.nPages);
-                this._pageIndicators.setCurrentPosition(0);
-                return GLib.SOURCE_REMOVE;
-            });
-        }
 
         this._availWidth = availWidth;
         this._availHeight = availHeight;
@@ -2843,6 +2843,8 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
 
         this._source = source;
 
+        this._parentalControlsManager = ParentalControlsManager.getDefault();
+
         this.actor.add_style_class_name('app-well-menu');
 
         // Chain our visibility and lifecycle to that of the source
@@ -2923,7 +2925,8 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
                 });
             }
 
-            let canFavorite = global.settings.is_writable('favorite-apps');
+            let canFavorite = global.settings.is_writable('favorite-apps') &&
+                              this._parentalControlsManager.shouldShowApp(this._source.app.app_info);
 
             if (canFavorite) {
                 this._appendSeparator();

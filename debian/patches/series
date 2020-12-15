@@ -1,4 +1,5 @@
-modemManager_Add-property-getters.patch
+Revert-appDisplay-baseAppView-Cleanup-animate.patch
+screenshot-Grab-screenshot-during-paint-on-X11.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
