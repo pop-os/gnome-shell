@@ -1,3 +1,10 @@
+gnome-shell (3.38.2-1ubuntu1~20.10.1) UNRELEASED; urgency=medium
+
+  * No-change backport to groovy
+  * debian: Update gbp.conf and control references to groovy branching
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Dec 2020 03:03:40 +0100
+
 gnome-shell (3.38.2-1ubuntu1) hirsute; urgency=medium
 
   * Merge with debian, containing new upstream release (LP: #1908161):
