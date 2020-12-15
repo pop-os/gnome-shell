@@ -63,7 +63,7 @@ index b082ec8..450e7aa 100644
          if (this._startingUp)
              return;
 diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
-index eae7bf4..dc7f22c 100644
+index 036de7f..ba71aa2 100644
 --- a/js/ui/magnifier.js
 +++ b/js/ui/magnifier.js
 @@ -45,6 +45,8 @@ var MouseSpriteContent = GObject.registerClass({
@@ -161,7 +161,7 @@ index eae7bf4..dc7f22c 100644
      /**
       * showSystemCursor:
       * Show the system mouse pointer.
-@@ -239,6 +288,8 @@ var Magnifier = class Magnifier {
+@@ -240,6 +289,8 @@ var Magnifier = class Magnifier {
              this.xMouse = xMouse;
              this.yMouse = yMouse;
  
