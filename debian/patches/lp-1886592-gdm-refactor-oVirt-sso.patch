@@ -1,0 +1,214 @@
+Description: gdm: Refactor oVirt to a generic CredentialManager interface
+Author: yun341 <5933468@qq.com>
+From: Matthew Ruffell <matthew.ruffell@canonical.com>
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/809f820cd4a4eebb120ab5dde3f1985d35bcb540
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1886592
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/1983
+Bug-GNOME-Merge: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/915
+
+Index: gnome-shell-3.36.3/js/gdm/authPrompt.js
+===================================================================
+--- gnome-shell-3.36.3.orig/js/gdm/authPrompt.js
++++ gnome-shell-3.36.3/js/gdm/authPrompt.js
+@@ -71,7 +71,7 @@ var AuthPrompt = GObject.registerClass({
+         this._userVerifier.connect('verification-complete', this._onVerificationComplete.bind(this));
+         this._userVerifier.connect('reset', this._onReset.bind(this));
+         this._userVerifier.connect('smartcard-status-changed', this._onSmartcardStatusChanged.bind(this));
+-        this._userVerifier.connect('ovirt-user-authenticated', this._onOVirtUserAuthenticated.bind(this));
++        this._userVerifier.connect('credential-manager-authenticated', this._onCredentialManagerAuthenticated.bind(this));
+         this.smartcardDetected = this._userVerifier.smartcardDetected;
+ 
+         this.connect('destroy', this._onDestroy.bind(this));
+@@ -242,7 +242,7 @@ var AuthPrompt = GObject.registerClass({
+         this.emit('prompted');
+     }
+ 
+-    _onOVirtUserAuthenticated() {
++    _onCredentialManagerAuthenticated() {
+         if (this.verificationStatus != AuthPromptStatus.VERIFICATION_SUCCEEDED)
+             this.reset();
+     }
+Index: gnome-shell-3.36.3/js/gdm/credentialManager.js
+===================================================================
+--- /dev/null
++++ gnome-shell-3.36.3/js/gdm/credentialManager.js
+@@ -0,0 +1,24 @@
++// -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
++/* exported CredentialManager */
++
++class CredentialManager {
++    constructor(service) {
++        this._token = null;
++        this._service = service;
++        this._authenticatedSignalId = null;
++    }
++
++    get token() {
++        return this._token;
++    }
++
++    set token(t) {
++        this._token = t;
++        if (this._token)
++            this.emit('user-authenticated', this._token);
++    }
++
++    get service() {
++        return this._service;
++    }
++}
+Index: gnome-shell-3.36.3/js/gdm/oVirt.js
+===================================================================
+--- gnome-shell-3.36.3.orig/js/gdm/oVirt.js
++++ gnome-shell-3.36.3/js/gdm/oVirt.js
+@@ -3,6 +3,9 @@
+ 
+ const Gio = imports.gi.Gio;
+ const Signals = imports.signals;
++const Credential = imports.gdm.credentialManager;
++
++var SERVICE_NAME = 'gdm-ovirtcred';
+ 
+ const OVirtCredentialsIface = `
+ <node>
+@@ -28,30 +31,14 @@ function OVirtCredentials() {
+     return self;
+ }
+ 
+-var OVirtCredentialsManager = class {
++var OVirtCredentialsManager = class OVirtCredentialsManager extends Credential.CredentialManager {
+     constructor() {
+-        this._token = null;
+-
++        super(SERVICE_NAME);
+         this._credentials = new OVirtCredentials();
+         this._credentials.connectSignal('UserAuthenticated',
+-                                        this._onUserAuthenticated.bind(this));
+-    }
+-
+-    _onUserAuthenticated(proxy, sender, [token]) {
+-        this._token = token;
+-        this.emit('user-authenticated', token);
+-    }
+-
+-    hasToken() {
+-        return this._token != null;
+-    }
+-
+-    getToken() {
+-        return this._token;
+-    }
+-
+-    resetToken() {
+-        this._token = null;
++            (proxy, sender, [token]) => {
++                this.token = token;
++            });
+     }
+ };
+ Signals.addSignalMethods(OVirtCredentialsManager.prototype);
+Index: gnome-shell-3.36.3/js/gdm/util.js
+===================================================================
+--- gnome-shell-3.36.3.orig/js/gdm/util.js
++++ gnome-shell-3.36.3/js/gdm/util.js
+@@ -15,7 +15,6 @@ const SmartcardManager = imports.misc.sm
+ var PASSWORD_SERVICE_NAME = 'gdm-password';
+ var FINGERPRINT_SERVICE_NAME = 'gdm-fingerprint';
+ var SMARTCARD_SERVICE_NAME = 'gdm-smartcard';
+-var OVIRT_SERVICE_NAME = 'gdm-ovirtcred';
+ var FADE_ANIMATION_TIME = 160;
+ var CLONE_FADE_ANIMATION_TIME = 250;
+ 
+@@ -151,13 +150,19 @@ var ShellUserVerifier = class {
+ 
+         this._failCounter = 0;
+ 
+-        this._oVirtCredentialsManager = OVirt.getOVirtCredentialsManager();
++        this._credentialManagers = {};
++        this._credentialManagers[OVirt.SERVICE_NAME] = OVirt.getOVirtCredentialsManager();
+ 
+-        if (this._oVirtCredentialsManager.hasToken())
+-            this._oVirtUserAuthenticated(this._oVirtCredentialsManager.getToken());
++        for (let service in this._credentialManagers) {
++            if (this._credentialManagers[service].token) {
++                this._onCredentialManagerAuthenticated(this._credentialManagers[service],
++                    this._credentialManagers[service].token);
++            }
+ 
+-        this._oVirtUserAuthenticatedId = this._oVirtCredentialsManager.connect('user-authenticated',
+-                                                                               this._oVirtUserAuthenticated.bind(this));
++            this._credentialManagers[service]._authenticatedSignalId =
++                this._credentialManagers[service].connect('user-authenticated',
++                                                          this._onCredentialManagerAuthenticated.bind(this));
++        }
+     }
+ 
+     begin(userName, hold) {
+@@ -215,8 +220,11 @@ var ShellUserVerifier = class {
+         this._smartcardManager.disconnect(this._smartcardRemovedId);
+         this._smartcardManager = null;
+ 
+-        this._oVirtCredentialsManager.disconnect(this._oVirtUserAuthenticatedId);
+-        this._oVirtCredentialsManager = null;
++        for (let service in this._credentialManagers) {
++            let credentialManager = this._credentialManagers[service];
++            credentialManager.disconnect(credentialManager._authenticatedSignalId);
++            credentialManager = null;
++        }
+     }
+ 
+     answerQuery(serviceName, answer) {
+@@ -304,9 +312,9 @@ var ShellUserVerifier = class {
+             });
+     }
+ 
+-    _oVirtUserAuthenticated(_token) {
+-        this._preemptingService = OVIRT_SERVICE_NAME;
+-        this.emit('ovirt-user-authenticated');
++    _onCredentialManagerAuthenticated(credentialManager, _token) {
++        this._preemptingService = credentialManager.service;
++        this.emit('credential-manager-authenticated');
+     }
+ 
+     _checkForSmartcard() {
+@@ -492,9 +500,12 @@ var ShellUserVerifier = class {
+         if (!this.serviceIsForeground(serviceName))
+             return;
+ 
+-        if (serviceName == OVIRT_SERVICE_NAME) {
+-            // The only question asked by this service is "Token?"
+-            this.answerQuery(serviceName, this._oVirtCredentialsManager.getToken());
++        let token = null;
++        if (this._credentialManagers[serviceName])
++            token = this._credentialManagers[serviceName].token;
++
++        if (token) {
++            this.answerQuery(serviceName, token);
+             return;
+         }
+ 
+@@ -562,8 +573,10 @@ var ShellUserVerifier = class {
+         // If the login failed with the preauthenticated oVirt credentials
+         // then discard the credentials and revert to default authentication
+         // mechanism.
+-        if (this.serviceIsForeground(OVIRT_SERVICE_NAME)) {
+-            this._oVirtCredentialsManager.resetToken();
++        let foregroundService = Object.keys(this._credentialManagers).find(service =>
++            this.serviceIsForeground(service));
++        if (foregroundService) {
++            this._credentialManagers[foregroundService].token = null;
+             this._preemptingService = null;
+             this._verificationFailed(false);
+             return;
+Index: gnome-shell-3.36.3/js/js-resources.gresource.xml
+===================================================================
+--- gnome-shell-3.36.3.orig/js/js-resources.gresource.xml
++++ gnome-shell-3.36.3/js/js-resources.gresource.xml
+@@ -6,6 +6,7 @@
+     <file>gdm/fingerprint.js</file>
+     <file>gdm/loginDialog.js</file>
+     <file>gdm/oVirt.js</file>
++    <file>gdm/credentialManager.js</file>
+     <file>gdm/realmd.js</file>
+     <file>gdm/util.js</file>
+ 

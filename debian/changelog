@@ -1,3 +1,14 @@
+gnome-shell (3.36.6-0ubuntu0.20.04.3) UNRELEASED; urgency=medium
+
+  * d/p/lp-1886592-gdm-refactor-oVirt-sso.patch:
+  * d/p/lp-1886592-gdm-enable-vmware-sso.patch:
+  * d/p/lp-1886592-gdm-fixup-oVirt-service-name.patch:  
+  * d/p/lp-1886592-gdm-fixup-VMware-service-name.patch:
+    - Enable support for VMware Horizon SSO to ensure compatibility
+      with the Horizon Agent (LP: #1886592)
+
+ -- Matthew Ruffell <matthew.ruffell@canonical.com>  Mon, 31 Aug 2020 14:35:45 +1200
+
 gnome-shell (3.36.6-1ubuntu0.20.04.1) focal; urgency=medium
 
   * Merge with debian, containing new stable release (LP: #1896334)

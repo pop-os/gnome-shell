@@ -1,0 +1,99 @@
+Description: gdm: Introduce vmware credential manager for pre-authenticated logins
+Author: yun341 <5933468@qq.com>
+From: Matthew Ruffell <matthew.ruffell@canonical.com>
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/4ea0fca4fc09ffd6e0b6994ee1354f07f7d5d2b5
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1886592
+Bug-GNOME: https://gitlab.gnome.org/GNOME/gnome-shell/issues/1983
+Bug-GNOME-Merge: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/915
+
+Index: gnome-shell-3.36.3/js/gdm/util.js
+===================================================================
+--- gnome-shell-3.36.3.orig/js/gdm/util.js
++++ gnome-shell-3.36.3/js/gdm/util.js
+@@ -8,6 +8,7 @@ const Signals = imports.signals;
+ const Batch = imports.gdm.batch;
+ const Fprint = imports.gdm.fingerprint;
+ const OVirt = imports.gdm.oVirt;
++const Vmware = imports.gdm.vmware;
+ const Main = imports.ui.main;
+ const Params = imports.misc.params;
+ const SmartcardManager = imports.misc.smartcardManager;
+@@ -152,6 +153,7 @@ var ShellUserVerifier = class {
+ 
+         this._credentialManagers = {};
+         this._credentialManagers[OVirt.SERVICE_NAME] = OVirt.getOVirtCredentialsManager();
++        this._credentialManagers[Vmware.SERVICE_NAME] = Vmware.getVmwareCredentialsManager();
+ 
+         for (let service in this._credentialManagers) {
+             if (this._credentialManagers[service].token) {
+Index: gnome-shell-3.36.3/js/gdm/vmware.js
+===================================================================
+--- /dev/null
++++ gnome-shell-3.36.3/js/gdm/vmware.js
+@@ -0,0 +1,54 @@
++// -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
++/* exported getVmwareCredentialsManager */
++
++const Gio = imports.gi.Gio;
++const Signals = imports.signals;
++const Credential = imports.gdm.credentialManager;
++
++const dbusPath = '/org/vmware/viewagent/Credentials';
++const dbusInterface = 'org.vmware.viewagent.Credentials';
++
++var SERVICE_NAME = 'gdm-vmwcred';
++
++const VmwareCredentialsIface = '<node> \
++<interface name="' + dbusInterface + '"> \
++<signal name="UserAuthenticated"> \
++    <arg type="s" name="token"/> \
++</signal> \
++</interface> \
++</node>';
++
++
++const VmwareCredentialsInfo = Gio.DBusInterfaceInfo.new_for_xml(VmwareCredentialsIface);
++
++let _vmwareCredentialsManager = null;
++
++function VmwareCredentials() {
++    var self = new Gio.DBusProxy({ g_connection: Gio.DBus.session,
++                                   g_interface_name: VmwareCredentialsInfo.name,
++                                   g_interface_info: VmwareCredentialsInfo,
++                                   g_name: dbusInterface,
++                                   g_object_path: dbusPath,
++                                   g_flags: Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES });
++    self.init(null);
++    return self;
++}
++
++var VmwareCredentialsManager = class VmwareCredentialsManager extends Credential.CredentialManager {
++    constructor() {
++        super(SERVICE_NAME);
++        this._credentials = new VmwareCredentials();
++        this._credentials.connectSignal('UserAuthenticated',
++            (proxy, sender, [token]) => {
++                this.token = token;
++            });
++    }
++};
++Signals.addSignalMethods(VmwareCredentialsManager.prototype);
++
++function getVmwareCredentialsManager() {
++    if (!_vmwareCredentialsManager)
++        _vmwareCredentialsManager = new VmwareCredentialsManager();
++
++    return _vmwareCredentialsManager;
++}
+Index: gnome-shell-3.36.3/js/js-resources.gresource.xml
+===================================================================
+--- gnome-shell-3.36.3.orig/js/js-resources.gresource.xml
++++ gnome-shell-3.36.3/js/js-resources.gresource.xml
+@@ -7,6 +7,7 @@
+     <file>gdm/loginDialog.js</file>
+     <file>gdm/oVirt.js</file>
+     <file>gdm/credentialManager.js</file>
++    <file>gdm/vmware.js</file>
+     <file>gdm/realmd.js</file>
+     <file>gdm/util.js</file>
+ 

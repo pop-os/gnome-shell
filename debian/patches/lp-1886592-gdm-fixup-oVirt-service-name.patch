@@ -1,0 +1,36 @@
+Description: authPrompt: Properly get oVirt service name
+Author: Andre Moreira Magalhaes <andre@endlessm.com>
+From: Matthew Ruffell <matthew.ruffell@canonical.com>
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/00437750ed9c7e0982854e20be8c36c6bda7b254
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1886592
+Bug-GNOME-Merge: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1414
+---
+ js/gdm/authPrompt.js | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+Index: gnome-shell-3.36.4/js/gdm/authPrompt.js
+===================================================================
+--- gnome-shell-3.36.4.orig/js/gdm/authPrompt.js	2020-08-31 13:21:18.511407664 +1200
++++ gnome-shell-3.36.4/js/gdm/authPrompt.js	2020-08-31 13:21:18.511407664 +1200
+@@ -6,10 +6,11 @@
+ const Animation = imports.ui.animation;
+ const Batch = imports.gdm.batch;
+ const GdmUtil = imports.gdm.util;
+-const Util = imports.misc.util;
++const OVirt = imports.gdm.oVirt;
+ const Params = imports.misc.params;
+ const ShellEntry = imports.ui.shellEntry;
+ const UserWidget = imports.ui.userWidget;
++const Util = imports.misc.util;
+ 
+ var DEFAULT_BUTTON_WELL_ICON_SIZE = 16;
+ var DEFAULT_BUTTON_WELL_ANIMATION_DELAY = 1000;
+@@ -482,7 +483,7 @@
+             // The user is constant at the unlock screen, so it will immediately
+             // respond to the request with the username
+             beginRequestType = BeginRequestType.PROVIDE_USERNAME;
+-        } else if (this._userVerifier.serviceIsForeground(GdmUtil.OVIRT_SERVICE_NAME) ||
++        } else if (this._userVerifier.serviceIsForeground(OVirt.SERVICE_NAME) ||
+                    this._userVerifier.serviceIsForeground(GdmUtil.SMARTCARD_SERVICE_NAME)) {
+             // We don't need to know the username if the user preempted the login screen
+             // with a smartcard or with preauthenticated oVirt credentials
