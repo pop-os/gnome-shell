@@ -1,9 +1,9 @@
 gnome-shell (3.36.6-0ubuntu0.20.04.3) UNRELEASED; urgency=medium
 
-  * d/p/lp-1886592-gdm-refactor-oVirt-sso.patch:
-  * d/p/lp-1886592-gdm-enable-vmware-sso.patch:
-  * d/p/lp-1886592-gdm-fixup-oVirt-service-name.patch:  
-  * d/p/lp-1886592-gdm-fixup-VMware-service-name.patch:
+  * authPrompt-Properly-get-oVirt-service-name.patch,
+    authPrompt-set-value-of-beginRequestType-to-DONT_PROVIDE_.patch,
+    gdm-Introduce-vmware-credential-manager-for-pre-authentic.patch,
+    gdm-Refactor-oVirt-to-a-generic-CredentialManager-interfa.patch:
     - Enable support for VMware Horizon SSO to ensure compatibility
       with the Horizon Agent (LP: #1886592)
 

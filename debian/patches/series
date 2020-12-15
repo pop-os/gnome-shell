@@ -11,10 +11,10 @@ main-add-backtrace-crashes-all-and-backtrace-all.patch
 sessionMode-add-support-for-debugFlags-parameter.patch
 st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch
 magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch
-lp-1886592-gdm-refactor-oVirt-sso.patch
-lp-1886592-gdm-enable-vmware-sso.patch
-lp-1886592-gdm-fixup-oVirt-service-name.patch
-lp-1886592-gdm-fixup-VMware-service-name.patch
+gdm-Refactor-oVirt-to-a-generic-CredentialManager-interfa.patch
+gdm-Introduce-vmware-credential-manager-for-pre-authentic.patch
+authPrompt-Properly-get-oVirt-service-name.patch
+authPrompt-set-value-of-beginRequestType-to-DONT_PROVIDE_.patch
 ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
 ubuntu/secure_mode_extension.patch

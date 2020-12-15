@@ -1,17 +1,24 @@
-Description: authPrompt: set value of beginRequestType to 'DONT_PROVIDE_USERNAME'
-Author: yun341 <5933468@qq.com>
-From: Matthew Ruffell <matthew.ruffell@canonical.com>
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/3fb321fd214469130539e1e31461257a749bff21
+From: yun341 <5933468@qq.com>
+Date: Mon, 21 Sep 2020 22:11:41 +0800
+Subject: authPrompt: set value of beginRequestType to 'DONT_PROVIDE_USERNAME'
+
+Commit 809f820c introduct vmware SSO service to gnome-shell, the value
+beginRequestType should be set to 'DONT_PROVIDE_USERNAME', otherwise
+vmware sso will fail. This patch will fix it.
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1443
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/3fb321f
+
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/1886592
-Bug-GNOME-Merge: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1443
 ---
  js/gdm/authPrompt.js | 2 ++
  1 file changed, 2 insertions(+)
 
-Index: gnome-shell-3.36.4/js/gdm/authPrompt.js
-===================================================================
---- gnome-shell-3.36.4.orig/js/gdm/authPrompt.js
-+++ gnome-shell-3.36.4/js/gdm/authPrompt.js
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index a6ea6c8..40afacc 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
 @@ -7,6 +7,7 @@ const Animation = imports.ui.animation;
  const Batch = imports.gdm.batch;
  const GdmUtil = imports.gdm.util;
