@@ -1,3 +1,4 @@
+screenshot-Handle-window-screenshot-failures-gracefully.patch
 tweener-Save-handlers-on-target-and-remove-them-on-destro.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch

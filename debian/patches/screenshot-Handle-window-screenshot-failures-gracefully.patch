@@ -1,0 +1,37 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Sun, 18 Oct 2020 16:01:05 +0200
+Subject: screenshot: Handle window screenshot failures gracefully
+
+meta_window_actor_get_image() may return NULL. Instead of crashing,
+catch that case and return a proper error.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3258
+
+(cherry picked from commit d72da7d2465628150d83a9a152df2525691de1b0)
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/05f051e00e
+Bug-Ubuntu: https://bugs.launchpad.net/gnome-shell/+bug/1908187
+---
+ src/shell-screenshot.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/shell-screenshot.c b/src/shell-screenshot.c
+index 6c59781..20894cc 100644
+--- a/src/shell-screenshot.c
++++ b/src/shell-screenshot.c
+@@ -369,6 +369,15 @@ grab_window_screenshot (ClutterActor *stage,
+ 
+   priv->image = meta_window_actor_get_image (META_WINDOW_ACTOR (window_actor),
+                                              NULL);
++
++  if (!priv->image)
++    {
++      g_task_report_new_error (screenshot, on_screenshot_written, result, NULL,
++                               G_IO_ERROR, G_IO_ERROR_FAILED,
++                               "Capturing window failed");
++      return;
++    }
++
+   priv->datetime = g_date_time_new_now_local ();
+ 
+   if (priv->include_cursor)
