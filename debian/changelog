@@ -1,4 +1,4 @@
-gnome-shell (3.38.2-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.38.2-1ubuntu1) hirsute; urgency=medium
 
   * Merge with debian, containing new upstream release (LP: #1908161):
     - Fixed crash in meta_window_actor_thaw (LP: #1897765)
@@ -53,7 +53,7 @@ gnome-shell (3.38.2-1ubuntu1) UNRELEASED; urgency=medium
       + Show monitor scaled cursor when magnifier is enabled
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Dec 2020 01:54:40 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Dec 2020 02:42:26 +0100
 
 gnome-shell (3.38.2-1) unstable; urgency=medium
 
