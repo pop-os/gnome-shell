@@ -128,7 +128,7 @@ index af37832..91f7198 100644
    shell_profiler_init ();
    ecode = meta_run ();
 diff --git a/src/shell-global.c b/src/shell-global.c
-index ec9a052..41d777c 100644
+index bfc0e5f..837a29a 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
 @@ -62,6 +62,7 @@ struct _ShellGlobal {
@@ -181,7 +181,7 @@ index ec9a052..41d777c 100644
  }
  
  /*
-@@ -1880,3 +1895,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
+@@ -1881,3 +1896,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
  {
    g_signal_emit (global, shell_global_signals[LOCATE_POINTER], 0);
  }
