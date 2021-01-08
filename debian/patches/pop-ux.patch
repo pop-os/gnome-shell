@@ -7,7 +7,7 @@ Index: gnome-shell/js/ui/sessionMode.js
  
          panel: {
 -            left: ['activities', 'appMenu'],
-+            left: ['workspaces', 'applications', 'appMenu'],
++            left: ['workspaces', 'applications'],
              center: ['dateMenu'],
              right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu'],
          },
