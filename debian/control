@@ -119,7 +119,7 @@ Recommends: bolt (>= 0.3),
             switcheroo-control,
             unzip
 Suggests: gir1.2-telepathyglib-0.12,
-          gir1.2-telepathylogger-0.2 (>= 0.8.0)
+          gir1.2-telepathylogger-0.2 (>= 0.8.0),
           gnome-backgrounds (>= 3.13.90),
 Breaks: gnome-shell-extension-appindicator (<< 33),
         gnome-shell-extension-autohidetopbar (<< 20180511-2~),
