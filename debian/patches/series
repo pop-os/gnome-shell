@@ -12,3 +12,4 @@ sched-rr.patch
 pop-dark-theme.patch
 ignore-nvidia-only.patch
 upstream-1532.patch
+pop-ux.patch
