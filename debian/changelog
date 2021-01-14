@@ -1,9 +1,10 @@
-gnome-shell (3.38.3-1) UNRELEASED; urgency=medium
+gnome-shell (3.38.3-1) unstable; urgency=medium
 
+  * Team upload
   * d/watch: Only watch for 3.38.x versions
   * New upstream release
 
- -- Simon McVittie <smcv@debian.org>  Thu, 14 Jan 2021 20:08:10 +0000
+ -- Simon McVittie <smcv@debian.org>  Thu, 14 Jan 2021 20:13:26 +0000
 
 gnome-shell (3.38.2-1) unstable; urgency=medium
 
