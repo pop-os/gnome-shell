@@ -81,7 +81,7 @@ class WorkspacesView extends WorkspacesViewBase {
 
         this._scrollAdjustment = scrollAdjustment;
         this._onScrollId = this._scrollAdjustment.connect('notify::value',
-            this._updateScrollPosition.bind(this));
+            this._onScrollAdjustmentChanged.bind(this));
 
         this._workspaces = [];
         this._updateWorkspaces();
@@ -250,7 +250,7 @@ class WorkspacesView extends WorkspacesViewBase {
 
     // sync the workspaces' positions to the value of the scroll adjustment
     // and change the active workspace if appropriate
-    _updateScrollPosition() {
+    _onScrollAdjustmentChanged() {
         if (!this.has_allocation())
             return;
 
@@ -276,9 +276,19 @@ class WorkspacesView extends WorkspacesViewBase {
             metaWorkspace.activate(global.get_current_time());
         }
 
+        this._updateScrollPosition();
+    }
+
+    _updateScrollPosition() {
+        if (!this.has_allocation())
+            return;
+
+        const adj = this._scrollAdjustment;
+
         if (adj.upper == 1)
             return;
 
+        const workspaceManager = global.workspace_manager;
         const vertical = workspaceManager.layout_rows === -1;
         const rtl = this.text_direction === Clutter.TextDirection.RTL;
         const progress = vertical || !rtl
@@ -379,7 +389,7 @@ class WorkspacesDisplay extends St.Widget {
             Main.overview.connect('window-drag-begin',
                 this._windowDragBegin.bind(this));
         this._windowDragEndId =
-            Main.overview.connect('window-drag-begin',
+            Main.overview.connect('window-drag-end',
                 this._windowDragEnd.bind(this));
         this._overviewShownId = Main.overview.connect('shown', () => {
             this._inWindowFade = false;
