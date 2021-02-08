@@ -1,0 +1,61 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Sat, 30 Jan 2021 04:18:32 +0100
+Subject: authPrompt: Don't begin a new authentication session on lockscreen
+ cancel event
+
+When a cancel event in the user lockscreen happens we first emit a reset
+signal and immediately a cancelled one.
+
+This lead to start a new gdm worker for each enabled authentication
+method and then immediately to stop it.
+As per the previous commit, we don't have anymore dangling gdm workers
+around, but still we should not even start a new one in such case.
+
+So, when the user explicitly cancelled the authentication session, first
+emit a cancelled event and only emit a reset event with a begin request
+if we are outside the lockscreen.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1622
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1915066
+---
+ js/gdm/authPrompt.js | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index 40afacc..083f918 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -29,6 +29,7 @@ var AuthPromptStatus = {
+     VERIFYING: 1,
+     VERIFICATION_FAILED: 2,
+     VERIFICATION_SUCCEEDED: 3,
++    VERIFICATION_CANCELLED: 4,
+ };
+ 
+ var BeginRequestType = {
+@@ -477,12 +478,16 @@ var AuthPrompt = GObject.registerClass({
+ 
+         if (oldStatus == AuthPromptStatus.VERIFICATION_FAILED)
+             this.emit('failed');
++        else if (oldStatus === AuthPromptStatus.VERIFICATION_CANCELLED)
++            this.emit('cancelled');
+ 
+         let beginRequestType;
+ 
+         if (this._mode == AuthPromptMode.UNLOCK_ONLY) {
+             // The user is constant at the unlock screen, so it will immediately
+             // respond to the request with the username
++            if (oldStatus === AuthPromptStatus.VERIFICATION_CANCELLED)
++                return;
+             beginRequestType = BeginRequestType.PROVIDE_USERNAME;
+         } else if (this._userVerifier.serviceIsForeground(OVirt.SERVICE_NAME) ||
+                    this._userVerifier.serviceIsForeground(Vmware.SERVICE_NAME) ||
+@@ -538,7 +543,7 @@ var AuthPrompt = GObject.registerClass({
+         if (this.verificationStatus == AuthPromptStatus.VERIFICATION_SUCCEEDED)
+             return;
+ 
++        this.verificationStatus = AuthPromptStatus.VERIFICATION_CANCELLED;
+         this.reset();
+-        this.emit('cancelled');
+     }
+ });
