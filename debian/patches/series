@@ -1,6 +1,12 @@
 extensionSystem-Fix-opening-Extensions-app-from-notificat.patch
 workspacesView-Fix-off-by-one-error.patch
 screenshot-Still-remove-select-pick-actor-if-grab-promise.patch
+gdm-Cancel-user-verification-on-UserVerifier-destruction.patch
+authPrompt-Don-t-begin-a-new-authentication-session-on-lo.patch
+util-Don-t-try-answering-query-if-the-user-verifier-has-b.patch
+gdm-Do-not-fail-the-whole-authentication-if-a-background-.patch
+gdm-Include-the-failed-service-name-when-in-reporting-err.patch
+gdm-Ensure-we-cancel-all-the-previously-running-services-.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
