@@ -9,13 +9,13 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1915066
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 668a28f..519ec41 100644
+index d8d49a9..17377d7 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -459,7 +459,7 @@ var ShellUserVerifier = class {
-                 } catch (e) {
-                     if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+@@ -469,7 +469,7 @@ var ShellUserVerifier = class {
+                         this._hold.release();
                          return;
+                     }
 -                    this._reportInitError('Failed to start verification', e);
 +                    this._reportInitError('Failed to start %s verification'.format(serviceName), e);
                      return;

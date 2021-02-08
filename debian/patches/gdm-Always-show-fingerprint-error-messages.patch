@@ -1,0 +1,42 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Tue, 24 Nov 2020 19:19:22 +0100
+Subject: gdm: Always show fingerprint error messages
+
+When the login/lock screen is shown the error messages for background
+services are always ignored.
+
+However, in case the service is the fingerprint authentication method
+we still want to be able to show error messages to inform the user
+about what failed, and eventually that the max retries (that may be
+different from the login screen configuration) has been reached.
+
+This handles partially the design issue [1] related to the login/lock
+screen fingerprint authentication.
+
+Eventually we want to use pam extensions to use clearer and parse-able
+messages, however in the case of the fingerprint service we can be sure
+that the fprint PAM module will only send errors on auth failures.
+
+[1] https://gitlab.gnome.org/Teams/Design/os-mockups/-/issues/56
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/util.js | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index dfee31c..0118385 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -505,7 +505,9 @@ var ShellUserVerifier = class {
+     }
+ 
+     _onProblem(client, serviceName, problem) {
+-        if (!this.serviceIsForeground(serviceName))
++        const isFingerprint = this.serviceIsFingerprint(serviceName);
++
++        if (!this.serviceIsForeground(serviceName) && !isFingerprint)
+             return;
+ 
+         this._queueMessage(problem, MessageType.ERROR);

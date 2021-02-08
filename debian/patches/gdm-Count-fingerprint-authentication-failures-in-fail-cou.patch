@@ -1,0 +1,75 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 1 Feb 2021 18:40:03 +0100
+Subject: gdm: Count fingerprint authentication failures in fail counter
+
+Fingerprint PAM module can have multiple failures during a runtime
+and we rely on the pam module configuration for the maximum allowed
+retries.
+
+However, while that setting should be always followed, we should never
+ignore the login-screen's allowed-failures setting that can provide
+a lower value.
+
+So, once we have a fingerprint failure let's count it to increase our
+internal fail counter, and when we've reached the limit we can emit a
+verification-failed signal to our clients.
+
+As per this we need also to ignore any further 'info' messages that we
+could receive from the fingerprint service, as it may be configured to
+handle more retries than us and they might arrive before we have
+cancelled the verification session.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/util.js | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 6b4c9ba..445b774 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -494,7 +494,7 @@ var ShellUserVerifier = class {
+     _onInfo(client, serviceName, info) {
+         if (this.serviceIsForeground(serviceName)) {
+             this._queueMessage(info, MessageType.INFO);
+-        } else if (this.serviceIsFingerprint(serviceName)) {
++        } else if (this.serviceIsFingerprint(serviceName) && this._canRetry()) {
+             // We don't show fingerprint messages directly since it's
+             // not the main auth service. Instead we use the messages
+             // as a cue to display our own message.
+@@ -512,6 +512,12 @@ var ShellUserVerifier = class {
+             return;
+ 
+         this._queueMessage(problem, MessageType.ERROR);
++        if (isFingerprint) {
++            this._failCounter++;
++
++            if (!this._canRetry())
++                this._verificationFailed(false);
++        }
+     }
+ 
+     _onInfoQuery(client, serviceName, question) {
+@@ -559,15 +565,18 @@ var ShellUserVerifier = class {
+         this.begin(this._userName, new Batch.Hold());
+     }
+ 
++    _canRetry() {
++        return this._userName &&
++            (this._reauthOnly || this._failCounter < this.allowedFailures);
++    }
++
+     _verificationFailed(retry) {
+         // For Not Listed / enterprise logins, immediately reset
+         // the dialog
+         // Otherwise, when in login mode we allow ALLOWED_FAILURES attempts.
+         // After that, we go back to the welcome screen.
+ 
+-        let canRetry = retry && this._userName &&
+-            (this._reauthOnly ||
+-             this._failCounter < this._settings.get_int(ALLOWED_FAILURES_KEY));
++        const canRetry = retry && this._canRetry();
+ 
+         if (canRetry) {
+             if (!this.hasPendingMessages) {

@@ -1,0 +1,187 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 1 Feb 2021 19:36:49 +0100
+Subject: gdm: Expose the source serviceName for messages and verification
+ failures
+
+By giving to the AuthPrompt information regarding the source service
+name (and so the ability to know whether it's a foreground service) can
+give it the ability to behave differently.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/authPrompt.js |  8 ++++----
+ js/gdm/util.js       | 36 +++++++++++++++++++-----------------
+ 2 files changed, 23 insertions(+), 21 deletions(-)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index 2d392c3..c093573 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -273,12 +273,12 @@ var AuthPrompt = GObject.registerClass({
+             this.reset();
+     }
+ 
+-    _onShowMessage(userVerifier, message, type) {
+-        this.setMessage(message, type);
++    _onShowMessage(_userVerifier, serviceName, message, type) {
++        this.setMessage(serviceName, message, type);
+         this.emit('prompted');
+     }
+ 
+-    _onVerificationFailed(userVerifier, canRetry) {
++    _onVerificationFailed(userVerifier, serviceName, canRetry) {
+         this._queryingService = null;
+         this.clear();
+ 
+@@ -410,7 +410,7 @@ var AuthPrompt = GObject.registerClass({
+         });
+     }
+ 
+-    setMessage(message, type) {
++    setMessage(serviceName, message, type) {
+         if (type == GdmUtil.MessageType.ERROR)
+             this._message.add_style_class_name('login-dialog-message-warning');
+         else
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index ec89f51..7e5d12c 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -272,7 +272,7 @@ var ShellUserVerifier = class {
+ 
+         let message = this._messageQueue.shift();
+ 
+-        this.emit('show-message', message.text, message.type);
++        this.emit('show-message', message.serviceName, message.text, message.type);
+ 
+         this._messageQueueTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
+                                                        message.interval,
+@@ -284,11 +284,11 @@ var ShellUserVerifier = class {
+         GLib.Source.set_name_by_id(this._messageQueueTimeoutId, '[gnome-shell] this._queueMessageTimeout');
+     }
+ 
+-    _queueMessage(message, messageType) {
++    _queueMessage(serviceName, message, messageType) {
+         let interval = this._getIntervalForMessage(message);
+ 
+         this.hasPendingMessages = true;
+-        this._messageQueue.push({ text: message, type: messageType, interval });
++        this._messageQueue.push({ serviceName, text: message, type: messageType, interval });
+         this._queueMessageTimeout();
+     }
+ 
+@@ -299,7 +299,7 @@ var ShellUserVerifier = class {
+             GLib.source_remove(this._messageQueueTimeoutId);
+             this._messageQueueTimeoutId = 0;
+         }
+-        this.emit('show-message', null, MessageType.NONE);
++        this.emit('show-message', null, null, MessageType.NONE);
+     }
+ 
+     _checkForFingerprintReader() {
+@@ -347,13 +347,13 @@ var ShellUserVerifier = class {
+         }
+     }
+ 
+-    _reportInitError(where, error) {
++    _reportInitError(where, error, serviceName) {
+         logError(error, where);
+         this._hold.release();
+ 
+-        this._queueMessage(_("Authentication error"), MessageType.ERROR);
++        this._queueMessage(serviceName, _('Authentication error'), MessageType.ERROR);
+         this._failCounter++;
+-        this._verificationFailed(false);
++        this._verificationFailed(serviceName, false);
+     }
+ 
+     _reauthenticationChannelOpened(client, result) {
+@@ -457,7 +457,8 @@ var ShellUserVerifier = class {
+                         this._hold.release();
+                         return;
+                     }
+-                    this._reportInitError('Failed to start verification for user', e);
++                    this._reportInitError('Failed to start verification for user', e,
++                        serviceName);
+                     return;
+                 }
+ 
+@@ -475,7 +476,8 @@ var ShellUserVerifier = class {
+                         this._hold.release();
+                         return;
+                     }
+-                    this._reportInitError('Failed to start %s verification'.format(serviceName), e);
++                    this._reportInitError('Failed to start %s verification'.format(serviceName), e,
++                        serviceName);
+                     return;
+                 }
+ 
+@@ -493,7 +495,7 @@ var ShellUserVerifier = class {
+ 
+     _onInfo(client, serviceName, info) {
+         if (this.serviceIsForeground(serviceName)) {
+-            this._queueMessage(info, MessageType.INFO);
++            this._queueMessage(serviceName, info, MessageType.INFO);
+         } else if (this.serviceIsFingerprint(serviceName) && this._canRetry()) {
+             // We don't show fingerprint messages directly since it's
+             // not the main auth service. Instead we use the messages
+@@ -501,7 +503,7 @@ var ShellUserVerifier = class {
+ 
+             // Translators: this message is shown below the password entry field
+             // to indicate the user can swipe their finger instead
+-            this._queueMessage(_("(or swipe finger)"), MessageType.HINT);
++            this._queueMessage(serviceName, _('(or swipe finger)'), MessageType.HINT);
+         }
+     }
+ 
+@@ -511,12 +513,12 @@ var ShellUserVerifier = class {
+         if (!this.serviceIsForeground(serviceName) && !isFingerprint)
+             return;
+ 
+-        this._queueMessage(problem, MessageType.ERROR);
++        this._queueMessage(serviceName, problem, MessageType.ERROR);
+         if (isFingerprint) {
+             this._failCounter++;
+ 
+             if (!this._canRetry())
+-                this._verificationFailed(false);
++                this._verificationFailed(serviceName, false);
+         }
+     }
+ 
+@@ -570,7 +572,7 @@ var ShellUserVerifier = class {
+             (this._reauthOnly || this._failCounter < this.allowedFailures);
+     }
+ 
+-    _verificationFailed(retry) {
++    _verificationFailed(serviceName, retry) {
+         // For Not Listed / enterprise logins, immediately reset
+         // the dialog
+         // Otherwise, when in login mode we allow ALLOWED_FAILURES attempts.
+@@ -603,7 +605,7 @@ var ShellUserVerifier = class {
+             }
+         }
+ 
+-        this.emit('verification-failed', canRetry);
++        this.emit('verification-failed', serviceName, canRetry);
+     }
+ 
+     _onConversationStopped(client, serviceName) {
+@@ -615,7 +617,7 @@ var ShellUserVerifier = class {
+         if (foregroundService) {
+             this._credentialManagers[foregroundService].token = null;
+             this._preemptingService = null;
+-            this._verificationFailed(false);
++            this._verificationFailed(serviceName, false);
+             return;
+         }
+ 
+@@ -625,7 +627,7 @@ var ShellUserVerifier = class {
+         if (this.serviceIsForeground(serviceName))
+             this._failCounter++;
+ 
+-        this._verificationFailed(true);
++        this._verificationFailed(serviceName, true);
+     }
+ };
+ Signals.addSignalMethods(ShellUserVerifier.prototype);

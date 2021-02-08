@@ -1,0 +1,35 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 1 Feb 2021 19:44:00 +0100
+Subject: authPrompt: Wiggle error messages coming from the Fingerprint
+ service
+
+When error messages are coming from the fingerprint service they are actual
+failures due to an user input in some device, in so in such case we
+can highlight this by using a wiggle effect.
+
+This mimics what has been done in gnome-control-center fingerprint panel
+and part of [1].
+
+[1] https://gitlab.gnome.org/Teams/Design/os-mockups/-/issues/56
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/authPrompt.js | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index 2d1acfd..44c4fa1 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -430,6 +430,10 @@ var AuthPrompt = GObject.registerClass({
+         } else {
+             this._message.opacity = 0;
+         }
++
++        if (type === GdmUtil.MessageType.ERROR &&
++            this._userVerifier.serviceIsFingerprint(serviceName))
++            Util.wiggle(this._message);
+     }
+ 
+     updateSensitivity(sensitive) {

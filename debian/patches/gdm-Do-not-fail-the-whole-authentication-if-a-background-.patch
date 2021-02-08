@@ -36,14 +36,14 @@ default service fails.
 Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1622
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1915066
 ---
- js/gdm/util.js | 5 +++++
- 1 file changed, 5 insertions(+)
+ js/gdm/util.js | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index c37c8b9..668a28f 100644
+index 220b98d..d8d49a9 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -441,6 +441,11 @@ var ShellUserVerifier = class {
+@@ -446,6 +446,11 @@ var ShellUserVerifier = class {
                  } catch (e) {
                      if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                          return;
@@ -53,5 +53,17 @@ index c37c8b9..668a28f 100644
 +                        return;
 +                    }
                      this._reportInitError('Failed to start verification for user', e);
+                     return;
+                 }
+@@ -459,6 +464,11 @@ var ShellUserVerifier = class {
+                 } catch (e) {
+                     if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                         return;
++                    if (!this.serviceIsForeground(serviceName)) {
++                        logError(e, 'Failed to start %s'.format(serviceName));
++                        this._hold.release();
++                        return;
++                    }
+                     this._reportInitError('Failed to start verification', e);
                      return;
                  }

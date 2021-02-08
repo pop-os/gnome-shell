@@ -1,0 +1,42 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 8 Feb 2021 18:57:06 +0100
+Subject: gdm: Fail and restart verification on conversation stopped for all
+ services
+
+Currently when the foreground service conversation stops we increase the
+verification failed count and try to start it again, while if a
+background service has been stopped we just ignore it.
+
+This is causing a various number of issues, for example in the case of
+the fingerprint authentication service, it is normally configured to die
+after a timeout, and we end up never restarting it (while the UI still
+keeps showing to the user the message about swipe/touch the device).
+
+So, in such case let's just consider it a "soft" verification failure
+that doesn't increase the failures count but will cause us to reset the
+UI and try to restart the authentication (and so the affected service).
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/util.js | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 445b774..ec89f51 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -622,10 +622,10 @@ var ShellUserVerifier = class {
+         // if the password service fails, then cancel everything.
+         // But if, e.g., fingerprint fails, still give
+         // password authentication a chance to succeed
+-        if (this.serviceIsForeground(serviceName)) {
++        if (this.serviceIsForeground(serviceName))
+             this._failCounter++;
+-            this._verificationFailed(true);
+-        }
++
++        this._verificationFailed(true);
+     }
+ };
+ Signals.addSignalMethods(ShellUserVerifier.prototype);

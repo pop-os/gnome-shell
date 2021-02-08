@@ -1,0 +1,71 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 8 Feb 2021 19:34:09 +0100
+Subject: authPrompt: Bump the user verifier timeout when wiggling the message
+
+Wiggle may make the error message to be visible for less time so provide
+the auth prompt an API to increase the timeout to be used for showing a
+message in some cases.
+
+This could be reworked when we'll have a proper asyn wiggle function so
+that we could just make the user verifier to "freeze", then await for
+the wiggle transition to complete and eventually release the verifier.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652>
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/authPrompt.js | 12 ++++++++++--
+ js/gdm/util.js       |  8 +++++++-
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index 44c4fa1..16375a6 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -432,8 +432,16 @@ var AuthPrompt = GObject.registerClass({
+         }
+ 
+         if (type === GdmUtil.MessageType.ERROR &&
+-            this._userVerifier.serviceIsFingerprint(serviceName))
+-            Util.wiggle(this._message);
++            this._userVerifier.serviceIsFingerprint(serviceName)) {
++            // TODO: Use Await for wiggle to be over before unfreezing the user verifier queue
++            const wiggleParameters = {
++                duration: 65,
++                wiggleCount: 3,
++            };
++            this._userVerifier.increaseCurrentMessageTimeout(
++                wiggleParameters.duration * (wiggleParameters.wiggleCount + 2));
++            Util.wiggle(this._message, wiggleParameters);
++        }
+     }
+ 
+     updateSensitivity(sensitive) {
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 0570a7d..170eef7 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -262,6 +262,11 @@ var ShellUserVerifier = class {
+         this.emit('no-more-messages');
+     }
+ 
++    increaseCurrentMessageTimeout(interval) {
++        if (!this._messageQueueTimeoutId && interval > 0)
++            this._currentMessageExtraInterval = interval;
++    }
++
+     _queueMessageTimeout() {
+         if (this._messageQueue.length == 0) {
+             this.finishMessageQueue();
+@@ -273,10 +278,11 @@ var ShellUserVerifier = class {
+ 
+         let message = this._messageQueue.shift();
+ 
++        delete this._currentMessageExtraInterval;
+         this.emit('show-message', message.serviceName, message.text, message.type);
+ 
+         this._messageQueueTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
+-                                                       message.interval,
++            message.interval + (this._currentMessageExtraInterval | 0),
+                                                        () => {
+                                                            this._messageQueueTimeoutId = 0;
+                                                            this._queueMessageTimeout();

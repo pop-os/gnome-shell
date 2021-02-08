@@ -1,0 +1,41 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 8 Feb 2021 17:07:45 +0100
+Subject: ShellUserVerifier: Add method to check if the service name is
+ fingerprint
+
+We have multiple places where we check if we're handling a fingerprint
+event, so let's add a common public function so that it can be used also
+by the authPrompt.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/util.js | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 29921fc..dfee31c 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -423,6 +423,11 @@ var ShellUserVerifier = class {
+         return serviceName == this._defaultService;
+     }
+ 
++    serviceIsFingerprint(serviceName) {
++        return this._haveFingerprintReader &&
++            serviceName === FINGERPRINT_SERVICE_NAME;
++    }
++
+     _updateDefaultService() {
+         if (this._settings.get_boolean(PASSWORD_AUTHENTICATION_KEY))
+             this._defaultService = PASSWORD_SERVICE_NAME;
+@@ -488,8 +493,7 @@ var ShellUserVerifier = class {
+     _onInfo(client, serviceName, info) {
+         if (this.serviceIsForeground(serviceName)) {
+             this._queueMessage(info, MessageType.INFO);
+-        } else if (serviceName == FINGERPRINT_SERVICE_NAME &&
+-            this._haveFingerprintReader) {
++        } else if (this.serviceIsFingerprint(serviceName)) {
+             // We don't show fingerprint messages directly since it's
+             // not the main auth service. Instead we use the messages
+             // as a cue to display our own message.

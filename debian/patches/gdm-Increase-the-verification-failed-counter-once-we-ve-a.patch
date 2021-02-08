@@ -1,0 +1,46 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 8 Feb 2021 18:43:16 +0100
+Subject: gdm: Increase the verification failed counter once we've a failure
+
+Decouple the verification failure count increase from
+_verificationFailed as there are some cases in which we may want to
+increase it without emitting a verification-failed signal.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/util.js | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 0118385..6b4c9ba 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -352,6 +352,7 @@ var ShellUserVerifier = class {
+         this._hold.release();
+ 
+         this._queueMessage(_("Authentication error"), MessageType.ERROR);
++        this._failCounter++;
+         this._verificationFailed(false);
+     }
+ 
+@@ -564,7 +565,6 @@ var ShellUserVerifier = class {
+         // Otherwise, when in login mode we allow ALLOWED_FAILURES attempts.
+         // After that, we go back to the welcome screen.
+ 
+-        this._failCounter++;
+         let canRetry = retry && this._userName &&
+             (this._reauthOnly ||
+              this._failCounter < this._settings.get_int(ALLOWED_FAILURES_KEY));
+@@ -613,8 +613,10 @@ var ShellUserVerifier = class {
+         // if the password service fails, then cancel everything.
+         // But if, e.g., fingerprint fails, still give
+         // password authentication a chance to succeed
+-        if (this.serviceIsForeground(serviceName))
++        if (this.serviceIsForeground(serviceName)) {
++            this._failCounter++;
+             this._verificationFailed(true);
++        }
+     }
+ };
+ Signals.addSignalMethods(ShellUserVerifier.prototype);

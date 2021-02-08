@@ -1,0 +1,42 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 1 Feb 2021 19:39:03 +0100
+Subject: authPrompt: Only wiggle the entry on failures coming from the
+ querying service
+
+Currently whenever an authentication failure happens we wiggle the
+entry, however this may not be related to the service which failed.
+
+For example if the fingerprint authentication failed for whatever reason,
+there's no point to wiggle the text input as it's something unrelated to it.
+
+So, only apply the wiggle effect to the entry in case the failure is
+coming from the querying service.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
+---
+ js/gdm/authPrompt.js | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index c093573..2d1acfd 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -279,6 +279,7 @@ var AuthPrompt = GObject.registerClass({
+     }
+ 
+     _onVerificationFailed(userVerifier, serviceName, canRetry) {
++        const wasQueryingService = this._queryingService === serviceName;
+         this._queryingService = null;
+         this.clear();
+ 
+@@ -286,7 +287,8 @@ var AuthPrompt = GObject.registerClass({
+         this.setActorInDefaultButtonWell(null);
+         this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
+ 
+-        Util.wiggle(this._entry);
++        if (wasQueryingService)
++            Util.wiggle(this._entry);
+     }
+ 
+     _onVerificationComplete() {
