@@ -22,6 +22,15 @@ util-Don-t-try-answering-query-if-the-user-verifier-has-b.patch
 gdm-Do-not-fail-the-whole-authentication-if-a-background-.patch
 gdm-Include-the-failed-service-name-when-in-reporting-err.patch
 gdm-Ensure-we-cancel-all-the-previously-running-services-.patch
+ShellUserVerifier-Add-method-to-check-if-the-service-name.patch
+gdm-Always-show-fingerprint-error-messages.patch
+gdm-Increase-the-verification-failed-counter-once-we-ve-a.patch
+gdm-Count-fingerprint-authentication-failures-in-fail-cou.patch
+gdm-Fail-and-restart-verification-on-conversation-stopped.patch
+gdm-Expose-the-source-serviceName-for-messages-and-verifi.patch
+authPrompt-Only-wiggle-the-entry-on-failures-coming-from-.patch
+authPrompt-Wiggle-error-messages-coming-from-the-Fingerpr.patch
+authPrompt-Bump-the-user-verifier-timeout-when-wiggling-t.patch
 ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
 ubuntu/resolve_alternate_theme_path.patch
 ubuntu/secure_mode_extension.patch
