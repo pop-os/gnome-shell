@@ -1,3 +1,6 @@
+extensionSystem-Fix-opening-Extensions-app-from-notificat.patch
+workspacesView-Fix-off-by-one-error.patch
+screenshot-Still-remove-select-pick-actor-if-grab-promise.patch
 Revert-appDisplay-baseAppView-Cleanup-animate.patch
 screenshot-Grab-screenshot-during-paint-on-X11.patch
 ubuntu/desktop_detect.patch
