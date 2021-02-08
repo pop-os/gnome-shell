@@ -1,3 +1,22 @@
+gnome-shell (3.38.3-2) unstable; urgency=medium
+
+  * Team upload
+  * d/patches: Update to 3.38.3-3-ge3dc4401d from gnome-3-38 branch
+    - Fix opening Extensions app from notification
+    - Fix workspace layout in right-to-left locales
+    - Don't break window focusing if trying to take an area screenshot while
+      an application such as a game has an X11 grab (LP: #1910235)
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 04 Feb 2021 10:27:05 +0000
+
+gnome-shell (3.38.3-1) unstable; urgency=medium
+
+  * Team upload
+  * d/watch: Only watch for 3.38.x versions
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 14 Jan 2021 20:13:26 +0000
+
 gnome-shell (3.38.2-1ubuntu1) hirsute; urgency=medium
 
   * Merge with debian, containing new upstream release (LP: #1908161):
