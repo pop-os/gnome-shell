@@ -1,0 +1,45 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 1 Feb 2021 16:42:21 +0100
+Subject: util: Don't try answering query if the user verifier has been
+ deleted
+
+Answering a query may be delayed to the moment in which we've not any
+more messages in the queue, however this case can also happen just after
+we've cleared the UserVerifier and in such case we'd have nothing to
+answer, but we currently throw an error:
+
+    JS ERROR: Exception in callback for signal: no-more-messages:
+      TypeError: this._userVerifier is null
+    answerQuery/signalId<@resource:///org/gnome/shell/gdm/util.js:249:17
+    _emit@resource:///org/gnome/gjs/modules/core/_signals.js:133:47
+    finishMessageQueue@resource:///org/gnome/shell/gdm/util.js:266:14
+    _clearMessageQueue@resource:///org/gnome/shell/gdm/util.js:301:14
+    clear@resource:///org/gnome/shell/gdm/util.js:223:14
+    cancel@resource:///org/gnome/shell/gdm/util.js:205:18
+    reset@resource:///org/gnome/shell/gdm/authPrompt.js:482:32
+    cancel@resource:///org/gnome/shell/gdm/authPrompt.js:569:14
+    vfunc_key_press_event@resource:///org/gnome/shell/gdm/authPrompt.js:128
+
+So handle this case more gracefully checking if the user verifier is
+still valid before trying to answer a query.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1622
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1915066
+---
+ js/gdm/util.js | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 1e9d149..92a05c7 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -242,7 +242,8 @@ var ShellUserVerifier = class {
+         } else {
+             let signalId = this.connect('no-more-messages', () => {
+                 this.disconnect(signalId);
+-                this._userVerifier.call_answer_query(serviceName, answer, this._cancellable, null);
++                if (this._userVerifier)
++                    this._userVerifier.call_answer_query(serviceName, answer, this._cancellable, null);
+             });
+         }
+     }
