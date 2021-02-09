@@ -1,3 +1,18 @@
+gnome-shell (3.38.3-2ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian, containing new upstream release (LP: #1915089)
+  * debian/patches: Correctly handle login cancellation and failures.
+    Ensure the GDM workers are terminated before restarting a new auth
+    request, allowing fingerprint authentication to be restarted.
+    (LP: #1915066)
+  * debian/patches: Show errors on fingerprint failures and limit retries.
+    (LP: #1865838)
+  * debian/control: BD on gstreamer and pipewire, depend on gstreamer1.0-pipewire.
+    Enable building with pipewire now that is in main and add runtime
+    dependency on gstreamer-pipewire to gnome-shell (LP: #1901391).
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 09 Feb 2021 02:39:23 +0100
+
 gnome-shell (3.38.3-2) unstable; urgency=medium
 
   * Team upload
