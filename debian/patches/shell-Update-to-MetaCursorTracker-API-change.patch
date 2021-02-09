@@ -1,0 +1,60 @@
+From: Carlos Garnacho <carlosg@gnome.org>
+Date: Mon, 20 Jul 2020 12:08:43 +0200
+Subject: shell: Update to MetaCursorTracker API change
+
+The pointer coordinates in meta_cursor_tracker_get_pointer() are now
+returned as a graphene_point_t.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1405
+---
+ src/shell-global.c     | 8 +++++++-
+ src/shell-screenshot.c | 7 +++++--
+ 2 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/src/shell-global.c b/src/shell-global.c
+index 91cd91b..7521887 100644
+--- a/src/shell-global.c
++++ b/src/shell-global.c
+@@ -1376,9 +1376,15 @@ shell_global_get_pointer (ShellGlobal         *global,
+ {
+   ClutterModifierType raw_mods;
+   MetaCursorTracker *tracker;
++  graphene_point_t point;
+ 
+   tracker = meta_cursor_tracker_get_for_display (global->meta_display);
+-  meta_cursor_tracker_get_pointer (tracker, x, y, &raw_mods);
++  meta_cursor_tracker_get_pointer (tracker, &point, &raw_mods);
++
++  if (x)
++    *x = point.x;
++  if (y)
++    *y = point.y;
+ 
+   *mods = raw_mods & CLUTTER_MODIFIER_MASK;
+ }
+diff --git a/src/shell-screenshot.c b/src/shell-screenshot.c
+index 135ac55..321a82e 100644
+--- a/src/shell-screenshot.c
++++ b/src/shell-screenshot.c
+@@ -183,6 +183,7 @@ draw_cursor_image (cairo_surface_t       *surface,
+   int x, y;
+   int xhot, yhot;
+   double xscale, yscale;
++  graphene_point_t point;
+ 
+   display = shell_global_get_display (shell_global_get ());
+   tracker = meta_cursor_tracker_get_for_display (display);
+@@ -192,9 +193,11 @@ draw_cursor_image (cairo_surface_t       *surface,
+     return;
+ 
+   screenshot_region = cairo_region_create_rectangle (&area);
+-  meta_cursor_tracker_get_pointer (tracker, &x, &y, NULL);
++  meta_cursor_tracker_get_pointer (tracker, &point, NULL);
++  x = point.x;
++  y = point.y;
+ 
+-  if (!cairo_region_contains_point (screenshot_region, x, y))
++  if (!cairo_region_contains_point (screenshot_region, point.x, point.y))
+     {
+       cairo_region_destroy (screenshot_region);
+       return;
