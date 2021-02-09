@@ -1,4 +1,4 @@
-gnome-shell (3.38.3-2ubuntu0.20.10.1) UNRELEASED; urgency=medium
+gnome-shell (3.38.3-2ubuntu0.20.10.1) groovy; urgency=medium
 
   * Merge with debian, containing new upstream release (LP: #1915089)
   * debian/patches: Correctly handle login cancellation and failures.
@@ -8,7 +8,7 @@ gnome-shell (3.38.3-2ubuntu0.20.10.1) UNRELEASED; urgency=medium
   * debian/patches: Show errors on fingerprint failures and limit retries.
     (LP: #1865838)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 09 Feb 2021 01:04:52 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 09 Feb 2021 05:18:25 +0100
 
 gnome-shell (3.38.3-2) unstable; urgency=medium
 
