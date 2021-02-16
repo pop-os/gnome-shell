@@ -41,10 +41,10 @@ index 963bbce..64b1a85 100644
  
      updateSensitivity(sensitive) {
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 427582d..49bc186 100644
+index a9d0a00..872d1f3 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -260,6 +260,11 @@ var ShellUserVerifier = class {
+@@ -261,6 +261,11 @@ var ShellUserVerifier = class {
          this.emit('no-more-messages');
      }
  
@@ -56,7 +56,7 @@ index 427582d..49bc186 100644
      _queueMessageTimeout() {
          if (this._messageQueue.length == 0) {
              this.finishMessageQueue();
-@@ -271,10 +276,11 @@ var ShellUserVerifier = class {
+@@ -272,10 +277,11 @@ var ShellUserVerifier = class {
  
          let message = this._messageQueue.shift();
  

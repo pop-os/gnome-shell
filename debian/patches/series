@@ -28,6 +28,7 @@ gdm-Increase-the-verification-failed-counter-once-we-ve-a.patch
 gdm-Count-fingerprint-authentication-failures-in-fail-cou.patch
 gdm-Fail-and-restart-verification-on-conversation-stopped.patch
 gdm-Expose-the-source-serviceName-for-messages-and-verifi.patch
+gdm-Don-t-try-to-retry-authenticating-when-the-service-is.patch
 authPrompt-Only-wiggle-the-entry-on-failures-coming-from-.patch
 authPrompt-Wiggle-error-messages-coming-from-the-Fingerpr.patch
 authPrompt-Bump-the-user-verifier-timeout-when-wiggling-t.patch
