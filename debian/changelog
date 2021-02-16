@@ -1,10 +1,10 @@
-gnome-shell (3.38.3-2ubuntu0.20.10.2) UNRELEASED; urgency=medium
+gnome-shell (3.38.3-2ubuntu0.20.10.2) groovy; urgency=medium
 
   * d/p/gdm-Don-t-try-to-retry-authenticating-when-the-service-is.patch:
     - gdm: Don't try to retry authenticating when the service is unavailable
       (Related to lp:1915570, regression in 3.38.3-2ubuntu0.20.10.1)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 16 Feb 2021 05:21:46 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 16 Feb 2021 05:23:21 +0100
 
 gnome-shell (3.38.3-2ubuntu0.20.10.1) groovy; urgency=medium
 
