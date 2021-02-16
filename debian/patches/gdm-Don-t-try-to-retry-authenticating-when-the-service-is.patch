@@ -1,0 +1,89 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 15 Feb 2021 20:59:57 +0100
+Subject: gdm: Don't try to retry authenticating when the service is
+ unavailable
+
+In the case a service is not available (as it can be in the fingereprint
+case when a supported reader is available but has not enrolled prints)
+we were trying indefinitely to restart it, however this can lead to
+troubles since commit 7a2e629b as when the service conversation was
+stopped we had no way to figure out this case and we'd end up to
+eventually fail the whole authentication.
+
+However, in such cases the PAM services are expected to return a
+PAM_AUTHINFO_UNAVAIL and gdm to handle it, emitting service-unavailable
+signal.
+
+So connect to ::service-unavailable and keep track of the unavailable
+services so that we can avoid retrying with them.
+In case such service is not the foreground one, we can just silently
+ignore the error as we did before commit 7a2e629b, without bothering
+failing the whole verification.
+
+In case we got a valid error message on service-unavailable, we also
+show it, this is normally not happening unless GDM isn't redirecting
+here other kind of problems (such as MAXTRIES) which are supposed to
+stop the authentication stopping any further retry.
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3734
+Bug-Ubuntu: https://bugs.launchpad.net/gnome-shell/+bug/1915570
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1683
+---
+ js/gdm/util.js | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 7e5d12c..0570a7d 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -150,6 +150,7 @@ var ShellUserVerifier = class {
+         this.reauthenticating = false;
+ 
+         this._failCounter = 0;
++        this._unavailableServices = new Set();
+ 
+         this._credentialManagers = {};
+         this._credentialManagers[OVirt.SERVICE_NAME] = OVirt.getOVirtCredentialsManager();
+@@ -405,6 +406,7 @@ var ShellUserVerifier = class {
+         this._userVerifier.connect('info-query', this._onInfoQuery.bind(this));
+         this._userVerifier.connect('secret-info-query', this._onSecretInfoQuery.bind(this));
+         this._userVerifier.connect('conversation-stopped', this._onConversationStopped.bind(this));
++        this._userVerifier.connect('service-unavailable', this._onServiceUnavailable.bind(this));
+         this._userVerifier.connect('reset', this._onReset.bind(this));
+         this._userVerifier.connect('verification-complete', this._onVerificationComplete.bind(this));
+     }
+@@ -548,6 +550,7 @@ var ShellUserVerifier = class {
+     _onReset() {
+         // Clear previous attempts to authenticate
+         this._failCounter = 0;
++        this._unavailableServices.clear();
+         this._updateDefaultService();
+ 
+         this.emit('reset');
+@@ -608,6 +611,16 @@ var ShellUserVerifier = class {
+         this.emit('verification-failed', serviceName, canRetry);
+     }
+ 
++    _onServiceUnavailable(_client, serviceName, errorMessage) {
++        this._unavailableServices.add(serviceName);
++
++        if (!errorMessage)
++            return;
++
++        if (this.serviceIsForeground(serviceName) || this.serviceIsFingerprint(serviceName))
++            this._queueMessage(serviceName, errorMessage, MessageType.ERROR);
++    }
++
+     _onConversationStopped(client, serviceName) {
+         // If the login failed with the preauthenticated oVirt credentials
+         // then discard the credentials and revert to default authentication
+@@ -621,6 +634,9 @@ var ShellUserVerifier = class {
+             return;
+         }
+ 
++        if (this._unavailableServices.has(serviceName))
++            return;
++
+         // if the password service fails, then cancel everything.
+         // But if, e.g., fingerprint fails, still give
+         // password authentication a chance to succeed
