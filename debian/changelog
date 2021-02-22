@@ -1,3 +1,9 @@
+gnome-shell (3.36.7-0ubuntu0.20.04.1pop1) focal; urgency=medium
+
+  * Update with upstream 
+
+ -- Michael Aaron Murphy <mmstick@pop-os.localdomain>  Mon, 22 Feb 2021 10:27:15 -0700
+
 gnome-shell (3.36.7-0ubuntu0.20.04.1) focal; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
