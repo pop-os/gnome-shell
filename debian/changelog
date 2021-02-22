@@ -1,3 +1,9 @@
+gnome-shell (3.38.3-2ubuntu0.20.10.2pop1) groovy; urgency=medium
+
+  * Update with upstream
+
+ -- Michael Aaron Murphy <mmstick@pop-os.localdomain>  Mon, 22 Feb 2021 10:22:11 -0700
+
 gnome-shell (3.38.3-2ubuntu0.20.10.2) groovy; urgency=medium
 
   * d/p/gdm-Don-t-try-to-retry-authenticating-when-the-service-is.patch:
