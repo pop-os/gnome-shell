@@ -1,5 +1,6 @@
-gnome-shell (3.38.3-3) UNRELEASED; urgency=medium
+gnome-shell (3.38.3-3) unstable; urgency=medium
 
+  * Team upload
   * d/patches: Update to 3.38.3-9-gbdf31febe from gnome-3-38 branch
     - Use image-data in preference to app icon for notifications
     - Don't let fullscreen apps block the workspace-changing animation
@@ -9,7 +10,7 @@ gnome-shell (3.38.3-3) UNRELEASED; urgency=medium
       screencast
     - Fix a crash involving apps' fallback icons
 
- -- Simon McVittie <smcv@debian.org>  Tue, 23 Feb 2021 09:15:33 +0000
+ -- Simon McVittie <smcv@debian.org>  Tue, 23 Feb 2021 09:28:02 +0000
 
 gnome-shell (3.38.3-2) unstable; urgency=medium
 
