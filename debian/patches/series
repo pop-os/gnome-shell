@@ -37,4 +37,3 @@ ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 sched-rr.patch
 pop-dark-theme.patch
 ignore-nvidia-only.patch
-upstream-1532.patch
