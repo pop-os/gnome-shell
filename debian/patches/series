@@ -1,3 +1,9 @@
 extensionSystem-Fix-opening-Extensions-app-from-notificat.patch
 workspacesView-Fix-off-by-one-error.patch
 screenshot-Still-remove-select-pick-actor-if-grab-promise.patch
+notificationDaemon-Fix-icon-choosing-logic.patch
+workspaceAnimation-Disable-unredirection-during-the-gestu.patch
+appDisplay-Do-not-bind-popdown-call-to-grabHelper-onUngra.patch
+polkitAgent-Ensure-cleanup-if-dialog-wasn-t-shown.patch
+blur-effect-Don-t-use-stage-view-when-drawing-off-stage.patch
+st-Keep-weak-ref-on-texture-cache-bound-texture-source.patch

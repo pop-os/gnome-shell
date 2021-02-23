@@ -1,3 +1,16 @@
+gnome-shell (3.38.3-3) UNRELEASED; urgency=medium
+
+  * d/patches: Update to 3.38.3-9-gbdf31febe from gnome-3-38 branch
+    - Use image-data in preference to app icon for notifications
+    - Don't let fullscreen apps block the workspace-changing animation
+    - Don't leave a non-interactable polkit prompt if authentication
+      succeeds without requiring user interaction (LP: #1824874)
+    - Fix a crash in the blur effect when taking a screenshot or
+      screencast
+    - Fix a crash involving apps' fallback icons
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 23 Feb 2021 09:15:33 +0000
+
 gnome-shell (3.38.3-2) unstable; urgency=medium
 
   * Team upload

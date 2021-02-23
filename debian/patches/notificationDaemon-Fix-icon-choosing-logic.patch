@@ -1,0 +1,47 @@
+From: Guilherme Silva <oguilherme@protonmail.com>
+Date: Sun, 31 Jan 2021 01:11:18 -0300
+Subject: notificationDaemon: Fix icon-choosing logic
+
+'image-data' (or 'image-path') should take precedence over 'app-icon',
+even when both are sent by the application (e.g. Google Chrome).
+
+(cherry picked from commit 779e66ae8888550106c81a9d6f833fb0111ef822)
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1623>
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3616
+Origin: upstream, 3.38.4, commit:765c6c9b484c43305470f2ef1384e78e5b4ee3fd
+---
+ js/ui/notificationDaemon.js | 20 +++++++-------------
+ 1 file changed, 7 insertions(+), 13 deletions(-)
+
+diff --git a/js/ui/notificationDaemon.js b/js/ui/notificationDaemon.js
+index 3c8e90b..a92192e 100644
+--- a/js/ui/notificationDaemon.js
++++ b/js/ui/notificationDaemon.js
+@@ -240,19 +240,13 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
+             });
+         }
+ 
+-        let gicon = this._iconForNotificationData(icon);
+-        let gimage = this._imageForNotificationData(hints);
+-
+-        // If an icon is not specified, we use 'image-data' or 'image-path' hint for an icon
+-        // and don't show a large image. There are currently many applications that use
+-        // notify_notification_set_icon_from_pixbuf() from libnotify, which in turn sets
+-        // the 'image-data' hint. These applications don't typically pass in 'app_icon'
+-        // argument to Notify() and actually expect the pixbuf to be shown as an icon.
+-        // So the logic here does the right thing for this case. If both an icon and either
+-        // one of 'image-data' or 'image-path' are specified, the icon and takes precedence.
+-        if (!gicon && gimage)
+-            gicon = gimage;
+-        else if (!gicon)
++        // 'image-data' (or 'image-path') takes precedence over 'app-icon'.
++        let gicon = this._imageForNotificationData(hints);
++
++        if (!gicon)
++            gicon = this._iconForNotificationData(icon);
++
++        if (!gicon)
+             gicon = this._fallbackIconForNotificationData(hints);
+ 
+         notification.update(summary, body, { gicon,
