@@ -1,4 +1,4 @@
-gnome-shell (3.38.3-3ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (3.38.3-3ubuntu1) hirsute; urgency=medium
 
   * debian/patches: Switch to the new API to get actor from inputdevice
     (LP: #1690719)
@@ -8,7 +8,7 @@ gnome-shell (3.38.3-3ubuntu1) UNRELEASED; urgency=medium
   * debian/ubuntu-session-mods/ubuntu.json: Use desktop-icons-ng extension by
     default (LP: #1916511)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 09 Feb 2021 06:00:34 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 26 Feb 2021 00:51:19 +0100
 
 gnome-shell (3.38.3-3) unstable; urgency=medium
 
