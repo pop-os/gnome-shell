@@ -1,0 +1,31 @@
+From: Razze <razzeee@gmail.com>
+Date: Sun, 31 Jan 2021 01:46:44 +0100
+Subject: workspaceAnimation: Disable unredirection during the gesture
+
+Make sure fullscreen apps can't block the animation.
+
+Backport of 37261792777b759e22a3966246572dd1e1dee578
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3636
+Origin: upstream, 3.38.4, commit:defcfecc93ccc2fcc0da3697dded970c56381f7
+---
+ js/ui/windowManager.js | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/js/ui/windowManager.js b/js/ui/windowManager.js
+index 176ec0d..a5f371c 100644
+--- a/js/ui/windowManager.js
++++ b/js/ui/windowManager.js
+@@ -1804,9 +1804,13 @@ var WindowManager = class {
+                 switchData.windows.splice(switchData.windows.indexOf(w), 1);
+             });
+         }
++
++        Meta.disable_unredirect_for_display(global.display);
+     }
+ 
+     _finishWorkspaceSwitch(switchData) {
++        Meta.enable_unredirect_for_display(global.display);
++
+         this._switchData = null;
+ 
+         for (let i = 0; i < switchData.windows.length; i++) {

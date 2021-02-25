@@ -1,0 +1,45 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 9 Feb 2021 23:10:03 +0000
+Subject: polkitAgent: Ensure cleanup if dialog wasn't shown
+
+It is possible for an initiated session to complete without
+a request if polkit can authenticate the action without user
+input. We fail to clean up after ourselves in that case, as
+the cleanup is done after the dialog is closed.
+
+The dialog can still be shown when the code that hides existing
+dialogs while the screen is locked shows it on unlock. But as
+the session was closed, the dialog is now defunct and cannot
+be dismissed by the user.
+
+Fix this by running the cleanup on close() when the dialog
+wasn't shown.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1662>
+
+(cherry picked from commit 21faae480ed3a3794192864dab8ea006b1592c39)
+
+Origin: upstream, 3.38.4, commit:814c932044569115f170632bbdd016935ccb9dfd
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3701
+---
+ js/ui/components/polkitAgent.js | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/js/ui/components/polkitAgent.js b/js/ui/components/polkitAgent.js
+index ae75f3c..27b705e 100644
+--- a/js/ui/components/polkitAgent.js
++++ b/js/ui/components/polkitAgent.js
+@@ -381,6 +381,13 @@ var AuthenticationDialog = GObject.registerClass({
+         }
+     }
+ 
++    close(timestamp) {
++        // Ensure cleanup if the dialog was never shown
++        if (this.state === ModalDialog.State.CLOSED)
++            this._onDialogClosed();
++        super.close(timestamp);
++    }
++
+     cancel() {
+         this.close(global.get_current_time());
+         this._emitDone(true);

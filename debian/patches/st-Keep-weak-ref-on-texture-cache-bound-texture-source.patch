@@ -1,0 +1,55 @@
+From: Carlos Garnacho <carlosg@gnome.org>
+Date: Fri, 12 Feb 2021 23:10:25 +0100
+Subject: st: Keep weak ref on texture cache bound texture source
+
+We don't keep any ref on it, so it might leave us with a dangling
+pointer here.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1672>
+
+(cherry picked from commit 87558efbf130ec64b445da808b2bc162aebf352d)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3491
+Origin: upstream, 3.38.4, commit:bdf31febed0d502f947ea621c3862bb4ac857933
+---
+ src/st/st-texture-cache.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/src/st/st-texture-cache.c b/src/st/st-texture-cache.c
+index a9bf388..abb2cf9 100644
+--- a/src/st/st-texture-cache.c
++++ b/src/st/st-texture-cache.c
+@@ -798,6 +798,10 @@ st_texture_cache_bind_weak_notify (gpointer     data,
+ {
+   StTextureCachePropertyBind *bind = data;
+   bind->weakref_active = FALSE;
++  if (G_OBJECT (bind->image) != source_location)
++    g_object_weak_unref (G_OBJECT (bind->image), st_texture_cache_bind_weak_notify, bind);
++  if (bind->source != source_location)
++    g_object_weak_unref (G_OBJECT (bind->source), st_texture_cache_bind_weak_notify, bind);
+   g_signal_handler_disconnect (bind->source, bind->notify_signal_id);
+ }
+ 
+@@ -805,8 +809,13 @@ static void
+ st_texture_cache_free_bind (gpointer data)
+ {
+   StTextureCachePropertyBind *bind = data;
++
+   if (bind->weakref_active)
+-    g_object_weak_unref (G_OBJECT (bind->image), st_texture_cache_bind_weak_notify, bind);
++    {
++      g_object_weak_unref (G_OBJECT (bind->image), st_texture_cache_bind_weak_notify, bind);
++      g_object_weak_unref (G_OBJECT (bind->source), st_texture_cache_bind_weak_notify, bind);
++    }
++
+   g_slice_free (StTextureCachePropertyBind, bind);
+ }
+ 
+@@ -840,6 +849,7 @@ st_texture_cache_bind_cairo_surface_property (StTextureCache    *cache,
+   st_texture_cache_reset_texture (bind, property_name);
+ 
+   g_object_weak_ref (G_OBJECT (bind->image), st_texture_cache_bind_weak_notify, bind);
++  g_object_weak_ref (G_OBJECT (bind->source), st_texture_cache_bind_weak_notify, bind);
+   bind->weakref_active = TRUE;
+ 
+   notify_key = g_strdup_printf ("notify::%s", property_name);

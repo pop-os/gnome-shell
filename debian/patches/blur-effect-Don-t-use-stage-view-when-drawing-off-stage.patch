@@ -1,0 +1,64 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Sat, 13 Feb 2021 16:07:22 +0100
+Subject: blur-effect: Don't use stage view when drawing off-stage
+
+When we're painting off-stage, for example because we're screencasting
+or taking a screenshot, there won't be a stage-view associated with the
+paint context. The BlurEffect previously didn't handle that case and
+would crash.
+
+Fix that and handle that case by assuming the scale is 1 and not
+offsetting the rectangle we blit from the draw framebuffer.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1673>
+
+(cherry picked from commit 09602ae2aee963710bd1cbbf7102fc1632d4e0df)
+
+Origin: upstream, 3.38.4, commit:296e76d28b3c3d46b3b90f21e435d2d4521feccb
+---
+ src/shell-blur-effect.c | 21 ++++++++++++++++-----
+ 1 file changed, 16 insertions(+), 5 deletions(-)
+
+diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
+index 1bdb4ca..ca64511 100644
+--- a/src/shell-blur-effect.c
++++ b/src/shell-blur-effect.c
+@@ -531,7 +531,6 @@ update_actor_box (ShellBlurEffect     *self,
+   float box_scale_factor = 1.0f;
+   float origin_x, origin_y;
+   float width, height;
+-  cairo_rectangle_int_t stage_view_layout;
+ 
+   switch (self->mode)
+     {
+@@ -541,14 +540,26 @@ update_actor_box (ShellBlurEffect     *self,
+ 
+     case SHELL_BLUR_MODE_BACKGROUND:
+       stage_view = clutter_paint_context_get_stage_view (paint_context);
+-      box_scale_factor = clutter_stage_view_get_scale (stage_view);
+-      clutter_stage_view_get_layout (stage_view, &stage_view_layout);
+ 
+       clutter_actor_get_transformed_position (self->actor, &origin_x, &origin_y);
+       clutter_actor_get_transformed_size (self->actor, &width, &height);
+ 
+-      origin_x -= stage_view_layout.x;
+-      origin_y -= stage_view_layout.y;
++      if (stage_view)
++        {
++          cairo_rectangle_int_t stage_view_layout;
++
++          box_scale_factor = clutter_stage_view_get_scale (stage_view);
++          clutter_stage_view_get_layout (stage_view, &stage_view_layout);
++
++          origin_x -= stage_view_layout.x;
++          origin_y -= stage_view_layout.y;
++        }
++      else
++        {
++          /* If we're drawing off stage, just assume scale = 1, this won't work
++           * with stage-view scaling though.
++           */
++        }
+ 
+       clutter_actor_box_set_origin (source_actor_box, origin_x, origin_y);
+       clutter_actor_box_set_size (source_actor_box, width, height);
