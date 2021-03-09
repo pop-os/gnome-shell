@@ -1,0 +1,38 @@
+From: Abderrahim Kitouni <akitouni@gnome.org>
+Date: Fri, 26 Feb 2021 10:04:14 +0100
+Subject: js: Require Soup 2.4
+
+Soup 3.0 is a thing now
+
+(cherry picked from commit c90bde464aadc0df06b911545efc2e72733d7bb7)
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1725>
+(cherry picked from commit 1b06e6db9d91d0d87f2b4cd38477a2e5bc1f7bdc)
+---
+ js/portalHelper/main.js | 1 +
+ js/ui/environment.js    | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/js/portalHelper/main.js b/js/portalHelper/main.js
+index daaefa8..25f8662 100644
+--- a/js/portalHelper/main.js
++++ b/js/portalHelper/main.js
+@@ -1,5 +1,6 @@
+ /* exported main */
+ imports.gi.versions.Gtk = '3.0';
++imports.gi.versions.Soup = '2.4';
+ 
+ const Format = imports.format;
+ const Gettext = imports.gettext;
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index e777d65..5790aa0 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -7,6 +7,7 @@ imports.gi.versions.Clutter = Config.LIBMUTTER_API_VERSION;
+ imports.gi.versions.Gio = '2.0';
+ imports.gi.versions.GdkPixbuf = '2.0';
+ imports.gi.versions.Gtk = '3.0';
++imports.gi.versions.Soup = '2.4';
+ imports.gi.versions.TelepathyGLib = '0.12';
+ imports.gi.versions.TelepathyLogger = '0.2';
+ 

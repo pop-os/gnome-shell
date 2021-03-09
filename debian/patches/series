@@ -7,3 +7,5 @@ appDisplay-Do-not-bind-popdown-call-to-grabHelper-onUngra.patch
 polkitAgent-Ensure-cleanup-if-dialog-wasn-t-shown.patch
 blur-effect-Don-t-use-stage-view-when-drawing-off-stage.patch
 st-Keep-weak-ref-on-texture-cache-bound-texture-source.patch
+js-Require-Soup-2.4.patch
+Update-German-translation.patch
