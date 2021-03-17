@@ -1,5 +1,6 @@
-gnome-shell (3.38.4-1) UNRELEASED; urgency=medium
+gnome-shell (3.38.4-1) unstable; urgency=medium
 
+  * Team upload
   * New upstream release
     - Fix missing X11 fallback icons (particularly for games and other
       programs not installed system-wide), a regression in 3.37.3
@@ -13,7 +14,7 @@ gnome-shell (3.38.4-1) UNRELEASED; urgency=medium
     - Many other fixes that we already had via debian/patches
   * Drop all patches, applied upstream
 
- -- Simon McVittie <smcv@debian.org>  Wed, 17 Mar 2021 09:29:04 +0000
+ -- Simon McVittie <smcv@debian.org>  Wed, 17 Mar 2021 09:52:47 +0000
 
 gnome-shell (3.38.3-4) unstable; urgency=medium
 
