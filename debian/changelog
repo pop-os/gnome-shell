@@ -1,6 +1,7 @@
 gnome-shell (3.38.4-1) UNRELEASED; urgency=medium
 
   * New upstream release
+  * Drop all patches, applied upstream
 
  -- Simon McVittie <smcv@debian.org>  Wed, 17 Mar 2021 09:29:04 +0000
 
