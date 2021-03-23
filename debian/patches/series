@@ -17,5 +17,11 @@ ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 ubuntu/configure_login_screen.patch
 ubuntu/layout-Try-to-allocate-before-getting-size-of-tracke.patch
-ubuntu/layout-Make-starting-in-the-overview-optional.patch
+#ubuntu/layout-Make-starting-in-the-overview-optional.patch
 ubuntu/main-Avoid-meta-finalize.patch
+
+# Pop!_OS patches
+sched-rr.patch
+pop-dark-theme.patch
+ignore-nvidia-only.patch
+pop-cosmic-keyboard-shortcuts.patch
