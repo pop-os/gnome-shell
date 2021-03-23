@@ -1,0 +1,55 @@
+Index: gnome-shell/js/ui/appDisplay.js
+===================================================================
+--- gnome-shell.orig/js/ui/appDisplay.js
++++ gnome-shell/js/ui/appDisplay.js
+@@ -2899,7 +2899,10 @@ var AppIconMenu = class AppIconMenu exte
+                 this._appendSeparator();
+             }
+ 
++            let vendor = Shell.util_get_gl_vendor();
+             if (discreteGpuAvailable &&
++                vendor != "NVIDIA Corporation" &&
++                vendor != "nouveau" &&
+                 this._source.app.state == Shell.AppState.STOPPED) {
+                 const appPrefersNonDefaultGPU = appInfo.get_boolean('PrefersNonDefaultGPU');
+                 const gpuPref = appPrefersNonDefaultGPU
+Index: gnome-shell/src/shell-util.c
+===================================================================
+--- gnome-shell.orig/src/shell-util.c
++++ gnome-shell/src/shell-util.c
+@@ -354,6 +354,22 @@ shell_util_create_pixbuf_from_data (cons
+ 
+ typedef const gchar *(*ShellGLGetString) (GLenum);
+ 
++const gchar *
++shell_util_get_gl_vendor (void)
++{
++  static const gchar *vendor = NULL;
++
++  if (!vendor)
++    {
++      ShellGLGetString gl_get_string;
++      gl_get_string = (ShellGLGetString) cogl_get_proc_address ("glGetString");
++      if (gl_get_string)
++        vendor = gl_get_string (GL_VENDOR);
++    }
++
++  return vendor;
++}
++
+ static gboolean
+ canvas_draw_cb (ClutterContent *content,
+                 cairo_t        *cr,
+Index: gnome-shell/src/shell-util.h
+===================================================================
+--- gnome-shell.orig/src/shell-util.h
++++ gnome-shell/src/shell-util.h
+@@ -46,6 +46,8 @@ GdkPixbuf *shell_util_create_pixbuf_from
+                                                int                height,
+                                                int                rowstride);
+ 
++const gchar *shell_util_get_gl_vendor (void);
++
+ ClutterContent * shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
+                                                           MetaRectangle   *window_rect);
+ 

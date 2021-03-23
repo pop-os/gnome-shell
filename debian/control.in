@@ -71,7 +71,7 @@ Vcs-Git: https://salsa.debian.org/gnome-team/gnome-shell.git -b ubuntu/hirsute
 Vcs-Browser: https://salsa.debian.org/gnome-team/gnome-shell/tree/ubuntu/hirsute
 
 Package: gnome-shell
-Architecture: linux-any
+Architecture: amd64
 Depends: evolution-data-server (>= 3.33.1),
          gir1.2-accountsservice-1.0,
          gir1.2-atspi-2.0 (>= 2.36),
@@ -160,7 +160,7 @@ Description: common files for the GNOME graphical shell
  This package contains translations and data files for the GNOME shell.
 
 Package: gnome-shell-extension-prefs
-Architecture: linux-any
+Architecture: amd64
 Depends: gnome-shell (= ${binary:Version}),
          gnome-shell-common (= ${source:Version}),
          ${gir:Depends},

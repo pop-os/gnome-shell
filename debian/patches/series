@@ -39,3 +39,8 @@ layout-Try-to-allocate-before-getting-size-of-tracke.patch
 keyboard-Fix-suggestions-box.patch
 workspacesView-Only-use-valid-allocations-when-avail.patch
 calendar-server-Fix-double-free-detection-abort.patch
+
+# Pop!_OS patches
+sched-rr.patch
+pop-dark-theme.patch
+ignore-nvidia-only.patch
