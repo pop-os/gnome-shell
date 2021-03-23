@@ -42,3 +42,11 @@ ubuntu/Revert-status-bluetooth-Fix-wedged-state.patch
 ubuntu/Revert-status-bluetooth-Port-to-new-GListModel-API.patch
 ubuntu/Revert-status-bluetooth-Show-bluetooth-disabled-icon-when.patch
 ubuntu/js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
+
+# Pop!_OS patches
+sched-rr.patch
+pop-dark-theme.patch
+ignore-nvidia-only.patch
+pop-cosmic-keyboard-shortcuts.patch
+remove-assumptions-about-monitor-availability.patch
+no-libadwaita.patch

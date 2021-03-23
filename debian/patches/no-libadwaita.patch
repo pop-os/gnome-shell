@@ -1,0 +1,1570 @@
+Index: gnome-shell/subprojects/extensions-app/js/main.js
+===================================================================
+--- gnome-shell.orig/subprojects/extensions-app/js/main.js
++++ gnome-shell/subprojects/extensions-app/js/main.js
+@@ -1,9 +1,10 @@
+ /* exported main */
++imports.gi.versions.Gdk = '4.0';
+ imports.gi.versions.Gtk = '4.0';
+ 
+ const Gettext = imports.gettext;
+ const Package = imports.package;
+-const { Adw, GLib, Gio, GObject, Gtk, Shew } = imports.gi;
++const { Gdk, GLib, Gio, GObject, Gtk, Shew } = imports.gi;
+ 
+ Package.initFormat();
+ 
+@@ -14,18 +15,18 @@ const { ExtensionState, ExtensionType }
+ const GnomeShellIface = loadInterfaceXML('org.gnome.Shell.Extensions');
+ const GnomeShellProxy = Gio.DBusProxy.makeProxyWrapper(GnomeShellIface);
+ 
+-Gio._promisify(Gio.DBusConnection.prototype, 'call');
+-Gio._promisify(Shew.WindowExporter.prototype, 'export');
++Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
++Gio._promisify(Shew.WindowExporter.prototype, 'export', 'export_finish');
+ 
+ function loadInterfaceXML(iface) {
+-    const uri = `resource:///org/gnome/Extensions/dbus-interfaces/${iface}.xml`;
++    const uri = 'resource:///org/gnome/Extensions/dbus-interfaces/%s.xml'.format(iface);
+     const f = Gio.File.new_for_uri(uri);
+ 
+     try {
+         let [ok_, bytes] = f.load_contents(null);
+         return new TextDecoder().decode(bytes);
+     } catch (e) {
+-        log(`Failed to load D-Bus interface ${iface}`);
++        log('Failed to load D-Bus interface %s'.format(iface));
+     }
+ 
+     return null;
+@@ -37,7 +38,7 @@ function toggleState(action) {
+ }
+ 
+ var Application = GObject.registerClass(
+-class Application extends Adw.Application {
++class Application extends Gtk.Application {
+     _init() {
+         GLib.set_prgname('gnome-extensions-app');
+         super._init({ application_id: Package.name });
+@@ -57,6 +58,17 @@ class Application extends Adw.Applicatio
+     vfunc_startup() {
+         super.vfunc_startup();
+ 
++        let provider = new Gtk.CssProvider();
++        let uri = 'resource:///org/gnome/Extensions/css/application.css';
++        try {
++            provider.load_from_file(Gio.File.new_for_uri(uri));
++        } catch (e) {
++            logError(e, 'Failed to add application style');
++        }
++        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
++            provider,
++            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
++
+         const action = new Gio.SimpleAction({ name: 'quit' });
+         action.connect('activate', () => this._window.close());
+         this.add_action(action);
+@@ -74,11 +86,10 @@ var ExtensionsWindow = GObject.registerC
+     GTypeName: 'ExtensionsWindow',
+     Template: 'resource:///org/gnome/Extensions/ui/extensions-window.ui',
+     InternalChildren: [
+-        'userGroup',
+         'userList',
+-        'systemGroup',
+         'systemList',
+         'mainStack',
++        'scrolledWindow',
+         'searchBar',
+         'searchButton',
+         'searchEntry',
+@@ -134,7 +145,6 @@ var ExtensionsWindow = GObject.registerC
+             margin_top: 12,
+             margin_bottom: 12,
+         }));
+-        this._userList.connect('row-activated', (_list, row) => row.activate());
+ 
+         this._systemList.set_sort_func(this._sortList.bind(this));
+         this._systemList.set_filter_func(this._filterList.bind(this));
+@@ -145,7 +155,6 @@ var ExtensionsWindow = GObject.registerC
+             margin_top: 12,
+             margin_bottom: 12,
+         }));
+-        this._systemList.connect('row-activated', (_list, row) => row.activate());
+ 
+         this._shellProxy.connectSignal('ExtensionStateChanged',
+             this._onExtensionStateChanged.bind(this));
+@@ -188,7 +197,7 @@ var ExtensionsWindow = GObject.registerC
+             try {
+                 this._exportedHandle = await this._exporter.export();
+             } catch (e) {
+-                log(`Failed to export window: ${e.message}`);
++                log('Failed to export window: %s'.format(e.message));
+             }
+         }
+ 
+@@ -203,7 +212,6 @@ var ExtensionsWindow = GObject.registerC
+                 'Florian Müllner <fmuellner@gnome.org>',
+                 'Jasper St. Pierre <jstpierre@mecheye.net>',
+                 'Didier Roche <didrocks@ubuntu.com>',
+-                'Romain Vigier <contact@romainvigier.fr>',
+             ],
+             translator_credits: _('translator-credits'),
+             program_name: _('Extensions'),
+@@ -281,7 +289,7 @@ var ExtensionsWindow = GObject.registerC
+         this._shellProxy.ListExtensionsRemote(([extensionsMap], e) => {
+             if (e) {
+                 if (e instanceof Gio.DBusError) {
+-                    log(`Failed to connect to shell proxy: ${e}`);
++                    log('Failed to connect to shell proxy: %s'.format(e.toString()));
+                     this._mainStack.visible_child_name = 'noshell';
+                 } else {
+                     throw e;
+@@ -320,10 +328,10 @@ var ExtensionsWindow = GObject.registerC
+     }
+ 
+     _syncListVisibility() {
+-        this._userGroup.visible = [...this._userList].length > 1;
+-        this._systemGroup.visible = [...this._systemList].length > 1;
++        this._userList.visible = [...this._userList].length > 1;
++        this._systemList.visible = [...this._systemList].length > 1;
+ 
+-        if (this._userGroup.visible || this._systemGroup.visible)
++        if (this._userList.visible || this._systemList.visible)
+             this._mainStack.visible_child_name = 'main';
+         else
+             this._mainStack.visible_child_name = 'placeholder';
+@@ -352,11 +360,13 @@ var ExtensionRow = GObject.registerClass
+         'nameLabel',
+         'descriptionLabel',
+         'versionLabel',
++        'authorLabel',
+         'errorLabel',
+         'errorIcon',
+         'updatesIcon',
+         'switch',
+-        'actionsBox',
++        'revealButton',
++        'revealer',
+     ],
+ }, class ExtensionRow extends Gtk.ListBoxRow {
+     _init(extension) {
+@@ -415,6 +425,16 @@ var ExtensionRow = GObject.registerClass
+         this._descriptionLabel.label = desc;
+         this._descriptionLabel.tooltip_text = desc;
+ 
++        this._revealButton.connect('clicked', () => {
++            this._revealer.reveal_child = !this._revealer.reveal_child;
++        });
++        this._revealer.connect('notify::reveal-child', () => {
++            if (this._revealer.reveal_child)
++                this._revealButton.get_style_context().add_class('expanded');
++            else
++                this._revealButton.get_style_context().remove_class('expanded');
++        });
++
+         this.connect('destroy', this._onDestroy.bind(this));
+ 
+         this._extensionStateChangedId = this._app.shellProxy.connectSignal(
+@@ -428,10 +448,6 @@ var ExtensionRow = GObject.registerClass
+         this._updateState();
+     }
+ 
+-    vfunc_activate() {
+-        this._switch.mnemonic_activate(false);
+-    }
+-
+     get uuid() {
+         return this._extension.uuid;
+     }
+@@ -498,13 +514,14 @@ var ExtensionRow = GObject.registerClass
+         this._updatesIcon.visible = this.hasUpdate;
+         this._errorIcon.visible = this.hasError;
+ 
+-        this._descriptionLabel.visible = !this.hasError;
+-
+         this._errorLabel.label = this.error;
+         this._errorLabel.visible = this.error !== '';
+ 
+         this._versionLabel.label = this.version.toString();
+         this._versionLabel.visible = this.version !== '';
++
++        this._authorLabel.label = this.creator.toString();
++        this._authorLabel.visible = this.creator !== '';
+     }
+ 
+     _onDestroy() {
+@@ -530,7 +547,7 @@ function initEnvironment() {
+         },
+ 
+         logError(s) {
+-            log(`ERROR: ${s}`);
++            log('ERROR: %s'.format(s));
+         },
+ 
+         userdatadir: GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell']),
+Index: gnome-shell/js/dbusServices/extensions/extensionPrefsDialog.js
+===================================================================
+--- gnome-shell.orig/js/dbusServices/extensions/extensionPrefsDialog.js
++++ /dev/null
+@@ -1,178 +0,0 @@
+-// -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+-/* exported ExtensionPrefsDialog */
+-
+-const { Adw, Gdk, Gio, GLib, GObject, Gtk } = imports.gi;
+-
+-const ExtensionUtils = imports.misc.extensionUtils;
+-
+-var ExtensionPrefsDialog = GObject.registerClass({
+-    GTypeName: 'ExtensionPrefsDialog',
+-}, class ExtensionPrefsDialog extends Adw.PreferencesWindow {
+-    _init(extension) {
+-        super._init({
+-            title: extension.metadata.name,
+-            search_enabled: false,
+-        });
+-
+-        try {
+-            ExtensionUtils.installImporter(extension);
+-
+-            // give extension prefs access to their own extension object
+-            ExtensionUtils.getCurrentExtension = () => extension;
+-
+-            const prefsModule = extension.imports.prefs;
+-            prefsModule.init(extension.metadata);
+-
+-            if (prefsModule.fillPreferencesWindow) {
+-                prefsModule.fillPreferencesWindow(this);
+-
+-                if (!this.visible_page)
+-                    throw new Error('Extension did not provide any UI');
+-            } else {
+-                const widget = prefsModule.buildPrefsWidget();
+-                const page = this._wrapWidget(widget);
+-                this.add(page);
+-            }
+-        } catch (e) {
+-            this._showErrorPage(e);
+-            logError(e, 'Failed to open preferences');
+-        }
+-    }
+-
+-    set titlebar(w) {
+-        this.set_titlebar(w);
+-    }
+-
+-    // eslint-disable-next-line camelcase
+-    set_titlebar() {
+-        // intercept fatal libadwaita error, show error page instead
+-        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+-            this._showErrorPage(
+-                new Error('set_titlebar() is not supported for Adw.Window'));
+-            return GLib.SOURCE_REMOVE;
+-        });
+-    }
+-
+-    _showErrorPage(e) {
+-        while (this.visible_page)
+-            this.remove(this.visible_page);
+-
+-        const extension = ExtensionUtils.getCurrentExtension();
+-        this.add(new ExtensionPrefsErrorPage(extension, e));
+-    }
+-
+-    _wrapWidget(widget) {
+-        if (widget instanceof Adw.PreferencesPage)
+-            return widget;
+-
+-        const page = new Adw.PreferencesPage();
+-        if (widget instanceof Adw.PreferencesGroup) {
+-            page.add(widget);
+-            return page;
+-        }
+-
+-        const group = new Adw.PreferencesGroup();
+-        group.add(widget);
+-        page.add(group);
+-
+-        return page;
+-    }
+-});
+-
+-const ExtensionPrefsErrorPage = GObject.registerClass({
+-    GTypeName: 'ExtensionPrefsErrorPage',
+-    Template: 'resource:///org/gnome/Shell/Extensions/ui/extension-error-page.ui',
+-    InternalChildren: [
+-        'expander',
+-        'expanderArrow',
+-        'revealer',
+-        'errorView',
+-    ],
+-}, class ExtensionPrefsErrorPage extends Adw.PreferencesPage {
+-    static _classInit(klass) {
+-        super._classInit(klass);
+-
+-        klass.install_action('page.copy-error',
+-            null,
+-            self => {
+-                const clipboard = self.get_display().get_clipboard();
+-                clipboard.set(self._errorMarkdown);
+-            });
+-        klass.install_action('page.show-url',
+-            null,
+-            self => Gtk.show_uri(self.get_root(), self._url, Gdk.CURRENT_TIME));
+-
+-        return klass;
+-    }
+-
+-    _init(extension, error) {
+-        super._init();
+-
+-        this._addCustomStylesheet();
+-
+-        this._uuid = extension.uuid;
+-        this._url = extension.metadata.url || '';
+-
+-        this.action_set_enabled('page.show-url', this._url !== '');
+-
+-        this._gesture = new Gtk.GestureClick({
+-            button: 0,
+-            exclusive: true,
+-        });
+-        this._expander.add_controller(this._gesture);
+-
+-        this._gesture.connect('released', (gesture, nPress) => {
+-            if (nPress === 1)
+-                this._revealer.reveal_child = !this._revealer.reveal_child;
+-        });
+-
+-        this._revealer.connect('notify::reveal-child', () => {
+-            this._expanderArrow.icon_name = this._revealer.reveal_child
+-                ? 'pan-down-symbolic'
+-                : 'pan-end-symbolic';
+-            this._syncExpandedStyle();
+-        });
+-        this._revealer.connect('notify::child-revealed',
+-            () => this._syncExpandedStyle());
+-
+-        this._errorView.buffer.text = `${error}\n\nStack trace:\n`;
+-        // Indent stack trace.
+-        this._errorView.buffer.text +=
+-            error.stack.split('\n').map(line => `  ${line}`).join('\n');
+-
+-        // markdown for pasting in gitlab issues
+-        let lines = [
+-            `The settings of extension ${this._uuid} had an error:`,
+-            '```',
+-            `${error}`,
+-            '```',
+-            '',
+-            'Stack trace:',
+-            '```',
+-            error.stack.replace(/\n$/, ''), // stack without trailing newline
+-            '```',
+-            '',
+-        ];
+-        this._errorMarkdown = lines.join('\n');
+-    }
+-
+-    _syncExpandedStyle() {
+-        if (this._revealer.reveal_child)
+-            this._expander.add_css_class('expanded');
+-        else if (!this._revealer.child_revealed)
+-            this._expander.remove_css_class('expanded');
+-    }
+-
+-    _addCustomStylesheet() {
+-        let provider = new Gtk.CssProvider();
+-        let uri = 'resource:///org/gnome/Shell/Extensions/css/application.css';
+-        try {
+-            provider.load_from_file(Gio.File.new_for_uri(uri));
+-        } catch (e) {
+-            logError(e, 'Failed to add application style');
+-        }
+-        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
+-            provider,
+-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+-    }
+-});
+Index: gnome-shell/js/dbusServices/extensions/extensionsService.js
+===================================================================
+--- gnome-shell.orig/js/dbusServices/extensions/extensionsService.js
++++ gnome-shell/js/dbusServices/extensions/extensionsService.js
+@@ -1,12 +1,11 @@
+ // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+ /* exported ExtensionsService */
+ 
+-const { Gio, GLib, Shew } = imports.gi;
++const { Gdk, Gio, GLib, GObject, Gtk, Shew } = imports.gi;
+ 
+ const ExtensionUtils = imports.misc.extensionUtils;
+ 
+ const { loadInterfaceXML } = imports.misc.fileUtils;
+-const { ExtensionPrefsDialog } = imports.extensionPrefsDialog;
+ const { ServiceImplementation } = imports.dbusService;
+ 
+ const ExtensionsIface = loadInterfaceXML('org.gnome.Shell.Extensions');
+@@ -162,3 +161,134 @@ var ExtensionsService = class extends Se
+         });
+     }
+ };
++
++var ExtensionPrefsDialog = GObject.registerClass({
++    GTypeName: 'ExtensionPrefsDialog',
++    Template: 'resource:///org/gnome/Shell/Extensions/ui/extension-prefs-dialog.ui',
++    InternalChildren: [
++        'stack',
++        'expander',
++        'expanderArrow',
++        'revealer',
++        'errorView',
++    ],
++}, class ExtensionPrefsDialog extends Gtk.Window {
++    _init(extension) {
++        super._init({
++            title: extension.metadata.name,
++        });
++
++        this._uuid = extension.uuid;
++        this._url = extension.metadata.url || '';
++
++        this._actionGroup = new Gio.SimpleActionGroup();
++        this.insert_action_group('win', this._actionGroup);
++
++        this._initActions();
++        this._addCustomStylesheet();
++
++        this._gesture = new Gtk.GestureClick({
++            button: 0,
++            exclusive: true,
++        });
++        this._expander.add_controller(this._gesture);
++
++        this._gesture.connect('released', (gesture, nPress) => {
++            if (nPress === 1)
++                this._revealer.reveal_child = !this._revealer.reveal_child;
++        });
++
++        this._revealer.connect('notify::reveal-child', () => {
++            this._expanderArrow.icon_name = this._revealer.reveal_child
++                ? 'pan-down-symbolic'
++                : 'pan-end-symbolic';
++            this._syncExpandedStyle();
++        });
++        this._revealer.connect('notify::child-revealed',
++            () => this._syncExpandedStyle());
++
++        try {
++            ExtensionUtils.installImporter(extension);
++
++            // give extension prefs access to their own extension object
++            ExtensionUtils.getCurrentExtension = () => extension;
++
++            const prefsModule = extension.imports.prefs;
++            prefsModule.init(extension.metadata);
++
++            const widget = prefsModule.buildPrefsWidget();
++            this._stack.add_named(widget, 'prefs');
++            this._stack.visible_child = widget;
++        } catch (e) {
++            this._setError(e);
++            logError(e, 'Failed to open preferences');
++        }
++    }
++
++    _syncExpandedStyle() {
++        if (this._revealer.reveal_child)
++            this._expander.add_css_class('expanded');
++        else if (!this._revealer.child_revealed)
++            this._expander.remove_css_class('expanded');
++    }
++
++    _setError(exc) {
++        this._errorView.buffer.text = `${exc}\n\nStack trace:\n`;
++        // Indent stack trace.
++        this._errorView.buffer.text +=
++            exc.stack.split('\n').map(line => `  ${line}`).join('\n');
++
++        // markdown for pasting in gitlab issues
++        let lines = [
++            `The settings of extension ${this._uuid} had an error:`,
++            '```',
++            `${exc}`,
++            '```',
++            '',
++            'Stack trace:',
++            '```',
++            exc.stack.replace(/\n$/, ''), // stack without trailing newline
++            '```',
++            '',
++        ];
++        this._errorMarkdown = lines.join('\n');
++        this._actionGroup.lookup('copy-error').enabled = true;
++    }
++
++    _initActions() {
++        let action;
++
++        action = new Gio.SimpleAction({
++            name: 'copy-error',
++            enabled: false,
++        });
++        action.connect('activate', () => {
++            const clipboard = this.get_display().get_clipboard();
++            clipboard.set(this._errorMarkdown);
++        });
++        this._actionGroup.add_action(action);
++
++        action = new Gio.SimpleAction({
++            name: 'show-url',
++            enabled: this._url !== '',
++        });
++        action.connect('activate', () => {
++            Gio.AppInfo.launch_default_for_uri(this._url,
++                this.get_display().get_app_launch_context());
++        });
++        this._actionGroup.add_action(action);
++    }
++
++    _addCustomStylesheet() {
++        let provider = new Gtk.CssProvider();
++        let uri = 'resource:///org/gnome/Shell/Extensions/css/application.css';
++        try {
++            provider.load_from_file(Gio.File.new_for_uri(uri));
++        } catch (e) {
++            logError(e, 'Failed to add application style');
++        }
++        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
++            provider,
++            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
++    }
++});
+Index: gnome-shell/js/dbusServices/extensions/main.js
+===================================================================
+--- gnome-shell.orig/js/dbusServices/extensions/main.js
++++ gnome-shell/js/dbusServices/extensions/main.js
+@@ -3,18 +3,16 @@
+ imports.gi.versions.Gdk = '4.0';
+ imports.gi.versions.Gtk = '4.0';
+ 
+-const { Adw, GObject } = imports.gi;
++const { Gtk } = imports.gi;
+ const pkg = imports.package;
+ 
+ const { DBusService } = imports.dbusService;
+ const { ExtensionsService } = imports.extensionsService;
+ 
+ function main() {
+-    Adw.init();
++    Gtk.init();
+     pkg.initFormat();
+ 
+-    GObject.gtypeNameBasedOnJSPath = true;
+-
+     const service = new DBusService(
+         'org.gnome.Shell.Extensions',
+         new ExtensionsService());
+Index: gnome-shell/js/dbusServices/extensions/ui/extension-prefs-dialog.ui
+===================================================================
+--- /dev/null
++++ gnome-shell/js/dbusServices/extensions/ui/extension-prefs-dialog.ui
+@@ -0,0 +1,132 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<interface>
++  <requires lib="gtk+" version="3.20"/>
++  <template class="ExtensionPrefsDialog" parent="GtkWindow">
++    <property name="default-width">600</property>
++    <property name="default-height">400</property>
++    <child type="titlebar">
++      <object class="GtkHeaderBar"/>
++    </child>
++    <child>
++      <object class="GtkStack" id="stack">
++        <child>
++          <object class="GtkScrolledWindow">
++            <property name="hscrollbar-policy">never</property>
++            <property name="propagate-natural-height">True</property>
++            <child>
++              <object class="GtkViewport">
++                <child>
++                  <object class="GtkBox">
++                    <property name="orientation">vertical</property>
++                    <property name="margin-start">100</property>
++                    <property name="margin-end">100</property>
++                    <property name="margin-top">100</property>
++                    <property name="margin-bottom">60</property>
++                    <property name="spacing">12</property>
++                    <child>
++                      <object class="GtkLabel">
++                        <property name="label" translatable="yes">Something’s gone wrong</property>
++                        <attributes>
++                          <attribute name="scale" value="1.44"/> <!-- x-large -->
++                        </attributes>
++                        <style>
++                          <class name="dim-label"/>
++                        </style>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkLabel">
++                        <property name="label" translatable="yes">We’re very sorry, but there’s been a problem: the settings for this extension can’t be displayed. We recommend that you report the issue to the extension authors.</property>
++                        <property name="justify">center</property>
++                        <property name="wrap">True</property>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkFrame">
++                        <property name="margin-top">12</property>
++                        <child>
++                          <object class="GtkBox">
++                            <property name="hexpand">True</property>
++                            <property name="orientation">vertical</property>
++                            <child>
++                              <object class="GtkBox" id="expander">
++                                <property name="spacing">6</property>
++                                <style>
++                                  <class name="expander"/>
++                                </style>
++                                <child>
++                                  <object class="GtkImage" id="expanderArrow">
++                                    <property name="icon-name">pan-end-symbolic</property>
++                                  </object>
++                                </child>
++                                <child>
++                                  <object class="GtkLabel">
++                                    <property name="label" translatable="yes">Technical Details</property>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkRevealer" id="revealer">
++                                <child>
++                                  <object class="GtkBox">
++                                    <property name="orientation">vertical</property>
++                                    <child>
++                                      <object class="GtkTextView" id="errorView">
++                                        <property name="monospace">True</property>
++                                        <property name="editable">False</property>
++                                        <property name="wrap-mode">word</property>
++                                        <property name="left-margin">12</property>
++                                        <property name="right-margin">12</property>
++                                        <property name="top-margin">12</property>
++                                        <property name="bottom-margin">12</property>
++                                      </object>
++                                    </child>
++                                    <child>
++                                      <object class="GtkBox">
++                                        <style>
++                                          <class name="expander-toolbar"/>
++                                        </style>
++                                        <child>
++                                          <object class="GtkButton">
++                                            <property name="receives-default">True</property>
++                                            <property name="action-name">win.copy-error</property>
++                                            <property name="has-frame">False</property>
++                                            <property name="icon-name">edit-copy-symbolic</property>
++                                          </object>
++                                        </child>
++                                        <child>
++                                          <object class="GtkButton" id="homeButton">
++                                            <property name="visible"
++                                                      bind-source="homeButton"
++                                                      bind-property="sensitive"
++                                                      bind-flags="sync-create"/>
++                                            <property name="hexpand">True</property>
++                                            <property name="halign">end</property>
++                                            <property name="label" translatable="yes">Homepage</property>
++                                            <property name="tooltip-text" translatable="yes">Visit extension homepage</property>
++                                            <property name="receives-default">True</property>
++                                            <property name="has-frame">False</property>
++                                            <property name="action-name">win.show-url</property>
++                                          </object>
++                                        </child>
++                                      </object>
++                                    </child>
++                                  </object>
++                                </child>
++                              </object>
++                            </child>
++                          </object>
++                        </child>
++                      </object>
++                    </child>
++                  </object>
++                </child>
++              </object>
++            </child>
++          </object>
++        </child>
++      </object>
++    </child>
++  </template>
++</interface>
+Index: gnome-shell/js/dbusServices/extensions/ui/extension-error-page.ui
+===================================================================
+--- gnome-shell.orig/js/dbusServices/extensions/ui/extension-error-page.ui
++++ /dev/null
+@@ -1,112 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<interface>
+-  <template class="ExtensionPrefsErrorPage" parent="AdwPreferencesPage">
+-    <style>
+-      <class name="error-page"/>
+-    </style>
+-    <child>
+-      <object class="AdwPreferencesGroup">
+-        <child>
+-          <object class="GtkBox">
+-            <property name="orientation">vertical</property>
+-            <property name="spacing">12</property>
+-            <child>
+-              <object class="GtkLabel">
+-                <property name="label" translatable="yes">Something’s gone wrong</property>
+-                <style>
+-                  <class name="title-1"/>
+-                </style>
+-              </object>
+-            </child>
+-            <child>
+-              <object class="GtkLabel">
+-                <property name="label" translatable="yes">We’re very sorry, but there’s been a problem: the settings for this extension can’t be displayed. We recommend that you report the issue to the extension authors.</property>
+-                <property name="justify">center</property>
+-                <property name="wrap">True</property>
+-              </object>
+-            </child>
+-            <child>
+-              <object class="GtkFrame">
+-                <property name="margin-top">12</property>
+-                <child>
+-                  <object class="GtkBox">
+-                    <property name="hexpand">True</property>
+-                    <property name="orientation">vertical</property>
+-                    <child>
+-                      <object class="GtkBox" id="expander">
+-                        <property name="spacing">6</property>
+-                        <style>
+-                          <class name="expander"/>
+-                        </style>
+-                        <child>
+-                          <object class="GtkImage" id="expanderArrow">
+-                            <property name="icon-name">pan-end-symbolic</property>
+-                          </object>
+-                        </child>
+-                        <child>
+-                          <object class="GtkLabel">
+-                            <property name="label" translatable="yes">Technical Details</property>
+-                          </object>
+-                        </child>
+-                      </object>
+-                    </child>
+-                    <child>
+-                      <object class="GtkRevealer" id="revealer">
+-                        <child>
+-                          <object class="GtkBox">
+-                            <property name="orientation">vertical</property>
+-                            <child>
+-                              <object class="GtkTextView" id="errorView">
+-                                <property name="monospace">True</property>
+-                                <property name="editable">False</property>
+-                                <property name="wrap-mode">word</property>
+-                                <property name="left-margin">12</property>
+-                                <property name="right-margin">12</property>
+-                                <property name="top-margin">12</property>
+-                                <property name="bottom-margin">12</property>
+-                              </object>
+-                            </child>
+-                            <child>
+-                              <object class="GtkBox">
+-                                <style>
+-                                  <class name="expander-toolbar"/>
+-                                </style>
+-                                <child>
+-                                  <object class="GtkButton">
+-                                    <property name="receives-default">True</property>
+-                                    <property name="action-name">page.copy-error</property>
+-                                    <property name="has-frame">False</property>
+-                                    <property name="icon-name">edit-copy-symbolic</property>
+-                                  </object>
+-                                </child>
+-                                <child>
+-                                  <object class="GtkButton" id="homeButton">
+-                                    <property name="visible"
+-                                              bind-source="homeButton"
+-                                              bind-property="sensitive"
+-                                              bind-flags="sync-create"/>
+-                                    <property name="hexpand">True</property>
+-                                    <property name="halign">end</property>
+-                                    <property name="label" translatable="yes">Homepage</property>
+-                                    <property name="tooltip-text" translatable="yes">Visit extension homepage</property>
+-                                    <property name="receives-default">True</property>
+-                                    <property name="has-frame">False</property>
+-                                    <property name="action-name">page.show-url</property>
+-                                  </object>
+-                                </child>
+-                              </object>
+-                            </child>
+-                          </object>
+-                        </child>
+-                      </object>
+-                    </child>
+-                  </object>
+-                </child>
+-              </object>
+-            </child>
+-          </object>
+-        </child>
+-      </object>
+-    </child>
+-  </template>
+-</interface>
+Index: gnome-shell/js/dbusServices/extensions/css/application.css
+===================================================================
+--- gnome-shell.orig/js/dbusServices/extensions/css/application.css
++++ gnome-shell/js/dbusServices/extensions/css/application.css
+@@ -1,5 +1,3 @@
+-.error-page preferencespage { margin: 30px; }
+-
+ .expander { padding: 12px; }
+ .expander.expanded { border: 0 solid @borders; border-bottom-width: 1px; }
+ .expander-toolbar {
+Index: gnome-shell/subprojects/extensions-app/data/ui/extension-row.ui
+===================================================================
+--- gnome-shell.orig/subprojects/extensions-app/data/ui/extension-row.ui
++++ gnome-shell/subprojects/extensions-app/data/ui/extension-row.ui
+@@ -1,140 +1,224 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <interface>
++  <requires lib="gtk+" version="3.20"/>
+   <template class="ExtensionRow" parent="GtkListBoxRow">
+-    <style>
+-      <class name="extension"/>
+-    </style>
++    <property name="activatable">False</property>
+     <child>
+-      <object class="GtkBox">
+-        <property name="orientation">vertical</property>
++      <object class="GtkGrid">
++        <property name="margin-start">12</property>
++        <property name="margin-end">12</property>
++        <property name="margin-top">12</property>
++        <property name="margin-bottom">12</property>
++        <property name="column-spacing">12</property>
+         <child>
+-          <object class="GtkBox">
++          <object class="GtkLabel" id="nameLabel"/>
++        </child>
++        <child>
++          <object class="GtkImage" id="errorIcon">
++            <property name="visible">False</property>
++            <property name="icon-name">dialog-error-symbolic</property>
++            <style>
++              <class name="error"/>
++            </style>
++          </object>
++        </child>
++        <child>
++          <object class="GtkImage" id="updatesIcon">
++            <property name="visible">False</property>
++            <property name="icon-name">software-update-available-symbolic</property>
++            <style>
++              <class name="warning"/>
++            </style>
++          </object>
++        </child>
++        <child>
++          <object class="GtkLabel">
++            <property name="hexpand">True</property>
++          </object>
++        </child>
++        <child>
++          <object class="GtkButton" id="prefsButton">
++            <property name="visible"
++                      bind-source="prefsButton"
++                      bind-property="sensitive"
++                      bind-flags="sync-create"/>
++            <property name="icon-name">emblem-system-symbolic</property>
++            <property name="receives-default">True</property>
++            <property name="valign">center</property>
++            <property name="action-name">row.show-prefs</property>
++            <style>
++              <class name="circular"/>
++            </style>
++          </object>
++        </child>
++        <child>
++          <object class="GtkSwitch" id="switch">
++            <property name="valign">center</property>
++            <property name="action-name">row.enabled</property>
++          </object>
++        </child>
++        <child>
++          <object class="GtkSeparator"/>
++        </child>
++        <child>
++          <object class="GtkButton" id="revealButton">
++            <property name="receives-default">True</property>
++            <property name="valign">center</property>
++            <property name="has-frame">False</property>
++            <property name="icon-name">pan-end-symbolic</property>
++            <style>
++              <class name="details-button"/>
++            </style>
++          </object>
++        </child>
++        <child>
++          <object class="GtkRevealer" id="revealer">
+             <child>
+-              <object class="GtkBox">
+-                <property name="orientation">vertical</property>
+-                <property name="hexpand">true</property>
+-                <style>
+-                  <class name="information"/>
+-                </style>
++              <object class="GtkGrid">
++                <property name="margin-top">12</property>
++                <property name="row-spacing">6</property>
++                <property name="column-spacing">12</property>
+                 <child>
+-                  <object class="GtkBox">
++                  <object class="GtkLabel">
++                    <property name="label" translatable="yes">Description</property>
++                    <property name="xalign">0</property>
+                     <style>
+-                      <class name="header"/>
++                      <class name="dim-label"/>
+                     </style>
+-                    <child>
+-                      <object class="GtkLabel" id="nameLabel">
+-                        <property name="xalign">0</property>
+-                        <style>
+-                          <class name="title"/>
+-                        </style>
+-                      </object>
+-                    </child>
+-                    <child>
+-                      <object class="GtkLabel" id="versionLabel">
+-                        <property name="visible">false</property>
+-                        <property name="xalign">0</property>
+-                        <property name="yalign">1</property>
+-                        <style>
+-                          <class name="caption"/>
+-                          <class name="dim-label"/>
+-                        </style>
+-                      </object>
+-                    </child>
+-                    <child>
+-                      <object class="GtkBox">
+-                        <style>
+-                          <class name="status"/>
+-                        </style>
+-                        <child>
+-                          <object class="GtkImage" id="errorIcon">
+-                            <property name="visible">false</property>
+-                            <property name="icon-name">dialog-error-symbolic</property>
+-                            <property name="tooltip-text" translatable="yes">The extension had an error</property>
+-                            <style>
+-                              <class name="error"/>
+-                            </style>
+-                          </object>
+-                        </child>
+-                        <child>
+-                          <object class="GtkImage" id="updatesIcon">
+-                            <property name="visible">false</property>
+-                            <property name="icon-name">software-update-available-symbolic</property>
+-                            <property name="tooltip-text" translatable="yes">The extension can be updated</property>
+-                            <style>
+-                              <class name="warning"/>
+-                            </style>
+-                          </object>
+-                        </child>
+-                      </object>
+-                    </child>
+                   </object>
+                 </child>
+                 <child>
+                   <object class="GtkLabel" id="descriptionLabel">
+-                    <property name="xalign">0</property>
+                     <property name="ellipsize">end</property>
++                    <property name="max-width-chars">60</property>
++                    <property name="xalign">0</property>
++                    <property name="yalign">0</property>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkLabel">
++                    <property name="visible"
++                              bind-source="versionLabel"
++                              bind-property="visible"
++                              bind-flags="sync-create"/>
++                    <property name="label" translatable="yes">Version</property>
++                    <property name="xalign">0</property>
+                     <style>
+-                      <class name="subtitle"/>
++                      <class name="dim-label"/>
+                     </style>
++                    <layout>
++                      <property name="column">0</property>
++                      <property name="row">1</property>
++                    </layout>
+                   </object>
+                 </child>
+                 <child>
+-                  <object class="GtkLabel" id="errorLabel">
+-                    <property name="visible">false</property>
+-                    <property name="selectable">true</property>
+-                    <property name="wrap">True</property>
++                  <object class="GtkLabel" id="versionLabel">
++                    <property name="visible">False</property>
++                    <property name="xalign">0</property>
++                    <layout>
++                      <property name="column">1</property>
++                      <property name="row">1</property>
++                    </layout>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkLabel">
++                    <property name="visible"
++                              bind-source="authorLabel"
++                              bind-property="visible"
++                              bind-flags="sync-create"/>
++                    <property name="label" translatable="yes">Author</property>
+                     <property name="xalign">0</property>
+                     <style>
+-                      <class name="caption"/>
+-                      <class name="error"/>
++                      <class name="dim-label"/>
+                     </style>
++                    <layout>
++                      <property name="column">0</property>
++                      <property name="row">2</property>
++                    </layout>
+                   </object>
+                 </child>
+-              </object>
+-            </child>
+-            <child>
+-              <object class="GtkSwitch" id="switch">
+-                <property name="valign">center</property>
+-                <property name="action-name">row.enabled</property>
+-              </object>
+-            </child>
+-          </object>
+-        </child>
+-        <child>
+-          <object class="GtkCenterBox" id="actionsBox">
+-            <style>
+-              <class name="actions"/>
+-            </style>
+-            <child type="start">
+-              <object class="GtkBox">
+                 <child>
+-                  <object class="GtkButton" id="websiteButton">
++                  <object class="GtkLabel" id="authorLabel">
++                    <property name="visible">False</property>
++                    <property name="xalign">0</property>
++                    <layout>
++                      <property name="column">1</property>
++                      <property name="row">2</property>
++                    </layout>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkLabel">
++                    <property name="visible"
++                              bind-source="errorLabel"
++                              bind-property="visible"
++                              bind-flags="sync-create"/>
++                    <property name="label" translatable="yes">Error</property>
++                    <property name="xalign">0</property>
++                    <property name="yalign">0</property>
++                    <style>
++                      <class name="dim-label"/>
++                    </style>
++                    <layout>
++                      <property name="column">0</property>
++                      <property name="row">3</property>
++                    </layout>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkLabel" id="errorLabel">
++                    <property name="visible">False</property>
++                    <property name="selectable">True</property>
++                    <property name="wrap">True</property>
++                    <property name="max-width-chars">60</property>
++                    <property name="xalign">0</property>
++                    <layout>
++                      <property name="column">1</property>
++                      <property name="row">3</property>
++                    </layout>
++                  </object>
++                </child>
++                <child>
++                  <object class="GtkButton">
+                     <property name="label" translatable="yes">Website</property>
+                     <property name="action-name">row.show-url</property>
++                    <property name="valign">end</property>
++                    <property name="margin-top">12</property>
++                    <layout>
++                      <property name="column">0</property>
++                      <property name="row">4</property>
++                    </layout>
+                   </object>
+                 </child>
+                 <child>
+-                  <object class="GtkButton" id="prefsButton">
++                  <object class="GtkButton" id="removeButton">
+                     <property name="visible"
+-                              bind-source="prefsButton"
++                              bind-source="removeButton"
+                               bind-property="sensitive"
+                               bind-flags="sync-create"/>
+-                    <property name="label" translatable="yes">Settings</property>
+-                    <property name="action-name">row.show-prefs</property>
++                    <property name="label" translatable="yes">Remove…</property>
++                    <property name="action-name">row.uninstall</property>
++                    <property name="hexpand">True</property>
++                    <property name="halign">end</property>
++                    <property name="valign">end</property>
++                    <style>
++                      <class name="destructive-action"/>
++                    </style>
++                    <layout>
++                      <property name="column">1</property>
++                      <property name="row">4</property>
++                    </layout>
+                   </object>
+                 </child>
+               </object>
+             </child>
+-            <child type="end">
+-              <object class="GtkButton" id="removeButton">
+-                <property name="visible"
+-                          bind-source="removeButton"
+-                          bind-property="sensitive"
+-                          bind-flags="sync-create"/>
+-                <property name="label" translatable="yes">Remove…</property>
+-                <property name="action-name">row.uninstall</property>
+-              </object>
+-            </child>
++            <layout>
++              <property name="column">0</property>
++              <property name="row">1</property>
++              <property name="column-span">8</property>
++            </layout>
+           </object>
+         </child>
+       </object>
+Index: gnome-shell/subprojects/extensions-app/data/ui/extensions-window.ui
+===================================================================
+--- gnome-shell.orig/subprojects/extensions-app/data/ui/extensions-window.ui
++++ gnome-shell/subprojects/extensions-app/data/ui/extensions-window.ui
+@@ -1,5 +1,6 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <interface>
++  <requires lib="gtk+" version="3.20"/>
+   <menu id="primary-menu">
+     <section>
+       <item>
+@@ -12,12 +13,55 @@
+       </item>
+     </section>
+   </menu>
++  <object class="GtkPopover" id="infoPopover">
++    <child>
++      <object class="GtkBox">
++        <property name="orientation">vertical</property>
++        <property name="margin-start">12</property>
++        <property name="margin-end">12</property>
++        <property name="margin-top">12</property>
++        <property name="margin-bottom">12</property>
++        <property name="spacing">6</property>
++        <child>
++          <object class="GtkLabel">
++            <property name="label" translatable="yes">To find and add extensions, visit &lt;a href="https://extensions.gnome.org"&gt;extensions.gnome.org&lt;/a&gt;.</property>
++            <property name="use-markup">True</property>
++            <property name="xalign">0</property>
++          </object>
++        </child>
++        <child>
++          <object class="GtkLabel">
++            <property name="label" translatable="yes">Warning</property>
++            <property name="xalign">0</property>
++            <property name="margin-top">6</property>
++            <attributes>
++              <attribute name="weight" value="bold"/>
++            </attributes>
++          </object>
++        </child>
++        <child>
++          <object class="GtkLabel">
++            <property name="label" translatable="yes">Extensions can cause system issues, including performance problems. If you encounter problems with your system, it is recommended to disable all extensions.</property>
++            <property name="wrap">True</property>
++            <property name="max-width-chars">40</property>
++            <property name="xalign">0</property>
++          </object>
++        </child>
++      </object>
++    </child>
++  </object>
+   <template class="ExtensionsWindow" parent="GtkApplicationWindow">
+     <property name="default-width">800</property>
+     <property name="default-height">500</property>
+     <property name="title" translatable="yes">Extensions</property>
+     <child type="titlebar">
+       <object class="GtkHeaderBar">
++        <child>
++          <object class="GtkMenuButton">
++            <property name="popover">infoPopover</property>
++            <property name="icon-name">dialog-information-symbolic</property>
++          </object>
++        </child>
+         <child type="end">
+           <object class="GtkMenuButton" id="menuButton">
+             <property name="receives-default">True</property>
+@@ -48,6 +92,12 @@
+             </child>
+           </object>
+         </child>
++        <child type="end">
++          <object class="GtkSwitch">
++            <property name="action-name">win.user-extensions-enabled</property>
++            <property name="valign">center</property>
++          </object>
++        </child>
+       </object>
+     </child>
+     <child>
+@@ -75,47 +125,67 @@
+               <object class="GtkStackPage">
+                 <property name="name">main</property>
+                 <property name="child">
+-                  <object class="AdwPreferencesPage">
++                  <object class="GtkScrolledWindow" id="scrolledWindow">
++                    <property name="hscrollbar-policy">never</property>
+                     <child>
+-                      <object class="AdwPreferencesGroup">
++                      <object class="GtkViewport">
++                        <property name="scroll-to-focus">True</property>
+                         <child>
+-                          <object class="AdwActionRow">
+-                            <property name="title" translatable="yes">Extensions</property>
+-                            <property name="subtitle" translatable="yes">Extensions can cause performance and stability issues. Disable extensions if you encounter problems with your system.</property>
+-                            <property name="activatable-widget">enabledSwitch</property>
++                          <object class="GtkBox">
++                            <property name="orientation">vertical</property>
++                            <property name="halign">center</property>
++                            <property name="margin-start">36</property>
++                            <property name="margin-end">36</property>
++                            <property name="margin-top">36</property>
++                            <property name="margin-bottom">36</property>
++                            <property name="spacing">12</property>
+                             <child>
+-                              <object class="GtkSwitch" id="enabledSwitch">
+-                                <property name="action-name">win.user-extensions-enabled</property>
+-                                <property name="valign">center</property>
++                              <object class="GtkLabel">
++                                <property name="visible"
++                                          bind-source="userList"
++                                          bind-property="visible"
++                                          bind-flags="sync-create"/>
++                                <property name="halign">start</property>
++                                <property name="hexpand">True</property>
++                                <property name="label" translatable="yes">Manually Installed</property>
++                                <attributes>
++                                  <attribute name="weight" value="bold"/>
++                                </attributes>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkListBox" id="userList">
++                                <property name="selection-mode">none</property>
++                                <property name="show-separators">True</property>
++                                <property name="margin-bottom">24</property>
++                                <style>
++                                  <class name="frame"/>
++                                </style>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkLabel">
++                                <property name="visible"
++                                          bind-source="systemList"
++                                          bind-property="visible"
++                                          bind-flags="sync-create"/>
++                                <property name="halign">start</property>
++                                <property name="hexpand">True</property>
++                                <property name="label" translatable="yes">Built-In</property>
++                                <attributes>
++                                  <attribute name="weight" value="bold"/>
++                                </attributes>
++                              </object>
++                            </child>
++                            <child>
++                              <object class="GtkListBox" id="systemList">
++                                <property name="selection-mode">none</property>
++                                <property name="show-separators">True</property>
++                                <style>
++                                  <class name="frame"/>
++                                </style>
+                               </object>
+                             </child>
+-                          </object>
+-                        </child>
+-                      </object>
+-                    </child>
+-                    <child>
+-                      <object class="AdwPreferencesGroup" id="userGroup">
+-                        <property name="title" translatable="yes">Manually Installed</property>
+-                        <property name="description" translatable="yes">To find and add extensions, visit &lt;a href="https://extensions.gnome.org"&gt;extensions.gnome.org&lt;/a&gt;.</property>
+-                        <child>
+-                          <object class="GtkListBox" id="userList">
+-                            <property name="selection-mode">none</property>
+-                            <style>
+-                              <class name="boxed-list"/>
+-                            </style>
+-                          </object>
+-                        </child>
+-                      </object>
+-                    </child>
+-                    <child>
+-                      <object class="AdwPreferencesGroup" id="systemGroup">
+-                        <property name="title" translatable="yes">Built-In</property>
+-                        <child>
+-                          <object class="GtkListBox" id="systemList">
+-                            <property name="selection-mode">none</property>
+-                            <style>
+-                              <class name="boxed-list"/>
+-                            </style>
+                           </object>
+                         </child>
+                       </object>
+@@ -128,10 +198,29 @@
+               <object class="GtkStackPage">
+                 <property name="name">placeholder</property>
+                 <property name="child">
+-                  <object class="AdwStatusPage">
+-                    <property name="icon-name">org.gnome.Extensions-symbolic</property>
+-                    <property name="title" translatable="yes">No Installed Extensions</property>
+-                    <property name="description" translatable="yes">To find and add extensions, visit &lt;a href="https://extensions.gnome.org"&gt;extensions.gnome.org&lt;/a&gt;.</property>
++                  <object class="GtkBox">
++                    <property name="orientation">vertical</property>
++                    <property name="margin-start">32</property>
++                    <property name="margin-end">32</property>
++                    <property name="margin-top">32</property>
++                    <property name="margin-bottom">32</property>
++                    <property name="spacing">6</property>
++                    <property name="valign">center</property>
++                    <child>
++                      <object class="GtkImage">
++                        <property name="pixel-size">96</property>
++                        <property name="icon-name">org.gnome.Extensions-symbolic</property>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkLabel">
++                        <property name="label" translatable="yes">No Installed Extensions</property>
++                        <attributes>
++                          <attribute name="weight" value="bold"/>
++                          <attribute name="scale" value="1.44"/>
++                        </attributes>
++                      </object>
++                    </child>
+                   </object>
+                 </property>
+               </object>
+@@ -140,9 +229,34 @@
+               <object class="GtkStackPage">
+                 <property name="name">noshell</property>
+                 <property name="child">
+-                  <object class="AdwStatusPage">
+-                    <property name="title" translatable="yes">Something’s gone wrong</property>
+-                    <property name="description" translatable="yes">We’re very sorry, but it was not possible to get the list of installed extensions. Make sure you are logged into GNOME and try again.</property>
++                  <object class="GtkBox">
++                    <property name="margin-start">100</property>
++                    <property name="margin-end">100</property>
++                    <property name="margin-top">100</property>
++                    <property name="margin-bottom">60</property>
++                    <property name="orientation">vertical</property>
++                    <property name="spacing">12</property>
++                    <child>
++                      <object class="GtkLabel">
++                        <property name="label" translatable="yes">Something’s gone wrong</property>
++                        <attributes>
++                          <attribute name="scale" value="1.44"/>
++                        </attributes>
++                        <style>
++                          <class name="dim-label"/>
++                        </style>
++                      </object>
++                    </child>
++                    <child>
++                      <object class="GtkLabel">
++                        <property name="label" translatable="yes">We’re very sorry, but it was not possible to get the list of installed extensions. Make sure you are logged into GNOME and try again.</property>
++                        <property name="justify">center</property>
++                        <property name="wrap">True</property>
++                        <style>
++                          <class name="dim-label"/>
++                        </style>
++                      </object>
++                    </child>
+                   </object>
+                 </property>
+               </object>
+@@ -168,14 +282,13 @@
+             <child>
+               <object class="GtkBox">
+                 <property name="orientation">vertical</property>
+-                <property name="valign">center</property>
+                 <child>
+                   <object class="GtkLabel">
+                     <property name="halign">start</property>
+                     <property name="label" translatable="yes">Extension Updates Ready</property>
+-                    <style>
+-                      <class name="heading"/>
+-                    </style>
++                    <attributes>
++                      <attribute name="weight" value="bold"/>
++                    </attributes>
+                   </object>
+                 </child>
+                 <child>
+Index: gnome-shell/subprojects/extensions-app/data/metainfo/org.gnome.Extensions.metainfo.xml.in
+===================================================================
+--- gnome-shell.orig/subprojects/extensions-app/data/metainfo/org.gnome.Extensions.metainfo.xml.in
++++ gnome-shell/subprojects/extensions-app/data/metainfo/org.gnome.Extensions.metainfo.xml.in
+@@ -39,16 +39,10 @@
+   </description>
+ 
+   <releases>
+-    <release version="42.beta" type="development" date="2022-02-14">
+-      <description>
+-        <p>Modernize look and feel.</p>
+-      </description>
+-    </release>
+-    <release version="42.alpha" type="development" date="2022-01-10">
+-      <description>
+-        <p>Use libadwaita for platform integration and consistency.</p>
+-      </description>
+-    </release>
++    <release version="41.3" date="2022-01-09"/>
++    <release version="41.2" date="2021-12-11"/>
++    <release version="41.1" date="2021-11-03"/>
++    <release version="41.0" date="2021-09-19"/>
+   </releases>
+ 
+   <screenshots>
+Index: gnome-shell/subprojects/extensions-app/data/css/application.css
+===================================================================
+--- /dev/null
++++ gnome-shell/subprojects/extensions-app/data/css/application.css
+@@ -0,0 +1,12 @@
++.details-button image {
++  transition: 250ms;
++}
++.details-button.expanded:dir(ltr) image {
++  -gtk-icon-transform: rotate(0.25turn);
++}
++.details-button.expanded:dir(rtl) image {
++  -gtk-icon-transform: rotate(-0.25turn);
++}
++
++image.error { color: @error_color; }
++image.warning { color: @warning_color; }
+Index: gnome-shell/subprojects/extensions-app/data/css/style.css
+===================================================================
+--- gnome-shell.orig/subprojects/extensions-app/data/css/style.css
++++ /dev/null
+@@ -1,21 +0,0 @@
+-row.extension>box {
+- margin: 12px;
+-}
+-
+-row.extension>box,
+-row.extension box.header {
+-  border-spacing: 12px;
+-}
+-
+-row.extension box.actions,
+-row.extension box.actions>box {
+-  border-spacing: 6px;
+-}
+-
+-row.extension box.information,
+-row.extension box.status {
+-  border-spacing: 3px;
+-}
+-
+-image.error { color: @error_color; }
+-image.warning { color: @warning_color; }
+Index: gnome-shell/subprojects/extensions-app/data/org.gnome.Extensions.data.gresource.xml
+===================================================================
+--- /dev/null
++++ gnome-shell/subprojects/extensions-app/data/org.gnome.Extensions.data.gresource.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<gresources>
++  <gresource prefix="/org/gnome/Extensions">
++    <file>css/application.css</file>
++
++    <file>dbus-interfaces/org.gnome.Shell.Extensions.xml</file>
++
++    <file>ui/extension-row.ui</file>
++    <file>ui/extensions-window.ui</file>
++  </gresource>
++</gresources>
+Index: gnome-shell/subprojects/extensions-app/data/org.gnome.Extensions.data.gresource.xml.in
+===================================================================
+--- gnome-shell.orig/subprojects/extensions-app/data/org.gnome.Extensions.data.gresource.xml.in
++++ /dev/null
+@@ -1,13 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<gresources>
+-  <gresource prefix="/org/gnome/Extensions@profile@">
+-    <file alias="style.css">css/style.css</file>
+-  </gresource>
+-
+-  <gresource prefix="/org/gnome/Extensions">
+-    <file>dbus-interfaces/org.gnome.Shell.Extensions.xml</file>
+-
+-    <file>ui/extension-row.ui</file>
+-    <file>ui/extensions-window.ui</file>
+-  </gresource>
+-</gresources>
+Index: gnome-shell/subprojects/extensions-app/data/meson.build
+===================================================================
+--- gnome-shell.orig/subprojects/extensions-app/data/meson.build
++++ gnome-shell/subprojects/extensions-app/data/meson.build
+@@ -1,10 +1,6 @@
+ gnome.compile_resources(
+   app_id + '.data',
+-  configure_file(
+-    input: base_id + '.data.gresource.xml.in',
+-    output: app_id + '.data.gresource.xml',
+-    configuration: {'profile': '/'.join(profile.split('.')) },
+-  ),
++  base_id + '.data.gresource.xml',
+   gresource_bundle: true,
+   install: true,
+   install_dir: pkgdatadir
+Index: gnome-shell/js/dbusServices/org.gnome.Shell.Extensions.src.gresource.xml
+===================================================================
+--- gnome-shell.orig/js/dbusServices/org.gnome.Shell.Extensions.src.gresource.xml
++++ gnome-shell/js/dbusServices/org.gnome.Shell.Extensions.src.gresource.xml
+@@ -3,7 +3,6 @@
+   <gresource prefix="/org/gnome/Shell/Extensions/js">
+     <file>main.js</file>
+     <file>extensionsService.js</file>
+-    <file>extensionPrefsDialog.js</file>
+     <file>dbusService.js</file>
+ 
+     <file>misc/config.js</file>
+@@ -14,6 +13,6 @@
+ 
+   <gresource prefix="/org/gnome/Shell/Extensions">
+     <file>css/application.css</file>
+-    <file>ui/extension-error-page.ui</file>
++    <file>ui/extension-prefs-dialog.ui</file>
+   </gresource>
+ </gresources>
