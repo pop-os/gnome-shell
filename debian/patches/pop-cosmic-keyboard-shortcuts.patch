@@ -1,0 +1,28 @@
+Index: gnome-shell/data/50-gnome-shell-system.xml
+===================================================================
+--- gnome-shell.orig/data/50-gnome-shell-system.xml
++++ gnome-shell/data/50-gnome-shell-system.xml
+@@ -12,7 +12,7 @@
+                       description="Focus the active notification"/>
+ 
+ 	<KeyListEntry name="toggle-overview"
+-                      description="Show the overview"/>
++                      description="Show workspaces"/>
+ 
+ 	<KeyListEntry name="toggle-application-view"
+                       description="Show all applications"/>
+Index: gnome-shell/po/en_GB.po
+===================================================================
+--- gnome-shell.orig/po/en_GB.po
++++ gnome-shell/po/en_GB.po
+@@ -89,8 +89,8 @@ msgid "Focus the active notification"
+ msgstr "Focus the active notification"
+ 
+ #: data/50-gnome-shell-system.xml:15
+-msgid "Show the overview"
+-msgstr "Show the overview"
++msgid "Show workspaces"
++msgstr "Show workspaces"
+ 
+ #: data/50-gnome-shell-system.xml:18
+ msgid "Show all applications"

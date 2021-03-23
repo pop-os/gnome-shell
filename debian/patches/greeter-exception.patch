@@ -1,0 +1,31 @@
+Index: gnome-shell/js/gdm/loginDialog.js
+===================================================================
+--- gnome-shell.orig/js/gdm/loginDialog.js
++++ gnome-shell/js/gdm/loginDialog.js
+@@ -852,15 +852,19 @@ var LoginDialog = GObject.registerClass(
+ 
+     _resetGreeterProxy() {
+         if (GLib.getenv('GDM_GREETER_TEST') != '1') {
+-            if (this._greeter)
+-                this._greeter.run_dispose();
++            try {
++                if (this._greeter)
++                    this._greeter.run_dispose();
+ 
+-            this._greeter = this._gdmClient.get_greeter_sync(null);
++                this._greeter = this._gdmClient.get_greeter_sync(null);
+ 
+-            this._greeter.connectObject(
+-                'default-session-name-changed', this._onDefaultSessionChanged.bind(this),
+-                'session-opened', this._onSessionOpened.bind(this),
+-                'timed-login-requested', this._onTimedLoginRequested.bind(this), this);
++                this._greeter.connectObject(
++                    'default-session-name-changed', this._onDefaultSessionChanged.bind(this),
++                    'session-opened', this._onSessionOpened.bind(this),
++                    'timed-login-requested', this._onTimedLoginRequested.bind(this), this);
++            } catch (error) {
++                log(`failed to connect to GDM greeter service: ${error.message}`)
++            }
+         }
+     }
+ 

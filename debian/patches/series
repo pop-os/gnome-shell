@@ -29,3 +29,12 @@ ubuntu/main-Support-loading-multiple-Yaru-theme-variants.patch
 ubuntu/Revert-dash-Use-pin-instead-of-favorites.patch
 correct_expected_bus_name.patch
 CVE-2024-36472.patch
+
+# Pop!_OS patches
+sched-rr.patch
+pop-dark-theme.patch
+ignore-nvidia-only.patch
+pop-cosmic-keyboard-shortcuts.patch
+remove-assumptions-about-monitor-availability.patch
+greeter-exception.patch
+undefined-record.patch

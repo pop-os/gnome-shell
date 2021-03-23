@@ -1,0 +1,14 @@
+Index: gnome-shell/js/ui/layout.js
+===================================================================
+--- gnome-shell.orig/js/ui/layout.js
++++ gnome-shell/js/ui/layout.js
+@@ -380,8 +380,7 @@ var LayoutManager = GObject.registerClas
+             this.bottomMonitor = this.monitors[this.bottomIndex];
+ 
+             if (this._pendingLoadBackground) {
+-                this._loadBackground();
+-                this._pendingLoadBackground = false;
++                this._pendingLoadBackground = this._loadBackground() ? true : false;
+             }
+         } else {
+             this.primaryMonitor = null;
