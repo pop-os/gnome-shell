@@ -1,0 +1,15 @@
+Index: gnome-shell/js/ui/main.js
+===================================================================
+--- gnome-shell.orig/js/ui/main.js
++++ gnome-shell/js/ui/main.js
+@@ -384,6 +384,10 @@ function _getDefaultStylesheet() {
+     if (St.Settings.get().gtk_theme == 'HighContrast')
+         stylesheet = _getStylesheet(name.replace('.css', '-high-contrast.css'));
+ 
++    // Look for -dark theme if GTK theme ends in -dark
++    if (St.Settings.get().gtk_theme.endsWith('-dark'))
++        stylesheet = _getStylesheet(name.replace('.css', '-dark.css'));
++
+     if (stylesheet == null)
+         stylesheet = _getStylesheet(sessionMode.stylesheetName);
+ 
