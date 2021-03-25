@@ -1,3 +1,12 @@
+gnome-shell (3.38.3-3ubuntu2) hirsute; urgency=medium
+
+  [ Didier Roche ]
+  [ Jean-Baptiste Lallement ]
+  * debian/patches/ubuntu/configure_login_screen.patch:
+    Make GDM background configurable with gsettings (LP: #1918613)
+
+ -- Didier Roche <didrocks@ubuntu.com>  Thu, 25 Mar 2021 10:44:17 +0100
+
 gnome-shell (3.38.3-3ubuntu1) hirsute; urgency=medium
 
   * debian/patches: Switch to the new API to get actor from inputdevice
