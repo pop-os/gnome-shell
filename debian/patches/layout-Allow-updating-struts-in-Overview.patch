@@ -1,0 +1,48 @@
+From: Georges Basile Stavracas Neto <georges.stavracas@gmail.com>
+Date: Mon, 15 Feb 2021 17:28:21 -0300
+Subject: layout: Allow updating struts in Overview
+
+LayoutManager doesn't update struts when there's any modal running. Turns
+out, the Overview itself is a modal. That, and the fact that the Overview
+will be the startup state, prevents the workarea to be updated.
+
+Allow updating struts when there's no other modal than the Overview.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1678>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/ba0b9239
+Bug-Ubuntu: LP: #1727225
+---
+ js/ui/layout.js | 10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/js/ui/layout.js b/js/ui/layout.js
+index 450e7aa..8d6cf11 100644
+--- a/js/ui/layout.js
++++ b/js/ui/layout.js
+@@ -1022,13 +1022,9 @@ var LayoutManager = GObject.registerClass({
+             delete this._updateRegionIdle;
+         }
+ 
+-        // No need to update when we have a modal.
+-        if (Main.modalCount > 0)
+-            return GLib.SOURCE_REMOVE;
+-
+         let rects = [], struts = [], i;
+         let isPopupMenuVisible = global.top_window_group.get_children().some(isPopupMetaWindow);
+-        let wantsInputRegion = !isPopupMenuVisible;
++        const wantsInputRegion = !isPopupMenuVisible && Main.modalCount === 0;
+ 
+         for (i = 0; i < this._trackedActors.length; i++) {
+             let actorData = this._trackedActors[i];
+@@ -1099,7 +1095,9 @@ var LayoutManager = GObject.registerClass({
+             }
+         }
+ 
+-        global.set_stage_input_region(rects);
++        if (wantsInputRegion)
++            global.set_stage_input_region(rects);
++
+         this._isPopupWindowVisible = isPopupMenuVisible;
+ 
+         let workspaceManager = global.workspace_manager;
