@@ -1,0 +1,45 @@
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Fri, 12 Mar 2021 14:13:18 +0800
+Subject: status/network: Ensure the Cancel button passes undefined to close()
+
+The parameter to `ModalDialog.close(timestamp)` is optional. But when
+invoked via the network dialog's Cancel button it was receiving an
+implicit parameter value that's definitely not a timestamp:
+
+```
+[0x560f18af0c50 StButton.modal-dialog-linked-button:first-child hover ("Cancel")]
+```
+
+And as of today (or gjs >= 1.67.3) that's reported as an error:
+```
+JS ERROR: Error: Argument timestamp: value is out of range for uint32
+popModal@resource:///org/gnome/shell/ui/main.js:638:12
+popModal@resource:///org/gnome/shell/ui/modalDialog.js:206:14
+close@resource:///org/gnome/shell/ui/modalDialog.js:179:14
+```
+and so you can't Cancel the dialog anymore.
+
+Make sure `ModalDialog.close()` receives an `undefined` timestamp it
+knows how to handle.
+
+Fixes: https://bugs.launchpad.net/bugs/1918666
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1757>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/c5b18ee6
+---
+ js/ui/status/network.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/status/network.js b/js/ui/status/network.js
+index 3d4acd5..377f44e 100644
+--- a/js/ui/status/network.js
++++ b/js/ui/status/network.js
+@@ -936,7 +936,7 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
+ 
+         this.contentLayout.add_child(this._stack);
+ 
+-        this._disconnectButton = this.addButton({ action: this.close.bind(this),
++        this._disconnectButton = this.addButton({ action: () => this.close(),
+                                                   label: _("Cancel"),
+                                                   key: Clutter.KEY_Escape });
+         this._connectButton = this.addButton({ action: this._connect.bind(this),
