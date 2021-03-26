@@ -12,8 +12,8 @@ Origin: ubuntu
 ---
  data/com.ubuntu.login-screen.gschema.xml.in | 70 +++++++++++++++++++++++++++++
  data/meson.build                            |  8 +++-
- js/ui/screenShield.js                       | 33 ++++++++++++++
- 3 files changed, 110 insertions(+), 1 deletion(-)
+ js/ui/screenShield.js                       | 37 +++++++++++++++
+ 3 files changed, 114 insertions(+), 1 deletion(-)
  create mode 100644 data/com.ubuntu.login-screen.gschema.xml.in
 
 diff --git a/data/com.ubuntu.login-screen.gschema.xml.in b/data/com.ubuntu.login-screen.gschema.xml.in
@@ -119,58 +119,62 @@ index 25a8142..4a8f3db 100644
    command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
    build_by_default: true)
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 6b0e5c9..da56548 100644
+index 6b0e5c9..b3a755f 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
 @@ -26,6 +26,12 @@ const DISABLE_LOCK_KEY = 'disable-lock-screen';
  
  const LOCKED_STATE_STR = 'screenShield.locked';
  
-+const LOGINSCREEN_SCHEMA = 'com.ubuntu.login-screen';
-+const LOGINSCREEN_BACKGROUND_COLOR_KEY = 'background-color';
-+const LOGINSCREEN_BACKGROUND_PICTURE_URI_KEY = 'background-picture-uri';
-+const LOGINSCREEN_BACKGROUND_REPEAT_KEY = 'background-repeat';
-+const LOGINSCREEN_BACKGROUND_SIZE_KEY = 'background-size';
++const LOGIN_SCREEN_SCHEMA = 'com.ubuntu.login-screen';
++const LOGIN_SCREEN_BACKGROUND_COLOR_KEY = 'background-color';
++const LOGIN_SCREEN_BACKGROUND_PICTURE_URI_KEY = 'background-picture-uri';
++const LOGIN_SCREEN_BACKGROUND_REPEAT_KEY = 'background-repeat';
++const LOGIN_SCREEN_BACKGROUND_SIZE_KEY = 'background-size';
 +
  // ScreenShield animation time
  // - STANDARD_FADE_TIME is used when the session goes idle
  // - MANUAL_FADE_TIME is used for lowering the shield when asked by the user,
-@@ -119,6 +125,13 @@ var ScreenShield = class {
+@@ -119,6 +125,16 @@ var ScreenShield = class {
          this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
          this._lockSettings.connect('changed::%s'.format(DISABLE_LOCK_KEY), this._syncInhibitor.bind(this));
  
-+        this._loginscreenSettings = new Gio.Settings({ schema_id: LOGINSCREEN_SCHEMA });
-+        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_COLOR_KEY), this._refreshBackground.bind(this));
-+        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_PICTURE_URI_KEY), this._refreshBackground.bind(this));
-+        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_REPEAT_KEY), this._refreshBackground.bind(this));
-+        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_SIZE_KEY), this._refreshBackground.bind(this));
-+        this._refreshBackground()
++        this._loginScreenSettings = new Gio.Settings({ schema_id: LOGIN_SCREEN_SCHEMA });
++        [
++            LOGIN_SCREEN_BACKGROUND_COLOR_KEY,
++            LOGIN_SCREEN_BACKGROUND_PICTURE_URI_KEY,
++            LOGIN_SCREEN_BACKGROUND_REPEAT_KEY,
++            LOGIN_SCREEN_BACKGROUND_SIZE_KEY,
++        ].forEach(schema => this._loginScreenSettings.connect(
++            'changed::%s'.format(schema), () => this._refreshBackground()));
++        this._refreshBackground();
 +
          this._isModal = false;
          this._isGreeter = false;
          this._isActive = false;
-@@ -196,6 +209,26 @@ var ScreenShield = class {
+@@ -196,6 +212,27 @@ var ScreenShield = class {
          return this._isModal;
      }
  
 +    _refreshBackground() {
-+        let inline_style = [];
++        const inlineStyle = [];
 +
-+        let backgroundColor = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_COLOR_KEY);
-+        let backgroundPictureUri = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_PICTURE_URI_KEY);
-+        let backgroundRepeat = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_REPEAT_KEY);
-+        let backgroundSize = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_SIZE_KEY);
++        const getSetting = s => this._loginScreenSettings.get_string(s);
++        const backgroundColor = getSetting(LOGIN_SCREEN_BACKGROUND_COLOR_KEY);
++        const backgroundPictureUri = getSetting(LOGIN_SCREEN_BACKGROUND_PICTURE_URI_KEY);
++        const backgroundRepeat = getSetting(LOGIN_SCREEN_BACKGROUND_REPEAT_KEY);
++        const backgroundSize = getSetting(LOGIN_SCREEN_BACKGROUND_SIZE_KEY);
 +
-+        if (backgroundColor != "")
-+            inline_style.push("background-color: " + backgroundColor);
-+        if (backgroundPictureUri != "")
-+            inline_style.push("background-image: url(" + backgroundPictureUri + ")");
-+        if (backgroundRepeat != "default")
-+            inline_style.push("background-repeat: " + backgroundRepeat);
-+        if (backgroundSize != "default")
-+            inline_style.push("background-size: " + backgroundSize);
++        if (backgroundColor)
++            inlineStyle.push('background-color: %s'.format(backgroundColor));
++        if (backgroundPictureUri)
++            inlineStyle.push('background-image: url("%s")'.format(backgroundPictureUri));
++        if (backgroundRepeat !== 'default')
++            inlineStyle.push('background-repeat: %s'.format(backgroundRepeat));
++        if (backgroundSize !== 'default')
++            inlineStyle.push('background-size: %s'.format(backgroundSize));
 +
-+        this._lockDialogGroup.set_style(inline_style.join('; '));
++        this._lockDialogGroup.set_style(inlineStyle.join('; '));
 +    }
 +
      _syncInhibitor() {
