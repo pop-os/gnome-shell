@@ -1,6 +1,3 @@
-extensionSystem-Fix-opening-Extensions-app-from-notificat.patch
-workspacesView-Fix-off-by-one-error.patch
-screenshot-Still-remove-select-pick-actor-if-grab-promise.patch
 gdm-Cancel-user-verification-on-UserVerifier-destruction.patch
 authPrompt-Don-t-begin-a-new-authentication-session-on-lo.patch
 util-Don-t-try-answering-query-if-the-user-verifier-has-b.patch
@@ -17,12 +14,6 @@ gdm-Don-t-try-to-retry-authenticating-when-the-service-is.patch
 authPrompt-Only-wiggle-the-entry-on-failures-coming-from-.patch
 authPrompt-Wiggle-error-messages-coming-from-the-Fingerpr.patch
 authPrompt-Bump-the-user-verifier-timeout-when-wiggling-t.patch
-notificationDaemon-Fix-icon-choosing-logic.patch
-workspaceAnimation-Disable-unredirection-during-the-gestu.patch
-appDisplay-Do-not-bind-popdown-call-to-grabHelper-onUngra.patch
-polkitAgent-Ensure-cleanup-if-dialog-wasn-t-shown.patch
-blur-effect-Don-t-use-stage-view-when-drawing-off-stage.patch
-st-Keep-weak-ref-on-texture-cache-bound-texture-source.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch

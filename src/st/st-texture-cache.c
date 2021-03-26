@@ -742,12 +742,10 @@ typedef struct {
 } StTextureCachePropertyBind;
 
 static void
-st_texture_cache_reset_texture (StTextureCachePropertyBind *bind,
-                                const char                 *propname)
+st_texture_cache_load_surface (ClutterContent  **image,
+                               cairo_surface_t  *surface)
 {
-  cairo_surface_t *surface;
-
-  g_object_get (bind->source, propname, &surface, NULL);
+  g_return_if_fail (image != NULL);
 
   if (surface != NULL &&
       cairo_surface_get_type (surface) == CAIRO_SURFACE_TYPE_IMAGE &&
@@ -761,10 +759,10 @@ st_texture_cache_reset_texture (StTextureCachePropertyBind *bind,
       height = cairo_image_surface_get_width (surface);
       size = MAX(width, height);
 
-      if (!bind->image)
-        bind->image = st_image_content_new_with_preferred_size (size, size);
+      if (*image == NULL)
+        *image = st_image_content_new_with_preferred_size (size, size);
 
-      clutter_image_set_data (CLUTTER_IMAGE (bind->image),
+      clutter_image_set_data (CLUTTER_IMAGE (*image),
                               cairo_image_surface_get_data (surface),
                               cairo_image_surface_get_format (surface) == CAIRO_FORMAT_ARGB32 ?
                               COGL_PIXEL_FORMAT_BGRA_8888 : COGL_PIXEL_FORMAT_BGR_888,
@@ -776,11 +774,21 @@ st_texture_cache_reset_texture (StTextureCachePropertyBind *bind,
       if (error)
         g_warning ("Failed to allocate texture: %s", error->message);
     }
-  else
-    bind->image = g_object_new (ST_TYPE_IMAGE_CONTENT,
-                                "preferred-width", 0, /* tough luck */
-                                "preferred-height", 0,
-                                NULL);
+  else if (*image == NULL)
+    {
+      *image = st_image_content_new_with_preferred_size (0, 0);
+    }
+}
+
+static void
+st_texture_cache_reset_texture (StTextureCachePropertyBind *bind,
+                                const char                 *propname)
+{
+  cairo_surface_t *surface;
+
+  g_object_get (bind->source, propname, &surface, NULL);
+
+  st_texture_cache_load_surface (&bind->image, surface);
 }
 
 static void
@@ -823,7 +831,7 @@ st_texture_cache_free_bind (gpointer data)
  * If the source object is destroyed, the texture will continue to show the last
  * value of the property.
  *
- * Returns: (transfer none): A new #GIcon
+ * Returns: (transfer full): A new #GIcon
  */
 GIcon *
 st_texture_cache_bind_cairo_surface_property (StTextureCache    *cache,
@@ -848,6 +856,25 @@ st_texture_cache_bind_cairo_surface_property (StTextureCache    *cache,
   g_free (notify_key);
 
   return G_ICON (bind->image);
+}
+
+/**
+ * st_texture_cache_load_cairo_surface_to_gicon:
+ * @cache: A #StTextureCache
+ * @surface: A #cairo_surface_t
+ *
+ * Create a #GIcon from @surface.
+ *
+ * Returns: (transfer full): A new #GIcon
+ */
+GIcon *
+st_texture_cache_load_cairo_surface_to_gicon (StTextureCache  *cache,
+                                              cairo_surface_t *surface)
+{
+  ClutterContent *image = NULL;
+  st_texture_cache_load_surface (&image, surface);
+
+  return G_ICON (image);
 }
 
 /**
@@ -984,6 +1011,15 @@ st_texture_cache_load_gicon (StTextureCache    *cache,
 
   if (ST_IS_IMAGE_CONTENT (icon))
     {
+      int width, height;
+
+      g_object_get (G_OBJECT (icon),
+                    "preferred-width", &width,
+                    "preferred-height", &height,
+                    NULL);
+      if (width == 0 && height == 0)
+        return NULL;
+
       return g_object_new (CLUTTER_TYPE_ACTOR,
                            "request-mode", CLUTTER_REQUEST_CONTENT_SIZE,
                            "width", actor_size,

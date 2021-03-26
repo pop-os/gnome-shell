@@ -1,3 +1,30 @@
+gnome-shell (3.38.4-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - Fix missing X11 fallback icons (particularly for games and other
+      programs not installed system-wide), a regression in 3.37.3
+    - Fix a Shell crash when an X11 window with an invalid/empty icon
+      is closed, possibly a regression in 3.38.3-3
+    - Fix a memory leak when getting the icon from the texture cache
+    - Fix a possible use-after-free when removing a window
+    - Don't reposition unrelated windows when dragging a window onto the
+      workspace switcher
+    - Make sure the blur effect shader can be compiled successfully
+    - Many other fixes that we already had via debian/patches
+  * Drop all patches, applied upstream
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 17 Mar 2021 09:52:47 +0000
+
+gnome-shell (3.38.3-4) unstable; urgency=medium
+
+  * Team upload
+  * Update to upstream commit 3.38.3-11-ga87aae8f4 from gnome-3-38 branch
+    - Fix a crash if libsoup version 3 is installed
+    - Update German translation
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 09 Mar 2021 20:35:00 +0000
+
 gnome-shell (3.38.3-3ubuntu2) hirsute; urgency=medium
 
   [ Didier Roche ]
