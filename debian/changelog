@@ -1,4 +1,4 @@
-gnome-shell (3.36.9-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
+gnome-shell (3.36.9-0ubuntu0.20.04.1) focal; urgency=medium
 
   * New upstream release (LP: #1921963):
     - Improve login screen accessibility
@@ -12,7 +12,7 @@ gnome-shell (3.36.9-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
       (LP: #1915570)
     - Enable to use Escape to cancel auth requests (with limits) (LP: #1921929)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 31 Mar 2021 00:27:04 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 31 Mar 2021 00:50:16 +0200
 
 gnome-shell (3.36.7-0ubuntu0.20.04.1) focal; urgency=medium
 
