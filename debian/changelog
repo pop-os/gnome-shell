@@ -1,3 +1,13 @@
+gnome-shell (3.36.9-1) UNRELEASED; urgency=medium
+
+  * New upstream release (LP: #1921963):
+    - Improve login screen accessibility
+    - Prefer image-data hint over app-icon in notifications
+    - Plugged leak
+    - Fixed crashes
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 31 Mar 2021 00:27:04 +0200
+
 gnome-shell (3.36.7-0ubuntu0.20.04.1) focal; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
