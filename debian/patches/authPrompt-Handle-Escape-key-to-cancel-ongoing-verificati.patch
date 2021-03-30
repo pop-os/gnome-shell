@@ -1,0 +1,35 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 1 Feb 2021 12:52:01 +0100
+Subject: authPrompt: Handle Escape key to cancel ongoing verification
+
+Escape key is supposed to cancel a verification, however if the user
+already hit Enter to begin the authentication the Escape key won't work
+until the verification completed.
+
+This may be quite inconvenient when an user did a typo while writing and
+wants to cancel the already started auth.
+
+So, while authenticating (or in general while the entry is unsensitive)
+give the key focus to the authpromt itself so that we can still get the
+input events and cancel an user action.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1622>
+
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1921929
+---
+ js/gdm/authPrompt.js | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index 083f918..6436c6e 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -434,6 +434,8 @@ var AuthPrompt = GObject.registerClass({
+ 
+         if (sensitive)
+             this._entry.grab_key_focus();
++        else
++            this.grab_key_focus();
+     }
+ 
+     vfunc_hide() {

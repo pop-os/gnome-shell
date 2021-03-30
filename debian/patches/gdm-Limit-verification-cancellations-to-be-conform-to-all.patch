@@ -1,0 +1,130 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Mon, 1 Feb 2021 13:10:45 +0100
+Subject: gdm: Limit verification cancellations to be conform to
+ allowed-failures
+
+As per previous commit the user can cancel an ongoing authentication via
+Escape key and that will always send the user back to the clock view in
+lockscreen or user-selection view in login prompt.
+
+However, we can be a little more permissive and don't switch view to be
+able to restart the authentication without further action.
+
+To avoid this to be abused though, we consider the user verification
+cancellation via escape key to be a "soft-failure", so once the
+configured "allowed-failures" gsettings value has been reached, we'd
+just act as before, ignoring any further request (until we don't get
+back to the user auth view).
+
+In this way we still make brute-force attacks harder to do, while still
+giving the well-behaving user some ability to fix mistakes.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1622>
+
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1921929
+---
+ js/gdm/authPrompt.js  | 16 +++++++++++++++-
+ js/gdm/loginDialog.js |  7 ++++++-
+ js/gdm/util.js        |  4 ++++
+ 3 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
+index 6436c6e..2d392c3 100644
+--- a/js/gdm/authPrompt.js
++++ b/js/gdm/authPrompt.js
+@@ -30,11 +30,13 @@ var AuthPromptStatus = {
+     VERIFICATION_FAILED: 2,
+     VERIFICATION_SUCCEEDED: 3,
+     VERIFICATION_CANCELLED: 4,
++    VERIFICATION_IN_PROGRESS: 5,
+ };
+ 
+ var BeginRequestType = {
+     PROVIDE_USERNAME: 0,
+     DONT_PROVIDE_USERNAME: 1,
++    REUSE_USERNAME: 2,
+ };
+ 
+ var AuthPrompt = GObject.registerClass({
+@@ -59,6 +61,7 @@ var AuthPrompt = GObject.registerClass({
+         this._gdmClient = gdmClient;
+         this._mode = mode;
+         this._defaultButtonWellActor = null;
++        this._cancelledRetries = 0;
+ 
+         let reauthenticationOnly;
+         if (this._mode == AuthPromptMode.UNLOCK_ONLY)
+@@ -196,6 +199,7 @@ var AuthPrompt = GObject.registerClass({
+     }
+ 
+     _activateNext(shouldSpin) {
++        this.verificationStatus = AuthPromptStatus.VERIFICATION_IN_PROGRESS;
+         this.updateSensitivity(false);
+ 
+         if (shouldSpin)
+@@ -497,6 +501,9 @@ var AuthPrompt = GObject.registerClass({
+             // We don't need to know the username if the user preempted the login screen
+             // with a smartcard or with preauthenticated oVirt credentials
+             beginRequestType = BeginRequestType.DONT_PROVIDE_USERNAME;
++        } else if (oldStatus === AuthPromptStatus.VERIFICATION_IN_PROGRESS) {
++            // We're going back to retry with current user
++            beginRequestType = BeginRequestType.REUSE_USERNAME;
+         } else {
+             // In all other cases, we should get the username up front.
+             beginRequestType = BeginRequestType.PROVIDE_USERNAME;
+@@ -545,7 +552,14 @@ var AuthPrompt = GObject.registerClass({
+         if (this.verificationStatus == AuthPromptStatus.VERIFICATION_SUCCEEDED)
+             return;
+ 
+-        this.verificationStatus = AuthPromptStatus.VERIFICATION_CANCELLED;
++        if (this.verificationStatus === AuthPromptStatus.VERIFICATION_IN_PROGRESS) {
++            this._cancelledRetries++;
++            if (this._cancelledRetries > this._userVerifier.allowedFailures)
++                this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
++        } else {
++            this.verificationStatus = AuthPromptStatus.VERIFICATION_CANCELLED;
++        }
++
+         this.reset();
+     }
+ });
+diff --git a/js/gdm/loginDialog.js b/js/gdm/loginDialog.js
+index ef1af5d..1e4621d 100644
+--- a/js/gdm/loginDialog.js
++++ b/js/gdm/loginDialog.js
+@@ -854,6 +854,7 @@ var LoginDialog = GObject.registerClass({
+         this._resetGreeterProxy();
+         this._sessionMenuButton.updateSensitivity(true);
+ 
++        const previousUser = this._user;
+         this._user = null;
+ 
+         if (this._nextSignalId) {
+@@ -861,7 +862,11 @@ var LoginDialog = GObject.registerClass({
+             this._nextSignalId = 0;
+         }
+ 
+-        if (beginRequest == AuthPrompt.BeginRequestType.PROVIDE_USERNAME) {
++        if (previousUser && beginRequest === AuthPrompt.BeginRequestType.REUSE_USERNAME) {
++            this._user = previousUser;
++            this._authPrompt.setUser(this._user);
++            this._authPrompt.begin({ userName: previousUser.get_user_name() });
++        } else if (beginRequest === AuthPrompt.BeginRequestType.PROVIDE_USERNAME) {
+             if (!this._disableUserList)
+                 this._showUserList();
+             else
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 71b4de1..fa9affb 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -167,6 +167,10 @@ var ShellUserVerifier = class {
+         }
+     }
+ 
++    get allowedFailures() {
++        return this._settings.get_int(ALLOWED_FAILURES_KEY);
++    }
++
+     begin(userName, hold) {
+         this._cancellable = new Gio.Cancellable();
+         this._hold = hold;
