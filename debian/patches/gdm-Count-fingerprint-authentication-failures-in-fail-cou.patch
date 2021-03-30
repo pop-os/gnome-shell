@@ -22,25 +22,14 @@ cancelled the verification session.
 Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1652
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
 ---
- js/gdm/util.js | 21 +++++++++++++++++----
- 1 file changed, 17 insertions(+), 4 deletions(-)
+ js/gdm/util.js | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index e774f5f..e8457f6 100644
+index f0e85f6..e8457f6 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -176,6 +176,10 @@ var ShellUserVerifier = class {
-         }
-     }
- 
-+    get allowedFailures() {
-+        return this._settings.get_int(ALLOWED_FAILURES_KEY);
-+    }
-+
-     begin(userName, hold) {
-         this._cancellable = new Gio.Cancellable();
-         this._hold = hold;
-@@ -482,7 +486,7 @@ var ShellUserVerifier = class {
+@@ -486,7 +486,7 @@ var ShellUserVerifier = class {
      _onInfo(client, serviceName, info) {
          if (this.serviceIsForeground(serviceName)) {
              this._queueMessage(info, MessageType.INFO);
@@ -49,7 +38,7 @@ index e774f5f..e8457f6 100644
              // We don't show fingerprint messages directly since it's
              // not the main auth service. Instead we use the messages
              // as a cue to display our own message.
-@@ -500,6 +504,12 @@ var ShellUserVerifier = class {
+@@ -504,6 +504,12 @@ var ShellUserVerifier = class {
              return;
  
          this._queueMessage(problem, MessageType.ERROR);
@@ -62,7 +51,7 @@ index e774f5f..e8457f6 100644
      }
  
      _onInfoQuery(client, serviceName, question) {
-@@ -547,15 +557,18 @@ var ShellUserVerifier = class {
+@@ -551,15 +557,18 @@ var ShellUserVerifier = class {
          this.begin(this._userName, new Batch.Hold());
      }
  
