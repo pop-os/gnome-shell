@@ -1,10 +1,16 @@
-gnome-shell (3.36.9-1) UNRELEASED; urgency=medium
+gnome-shell (3.36.9-0ubuntu0.20.04.1) UNRELEASED; urgency=medium
 
   * New upstream release (LP: #1921963):
     - Improve login screen accessibility
     - Prefer image-data hint over app-icon in notifications
     - Plugged leak
     - Fixed crashes
+  * debian/patches:
+    - Correctly handle login cancellation and failures (LP: #1915066)
+    - Show errors on fingerprint failures and limit retries (LP: #1865838)
+    - gdm: Don't try to retry authenticating when the service is unavailable
+      (LP: #1915570)
+    - Enable to use Escape to cancel auth requests (with limits) (LP: #1921929)
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 31 Mar 2021 00:27:04 +0200
 
