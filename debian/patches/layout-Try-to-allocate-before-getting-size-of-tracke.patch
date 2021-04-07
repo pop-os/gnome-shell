@@ -1,0 +1,32 @@
+From 076994c23ecd22083dd7e8ada9573f255e7a6be7 Mon Sep 17 00:00:00 2001
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Wed, 31 Mar 2021 17:59:09 +0800
+Subject: [PATCH] layout: Try to allocate before getting size of tracked actors
+
+Because we're about to `get_transformed_{position,size}` of each,
+which will return NaNs if not yet allocated. Those NaNs were finding
+their way into the workspace strut definitions on startup and not
+getting corrected until after the startup animation completed. This
+meant any extensions depending on the `workareas-changed` signal were
+getting an incorrect workarea (the whole workspace) and so were
+rendered out of place during the login animation. Now they're not.
+
+Author: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1785
+Bug-Ubuntu: https://launchpad.net/bugs/1917939, https://launchpad.net/bugs/1919979
+Bug-GNOME: https://gitlab.gnome.org/GNOME/mutter/-/issues/1627
+Forwarded: yes
+Last-Update: 2021-04-07
+
+Index: gnome-shell/js/ui/layout.js
+===================================================================
+--- gnome-shell.orig/js/ui/layout.js
++++ gnome-shell/js/ui/layout.js
+@@ -1031,6 +1031,7 @@ var LayoutManager = GObject.registerClas
+             if (!(actorData.affectsInputRegion && wantsInputRegion) && !actorData.affectsStruts)
+                 continue;
+ 
++            actorData.actor.get_allocation_box();
+             let [x, y] = actorData.actor.get_transformed_position();
+             let [w, h] = actorData.actor.get_transformed_size();
+             x = Math.round(x);

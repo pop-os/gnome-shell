@@ -34,3 +34,4 @@ ubuntu/configure_login_screen.patch
 layout-Allow-updating-struts-in-Overview.patch
 status-network-Ensure-the-Cancel-button-passes-undefined-.patch
 keyboard-Handle-symbolic-OSK-key-codes-as-explicitly-inva.patch
+layout-Try-to-allocate-before-getting-size-of-tracke.patch
