@@ -31,7 +31,6 @@ ubuntu/resolve_alternate_theme_path.patch
 ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 ubuntu/configure_login_screen.patch
-layout-Allow-updating-struts-in-Overview.patch
 status-network-Ensure-the-Cancel-button-passes-undefined-.patch
 keyboard-Handle-symbolic-OSK-key-codes-as-explicitly-inva.patch
 layout-Try-to-allocate-before-getting-size-of-tracke.patch
