@@ -18,10 +18,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
  2 files changed, 17 insertions(+), 3 deletions(-)
 
 diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
-index f11de1d..e747e16 100644
+index 7b5d03e..c1486b9 100644
 --- a/js/gdm/authPrompt.js
 +++ b/js/gdm/authPrompt.js
-@@ -428,8 +428,16 @@ var AuthPrompt = GObject.registerClass({
+@@ -432,8 +432,16 @@ var AuthPrompt = GObject.registerClass({
          }
  
          if (type === GdmUtil.MessageType.ERROR &&

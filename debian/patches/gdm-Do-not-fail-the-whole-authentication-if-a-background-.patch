@@ -40,10 +40,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1915066
  1 file changed, 5 insertions(+)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 92a05c7..b40bc23 100644
+index 06d1b33..5a531b9 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -453,6 +453,11 @@ var ShellUserVerifier = class {
+@@ -457,6 +457,11 @@ var ShellUserVerifier = class {
          } catch (e) {
              if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                  return;

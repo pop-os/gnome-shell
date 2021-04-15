@@ -14,10 +14,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
  1 file changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 90dfd64..aa5cb83 100644
+index 01e0a37..7efb6aa 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -426,6 +426,11 @@ var ShellUserVerifier = class {
+@@ -430,6 +430,11 @@ var ShellUserVerifier = class {
          return serviceName == this._defaultService;
      }
  
@@ -29,7 +29,7 @@ index 90dfd64..aa5cb83 100644
      _updateDefaultService() {
          if (this._settings.get_boolean(PASSWORD_AUTHENTICATION_KEY))
              this._defaultService = PASSWORD_SERVICE_NAME;
-@@ -476,8 +481,7 @@ var ShellUserVerifier = class {
+@@ -480,8 +485,7 @@ var ShellUserVerifier = class {
      _onInfo(client, serviceName, info) {
          if (this.serviceIsForeground(serviceName)) {
              this._queueMessage(info, MessageType.INFO);

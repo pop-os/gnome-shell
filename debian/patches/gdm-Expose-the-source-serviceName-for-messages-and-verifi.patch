@@ -15,10 +15,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
  2 files changed, 21 insertions(+), 20 deletions(-)
 
 diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
-index 43798b3..c5d6462 100644
+index feab52e..4aba39f 100644
 --- a/js/gdm/authPrompt.js
 +++ b/js/gdm/authPrompt.js
-@@ -269,12 +269,12 @@ var AuthPrompt = GObject.registerClass({
+@@ -273,12 +273,12 @@ var AuthPrompt = GObject.registerClass({
              this.reset();
      }
  
@@ -34,7 +34,7 @@ index 43798b3..c5d6462 100644
          this._queryingService = null;
          this.clear();
  
-@@ -406,7 +406,7 @@ var AuthPrompt = GObject.registerClass({
+@@ -410,7 +410,7 @@ var AuthPrompt = GObject.registerClass({
          });
      }
  

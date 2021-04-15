@@ -23,10 +23,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1915066
  1 file changed, 1 insertion(+)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 8c6c678..90dfd64 100644
+index c00d77b..01e0a37 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
-@@ -536,6 +536,7 @@ var ShellUserVerifier = class {
+@@ -540,6 +540,7 @@ var ShellUserVerifier = class {
      }
  
      _retry() {

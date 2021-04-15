@@ -19,10 +19,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1865838
  1 file changed, 4 insertions(+)
 
 diff --git a/js/gdm/authPrompt.js b/js/gdm/authPrompt.js
-index 6f3c2f0..f11de1d 100644
+index 95f07a6..7b5d03e 100644
 --- a/js/gdm/authPrompt.js
 +++ b/js/gdm/authPrompt.js
-@@ -426,6 +426,10 @@ var AuthPrompt = GObject.registerClass({
+@@ -430,6 +430,10 @@ var AuthPrompt = GObject.registerClass({
          } else {
              this._message.opacity = 0;
          }
