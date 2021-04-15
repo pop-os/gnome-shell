@@ -1,3 +1,22 @@
+gnome-shell (3.38.4-1ubuntu2) UNRELEASED; urgency=medium
+
+  [ Daniel van Vugt ]
+  * Add layout-Try-to-allocate-before-getting-size-of-tracke.patch.
+    To fix LP: #1919979 and also to re-fix LP: #1917939
+    (LP: #1919979, #1917939)
+  * Drop layout-Allow-updating-struts-in-Overview.patch.
+    Because it caused a regression and doesn't seem to have been necessary
+    anyway. (LP: #1922772)
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/patches: Fix suggestions box actor population in non-latin languages
+    (LP: #1914230)
+  * debian/patches: Enable to use Escape to cancel auth requests (with limits)
+    (LP: #1921929)
+  * debian/patches: Refresh
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 15 Apr 2021 06:15:34 +0200
+
 gnome-shell (3.38.4-1ubuntu1) hirsute; urgency=medium
 
   * Merge with debian, containing a new upstream release
