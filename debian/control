@@ -153,7 +153,8 @@ Description: common files for the GNOME graphical shell
 
 Package: gnome-shell-extension-prefs
 Architecture: linux-any
-Depends: gnome-shell (= ${binary:Version}),
+Depends: gir1.2-gtk-4.0,
+         gnome-shell (= ${binary:Version}),
          gnome-shell-common (= ${source:Version}),
          ${gir:Depends},
          ${misc:Depends},
