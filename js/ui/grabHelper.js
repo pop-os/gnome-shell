@@ -226,7 +226,6 @@ var GrabHelper = class GrabHelper {
         this._ignoreUntilRelease = false;
 
         Main.popModal(this._owner);
-        global.sync_pointer();
     }
 
     // ignoreRelease:
@@ -307,7 +306,7 @@ var GrabHelper = class GrabHelper {
         if (this._ignoreUntilRelease && (motion || release || touch)) {
             if (release || touchEnd)
                 this._ignoreUntilRelease = false;
-            return Clutter.EVENT_STOP;
+            return Clutter.EVENT_PROPAGATE;
         }
 
         if (this._isWithinGrabbedActor(event.get_source()))

@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported AuthPrompt */
 
-const { Clutter, GObject, Pango, Shell, St } = imports.gi;
+const { Clutter, GLib, GObject, Pango, Shell, St } = imports.gi;
 
 const Animation = imports.ui.animation;
 const Batch = imports.gdm.batch;
@@ -29,11 +29,14 @@ var AuthPromptStatus = {
     VERIFYING: 1,
     VERIFICATION_FAILED: 2,
     VERIFICATION_SUCCEEDED: 3,
+    VERIFICATION_CANCELLED: 4,
+    VERIFICATION_IN_PROGRESS: 5,
 };
 
 var BeginRequestType = {
     PROVIDE_USERNAME: 0,
     DONT_PROVIDE_USERNAME: 1,
+    REUSE_USERNAME: 2,
 };
 
 var AuthPrompt = GObject.registerClass({
@@ -58,6 +61,7 @@ var AuthPrompt = GObject.registerClass({
         this._gdmClient = gdmClient;
         this._mode = mode;
         this._defaultButtonWellActor = null;
+        this._cancelledRetries = 0;
 
         let reauthenticationOnly;
         if (this._mode == AuthPromptMode.UNLOCK_ONLY)
@@ -166,6 +170,13 @@ var AuthPrompt = GObject.registerClass({
         this._mainBox.add_child(this._entry);
         this._entry.grab_key_focus();
 
+        this._timedLoginIndicator = new St.Bin({
+            style_class: 'login-dialog-timed-login-indicator',
+            scale_x: 0,
+        });
+
+        this.add_child(this._timedLoginIndicator);
+
         [this._textEntry, this._passwordEntry].forEach(entry => {
             entry.clutter_text.connect('text-changed', () => {
                 if (!this._userVerifier.hasPendingMessages)
@@ -194,7 +205,42 @@ var AuthPrompt = GObject.registerClass({
         this._defaultButtonWell.add_child(this._spinner);
     }
 
+    showTimedLoginIndicator(time) {
+        let hold = new Batch.Hold();
+
+        this.hideTimedLoginIndicator();
+
+        const startTime = GLib.get_monotonic_time();
+
+        this._timedLoginTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 33,
+            () => {
+                const currentTime = GLib.get_monotonic_time();
+                const elapsedTime = (currentTime - startTime) / GLib.USEC_PER_SEC;
+                this._timedLoginIndicator.scale_x = elapsedTime / time;
+                if (elapsedTime >= time) {
+                    this._timedLoginTimeoutId = 0;
+                    hold.release();
+                    return GLib.SOURCE_REMOVE;
+                }
+
+                return GLib.SOURCE_CONTINUE;
+            });
+
+        GLib.Source.set_name_by_id(this._timedLoginTimeoutId, '[gnome-shell] this._timedLoginTimeoutId');
+
+        return hold;
+    }
+
+    hideTimedLoginIndicator() {
+        if (this._timedLoginTimeoutId) {
+            GLib.source_remove(this._timedLoginTimeoutId);
+            this._timedLoginTimeoutId = 0;
+        }
+        this._timedLoginIndicator.scale_x = 0.;
+    }
+
     _activateNext(shouldSpin) {
+        this.verificationStatus = AuthPromptStatus.VERIFICATION_IN_PROGRESS;
         this.updateSensitivity(false);
 
         if (shouldSpin)
@@ -268,20 +314,27 @@ var AuthPrompt = GObject.registerClass({
             this.reset();
     }
 
-    _onShowMessage(userVerifier, message, type) {
-        this.setMessage(message, type);
+    _onShowMessage(_userVerifier, serviceName, message, type) {
+        this.setMessage(serviceName, message, type);
         this.emit('prompted');
     }
 
-    _onVerificationFailed(userVerifier, canRetry) {
-        this._queryingService = null;
-        this.clear();
+    _onVerificationFailed(userVerifier, serviceName, canRetry) {
+        const wasQueryingService = this._queryingService === serviceName;
+
+        if (wasQueryingService) {
+            this._queryingService = null;
+            this.clear();
+        }
 
         this.updateSensitivity(canRetry);
         this.setActorInDefaultButtonWell(null);
-        this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
 
-        Util.wiggle(this._entry);
+        if (!canRetry)
+            this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
+
+        if (wasQueryingService)
+            Util.wiggle(this._entry);
     }
 
     _onVerificationComplete() {
@@ -405,7 +458,7 @@ var AuthPrompt = GObject.registerClass({
         });
     }
 
-    setMessage(message, type) {
+    setMessage(serviceName, message, type) {
         if (type == GdmUtil.MessageType.ERROR)
             this._message.add_style_class_name('login-dialog-message-warning');
         else
@@ -423,6 +476,18 @@ var AuthPrompt = GObject.registerClass({
         } else {
             this._message.opacity = 0;
         }
+
+        if (type === GdmUtil.MessageType.ERROR &&
+            this._userVerifier.serviceIsFingerprint(serviceName)) {
+            // TODO: Use Await for wiggle to be over before unfreezing the user verifier queue
+            const wiggleParameters = {
+                duration: 65,
+                wiggleCount: 3,
+            };
+            this._userVerifier.increaseCurrentMessageTimeout(
+                wiggleParameters.duration * (wiggleParameters.wiggleCount + 2));
+            Util.wiggle(this._message, wiggleParameters);
+        }
     }
 
     updateSensitivity(sensitive) {
@@ -431,10 +496,14 @@ var AuthPrompt = GObject.registerClass({
 
         this._entry.reactive = sensitive;
 
-        if (sensitive)
+        if (sensitive) {
             this._entry.grab_key_focus();
-        else if (this._entry === this._passwordEntry)
-            this._entry.password_visible = false;
+        } else {
+            this.grab_key_focus();
+
+            if (this._entry === this._passwordEntry)
+                this._entry.password_visible = false;
+        }
     }
 
     vfunc_hide() {
@@ -479,12 +548,16 @@ var AuthPrompt = GObject.registerClass({
 
         if (oldStatus == AuthPromptStatus.VERIFICATION_FAILED)
             this.emit('failed');
+        else if (oldStatus === AuthPromptStatus.VERIFICATION_CANCELLED)
+            this.emit('cancelled');
 
         let beginRequestType;
 
         if (this._mode == AuthPromptMode.UNLOCK_ONLY) {
             // The user is constant at the unlock screen, so it will immediately
             // respond to the request with the username
+            if (oldStatus === AuthPromptStatus.VERIFICATION_CANCELLED)
+                return;
             beginRequestType = BeginRequestType.PROVIDE_USERNAME;
         } else if (this._userVerifier.serviceIsForeground(OVirt.SERVICE_NAME) ||
                    this._userVerifier.serviceIsForeground(Vmware.SERVICE_NAME) ||
@@ -492,6 +565,9 @@ var AuthPrompt = GObject.registerClass({
             // We don't need to know the username if the user preempted the login screen
             // with a smartcard or with preauthenticated oVirt credentials
             beginRequestType = BeginRequestType.DONT_PROVIDE_USERNAME;
+        } else if (oldStatus === AuthPromptStatus.VERIFICATION_IN_PROGRESS) {
+            // We're going back to retry with current user
+            beginRequestType = BeginRequestType.REUSE_USERNAME;
         } else {
             // In all other cases, we should get the username up front.
             beginRequestType = BeginRequestType.PROVIDE_USERNAME;
@@ -540,7 +616,14 @@ var AuthPrompt = GObject.registerClass({
         if (this.verificationStatus == AuthPromptStatus.VERIFICATION_SUCCEEDED)
             return;
 
+        if (this.verificationStatus === AuthPromptStatus.VERIFICATION_IN_PROGRESS) {
+            this._cancelledRetries++;
+            if (this._cancelledRetries > this._userVerifier.allowedFailures)
+                this.verificationStatus = AuthPromptStatus.VERIFICATION_FAILED;
+        } else {
+            this.verificationStatus = AuthPromptStatus.VERIFICATION_CANCELLED;
+        }
+
         this.reset();
-        this.emit('cancelled');
     }
 });

@@ -2,6 +2,8 @@
 <gresources>
   <gresource prefix="/org/gnome/shell/dbus-interfaces">
     <file preprocess="xml-stripblanks">net.hadess.SensorProxy.xml</file>
+    <file preprocess="xml-stripblanks">net.reactivated.Fprint.Device.xml</file>
+    <file preprocess="xml-stripblanks">net.reactivated.Fprint.Manager.xml</file>
     <file preprocess="xml-stripblanks">org.freedesktop.Application.xml</file>
     <file preprocess="xml-stripblanks">org.freedesktop.bolt1.Device.xml</file>
     <file preprocess="xml-stripblanks">org.freedesktop.bolt1.Manager.xml</file>
@@ -26,8 +28,6 @@
     <file preprocess="xml-stripblanks">org.freedesktop.realmd.Service.xml</file>
     <file preprocess="xml-stripblanks">org.freedesktop.UPower.Device.xml</file>
     <file preprocess="xml-stripblanks">org.freedesktop.UPower.xml</file>
-    <file preprocess="xml-stripblanks">org.gnome.Magnifier.xml</file>
-    <file preprocess="xml-stripblanks">org.gnome.Magnifier.ZoomRegion.xml</file>
     <file preprocess="xml-stripblanks">org.gnome.Mutter.ScreenCast.xml</file>
     <file preprocess="xml-stripblanks">org.gnome.ScreenSaver.xml</file>
     <file preprocess="xml-stripblanks">org.gnome.SessionManager.EndSessionDialog.xml</file>

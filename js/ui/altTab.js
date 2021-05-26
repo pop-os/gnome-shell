@@ -164,6 +164,7 @@ class AppSwitcherPopup extends SwitcherPopup.SwitcherPopup {
     }
 
     _keyPressHandler(keysym, action) {
+        const rtl = Clutter.get_default_text_direction() === Clutter.TextDirection.RTL;
         if (action == Meta.KeyBindingAction.SWITCH_GROUP) {
             if (!this._thumbnailsFocused)
                 this._select(this._selectedIndex, 0);
@@ -179,9 +180,9 @@ class AppSwitcherPopup extends SwitcherPopup.SwitcherPopup {
             this._quitApplication(this._selectedIndex);
         } else if (this._thumbnailsFocused) {
             if (keysym === Clutter.KEY_Left)
-                this._select(this._selectedIndex, this._previousWindow());
+                this._select(this._selectedIndex, rtl ? this._nextWindow() : this._previousWindow());
             else if (keysym === Clutter.KEY_Right)
-                this._select(this._selectedIndex, this._nextWindow());
+                this._select(this._selectedIndex, rtl ? this._previousWindow() : this._nextWindow());
             else if (keysym === Clutter.KEY_Up)
                 this._select(this._selectedIndex, null, true);
             else if (keysym === Clutter.KEY_w || keysym === Clutter.KEY_W || keysym === Clutter.KEY_F4)
@@ -189,9 +190,9 @@ class AppSwitcherPopup extends SwitcherPopup.SwitcherPopup {
             else
                 return Clutter.EVENT_PROPAGATE;
         } else if (keysym == Clutter.KEY_Left) {
-            this._select(this._previous());
+            this._select(rtl ? this._next() : this._previous());
         } else if (keysym == Clutter.KEY_Right) {
-            this._select(this._next());
+            this._select(rtl ? this._previous() : this._next());
         } else if (keysym == Clutter.KEY_Down) {
             this._select(this._selectedIndex, 0);
         } else {
@@ -401,6 +402,7 @@ class CyclerHighlight extends St.Widget {
     _init() {
         super._init({ layout_manager: new Clutter.BinLayout() });
         this._window = null;
+        this._sizeChangedId = 0;
 
         this._clone = new Clutter.Clone();
         this.add_actor(this._clone);
@@ -414,7 +416,6 @@ class CyclerHighlight extends St.Widget {
 
         this.add_constraint(constraint);
 
-        this.connect('notify::allocation', this._onAllocationChanged.bind(this));
         this.connect('destroy', this._onDestroy.bind(this));
     }
 
@@ -422,31 +423,39 @@ class CyclerHighlight extends St.Widget {
         if (this._window == w)
             return;
 
+        if (this._sizeChangedId)
+            this._window.disconnect(this._sizeChangedId);
+
         this._window = w;
 
         if (this._clone.source)
             this._clone.source.sync_visibility();
 
-        let windowActor = this._window
-            ? this._window.get_compositor_private() : null;
+        const windowActor = this._window?.get_compositor_private() ?? null;
 
         if (windowActor)
             windowActor.hide();
 
         this._clone.source = windowActor;
-    }
 
-    _onAllocationChanged() {
-        if (!this._window) {
+        if (this._window) {
+            this._onSizeChanged();
+            this._sizeChangedId = this._window.connect('size-changed',
+                this._onSizeChanged.bind(this));
+        } else {
             this._highlight.set_size(0, 0);
             this._highlight.hide();
-        } else {
-            let [x, y] = this.allocation.get_origin();
-            let rect = this._window.get_frame_rect();
-            this._highlight.set_size(rect.width, rect.height);
-            this._highlight.set_position(rect.x - x, rect.y - y);
-            this._highlight.show();
         }
+    }
+
+    _onSizeChanged() {
+        const bufferRect = this._window.get_buffer_rect();
+        const rect = this._window.get_frame_rect();
+        this._highlight.set_size(rect.width, rect.height);
+        this._highlight.set_position(
+            rect.x - bufferRect.x,
+            rect.y - bufferRect.y);
+        this._highlight.show();
     }
 
     _onDestroy() {
@@ -532,7 +541,7 @@ class GroupCyclerPopup extends CyclerPopup {
 
     _getWindows() {
         let app = Shell.WindowTracker.get_default().focus_app;
-        let appWindows = app ? app.get_windows() : [];
+        let appWindows = app?.get_windows() ?? [];
 
         if (this._settings.get_boolean('current-workspace-only')) {
             const workspaceManager = global.workspace_manager;
@@ -590,14 +599,15 @@ class WindowSwitcherPopup extends SwitcherPopup.SwitcherPopup {
     }
 
     _keyPressHandler(keysym, action) {
+        const rtl = Clutter.get_default_text_direction() === Clutter.TextDirection.RTL;
         if (action == Meta.KeyBindingAction.SWITCH_WINDOWS)
             this._select(this._next());
         else if (action == Meta.KeyBindingAction.SWITCH_WINDOWS_BACKWARD)
             this._select(this._previous());
         else if (keysym == Clutter.KEY_Left)
-            this._select(this._previous());
+            this._select(rtl ? this._next() : this._previous());
         else if (keysym == Clutter.KEY_Right)
-            this._select(this._next());
+            this._select(rtl ? this._previous() : this._next());
         else if (keysym === Clutter.KEY_w || keysym === Clutter.KEY_W || keysym === Clutter.KEY_F4)
             this._closeWindow(this._selectedIndex);
         else
@@ -907,7 +917,6 @@ class ThumbnailSwitcher extends SwitcherPopup.SwitcherList {
             } else {
                 this.addItem(box, null);
             }
-
         }
 
         this.connect('destroy', this._onDestroy.bind(this));

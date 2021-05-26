@@ -36,10 +36,15 @@ var ScreenshotService = class {
             lockedDown = this._lockdownSettings.get_boolean('disable-save-to-disk');
 
         let sender = invocation.get_sender();
-        if (this._screenShooter.has(sender) || lockedDown) {
+        if (this._screenShooter.has(sender)) {
             invocation.return_error_literal(
                 Gio.IOErrorEnum, Gio.IOErrorEnum.BUSY,
                 'There is an ongoing operation for this sender');
+            return null;
+        } else if (lockedDown) {
+            invocation.return_error_literal(
+                Gio.IOErrorEnum, Gio.IOErrorEnum.PERMISSION_DENIED,
+                'Saving to disk is disabled');
             return null;
         }
 
@@ -79,17 +84,17 @@ var ScreenshotService = class {
         let path = [
             GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES),
             GLib.get_home_dir(),
-        ].find(p => GLib.file_test(p, GLib.FileTest.EXISTS));
+        ].find(p => p && GLib.file_test(p, GLib.FileTest.EXISTS));
 
         if (!path)
             return null;
 
         yield Gio.File.new_for_path(
-            GLib.build_filenamev([path, `${filename}.png`]));
+            GLib.build_filenamev([path, '%s.png'.format(filename)]));
 
         for (let idx = 1; ; idx++) {
             yield Gio.File.new_for_path(
-                GLib.build_filenamev([path, `${filename}-${idx}.png`]));
+                GLib.build_filenamev([path, '%s-%s.png'.format(filename, idx)]));
         }
     }
 
@@ -103,35 +108,42 @@ var ScreenshotService = class {
                 let stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
                 return [stream, file];
             } catch (e) {
-                invocation.return_value(GLib.Variant.new('(bs)', [false, '']));
+                invocation.return_gerror(e);
+                this._removeShooterForSender(invocation.get_sender());
                 return [null, null];
             }
         }
 
+        let err;
         for (let file of this._resolveRelativeFilename(filename)) {
             try {
                 let stream = file.create(Gio.FileCreateFlags.NONE, null);
                 return [stream, file];
             } catch (e) {
+                err = e;
                 if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.EXISTS))
                     break;
             }
         }
 
-        invocation.return_value(GLib.Variant.new('(bs)', [false, '']));
+        invocation.return_gerror(err);
+        this._removeShooterForSender(invocation.get_sender());
         return [null, null];
     }
 
-    _onScreenshotComplete(area, stream, file, flash, invocation) {
-        if (flash) {
-            let flashspot = new Flashspot(area);
-            flashspot.fire(() => {
-                this._removeShooterForSender(invocation.get_sender());
-            });
-        } else {
-            this._removeShooterForSender(invocation.get_sender());
-        }
+    _flashAsync(shooter) {
+        return new Promise((resolve, _reject) => {
+            shooter.connect('screenshot_taken', (s, area) => {
+                const flashspot = new Flashspot(area);
+                flashspot.fire(resolve);
 
+                global.display.get_sound_player().play_from_theme(
+                    'screen-capture', _('Screenshot taken'), null);
+            });
+        });
+    }
+
+    _onScreenshotComplete(stream, file, invocation) {
         stream.close(null);
 
         let filenameUsed = '';
@@ -183,12 +195,15 @@ var ScreenshotService = class {
             return;
 
         try {
-            let [area] =
-                await screenshot.screenshot_area(x, y, width, height, stream);
-            this._onScreenshotComplete(area, stream, file, flash, invocation);
+            await Promise.all([
+                flash ? this._flashAsync(screenshot) : null,
+                screenshot.screenshot_area(x, y, width, height, stream),
+            ]);
+            this._onScreenshotComplete(stream, file, invocation);
         } catch (e) {
-            this._removeShooterForSender(invocation.get_sender());
             invocation.return_value(new GLib.Variant('(bs)', [false, '']));
+        } finally {
+            this._removeShooterForSender(invocation.get_sender());
         }
     }
 
@@ -203,12 +218,15 @@ var ScreenshotService = class {
             return;
 
         try {
-            let [area] =
-                await screenshot.screenshot_window(includeFrame, includeCursor, stream);
-            this._onScreenshotComplete(area, stream, file, flash, invocation);
+            await Promise.all([
+                flash ? this._flashAsync(screenshot) : null,
+                screenshot.screenshot_window(includeFrame, includeCursor, stream),
+            ]);
+            this._onScreenshotComplete(stream, file, invocation);
         } catch (e) {
-            this._removeShooterForSender(invocation.get_sender());
             invocation.return_value(new GLib.Variant('(bs)', [false, '']));
+        } finally {
+            this._removeShooterForSender(invocation.get_sender());
         }
     }
 
@@ -223,11 +241,15 @@ var ScreenshotService = class {
             return;
 
         try {
-            let [area] = await screenshot.screenshot(includeCursor, stream);
-            this._onScreenshotComplete(area, stream, file, flash, invocation);
+            await Promise.all([
+                flash ? this._flashAsync(screenshot) : null,
+                screenshot.screenshot(includeCursor, stream),
+            ]);
+            this._onScreenshotComplete(stream, file, invocation);
         } catch (e) {
-            this._removeShooterForSender(invocation.get_sender());
             invocation.return_value(new GLib.Variant('(bs)', [false, '']));
+        } finally {
+            this._removeShooterForSender(invocation.get_sender());
         }
     }
 
@@ -362,6 +384,9 @@ class SelectArea extends St.Widget {
     }
 
     vfunc_button_press_event(buttonEvent) {
+        if (this._result)
+            return Clutter.EVENT_PROPAGATE;
+
         [this._startX, this._startY] = [buttonEvent.x, buttonEvent.y];
         this._startX = Math.floor(this._startX);
         this._startY = Math.floor(this._startY);
@@ -371,6 +396,9 @@ class SelectArea extends St.Widget {
     }
 
     vfunc_button_release_event() {
+        if (this._startX === -1 || this._startY === -1 || this._result)
+            return Clutter.EVENT_PROPAGATE;
+
         this._result = this._getGeometry();
         this.ease({
             opacity: 0,

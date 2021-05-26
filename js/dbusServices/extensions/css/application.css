@@ -1,2 +1,7 @@
-.expander-frame > * { border-top-width: 0; }
-.expander-toolbar { border: 0 solid @borders; border-top-width: 1px; }
+.expander { padding: 12px; }
+.expander.expanded { border: 0 solid @borders; border-bottom-width: 1px; }
+.expander-toolbar {
+  border: 0 solid @borders;
+  border-top-width: 1px;
+  padding: 3px;
+}
