@@ -1,3 +1,13 @@
+gnome-shell (3.38.4-2) experimental; urgency=medium
+
+  * debian/patches: Import upstream patches needed to support libgweather 40.
+    libgweather 40 had an internal API change that caused runtime issues, so
+    we need to update the shell code in order to make the shell to work and
+    show the weather information.
+  * debian/control: Bump runtime dependency on gweather 40
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 May 2021 13:37:14 +0200
+
 gnome-shell (3.38.4-1) unstable; urgency=medium
 
   * Team upload
