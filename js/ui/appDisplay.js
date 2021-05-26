@@ -1,10 +1,12 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported AppDisplay, AppSearchProvider */
 
-const { Clutter, Gio, GLib, GObject, Graphene, Meta, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Graphene, Meta,
+    Pango, Shell, St } = imports.gi;
 const Signals = imports.signals;
 
 const AppFavorites = imports.ui.appFavorites;
+const BoxPointer = imports.ui.boxpointer;
 const DND = imports.ui.dnd;
 const GrabHelper = imports.ui.grabHelper;
 const IconGrid = imports.ui.iconGrid;
@@ -31,7 +33,17 @@ var SCROLL_TIMEOUT_TIME = 150;
 var APP_ICON_SCALE_IN_TIME = 500;
 var APP_ICON_SCALE_IN_DELAY = 700;
 
+var APP_ICON_TITLE_EXPAND_TIME = 200;
+var APP_ICON_TITLE_COLLAPSE_TIME = 100;
+
 const FOLDER_DIALOG_ANIMATION_TIME = 200;
+
+const PAGE_PREVIEW_ANIMATION_TIME = 150;
+const PAGE_PREVIEW_ANIMATION_START_OFFSET = 100;
+const PAGE_PREVIEW_FADE_EFFECT_MAX_OFFSET = 300;
+const PAGE_PREVIEW_MAX_ARROW_OFFSET = 80;
+const PAGE_INDICATOR_FADE_TIME = 200;
+const MAX_PAGE_PADDING = 200;
 
 const OVERSHOOT_THRESHOLD = 20;
 const OVERSHOOT_TIMEOUT = 1000;
@@ -42,6 +54,13 @@ const DIALOG_SHADE_NORMAL = Clutter.Color.from_pixel(0x000000cc);
 const DIALOG_SHADE_HIGHLIGHT = Clutter.Color.from_pixel(0x00000055);
 
 let discreteGpuAvailable = false;
+
+var SidePages = {
+    NONE: 0,
+    PREVIOUS: 1 << 0,
+    NEXT: 1 << 1,
+    DND: 1 << 2,
+};
 
 function _getCategories(info) {
     let categoriesStr = info.get_categories();
@@ -113,16 +132,16 @@ function _findBestFolderName(apps) {
 var BaseAppView = GObject.registerClass({
     GTypeFlags: GObject.TypeFlags.ABSTRACT,
     Properties: {
-        'use-pagination': GObject.ParamSpec.boolean(
-            'use-pagination', 'use-pagination', 'use-pagination',
+        'gesture-modes': GObject.ParamSpec.flags(
+            'gesture-modes', 'gesture-modes', 'gesture-modes',
             GObject.ParamFlags.READWRITE | GObject.ParamFlags.CONSTRUCT_ONLY,
-            false),
+            Shell.ActionMode, Shell.ActionMode.OVERVIEW),
     },
     Signals: {
         'view-loaded': {},
     },
 }, class BaseAppView extends St.Widget {
-    _init(params = {}, orientation = Clutter.Orientation.VERTICAL) {
+    _init(params = {}) {
         super._init(params);
 
         this._grid = this._createGrid();
@@ -130,44 +149,60 @@ var BaseAppView = GObject.registerClass({
         // Standard hack for ClutterBinLayout
         this._grid.x_expand = true;
         this._grid.connect('pages-changed', () => {
-            this._adjustment.value = 0;
             this.goToPage(this._grid.currentPage);
             this._pageIndicators.setNPages(this._grid.nPages);
             this._pageIndicators.setCurrentPosition(this._grid.currentPage);
         });
 
-        const vertical = orientation === Clutter.Orientation.VERTICAL;
-
         // Scroll View
         this._scrollView = new St.ScrollView({
+            style_class: 'apps-scroll-view',
             clip_to_allocation: true,
             x_expand: true,
             y_expand: true,
             reactive: true,
+            enable_mouse_scrolling: false,
         });
-        this._scrollView.set_policy(
-            vertical ? St.PolicyType.NEVER : St.PolicyType.EXTERNAL,
-            vertical ? St.PolicyType.EXTERNAL : St.PolicyType.NEVER);
+        this._scrollView.set_policy(St.PolicyType.EXTERNAL, St.PolicyType.NEVER);
+        this._scrollView._delegate = this;
 
         this._canScroll = true; // limiting scrolling speed
         this._scrollTimeoutId = 0;
         this._scrollView.connect('scroll-event', this._onScroll.bind(this));
+        this._scrollView.connect('motion-event', this._onMotion.bind(this));
+        this._scrollView.connect('enter-event', this._onMotion.bind(this));
+        this._scrollView.connect('leave-event', this._onLeave.bind(this));
+        this._scrollView.connect('button-press-event', this._onButtonPress.bind(this));
 
         this._scrollView.add_actor(this._grid);
 
-        const scroll = vertical ?  this._scrollView.vscroll : this._scrollView.hscroll;
+        const scroll = this._scrollView.hscroll;
         this._adjustment = scroll.adjustment;
         this._adjustment.connect('notify::value', adj => {
-            this._pageIndicators.setCurrentPosition(adj.value / adj.page_size);
+            this._updateFade();
+            const value = adj.value / adj.page_size;
+            this._pageIndicators.setCurrentPosition(value);
+
+            const distanceToPage = Math.abs(Math.round(value) - value);
+            if (distanceToPage < 0.001) {
+                this._hintContainer.opacity = 255;
+                this._hintContainer.translationX = 0;
+            } else {
+                this._hintContainer.remove_transition('opacity');
+                let opacity = Math.clamp(
+                    255 * (1 - (distanceToPage * 2)),
+                    0, 255);
+
+                this._hintContainer.translationX = (Math.round(value) - value) * adj.page_size;
+                this._hintContainer.opacity = opacity;
+            }
         });
 
         // Page Indicators
-        if (vertical)
-            this._pageIndicators = new PageIndicators.AnimatedPageIndicators();
-        else
-            this._pageIndicators = new PageIndicators.PageIndicators(orientation);
+        this._pageIndicators =
+            new PageIndicators.PageIndicators(Clutter.Orientation.HORIZONTAL);
 
-        this._pageIndicators.y_expand = vertical;
+        this._pageIndicators.y_expand = false;
         this._pageIndicators.connect('page-activated',
             (indicators, pageIndex) => {
                 this.goToPage(pageIndex);
@@ -176,17 +211,91 @@ var BaseAppView = GObject.registerClass({
             this._scrollView.event(event, false);
         });
 
+        // Navigation indicators
+        this._nextPageIndicator = new St.Widget({
+            style_class: 'page-navigation-hint next',
+            opacity: 0,
+            visible: false,
+            reactive: false,
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.END,
+            y_align: Clutter.ActorAlign.FILL,
+        });
+
+        this._prevPageIndicator = new St.Widget({
+            style_class: 'page-navigation-hint previous',
+            opacity: 0,
+            visible: false,
+            reactive: false,
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.START,
+            y_align: Clutter.ActorAlign.FILL,
+        });
+
+        // Next/prev page arrows
+        const rtl = this.get_text_direction() === Clutter.TextDirection.RTL;
+        this._nextPageArrow = new St.Icon({
+            style_class: 'page-navigation-arrow',
+            icon_name: rtl
+                ? 'carousel-arrow-back-24-symbolic'
+                : 'carousel-arrow-next-24-symbolic',
+            opacity: 0,
+            reactive: false,
+            visible: false,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.END,
+        });
+        this._prevPageArrow = new St.Icon({
+            style_class: 'page-navigation-arrow',
+            icon_name: rtl
+                ? 'carousel-arrow-next-24-symbolic'
+                : 'carousel-arrow-back-24-symbolic',
+            opacity: 0,
+            reactive: false,
+            visible: false,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.START,
+        });
+
+        this._hintContainer = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
+        this._hintContainer.add_child(this._prevPageIndicator);
+        this._hintContainer.add_child(this._nextPageIndicator);
+
+        const scrollContainer = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            clip_to_allocation: true,
+            y_expand: true,
+        });
+        scrollContainer.add_child(this._hintContainer);
+        scrollContainer.add_child(this._scrollView);
+        scrollContainer.add_child(this._nextPageArrow);
+        scrollContainer.add_child(this._prevPageArrow);
+
+        this._box = new St.BoxLayout({
+            vertical: true,
+            x_expand: true,
+            y_expand: true,
+        });
+        this._box.add_child(scrollContainer);
+        this._box.add_child(this._pageIndicators);
+
         // Swipe
         this._swipeTracker = new SwipeTracker.SwipeTracker(this._scrollView,
-            Shell.ActionMode.OVERVIEW | Shell.ActionMode.POPUP);
-        this._swipeTracker.orientation = orientation;
+            Clutter.Orientation.HORIZONTAL, this.gestureModes);
+        this._swipeTracker.orientation = Clutter.Orientation.HORIZONTAL;
         this._swipeTracker.connect('begin', this._swipeBegin.bind(this));
         this._swipeTracker.connect('update', this._swipeUpdate.bind(this));
         this._swipeTracker.connect('end', this._swipeEnd.bind(this));
 
         this._availWidth = 0;
         this._availHeight = 0;
-        this._orientation = orientation;
+        this._orientation = Clutter.Orientation.HORIZONTAL;
 
         this._items = new Map();
         this._orderedItems = [];
@@ -202,6 +311,11 @@ var BaseAppView = GObject.registerClass({
                 this._redisplay();
             });
 
+        // Don't duplicate favorites
+        this._appFavorites = AppFavorites.getAppFavorites();
+        this._appFavoritesChangedId =
+            this._appFavorites.connect('changed', () => this._redisplay());
+
         // Drag n' Drop
         this._lastOvershoot = -1;
         this._lastOvershootTimeoutId = 0;
@@ -212,12 +326,19 @@ var BaseAppView = GObject.registerClass({
         this._dragCancelledId = 0;
 
         this.connect('destroy', this._onDestroy.bind(this));
+
+        this._previewedPages = new Map();
     }
 
     _onDestroy() {
         if (this._appFilterChangedId > 0) {
             this._parentalControlsManager.disconnect(this._appFilterChangedId);
             this._appFilterChangedId = 0;
+        }
+
+        if (this._appFavoritesChangedId > 0) {
+            this._appFavorites.disconnect(this._appFavoritesChangedId);
+            this._appFavoritesChangedId = 0;
         }
 
         if (this._swipeTracker) {
@@ -227,6 +348,64 @@ var BaseAppView = GObject.registerClass({
 
         this._removeDelayedMove();
         this._disconnectDnD();
+    }
+
+    _updateFadeForNavigation() {
+        const fadeMargin = new Clutter.Margin();
+        const rtl = this.get_text_direction() === Clutter.TextDirection.RTL;
+        const showingNextPage = this._pagesShown & SidePages.NEXT;
+        const showingPrevPage = this._pagesShown & SidePages.PREVIOUS;
+
+        if ((showingNextPage && !rtl) || (showingPrevPage && rtl)) {
+            fadeMargin.right = Math.max(
+                -PAGE_PREVIEW_FADE_EFFECT_MAX_OFFSET,
+                -(this._availWidth - this._grid.layout_manager.pageWidth) / 2);
+        }
+
+        if ((showingPrevPage && !rtl) || (showingNextPage && rtl)) {
+            fadeMargin.left = Math.max(
+                -PAGE_PREVIEW_FADE_EFFECT_MAX_OFFSET,
+                -(this._availWidth - this._grid.layout_manager.pageWidth) / 2);
+        }
+
+        this._scrollView.update_fade_effect(fadeMargin);
+        const effect = this._scrollView.get_effect('fade');
+        if (effect)
+            effect.extend_fade_area = true;
+    }
+
+    _updateFade() {
+        const { pagePadding } = this._grid.layout_manager;
+
+        if (this._pagesShown)
+            return;
+
+        if (pagePadding.top === 0 &&
+            pagePadding.right === 0 &&
+            pagePadding.bottom === 0 &&
+            pagePadding.left === 0)
+            return;
+
+        let hOffset = 0;
+        let vOffset = 0;
+
+        if ((this._adjustment.value % this._adjustment.page_size) !== 0.0) {
+            const vertical = this._orientation === Clutter.Orientation.VERTICAL;
+
+            hOffset = vertical ? 0 : Math.max(pagePadding.left, pagePadding.right);
+            vOffset = vertical ? Math.max(pagePadding.top, pagePadding.bottom) : 0;
+
+            if (hOffset === 0 && vOffset === 0)
+                return;
+        }
+
+        this._scrollView.update_fade_effect(
+            new Clutter.Margin({
+                left: hOffset,
+                right: hOffset,
+                top: vOffset,
+                bottom: vOffset,
+            }));
     }
 
     _createGrid() {
@@ -282,9 +461,49 @@ var BaseAppView = GObject.registerClass({
         return Clutter.EVENT_STOP;
     }
 
+    _pageForCoords(x, y) {
+        const rtl = this.get_text_direction() === Clutter.TextDirection.RTL;
+        const { allocation } = this._grid;
+
+        const [success, pointerX] = this._scrollView.transform_stage_point(x, y);
+        if (!success)
+            return SidePages.NONE;
+
+        if (pointerX < allocation.x1)
+            return rtl ? SidePages.NEXT : SidePages.PREVIOUS;
+        else if (pointerX > allocation.x2)
+            return rtl ? SidePages.PREVIOUS : SidePages.NEXT;
+
+        return SidePages.NONE;
+    }
+
+    _onMotion(actor, event) {
+        const page = this._pageForCoords(...event.get_coords());
+        this._slideSidePages(page);
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _onButtonPress(actor, event) {
+        const page = this._pageForCoords(...event.get_coords());
+        if (page === SidePages.NEXT)
+            this.goToPage(this._grid.currentPage + 1);
+        else if (page === SidePages.PREVIOUS)
+            this.goToPage(this._grid.currentPage - 1);
+    }
+
+    _onLeave() {
+        this._slideSidePages(SidePages.NONE);
+    }
+
     _swipeBegin(tracker, monitor) {
         if (monitor !== Main.layoutManager.primaryIndex)
             return;
+
+        if (this._dragFocus) {
+            this._dragFocus.cancelActions();
+            this._dragFocus = null;
+        }
 
         const adjustment = this._adjustment;
         adjustment.remove_transition('value');
@@ -305,6 +524,8 @@ var BaseAppView = GObject.registerClass({
     _swipeEnd(tracker, duration, endProgress) {
         const adjustment = this._adjustment;
         const value = endProgress * adjustment.page_size;
+
+        this._syncPageHints(endProgress);
 
         adjustment.ease(value, {
             mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
@@ -437,13 +658,11 @@ var BaseAppView = GObject.registerClass({
         if (this._lastOvershoot >= 0)
             return;
 
-        const currentPosition = this._adjustment.value;
-        const maxPosition = this._adjustment.upper - this._adjustment.page_size;
-
-        if (dragPosition <= gridStart && currentPosition > 0)
-            this.goToPage(this._grid.currentPage - 1);
-        else if (dragPosition >= gridEnd && currentPosition < maxPosition)
-            this.goToPage(this._grid.currentPage + 1);
+        const rtl = this.get_text_direction() === Clutter.TextDirection.RTL;
+        if (dragPosition <= gridStart)
+            this.goToPage(this._grid.currentPage + (rtl ? 1 : -1));
+        else if (dragPosition >= gridEnd)
+            this.goToPage(this._grid.currentPage + (rtl ? -1 : 1));
         else
             return; // don't go beyond first/last page
 
@@ -467,6 +686,9 @@ var BaseAppView = GObject.registerClass({
             dragMotion: this._onDragMotion.bind(this),
         };
         DND.addDragMonitor(this._dragMonitor);
+        this._slideSidePages(SidePages.PREVIOUS | SidePages.NEXT | SidePages.DND);
+        this._dragFocus = null;
+        this._swipeTracker.enabled = false;
     }
 
     _onDragMotion(dragEvent) {
@@ -474,6 +696,14 @@ var BaseAppView = GObject.registerClass({
             return DND.DragMotionResult.CONTINUE;
 
         const appIcon = dragEvent.source;
+
+        this._dropPage = this._pageForCoords(dragEvent.x, dragEvent.y);
+        if (this._dropPage &&
+            this._dropPage === SidePages.PREVIOUS &&
+            this._grid.currentPage === 0) {
+            delete this._dropPage;
+            return DND.DragMotionResult.NO_DROP;
+        }
 
         // Handle the drag overshoot. When dragging to above the
         // icon grid, move to the page above; when dragging below,
@@ -493,12 +723,17 @@ var BaseAppView = GObject.registerClass({
         }
 
         this._resetOvershoot();
+        this._slideSidePages(SidePages.NONE);
+        delete this._dropPage;
+        this._swipeTracker.enabled = true;
     }
 
     _onDragCancelled() {
         // At this point, the positions aren't stored yet, thus _redisplay()
         // will move all items to their original positions
         this._redisplay();
+        this._slideSidePages(SidePages.NONE);
+        this._swipeTracker.enabled = true;
     }
 
     _canAccept(source) {
@@ -516,8 +751,16 @@ var BaseAppView = GObject.registerClass({
         if (!this._canAccept(source))
             return false;
 
-        // Dropped before the icon was moved
-        if (this._delayedMoveData) {
+        if (this._dropPage) {
+            const increment = this._dropPage === SidePages.NEXT ? 1 : -1;
+            const { currentPage, nPages } = this._grid;
+            const page = Math.min(currentPage + increment, nPages);
+            const position = page < nPages ? -1 : 0;
+
+            this._moveItem(source, page, position);
+            this.goToPage(page);
+        } else if (this._delayedMoveData) {
+            // Dropped before the icon was moved
             const { page, position } = this._delayedMoveData;
 
             this._moveItem(source, page, position);
@@ -825,12 +1068,54 @@ var BaseAppView = GObject.registerClass({
         this._grid.ease(params);
     }
 
+    _syncPageHints(pageNumber, animate = true) {
+        const showingNextPage = this._pagesShown & SidePages.NEXT;
+        const showingPrevPage = this._pagesShown & SidePages.PREVIOUS;
+        const dnd = this._pagesShown & SidePages.DND;
+        const duration = animate ? PAGE_INDICATOR_FADE_TIME : 0;
+
+        if (showingPrevPage) {
+            const opacity = pageNumber === 0 ? 0 : 255;
+            this._prevPageIndicator.visible = true;
+            this._prevPageIndicator.ease({
+                opacity,
+                duration,
+            });
+
+            if (!dnd) {
+                this._prevPageArrow.visible = true;
+                this._prevPageArrow.ease({
+                    opacity,
+                    duration,
+                });
+            }
+        }
+
+        if (showingNextPage) {
+            const opacity = pageNumber === this._grid.nPages - 1 ? 0 : 255;
+            this._nextPageIndicator.visible = true;
+            this._nextPageIndicator.ease({
+                opacity,
+                duration,
+            });
+
+            if (!dnd) {
+                this._nextPageArrow.visible = true;
+                this._nextPageArrow.ease({
+                    opacity,
+                    duration,
+                });
+            }
+        }
+    }
+
     goToPage(pageNumber, animate = true) {
         pageNumber = Math.clamp(pageNumber, 0, this._grid.nPages - 1);
 
         if (this._grid.currentPage === pageNumber)
             return;
 
+        this._syncPageHints(pageNumber, animate);
         this._grid.goToPage(pageNumber, animate);
     }
 
@@ -839,16 +1124,230 @@ var BaseAppView = GObject.registerClass({
             x2: width,
             y2: height,
         });
+        box = this.get_theme_node().get_content_box(box);
         box = this._scrollView.get_theme_node().get_content_box(box);
         box = this._grid.get_theme_node().get_content_box(box);
 
         const availWidth = box.get_width();
         const availHeight = box.get_height();
 
-        this._grid.adaptToSize(availWidth, availHeight);
+        const gridRatio = this._grid.layout_manager.columnsPerPage /
+            this._grid.layout_manager.rowsPerPage;
+        const spaceRatio = availWidth / availHeight;
+        let pageWidth, pageHeight;
+
+        if (spaceRatio > gridRatio * 1.1) {
+            // Enough room for some preview
+            pageHeight = availHeight;
+            pageWidth = Math.ceil(availHeight * gridRatio);
+
+            if (spaceRatio > gridRatio * 1.5) {
+                // Ultra-wide layout, give some extra space for
+                // the page area, but up to an extent.
+                const extraPageSpace = Math.min(
+                    Math.floor((availWidth - pageWidth) / 2), MAX_PAGE_PADDING);
+                pageWidth += extraPageSpace;
+                this._grid.layout_manager.pagePadding.left =
+                    Math.floor(extraPageSpace / 2);
+                this._grid.layout_manager.pagePadding.right =
+                    Math.ceil(extraPageSpace / 2);
+            }
+        } else {
+            // Not enough room, needs to shrink horizontally
+            pageWidth = Math.ceil(availWidth * 0.8);
+            pageHeight = availHeight;
+            this._grid.layout_manager.pagePadding.left =
+                Math.floor(availWidth * 0.02);
+            this._grid.layout_manager.pagePadding.right =
+                Math.ceil(availWidth * 0.02);
+        }
+
+        this._grid.adaptToSize(pageWidth, pageHeight);
+
+        const leftPadding = Math.floor(
+            (availWidth - this._grid.layout_manager.pageWidth) / 2);
+        const rightPadding = Math.ceil(
+            (availWidth - this._grid.layout_manager.pageWidth) / 2);
+        const topPadding = Math.floor(
+            (availHeight - this._grid.layout_manager.pageHeight) / 2);
+        const bottomPadding = Math.ceil(
+            (availHeight - this._grid.layout_manager.pageHeight) / 2);
+
+        this._scrollView.content_padding = new Clutter.Margin({
+            left: leftPadding,
+            right: rightPadding,
+            top: topPadding,
+            bottom: bottomPadding,
+        });
 
         this._availWidth = availWidth;
         this._availHeight = availHeight;
+
+        this._pageIndicatorOffset = leftPadding;
+        this._pageArrowOffset = Math.max(
+            leftPadding - PAGE_PREVIEW_MAX_ARROW_OFFSET, 0);
+    }
+
+    _getIndicatorOffset(page, progress, baseOffset) {
+        const rtl = this.get_text_direction() === Clutter.TextDirection.RTL;
+        const translationX =
+            (1 - progress) * PAGE_PREVIEW_ANIMATION_START_OFFSET;
+
+        page = rtl ? -page : page;
+
+        return (translationX - baseOffset) * page;
+    }
+
+    _getPagePreviewAdjustment(page) {
+        const previewedPage = this._previewedPages.get(page);
+        return previewedPage?.adjustment;
+    }
+
+    _syncClip() {
+        const nextPageAdjustment = this._getPagePreviewAdjustment(1);
+        const prevPageAdjustment = this._getPagePreviewAdjustment(-1);
+        this._grid.clip_to_view =
+            (!prevPageAdjustment || prevPageAdjustment.value === 0) &&
+            (!nextPageAdjustment || nextPageAdjustment.value === 0);
+    }
+
+    _setupPagePreview(page, state) {
+        if (this._previewedPages.has(page))
+            return this._previewedPages.get(page).adjustment;
+
+        const adjustment = new St.Adjustment({
+            actor: this,
+            lower: 0,
+            upper: 1,
+        });
+
+        const indicator = page > 0
+            ? this._nextPageIndicator : this._prevPageIndicator;
+
+        const notifyId = adjustment.connect('notify::value', () => {
+            const nextPage = this._grid.currentPage + page;
+            const hasFollowingPage = nextPage >= 0 &&
+                nextPage < this._grid.nPages;
+
+            if (hasFollowingPage) {
+                const items = this._grid.getItemsAtPage(nextPage);
+                items.forEach(item => {
+                    item.translation_x =
+                        this._getIndicatorOffset(page, adjustment.value, 0);
+                });
+
+                if (!(state & SidePages.DND)) {
+                    const pageArrow = page > 0
+                        ? this._nextPageArrow
+                        : this._prevPageArrow;
+                    pageArrow.set({
+                        visible: true,
+                        opacity: adjustment.value * 255,
+                        translation_x: this._getIndicatorOffset(
+                            page, adjustment.value,
+                            this._pageArrowOffset),
+                    });
+                }
+            }
+            if (hasFollowingPage ||
+                (page > 0 &&
+                 this._grid.layout_manager.allow_incomplete_pages &&
+                 (state & SidePages.DND) !== 0)) {
+                indicator.set({
+                    visible: true,
+                    opacity: adjustment.value * 255,
+                    translation_x: this._getIndicatorOffset(
+                        page, adjustment.value,
+                        this._pageIndicatorOffset - indicator.width),
+                });
+            }
+            this._syncClip();
+        });
+
+        this._previewedPages.set(page, {
+            adjustment,
+            notifyId,
+        });
+
+        return adjustment;
+    }
+
+    _teardownPagePreview(page) {
+        const previewedPage = this._previewedPages.get(page);
+        if (!previewedPage)
+            return;
+
+        previewedPage.adjustment.value = 1;
+        previewedPage.adjustment.disconnect(previewedPage.notifyId);
+        this._previewedPages.delete(page);
+    }
+
+    _slideSidePages(state) {
+        if (this._pagesShown === state)
+            return;
+        this._pagesShown = state;
+        const showingNextPage = state & SidePages.NEXT;
+        const showingPrevPage = state & SidePages.PREVIOUS;
+        const dnd = state & SidePages.DND;
+        let adjustment;
+
+        if (dnd) {
+            this._nextPageIndicator.add_style_class_name('dnd');
+            this._prevPageIndicator.add_style_class_name('dnd');
+        } else {
+            this._nextPageIndicator.remove_style_class_name('dnd');
+            this._prevPageIndicator.remove_style_class_name('dnd');
+        }
+
+        adjustment = this._getPagePreviewAdjustment(1);
+        if (showingNextPage) {
+            adjustment = this._setupPagePreview(1, state);
+
+            adjustment.ease(1, {
+                duration: PAGE_PREVIEW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
+            this._updateFadeForNavigation();
+        } else if (adjustment) {
+            adjustment.ease(0, {
+                duration: PAGE_PREVIEW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._teardownPagePreview(1);
+                    this._syncClip();
+                    this._nextPageArrow.visible = false;
+                    this._nextPageIndicator.visible = false;
+                    this._updateFadeForNavigation();
+                },
+            });
+        }
+
+        adjustment = this._getPagePreviewAdjustment(-1);
+        if (showingPrevPage) {
+            adjustment = this._setupPagePreview(-1, state);
+
+            adjustment.ease(1, {
+                duration: PAGE_PREVIEW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
+            this._updateFadeForNavigation();
+        } else if (adjustment) {
+            adjustment.ease(0, {
+                duration: PAGE_PREVIEW_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._teardownPagePreview(-1);
+                    this._syncClip();
+                    this._prevPageArrow.visible = false;
+                    this._prevPageIndicator.visible = false;
+                    this._updateFadeForNavigation();
+                },
+            });
+        }
+    }
+
+    updateDragFocus(dragFocus) {
+        this._dragFocus = dragFocus;
     }
 });
 
@@ -863,7 +1362,6 @@ var PageManager = GObject.registerClass({
 
         global.settings.connect('changed::app-picker-layout',
             this._loadPages.bind(this));
-
     }
 
     _loadPages() {
@@ -926,17 +1424,13 @@ class AppDisplay extends BaseAppView {
         this._pageManager = new PageManager();
         this._pageManager.connect('layout-changed', () => this._redisplay());
 
-        this._scrollView.add_style_class_name('all-apps');
-
         this._stack = new St.Widget({
             layout_manager: new Clutter.BinLayout(),
             x_expand: true,
             y_expand: true,
         });
         this.add_actor(this._stack);
-        this._stack.add_actor(this._scrollView);
-
-        this.add_actor(this._pageIndicators);
+        this._stack.add_child(this._box);
 
         this._folderIcons = [];
 
@@ -969,7 +1463,7 @@ class AppDisplay extends BaseAppView {
         this._switcherooProxy = global.get_switcheroo_control();
         if (this._switcherooProxy) {
             let prop = this._switcherooProxy.get_cached_property('HasDualGpu');
-            discreteGpuAvailable = prop ? prop.unpack() : false;
+            discreteGpuAvailable = prop?.unpack() ?? false;
         } else {
             discreteGpuAvailable = false;
         }
@@ -1007,6 +1501,14 @@ class AppDisplay extends BaseAppView {
         super._redisplay();
     }
 
+    adaptToSize(width, height) {
+        const [, indicatorHeight] = this._pageIndicators.get_preferred_height(-1);
+        height -= indicatorHeight;
+
+        this._grid.findBestModeForSize(width, height);
+        super.adaptToSize(width, height);
+    }
+
     _savePages() {
         const pages = [];
 
@@ -1038,6 +1540,10 @@ class AppDisplay extends BaseAppView {
             global.settings.is_writable('app-picker-layout');
 
         this._placeholder = new AppIcon(app, { isDraggable });
+        this._placeholder.connect('notify::pressed', () => {
+            if (this._placeholder.pressed)
+                this.updateDragFocus(this._placeholder);
+        });
         this._placeholder.scaleAndFade();
         this._redisplay();
     }
@@ -1092,7 +1598,8 @@ class AppDisplay extends BaseAppView {
             } catch (e) {
                 return false;
             }
-            return this._parentalControlsManager.shouldShowApp(appInfo);
+            return !this._appFavorites.isFavorite(appInfo.get_id()) &&
+                this._parentalControlsManager.shouldShowApp(appInfo);
         });
 
         let apps = this._appInfoList.map(app => app.get_id());
@@ -1111,6 +1618,10 @@ class AppDisplay extends BaseAppView {
                 icon.connect('apps-changed', () => {
                     this._redisplay();
                     this._savePages();
+                });
+                icon.connect('notify::pressed', () => {
+                    if (icon.pressed)
+                        this.updateDragFocus(icon);
                 });
             }
 
@@ -1145,6 +1656,10 @@ class AppDisplay extends BaseAppView {
                 let app = appSys.lookup_app(appId);
 
                 icon = new AppIcon(app, { isDraggable });
+                icon.connect('notify::pressed', () => {
+                    if (icon.pressed)
+                        this.updateDragFocus(icon);
+                });
             }
 
             appIcons.push(icon);
@@ -1169,13 +1684,10 @@ class AppDisplay extends BaseAppView {
         };
 
         if (animationDirection == IconGrid.AnimationDirection.OUT &&
-            this._displayingDialog && this._currentDialog) {
+            this._displayingDialog && this._currentDialog)
             this._currentDialog.popdown();
-        } else {
+        else
             super.animate(animationDirection, completionFunc);
-            if (animationDirection == IconGrid.AnimationDirection.OUT)
-                this._pageIndicators.animateIndicators(animationDirection);
-        }
     }
 
     animateSwitch(animationDirection) {
@@ -1190,9 +1702,6 @@ class AppDisplay extends BaseAppView {
                 onComplete: () => (this.opacity = 255),
             });
         }
-
-        if (animationDirection == IconGrid.AnimationDirection.OUT)
-            this._pageIndicators.animateIndicators(animationDirection);
     }
 
     goToPage(pageNumber, animate = true) {
@@ -1267,7 +1776,8 @@ class AppDisplay extends BaseAppView {
         // exist in AppDisplay. We work around that by adding a placeholder
         // icon that is either destroyed on cancel, or becomes the effective
         // new icon when dropped.
-        if (_getViewFromIcon(source) instanceof FolderView)
+        if (_getViewFromIcon(source) instanceof FolderView ||
+            this._appFavorites.isFavorite(source.id))
             this._ensurePlaceholder(source);
     }
 
@@ -1281,6 +1791,7 @@ class AppDisplay extends BaseAppView {
     _onDragEnd() {
         super._onDragEnd();
         this._removePlaceholder();
+        this._savePages();
     }
 
     _onDragCancelled(overview, source) {
@@ -1304,6 +1815,9 @@ class AppDisplay extends BaseAppView {
 
         if (this._currentDialog)
             this._currentDialog.popdown();
+
+        if (this._appFavorites.isFavorite(source.id))
+            this._appFavorites.removeFavorite(source.id);
 
         return true;
     }
@@ -1374,6 +1888,7 @@ var AppSearchProvider = class AppSearchProvider {
     }
 
     getResultMetas(apps, callback) {
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         let metas = [];
         for (let id of apps) {
             if (id.endsWith('.desktop')) {
@@ -1388,10 +1903,12 @@ var AppSearchProvider = class AppSearchProvider {
                 let name = this._systemActions.getName(id);
                 let iconName = this._systemActions.getIconName(id);
 
-                let createIcon = size => new St.Icon({ icon_name: iconName,
-                                                       width: size,
-                                                       height: size,
-                                                       style_class: 'system-action-icon' });
+                const createIcon = size => new St.Icon({
+                    icon_name: iconName,
+                    width: size * scaleFactor,
+                    height: size * scaleFactor,
+                    style_class: 'system-action-icon',
+                });
 
                 metas.push({ id, name, createIcon });
             }
@@ -1441,16 +1958,19 @@ var AppSearchProvider = class AppSearchProvider {
     }
 
     createResultObject(resultMeta) {
-        if (resultMeta.id.endsWith('.desktop'))
-            return new AppIcon(this._appSys.lookup_app(resultMeta['id']));
-        else
+        if (resultMeta.id.endsWith('.desktop')) {
+            return new AppIcon(this._appSys.lookup_app(resultMeta['id']), {
+                expandTitleOnHover: false,
+            });
+        } else {
             return new SystemActionIcon(this, resultMeta);
+        }
     }
 };
 
 var AppViewItem = GObject.registerClass(
 class AppViewItem extends St.Button {
-    _init(params = {}, isDraggable = true) {
+    _init(params = {}, isDraggable = true, expandTitleOnHover = true) {
         super._init({
             pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
             reactive: true,
@@ -1462,14 +1982,18 @@ class AppViewItem extends St.Button {
         this._delegate = this;
 
         if (isDraggable) {
-            this._draggable = DND.makeDraggable(this);
+            this._draggable = DND.makeDraggable(this, { timeoutThreshold: 200 });
+
             this._draggable.connect('drag-begin', this._onDragBegin.bind(this));
             this._draggable.connect('drag-cancelled', this._onDragCancelled.bind(this));
             this._draggable.connect('drag-end', this._onDragEnd.bind(this));
         }
 
         this._otherIconIsHovering = false;
+        this._expandTitleOnHover = expandTitleOnHover;
 
+        if (expandTitleOnHover)
+            this.connect('notify::hover', this._onHover.bind(this));
         this.connect('destroy', this._onDestroy.bind(this));
     }
 
@@ -1484,6 +2008,39 @@ class AppViewItem extends St.Button {
                 Main.overview.endItemDrag(this);
             this._draggable = null;
         }
+    }
+
+    _updateMultiline() {
+        if (!this._expandTitleOnHover || !this.icon.label)
+            return;
+
+        const { label } = this.icon;
+        const { clutterText } = label;
+        const layout = clutterText.get_layout();
+        if (!layout.is_wrapped() && !layout.is_ellipsized())
+            return;
+
+        label.remove_transition('allocation');
+
+        const id = label.connect('notify::allocation', () => {
+            label.restore_easing_state();
+            label.disconnect(id);
+        });
+
+        const expand = this.hover || this.has_key_focus();
+        label.save_easing_state();
+        label.set_easing_duration(expand
+            ? APP_ICON_TITLE_EXPAND_TIME
+            : APP_ICON_TITLE_COLLAPSE_TIME);
+        clutterText.set({
+            line_wrap: expand,
+            line_wrap_mode: expand ? Pango.WrapMode.WORD_CHAR : Pango.WrapMode.NONE,
+            ellipsize: expand ? Pango.EllipsizeMode.NONE : Pango.EllipsizeMode.END,
+        });
+    }
+
+    _onHover() {
+        this._updateMultiline();
     }
 
     _onDragBegin() {
@@ -1566,6 +2123,16 @@ class AppViewItem extends St.Button {
             x > this.width - IconGrid.RIGHT_DIVIDER_LEEWAY;
     }
 
+    vfunc_key_focus_in() {
+        this._updateMultiline();
+        super.vfunc_key_focus_in();
+    }
+
+    vfunc_key_focus_out() {
+        this._updateMultiline();
+        super.vfunc_key_focus_out();
+    }
+
     handleDragOver(source, _actor, x) {
         if (source === this)
             return DND.DragMotionResult.NO_DROP;
@@ -1595,6 +2162,12 @@ class AppViewItem extends St.Button {
         return true;
     }
 
+    cancelActions() {
+        if (this._draggable)
+            this._draggable.fakeRelease();
+        this.fake_release();
+    }
+
     get id() {
         return this._id;
     }
@@ -1609,7 +2182,6 @@ class FolderGrid extends IconGrid.IconGrid {
     _init() {
         super._init({
             allow_incomplete_pages: false,
-            orientation: Clutter.Orientation.HORIZONTAL,
             columns_per_page: 3,
             rows_per_page: 3,
             page_halign: Clutter.ActorAlign.CENTER,
@@ -1629,7 +2201,8 @@ class FolderView extends BaseAppView {
             layout_manager: new Clutter.BinLayout(),
             x_expand: true,
             y_expand: true,
-        }, Clutter.Orientation.HORIZONTAL);
+            gesture_modes: Shell.ActionMode.POPUP,
+        });
 
         // If it not expand, the parent doesn't take into account its preferred_width when allocating
         // the second time it allocates, so we apply the "Standard hack for ClutterBinLayout"
@@ -1639,15 +2212,7 @@ class FolderView extends BaseAppView {
         this._parentView = parentView;
         this._grid._delegate = this;
 
-        const box = new St.BoxLayout({
-            vertical: true,
-            reactive: true,
-            x_expand: true,
-            y_expand: true,
-        });
-        box.add_child(this._scrollView);
-        box.add_child(this._pageIndicators);
-        this.add_child(box);
+        this.add_child(this._box);
 
         let action = new Clutter.PanAction({ interpolate: true });
         action.connect('pan', this._onPan.bind(this));
@@ -1668,6 +2233,9 @@ class FolderView extends BaseAppView {
         const appSys = Shell.AppSystem.get_default();
         const addAppId = appId => {
             if (excludedApps.includes(appId))
+                return;
+
+            if (this._appFavorites.isFavorite(appId))
                 return;
 
             const app = appSys.lookup_app(appId);
@@ -1729,13 +2297,16 @@ class FolderView extends BaseAppView {
     }
 
     createFolderIcon(size) {
-        let layout = new Clutter.GridLayout();
+        const layout = new Clutter.GridLayout({
+            row_homogeneous: true,
+            column_homogeneous: true,
+        });
         let icon = new St.Widget({
             layout_manager: layout,
-            style_class: 'app-folder-icon',
             x_align: Clutter.ActorAlign.CENTER,
+            style: 'width: %dpx; height: %dpx;'.format(size, size),
         });
-        layout.hookup_style(icon);
+
         let subSize = Math.floor(FOLDER_SUBICON_FRACTION * size);
 
         let numItems = this._orderedItems.length;
@@ -2048,10 +2619,7 @@ var AppFolderDialog = GObject.registerClass({
             reactive: true,
         });
 
-        this.add_constraint(new Layout.MonitorConstraint({
-            primary: true,
-            work_area: true,
-        }));
+        this.add_constraint(new Layout.MonitorConstraint({ primary: true }));
 
         const clickAction = new Clutter.ClickAction();
         clickAction.connect('clicked', () => {
@@ -2538,8 +3106,10 @@ var AppIcon = GObject.registerClass({
         const appIconParams = Params.parse(iconParams, { isDraggable: true }, true);
         const isDraggable = appIconParams['isDraggable'];
         delete iconParams['isDraggable'];
+        const expandTitleOnHover = appIconParams['expandTitleOnHover'];
+        delete iconParams['expandTitleOnHover'];
 
-        super._init({ style_class: 'app-well-app' }, isDraggable);
+        super._init({ style_class: 'app-well-app' }, isDraggable, expandTitleOnHover);
 
         this.app = app;
         this._id = app.get_id();
@@ -2596,6 +3166,8 @@ var AppIcon = GObject.registerClass({
     }
 
     _onDragBegin() {
+        if (this._menu)
+            this._menu.close(true);
         this._removeMenuTimeout();
         super._onDragBegin();
     }
@@ -2669,15 +3241,12 @@ var AppIcon = GObject.registerClass({
         return this.app.get_id();
     }
 
-    popupMenu() {
+    popupMenu(side = St.Side.LEFT) {
         this._removeMenuTimeout();
         this.fake_release();
 
-        if (this._draggable)
-            this._draggable.fakeRelease();
-
         if (!this._menu) {
-            this._menu = new AppIconMenu(this);
+            this._menu = new AppIconMenu(this, side);
             this._menu.connect('activate-window', (menu, window) => {
                 this.activateWindow(window);
             });
@@ -2830,13 +3399,23 @@ var AppIcon = GObject.registerClass({
 
         return view.createFolder(apps);
     }
+
+    cancelActions() {
+        if (this._menu)
+            this._menu.close(true);
+        this._removeMenuTimeout();
+        super.cancelActions();
+    }
 });
 
 var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
-    constructor(source) {
-        let side = St.Side.LEFT;
-        if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL)
-            side = St.Side.RIGHT;
+    constructor(source, side) {
+        if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL) {
+            if (side === St.Side.LEFT)
+                side = St.Side.RIGHT;
+            else if (side === St.Side.RIGHT)
+                side = St.Side.LEFT;
+        }
 
         super(source, 0.5, side);
 
@@ -2984,7 +3563,7 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
 
     popup(_activatingButton) {
         this._rebuildMenu();
-        this.open();
+        this.open(BoxPointer.PopupAnimation.FULL);
     }
 };
 Signals.addSignalMethods(AppIconMenu.prototype);

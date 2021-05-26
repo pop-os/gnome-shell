@@ -1124,6 +1124,10 @@ _shell_app_add_window (ShellApp        *app,
     app->running_state->interesting_windows++;
   shell_app_sync_running_state (app);
 
+  if (app->started_on_workspace >= 0)
+    meta_window_change_workspace_by_index (window, app->started_on_workspace, FALSE);
+  app->started_on_workspace = -1;
+
   g_object_thaw_notify (G_OBJECT (app));
 
   g_signal_emit (app, shell_app_signals[WINDOWS_CHANGED], 0);
@@ -1206,16 +1210,14 @@ _shell_app_handle_startup_sequence (ShellApp            *app,
       shell_app_state_transition (app, SHELL_APP_STATE_STARTING);
       meta_display_unset_input_focus (display,
                                       meta_startup_sequence_get_timestamp (sequence));
-      app->started_on_workspace = meta_startup_sequence_get_workspace (sequence);
     }
 
-  if (!starting)
-    {
-      if (app->running_state && app->running_state->windows)
-        shell_app_state_transition (app, SHELL_APP_STATE_RUNNING);
-      else /* application have > 1 .desktop file */
-        shell_app_state_transition (app, SHELL_APP_STATE_STOPPED);
-    }
+  if (starting)
+    app->started_on_workspace = meta_startup_sequence_get_workspace (sequence);
+  else if (app->running_state && app->running_state->windows)
+    shell_app_state_transition (app, SHELL_APP_STATE_RUNNING);
+  else /* application have > 1 .desktop file */
+    shell_app_state_transition (app, SHELL_APP_STATE_STOPPED);
 }
 
 /**
@@ -1486,7 +1488,7 @@ create_running_state (ShellApp *app)
 
   g_assert (app->running_state == NULL);
 
-  app->running_state = g_slice_new0 (ShellAppRunningState);
+  app->running_state = g_new0 (ShellAppRunningState, 1);
   app->running_state->refcount = 1;
   app->running_state->workspace_switch_id =
     g_signal_connect (workspace_manager, "workspace-switched",
@@ -1560,7 +1562,7 @@ unref_running_state (ShellAppRunningState *state)
   g_clear_object (&state->session);
   g_clear_pointer (&state->unique_bus_name, g_free);
 
-  g_slice_free (ShellAppRunningState, state);
+  g_free (state);
 }
 
 /**
@@ -1583,6 +1585,7 @@ static void
 shell_app_init (ShellApp *self)
 {
   self->state = SHELL_APP_STATE_STOPPED;
+  self->started_on_workspace = -1;
 }
 
 static void

@@ -369,7 +369,6 @@ var Notification = GObject.registerClass({
         this.isTransient = false;
         this.privacyScope = PrivacyScope.USER;
         this.forFeedback = false;
-        this._acknowledged = false;
         this.bannerBodyText = null;
         this.bannerBodyMarkup = false;
         this._soundName = null;
@@ -436,17 +435,6 @@ var Notification = GObject.registerClass({
     // @callback: the callback for the action
     addAction(label, callback) {
         this.actions.push({ label, callback });
-    }
-
-    get acknowledged() {
-        return this._acknowledged;
-    }
-
-    set acknowledged(v) {
-        if (this._acknowledged == v)
-            return;
-        this._acknowledged = v;
-        this.notify('acknowledged');
     }
 
     setUrgency(urgency) {
@@ -715,7 +703,7 @@ var Source = GObject.registerClass({
     }
 
     countUpdated() {
-        super.notify('count');
+        this.notify('count');
     }
 
     _createPolicy() {
@@ -787,21 +775,6 @@ var Source = GObject.registerClass({
             this.emit('notification-show', notification);
     }
 
-    notify(propName) {
-        if (propName instanceof Notification) {
-            try {
-                throw new Error('Source.notify() has been moved to Source.showNotification()' +
-                                'this code will break in the future');
-            } catch (e) {
-                logError(e);
-                this.showNotification(propName);
-                return;
-            }
-        }
-
-        super.notify(propName);
-    }
-
     destroy(reason) {
         let notifications = this.notifications;
         this.notifications = [];
@@ -852,17 +825,6 @@ var MessageTray = GObject.registerClass({
         this._bannerBlocked = false;
         this._presence.connectSignal('StatusChanged', (proxy, senderName, [status]) => {
             this._onStatusChanged(status);
-        });
-
-        global.stage.connect('enter-event', (a, ev) => {
-            // HACK: St uses ClutterInputDevice for hover tracking, which
-            // misses relevant X11 events when untracked actors are
-            // involved (read: the notification banner in normal mode),
-            // so fix up Clutter's view of the pointer position in
-            // that case.
-            let related = ev.get_related();
-            if (!related || this.contains(related))
-                global.sync_pointer();
         });
 
         let constraint = new Layout.MonitorConstraint({ primary: true });

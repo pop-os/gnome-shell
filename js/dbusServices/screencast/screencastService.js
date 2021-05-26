@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported ScreencastService */
 
-imports.gi.versions.Gtk = '3.0';
+imports.gi.versions.Gtk = '4.0';
 
 const { Gio, GLib, Gst, Gtk } = imports.gi;
 
@@ -23,7 +23,7 @@ const ScreenCastProxy = Gio.DBusProxy.makeProxyWrapper(ScreenCastIface);
 const ScreenCastSessionProxy = Gio.DBusProxy.makeProxyWrapper(ScreenCastSessionIface);
 const ScreenCastStreamProxy = Gio.DBusProxy.makeProxyWrapper(ScreenCastStreamIface);
 
-const DEFAULT_PIPELINE = 'vp8enc min_quantizer=13 max_quantizer=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! webmmux';
+const DEFAULT_PIPELINE = 'videoconvert chroma-mode=GST_VIDEO_CHROMA_MODE_NONE dither=GST_VIDEO_DITHER_NONE matrix-mode=GST_VIDEO_MATRIX_MODE_OUTPUT_ONLY n-threads=%T ! queue ! vp8enc cpu-used=16 max-quantizer=17 deadline=1 keyframe-mode=disabled threads=%T static-threshold=1000 buffer-size=20000 ! queue ! webmmux';
 const DEFAULT_FRAMERATE = 30;
 const DEFAULT_DRAW_CURSOR = true;
 
@@ -218,7 +218,7 @@ var Recorder = class {
     _substituteThreadCount(pipelineDescr) {
         const numProcessors = GLib.get_num_processors();
         const numThreads = Math.min(Math.max(1, numProcessors), 64);
-        return pipelineDescr.replace(/%T/, numThreads);
+        return pipelineDescr.replaceAll('%T', numThreads);
     }
 
     _ensurePipeline(nodeId) {
@@ -230,7 +230,6 @@ var Recorder = class {
                         keepalive-time=1000
                         resend-last=true !
             video/x-raw,max-framerate=${framerate}/1 !
-            videoconvert !
             ${this._pipelineString} !
             filesink location="${this._filePath}"`;
         fullPipeline = this._substituteThreadCount(fullPipeline);
@@ -246,7 +245,7 @@ var ScreencastService = class extends ServiceImplementation {
         super(ScreencastIface, '/org/gnome/Shell/Screencast');
 
         Gst.init(null);
-        Gtk.init(null);
+        Gtk.init();
 
         this._recorders = new Map();
         this._senders = new Map();
@@ -383,7 +382,6 @@ var ScreencastService = class extends ServiceImplementation {
                         this._removeRecorder(sender);
                         invocation.return_value(GLib.Variant.new('(bs)', returnValue));
                     }
-
                 });
         } catch (error) {
             log(`Failed to start recorder: ${error.message}`);
@@ -441,7 +439,6 @@ var ScreencastService = class extends ServiceImplementation {
                         this._removeRecorder(sender);
                         invocation.return_value(GLib.Variant.new('(bs)', returnValue));
                     }
-
                 });
         } catch (error) {
             log(`Failed to start recorder: ${error.message}`);

@@ -9,6 +9,7 @@ const AppFavorites = imports.ui.appFavorites;
 const DND = imports.ui.dnd;
 const IconGrid = imports.ui.iconGrid;
 const Main = imports.ui.main;
+const Overview = imports.ui.overview;
 
 var DASH_ANIMATION_TIME = 200;
 var DASH_ITEM_LABEL_SHOW_TIME = 150;
@@ -29,6 +30,10 @@ class DashIcon extends AppDisplay.AppIcon {
             setSizeManually: true,
             showLabel: false,
         });
+    }
+
+    popupMenu() {
+        super.popupMenu(St.Side.BOTTOM);
     }
 
     // Disable scale-n-fade methods used during DND by parent
@@ -52,13 +57,16 @@ class DashIcon extends AppDisplay.AppIcon {
 var DashItemContainer = GObject.registerClass(
 class DashItemContainer extends St.Widget {
     _init() {
-        super._init({ style_class: 'dash-item-container',
-                      pivot_point: new Graphene.Point({ x: .5, y: .5 }),
-                      scale_x: 0,
-                      scale_y: 0,
-                      opacity: 0,
-                      x_expand: true,
-                      x_align: Clutter.ActorAlign.CENTER });
+        super._init({
+            style_class: 'dash-item-container',
+            pivot_point: new Graphene.Point({ x: .5, y: .5 }),
+            layout_manager: new Clutter.BinLayout(),
+            scale_x: 0,
+            scale_y: 0,
+            opacity: 0,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
 
         this._labelText = "";
         this.label = new St.Label({ style_class: 'dash-label' });
@@ -105,21 +113,16 @@ class DashItemContainer extends St.Widget {
 
         let [stageX, stageY] = this.get_transformed_position();
 
-        let itemHeight = this.allocation.y2 - this.allocation.y1;
+        const itemWidth = this.allocation.get_width();
 
-        let labelHeight = this.label.get_height();
-        let yOffset = Math.floor((itemHeight - labelHeight) / 2);
-
-        let y = stageY + yOffset;
+        const labelWidth = this.label.get_width();
+        const xOffset = Math.floor((itemWidth - labelWidth) / 2);
+        const x = Math.clamp(stageX + xOffset, 0, global.stage.width - labelWidth);
 
         let node = this.label.get_theme_node();
-        let xOffset = node.get_length('-x-offset');
+        const yOffset = node.get_length('-y-offset');
 
-        let x;
-        if (Clutter.get_default_text_direction() == Clutter.TextDirection.RTL)
-            x = stageX - this.label.get_width() - xOffset;
-        else
-            x = stageX + this.get_width() + xOffset;
+        const y = stageY - this.label.height - yOffset;
 
         this.label.set_position(x, y);
         this.label.ease({
@@ -150,6 +153,7 @@ class DashItemContainer extends St.Widget {
         this.destroy_all_children();
 
         this.child = actor;
+        this.child.y_expand = true;
         this.add_actor(this.child);
     }
 
@@ -201,6 +205,8 @@ class ShowAppsIcon extends DashItemContainer {
                                           { setSizeManually: true,
                                             showLabel: false,
                                             createIcon: this._createIcon.bind(this) });
+        this.icon.y_align = Clutter.ActorAlign.CENTER;
+
         this.toggleButton.add_actor(this.icon);
         this.toggleButton._delegate = this;
 
@@ -280,54 +286,17 @@ class EmptyDropTargetItem extends DashItemContainer {
     }
 });
 
-var DashActor = GObject.registerClass(
-class DashActor extends St.Widget {
+const DashIconsLayout = GObject.registerClass(
+class DashIconsLayout extends Clutter.BoxLayout {
     _init() {
-        let layout = new Clutter.BoxLayout({ orientation: Clutter.Orientation.VERTICAL });
         super._init({
-            name: 'dash',
-            layout_manager: layout,
-            clip_to_allocation: true,
-            y_align: Clutter.ActorAlign.CENTER,
+            orientation: Clutter.Orientation.HORIZONTAL,
         });
     }
 
-    vfunc_allocate(box) {
-        let contentBox = this.get_theme_node().get_content_box(box);
-        let availWidth = contentBox.x2 - contentBox.x1;
-
-        this.set_allocation(box);
-
-        let [appIcons, showAppsButton] = this.get_children();
-        let [, showAppsNatHeight] = showAppsButton.get_preferred_height(availWidth);
-
-        let childBox = new Clutter.ActorBox();
-        childBox.x1 = contentBox.x1;
-        childBox.y1 = contentBox.y1;
-        childBox.x2 = contentBox.x2;
-        childBox.y2 = contentBox.y2 - showAppsNatHeight;
-        appIcons.allocate(childBox);
-
-        childBox.y1 = contentBox.y2 - showAppsNatHeight;
-        childBox.y2 = contentBox.y2;
-        showAppsButton.allocate(childBox);
-    }
-
-    vfunc_get_preferred_height(forWidth) {
-        // We want to request the natural height of all our children
-        // as our natural height, so we chain up to StWidget (which
-        // then calls BoxLayout), but we only request the showApps
-        // button as the minimum size
-
-        let [, natHeight] = super.vfunc_get_preferred_height(forWidth);
-
-        let themeNode = this.get_theme_node();
-        let adjustedForWidth = themeNode.adjust_for_width(forWidth);
-        let [, showAppsButton] = this.get_children();
-        let [minHeight] = showAppsButton.get_preferred_height(adjustedForWidth);
-        [minHeight] = themeNode.adjust_preferred_height(minHeight, natHeight);
-
-        return [minHeight, natHeight];
+    vfunc_get_preferred_width(container, forHeight) {
+        const [, natWidth] = super.vfunc_get_preferred_width(container, forHeight);
+        return [0, natWidth];
     }
 });
 
@@ -335,12 +304,14 @@ const baseIconSizes = [16, 22, 24, 32, 48, 64];
 
 var Dash = GObject.registerClass({
     Signals: { 'icon-size-changed': {} },
-}, class Dash extends St.Bin {
+}, class Dash extends St.Widget {
     _init() {
+        this._maxWidth = -1;
         this._maxHeight = -1;
         this.iconSize = 64;
         this._shownInitially = false;
 
+        this._separator = null;
         this._dragPlaceholder = null;
         this._dragPlaceholderPos = -1;
         this._animatingPlaceholdersCount = 0;
@@ -348,28 +319,51 @@ var Dash = GObject.registerClass({
         this._resetHoverTimeoutId = 0;
         this._labelShowing = false;
 
-        this._container = new DashActor();
-        this._box = new St.BoxLayout({ vertical: true,
-                                       clip_to_allocation: true });
+        super._init({
+            name: 'dash',
+            offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
+            layout_manager: new Clutter.BinLayout(),
+        });
+
+        this._dashContainer = new St.BoxLayout({
+            x_align: Clutter.ActorAlign.CENTER,
+            y_expand: true,
+        });
+
+        this._box = new St.Widget({
+            clip_to_allocation: true,
+            layout_manager: new DashIconsLayout(),
+            y_expand: true,
+        });
         this._box._delegate = this;
-        this._container.add_actor(this._box);
-        this._container.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
+
+        this._dashContainer.add_child(this._box);
 
         this._showAppsIcon = new ShowAppsIcon();
         this._showAppsIcon.show(false);
         this._showAppsIcon.icon.setIconSize(this.iconSize);
         this._hookUpLabel(this._showAppsIcon);
+        this._dashContainer.add_child(this._showAppsIcon);
 
         this.showAppsButton = this._showAppsIcon.toggleButton;
 
-        this._container.add_actor(this._showAppsIcon);
-
-        super._init({ child: this._container });
-        this.connect('notify::height', () => {
-            if (this._maxHeight != this.height)
-                this._queueRedisplay();
-            this._maxHeight = this.height;
+        this._background = new St.Widget({
+            style_class: 'dash-background',
         });
+
+        const sizerBox = new Clutter.Actor();
+        sizerBox.add_constraint(new Clutter.BindConstraint({
+            source: this._showAppsIcon.icon,
+            coordinate: Clutter.BindCoordinate.HEIGHT,
+        }));
+        sizerBox.add_constraint(new Clutter.BindConstraint({
+            source: this._dashContainer,
+            coordinate: Clutter.BindCoordinate.WIDTH,
+        }));
+        this._background.add_child(sizerBox);
+
+        this.add_child(this._background);
+        this.add_child(this._dashContainer);
 
         this._workId = Main.initializeDeferredWork(this._box, this._redisplay.bind(this));
 
@@ -383,21 +377,27 @@ var Dash = GObject.registerClass({
         this._appSystem.connect('app-state-changed', this._queueRedisplay.bind(this));
 
         Main.overview.connect('item-drag-begin',
-                              this._onDragBegin.bind(this));
+            this._onItemDragBegin.bind(this));
         Main.overview.connect('item-drag-end',
-                              this._onDragEnd.bind(this));
+            this._onItemDragEnd.bind(this));
         Main.overview.connect('item-drag-cancelled',
-                              this._onDragCancelled.bind(this));
+            this._onItemDragCancelled.bind(this));
+        Main.overview.connect('window-drag-begin',
+            this._onWindowDragBegin.bind(this));
+        Main.overview.connect('window-drag-cancelled',
+            this._onWindowDragEnd.bind(this));
+        Main.overview.connect('window-drag-end',
+            this._onWindowDragEnd.bind(this));
 
         // Translators: this is the name of the dock/favorites area on
         // the left of the overview
         Main.ctrlAltTabManager.addGroup(this, _("Dash"), 'user-bookmarks-symbolic');
     }
 
-    _onDragBegin() {
+    _onItemDragBegin() {
         this._dragCancelled = false;
         this._dragMonitor = {
-            dragMotion: this._onDragMotion.bind(this),
+            dragMotion: this._onItemDragMotion.bind(this),
         };
         DND.addDragMonitor(this._dragMonitor);
 
@@ -408,26 +408,26 @@ var Dash = GObject.registerClass({
         }
     }
 
-    _onDragCancelled() {
+    _onItemDragCancelled() {
         this._dragCancelled = true;
-        this._endDrag();
+        this._endItemDrag();
     }
 
-    _onDragEnd() {
+    _onItemDragEnd() {
         if (this._dragCancelled)
             return;
 
-        this._endDrag();
+        this._endItemDrag();
     }
 
-    _endDrag() {
+    _endItemDrag() {
         this._clearDragPlaceholder();
         this._clearEmptyDropTarget();
         this._showAppsIcon.setDragApp(null);
         DND.removeDragMonitor(this._dragMonitor);
     }
 
-    _onDragMotion(dragEvent) {
+    _onItemDragMotion(dragEvent) {
         let app = getAppFromSource(dragEvent.source);
         if (app == null)
             return DND.DragMotionResult.CONTINUE;
@@ -444,6 +444,22 @@ var Dash = GObject.registerClass({
             this._showAppsIcon.setDragApp(null);
 
         return DND.DragMotionResult.CONTINUE;
+    }
+
+    _onWindowDragBegin() {
+        this.ease({
+            opacity: 128,
+            duration: Overview.ANIMATION_TIME / 2,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+    }
+
+    _onWindowDragEnd() {
+        this.ease({
+            opacity: 255,
+            duration: Overview.ANIMATION_TIME / 2,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+        });
     }
 
     _appIdListToHash(apps) {
@@ -567,15 +583,18 @@ var Dash = GObject.registerClass({
 
         iconChildren.push(this._showAppsIcon);
 
-        if (this._maxHeight == -1)
+        if (this._maxWidth === -1 || this._maxHeight === -1)
             return;
 
-        let themeNode = this._container.get_theme_node();
-        let maxAllocation = new Clutter.ActorBox({ x1: 0, y1: 0,
-                                                   x2: 42 /* whatever */,
-                                                   y2: this._maxHeight });
+        const themeNode = this.get_theme_node();
+        const maxAllocation = new Clutter.ActorBox({
+            x1: 0,
+            y1: 0,
+            x2: this._maxWidth,
+            y2: 42, /* whatever */
+        });
         let maxContent = themeNode.get_content_box(maxAllocation);
-        let availHeight = maxContent.y2 - maxContent.y1;
+        let availWidth = maxContent.x2 - maxContent.x1;
         let spacing = themeNode.get_length('spacing');
 
         let firstButton = iconChildren[0].child;
@@ -583,21 +602,26 @@ var Dash = GObject.registerClass({
 
         // Enforce valid spacings during the size request
         firstIcon.icon.ensure_style();
-        let [, iconHeight] = firstIcon.icon.get_preferred_height(-1);
-        let [, buttonHeight] = firstButton.get_preferred_height(-1);
+        const [, , iconWidth, iconHeight] = firstIcon.icon.get_preferred_size();
+        const [, , buttonWidth, buttonHeight] = firstButton.get_preferred_size();
 
-        // Subtract icon padding and box spacing from the available height
-        availHeight -= iconChildren.length * (buttonHeight - iconHeight) +
+        // Subtract icon padding and box spacing from the available width
+        availWidth -= iconChildren.length * (buttonWidth - iconWidth) +
                        (iconChildren.length - 1) * spacing;
 
-        let availSize = availHeight / iconChildren.length;
+        let availHeight = this._maxHeight;
+        availHeight -= this._background.get_theme_node().get_vertical_padding();
+        availHeight -= themeNode.get_vertical_padding();
+        availHeight -= buttonHeight - iconHeight;
+
+        const maxIconSize = Math.min(availWidth / iconChildren.length, availHeight);
 
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         let iconSizes = baseIconSizes.map(s => s * scaleFactor);
 
         let newIconSize = baseIconSizes[0];
         for (let i = 0; i < iconSizes.length; i++) {
-            if (iconSizes[i] < availSize)
+            if (iconSizes[i] <= maxIconSize)
                 newIconSize = baseIconSizes[i];
         }
 
@@ -633,6 +657,14 @@ var Dash = GObject.registerClass({
             icon.icon.ease({
                 width: targetWidth,
                 height: targetHeight,
+                duration: DASH_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
+        }
+
+        if (this._separator) {
+            this._separator.ease({
+                height: this.iconSize,
                 duration: DASH_ANIMATION_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
@@ -763,6 +795,27 @@ var Dash = GObject.registerClass({
         for (let i = 0; i < addedItems.length; i++)
             addedItems[i].item.show(animate);
 
+        // Update separator
+        const nFavorites = Object.keys(favorites).length;
+        const nIcons = children.length + addedItems.length - removedActors.length;
+        if (nFavorites > 0 && nFavorites < nIcons) {
+            if (!this._separator) {
+                this._separator = new St.Widget({
+                    style_class: 'dash-separator',
+                    y_align: Clutter.ActorAlign.CENTER,
+                    height: this.iconSize,
+                });
+                this._box.add_child(this._separator);
+            }
+            let pos = nFavorites;
+            if (this._dragPlaceholder)
+                pos++;
+            this._box.set_child_at_index(this._separator, pos);
+        } else if (this._separator) {
+            this._separator.destroy();
+            this._separator = null;
+        }
+
         // Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=692744
         // Without it, StBoxLayout may use a stale size cache
         this._box.queue_relayout();
@@ -787,7 +840,7 @@ var Dash = GObject.registerClass({
         }
     }
 
-    handleDragOver(source, actor, x, y, _time) {
+    handleDragOver(source, actor, x, _y, _time) {
         let app = getAppFromSource(source);
 
         // Don't allow favoriting of transient apps
@@ -804,19 +857,25 @@ var Dash = GObject.registerClass({
 
         let children = this._box.get_children();
         let numChildren = children.length;
-        let boxHeight = this._box.height;
+        let boxWidth = this._box.width;
 
         // Keep the placeholder out of the index calculation; assuming that
         // the remove target has the same size as "normal" items, we don't
         // need to do the same adjustment there.
         if (this._dragPlaceholder) {
-            boxHeight -= this._dragPlaceholder.height;
+            boxWidth -= this._dragPlaceholder.width;
+            numChildren--;
+        }
+
+        // Same with the separator
+        if (this._separator) {
+            boxWidth -= this._separator.width;
             numChildren--;
         }
 
         let pos;
         if (!this._emptyDropTarget)
-            pos = Math.floor(y * numChildren / boxHeight);
+            pos = Math.floor(x * numChildren / boxWidth);
         else
             pos = 0; // always insert at the top when dash is empty
 
@@ -910,5 +969,15 @@ var Dash = GObject.registerClass({
         });
 
         return true;
+    }
+
+    setMaxSize(maxWidth, maxHeight) {
+        if (this._maxWidth === maxWidth &&
+            this._maxHeight === maxHeight)
+            return;
+
+        this._maxWidth = maxWidth;
+        this._maxHeight = maxHeight;
+        this._queueRedisplay();
     }
 });

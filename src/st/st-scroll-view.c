@@ -84,6 +84,8 @@ struct _StScrollViewPrivate
   StAdjustment *vadjustment;
   ClutterActor *vscroll;
 
+  ClutterMargin content_padding;
+
   StPolicyType hscrollbar_policy;
   StPolicyType vscrollbar_policy;
 
@@ -116,6 +118,7 @@ enum {
   PROP_VSCROLLBAR_VISIBLE,
   PROP_MOUSE_SCROLL,
   PROP_OVERLAY_SCROLLBARS,
+  PROP_CONTENT_PADDING,
 
   N_PROPS
 };
@@ -156,6 +159,9 @@ st_scroll_view_get_property (GObject    *object,
     case PROP_OVERLAY_SCROLLBARS:
       g_value_set_boolean (value, priv->overlay_scrollbars);
       break;
+    case PROP_CONTENT_PADDING:
+      g_value_set_boxed (value, &priv->content_padding);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
@@ -164,42 +170,41 @@ st_scroll_view_get_property (GObject    *object,
 /**
  * st_scroll_view_update_fade_effect:
  * @scroll: a #StScrollView
- * @vfade_offset: The length of the vertical fade effect, in pixels.
- * @hfade_offset: The length of the horizontal fade effect, in pixels.
+ * @fade_margins: a #ClutterMargin defining the vertical fade effects, in pixels.
  *
- * Sets the height of the fade area area in pixels. A value of 0
+ * Sets the fade effects in all four edges of the view. A value of 0
  * disables the effect.
  */
 void
-st_scroll_view_update_fade_effect (StScrollView *scroll,
-                                   float         vfade_offset,
-                                   float         hfade_offset)
+st_scroll_view_update_fade_effect (StScrollView  *scroll,
+                                   ClutterMargin *fade_margins)
 {
   StScrollViewPrivate *priv = ST_SCROLL_VIEW (scroll)->priv;
 
-  /* A fade amount of more than 0 enables the effect. */
-  if (vfade_offset > 0. || hfade_offset > 0.)
+  /* A fade amount of other than 0 enables the effect. */
+  if (fade_margins->left != 0. || fade_margins->right != 0. ||
+      fade_margins->top != 0. || fade_margins->bottom != 0.)
     {
-      if (priv->fade_effect == NULL) {
-        priv->fade_effect = g_object_new (ST_TYPE_SCROLL_VIEW_FADE, NULL);
+      if (priv->fade_effect == NULL)
+        {
+          priv->fade_effect = g_object_new (ST_TYPE_SCROLL_VIEW_FADE, NULL);
 
-        clutter_actor_add_effect_with_name (CLUTTER_ACTOR (scroll), "fade",
-                                            CLUTTER_EFFECT (priv->fade_effect));
-      }
+          clutter_actor_add_effect_with_name (CLUTTER_ACTOR (scroll), "fade",
+                                              CLUTTER_EFFECT (priv->fade_effect));
+        }
 
       g_object_set (priv->fade_effect,
-                    "vfade-offset", vfade_offset,
-                    NULL);
-      g_object_set (priv->fade_effect,
-                    "hfade-offset", hfade_offset,
+                    "fade-margins", fade_margins,
                     NULL);
     }
    else
     {
-      if (priv->fade_effect != NULL) {
-        clutter_actor_remove_effect (CLUTTER_ACTOR (scroll), CLUTTER_EFFECT (priv->fade_effect));
-        priv->fade_effect = NULL;
-      }
+      if (priv->fade_effect != NULL)
+        {
+          clutter_actor_remove_effect (CLUTTER_ACTOR (scroll),
+                                       CLUTTER_EFFECT (priv->fade_effect));
+          priv->fade_effect = NULL;
+        }
     }
 
   clutter_actor_queue_redraw (CLUTTER_ACTOR (scroll));
@@ -233,6 +238,9 @@ st_scroll_view_set_property (GObject      *object,
       st_scroll_view_set_policy (self,
                                  priv->hscrollbar_policy,
                                  g_value_get_enum (value));
+      break;
+    case PROP_CONTENT_PADDING:
+      priv->content_padding = * (ClutterMargin *) g_value_get_boxed (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -546,6 +554,11 @@ st_scroll_view_allocate (ClutterActor          *actor,
 
   st_theme_node_get_content_box (theme_node, box, &content_box);
 
+  content_box.x1 += priv->content_padding.left;
+  content_box.x2 -= priv->content_padding.right;
+  content_box.y1 += priv->content_padding.top;
+  content_box.y2 += priv->content_padding.bottom;
+
   avail_width = content_box.x2 - content_box.x1;
   avail_height = content_box.y2 - content_box.y1;
 
@@ -744,7 +757,13 @@ st_scroll_view_style_changed (StWidget *widget)
   StThemeNode *theme_node = st_widget_get_theme_node (widget);
   gdouble vfade_offset = st_theme_node_get_length (theme_node, "-st-vfade-offset");
   gdouble hfade_offset = st_theme_node_get_length (theme_node, "-st-hfade-offset");
-  st_scroll_view_update_fade_effect (self, vfade_offset, hfade_offset);
+  st_scroll_view_update_fade_effect (self,
+                                     &(ClutterMargin) {
+                                       .top = vfade_offset,
+                                       .bottom = vfade_offset,
+                                       .left = hfade_offset,
+                                       .right = hfade_offset,
+                                     });
 
   st_widget_style_changed (ST_WIDGET (priv->hscroll));
   st_widget_style_changed (ST_WIDGET (priv->vscroll));
@@ -927,6 +946,13 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                           "Overlay scrollbars over the content",
                           FALSE,
                           ST_PARAM_READWRITE);
+
+  props[PROP_CONTENT_PADDING] =
+    g_param_spec_boxed ("content-padding",
+                        "Content padding",
+                        "Content padding",
+                        CLUTTER_TYPE_MARGIN,
+                        ST_PARAM_READWRITE);
 
   g_object_class_install_properties (object_class, N_PROPS, props);
 }

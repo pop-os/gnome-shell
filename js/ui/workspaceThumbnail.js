@@ -1,15 +1,17 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported WorkspaceThumbnail, ThumbnailsBox */
 
-const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Graphene, Meta, Shell, St } = imports.gi;
 
-const Background = imports.ui.background;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
+const Util = imports.misc.util;
 const Workspace = imports.ui.workspace;
 
-// The maximum size of a thumbnail is 1/10 the width and height of the screen
-let MAX_THUMBNAIL_SCALE = 1 / 10.;
+const NUM_WORKSPACES_THRESHOLD = 2;
+
+// The maximum size of a thumbnail is 5% the width and height of the screen
+var MAX_THUMBNAIL_SCALE = 0.05;
 
 var RESCALE_ANIMATION_TIME = 200;
 var SLIDE_ANIMATION_TIME = 200;
@@ -230,13 +232,15 @@ var WindowClone = GObject.registerClass({
 
 var ThumbnailState = {
     NEW:            0,
-    ANIMATING_IN:   1,
-    NORMAL:         2,
-    REMOVING:       3,
-    ANIMATING_OUT:  4,
-    ANIMATED_OUT:   5,
-    COLLAPSING:     6,
-    DESTROYED:      7,
+    EXPANDING:      1,
+    EXPANDED:       2,
+    ANIMATING_IN:   3,
+    NORMAL:         4,
+    REMOVING:       5,
+    ANIMATING_OUT:  6,
+    ANIMATED_OUT:   7,
+    COLLAPSING:     8,
+    DESTROYED:      9,
 };
 
 /**
@@ -254,24 +258,26 @@ var WorkspaceThumbnail = GObject.registerClass({
             0, 1, 0),
     },
 }, class WorkspaceThumbnail extends St.Widget {
-    _init(metaWorkspace) {
+    _init(metaWorkspace, monitorIndex) {
         super._init({
             clip_to_allocation: true,
             style_class: 'workspace-thumbnail',
+            pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
         });
         this._delegate = this;
 
         this.metaWorkspace = metaWorkspace;
-        this.monitorIndex = Main.layoutManager.primaryIndex;
+        this.monitorIndex = monitorIndex;
 
         this._removed = false;
 
+        this._viewport = new Clutter.Actor();
+        this.add_child(this._viewport);
+
         this._contents = new Clutter.Actor();
-        this.add_child(this._contents);
+        this._viewport.add_child(this._contents);
 
         this.connect('destroy', this._onDestroy.bind(this));
-
-        this._createBackground();
 
         let workArea = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
         this.setPorthole(workArea.x, workArea.y, workArea.width, workArea.height);
@@ -311,14 +317,8 @@ var WorkspaceThumbnail = GObject.registerClass({
         this._collapseFraction = 0; // Not collapsed
     }
 
-    _createBackground() {
-        this._bgManager = new Background.BackgroundManager({ monitorIndex: Main.layoutManager.primaryIndex,
-                                                             container: this._contents,
-                                                             vignette: false });
-    }
-
     setPorthole(x, y, width, height) {
-        this.set_size(width, height);
+        this._viewport.set_size(width, height);
         this._contents.set_position(-x, -y);
     }
 
@@ -333,33 +333,31 @@ var WorkspaceThumbnail = GObject.registerClass({
             return indexA - indexB;
         });
 
-        for (let i = 0; i < this._windows.length; i++) {
+        for (let i = 1; i < this._windows.length; i++) {
             let clone = this._windows[i];
-            if (i == 0) {
-                clone.setStackAbove(this._bgManager.backgroundActor);
-            } else {
-                let previousClone = this._windows[i - 1];
-                clone.setStackAbove(previousClone);
-            }
+            const previousClone = this._windows[i - 1];
+            clone.setStackAbove(previousClone);
         }
     }
 
-    // eslint-disable-next-line camelcase
-    set slide_position(slidePosition) {
+    set slidePosition(slidePosition) {
         if (this._slidePosition == slidePosition)
             return;
+
+        const scale = Util.lerp(1, 0.75, slidePosition);
+        this.set_scale(scale, scale);
+        this.opacity = Util.lerp(255, 0, slidePosition);
+
         this._slidePosition = slidePosition;
         this.notify('slide-position');
         this.queue_relayout();
     }
 
-    // eslint-disable-next-line camelcase
-    get slide_position() {
+    get slidePosition() {
         return this._slidePosition;
     }
 
-    // eslint-disable-next-line camelcase
-    set collapse_fraction(collapseFraction) {
+    set collapseFraction(collapseFraction) {
         if (this._collapseFraction == collapseFraction)
             return;
         this._collapseFraction = collapseFraction;
@@ -367,8 +365,7 @@ var WorkspaceThumbnail = GObject.registerClass({
         this.queue_relayout();
     }
 
-    // eslint-disable-next-line camelcase
-    get collapse_fraction() {
+    get collapseFraction() {
         return this._collapseFraction;
     }
 
@@ -481,12 +478,6 @@ var WorkspaceThumbnail = GObject.registerClass({
 
     _onDestroy() {
         this.workspaceRemoved();
-
-        if (this._bgManager) {
-            this._bgManager.destroy();
-            this._bgManager = null;
-        }
-
         this._windows = [];
     }
 
@@ -524,9 +515,7 @@ var WorkspaceThumbnail = GObject.registerClass({
         });
         this._contents.add_actor(clone);
 
-        if (this._windows.length == 0)
-            clone.setStackAbove(this._bgManager.backgroundActor);
-        else
+        if (this._windows.length > 0)
             clone.setStackAbove(this._windows[this._windows.length - 1]);
 
         this._windows.push(clone);
@@ -611,25 +600,36 @@ var WorkspaceThumbnail = GObject.registerClass({
 
         return false;
     }
+
+    setScale(scaleX, scaleY) {
+        this._viewport.set_scale(scaleX, scaleY);
+    }
 });
 
 
 var ThumbnailsBox = GObject.registerClass({
     Properties: {
-        'indicator-y': GObject.ParamSpec.double(
-            'indicator-y', 'indicator-y', 'indicator-y',
+        'expand-fraction': GObject.ParamSpec.double(
+            'expand-fraction', 'expand-fraction', 'expand-fraction',
             GObject.ParamFlags.READWRITE,
-            0, Infinity, 0),
+            0, 1, 1),
         'scale': GObject.ParamSpec.double(
             'scale', 'scale', 'scale',
             GObject.ParamFlags.READWRITE,
             0, Infinity, 0),
+        'should-show': GObject.ParamSpec.boolean(
+            'should-show', 'should-show', 'should-show',
+            GObject.ParamFlags.READABLE,
+            true),
     },
 }, class ThumbnailsBox extends St.Widget {
-    _init(scrollAdjustment) {
-        super._init({ reactive: true,
-                      style_class: 'workspace-thumbnails',
-                      request_mode: Clutter.RequestMode.WIDTH_FOR_HEIGHT });
+    _init(scrollAdjustment, monitorIndex) {
+        super._init({
+            style_class: 'workspace-thumbnails',
+            reactive: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
+        });
 
         this._delegate = this;
 
@@ -641,9 +641,7 @@ var ThumbnailsBox = GObject.registerClass({
         this._indicator = indicator;
         this.add_actor(indicator);
 
-        // The porthole is the part of the screen we're showing in the thumbnails
-        this._porthole = { width: global.stage.width, height: global.stage.height,
-                           x: global.stage.x, y: global.stage.y };
+        this._monitorIndex = monitorIndex;
 
         this._dropWorkspace = -1;
         this._dropPlaceholderPos = -1;
@@ -653,9 +651,12 @@ var ThumbnailsBox = GObject.registerClass({
 
         this._targetScale = 0;
         this._scale = 0;
+        this._expandFraction = 1;
+        this._updateStateId = 0;
         this._pendingScaleUpdate = false;
-        this._stateUpdateQueued = false;
         this._animatingIndicator = false;
+
+        this._shouldShow = true;
 
         this._stateCounts = {};
         for (let key in ThumbnailState)
@@ -663,72 +664,114 @@ var ThumbnailsBox = GObject.registerClass({
 
         this._thumbnails = [];
 
-        Main.overview.connect('showing',
-                              this._createThumbnails.bind(this));
-        Main.overview.connect('hidden',
-                              this._destroyThumbnails.bind(this));
-
-        Main.overview.connect('item-drag-begin',
-                              this._onDragBegin.bind(this));
-        Main.overview.connect('item-drag-end',
-                              this._onDragEnd.bind(this));
-        Main.overview.connect('item-drag-cancelled',
-                              this._onDragCancelled.bind(this));
-        Main.overview.connect('window-drag-begin',
-                              this._onDragBegin.bind(this));
-        Main.overview.connect('window-drag-end',
-                              this._onDragEnd.bind(this));
-        Main.overview.connect('window-drag-cancelled',
-                              this._onDragCancelled.bind(this));
+        this._overviewSignals = [
+            Main.overview.connect('showing',
+                () => this._createThumbnails()),
+            Main.overview.connect('hidden',
+                () => this._destroyThumbnails()),
+            Main.overview.connect('item-drag-begin',
+                () => this._onDragBegin()),
+            Main.overview.connect('item-drag-end',
+                () => this._onDragEnd()),
+            Main.overview.connect('item-drag-cancelled',
+                () => this._onDragCancelled()),
+            Main.overview.connect('window-drag-begin',
+                () => this._onDragBegin()),
+            Main.overview.connect('window-drag-end',
+                () => this._onDragEnd()),
+            Main.overview.connect('window-drag-cancelled',
+                () => this._onDragCancelled()),
+        ];
 
         this._settings = new Gio.Settings({ schema_id: MUTTER_SCHEMA });
         this._settings.connect('changed::dynamic-workspaces',
-            this._updateSwitcherVisibility.bind(this));
+            () => this._updateShouldShow());
+        this._updateShouldShow();
 
-        Main.layoutManager.connect('monitors-changed', () => {
-            this._destroyThumbnails();
-            if (Main.overview.visible)
-                this._createThumbnails();
+        this._monitorsChangedId =
+            Main.layoutManager.connect('monitors-changed', () => {
+                this._destroyThumbnails();
+                if (Main.overview.visible)
+                    this._createThumbnails();
+            });
+
+        // The porthole is the part of the screen we're showing in the thumbnails
+        this._workareasChangedId = global.display.connect('workareas-changed',
+            () => this._updatePorthole());
+        this._updatePorthole();
+
+        this.connect('notify::visible', () => {
+            if (!this.visible)
+                this._queueUpdateStates();
         });
+        this.connect('destroy', () => this._onDestroy());
 
-        global.display.connect('workareas-changed',
-                               this._updatePorthole.bind(this));
-
-        this._switchWorkspaceNotifyId = 0;
         this._nWorkspacesNotifyId = 0;
+        this._activeWorkspaceChangedId = 0;
         this._syncStackingId = 0;
-        this._workareasChangedId = 0;
 
         this._scrollAdjustment = scrollAdjustment;
-
-        this._scrollAdjustment.connect('notify::value', adj => {
-            let workspaceManager = global.workspace_manager;
-            let activeIndex = workspaceManager.get_active_workspace_index();
-
-            this._animatingIndicator = adj.value !== activeIndex;
-
-            if (!this._animatingIndicator)
-                this._queueUpdateStates();
-
-            this.queue_relayout();
-        });
+        this._scrollValueId = this._scrollAdjustment.connect('notify::value',
+            () => this._updateIndicator());
     }
 
-    _updateSwitcherVisibility() {
-        let workspaceManager = global.workspace_manager;
+    setMonitorIndex(monitorIndex) {
+        this._monitorIndex = monitorIndex;
+    }
 
-        this.visible =
-            this._settings.get_boolean('dynamic-workspaces') ||
-                workspaceManager.n_workspaces > 1;
+    _onDestroy() {
+        this._unqueueUpdateStates();
+
+        if (this._scrollValueId)
+            this._scrollAdjustment.disconnect(this._scrollValueId);
+        this._scrollValueId = 0;
+
+        if (this._monitorsChangedId)
+            Main.layoutManager.disconnect(this._monitorsChangedId);
+        this._monitorsChangedId = 0;
+
+        if (this._workareasChangedId)
+            global.display.disconnect(this._workareasChangedId);
+        this._workareasChangedId = 0;
+
+        this._overviewSignals.forEach(id => Main.overview.disconnect(id));
+        this._overviewSignals = [];
+
+        if (this._settings)
+            this._settings.run_dispose();
+        this._settings = null;
+    }
+
+    _updateShouldShow() {
+        const { nWorkspaces } = global.workspace_manager;
+        const shouldShow = this._settings.get_boolean('dynamic-workspaces')
+            ? nWorkspaces > NUM_WORKSPACES_THRESHOLD
+            : nWorkspaces > 1;
+
+        if (this._shouldShow === shouldShow)
+            return;
+
+        this._shouldShow = shouldShow;
+        this.notify('should-show');
+    }
+
+    _updateIndicator() {
+        const { value } = this._scrollAdjustment;
+        const { workspaceManager } = global;
+        const activeIndex = workspaceManager.get_active_workspace_index();
+
+        this._animatingIndicator = value !== activeIndex;
+
+        if (!this._animatingIndicator)
+            this._queueUpdateStates();
+
+        this.queue_relayout();
     }
 
     _activateThumbnailAtPoint(stageX, stageY, time) {
-        let [r_, x_, y] = this.transform_stage_point(stageX, stageY);
+        const [r_, x] = this.transform_stage_point(stageX, stageY);
 
-        let thumbnail = this._thumbnails.find(t => {
-            let [, h] = t.get_transformed_size();
-            return y >= t.y && y <= t.y + h;
-        });
+        const thumbnail = this._thumbnails.find(t => x >= t.x && x <= t.x + t.width);
         if (thumbnail)
             thumbnail.activate(time);
     }
@@ -792,6 +835,56 @@ var ThumbnailsBox = GObject.registerClass({
         this.queue_relayout();
     }
 
+    _getPlaceholderTarget(index, spacing, rtl) {
+        const workspace = this._thumbnails[index];
+
+        let targetX1;
+        let targetX2;
+
+        if (rtl) {
+            const baseX = workspace.x + workspace.width;
+            targetX1 = baseX - WORKSPACE_CUT_SIZE;
+            targetX2 = baseX + spacing + WORKSPACE_CUT_SIZE;
+        } else {
+            targetX1 = workspace.x - spacing - WORKSPACE_CUT_SIZE;
+            targetX2 = workspace.x + WORKSPACE_CUT_SIZE;
+        }
+
+        if (index === 0) {
+            if (rtl)
+                targetX2 -= spacing + WORKSPACE_CUT_SIZE;
+            else
+                targetX1 += spacing + WORKSPACE_CUT_SIZE;
+        }
+
+        if (index === this._dropPlaceholderPos) {
+            const placeholderWidth = this._dropPlaceholder.get_width() + spacing;
+            if (rtl)
+                targetX2 += placeholderWidth;
+            else
+                targetX1 -= placeholderWidth;
+        }
+
+        return [targetX1, targetX2];
+    }
+
+    _withinWorkspace(x, index, rtl) {
+        const length = this._thumbnails.length;
+        const workspace = this._thumbnails[index];
+
+        let workspaceX1 = workspace.x + WORKSPACE_CUT_SIZE;
+        let workspaceX2 = workspace.x + workspace.width - WORKSPACE_CUT_SIZE;
+
+        if (index === length - 1) {
+            if (rtl)
+                workspaceX1 -= WORKSPACE_CUT_SIZE;
+            else
+                workspaceX2 += WORKSPACE_CUT_SIZE;
+        }
+
+        return x > workspaceX1 && x <= workspaceX2;
+    }
+
     // Draggable target interface
     handleDragOver(source, actor, x, y, time) {
         if (!source.metaWindow &&
@@ -800,41 +893,30 @@ var ThumbnailsBox = GObject.registerClass({
             source != Main.xdndHandler)
             return DND.DragMotionResult.CONTINUE;
 
+        const rtl = Clutter.get_default_text_direction() === Clutter.TextDirection.RTL;
         let canCreateWorkspaces = Meta.prefs_get_dynamic_workspaces();
         let spacing = this.get_theme_node().get_length('spacing');
 
         this._dropWorkspace = -1;
         let placeholderPos = -1;
-        let targetBase;
-        if (this._dropPlaceholderPos == 0)
-            targetBase = this._dropPlaceholder.y;
-        else
-            targetBase = this._thumbnails[0].y;
-        let targetTop = targetBase - spacing - WORKSPACE_CUT_SIZE;
         let length = this._thumbnails.length;
         for (let i = 0; i < length; i++) {
-            // Allow the reorder target to have a 10px "cut" into
-            // each side of the thumbnail, to make dragging onto the
-            // placeholder easier
-            let [, h] = this._thumbnails[i].get_transformed_size();
-            let targetBottom = targetBase + WORKSPACE_CUT_SIZE;
-            let nextTargetBase = targetBase + h + spacing;
-            let nextTargetTop =  nextTargetBase - spacing - (i == length - 1 ? 0 : WORKSPACE_CUT_SIZE);
+            const index = rtl ? length - i - 1 : i;
 
-            // Expand the target to include the placeholder, if it exists.
-            if (i == this._dropPlaceholderPos)
-                targetBottom += this._dropPlaceholder.get_height();
+            if (canCreateWorkspaces && source !== Main.xdndHandler) {
+                const [targetStart, targetEnd] =
+                    this._getPlaceholderTarget(index, spacing, rtl);
 
-            if (y > targetTop && y <= targetBottom && source != Main.xdndHandler && canCreateWorkspaces) {
-                placeholderPos = i;
-                break;
-            } else if (y > targetBottom && y <= nextTargetTop) {
-                this._dropWorkspace = i;
-                break;
+                if (x > targetStart && x <= targetEnd) {
+                    placeholderPos = index;
+                    break;
+                }
             }
 
-            targetBase = nextTargetBase;
-            targetTop = nextTargetTop;
+            if (this._withinWorkspace(x, index, rtl)) {
+                this._dropWorkspace = index;
+                break;
+            }
         }
 
         if (this._dropPlaceholderPos != placeholderPos) {
@@ -900,6 +982,7 @@ var ThumbnailsBox = GObject.registerClass({
             let thumbnail = this._thumbnails[newWorkspaceIndex];
             this._setThumbnailState(thumbnail, ThumbnailState.NEW);
             thumbnail.slide_position = 1;
+            thumbnail.collapse_fraction = 1;
 
             this._queueUpdateStates();
 
@@ -910,11 +993,17 @@ var ThumbnailsBox = GObject.registerClass({
     }
 
     _createThumbnails() {
+        if (this._thumbnails.length > 0)
+            return;
+
         let workspaceManager = global.workspace_manager;
 
         this._nWorkspacesNotifyId =
             workspaceManager.connect('notify::n-workspaces',
                                      this._workspacesChanged.bind(this));
+        this._activeWorkspaceChangedId =
+            workspaceManager.connect('active-workspace-changed',
+                () => this._updateIndicator());
         this._workspacesReorderedId =
             workspaceManager.connect('workspaces-reordered', () => {
                 this._thumbnails.sort((a, b) => {
@@ -929,7 +1018,7 @@ var ThumbnailsBox = GObject.registerClass({
         this._targetScale = 0;
         this._scale = 0;
         this._pendingScaleUpdate = false;
-        this._stateUpdateQueued = false;
+        this._unqueueUpdateStates();
 
         this._stateCounts = {};
         for (let key in ThumbnailState)
@@ -937,20 +1026,24 @@ var ThumbnailsBox = GObject.registerClass({
 
         this.addThumbnails(0, workspaceManager.n_workspaces);
 
-        this._updateSwitcherVisibility();
+        this._updateShouldShow();
     }
 
     _destroyThumbnails() {
         if (this._thumbnails.length == 0)
             return;
 
+        const { workspaceManager } = global;
+
         if (this._nWorkspacesNotifyId > 0) {
-            let workspaceManager = global.workspace_manager;
             workspaceManager.disconnect(this._nWorkspacesNotifyId);
             this._nWorkspacesNotifyId = 0;
         }
+        if (this._activeWorkspaceChangedId > 0) {
+            workspaceManager.disconnect(this._activeWorkspaceChangedId);
+            this._activeWorkspaceChangedId = 0;
+        }
         if (this._workspacesReorderedId > 0) {
-            let workspaceManager = global.workspace_manager;
             workspaceManager.disconnect(this._workspacesReorderedId);
             this._workspacesReorderedId = 0;
         }
@@ -988,7 +1081,7 @@ var ThumbnailsBox = GObject.registerClass({
             this.removeThumbnails(removedIndex, removedNum);
         }
 
-        this._updateSwitcherVisibility();
+        this._updateShouldShow();
     }
 
     addThumbnails(start, count) {
@@ -996,16 +1089,17 @@ var ThumbnailsBox = GObject.registerClass({
 
         for (let k = start; k < start + count; k++) {
             let metaWorkspace = workspaceManager.get_workspace_by_index(k);
-            let thumbnail = new WorkspaceThumbnail(metaWorkspace);
+            let thumbnail = new WorkspaceThumbnail(metaWorkspace, this._monitorIndex);
             thumbnail.setPorthole(this._porthole.x, this._porthole.y,
                                   this._porthole.width, this._porthole.height);
             this._thumbnails.push(thumbnail);
             this.add_actor(thumbnail);
 
-            if (start > 0 && this._spliceIndex == -1) {
+            if (this._shouldShow && start > 0 && this._spliceIndex === -1) {
                 // not the initial fill, and not splicing via DND
                 thumbnail.state = ThumbnailState.NEW;
                 thumbnail.slide_position = 1; // start slid out
+                thumbnail.collapse_fraction = 1; // start fully collapsed
                 this._haveNewThumbnails = true;
             } else {
                 thumbnail.state = ThumbnailState.NORMAL;
@@ -1077,10 +1171,14 @@ var ThumbnailsBox = GObject.registerClass({
     }
 
     _updateStates() {
-        this._stateUpdateQueued = false;
+        this._updateStateId = 0;
 
         // If we are animating the indicator, wait
         if (this._animatingIndicator)
+            return;
+
+        // Likewise if we are in the process of hiding
+        if (!this._shouldShow && this.visible)
             return;
 
         // Then slide out any thumbnails that have been destroyed
@@ -1101,7 +1199,8 @@ var ThumbnailsBox = GObject.registerClass({
         if (this._stateCounts[ThumbnailState.ANIMATING_OUT] > 0)
             return;
 
-        // Once that's complete, we can start scaling to the new size and collapse any removed thumbnails
+        // Once that's complete, we can start scaling to the new size,
+        // collapse any removed thumbnails and expand added ones
         this._iterateStateThumbnails(ThumbnailState.ANIMATED_OUT, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.COLLAPSING);
             thumbnail.ease_property('collapse-fraction', 1, {
@@ -1120,6 +1219,18 @@ var ThumbnailsBox = GObject.registerClass({
             });
         });
 
+        this._iterateStateThumbnails(ThumbnailState.NEW, thumbnail => {
+            this._setThumbnailState(thumbnail, ThumbnailState.EXPANDING);
+            thumbnail.ease_property('collapse-fraction', 0, {
+                duration: SLIDE_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this._setThumbnailState(thumbnail, ThumbnailState.EXPANDED);
+                    this._queueUpdateStates();
+                },
+            });
+        });
+
         if (this._pendingScaleUpdate) {
             this.ease_property('scale', this._targetScale, {
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
@@ -1130,11 +1241,13 @@ var ThumbnailsBox = GObject.registerClass({
         }
 
         // Wait until that's done
-        if (this._scale != this._targetScale || this._stateCounts[ThumbnailState.COLLAPSING] > 0)
+        if (this._scale !== this._targetScale ||
+            this._stateCounts[ThumbnailState.COLLAPSING] > 0 ||
+            this._stateCounts[ThumbnailState.EXPANDING] > 0)
             return;
 
         // And then slide in any new thumbnails
-        this._iterateStateThumbnails(ThumbnailState.NEW, thumbnail => {
+        this._iterateStateThumbnails(ThumbnailState.EXPANDED, thumbnail => {
             this._setThumbnailState(thumbnail, ThumbnailState.ANIMATING_IN);
             thumbnail.ease_property('slide-position', 0, {
                 duration: SLIDE_ANIMATION_TIME,
@@ -1147,57 +1260,70 @@ var ThumbnailsBox = GObject.registerClass({
     }
 
     _queueUpdateStates() {
-        if (this._stateUpdateQueued)
+        if (this._updateStateId > 0)
             return;
 
-        Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
-                       this._updateStates.bind(this));
-
-        this._stateUpdateQueued = true;
+        this._updateStateId = Meta.later_add(
+            Meta.LaterType.BEFORE_REDRAW, () => this._updateStates());
     }
 
-    vfunc_get_preferred_height(_forWidth) {
-        // Note that for getPreferredWidth/Height we cheat a bit and skip propagating
-        // the size request to our children because we know how big they are and know
-        // that the actors aren't depending on the virtual functions being called.
-        let workspaceManager = global.workspace_manager;
-        let themeNode = this.get_theme_node();
-
-        let spacing = themeNode.get_length('spacing');
-        let nWorkspaces = workspaceManager.n_workspaces;
-        let totalSpacing = (nWorkspaces - 1) * spacing;
-
-        let naturalHeight = totalSpacing + nWorkspaces * this._porthole.height * MAX_THUMBNAIL_SCALE;
-
-        return themeNode.adjust_preferred_height(totalSpacing, naturalHeight);
+    _unqueueUpdateStates() {
+        if (this._updateStateId)
+            Meta.later_remove(this._updateStateId);
+        this._updateStateId = 0;
     }
 
-    vfunc_get_preferred_width(forHeight) {
-        let workspaceManager = global.workspace_manager;
+    vfunc_get_preferred_height(forWidth) {
         let themeNode = this.get_theme_node();
 
-        forHeight = themeNode.adjust_for_height(forHeight);
+        forWidth = themeNode.adjust_for_width(forWidth);
 
         let spacing = themeNode.get_length('spacing');
-        let nWorkspaces = workspaceManager.n_workspaces;
+        let nWorkspaces = this._thumbnails.length;
         let totalSpacing = (nWorkspaces - 1) * spacing;
 
-        let avail = forHeight - totalSpacing;
+        const avail = forWidth - totalSpacing;
 
-        let scale = (avail / nWorkspaces) / this._porthole.height;
+        let scale = (avail / nWorkspaces) / this._porthole.width;
         scale = Math.min(scale, MAX_THUMBNAIL_SCALE);
 
-        let width = Math.round(this._porthole.width * scale);
+        const height = Math.round(this._porthole.height * scale);
+        return themeNode.adjust_preferred_height(height, height);
+    }
 
-        return themeNode.adjust_preferred_width(width, width);
+    vfunc_get_preferred_width(_forHeight) {
+        // Note that for getPreferredHeight/Width we cheat a bit and skip propagating
+        // the size request to our children because we know how big they are and know
+        // that the actors aren't depending on the virtual functions being called.
+        let themeNode = this.get_theme_node();
+
+        let spacing = themeNode.get_length('spacing');
+        let nWorkspaces = this._thumbnails.length;
+        let totalSpacing = (nWorkspaces - 1) * spacing;
+
+        const naturalWidth = this._thumbnails.reduce((accumulator, thumbnail, index) => {
+            let workspaceSpacing = 0;
+
+            if (index > 0)
+                workspaceSpacing += spacing / 2;
+            if (index < this._thumbnails.length - 1)
+                workspaceSpacing += spacing / 2;
+
+            const progress = 1 - thumbnail.collapse_fraction;
+            const width = (this._porthole.width * MAX_THUMBNAIL_SCALE + workspaceSpacing) * progress;
+            return accumulator + width;
+        }, 0);
+
+        return themeNode.adjust_preferred_width(totalSpacing, naturalWidth);
     }
 
     _updatePorthole() {
-        if (!Main.layoutManager.primaryMonitor) {
-            this._porthole = { width: global.stage.width, height: global.stage.height,
-                               x: global.stage.x, y: global.stage.y };
+        if (!Main.layoutManager.monitors[this._monitorIndex]) {
+            const { x, y, width, height } = global.stage;
+            this._porthole = { x, y, width, height };
         } else {
-            this._porthole = Main.layoutManager.getWorkAreaForMonitor(Main.layoutManager.primaryIndex);
+            this._porthole =
+                Main.layoutManager.getWorkAreaForMonitor(this._monitorIndex);
         }
 
         this.queue_relayout();
@@ -1211,55 +1337,61 @@ var ThumbnailsBox = GObject.registerClass({
         if (this._thumbnails.length == 0) // not visible
             return;
 
-        let workspaceManager = global.workspace_manager;
         let themeNode = this.get_theme_node();
-
         box = themeNode.get_content_box(box);
 
-        let portholeWidth = this._porthole.width;
-        let portholeHeight = this._porthole.height;
-        let spacing = themeNode.get_length('spacing');
+        const portholeWidth = this._porthole.width;
+        const portholeHeight = this._porthole.height;
+        const spacing = themeNode.get_length('spacing');
 
-        // Compute the scale we'll need once everything is updated
-        let nWorkspaces = workspaceManager.n_workspaces;
-        let totalSpacing = (nWorkspaces - 1) * spacing;
-        let avail = (box.y2 - box.y1) - totalSpacing;
+        const nWorkspaces = this._thumbnails.length;
 
-        let newScale = (avail / nWorkspaces) / portholeHeight;
-        newScale = Math.min(newScale, MAX_THUMBNAIL_SCALE);
+        // Compute the scale we'll need once everything is updated,
+        // unless we are currently transitioning
+        if (this._expandFraction === 1) {
+            const totalSpacing = (nWorkspaces - 1) * spacing;
+            const availableWidth = (box.get_width() - totalSpacing) / nWorkspaces;
 
-        if (newScale != this._targetScale) {
-            if (this._targetScale > 0) {
-                // We don't do the tween immediately because we need to observe the ordering
-                // in queueUpdateStates - if workspaces have been removed we need to slide them
-                // out as the first thing.
-                this._targetScale = newScale;
-                this._pendingScaleUpdate = true;
-            } else {
-                this._targetScale = this._scale = newScale;
+            const hScale = availableWidth / portholeWidth;
+            const vScale = box.get_height() / portholeHeight;
+            const newScale = Math.min(hScale, vScale);
+
+            if (newScale !== this._targetScale) {
+                if (this._targetScale > 0) {
+                    // We don't ease immediately because we need to observe the
+                    // ordering in queueUpdateStates - if workspaces have been
+                    // removed we need to slide them out as the first thing.
+                    this._targetScale = newScale;
+                    this._pendingScaleUpdate = true;
+                } else {
+                    this._targetScale = this._scale = newScale;
+                }
+
+                this._queueUpdateStates();
             }
-
-            this._queueUpdateStates();
         }
 
-        let thumbnailHeight = portholeHeight * this._scale;
-        let thumbnailWidth = Math.round(portholeWidth * this._scale);
-        let roundedHScale = thumbnailWidth / portholeWidth;
+        const ratio = portholeWidth / portholeHeight;
+        const thumbnailFullHeight = Math.round(portholeHeight * this._scale);
+        const thumbnailWidth = Math.round(thumbnailFullHeight * ratio);
+        const thumbnailHeight = thumbnailFullHeight * this._expandFraction;
+        const roundedVScale = thumbnailHeight / portholeHeight;
 
-        let slideOffset; // X offset when thumbnail is fully slid offscreen
-        if (rtl)
-            slideOffset = -(thumbnailWidth + themeNode.get_padding(St.Side.LEFT));
-        else
-            slideOffset = thumbnailWidth + themeNode.get_padding(St.Side.RIGHT);
+        // We always request size for MAX_THUMBNAIL_SCALE, distribute
+        // space evently if we use smaller thumbnails
+        const extraWidth =
+            (MAX_THUMBNAIL_SCALE * portholeWidth - thumbnailWidth) * nWorkspaces;
+        box.x1 += Math.round(extraWidth / 2);
+        box.x2 -= Math.round(extraWidth / 2);
 
         let indicatorValue = this._scrollAdjustment.value;
         let indicatorUpperWs = Math.ceil(indicatorValue);
         let indicatorLowerWs = Math.floor(indicatorValue);
 
-        let indicatorLowerY1 = 0;
-        let indicatorLowerY2 = 0;
-        let indicatorUpperY1 = 0;
-        let indicatorUpperY2 = 0;
+        let indicatorLowerX1 = 0;
+        let indicatorLowerX2 = 0;
+        let indicatorUpperX1 = 0;
+        let indicatorUpperX2 = 0;
 
         let indicatorThemeNode = this._indicator.get_theme_node();
         let indicatorTopFullBorder = indicatorThemeNode.get_padding(St.Side.TOP) + indicatorThemeNode.get_border_width(St.Side.TOP);
@@ -1267,7 +1399,7 @@ var ThumbnailsBox = GObject.registerClass({
         let indicatorLeftFullBorder = indicatorThemeNode.get_padding(St.Side.LEFT) + indicatorThemeNode.get_border_width(St.Side.LEFT);
         let indicatorRightFullBorder = indicatorThemeNode.get_padding(St.Side.RIGHT) + indicatorThemeNode.get_border_width(St.Side.RIGHT);
 
-        let y = box.y1;
+        let x = box.x1;
 
         if (this._dropPlaceholderPos == -1) {
             this._dropPlaceholder.allocate_preferred_size(
@@ -1281,82 +1413,100 @@ var ThumbnailsBox = GObject.registerClass({
         let childBox = new Clutter.ActorBox();
 
         for (let i = 0; i < this._thumbnails.length; i++) {
-            let thumbnail = this._thumbnails[i];
-
+            const thumbnail = this._thumbnails[i];
             if (i > 0)
-                y += spacing - Math.round(thumbnail.collapse_fraction * spacing);
+                x += spacing - Math.round(thumbnail.collapse_fraction * spacing);
 
-            let x1, x2;
-            if (rtl) {
-                x1 = box.x1 + slideOffset * thumbnail.slide_position;
-                x2 = x1 + thumbnailWidth;
-            } else {
-                x1 = box.x2 - thumbnailWidth + slideOffset * thumbnail.slide_position;
-                x2 = x1 + thumbnailWidth;
-            }
+            const y1 = box.y1;
+            const y2 = y1 + thumbnailHeight;
 
-            if (i == this._dropPlaceholderPos) {
-                let [, placeholderHeight] = this._dropPlaceholder.get_preferred_height(-1);
-                childBox.x1 = x1;
-                childBox.x2 = x2;
-                childBox.y1 = Math.round(y);
-                childBox.y2 = Math.round(y + placeholderHeight);
+            if (i === this._dropPlaceholderPos) {
+                const [, placeholderWidth] = this._dropPlaceholder.get_preferred_width(-1);
+                childBox.y1 = y1;
+                childBox.y2 = y2;
+
+                if (rtl) {
+                    childBox.x2 = box.x2 - Math.round(x);
+                    childBox.x1 = box.x2 - Math.round(x + placeholderWidth);
+                } else {
+                    childBox.x1 = Math.round(x);
+                    childBox.x2 = Math.round(x + placeholderWidth);
+                }
+
                 this._dropPlaceholder.allocate(childBox);
+
                 Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
                     this._dropPlaceholder.show();
                 });
-                y += placeholderHeight + spacing;
+                x += placeholderWidth + spacing;
             }
 
-            // We might end up with thumbnailHeight being something like 99.33
-            // pixels. To make this work and not end up with a gap at the bottom,
-            // we need some thumbnails to be 99 pixels and some 100 pixels height;
+            // We might end up with thumbnailWidth being something like 99.33
+            // pixels. To make this work and not end up with a gap at the end,
+            // we need some thumbnails to be 99 pixels and some 100 pixels width;
             // we compute an actual scale separately for each thumbnail.
-            let y1 = Math.round(y);
-            let y2 = Math.round(y + thumbnailHeight);
-            let roundedVScale = (y2 - y1) / portholeHeight;
-
-            if (i === indicatorUpperWs) {
-                indicatorUpperY1 = y1;
-                indicatorUpperY2 = y2;
-            }
-            if (i === indicatorLowerWs) {
-                indicatorLowerY1 = y1;
-                indicatorLowerY2 = y2;
-            }
+            const x1 = Math.round(x);
+            const x2 = Math.round(x + thumbnailWidth);
+            const roundedHScale = (x2 - x1) / portholeWidth;
 
             // Allocating a scaled actor is funny - x1/y1 correspond to the origin
             // of the actor, but x2/y2 are increased by the *unscaled* size.
-            childBox.x1 = x1;
-            childBox.x2 = x1 + portholeWidth;
+            if (rtl) {
+                childBox.x2 = box.x2 - x1;
+                childBox.x1 = box.x2 - (x1 + thumbnailWidth);
+            } else {
+                childBox.x1 = x1;
+                childBox.x2 = x1 + thumbnailWidth;
+            }
             childBox.y1 = y1;
-            childBox.y2 = y1 + portholeHeight;
+            childBox.y2 = y1 + thumbnailHeight;
 
-            thumbnail.set_scale(roundedHScale, roundedVScale);
+            thumbnail.setScale(roundedHScale, roundedVScale);
             thumbnail.allocate(childBox);
+
+            if (i === indicatorUpperWs) {
+                indicatorUpperX1 = childBox.x1;
+                indicatorUpperX2 = childBox.x2;
+            }
+            if (i === indicatorLowerWs) {
+                indicatorLowerX1 = childBox.x1;
+                indicatorLowerX2 = childBox.x2;
+            }
 
             // We round the collapsing portion so that we don't get thumbnails resizing
             // during an animation due to differences in rounded, but leave the uncollapsed
             // portion unrounded so that non-animating we end up with the right total
-            y += thumbnailHeight - Math.round(thumbnailHeight * thumbnail.collapse_fraction);
+            x += thumbnailWidth - Math.round(thumbnailWidth * thumbnail.collapse_fraction);
         }
 
-        if (rtl) {
-            childBox.x1 = box.x1;
-            childBox.x2 = box.x1 + thumbnailWidth;
-        } else {
-            childBox.x1 = box.x2 - thumbnailWidth;
-            childBox.x2 = box.x2;
-        }
-        let indicatorY1 = indicatorLowerY1 +
-            (indicatorUpperY1 - indicatorLowerY1) * (indicatorValue % 1);
-        let indicatorY2 = indicatorLowerY2 +
-            (indicatorUpperY2 - indicatorLowerY2) * (indicatorValue % 1);
+        childBox.y1 = box.y1;
+        childBox.y2 = box.y1 + thumbnailHeight;
 
-        childBox.x1 -= indicatorLeftFullBorder;
-        childBox.x2 += indicatorRightFullBorder;
-        childBox.y1 = indicatorY1 - indicatorTopFullBorder;
-        childBox.y2 = indicatorY2 + indicatorBottomFullBorder;
+        const indicatorX1 = indicatorLowerX1 +
+            (indicatorUpperX1 - indicatorLowerX1) * (indicatorValue % 1);
+        const indicatorX2 = indicatorLowerX2 +
+            (indicatorUpperX2 - indicatorLowerX2) * (indicatorValue % 1);
+
+        childBox.x1 = indicatorX1 - indicatorLeftFullBorder;
+        childBox.x2 = indicatorX2 + indicatorRightFullBorder;
+        childBox.y1 -= indicatorTopFullBorder;
+        childBox.y2 += indicatorBottomFullBorder;
         this._indicator.allocate(childBox);
+    }
+
+    get shouldShow() {
+        return this._shouldShow;
+    }
+
+    set expandFraction(expandFraction) {
+        if (this._expandFraction === expandFraction)
+            return;
+        this._expandFraction = expandFraction;
+        this.notify('expand-fraction');
+        this.queue_relayout();
+    }
+
+    get expandFraction() {
+        return this._expandFraction;
     }
 });

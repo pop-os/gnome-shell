@@ -23,7 +23,7 @@ Not only will that give you the very latest version of this rapidly
 changing project, it will be much easier than get GNOME Shell and
 its dependencies to build from tarballs.</description>
   <homepage rdf:resource="https://wiki.gnome.org/Projects/GnomeShell" />
-  <mailing-list rdf:resource="http://mail.gnome.org/mailman/listinfo/gnome-shell-list" />
+  <support-forum rdf:resource="https://discourse.gnome.org/tags/shell" />
   <download-page rdf:resource="http://download.gnome.org/sources/gnome-shell/" />
   <bug-database rdf:resource="https://gitlab.gnome.org/GNOME/gnome-shell/issues/" />
 
@@ -71,6 +71,12 @@ its dependencies to build from tarballs.</description>
       <foaf:name>Georges Basile Stavracas Neto</foaf:name>
       <foaf:mbox rdf:resource="mailto:gbsneto@gnome.org" />
       <gnome:userid>gbsneto</gnome:userid>
+    </foaf:Person>
+  </maintainer>
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Marge Bot</foaf:name>
+      <gnome:userid>marge-bot</gnome:userid>
     </foaf:Person>
   </maintainer>
 </Project>
