@@ -1,0 +1,31 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 12 Jan 2021 17:30:16 +0100
+Subject: weather: Adjust to renamed provider
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3577
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1565>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/7458d5ad07
+---
+ js/misc/weather.js | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/js/misc/weather.js b/js/misc/weather.js
+index 97880ea..0c293bf 100644
+--- a/js/misc/weather.js
++++ b/js/misc/weather.js
+@@ -68,9 +68,10 @@ var WeatherClient = class {
+ 
+         this._world = GWeather.Location.get_world();
+ 
+-        let providers = GWeather.Provider.METAR |
+-                        GWeather.Provider.YR_NO |
+-                        GWeather.Provider.OWM;
++        const providers =
++            GWeather.Provider.METAR |
++            GWeather.Provider.MET_NO |
++            GWeather.Provider.OWM;
+         this._weatherInfo = new GWeather.Info({ enabled_providers: providers });
+         this._weatherInfo.connect_after('updated', () => {
+             this._lastUpdate = GLib.DateTime.new_now_local();

@@ -1,0 +1,4 @@
+Revert-WeatherClient-Set-enabled-providers-after-setting-.patch
+weather-Adjust-to-renamed-provider.patch
+weather-Provide-application-id-and-contact-info.patch
+weather-Pass-providers-after-application-id-and-contact-i.patch

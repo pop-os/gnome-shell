@@ -1,0 +1,48 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Tue, 12 Jan 2021 18:33:43 +0100
+Subject: Revert "WeatherClient: Set enabled providers after setting a valid
+ location"
+
+libgweather changed to not do any implicit network traffic in property setters,
+so this is again safe to pass to the constructor.
+
+This reverts commit 73b7d9ace463fd29a0bd7f315f1d87068c033062.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3577
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1565>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/42ce04b108
+---
+ js/misc/weather.js | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/js/misc/weather.js b/js/misc/weather.js
+index e518f22..97880ea 100644
+--- a/js/misc/weather.js
++++ b/js/misc/weather.js
+@@ -68,11 +68,10 @@ var WeatherClient = class {
+ 
+         this._world = GWeather.Location.get_world();
+ 
+-        this._providers = GWeather.Provider.METAR |
+-                          GWeather.Provider.YR_NO |
+-                          GWeather.Provider.OWM;
+-
+-        this._weatherInfo = new GWeather.Info({ enabled_providers: 0 });
++        let providers = GWeather.Provider.METAR |
++                        GWeather.Provider.YR_NO |
++                        GWeather.Provider.OWM;
++        this._weatherInfo = new GWeather.Info({ enabled_providers: providers });
+         this._weatherInfo.connect_after('updated', () => {
+             this._lastUpdate = GLib.DateTime.new_now_local();
+             this.emit('changed');
+@@ -216,8 +215,6 @@ var WeatherClient = class {
+         this._weatherInfo.set_location(location);
+         this._locationValid = location != null;
+ 
+-        this._weatherInfo.set_enabled_providers(location ? this._providers : 0);
+-
+         if (location)
+             this._loadInfo();
+         else

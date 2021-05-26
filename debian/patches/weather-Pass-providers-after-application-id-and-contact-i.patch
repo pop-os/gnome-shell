@@ -1,0 +1,29 @@
+From: Georges Basile Stavracas Neto <georges.stavracas@gmail.com>
+Date: Thu, 14 Jan 2021 16:47:52 -0300
+Subject: weather: Pass providers after application-id and contact-info
+
+It now requires both application-id and contact-info to properly
+set the enabled providers.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1571>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/c5e5514c51
+---
+ js/misc/weather.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/misc/weather.js b/js/misc/weather.js
+index a8b8f6c..f617d82 100644
+--- a/js/misc/weather.js
++++ b/js/misc/weather.js
+@@ -73,9 +73,9 @@ var WeatherClient = class {
+             GWeather.Provider.MET_NO |
+             GWeather.Provider.OWM;
+         this._weatherInfo = new GWeather.Info({
+-            enabled_providers: providers,
+             application_id: 'org.gnome.Shell',
+             contact_info: 'https://gitlab.gnome.org/GNOME/gnome-shell/-/raw/master/gnome-shell.doap',
++            enabled_providers: providers,
+         });
+         this._weatherInfo.connect_after('updated', () => {
+             this._lastUpdate = GLib.DateTime.new_now_local();
