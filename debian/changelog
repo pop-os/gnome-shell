@@ -1,3 +1,9 @@
+gnome-shell (40.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 May 2021 14:22:15 +0200
+
 gnome-shell (3.38.4-2) experimental; urgency=medium
 
   * debian/patches: Import upstream patches needed to support libgweather 40.
