@@ -1,2 +1,3 @@
 man-Rebuild-manuals-in-proper-manpage-format.patch
 windowManager-Ignore-error-without-systemd.patch
+calendar-server-Fix-double-free-detection-abort.patch
