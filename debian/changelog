@@ -1,8 +1,24 @@
 gnome-shell (40.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
+  * debian/patches: Remove (all applied upstream)
+  * debian/control:
+    - Bump dependency to mutter-8
+    - Update extensions breaks.
+      This version will break various extensions so update broken versions
+    - Build depend on gtk4.
+      It's needed by shew subproject
+    - Add runtime dependency on gtk4 to the extensions prefs
+    - Add missing runtime dependencies and suggestions.
+      All dependencies can be found with a script such as:
+      grep "imports\.gi" --include "*.js" -rh js \
+       | grep -o "\b[A-Z][A-Za-z]\+\(,\|\s\|\b\)" | sed "s/,\?\s*$//g" | sort -u
+  * debian/patches:
+    - Rebuild manual files to use the manpage format
+    - Cherry-pick upstream patch fixing non-systemd case
+    - Cherry-pick upstream crash fix
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 May 2021 14:22:15 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 30 May 2021 17:26:28 +0200
 
 gnome-shell (3.38.4-2) experimental; urgency=medium
 
