@@ -1,1 +1,2 @@
 man-Rebuild-manuals-in-proper-manpage-format.patch
+windowManager-Ignore-error-without-systemd.patch
