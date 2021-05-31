@@ -1,3 +1,10 @@
+gnome-shell (3.38.4-1ubuntu3~21.04.1) hirsute; urgency=medium
+
+  * No-change backport to hirsute
+  * debian: Update references to debian/hirsute
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 31 May 2021 19:11:49 +0200
+
 gnome-shell (3.38.4-1ubuntu3) impish; urgency=medium
 
   [ Daniel van Vugt ]
