@@ -1,3 +1,17 @@
+gnome-shell (3.38.4-1ubuntu3) impish; urgency=medium
+
+  [ Daniel van Vugt ]
+  * Add workspacesView-Only-use-valid-allocations-when-avail.patch.
+    To stop bogus values being used in _updateWorkspacesActualGeometry(),
+    which would cause the overview to fail to toggle. (LP: #1922353)
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/patches: Refresh
+  * debian/patches: Cherry-pick upstream calendar-server crash fix
+    (LP: #1915929)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 31 May 2021 18:51:34 +0200
+
 gnome-shell (3.38.4-1ubuntu2) hirsute; urgency=medium
 
   [ Daniel van Vugt ]
