@@ -37,3 +37,4 @@ status-network-Ensure-the-Cancel-button-passes-undefined-.patch
 keyboard-Handle-symbolic-OSK-key-codes-as-explicitly-inva.patch
 layout-Try-to-allocate-before-getting-size-of-tracke.patch
 keyboard-Fix-suggestions-box.patch
+workspacesView-Only-use-valid-allocations-when-avail.patch

@@ -1,0 +1,35 @@
+From 8271c4ad1ed25309b434500fd3fa07d374444a0c Mon Sep 17 00:00:00 2001
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Wed, 7 Apr 2021 16:59:56 +0800
+Subject: [PATCH] workspacesView: Only use valid allocations, when available
+
+We were occasionally getting `x/y = NaN` and
+`width/height = -Infinity` because there was no allocation. Now we
+try harder to force an allocation by `get_allocation_box()` and if
+that still fails for any reason then avoid saving the bogus
+allocation to `_actualGeometry`, which avoids trying to ease to
+a bogus (and non-null) `_actualGeometry`.
+
+The offending code doesn't exist on master, only in 3.38.
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3969
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1794
+Bug-Ubuntu: https://launchpad.net/bugs/1922353
+Forwarded: yes
+Last-Update: 2021-05-31
+
+Index: gnome-shell/js/ui/workspacesView.js
+===================================================================
+--- gnome-shell.orig/js/ui/workspacesView.js
++++ gnome-shell/js/ui/workspacesView.js
+@@ -702,6 +702,10 @@ class WorkspacesDisplay extends St.Widge
+     }
+ 
+     _updateWorkspacesActualGeometry() {
++        this.get_allocation_box();
++        if (!this.has_allocation())
++            return;
++
+         const [x, y] = this.get_transformed_position();
+         const width = this.allocation.get_width();
+         const height = this.allocation.get_height();
