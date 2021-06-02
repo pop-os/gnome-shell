@@ -1,0 +1,4 @@
+Name: gdm3-theme.gresource
+Link: /usr/share/gnome-shell/gdm3-theme.gresource
+Alternative: /usr/share/gnome-shell/gnome-shell-theme.gresource
+Priority: 10
