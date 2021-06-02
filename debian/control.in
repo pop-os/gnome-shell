@@ -127,7 +127,6 @@ Suggests: chrome-gnome-shell,
           gir1.2-malcontent-0 (>= 0.6.0) [linux-any],
           gir1.2-telepathyglib-0.12,
           gir1.2-telepathylogger-0.2 (>= 0.8.0),
-          gnome-themes-standard-data,
           gnome-backgrounds (>= 3.13.90)
 Breaks: gnome-shell-extension-appindicator (<< 36),
         gnome-shell-extension-autohidetopbar (<< 20180511-2~),
