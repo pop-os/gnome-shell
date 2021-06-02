@@ -30,7 +30,7 @@ def add_info(report):
     result = ''
 
     dm_list = apport.hookutils.command_output(['sh', '-c', 
-	'apt-cache search \"display manager\" | cut -d \' \' -f1 | grep -E \"dm$|gdm3\"'])
+	'apt-cache search \"display manager\" | cut -d \' \' -f1 | grep -E \"dm$|^gdm3?\\b\"'])
 
     for line in dm_list.split('\n'):
         if (is_process_running(line)):
