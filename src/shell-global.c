@@ -1361,52 +1361,17 @@ shell_global_get_pointer (ShellGlobal         *global,
 {
   ClutterModifierType raw_mods;
   MetaCursorTracker *tracker;
+  graphene_point_t point;
 
   tracker = meta_cursor_tracker_get_for_display (global->meta_display);
-  meta_cursor_tracker_get_pointer (tracker, x, y, &raw_mods);
+  meta_cursor_tracker_get_pointer (tracker, &point, &raw_mods);
+
+  if (x)
+    *x = point.x;
+  if (y)
+    *y = point.y;
 
   *mods = raw_mods & CLUTTER_MODIFIER_MASK;
-}
-
-/**
- * shell_global_sync_pointer:
- * @global: the #ShellGlobal
- *
- * Ensures that clutter is aware of the current pointer position,
- * causing enter and leave events to be emitted if the pointer moved
- * behind our back (ie, during a pointer grab).
- */
-void
-shell_global_sync_pointer (ShellGlobal *global)
-{
-  int x, y;
-  ClutterModifierType mods;
-  ClutterEvent *event;
-  ClutterSeat *seat;
-
-  shell_global_get_pointer (global, &x, &y, &mods);
-
-  seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
-  event = clutter_event_new (CLUTTER_MOTION);
-
-  event->motion.time = shell_global_get_current_time (global);
-  event->motion.flags = CLUTTER_EVENT_FLAG_SYNTHETIC;
-  event->motion.stage = global->stage;
-  event->motion.x = x;
-  event->motion.y = y;
-  event->motion.modifier_state = mods;
-  event->motion.axes = NULL;
-  clutter_event_set_device (event, clutter_seat_get_pointer (seat));
-
-  /* Leaving event.source NULL will force clutter to look it up, which
-   * will generate enter/leave events as a side effect, if they are
-   * needed. We need a better way to do this though... see
-   * http://bugzilla.clutter-project.org/show_bug.cgi?id=2615.
-   */
-  clutter_event_set_source_device (event, NULL);
-
-  clutter_event_put (event);
-  clutter_event_free (event);
 }
 
 /**
@@ -1575,7 +1540,7 @@ run_leisure_functions (gpointer data)
       if (closure->notify)
         closure->notify (closure->user_data);
 
-      g_slice_free (LeisureClosure, closure);
+      g_free (closure);
     }
 
   g_slist_free (closures);
@@ -1664,7 +1629,7 @@ shell_global_run_at_leisure (ShellGlobal         *global,
                              gpointer             user_data,
                              GDestroyNotify       notify)
 {
-  LeisureClosure *closure = g_slice_new (LeisureClosure);
+  LeisureClosure *closure = g_new (LeisureClosure, 1);
   closure->func = func;
   closure->user_data = user_data;
   closure->notify = notify;

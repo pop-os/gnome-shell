@@ -1,11 +1,10 @@
 {
-  "app-id": "org.gnome.Extensions",
+  "app-id": "org.gnome.Extensions.Devel",
   "runtime": "org.gnome.Platform",
   "runtime-version": "master",
   "sdk": "org.gnome.Sdk",
   "command": "gnome-extensions-app",
   "tags": ["nightly"],
-  "desktop-file-name-prefix": "(Nightly) ",
   "finish-args": [
     "--share=ipc", "--socket=fallback-x11",
     "--socket=wayland",
@@ -21,6 +20,7 @@
       "buildsystem": "meson",
       "builddir": true,
       "subdir": "subprojects/extensions-app",
+      "config-opts": ["-Dprofile=development"],
       "sources": [
         {
           "type": "git",

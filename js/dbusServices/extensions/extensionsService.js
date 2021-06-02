@@ -120,15 +120,15 @@ var ExtensionsService = class extends ServiceImplementation {
             const extension = ExtensionUtils.deserializeExtension(serialized);
 
             const window = new ExtensionPrefsDialog(extension);
-            window.realize();
+            window.connect('realize', () => {
+                let externalWindow = null;
 
-            let externalWindow = null;
+                if (parentWindow)
+                    externalWindow = Shew.ExternalWindow.new_from_handle(parentWindow);
 
-            if (parentWindow)
-                externalWindow = Shew.ExternalWindow.new_from_handle(parentWindow);
-
-            if (externalWindow)
-                externalWindow.set_parent_of(window.window);
+                if (externalWindow)
+                    externalWindow.set_parent_of(window.get_surface());
+            });
 
             if (options.modal)
                 window.modal = options.modal.get_boolean();
@@ -156,7 +156,6 @@ var ExtensionPrefsDialog = GObject.registerClass({
     GTypeName: 'ExtensionPrefsDialog',
     Template: 'resource:///org/gnome/Shell/Extensions/ui/extension-prefs-dialog.ui',
     InternalChildren: [
-        'headerBar',
         'stack',
         'expander',
         'expanderArrow',
@@ -165,12 +164,12 @@ var ExtensionPrefsDialog = GObject.registerClass({
     ],
 }, class ExtensionPrefsDialog extends Gtk.Window {
     _init(extension) {
-        super._init();
+        super._init({
+            title: extension.metadata.name,
+        });
 
         this._uuid = extension.uuid;
         this._url = extension.metadata.url || '';
-
-        this._headerBar.title = extension.metadata.name;
 
         this._actionGroup = new Gio.SimpleActionGroup();
         this.insert_action_group('win', this._actionGroup);
@@ -178,11 +177,11 @@ var ExtensionPrefsDialog = GObject.registerClass({
         this._initActions();
         this._addCustomStylesheet();
 
-        this._gesture = new Gtk.GestureMultiPress({
-            widget: this._expander,
+        this._gesture = new Gtk.GestureClick({
             button: 0,
             exclusive: true,
         });
+        this._expander.add_controller(this._gesture);
 
         this._gesture.connect('released', (gesture, nPress) => {
             if (nPress === 1)
@@ -193,7 +192,10 @@ var ExtensionPrefsDialog = GObject.registerClass({
             this._expanderArrow.icon_name = this._revealer.reveal_child
                 ? 'pan-down-symbolic'
                 : 'pan-end-symbolic';
+            this._syncExpandedStyle();
         });
+        this._revealer.connect('notify::child-revealed',
+            () => this._syncExpandedStyle());
 
         try {
             ExtensionUtils.installImporter(extension);
@@ -205,11 +207,19 @@ var ExtensionPrefsDialog = GObject.registerClass({
             prefsModule.init(extension.metadata);
 
             const widget = prefsModule.buildPrefsWidget();
-            this._stack.add(widget);
+            this._stack.add_named(widget, 'prefs');
             this._stack.visible_child = widget;
         } catch (e) {
             this._setError(e);
+            logError(e, 'Failed to open preferences');
         }
+    }
+
+    _syncExpandedStyle() {
+        if (this._revealer.reveal_child)
+            this._expander.add_css_class('expanded');
+        else if (!this._revealer.child_revealed)
+            this._expander.remove_css_class('expanded');
     }
 
     _setError(exc) {
@@ -243,8 +253,8 @@ var ExtensionPrefsDialog = GObject.registerClass({
             enabled: false,
         });
         action.connect('activate', () => {
-            const clipboard = Gtk.Clipboard.get_default(this.get_display());
-            clipboard.set_text(this._errorMarkdown, -1);
+            const clipboard = this.get_display().get_clipboard();
+            clipboard.set(this._errorMarkdown);
         });
         this._actionGroup.add_action(action);
 
@@ -267,7 +277,7 @@ var ExtensionPrefsDialog = GObject.registerClass({
         } catch (e) {
             logError(e, 'Failed to add application style');
         }
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
             provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
     }

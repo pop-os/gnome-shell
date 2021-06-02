@@ -54,7 +54,7 @@ index 9502340..8141bc0 100644
    </interface>
  </node>
 diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
-index 77ad317..74a700c 100644
+index 137516b..da94b06 100644
 --- a/js/ui/remoteSearch.js
 +++ b/js/ui/remoteSearch.js
 @@ -26,6 +26,7 @@ const SearchProviderIface = `
@@ -94,7 +94,7 @@ index 77ad317..74a700c 100644
          this.proxy.ActivateResultRemote(id);
      }
 diff --git a/js/ui/search.js b/js/ui/search.js
-index dd76735..e681ae3 100644
+index de13d6e..4519f6d 100644
 --- a/js/ui/search.js
 +++ b/js/ui/search.js
 @@ -227,7 +227,9 @@ var SearchResultsBase = GObject.registerClass({

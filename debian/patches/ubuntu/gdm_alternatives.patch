@@ -16,22 +16,22 @@ Last-Update: 2017-09-08
  2 files changed, 3 insertions(+)
 
 diff --git a/data/gnome-shell-theme.gresource.xml b/data/gnome-shell-theme.gresource.xml
-index 025630f..a8215ae 100644
+index 7857f44..7806dbc 100644
 --- a/data/gnome-shell-theme.gresource.xml
 +++ b/data/gnome-shell-theme.gresource.xml
-@@ -8,6 +8,7 @@
+@@ -9,6 +9,7 @@
+     <file>checkbox-off.svg</file>
      <file>checkbox.svg</file>
      <file alias="icons/scalable/actions/color-pick.svg">color-pick.svg</file>
-     <file>dash-placeholder.svg</file>
 +    <file alias="gdm3.css">gnome-shell.css</file>
      <file>gnome-shell.css</file>
      <file>gnome-shell-high-contrast.css</file>
-     <file alias="icons/scalable/status/message-indicator-symbolic.svg">message-indicator-symbolic.svg</file>
+     <file>gnome-shell-start.svg</file>
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index 2136e94..7d84985 100644
+index aa69fd1..8ecd6fc 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -43,6 +43,8 @@ const _modes = {
+@@ -44,6 +44,8 @@ const _modes = {
  
      'gdm': {
          hasNotifications: true,

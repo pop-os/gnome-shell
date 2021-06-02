@@ -22,10 +22,10 @@ Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1915929
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/src/calendar-server/gnome-shell-calendar-server.c b/src/calendar-server/gnome-shell-calendar-server.c
-index 56cee99..5758f0f 100644
+index 61ac927..4c5a645 100644
 --- a/src/calendar-server/gnome-shell-calendar-server.c
 +++ b/src/calendar-server/gnome-shell-calendar-server.c
-@@ -405,8 +405,7 @@ app_notify_events_added (App *app)
+@@ -381,8 +381,7 @@ app_notify_events_added (App *app)
                                   (gboolean) appt->is_all_day,
                                   (gint64) start_time,
                                   (gint64) end_time,

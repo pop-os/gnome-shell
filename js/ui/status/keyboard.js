@@ -772,6 +772,10 @@ var InputSourceManager = class {
     get inputSources() {
         return this._inputSources;
     }
+
+    get keyboardManager() {
+        return this._keyboardManager;
+    }
 };
 Signals.addSignalMethods(InputSourceManager.prototype);
 
@@ -785,7 +789,6 @@ function getInputSourceManager() {
 
 var InputSourceIndicatorContainer = GObject.registerClass(
 class InputSourceIndicatorContainer extends St.Widget {
-
     vfunc_get_preferred_width(forHeight) {
         // Here, and in vfunc_get_preferred_height, we need to query
         // for the height of all children, but we ignore the results
@@ -830,13 +833,8 @@ class InputSourceIndicator extends PanelMenu.Button {
         this._menuItems = {};
         this._indicatorLabels = {};
 
-        this._container = new InputSourceIndicatorContainer();
-
-        this._hbox = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
-        this._hbox.add_child(this._container);
-        this._hbox.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
-
-        this.add_child(this._hbox);
+        this._container = new InputSourceIndicatorContainer({ style_class: 'system-status-icon' });
+        this.add_child(this._container);
 
         this._propSeparator = new PopupMenu.PopupSeparatorMenuItem();
         this.menu.addMenuItem(this._propSeparator);
@@ -1064,6 +1062,14 @@ class InputSourceIndicator extends PanelMenu.Button {
             if (engineDesc) {
                 xkbLayout = engineDesc.get_layout();
                 xkbVariant = engineDesc.get_layout_variant();
+            }
+
+            // The `default` layout from ibus engine means to
+            // use the current keyboard layout.
+            if (xkbLayout === 'default') {
+                const current = this._inputSourceManager.keyboardManager.currentLayout;
+                xkbLayout = current.layout;
+                xkbVariant = current.variant;
             }
         }
 

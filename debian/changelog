@@ -1,3 +1,35 @@
+gnome-shell (40.1-1) experimental; urgency=medium
+
+  * New upstream release
+  * debian/patches: Remove (all applied upstream)
+  * debian/control:
+    - Bump dependency to mutter-8
+    - Update extensions breaks.
+      This version will break various extensions so update broken versions
+    - Build depend on gtk4.
+      It's needed by shew subproject
+    - Add runtime dependency on gtk4 to the extensions prefs
+    - Add missing runtime dependencies and suggestions.
+      All dependencies can be found with a script such as:
+      grep "imports\.gi" --include "*.js" -rh js \
+       | grep -o "\b[A-Z][A-Za-z]\+\(,\|\s\|\b\)" | sed "s/,\?\s*$//g" | sort -u
+  * debian/patches:
+    - Rebuild manual files to use the manpage format
+    - Cherry-pick upstream patch fixing non-systemd case
+    - Cherry-pick upstream crash fix
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 30 May 2021 17:55:32 +0200
+
+gnome-shell (3.38.4-2) experimental; urgency=medium
+
+  * debian/patches: Import upstream patches needed to support libgweather 40.
+    libgweather 40 had an internal API change that caused runtime issues, so
+    we need to update the shell code in order to make the shell to work and
+    show the weather information.
+  * debian/control: Bump runtime dependency on gweather 40
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 May 2021 13:37:14 +0200
+
 gnome-shell (3.38.4-1ubuntu3) impish; urgency=medium
 
   [ Daniel van Vugt ]

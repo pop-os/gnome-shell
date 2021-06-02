@@ -29,6 +29,7 @@ const PadOsd = imports.ui.padOsd;
 const Panel = imports.ui.panel;
 const Params = imports.misc.params;
 const RunDialog = imports.ui.runDialog;
+const WelcomeDialog = imports.ui.welcomeDialog;
 const Layout = imports.ui.layout;
 const LoginManager = imports.misc.loginManager;
 const LookingGlass = imports.ui.lookingGlass;
@@ -46,9 +47,13 @@ const KbdA11yDialog = imports.ui.kbdA11yDialog;
 const LocatePointer = imports.ui.locatePointer;
 const PointerA11yTimeout = imports.ui.pointerA11yTimeout;
 const ParentalControlsManager = imports.misc.parentalControlsManager;
+const Config = imports.misc.config;
+const Util = imports.misc.util;
 
-const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
-const STICKY_KEYS_ENABLE = 'stickykeys-enable';
+const WELCOME_DIALOG_LAST_SHOWN_VERSION = 'welcome-dialog-last-shown-version';
+// Make sure to mention the point release, otherwise it will show every time
+// until this version is current
+const WELCOME_DIALOG_LAST_TOUR_CHANGE = '40.beta';
 const LOG_DOMAIN = 'GNOME Shell';
 const GNOMESHELL_STARTED_MESSAGE_ID = 'f3ea493c22934e26811cd62abe8e203a';
 
@@ -58,6 +63,7 @@ var panel = null;
 var overview = null;
 var runDialog = null;
 var lookingGlass = null;
+var welcomeDialog = null;
 var wm = null;
 var messageTray = null;
 var screenShield = null;
@@ -88,7 +94,6 @@ var locatePointer = null;
 let _startDate;
 let _defaultCssStylesheet = null;
 let _cssStylesheet = null;
-let _a11ySettings = null;
 let _themeResource = null;
 let _oskResource = null;
 
@@ -120,6 +125,8 @@ function _sessionUpdated() {
             runDialog.close();
         if (lookingGlass)
             lookingGlass.close();
+        if (welcomeDialog)
+            welcomeDialog.close();
     }
 
     let remoteAccessController = global.backend.get_remote_access_controller();
@@ -228,13 +235,6 @@ function _initializeUI() {
 
     new PointerA11yTimeout.PointerA11yTimeout();
 
-    _a11ySettings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
-
-    global.display.connect('overlay-key', () => {
-        if (!_a11ySettings.get_boolean(STICKY_KEYS_ENABLE))
-            overview.toggle();
-    });
-
     global.connect('locate-pointer', () => {
         locatePointer.show();
     });
@@ -293,6 +293,8 @@ function _initializeUI() {
         if (credentials.get_unix_user() === 0) {
             notify(_('Logged in as a privileged user'),
                    _('Running a session as a privileged user should be avoided for security reasons. If possible, you should log in as a normal user.'));
+        } else if (sessionMode.showWelcomeDialog) {
+            _handleShowWelcomeScreen();
         }
 
         if (sessionMode.currentMode !== 'gdm' &&
@@ -308,6 +310,14 @@ function _initializeUI() {
             Scripting.runPerfScript(module, perfOutput);
         }
     });
+}
+
+function _handleShowWelcomeScreen() {
+    const lastShownVersion = global.settings.get_string(WELCOME_DIALOG_LAST_SHOWN_VERSION);
+    if (Util.GNOMEversionCompare(WELCOME_DIALOG_LAST_TOUR_CHANGE, lastShownVersion) > 0) {
+        openWelcomeDialog();
+        global.settings.set_string(WELCOME_DIALOG_LAST_SHOWN_VERSION, Config.PACKAGE_VERSION);
+    }
 }
 
 async function _handleLockScreenWarning() {
@@ -640,6 +650,13 @@ function openRunDialog() {
         runDialog = new RunDialog.RunDialog();
 
     runDialog.open();
+}
+
+function openWelcomeDialog() {
+    if (welcomeDialog === null)
+        welcomeDialog = new WelcomeDialog.WelcomeDialog();
+
+    welcomeDialog.open();
 }
 
 /**

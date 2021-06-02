@@ -105,10 +105,13 @@ libshell_public_headers = [
   'shell-mount-operation.h',
   'shell-perf-log.h',
   'shell-screenshot.h',
+  'shell-square-bin.h',
   'shell-stack.h',
   'shell-tray-icon.h',
   'shell-tray-manager.h',
   'shell-util.h',
+  'shell-window-preview.h',
+  'shell-window-preview-layout.h',
   'shell-window-tracker.h',
   'shell-wm.h'
 ]
@@ -147,10 +150,13 @@ libshell_sources = [
   'shell-screenshot.c',
   'shell-secure-text-buffer.c',
   'shell-secure-text-buffer.h',
+  'shell-square-bin.c',
   'shell-stack.c',
   'shell-tray-icon.c',
   'shell-tray-manager.c',
   'shell-util.c',
+  'shell-window-preview.c',
+  'shell-window-preview-layout.c',
   'shell-window-tracker.c',
   'shell-wm.c'
 ]

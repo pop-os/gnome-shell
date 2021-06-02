@@ -13,7 +13,6 @@ const Params = imports.misc.params;
 const Ripples = imports.ui.ripples;
 
 var STARTUP_ANIMATION_TIME = 500;
-var KEYBOARD_ANIMATION_TIME = 150;
 var BACKGROUND_FADE_ANIMATION_TIME = 1000;
 
 var HOT_CORNER_PRESSURE_THRESHOLD = 100; // pixels
@@ -79,13 +78,11 @@ var MonitorConstraint = GObject.registerClass({
         this.notify('index');
     }
 
-    // eslint-disable-next-line camelcase
-    get work_area() {
+    get workArea() {
         return this._workArea;
     }
 
-    // eslint-disable-next-line camelcase
-    set work_area(v) {
+    set workArea(v) {
         if (v == this._workArea)
             return;
         this._workArea = v;
@@ -184,12 +181,13 @@ const defaultParams = {
 };
 
 var LayoutManager = GObject.registerClass({
-    Signals: { 'hot-corners-changed': {},
-               'startup-complete': {},
-               'startup-prepared': {},
-               'monitors-changed': {},
-               'system-modal-opened': {},
-               'keyboard-visible-changed': { param_types: [GObject.TYPE_BOOLEAN] } },
+    Signals: {
+        'hot-corners-changed': {},
+        'startup-complete': {},
+        'startup-prepared': {},
+        'monitors-changed': {},
+        'system-modal-opened': {},
+    },
 }, class LayoutManager extends GObject.Object {
     _init() {
         super._init();
@@ -666,13 +664,18 @@ var LayoutManager = GObject.registerClass({
             this.keyboardBox.hide();
 
             let monitor = this.primaryMonitor;
-            let x = monitor.x + monitor.width / 2.0;
-            let y = monitor.y + monitor.height / 2.0;
 
-            this.uiGroup.set_pivot_point(x / global.screen_width,
-                                         y / global.screen_height);
-            this.uiGroup.scale_x = this.uiGroup.scale_y = 0.75;
-            this.uiGroup.opacity = 0;
+            if (!Main.sessionMode.hasOverview) {
+                const x = monitor.x + monitor.width / 2.0;
+                const y = monitor.y + monitor.height / 2.0;
+
+                this.uiGroup.set_pivot_point(
+                    x / global.screen_width,
+                    y / global.screen_height);
+                this.uiGroup.scale_x = this.uiGroup.scale_y = 0.75;
+                this.uiGroup.opacity = 0;
+            }
+
             global.window_group.set_clip(monitor.x, monitor.y, monitor.width, monitor.height);
 
             await this._updateBackgrounds();
@@ -702,14 +705,19 @@ var LayoutManager = GObject.registerClass({
     }
 
     _startupAnimationSession() {
-        this.uiGroup.ease({
-            scale_x: 1,
-            scale_y: 1,
-            opacity: 255,
-            duration: STARTUP_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => this._startupAnimationComplete(),
-        });
+        const onComplete = () => this._startupAnimationComplete();
+        if (Main.sessionMode.hasOverview) {
+            Main.overview.runStartupAnimation(onComplete);
+        } else {
+            this.uiGroup.ease({
+                scale_x: 1,
+                scale_y: 1,
+                opacity: 255,
+                duration: STARTUP_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete,
+            });
+        }
     }
 
     _startupAnimationComplete() {
@@ -731,53 +739,6 @@ var LayoutManager = GObject.registerClass({
         this._queueUpdateRegions();
 
         this.emit('startup-complete');
-    }
-
-    showKeyboard() {
-        this.keyboardBox.show();
-        this.keyboardBox.ease({
-            translation_y: -this.keyboardBox.height,
-            opacity: 255,
-            duration: KEYBOARD_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => {
-                this._showKeyboardComplete();
-            },
-        });
-        this.emit('keyboard-visible-changed', true);
-    }
-
-    _showKeyboardComplete() {
-        // Poke Chrome to update the input shape; it doesn't notice
-        // anchor point changes
-        this._updateRegions();
-
-        this._keyboardHeightNotifyId = this.keyboardBox.connect('notify::height', () => {
-            this.keyboardBox.translation_y = -this.keyboardBox.height;
-        });
-    }
-
-    hideKeyboard(immediate) {
-        if (this._keyboardHeightNotifyId) {
-            this.keyboardBox.disconnect(this._keyboardHeightNotifyId);
-            this._keyboardHeightNotifyId = 0;
-        }
-        this.keyboardBox.ease({
-            translation_y: 0,
-            opacity: 0,
-            duration: immediate ? 0 : KEYBOARD_ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_IN_QUAD,
-            onComplete: () => {
-                this._hideKeyboardComplete();
-            },
-        });
-
-        this.emit('keyboard-visible-changed', false);
-    }
-
-    _hideKeyboardComplete() {
-        this.keyboardBox.hide();
-        this._updateRegions();
     }
 
     // setDummyCursorGeometry:
@@ -967,9 +928,6 @@ var LayoutManager = GObject.registerClass({
     }
 
     _queueUpdateRegions() {
-        if (this._startingUp)
-            return;
-
         if (!this._updateRegionIdle) {
             this._updateRegionIdle = Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
                                                     this._updateRegions.bind(this));
@@ -1006,13 +964,13 @@ var LayoutManager = GObject.registerClass({
             delete this._updateRegionIdle;
         }
 
-        // No need to update when we have a modal.
-        if (Main.modalCount > 0)
-            return GLib.SOURCE_REMOVE;
-
         let rects = [], struts = [], i;
         let isPopupMenuVisible = global.top_window_group.get_children().some(isPopupMetaWindow);
-        let wantsInputRegion = !isPopupMenuVisible;
+        const wantsInputRegion =
+            !this._startingUp &&
+            !isPopupMenuVisible &&
+            Main.modalCount === 0 &&
+            !Meta.is_wayland_compositor();
 
         for (i = 0; i < this._trackedActors.length; i++) {
             let actorData = this._trackedActors[i];
@@ -1083,7 +1041,9 @@ var LayoutManager = GObject.registerClass({
             }
         }
 
-        global.set_stage_input_region(rects);
+        if (wantsInputRegion)
+            global.set_stage_input_region(rects);
+
         this._isPopupWindowVisible = isPopupMenuVisible;
 
         let workspaceManager = global.workspace_manager;

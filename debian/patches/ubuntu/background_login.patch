@@ -18,10 +18,10 @@ Forwarded: not-needed
  1 file changed, 5 insertions(+)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index ca34451..809a702 100644
+index 1f7c5e5..a219a16 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
-@@ -103,6 +103,11 @@ const Params = imports.misc.params;
+@@ -105,6 +105,11 @@ Gio._promisify(Gio._LocalFilePrototype, 'query_info_async', 'query_info_finish')
  
  var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
  
