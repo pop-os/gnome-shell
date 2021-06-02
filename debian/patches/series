@@ -1,5 +1,8 @@
 windowManager-Ignore-error-without-systemd.patch
 calendar-server-Fix-double-free-detection-abort.patch
+dnd-Return-Clutter.EVENT_STOP-instead-of-true.patch
+dnd-Factor-out-calculation-into-a-variable.patch
+dnd-Immediately-start-drag-done-by-pointer-devices.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
