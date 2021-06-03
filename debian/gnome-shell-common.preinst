@@ -1,5 +1,43 @@
 #!/bin/sh
+# shellcheck disable=SC2028
+# debian's sh echo handles escapes properly
 
 set -e
+
+if [ "$1" = "upgrade" ]; then
+  # Remove older deprecated themes alternatives. Can be removed post 22.04
+  if dpkg --compare-versions "$2" lt-nl 40.1-1ubuntu1; then
+    new="gdm-theme.gresource"
+    old="gdm3-theme.gresource"
+    link=/usr/share/gnome-shell/$new
+    current=$(update-alternatives --query "$old" | awk '$1 == "Value:" {print $2}')
+
+    case "$current" in
+      /usr/share/gnome-shell/gnome-shell-theme.gresource) allowed=1 ;;
+      /usr/share/gnome-shell/theme/Yaru/gnome-shell-theme.gresource) allowed=1 ;;
+    esac
+
+    if [ -z "$allowed" ] ||
+       update-alternatives --query "$old" | grep -qsF "Status: manual"; then
+      priority=$(update-alternatives --query "$old" | awk -v curr="$current" \
+      'link == "1" { print $2; link=""; }; $0 == "Alternative: " curr { link="1" }')
+
+      >&2 echo "WARNING: $old alternative has been set to point to $current," \
+        "but it's now renamed to $new."
+      >&2 echo
+      >&2 echo "To re-apply the previous customization (if it supports " \
+        "current version) run:"
+      >&2 echo "  update-alternatives --install \\\\\n" \
+        "    $link \\\\\n" \
+        "    $new \\\\\n" \
+        "    $current \\\\\n" \
+        "    $priority\n"
+      >&2 echo "Otherwise, ensure that the package providing it is updated"
+    fi
+
+    update-alternatives --remove-all "$old" || true
+  fi
+fi
+
 
 #DEBHELPER#
