@@ -1,3 +1,9 @@
+gnome-shell (3.38.4-1ubuntu3~21.04.1ubuntu1pop1) UNRELEASED; urgency=medium
+
+  * Pop!_OS Patches
+
+ -- Michael Aaron Murphy <mmstick@pm.me>  Sat, 05 Jun 2021 01:40:40 -0600
+
 gnome-shell (3.38.4-1ubuntu3~21.04.1) hirsute; urgency=medium
 
   * No-change backport to hirsute
