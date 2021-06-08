@@ -44,3 +44,4 @@ calendar-server-Fix-double-free-detection-abort.patch
 sched-rr.patch
 pop-dark-theme.patch
 ignore-nvidia-only.patch
+pop-cosmic-keyboard-shortcuts.patch
