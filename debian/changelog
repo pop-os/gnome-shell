@@ -1,3 +1,14 @@
+gnome-shell (40.2-1) UNRELEASED; urgency=medium
+
+  * New upstream release:
+    - Unbreak Xwayland apps when not using systemd in user session
+    - Fix distributed man pages
+    - Avoid unnecessary icon shadow changes
+    - Immediately start app grid drags for non-touch devices
+    - Handle screencast failures more gracefully
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Jun 2021 23:23:14 +0200
+
 gnome-shell (40.1-1) experimental; urgency=medium
 
   * New upstream release
