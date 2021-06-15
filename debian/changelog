@@ -1,3 +1,21 @@
+gnome-shell (40.2-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian
+  * debian/control:
+    - Bump Breaks on yaru-theme-gnome-shell 21.10.1
+    - Stop suggesting removed package gnome-themes-standard-data
+    - Recommends newer version of yaru theme
+  * debian/gnome-shell-common.pre{rm,inst}:
+    - Remove deprecated update-alternatives actions
+  * debian/gnome-shell-common.alternatives:
+    - Use dh_installalternatives
+    - Rename gdm3-theme to gdm-theme
+  * debian/source_gnome-shell.py: Support gdm name only
+  * debian/control: Add missing dependency on gir1.2-gtk-4.0
+  * d/p/ubuntu/gdm_alternatives.patch: Use gdm basename for custom stylesheets
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 07 Jul 2021 08:00:00 +0200
+
 gnome-shell (40.2-1) experimental; urgency=medium
 
   * New upstream release:
