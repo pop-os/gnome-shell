@@ -1,3 +1,18 @@
+gnome-shell (40.2-1) experimental; urgency=medium
+
+  * New upstream release:
+    - Unbreak Xwayland apps when not using systemd in user session
+    - Fix distributed man pages
+    - Avoid unnecessary icon shadow changes
+    - Immediately start app grid drags for non-touch devices
+    - Handle screencast failures more gracefully
+  * debian/patches: Dropped, all applied upstream
+  * debian/control: Add break on unreleased version of
+    gnome-shell-extension-desktop-icons
+  * debian/control: Break on gnome-shell-extension-desktop-icons-ng << 0.16
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 16 Jun 2021 00:47:49 +0200
+
 gnome-shell (40.1-1) experimental; urgency=medium
 
   * New upstream release

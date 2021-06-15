@@ -1,8 +1,3 @@
-windowManager-Ignore-error-without-systemd.patch
-calendar-server-Fix-double-free-detection-abort.patch
-dnd-Return-Clutter.EVENT_STOP-instead-of-true.patch
-dnd-Factor-out-calculation-into-a-variable.patch
-dnd-Immediately-start-drag-done-by-pointer-devices.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
@@ -21,4 +16,3 @@ ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 ubuntu/configure_login_screen.patch
 layout-Try-to-allocate-before-getting-size-of-tracke.patch
-man-Rebuild-manuals-in-proper-manpage-format.patch
