@@ -29,7 +29,7 @@ index 979fcef..541df51 100644
  
  function start() {
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index 8ecd6fc..d914902 100644
+index db9ab8d..9532832 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
 @@ -23,6 +23,7 @@ const _modes = {
