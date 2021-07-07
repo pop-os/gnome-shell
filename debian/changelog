@@ -1,4 +1,4 @@
-gnome-shell (40.2-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (40.2-1ubuntu1) impish; urgency=medium
 
   * Merge with debian
   * debian/control:
@@ -14,7 +14,7 @@ gnome-shell (40.2-1ubuntu1) UNRELEASED; urgency=medium
   * debian/control: Add missing dependency on gir1.2-gtk-4.0
   * d/p/ubuntu/gdm_alternatives.patch: Use gdm basename for custom stylesheets
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 07 Jul 2021 08:00:00 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 07 Jul 2021 09:30:42 +0200
 
 gnome-shell (40.2-1) experimental; urgency=medium
 
