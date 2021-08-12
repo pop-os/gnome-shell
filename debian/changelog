@@ -1,12 +1,11 @@
 gnome-shell (40.2-1ubuntu2) UNRELEASED; urgency=medium
 
   [ Daniel van Vugt ]
-  * Add workspace-Remove-skip-taskbar-windows-while-the-over.patch.
-    Add workspace-Remove-skip-taskbar-windows-while-the-over.patch to stop
-    the desktop icons window appearing like an app window in the overview on
+  * Add workspace-Remove-skip-taskbar-windows-while-the-over.patch to stop the
+    desktop icons window appearing like an app window in the overview on
     startup (LP: #1936643)
 
- -- Iain Lane <laney@debian.org>  Thu, 12 Aug 2021 09:33:29 +0100
+ -- Iain Lane <iain.lane@canonical.com>  Thu, 12 Aug 2021 09:33:46 +0100
 
 gnome-shell (40.2-1ubuntu1) impish; urgency=medium
 
