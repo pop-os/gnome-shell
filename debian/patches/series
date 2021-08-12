@@ -1,3 +1,4 @@
+workspace-Remove-skip-taskbar-windows-while-the-over.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
