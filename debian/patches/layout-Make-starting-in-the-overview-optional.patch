@@ -1,7 +1,6 @@
-From b75d3bdc60d00d4a3dadb2f1df4f029cc7f8d208 Mon Sep 17 00:00:00 2001
 From: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Date: Wed, 11 Aug 2021 16:29:57 +0800
-Subject: [PATCH] layout: Make starting in the overview optional
+Subject: layout: Make starting in the overview optional
 
 This makes it easier for dock extensions that replace the dash to also
 prevent starting in the overview. It makes less sense for them to start
@@ -43,6 +42,3 @@ index 70ece6cab..a8e6588b6 100644
              Main.overview.runStartupAnimation(onComplete);
          } else {
              this.uiGroup.ease({
--- 
-2.32.0
-
