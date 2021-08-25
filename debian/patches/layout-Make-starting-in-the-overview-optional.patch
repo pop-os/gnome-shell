@@ -1,0 +1,48 @@
+From b75d3bdc60d00d4a3dadb2f1df4f029cc7f8d208 Mon Sep 17 00:00:00 2001
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Wed, 11 Aug 2021 16:29:57 +0800
+Subject: [PATCH] layout: Make starting in the overview optional
+
+This makes it easier for dock extensions that replace the dash to also
+prevent starting in the overview. It makes less sense for them to start
+there since they delete the dash.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1943
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1940925
+Forwarded: yes
+Last-Update: 2021-08-25
+
+diff --git a/js/ui/layout.js b/js/ui/layout.js
+index 70ece6cab..a8e6588b6 100644
+--- a/js/ui/layout.js
++++ b/js/ui/layout.js
+@@ -198,6 +198,8 @@ var LayoutManager = GObject.registerClass({
+         this.primaryIndex = -1;
+         this.hotCorners = [];
+ 
++        this.startInOverview = Main.sessionMode.hasOverview;
++
+         this._keyboardIndex = -1;
+         this._rightPanelBarrier = null;
+ 
+@@ -665,7 +667,7 @@ var LayoutManager = GObject.registerClass({
+ 
+             let monitor = this.primaryMonitor;
+ 
+-            if (!Main.sessionMode.hasOverview) {
++            if (!this.startInOverview) {
+                 const x = monitor.x + monitor.width / 2.0;
+                 const y = monitor.y + monitor.height / 2.0;
+ 
+@@ -706,7 +708,7 @@ var LayoutManager = GObject.registerClass({
+ 
+     _startupAnimationSession() {
+         const onComplete = () => this._startupAnimationComplete();
+-        if (Main.sessionMode.hasOverview) {
++        if (this.startInOverview) {
+             Main.overview.runStartupAnimation(onComplete);
+         } else {
+             this.uiGroup.ease({
+-- 
+2.32.0
+

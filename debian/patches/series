@@ -17,3 +17,4 @@ ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 ubuntu/configure_login_screen.patch
 layout-Try-to-allocate-before-getting-size-of-tracke.patch
+layout-Make-starting-in-the-overview-optional.patch
