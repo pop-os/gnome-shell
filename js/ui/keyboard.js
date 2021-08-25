@@ -197,7 +197,7 @@ class Suggestions extends St.BoxLayout {
     add(word, callback) {
         let button = new St.Button({ label: word });
         button.connect('clicked', callback);
-        this.add(button);
+        this.add_child(button);
     }
 
     clear() {
@@ -326,7 +326,7 @@ var Key = GObject.registerClass({
     }
 
     _getKeyval(key) {
-        let unicode = key.charCodeAt(0);
+        let unicode = key.length ? key.charCodeAt(0) : undefined;
         return Clutter.unicode_to_keysym(unicode);
     }
 

@@ -100,15 +100,12 @@ var Magnifier = class Magnifier {
         this._mouseSprite = new Clutter.Actor({ request_mode: Clutter.RequestMode.CONTENT_SIZE });
         this._mouseSprite.content = new MouseSpriteContent();
 
-        this._cursorRoot = new Clutter.Actor();
-        this._cursorRoot.add_actor(this._mouseSprite);
-
         // Create the first ZoomRegion and initialize it according to the
         // magnification settings.
 
         [this.xMouse, this.yMouse] = global.get_pointer();
 
-        let aZoomRegion = new ZoomRegion(this, this._cursorRoot);
+        let aZoomRegion = new ZoomRegion(this, this._mouseSprite);
         this._zoomRegions.push(aZoomRegion);
         this._settingsInit(aZoomRegion);
         aZoomRegion.scrollContentsTo(this.xMouse, this.yMouse);
@@ -174,6 +171,9 @@ var Magnifier = class Magnifier {
             Meta.enable_unredirect_for_display(global.display);
             this.stopTrackingMouse();
         }
+
+        if (this._crossHairs)
+            this._crossHairs.setEnabled(activate);
 
         // Make sure system mouse pointer is shown when all zoom regions are
         // invisible.
@@ -269,7 +269,7 @@ var Magnifier = class Magnifier {
      * @returns {ZoomRegion} the newly created ZoomRegion.
      */
     createZoomRegion(xMagFactor, yMagFactor, roi, viewPort) {
-        let zoomRegion = new ZoomRegion(this, this._cursorRoot);
+        let zoomRegion = new ZoomRegion(this, this._mouseSprite);
         zoomRegion.setViewPort(viewPort);
 
         // We ignore the redundant width/height on the ROI
@@ -830,6 +830,12 @@ var ZoomRegion = class ZoomRegion {
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         let [xCaret, yCaret] = [extents.x * scaleFactor, extents.y * scaleFactor];
 
+        // Ignore event(s) if the caret size is none (0x0). This happens a lot if
+        // the cursor offset can't be translated into a location. This is a work
+        // around.
+        if (extents.width === 0 && extents.height === 0)
+            return;
+
         if (this._xCaret !== xCaret || this._yCaret !== yCaret) {
             [this._xCaret, this._yCaret] = [xCaret, yCaret];
             this._centerFromCaretPosition();
@@ -1168,6 +1174,8 @@ var ZoomRegion = class ZoomRegion {
                 this._xDelayed = null;
                 this._yDelayed = null;
             }
+
+            this._scrollContentsTimerId = 0;
 
             return GLib.SOURCE_REMOVE;
         });
@@ -1679,14 +1687,22 @@ class Crosshairs extends Clutter.Actor {
         this._clipSize = [0, 0];
         this._clones = [];
         this.reCenter();
-
-        Main.layoutManager.connect('monitors-changed',
-                                   this._monitorsChanged.bind(this));
+        this._monitorsChangedId = 0;
     }
 
     _monitorsChanged() {
         this.set_size(global.screen_width * 3, global.screen_height * 3);
         this.reCenter();
+    }
+
+    setEnabled(enabled) {
+        if (enabled && this._monitorsChangedId === 0) {
+            this._monitorsChangedId = Main.layoutManager.connect(
+                'monitors-changed', this._monitorsChanged.bind(this));
+        } else if (!enabled && this._monitorsChangedId !== 0) {
+            Main.layoutManager.disconnect(this._monitorsChangedId);
+            this._monitorsChangedId = 0;
+        }
     }
 
     /**

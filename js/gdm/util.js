@@ -159,6 +159,7 @@ var ShellUserVerifier = class {
         this.reauthenticating = false;
 
         this._failCounter = 0;
+        this._unavailableServices = new Set();
 
         this._credentialManagers = {};
         this._credentialManagers[OVirt.SERVICE_NAME] = OVirt.getOVirtCredentialsManager();
@@ -220,7 +221,7 @@ var ShellUserVerifier = class {
     }
 
     destroy() {
-        this.clear();
+        this.cancel();
 
         this._settings.run_dispose();
         this._settings = null;
@@ -240,9 +241,11 @@ var ShellUserVerifier = class {
         if (!this.hasPendingMessages) {
             this._userVerifier.call_answer_query(serviceName, answer, this._cancellable, null);
         } else {
+            const cancellable = this._cancellable;
             let signalId = this.connect('no-more-messages', () => {
                 this.disconnect(signalId);
-                this._userVerifier.call_answer_query(serviceName, answer, this._cancellable, null);
+                if (!cancellable.is_cancelled())
+                    this._userVerifier.call_answer_query(serviceName, answer, cancellable, null);
             });
         }
     }
@@ -406,6 +409,7 @@ var ShellUserVerifier = class {
         this._userVerifier.connect('info-query', this._onInfoQuery.bind(this));
         this._userVerifier.connect('secret-info-query', this._onSecretInfoQuery.bind(this));
         this._userVerifier.connect('conversation-stopped', this._onConversationStopped.bind(this));
+        this._userVerifier.connect('service-unavailable', this._onServiceUnavailable.bind(this));
         this._userVerifier.connect('reset', this._onReset.bind(this));
         this._userVerifier.connect('verification-complete', this._onVerificationComplete.bind(this));
     }
@@ -423,6 +427,11 @@ var ShellUserVerifier = class {
 
     serviceIsDefault(serviceName) {
         return serviceName == this._defaultService;
+    }
+
+    serviceIsFingerprint(serviceName) {
+        return serviceName === FINGERPRINT_SERVICE_NAME &&
+            this._haveFingerprintReader;
     }
 
     _updateDefaultService() {
@@ -452,6 +461,11 @@ var ShellUserVerifier = class {
         } catch (e) {
             if (e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
                 return;
+            if (!this.serviceIsForeground(serviceName)) {
+                logError(e, 'Failed to start %s for %s'.format(serviceName, this._userName));
+                this._hold.release();
+                return;
+            }
             this._reportInitError(this._userName
                 ? 'Failed to start verification for user'
                 : 'Failed to start verification', e);
@@ -470,8 +484,7 @@ var ShellUserVerifier = class {
     _onInfo(client, serviceName, info) {
         if (this.serviceIsForeground(serviceName)) {
             this._queueMessage(info, MessageType.INFO);
-        } else if (serviceName == FINGERPRINT_SERVICE_NAME &&
-            this._haveFingerprintReader) {
+        } else if (this.serviceIsFingerprint(serviceName)) {
             // We don't show fingerprint messages directly since it's
             // not the main auth service. Instead we use the messages
             // as a cue to display our own message.
@@ -483,7 +496,9 @@ var ShellUserVerifier = class {
     }
 
     _onProblem(client, serviceName, problem) {
-        if (!this.serviceIsForeground(serviceName))
+        const isFingerprint = this.serviceIsFingerprint(serviceName);
+
+        if (!this.serviceIsForeground(serviceName) && !isFingerprint)
             return;
 
         this._queueMessage(problem, MessageType.ERROR);
@@ -515,6 +530,7 @@ var ShellUserVerifier = class {
     _onReset() {
         // Clear previous attempts to authenticate
         this._failCounter = 0;
+        this._unavailableServices.clear();
         this._updateDefaultService();
 
         this.emit('reset');
@@ -530,6 +546,7 @@ var ShellUserVerifier = class {
     }
 
     _retry() {
+        this.cancel();
         this.begin(this._userName, new Batch.Hold());
     }
 
@@ -548,9 +565,10 @@ var ShellUserVerifier = class {
             if (!this.hasPendingMessages) {
                 this._retry();
             } else {
+                const cancellable = this._cancellable;
                 let signalId = this.connect('no-more-messages', () => {
                     this.disconnect(signalId);
-                    if (this._cancellable && !this._cancellable.is_cancelled())
+                    if (!cancellable.is_cancelled())
                         this._retry();
                 });
             }
@@ -559,14 +577,26 @@ var ShellUserVerifier = class {
             if (!this.hasPendingMessages) {
                 this._cancelAndReset();
             } else {
+                const cancellable = this._cancellable;
                 let signalId = this.connect('no-more-messages', () => {
                     this.disconnect(signalId);
-                    this._cancelAndReset();
+                    if (!cancellable.is_cancelled())
+                        this._cancelAndReset();
                 });
             }
         }
 
         this.emit('verification-failed', canRetry);
+    }
+
+    _onServiceUnavailable(_client, serviceName, errorMessage) {
+        this._unavailableServices.add(serviceName);
+
+        if (!errorMessage)
+            return;
+
+        if (this.serviceIsForeground(serviceName) || this.serviceIsFingerprint(serviceName))
+            this._queueMessage(errorMessage, MessageType.ERROR);
     }
 
     _onConversationStopped(client, serviceName) {
@@ -581,6 +611,9 @@ var ShellUserVerifier = class {
             this._verificationFailed(false);
             return;
         }
+
+        if (this._unavailableServices.has(serviceName))
+            return;
 
         // if the password service fails, then cancel everything.
         // But if, e.g., fingerprint fails, still give
