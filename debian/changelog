@@ -1,11 +1,11 @@
-gnome-shell (40.2-1ubuntu3) UNRELEASED; urgency=medium
+gnome-shell (40.2-1ubuntu3) impish; urgency=medium
 
   [ Daniel van Vugt ]
   * Add layout-Make-starting-in-the-overview-optional.patch:
     - So that extensions like Ubuntu Dock have the option of preventing
       the shell starting in the overview. (LP: #1940925)
 
- -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Wed, 25 Aug 2021 18:54:27 +0200
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Thu, 26 Aug 2021 19:47:55 +0200
 
 gnome-shell (40.2-1ubuntu2) impish; urgency=medium
 
