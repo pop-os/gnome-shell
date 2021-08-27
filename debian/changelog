@@ -14,7 +14,7 @@ gnome-shell (3.38.6-1) unstable; urgency=medium
     - Fix double-free crash in calendar on non-x86 (LP: #1915929)
     - Improve OSK compatibility with gjs 1.68.x (LP: #1918738)
     - Fix input-method popup visibility over fullscreen applications
-    - Fix a crash if an app if an app moves between monitors during startup
+    - Fix a crash if an app moves between monitors during startup
     - Fix D-Bus-initiated app focus changes
     - Make sure to return a value from D-Bus methods so callers won't
       time out
