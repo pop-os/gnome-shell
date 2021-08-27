@@ -1,4 +1,4 @@
-gnome-shell (40.2-1ubuntu4) UNRELEASED; urgency=medium
+gnome-shell (40.2-1ubuntu4) impish; urgency=medium
 
   * debian/rules:
     - Skip tests when building for ppc64el to fix FTBFS (LP: #1941792)
