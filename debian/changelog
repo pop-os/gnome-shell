@@ -1,10 +1,10 @@
-gnome-shell (40.2-1ubuntu5) UNRELEASED; urgency=medium
+gnome-shell (40.2-1ubuntu5) impish; urgency=medium
 
   * Fix translation issues (LP: #1941954):
     - Really fix translation import problem as reported in LP: #1756547
     - Add libgtk-3-bin to Build-Depends for dh_translations
 
- -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Sat, 28 Aug 2021 20:00:18 +0200
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Sat, 28 Aug 2021 20:13:36 +0200
 
 gnome-shell (40.2-1ubuntu4) impish; urgency=medium
 
