@@ -1,6 +1,48 @@
 gnome-shell (40.4-1) UNRELEASED; urgency=medium
 
   * New upstream release
+    - Don't include hidden search results in keyboard navigation
+    - Fix visual issues with extensions that occupy screen edges
+    - Add focus indications for switch widgets, such as VPN toggles
+    - Fix visual glitch when dragging window preview in overview
+    - Avoid windows that should not be in the overview appearing on
+      Shell startup, for example with desktop-icons-ng
+    - Fix suspend inhibitor accounting
+    - Avoid a crash when running in "headless" mode
+    - Be compatible with more combinations of new GLib and old gjs
+      (not applicable in Debian, we already have the new gjs)
+    - Fix spurious warnings for virtual input devices
+    - Minor optimization for screen magnifier
+    - Avoid a warning when displaying app details
+    - Use the same location permissions as gnome-control-center
+    - Fix some small memory leaks
+    - Fix glitch in transition from app grid to session
+    - Fix input method popup visibility when in fullscreen
+    - magnifier: Fix view jumps when using caret tracking
+    - Fix shadow rendering glitches
+    - Fix vertical scrollbars in RTL locales
+    - Fix a crash if an app moves between monitors during startup
+    - Remove timeout for starting Xwayland on-demand
+    - Fix D-Bus-initiated app focus changes
+    - Make sure to return a value from D-Bus methods so callers won't
+      time out
+    - Make sure power menu stays in sync with upower
+    - Handle non-widget source actors
+    - Optimize shadows in overview
+    - Use mallinfo2() instead of deprecated mallinfo() if glibc is new
+      enough (not applicable in Debian yet)
+    - Fix runtime warnings related to magnifier and shutdown
+    - Translation updates
+  * d/p/weather-Cope-with-either-libgweather-40-or-3.36.patch:
+    Avoid libgweather 40 dependency.
+    It'll be easier to do the libmutter-8-0 transition if we can decouple
+    it from libgweather, and gnome-shell is written in a dynamic language,
+    so we can easily avoid the dependency.
+  * Relax Breaks on top-icons-plus extension.
+    There doesn't seem to have been an official upstream release for v28,
+    so the version fixing GNOME 40 compatibility will be 27-2.
+    It has a versioned Depends anyway, so we don't need to be completely
+    precise here.
 
  -- Simon McVittie <smcv@debian.org>  Tue, 31 Aug 2021 09:46:35 +0100
 
