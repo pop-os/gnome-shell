@@ -1831,11 +1831,13 @@ class AppDisplay extends BaseAppView {
 
         // Create the new folder
         let newFolderPath = this._folderSettings.path.concat('folders/', newFolderId, '/');
-        let newFolderSettings = new Gio.Settings({
-            schema_id: 'org.gnome.desktop.app-folders.folder',
-            path: newFolderPath,
-        });
-        if (!newFolderSettings) {
+        let newFolderSettings;
+        try {
+            newFolderSettings = new Gio.Settings({
+                schema_id: 'org.gnome.desktop.app-folders.folder',
+                path: newFolderPath,
+            });
+        } catch (e) {
             log('Error creating new folder');
             return false;
         }
@@ -3531,8 +3533,7 @@ var AppIconMenu = class AppIconMenu extends PopupMenu.PopupMenu {
 
             if (Shell.AppSystem.get_default().lookup_app('org.gnome.Software.desktop')) {
                 this._appendSeparator();
-                let item = this._appendMenuItem(_("Show Details"));
-                item.connect('activate', async () => {
+                this.addAction(_('Show Details'), async () => {
                     let id = this._source.app.get_id();
                     let args = GLib.Variant.new('(ss)', [id, '']);
                     const bus = await Gio.DBus.get(Gio.BusType.SESSION, null);

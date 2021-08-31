@@ -228,26 +228,25 @@ var Magnifier = class Magnifier {
      * scrollToMousePos:
      * Position all zoom regions' ROI relative to the current location of the
      * system pointer.
-     * @returns {bool} true.
      */
     scrollToMousePos() {
         let [xMouse, yMouse] = global.get_pointer();
 
-        if (xMouse != this.xMouse || yMouse != this.yMouse) {
-            this.xMouse = xMouse;
-            this.yMouse = yMouse;
+        if (xMouse === this.xMouse && yMouse === this.yMouse)
+            return;
 
-            let sysMouseOverAny = false;
-            this._zoomRegions.forEach(zoomRegion => {
-                if (zoomRegion.scrollToMousePos())
-                    sysMouseOverAny = true;
-            });
-            if (sysMouseOverAny)
-                this.hideSystemCursor();
-            else
-                this.showSystemCursor();
-        }
-        return true;
+        this.xMouse = xMouse;
+        this.yMouse = yMouse;
+
+        let sysMouseOverAny = false;
+        this._zoomRegions.forEach(zoomRegion => {
+            if (zoomRegion.scrollToMousePos())
+                sysMouseOverAny = true;
+        });
+        if (sysMouseOverAny)
+            this.hideSystemCursor();
+        else
+            this.showSystemCursor();
     }
 
     /**
