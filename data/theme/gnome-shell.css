@@ -719,6 +719,13 @@ StScrollBar {
   margin: 8px 16px 0;
   padding: 4px;
   spacing: 12px; }
+  .message-list-controls .dnd-button {
+    border-width: 2px;
+    border-color: transparent;
+    border-radius: 99px;
+    border-style: solid; }
+    .message-list-controls .dnd-button:focus {
+      border-color: rgba(27, 106, 203, 0.6); }
 
 .message {
   border-width: 1px;
