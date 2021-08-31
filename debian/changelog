@@ -41,7 +41,7 @@ gnome-shell (40.4-1) experimental; urgency=medium
     so we can easily avoid the dependency.
   * Relax Breaks on top-icons-plus extension.
     There doesn't seem to have been an official upstream release for v28,
-    so the version fixing GNOME 40 compatibility will be 27-2.
+    so the version fixing GNOME 40 compatibility will be 27-3.
     It has a versioned Depends anyway, so we don't need to be completely
     precise here.
 
