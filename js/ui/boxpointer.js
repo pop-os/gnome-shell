@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported BoxPointer */
 
-const { Clutter, GObject, St } = imports.gi;
+const { Clutter, GObject, Meta, St } = imports.gi;
 
 const Main = imports.ui.main;
 
@@ -47,6 +47,13 @@ var BoxPointer = GObject.registerClass({
         this.set_child_above_sibling(this.bin, this._border);
         this._sourceAlignment = 0.5;
         this._muteInput = true;
+
+        this.connect('notify::visible', () => {
+            if (this.visible)
+                Meta.disable_unredirect_for_display(global.display);
+            else
+                Meta.enable_unredirect_for_display(global.display);
+        });
 
         this.connect('destroy', this._onDestroy.bind(this));
     }
@@ -457,8 +464,10 @@ var BoxPointer = GObject.registerClass({
         this._workArea = Main.layoutManager.getWorkAreaForMonitor(monitorIndex);
 
         // Position correctly relative to the sourceActor
-        let sourceNode = sourceActor.get_theme_node();
-        let sourceContentBox = sourceNode.get_content_box(sourceActor.get_allocation_box());
+        const sourceAllocation = sourceActor.get_allocation_box();
+        const sourceContentBox = sourceActor instanceof St.Widget
+            ? sourceActor.get_theme_node().get_content_box(sourceAllocation)
+            : sourceAllocation;
         let sourceTopLeft = this._sourceExtents.get_top_left();
         let sourceBottomRight = this._sourceExtents.get_bottom_right();
         let sourceCenterX = sourceTopLeft.x + sourceContentBox.x1 + (sourceContentBox.x2 - sourceContentBox.x1) * this._sourceAlignment;

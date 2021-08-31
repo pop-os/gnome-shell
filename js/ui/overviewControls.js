@@ -112,7 +112,8 @@ class ControlsManagerLayout extends Clutter.BoxLayout {
 
     vfunc_set_container(container) {
         this._container = container;
-        this.hookup_style(container);
+        if (container)
+            this.hookup_style(container);
     }
 
     vfunc_get_preferred_width(_container, _forHeight) {
@@ -534,8 +535,8 @@ class ControlsManager extends St.Widget {
         if (!stateTransitionParams)
             stateTransitionParams = this._stateAdjustment.getStateTransitionParams();
 
-        const { currentState, finalState } = stateTransitionParams;
-        const state = Math.max(currentState, finalState);
+        const { initialState, finalState } = stateTransitionParams;
+        const state = Math.max(initialState, finalState);
 
         this._appDisplay.visible =
             state > ControlsState.WINDOW_PICKER &&
