@@ -1,5 +1,6 @@
-gnome-shell (40.4-1) UNRELEASED; urgency=medium
+gnome-shell (40.4-1) experimental; urgency=medium
 
+  * Team upload
   * New upstream release
     - Don't include hidden search results in keyboard navigation
     - Fix visual issues with extensions that occupy screen edges
@@ -44,7 +45,7 @@ gnome-shell (40.4-1) UNRELEASED; urgency=medium
     It has a versioned Depends anyway, so we don't need to be completely
     precise here.
 
- -- Simon McVittie <smcv@debian.org>  Tue, 31 Aug 2021 09:46:35 +0100
+ -- Simon McVittie <smcv@debian.org>  Tue, 31 Aug 2021 10:03:33 +0100
 
 gnome-shell (40.2-1) experimental; urgency=medium
 
