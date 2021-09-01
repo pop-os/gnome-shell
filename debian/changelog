@@ -1,11 +1,11 @@
-gnome-shell (40.2-1ubuntu6) UNRELEASED; urgency=medium
+gnome-shell (40.2-1ubuntu6) impish; urgency=medium
 
   * d/rules:
     - Drop dh_translations workaround. gettext used by LP has been
       updated (LP: #1756547).
     - Fix Lintian warning about DEB_HOST_ARCH assignment
 
- -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Wed, 01 Sep 2021 14:55:02 +0200
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Wed, 01 Sep 2021 15:44:38 +0200
 
 gnome-shell (40.2-1ubuntu5) impish; urgency=medium
 
