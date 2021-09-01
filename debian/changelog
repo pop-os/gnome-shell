@@ -1,3 +1,10 @@
+gnome-shell (40.2-1ubuntu6) UNRELEASED; urgency=medium
+
+  * d/rules: Drop dh_translations workaround
+    - gettext used by LP has been updated (LP: #1756547)
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Wed, 01 Sep 2021 14:55:02 +0200
+
 gnome-shell (40.2-1ubuntu5) impish; urgency=medium
 
   * Fix translation issues (LP: #1941954):

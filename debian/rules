@@ -20,11 +20,6 @@ override_dh_auto_configure:
 		-Dbash_completion=true \
 		$(CONFFLAGS)
 
-override_dh_translations:
-	dh_translations
-	# work around https://launchpad.net/bugs/1756547
-	sed -i '/^#, javascript-format/d' po/gnome-shell.pot
-
 override_dh_makeshlibs:
 	dh_makeshlibs -X/usr/lib/gnome-shell/
 
