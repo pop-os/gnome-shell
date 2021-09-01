@@ -3,7 +3,7 @@
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
 
-DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 
 %:
 	dh $@ --with bash_completion

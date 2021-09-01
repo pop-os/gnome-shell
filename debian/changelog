@@ -1,7 +1,9 @@
 gnome-shell (40.2-1ubuntu6) UNRELEASED; urgency=medium
 
-  * d/rules: Drop dh_translations workaround
-    - gettext used by LP has been updated (LP: #1756547)
+  * d/rules:
+    - Drop dh_translations workaround. gettext used by LP has been
+      updated (LP: #1756547).
+    - Fix Lintian warning about DEB_HOST_ARCH assignment
 
  -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Wed, 01 Sep 2021 14:55:02 +0200
 
