@@ -99,6 +99,34 @@ gnome-shell (40.1-1) experimental; urgency=medium
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 30 May 2021 17:55:32 +0200
 
+gnome-shell (3.38.6-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - gdm user interface fixes
+      + Don't limit timed-login progress bar to the width of the username
+        if it's short
+      + Make sure authentication cancellation is handled correctly
+      + Improve fingerprint authentication handling
+      + Don't retry authentication if services are unavailable
+    - Fix word suggestions in on-screen keyboard
+    - Fix freeze after closing some modal dialogs with gjs 1.68.x
+      (LP: #1918666)
+    - Fix double-free crash in calendar on non-x86 (LP: #1915929)
+    - Improve OSK compatibility with gjs 1.68.x (LP: #1918738)
+    - Fix input-method popup visibility over fullscreen applications
+    - Fix a crash if an app if an app moves between monitors during startup
+    - Fix D-Bus-initiated app focus changes
+    - Make sure to return a value from D-Bus methods so callers won't
+      time out
+    - Fix runtime warnings related to magnifier and shutdown
+    - Make sure power menu stays in sync with upower
+    - Use mallinfo2() instead of deprecated mallinfo() if glibc is new
+      enough (not applicable in Debian yet)
+  * d/gbp.conf, d/control.in: Update VCS details for debian/unstable branch
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 26 Aug 2021 08:50:50 +0100
+
 gnome-shell (3.38.4-2) experimental; urgency=medium
 
   * debian/patches: Import upstream patches needed to support libgweather 40.
