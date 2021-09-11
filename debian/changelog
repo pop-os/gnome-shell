@@ -1,3 +1,18 @@
+gnome-shell (40.4-2) unstable; urgency=medium
+
+  * Team upload
+  * Release to unstable (transition: #992870)
+  * Depend on gnome-settings-daemon 40.
+    Older versions don't autostart the screensaver service, causing screen
+    locking to fail.
+    Thanks to jordi
+  * Depend on gsettings-desktop-schemas 40.
+    This is implicit in our dependency on a newer gnome-settings-daemon,
+    but let's make it explicit that all the core GNOME packages need to
+    go together.
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 11 Sep 2021 21:54:49 +0100
+
 gnome-shell (40.4-1) experimental; urgency=medium
 
   * Team upload
