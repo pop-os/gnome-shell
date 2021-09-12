@@ -1,3 +1,32 @@
+gnome-shell (40.4-3) unstable; urgency=medium
+
+  * Team upload
+
+  [ Simon McVittie ]
+  * gnome-shell-extension-prefs: Add patch to give Debian-specific advice.
+    We package gnome-extensions-app in the same binary package as
+    gnome-shell-extension-prefs, so there's never a need to install it
+    separately, either via Debian packages or from Flathub.
+  * gnome-shell-extension-prefs: Add Provides on gnome-extensions-app.
+    The gnome-shell-extension-prefs program in this package is deprecated,
+    and the gnome-extensions-app program is now the main reason to want to
+    install it, so let's make it a bit more discoverable.
+  * gnome-shell: Add Suggests on gnome-shell-extension-prefs.
+    The g-s-e-p program itself is deprecated, but the g-s-e-p package also
+    contains gnome-extensions-app, which is the recommended UI for
+    extensions management.
+
+  [ Jeremy Bicha ]
+  * debian/watch: Watch for stable releases
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/control: Add missing dependency on gir1.2-gtk-4.0
+
+  [ Gunnar Hjalmarsson ]
+  * Add libgtk-3-bin to Build-Depends for dh_translations (LP: #1941954)
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 12 Sep 2021 16:44:18 +0100
+
 gnome-shell (40.4-2) unstable; urgency=medium
 
   * Team upload
