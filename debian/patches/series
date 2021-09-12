@@ -1,1 +1,2 @@
 weather-Cope-with-either-libgweather-40-or-3.36.patch
+debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch

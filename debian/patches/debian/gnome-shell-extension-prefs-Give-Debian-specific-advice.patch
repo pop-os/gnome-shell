@@ -1,0 +1,32 @@
+From: Simon McVittie <smcv@debian.org>
+Date: Sun, 12 Sep 2021 10:41:54 +0100
+Subject: gnome-shell-extension-prefs: Give Debian-specific advice
+
+We package gnome-extensions-app in the same binary package as
+gnome-shell-extension-prefs, so there's never a need to download it from
+Flathub.
+
+Forwarded: not-needed, Debian-specific
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ src/gnome-shell-extension-prefs | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/gnome-shell-extension-prefs b/src/gnome-shell-extension-prefs
+index 303b196..a59ffed 100755
+--- a/src/gnome-shell-extension-prefs
++++ b/src/gnome-shell-extension-prefs
+@@ -13,10 +13,10 @@ openPrefs() {
+ }
+ 
+ cat >&2 <<EOT
+-gnome-shell-extension-prefs is deprecated
++The gnome-shell-extension-prefs program is deprecated.
+ 
+-Install https://flathub.org/apps/details/org.gnome.Extensions for extension
+-management, or use the gnome-extensions command line tool.
++Run gnome-extensions-app (from the gnome-shell-extension-prefs package)
++for extension management, or use the gnome-extensions command line tool.
+ 
+ Extensions can use the ExtensionUtils.openPrefs() method.
+ EOT
