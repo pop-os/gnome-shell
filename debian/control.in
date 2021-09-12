@@ -163,6 +163,7 @@ Depends: gir1.2-gtk-4.0,
          ${gir:Depends},
          ${misc:Depends},
          ${shlibs:Depends}
+Provides: gnome-extensions-app
 Recommends: chrome-gnome-shell
 Breaks: gnome-shell (<< 3.36.0-2)
 Replaces: gnome-shell (<< 3.36.0-2)
