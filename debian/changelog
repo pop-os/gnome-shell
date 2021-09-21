@@ -3,8 +3,14 @@ gnome-shell (41.0-1) UNRELEASED; urgency=medium
   * Revert "Avoid libgweather 40 dependency".
     libgweather 40 has now been uploaded to unstable.
   * New upstream release
+  * Update dependency versions
+  * d/rules: Stay with libsoup 2.4 for now
+  * Build-depend on libmutter-test-9 if tests are enabled
+  * Enable or disable tests according to nocheck build option
+  * Stop installing gconf -> gsettings migration rules, removed upstream
+  * Standards-Version: 4.6.0 (no changes required)
 
- -- Simon McVittie <smcv@debian.org>  Tue, 21 Sep 2021 10:16:50 +0100
+ -- Simon McVittie <smcv@debian.org>  Tue, 21 Sep 2021 17:58:08 +0100
 
 gnome-shell (40.4-3) unstable; urgency=medium
 
