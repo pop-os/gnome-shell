@@ -1118,7 +1118,8 @@ var WindowManager = class {
     }
 
     _shouldAnimate() {
-        return !(Main.overview.visible || this._workspaceAnimation.gestureActive);
+        const overviewOpen = Main.overview.visible && !Main.overview.closing;
+        return !(overviewOpen || this._workspaceAnimation.gestureActive);
     }
 
     _shouldAnimateActor(actor, types) {
@@ -1282,7 +1283,7 @@ var WindowManager = class {
     _prepareAnimationInfo(shellwm, actor, oldFrameRect, _change) {
         // Position a clone of the window on top of the old position,
         // while actor updates are frozen.
-        let actorContent = Shell.util_get_content_for_window_actor(actor, oldFrameRect);
+        let actorContent = actor.paint_to_content(oldFrameRect);
         let actorClone = new St.Widget({ content: actorContent });
         actorClone.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
         actorClone.set_position(oldFrameRect.x, oldFrameRect.y);
@@ -1445,7 +1446,19 @@ var WindowManager = class {
         dimmer.setDimmed(false, this._shouldAnimate());
     }
 
-    _mapWindow(shellwm, actor) {
+    _waitForOverviewToHide() {
+        if (!Main.overview.visible)
+            return Promise.resolve();
+
+        return new Promise(resolve => {
+            const id = Main.overview.connect('hidden', () => {
+                Main.overview.disconnect(id);
+                resolve();
+            });
+        });
+    }
+
+    async _mapWindow(shellwm, actor) {
         actor._windowType = actor.meta_window.get_window_type();
         actor._notifyWindowTypeSignalId =
             actor.meta_window.connect('notify::window-type', () => {
@@ -1487,6 +1500,7 @@ var WindowManager = class {
             actor.show();
             this._mapping.add(actor);
 
+            await this._waitForOverviewToHide();
             actor.ease({
                 opacity: 255,
                 scale_x: 1,
@@ -1504,6 +1518,7 @@ var WindowManager = class {
             actor.show();
             this._mapping.add(actor);
 
+            await this._waitForOverviewToHide();
             actor.ease({
                 opacity: 255,
                 scale_x: 1,
@@ -1856,24 +1871,9 @@ var WindowManager = class {
         if (event.type() !== Clutter.EventType.SCROLL)
             return Clutter.EVENT_PROPAGATE;
 
-        if (event.is_pointer_emulated())
+        const direction = event.get_scroll_direction();
+        if (direction === Clutter.ScrollDirection.SMOOTH)
             return Clutter.EVENT_PROPAGATE;
-
-        let direction = event.get_scroll_direction();
-        if (direction === Clutter.ScrollDirection.SMOOTH) {
-            const [dx, dy] = event.get_scroll_delta();
-            if (Math.abs(dx) > Math.abs(dy)) {
-                direction = dx < 0
-                    ? Clutter.ScrollDirection.LEFT
-                    : Clutter.ScrollDirection.RIGHT;
-            } else if (Math.abs(dy) > Math.abs(dx)) {
-                direction = dy < 0
-                    ? Clutter.ScrollDirection.UP
-                    : Clutter.ScrollDirection.DOWN;
-            } else {
-                return Clutter.EVENT_PROPAGATE;
-            }
-        }
 
         const workspaceManager = global.workspace_manager;
         const vertical = workspaceManager.layout_rows === -1;

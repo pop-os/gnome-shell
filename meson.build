@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '40.4',
+  version: '41.0',
   meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
@@ -17,19 +17,20 @@ clutter_pc = 'mutter-clutter-' + mutter_api_version
 cogl_pc = 'mutter-cogl-' + mutter_api_version
 cogl_pango_pc = 'mutter-cogl-pango-' + mutter_api_version
 libmutter_pc = 'libmutter-' + mutter_api_version
+libmutter_test_pc = 'libmutter-test-' + mutter_api_version
 
 ecal_req = '>= 3.33.1'
 eds_req = '>= 3.33.1'
 gcr_req = '>= 3.7.5'
 gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
-gjs_req = '>= 1.65.1'
+gjs_req = '>= 1.69.2'
 gtk_req = '>= 3.15.0'
-mutter_req = '>= 40.0'
+mutter_req = '>= 41.0'
 polkit_req = '>= 0.100'
-schemas_req = '>= 3.33.1'
+schemas_req = '>= 41.alpha'
 startup_req = '>= 0.11'
-ibus_req = '>= 1.5.2'
+ibus_req = '>= 1.5.19'
 gnome_desktop_req = '>= 3.35.90'
 
 bt_req = '>= 3.9.0'
@@ -54,7 +55,6 @@ pkgdatadir = join_paths(datadir, meson.project_name())
 pkglibdir = join_paths(libdir, meson.project_name())
 
 autostartdir = join_paths(sysconfdir, 'xdg', 'autostart')
-convertdir = join_paths(datadir, 'GConf', 'gsettings')
 desktopdir = join_paths(datadir, 'applications')
 icondir = join_paths(datadir, 'icons')
 ifacedir = join_paths(datadir, 'dbus-1', 'interfaces')
@@ -126,6 +126,8 @@ else
   libsystemd_dep = []
   have_systemd = false
 endif
+
+have_soup2 = get_option('soup2')
 
 if get_option('man')
   if fs.exists('man/gnome-shell.1')
@@ -285,8 +287,11 @@ subdir('js')
 subdir('src')
 subdir('po')
 subdir('data')
-subdir('tests')
 subdir('tools')
+
+if get_option('tests')
+  subdir('tests')
+endif
 
 if get_option('gtk_doc')
   subdir('docs/reference')
@@ -295,6 +300,7 @@ endif
 meson.add_install_script('meson/postinstall.py')
 meson.add_dist_script('meson/generate-manpages.py')
 meson.add_dist_script('meson/generate-stylesheets.py')
+meson.add_dist_script('meson/check-version.py', meson.project_version(), 'NEWS')
 
 summary_options = {
   'networkmanager': get_option('networkmanager'),

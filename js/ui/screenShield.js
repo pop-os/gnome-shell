@@ -139,7 +139,7 @@ var ScreenShield = class {
                                                       fadeFactor: 1 });
         this._shortLightbox.connect('notify::active', this._onShortLightbox.bind(this));
 
-        this.idleMonitor = Meta.IdleMonitor.get_core();
+        this.idleMonitor = global.backend.get_core_idle_monitor();
         this._cursorTracker = Meta.CursorTracker.get_for_display(global.display);
 
         this._syncInhibitor();
@@ -203,7 +203,7 @@ var ScreenShield = class {
         return this._isModal;
     }
 
-    _syncInhibitor() {
+    async _syncInhibitor() {
         const lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY);
         const lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
         const inhibit = !!this._loginSession && this._loginSession.Active &&
@@ -215,22 +215,18 @@ var ScreenShield = class {
 
         this._inhibited = inhibit;
 
-        if (inhibit) {
-            this._loginManager.inhibit(_('GNOME needs to lock the screen'),
-                inhibitor => {
-                    if (inhibitor) {
-                        if (this._inhibitor)
-                            inhibitor.close(null);
-                        else
-                            this._inhibitor = inhibitor;
-                    }
+        this._inhibitCancellable?.cancel();
+        this._inhibitCancellable = new Gio.Cancellable();
 
-                    // Handle uninhibits that happened after the start
-                    if (!this._inhibited) {
-                        this._inhibitor?.close(null);
-                        this._inhibitor = null;
-                    }
-                });
+        if (inhibit) {
+            try {
+                this._inhibitor = await this._loginManager.inhibit(
+                    _('GNOME needs to lock the screen'),
+                    this._inhibitCancellable);
+            } catch (e) {
+                if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                    log('Failed to inhibit suspend: %s'.format(e.message));
+            }
         } else {
             this._inhibitor?.close(null);
             this._inhibitor = null;
@@ -340,8 +336,10 @@ var ScreenShield = class {
     showDialog() {
         if (!this._becomeModal()) {
             // In the login screen, this is a hard error. Fail-whale
-            log('Could not acquire modal grab for the login screen. Aborting login process.');
-            Meta.quit(Meta.ExitCode.ERROR);
+            const error = new GLib.Error(
+                Gio.IOErrorEnum, Gio.IOErrorEnum.FAILED,
+                'Could not acquire modal grab for the login screen. Aborting login process.');
+            global.context.terminate_with_error(error);
         }
 
         this.actor.show();

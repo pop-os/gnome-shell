@@ -25,16 +25,6 @@ var OVERVIEW_ACTIVATION_TIMEOUT = 0.5;
 var ShellInfo = class {
     constructor() {
         this._source = null;
-        this._undoCallback = null;
-    }
-
-    _onUndoClicked() {
-        if (this._undoCallback)
-            this._undoCallback();
-        this._undoCallback = null;
-
-        if (this._source)
-            this._source.destroy();
     }
 
     setMessage(text, options) {
@@ -64,9 +54,8 @@ var ShellInfo = class {
             notification.update(text, null, { clear: true });
         }
 
-        this._undoCallback = undoCallback;
         if (undoCallback)
-            notification.addAction(_("Undo"), this._onUndoClicked.bind(this));
+            notification.addAction(_('Undo'), () => undoCallback());
 
         this._source.showNotification(notification);
     }
@@ -143,6 +132,10 @@ var Overview = class {
 
     get visibleTarget() {
         return this._visibleTarget;
+    }
+
+    get closing() {
+        return this._animationInProgress && !this._visibleTarget;
     }
 
     _createOverview() {
@@ -616,12 +609,14 @@ var Overview = class {
         this._visible = false;
         this._animationInProgress = false;
 
-        this.emit('hidden');
         // Handle any calls to show* while we were hiding
-        if (this._shown)
+        if (this._shown) {
+            this.emit('hidden');
             this._animateVisible(OverviewControls.ControlsState.WINDOW_PICKER);
-        else
+        } else {
             Main.layoutManager.hideOverview();
+            this.emit('hidden');
+        }
 
         Main.panel.style = null;
 

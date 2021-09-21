@@ -40,6 +40,7 @@
     <file>ui/animation.js</file>
     <file>ui/appDisplay.js</file>
     <file>ui/appFavorites.js</file>
+    <file>ui/appMenu.js</file>
     <file>ui/audioDeviceSelection.js</file>
     <file>ui/backgroundMenu.js</file>
     <file>ui/background.js</file>
@@ -63,6 +64,7 @@
     <file>ui/ibusCandidatePopup.js</file>
     <file>ui/iconGrid.js</file>
     <file>ui/inhibitShortcutsDialog.js</file>
+    <file>ui/init.js</file>
     <file>ui/kbdA11yDialog.js</file>
     <file>ui/keyboard.js</file>
     <file>ui/layout.js</file>
@@ -133,6 +135,7 @@
     <file>ui/status/nightLight.js</file>
     <file>ui/status/network.js</file>
     <file>ui/status/power.js</file>
+    <file>ui/status/powerProfiles.js</file>
     <file>ui/status/rfkill.js</file>
     <file>ui/status/volume.js</file>
     <file>ui/status/bluetooth.js</file>

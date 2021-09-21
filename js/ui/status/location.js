@@ -42,55 +42,81 @@ const GeoclueManager = Gio.DBusProxy.makeProxyWrapper(GeoclueIface);
 
 var AgentIface = loadInterfaceXML('org.freedesktop.GeoClue2.Agent');
 
-var Indicator = GObject.registerClass(
-class Indicator extends PanelMenu.SystemIndicator {
+let _geoclueAgent = null;
+function _getGeoclueAgent() {
+    if (_geoclueAgent === null)
+        _geoclueAgent = new GeoclueAgent();
+    return _geoclueAgent;
+}
+
+var GeoclueAgent = GObject.registerClass({
+    Properties: {
+        'enabled': GObject.ParamSpec.boolean(
+            'enabled', 'Enabled', 'Enabled',
+            GObject.ParamFlags.READWRITE,
+            false),
+        'in-use': GObject.ParamSpec.boolean(
+            'in-use', 'In use', 'In use',
+            GObject.ParamFlags.READABLE,
+            false),
+        'max-accuracy-level': GObject.ParamSpec.int(
+            'max-accuracy-level', 'Max accuracy level', 'Max accuracy level',
+            GObject.ParamFlags.READABLE,
+            0, 8, 0),
+    },
+}, class GeoclueAgent extends GObject.Object {
     _init() {
         super._init();
 
         this._settings = new Gio.Settings({ schema_id: LOCATION_SCHEMA });
         this._settings.connect('changed::%s'.format(ENABLED),
-                               this._onMaxAccuracyLevelChanged.bind(this));
+            () => this.notify('enabled'));
         this._settings.connect('changed::%s'.format(MAX_ACCURACY_LEVEL),
-                               this._onMaxAccuracyLevelChanged.bind(this));
-
-        this._indicator = this._addIndicator();
-        this._indicator.icon_name = 'find-location-symbolic';
-
-        this._item = new PopupMenu.PopupSubMenuMenuItem('', true);
-        this._item.icon.icon_name = 'find-location-symbolic';
+            this._onMaxAccuracyLevelChanged.bind(this));
 
         this._agent = Gio.DBusExportedObject.wrapJSObject(AgentIface, this);
         this._agent.export(Gio.DBus.system, '/org/freedesktop/GeoClue2/Agent');
 
-        this._item.label.text = _("Location Enabled");
-        this._onOffAction = this._item.menu.addAction(_("Disable"), this._onOnOffAction.bind(this));
-        this._item.menu.addSettingsAction(_('Privacy Settings'), 'gnome-location-panel.desktop');
-
-        this.menu.addMenuItem(this._item);
+        this.connect('notify::enabled', this._onMaxAccuracyLevelChanged.bind(this));
 
         this._watchId = Gio.bus_watch_name(Gio.BusType.SYSTEM,
                                            'org.freedesktop.GeoClue2',
                                            0,
                                            this._connectToGeoclue.bind(this),
                                            this._onGeoclueVanished.bind(this));
-        Main.sessionMode.connect('updated', this._onSessionUpdated.bind(this));
-        this._onSessionUpdated();
         this._onMaxAccuracyLevelChanged();
         this._connectToGeoclue();
         this._connectToPermissionStore();
     }
 
-    get MaxAccuracyLevel() {
-        return this._getMaxAccuracyLevel();
+    get enabled() {
+        return this._settings.get_boolean(ENABLED);
+    }
+
+    set enabled(value) {
+        this._settings.set_boolean(ENABLED, value);
+    }
+
+    get inUse() {
+        return this._managerProxy?.InUse ?? false;
+    }
+
+    get maxAccuracyLevel() {
+        if (this.enabled) {
+            let level = this._settings.get_string(MAX_ACCURACY_LEVEL);
+
+            return GeoclueAccuracyLevel[level.toUpperCase()] ||
+                   GeoclueAccuracyLevel.NONE;
+        } else {
+            return GeoclueAccuracyLevel.NONE;
+        }
     }
 
     AuthorizeAppAsync(params, invocation) {
         let [desktopId, reqAccuracyLevel] = params;
 
         let authorizer = new AppAuthorizer(desktopId,
-                                           reqAccuracyLevel,
-                                           this._permStoreProxy,
-                                           this._getMaxAccuracyLevel());
+            reqAccuracyLevel, this._permStoreProxy, this.maxAccuracyLevel);
 
         authorizer.authorize(accuracyLevel => {
             let ret = accuracyLevel != GeoclueAccuracyLevel.NONE;
@@ -99,16 +125,8 @@ class Indicator extends PanelMenu.SystemIndicator {
         });
     }
 
-    _syncIndicator() {
-        if (this._managerProxy == null) {
-            this._indicator.visible = false;
-            this._item.visible = false;
-            return;
-        }
-
-        this._indicator.visible = this._managerProxy.InUse;
-        this._item.visible = this._indicator.visible;
-        this._updateMenuLabels();
+    get MaxAccuracyLevel() {
+        return this.maxAccuracyLevel;
     }
 
     _connectToGeoclue() {
@@ -134,7 +152,7 @@ class Indicator extends PanelMenu.SystemIndicator {
         this._propertiesChangedId = this._managerProxy.connect('g-properties-changed',
                                                                this._onGeocluePropsChanged.bind(this));
 
-        this._syncIndicator();
+        this.notify('in-use');
 
         this._managerProxy.AddAgentRemote('gnome-shell', this._onAgentRegistered.bind(this));
     }
@@ -154,33 +172,11 @@ class Indicator extends PanelMenu.SystemIndicator {
         }
         this._managerProxy = null;
 
-        this._syncIndicator();
-    }
-
-    _onOnOffAction() {
-        let enabled = this._settings.get_boolean(ENABLED);
-        this._settings.set_boolean(ENABLED, !enabled);
-    }
-
-    _onSessionUpdated() {
-        let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
-        this.menu.setSensitive(sensitive);
-    }
-
-    _updateMenuLabels() {
-        if (this._settings.get_boolean(ENABLED)) {
-            this._item.label.text = this._indicator.visible
-                ? _("Location In Use")
-                : _("Location Enabled");
-            this._onOffAction.label.text = _("Disable");
-        } else {
-            this._item.label.text = _("Location Disabled");
-            this._onOffAction.label.text = _("Enable");
-        }
+        this.notify('in-use');
     }
 
     _onMaxAccuracyLevelChanged() {
-        this._updateMenuLabels();
+        this.notify('max-accuracy-level');
 
         // Gotta ensure geoclue is up and we are registered as agent to it
         // before we emit the notify for this property change.
@@ -188,26 +184,15 @@ class Indicator extends PanelMenu.SystemIndicator {
             this._notifyMaxAccuracyLevel();
     }
 
-    _getMaxAccuracyLevel() {
-        if (this._settings.get_boolean(ENABLED)) {
-            let level = this._settings.get_string(MAX_ACCURACY_LEVEL);
-
-            return GeoclueAccuracyLevel[level.toUpperCase()] ||
-                   GeoclueAccuracyLevel.NONE;
-        } else {
-            return GeoclueAccuracyLevel.NONE;
-        }
-    }
-
     _notifyMaxAccuracyLevel() {
-        let variant = new GLib.Variant('u', this._getMaxAccuracyLevel());
+        let variant = new GLib.Variant('u', this.maxAccuracyLevel);
         this._agent.emit_property_changed('MaxAccuracyLevel', variant);
     }
 
     _onGeocluePropsChanged(proxy, properties) {
         let unpacked = properties.deep_unpack();
         if ("InUse" in unpacked)
-            this._syncIndicator();
+            this.notify('in-use');
     }
 
     _connectToPermissionStore() {
@@ -222,6 +207,69 @@ class Indicator extends PanelMenu.SystemIndicator {
         }
 
         this._permStoreProxy = proxy;
+    }
+});
+
+var Indicator = GObject.registerClass(
+class Indicator extends PanelMenu.SystemIndicator {
+    _init() {
+        super._init();
+
+        this._agent = _getGeoclueAgent();
+
+        this._indicator = this._addIndicator();
+        this._indicator.icon_name = 'find-location-symbolic';
+        this._agent.bind_property('in-use',
+            this._indicator,
+            'visible',
+            GObject.BindingFlags.SYNC_CREATE);
+
+        this._item = new PopupMenu.PopupSubMenuMenuItem('', true);
+        this._item.icon.icon_name = 'find-location-symbolic';
+        this._agent.bind_property('in-use',
+            this._item,
+            'visible',
+            GObject.BindingFlags.SYNC_CREATE);
+
+        this._item.label.text = _('Location Enabled');
+        this._onOffAction = this._item.menu.addAction(_('Disable'), this._onOnOffAction.bind(this));
+        this._item.menu.addSettingsAction(_('Privacy Settings'), 'gnome-location-panel.desktop');
+
+        this.menu.addMenuItem(this._item);
+
+        this._inUseId = this._agent.connect('notify::in-use', this._updateMenuLabels.bind(this));
+        this._maxAccuracyId = this._agent.connect('notify::max-accuracy-level', this._updateMenuLabels.bind(this));
+
+        this.connect('destroy', this._onDestroy.bind(this));
+
+        Main.sessionMode.connect('updated', this._onSessionUpdated.bind(this));
+        this._onSessionUpdated();
+    }
+
+    _onDestroy() {
+        this._agent.disconnect(this._inUseId);
+        this._agent.disconnect(this._maxAccuracyId);
+    }
+
+    _onOnOffAction() {
+        this.enabled = !this.enabled;
+    }
+
+    _onSessionUpdated() {
+        let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
+        this.menu.setSensitive(sensitive);
+    }
+
+    _updateMenuLabels() {
+        if (this.enabled) {
+            this._item.label.text = this._indicator.visible
+                ? _('Location In Use')
+                : _('Location Enabled');
+            this._onOffAction.label.text = _('Disable');
+        } else {
+            this._item.label.text = _('Location Disabled');
+            this._onOffAction.label.text = _('Enable');
+        }
     }
 });
 
