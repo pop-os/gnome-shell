@@ -1,3 +1,10 @@
+gnome-shell (40.4-4) UNRELEASED; urgency=medium
+
+  * Revert "Avoid libgweather 40 dependency".
+    libgweather 40 has now been uploaded to unstable.
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 21 Sep 2021 10:16:24 +0100
+
 gnome-shell (40.4-3) unstable; urgency=medium
 
   * Team upload
