@@ -348,7 +348,7 @@ class UnlockDialogClock extends St.BoxLayout {
         this._powerModeChangedId = this._monitorManager.connect(
             'power-save-mode-changed', () => (this._hint.opacity = 0));
 
-        this._idleMonitor = Meta.IdleMonitor.get_core();
+        this._idleMonitor = global.backend.get_core_idle_monitor();
         this._idleWatchId = this._idleMonitor.add_idle_watch(HINT_TIMEOUT * 1000, () => {
             this._hint.ease({
                 opacity: 255,
@@ -577,6 +577,10 @@ var UnlockDialog = GObject.registerClass({
         this._userSwitchEnabledId = this._screenSaverSettings.connect('changed::user-switch-enabled',
             this._updateUserSwitchVisibility.bind(this));
 
+        this._lockdownSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.lockdown' });
+        this._lockdownSettings.connect('changed::disable-user-switching',
+            this._updateUserSwitchVisibility.bind(this));
+
         this._userLoadedId = this._user.connect('notify::is-loaded',
             this._updateUserSwitchVisibility.bind(this));
 
@@ -594,7 +598,7 @@ var UnlockDialog = GObject.registerClass({
             this._otherUserButton);
         this.add_child(mainBox);
 
-        this._idleMonitor = Meta.IdleMonitor.get_core();
+        this._idleMonitor = global.backend.get_core_idle_monitor();
         this._idleWatchId = this._idleMonitor.add_idle_watch(IDLE_TIMEOUT * 1000, this._escape.bind(this));
 
         this.connect('destroy', this._onDestroy.bind(this));
@@ -858,7 +862,8 @@ var UnlockDialog = GObject.registerClass({
 
     _updateUserSwitchVisibility() {
         this._otherUserButton.visible = this._userManager.can_switch() &&
-            this._screenSaverSettings.get_boolean('user-switch-enabled');
+            this._screenSaverSettings.get_boolean('user-switch-enabled') &&
+            !this._lockdownSettings.get_boolean('disable-user-switching');
     }
 
     cancel() {

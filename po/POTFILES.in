@@ -1,5 +1,6 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
+data/50-gnome-shell-launchers.xml
 data/50-gnome-shell-system.xml
 data/org.gnome.Shell.desktop.in.in
 data/org.gnome.shell.gschema.xml.in
@@ -14,6 +15,7 @@ js/portalHelper/main.js
 js/ui/accessDialog.js
 js/ui/appDisplay.js
 js/ui/appFavorites.js
+js/ui/appMenu.js
 js/ui/audioDeviceSelection.js
 js/ui/backgroundMenu.js
 js/ui/calendar.js
@@ -61,6 +63,7 @@ js/ui/status/location.js
 js/ui/status/network.js
 js/ui/status/nightLight.js
 js/ui/status/power.js
+js/ui/status/powerProfiles.js
 js/ui/status/remoteAccess.js
 js/ui/status/rfkill.js
 js/ui/status/system.js

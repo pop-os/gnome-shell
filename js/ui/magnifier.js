@@ -229,8 +229,8 @@ var Magnifier = class Magnifier {
      * Position all zoom regions' ROI relative to the current location of the
      * system pointer.
      */
-    scrollToMousePos() {
-        let [xMouse, yMouse] = global.get_pointer();
+    scrollToMousePos(...args) {
+        const [xMouse, yMouse] = args.length ? args : global.get_pointer();
 
         if (xMouse === this.xMouse && yMouse === this.yMouse)
             return;
@@ -749,7 +749,7 @@ var ZoomRegion = class ZoomRegion {
         this._xCaret = 0;
         this._yCaret = 0;
 
-        this._pointerIdleMonitor = Meta.IdleMonitor.get_core();
+        this._pointerIdleMonitor = global.backend.get_core_idle_monitor();
         this._scrollContentsTimerId = 0;
     }
 
@@ -856,6 +856,7 @@ var ZoomRegion = class ZoomRegion {
             this._updateMousePosition();
             this._connectSignals();
         } else {
+            Main.uiGroup.set_opacity(255);
             this._disconnectSignals();
             this._destroyActors();
         }
@@ -1404,6 +1405,9 @@ var ZoomRegion = class ZoomRegion {
 
         if (this.isActive() && this._isMouseOverRegion())
             this._magnifier.hideSystemCursor();
+
+        const uiGroupIsOccluded = this.isActive() && this._isFullScreen();
+        Main.uiGroup.set_opacity(uiGroupIsOccluded ? 0 : 255);
     }
 
     _changeROI(params) {

@@ -1,5 +1,5 @@
 project('gnome-extensions-app',
-  version: '40.4',
+  version: '41.0',
   meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
@@ -61,6 +61,13 @@ if not meson.is_subproject()
   subdir('po')
 
   meson.add_install_script('build-aux/meson/postinstall.py')
+
+  if appstream_util.found()
+    meson.add_dist_script('build-aux/meson/check-version.py',
+      meson.project_version(),
+      '--type=metainfo',
+      'data/metainfo/org.gnome.Extensions.metainfo.xml.in')
+  endif
 
   summary_dirs = {
     'prefix': get_option('prefix'),

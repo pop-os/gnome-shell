@@ -1,5 +1,5 @@
 # GNOME Shell
-GNOME Shell provides core user interface functions for the GNOME 3 desktop,
+GNOME Shell provides core user interface functions for the GNOME desktop,
 like switching to windows and launching applications. GNOME Shell takes
 advantage of the capabilities of modern graphics hardware and introduces
 innovative user interface concepts to provide a visually attractive and
@@ -19,6 +19,19 @@ To contribute, open merge requests at https://gitlab.gnome.org/GNOME/gnome-shell
 Commit messages should follow the [GNOME commit message
 guidelines](https://wiki.gnome.org/Git/CommitMessages). We require an URL
 to either an issue or a merge request in each commit.
+
+## Default branch
+
+The default development branch is `main`. If you still have a local
+checkout under the old name, use:
+```sh
+git checkout master
+git branch -m master main
+git fetch
+git branch --unset-upstream
+git branch -u origin/main
+git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
+```
 
 ## License
 GNOME Shell is distributed under the terms of the GNU General Public License,

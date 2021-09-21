@@ -10,11 +10,11 @@
 
 #include <cogl-pango/cogl-pango.h>
 #include <clutter/clutter.h>
-#include <clutter/x11/clutter-x11.h>
 #include <gtk/gtk.h>
+#include <glib-unix.h>
 #include <glib/gi18n-lib.h>
 #include <girepository.h>
-#include <meta/main.h>
+#include <meta/meta-context.h>
 #include <meta/meta-plugin.h>
 #include <meta/prefs.h>
 #include <atk-bridge.h>
@@ -440,36 +440,84 @@ GOptionEntry gnome_shell_options[] = {
   { NULL }
 };
 
+static gboolean
+on_sigterm (gpointer user_data)
+{
+  MetaContext *context = META_CONTEXT (user_data);
+
+  meta_context_terminate (context);
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+init_signal_handlers (MetaContext *context)
+{
+  struct sigaction act = { 0 };
+  sigset_t empty_mask;
+
+  sigemptyset (&empty_mask);
+  act.sa_handler = SIG_IGN;
+  act.sa_mask = empty_mask;
+  act.sa_flags = 0;
+  if (sigaction (SIGPIPE,  &act, NULL) < 0)
+    g_warning ("Failed to register SIGPIPE handler: %s", g_strerror (errno));
+#ifdef SIGXFSZ
+  if (sigaction (SIGXFSZ,  &act, NULL) < 0)
+    g_warning ("Failed to register SIGXFSZ handler: %s", g_strerror (errno));
+#endif
+
+  g_unix_signal_add (SIGTERM, on_sigterm, context);
+}
+
+static void
+change_to_home_directory (void)
+{
+  const char *home_dir;
+
+  home_dir = g_get_home_dir ();
+  if (!home_dir)
+    return;
+
+  if (chdir (home_dir) < 0)
+    g_warning ("Could not change to home directory %s", home_dir);
+}
+
 int
 main (int argc, char **argv)
 {
-  GOptionContext *ctx;
+  g_autoptr (MetaContext) context = NULL;
   GError *error = NULL;
-  int ecode;
+  int ecode = EXIT_SUCCESS;
 
   bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
   bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
   textdomain (GETTEXT_PACKAGE);
 
+  context = meta_create_context (WM_NAME);
+  meta_context_add_option_entries (context, gnome_shell_options,
+                                   GETTEXT_PACKAGE);
+  meta_context_add_option_group (context, g_irepository_get_option_group ());
+
   session_mode = (char *) g_getenv ("GNOME_SHELL_SESSION_MODE");
 
-  ctx = meta_get_option_context ();
-  g_option_context_add_main_entries (ctx, gnome_shell_options, GETTEXT_PACKAGE);
-  g_option_context_add_group (ctx, g_irepository_get_option_group ());
-  if (!g_option_context_parse (ctx, &argc, &argv, &error))
+  if (!meta_context_configure (context, &argc, &argv, &error))
     {
-      g_printerr ("%s: %s\n", argv[0], error->message);
-      exit (1);
+      g_printerr ("Failed to configure: %s", error->message);
+      return EXIT_FAILURE;
     }
 
-  g_option_context_free (ctx);
+  meta_context_set_plugin_gtype (context, gnome_shell_plugin_get_type ());
+  meta_context_set_gnome_wm_keybindings (context, GNOME_WM_KEYBINDINGS);
 
-  meta_plugin_manager_set_plugin_type (gnome_shell_plugin_get_type ());
+  init_signal_handlers (context);
+  change_to_home_directory ();
 
-  meta_set_wm_name (WM_NAME);
-  meta_set_gnome_wm_keybindings (GNOME_WM_KEYBINDINGS);
-
-  meta_init ();
+  if (!meta_context_setup (context, &error))
+    {
+      g_printerr ("Failed to setup: %s", error->message);
+      return EXIT_FAILURE;
+    }
 
   /* FIXME: Add gjs API to set this stuff and don't depend on the
    * environment.  These propagate to child processes.
@@ -479,7 +527,7 @@ main (int argc, char **argv)
 
   shell_init_debug (g_getenv ("SHELL_DEBUG"));
 
-  shell_dbus_init (meta_get_replace_current_wm ());
+  shell_dbus_init (meta_context_is_replacing (context));
   shell_a11y_init ();
   shell_perf_log_init ();
   shell_introspection_init ();
@@ -505,7 +553,21 @@ main (int argc, char **argv)
     }
 
   shell_profiler_init ();
-  ecode = meta_run ();
+
+  if (!meta_context_start (context, &error))
+    {
+      g_printerr ("GNOME Shell failed to start: %s", error->message);
+      return EXIT_FAILURE;
+    }
+
+  if (!meta_context_run_main_loop (context, &error))
+    {
+      g_printerr ("GNOME Shell terminated with an error: %s", error->message);
+      ecode = EXIT_FAILURE;
+    }
+
+  meta_context_destroy (g_steal_pointer (&context));
+
   shell_profiler_shutdown ();
 
   g_debug ("Doing final cleanup");

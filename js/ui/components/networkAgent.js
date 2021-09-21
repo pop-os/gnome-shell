@@ -2,7 +2,6 @@
 /* exported Component */
 
 const { Clutter, Gio, GLib, GObject, NM, Pango, Shell, St } = imports.gi;
-const ByteArray = imports.byteArray;
 const Signals = imports.signals;
 
 const Dialog = imports.ui.dialog;
@@ -498,7 +497,8 @@ var VPNRequestHandler = class {
             return;
         }
 
-        this._vpnChildProcessLineOldStyle(ByteArray.toString(line));
+        const decoder = new TextDecoder();
+        this._vpnChildProcessLineOldStyle(decoder.decode(line));
 
         // try to read more!
         this._readStdoutOldStyle();
@@ -527,7 +527,7 @@ var VPNRequestHandler = class {
         let contentOverride;
 
         try {
-            data = ByteArray.toGBytes(this._dataStdout.peek_buffer());
+            data = new GLib.Bytes(this._dataStdout.peek_buffer());
             keyfile.load_from_bytes(data, GLib.KeyFileFlags.NONE);
 
             if (keyfile.get_integer(VPN_UI_GROUP, 'Version') != 2)
@@ -682,11 +682,11 @@ var NetworkAgent = class {
         }
         case '802-3-ethernet':
             title = _("Wired 802.1X authentication");
-            body = _("A password is required to connect to “%s”.".format(connection.get_id()));
+            body = _('A password is required to connect to “%s”.').format(connection.get_id());
             break;
         case 'pppoe':
             title = _("DSL authentication");
-            body = _("A password is required to connect to “%s”.".format(connection.get_id()));
+            body = _('A password is required to connect to “%s”.').format(connection.get_id());
             break;
         case 'gsm':
             if (hints.includes('pin')) {
