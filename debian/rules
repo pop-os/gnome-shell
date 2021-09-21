@@ -9,6 +9,7 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 CONFFLAGS = \
 	-Dnetworkmanager=true \
+	-Dsoup2=true \
 	-Dsystemd=true
 endif
 
