@@ -429,12 +429,24 @@ var WorkspaceLayout = GObject.registerClass({
         });
 
         this._stateAdjustment.connect('notify::value', () => {
+            this._syncOpacities();
             this.syncOverlays();
             this.layout_changed();
         });
 
         this._workarea = null;
         this._workareasChangedId = 0;
+    }
+
+    _syncOpacity(actor, metaWindow) {
+        if (!metaWindow.showing_on_its_workspace())
+            actor.opacity = this._stateAdjustment.value * 255;
+    }
+
+    _syncOpacities() {
+        this._windows.forEach(({ metaWindow }, actor) => {
+            this._syncOpacity(actor, metaWindow);
+        });
     }
 
     _isBetterScaleAndSpace(oldScale, oldSpace, scale, space) {
@@ -627,8 +639,9 @@ var WorkspaceLayout = GObject.registerClass({
         }
 
         const { ControlsState } = OverviewControls;
-        const inSessionTransition =
-            this._overviewAdjustment.value <= ControlsState.WINDOW_PICKER;
+        const { currentState } =
+            this._overviewAdjustment.getStateTransitionParams();
+        const inSessionTransition = currentState <= ControlsState.WINDOW_PICKER;
 
         const window = this._sortedWindows[0];
 
@@ -638,8 +651,8 @@ var WorkspaceLayout = GObject.registerClass({
             const [, bottomOversize] = window.chromeHeights();
             const [containerX, containerY] = containerBox.get_origin();
 
-            const extraHeightProgress = this._overviewAdjustment.value -
-                OverviewControls.ControlsState.WINDOW_PICKER;
+            const extraHeightProgress =
+                currentState - OverviewControls.ControlsState.WINDOW_PICKER;
 
             const extraClipHeight = bottomOversize * (1 - extraHeightProgress);
 
@@ -688,8 +701,6 @@ var WorkspaceLayout = GObject.registerClass({
                 workspaceBoxY = workareaY * allocationScale;
                 workspaceBoxWidth = 0;
                 workspaceBoxHeight = 0;
-
-                child.opacity = stateAdjustementValue * 255;
             }
 
             // Don't allow the scaled floating size to drop below
@@ -790,6 +801,7 @@ var WorkspaceLayout = GObject.registerClass({
             return winA.get_stable_sequence() - winB.get_stable_sequence();
         });
 
+        this._syncOpacity(window, metaWindow);
         this._syncOverlay(window);
         this._container.add_child(window);
 
@@ -960,6 +972,8 @@ class WorkspaceBackground extends St.Widget {
             });
         this._updateRoundedClipBounds();
 
+        this._updateBorderRadius();
+
         this.connect('destroy', this._onDestroy.bind(this));
     }
 
@@ -1012,13 +1026,21 @@ class WorkspaceBackground extends St.Widget {
 
         const [contentWidth, contentHeight] = contentBox.get_size();
         const monitor = Main.layoutManager.monitors[this._monitorIndex];
-        const xOff = (contentWidth / this._workarea.width) *
-            (this._workarea.x - monitor.x);
-        const yOff = (contentHeight / this._workarea.height) *
-            (this._workarea.y - monitor.y);
+        const [mX1, mX2] = [monitor.x, monitor.x + monitor.width];
+        const [mY1, mY2] = [monitor.y, monitor.y + monitor.height];
+        const [wX1, wX2] = [this._workarea.x, this._workarea.x + this._workarea.width];
+        const [wY1, wY2] = [this._workarea.y, this._workarea.y + this._workarea.height];
+        const xScale = contentWidth / this._workarea.width;
+        const yScale = contentHeight / this._workarea.height;
+        const leftOffset = wX1 - mX1;
+        const topOffset = wY1 - mY1;
+        const rightOffset = mX2 - wX2;
+        const bottomOffset = mY2 - wY2;
 
-        contentBox.set_origin(-xOff, -yOff);
-        contentBox.set_size(xOff + contentWidth, yOff + contentHeight);
+        contentBox.set_origin(-leftOffset * xScale, -topOffset * yScale);
+        contentBox.set_size(
+            contentWidth + (leftOffset + rightOffset) * xScale,
+            contentHeight + (topOffset + bottomOffset) * yScale);
         this._backgroundGroup.allocate(contentBox);
     }
 
@@ -1096,6 +1118,7 @@ class Workspace extends St.Widget {
         this.connect('style-changed', this._onStyleChanged.bind(this));
         this.connect('destroy', this._onDestroy.bind(this));
 
+        this._skipTaskbarSignals = new Map();
         const windows = global.get_window_actors().map(a => a.meta_window)
             .filter(this._isMyWindow, this);
 
@@ -1222,6 +1245,14 @@ class Workspace extends St.Widget {
         if (!this._isMyWindow(metaWin))
             return;
 
+        this._skipTaskbarSignals.set(metaWin,
+            metaWin.connect('notify::skip-taskbar', () => {
+                if (metaWin.skip_taskbar)
+                    this._doRemoveWindow(metaWin);
+                else
+                    this._doAddWindow(metaWin);
+            }));
+
         if (!this._isOverviewWindow(metaWin)) {
             if (metaWin.get_transient_for() == null)
                 return;
@@ -1261,7 +1292,8 @@ class Workspace extends St.Widget {
     }
 
     _windowAdded(metaWorkspace, metaWin) {
-        this._doAddWindow(metaWin);
+        if (!Main.overview.closing)
+            this._doAddWindow(metaWin);
     }
 
     _windowRemoved(metaWorkspace, metaWin) {
@@ -1269,7 +1301,7 @@ class Workspace extends St.Widget {
     }
 
     _windowEnteredMonitor(metaDisplay, monitorIndex, metaWin) {
-        if (monitorIndex == this.monitorIndex)
+        if (monitorIndex === this.monitorIndex && !Main.overview.closing)
             this._doAddWindow(metaWin);
     }
 
@@ -1290,7 +1322,15 @@ class Workspace extends St.Widget {
         return false;
     }
 
+    _clearSkipTaskbarSignals() {
+        for (const [metaWin, id] of this._skipTaskbarSignals)
+            metaWin.disconnect(id);
+        this._skipTaskbarSignals.clear();
+    }
+
     prepareToLeaveOverview() {
+        this._clearSkipTaskbarSignals();
+
         for (let i = 0; i < this._windows.length; i++)
             this._windows[i].remove_all_transitions();
 
@@ -1304,6 +1344,8 @@ class Workspace extends St.Widget {
     }
 
     _onDestroy() {
+        this._clearSkipTaskbarSignals();
+
         if (this._overviewHiddenId) {
             Main.overview.disconnect(this._overviewHiddenId);
             this._overviewHiddenId = 0;

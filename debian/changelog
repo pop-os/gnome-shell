@@ -1,3 +1,112 @@
+gnome-shell (40.5-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Optimize rendering of fullscreen zoom
+    - Fix glitchy launch animations when leaving overview
+    - Fix wrong separator position in dash
+    - Fix OSK not registering button presses on X11
+    - Fix work area getting messed up by hidden panels
+    - Fix IM candidate popover position
+
+  [ Simon McVittie ]
+  * Revert "Avoid libgweather 40 dependency"
+    libgweather 40 has now been uploaded to unstable.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 24 Sep 2021 22:07:26 +0200
+
+gnome-shell (40.4-3) unstable; urgency=medium
+
+  * Team upload
+
+  [ Simon McVittie ]
+  * gnome-shell-extension-prefs: Add patch to give Debian-specific advice.
+    We package gnome-extensions-app in the same binary package as
+    gnome-shell-extension-prefs, so there's never a need to install it
+    separately, either via Debian packages or from Flathub.
+  * gnome-shell-extension-prefs: Add Provides on gnome-extensions-app.
+    The gnome-shell-extension-prefs program in this package is deprecated,
+    and the gnome-extensions-app program is now the main reason to want to
+    install it, so let's make it a bit more discoverable.
+  * gnome-shell: Add Suggests on gnome-shell-extension-prefs.
+    The g-s-e-p program itself is deprecated, but the g-s-e-p package also
+    contains gnome-extensions-app, which is the recommended UI for
+    extensions management.
+
+  [ Jeremy Bicha ]
+  * debian/watch: Watch for stable releases
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/control: Add missing dependency on gir1.2-gtk-4.0
+
+  [ Gunnar Hjalmarsson ]
+  * Add libgtk-3-bin to Build-Depends for dh_translations (LP: #1941954)
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 12 Sep 2021 16:44:18 +0100
+
+gnome-shell (40.4-2) unstable; urgency=medium
+
+  * Team upload
+  * Release to unstable (transition: #992870)
+  * Depend on gnome-settings-daemon 40.
+    Older versions don't autostart the screensaver service, causing screen
+    locking to fail.
+    Thanks to jordi
+  * Depend on gsettings-desktop-schemas 40.
+    This is implicit in our dependency on a newer gnome-settings-daemon,
+    but let's make it explicit that all the core GNOME packages need to
+    go together.
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 11 Sep 2021 21:54:49 +0100
+
+gnome-shell (40.4-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - Don't include hidden search results in keyboard navigation
+    - Fix visual issues with extensions that occupy screen edges
+    - Add focus indications for switch widgets, such as VPN toggles
+    - Fix visual glitch when dragging window preview in overview
+    - Avoid windows that should not be in the overview appearing on
+      Shell startup, for example with desktop-icons-ng
+    - Fix suspend inhibitor accounting
+    - Avoid a crash when running in "headless" mode
+    - Be compatible with more combinations of new GLib and old gjs
+      (not applicable in Debian, we already have the new gjs)
+    - Fix spurious warnings for virtual input devices
+    - Minor optimization for screen magnifier
+    - Avoid a warning when displaying app details
+    - Use the same location permissions as gnome-control-center
+    - Fix some small memory leaks
+    - Fix glitch in transition from app grid to session
+    - Fix input method popup visibility when in fullscreen
+    - magnifier: Fix view jumps when using caret tracking
+    - Fix shadow rendering glitches
+    - Fix vertical scrollbars in RTL locales
+    - Fix a crash if an app moves between monitors during startup
+    - Remove timeout for starting Xwayland on-demand
+    - Fix D-Bus-initiated app focus changes
+    - Make sure to return a value from D-Bus methods so callers won't
+      time out
+    - Make sure power menu stays in sync with upower
+    - Handle non-widget source actors
+    - Optimize shadows in overview
+    - Use mallinfo2() instead of deprecated mallinfo() if glibc is new
+      enough (not applicable in Debian yet)
+    - Fix runtime warnings related to magnifier and shutdown
+    - Translation updates
+  * d/p/weather-Cope-with-either-libgweather-40-or-3.36.patch:
+    Avoid libgweather 40 dependency.
+    It'll be easier to do the libmutter-8-0 transition if we can decouple
+    it from libgweather, and gnome-shell is written in a dynamic language,
+    so we can easily avoid the dependency.
+  * Relax Breaks on top-icons-plus extension.
+    There doesn't seem to have been an official upstream release for v28,
+    so the version fixing GNOME 40 compatibility will be 27-3.
+    It has a versioned Depends anyway, so we don't need to be completely
+    precise here.
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 31 Aug 2021 10:03:33 +0100
+
 gnome-shell (40.2-1ubuntu7) UNRELEASED; urgency=medium
 
   [ Jeremy Bicha ]
@@ -101,6 +210,34 @@ gnome-shell (40.1-1) experimental; urgency=medium
     - Cherry-pick upstream crash fix
 
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 30 May 2021 17:55:32 +0200
+
+gnome-shell (3.38.6-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - gdm user interface fixes
+      + Don't limit timed-login progress bar to the width of the username
+        if it's short
+      + Make sure authentication cancellation is handled correctly
+      + Improve fingerprint authentication handling
+      + Don't retry authentication if services are unavailable
+    - Fix word suggestions in on-screen keyboard
+    - Fix freeze after closing some modal dialogs with gjs 1.68.x
+      (LP: #1918666)
+    - Fix double-free crash in calendar on non-x86 (LP: #1915929)
+    - Improve OSK compatibility with gjs 1.68.x (LP: #1918738)
+    - Fix input-method popup visibility over fullscreen applications
+    - Fix a crash if an app moves between monitors during startup
+    - Fix D-Bus-initiated app focus changes
+    - Make sure to return a value from D-Bus methods so callers won't
+      time out
+    - Fix runtime warnings related to magnifier and shutdown
+    - Make sure power menu stays in sync with upower
+    - Use mallinfo2() instead of deprecated mallinfo() if glibc is new
+      enough (not applicable in Debian yet)
+  * d/gbp.conf, d/control.in: Update VCS details for debian/unstable branch
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 26 Aug 2021 08:50:50 +0100
 
 gnome-shell (3.38.4-2) experimental; urgency=medium
 

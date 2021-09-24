@@ -1877,8 +1877,11 @@ var Keyboard = GObject.registerClass({
             this.translation_y = -this.height;
         });
 
-        // Queue a relayout so the keyboardBox can update its chrome region.
-        keyboardBox.queue_relayout();
+        // Toggle visibility so the keyboardBox can update its chrome region.
+        if (!Meta.is_wayland_compositor()) {
+            keyboardBox.hide();
+            keyboardBox.show();
+        }
     }
 
     _animateHide() {
@@ -2125,12 +2128,12 @@ var KeyboardController = class {
     }
 
     keyvalPress(keyval) {
-        this._virtualDevice.notify_keyval(Clutter.get_current_event_time(),
+        this._virtualDevice.notify_keyval(Clutter.get_current_event_time() * 1000,
                                           keyval, Clutter.KeyState.PRESSED);
     }
 
     keyvalRelease(keyval) {
-        this._virtualDevice.notify_keyval(Clutter.get_current_event_time(),
+        this._virtualDevice.notify_keyval(Clutter.get_current_event_time() * 1000,
                                           keyval, Clutter.KeyState.RELEASED);
     }
 };

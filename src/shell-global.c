@@ -32,11 +32,6 @@
 #define GNOME_DESKTOP_USE_UNSTABLE_API
 #include <libgnome-desktop/gnome-systemd.h>
 
-/* Memory report bits */
-#ifdef HAVE_MALLINFO
-#include <malloc.h>
-#endif
-
 #if defined __OpenBSD__ || defined __FreeBSD__
 #include <sys/sysctl.h>
 #endif
@@ -1241,7 +1236,7 @@ shell_global_reexec_self (ShellGlobal *global)
   char *buf;
   char *buf_p;
   char *buf_end;
-  GError *error = NULL;
+  g_autoptr (GError) error = NULL;
 
   if (!g_file_get_contents ("/proc/self/cmdline", &buf, &len, &error))
     {

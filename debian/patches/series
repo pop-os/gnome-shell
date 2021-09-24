@@ -1,4 +1,4 @@
-workspace-Remove-skip-taskbar-windows-while-the-over.patch
+debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch

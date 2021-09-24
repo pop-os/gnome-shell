@@ -1,3 +1,58 @@
+40.5
+====
+* Optimize rendering of fullscreen zoom [Daniel; !1899]
+* Fix glitchy launch animations when leaving overview [Daniel; !1440]
+* Fix wrong separator position in dash [Raghuveer; !1804]
+* Fix OSK not registering button presses on X11 [Sebastian; !1955]
+* Fix work area getting messed up by hidden panels [Florian; #4569]
+* Fix IM candidate popover position [Florian; #4593]
+* Misc. bug fixes and cleanups [Florian, Ivan, Sebastian;
+  !1956, !1961, !1964, !1957]
+
+Contributors:
+  Raghuveer Kasaraneni, Sebastian Keller, Ivan Molodetskikh, Florian Müllner,
+  Daniel van Vugt
+
+Translators:
+  Jordi Mas [ca]
+
+40.4
+====
+* Don't include hidden search results in keynav [Florian; #4470]
+* Always take workarea into account when allocating workspaces [Marco; !1892]
+* Add focus indication for switches [vanadiae; !1920]
+* Fix glitch when dragging window preview in overview [Sebastian; !1847]
+* workspace: Handle skip-taskbar changes  [Daniel; !1925]
+* screenShield: Fix suspend inhibitor accounting [Sebastian; !1927]
+* Fixed crash [Florian; !1935]
+* Misc. bug fixes and cleanups [Florian, Sebastian; !1921, !1926, !1932,
+  !1938, !1945, !1950]
+
+Contributors:
+  Marco Trevisan (Treviño), Sebastian Keller, Florian Müllner, Daniel van Vugt,
+  vanadiae
+
+Translators:
+  Quentin PAGÈS [oc]
+
+40.3
+====
+* Fix glitch in app grid → session transition [Harshad; !1886]
+* Fix IM popup visibility when in fullscreen [Florian; !1900]
+* magnifier: Fix view jumps when using caret tracking [Lee; !1823]
+* Fix shadow rendering glitches [Daniel; !1897]
+* Fix vertical scrollbars in RTL locales [Florian; !1910]
+* Fixed crash [Florian; !1885]
+* Misc. bug fixes and cleanups [Olivier, Florian, Carlos, Daniel, Robert;
+  !1889, !1891, !1902, !1901, !1903, !1904, !1786, !1909]
+
+Contributors:
+  Olivier Fourdan, Carlos Garnacho, Harshad Gavali, Lee, Robert Mader,
+  Florian Müllner, Daniel van Vugt
+
+Translators:
+  Ivan Komaritsyn [ru], Quentin PAGÈS [oc], Hugo Carvalho [pt]
+
 40.2
 ====
 * Unbreak Xwayland apps when not using systemd in user session [Olivier; !1850]

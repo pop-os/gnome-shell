@@ -145,6 +145,10 @@ var Overview = class {
         return this._visibleTarget;
     }
 
+    get closing() {
+        return this._animationInProgress && !this._visibleTarget;
+    }
+
     _createOverview() {
         if (this._overview)
             return;
@@ -616,12 +620,14 @@ var Overview = class {
         this._visible = false;
         this._animationInProgress = false;
 
-        this.emit('hidden');
         // Handle any calls to show* while we were hiding
-        if (this._shown)
+        if (this._shown) {
+            this.emit('hidden');
             this._animateVisible(OverviewControls.ControlsState.WINDOW_PICKER);
-        else
+        } else {
             Main.layoutManager.hideOverview();
+            this.emit('hidden');
+        }
 
         Main.panel.style = null;
 
@@ -640,6 +646,11 @@ var Overview = class {
 
     showApps() {
         this.show(OverviewControls.ControlsState.APP_GRID);
+    }
+
+    selectApp(id) {
+        this.showApps();
+        this._overview.controls.appDisplay.selectApp(id);
     }
 
     runStartupAnimation(callback) {

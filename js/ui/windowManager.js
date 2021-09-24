@@ -907,14 +907,7 @@ var WindowManager = class {
         global.display.connect('init-xserver', (display, task) => {
             IBusManager.getIBusManager().restartDaemon(['--xim']);
 
-            /* Timeout waiting for start job completion after 5 seconds */
-            let cancellable = new Gio.Cancellable();
-            GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {
-                cancellable.cancel();
-                return GLib.SOURCE_REMOVE;
-            });
-
-            this._startX11Services(task, cancellable);
+            this._startX11Services(task);
 
             return true;
         });
@@ -972,11 +965,11 @@ var WindowManager = class {
         });
     }
 
-    async _startX11Services(task, cancellable) {
+    async _startX11Services(task) {
         let status = true;
         try {
             await Shell.util_start_systemd_unit(
-                'gnome-session-x11-services-ready.target', 'fail', cancellable);
+                'gnome-session-x11-services-ready.target', 'fail', null);
         } catch (e) {
             // Ignore NOT_SUPPORTED error, which indicates we are not systemd
             // managed and gnome-session will have taken care of everything
@@ -1125,7 +1118,8 @@ var WindowManager = class {
     }
 
     _shouldAnimate() {
-        return !(Main.overview.visible || this._workspaceAnimation.gestureActive);
+        const overviewOpen = Main.overview.visible && !Main.overview.closing;
+        return !(overviewOpen || this._workspaceAnimation.gestureActive);
     }
 
     _shouldAnimateActor(actor, types) {
@@ -1452,7 +1446,19 @@ var WindowManager = class {
         dimmer.setDimmed(false, this._shouldAnimate());
     }
 
-    _mapWindow(shellwm, actor) {
+    _waitForOverviewToHide() {
+        if (!Main.overview.visible)
+            return Promise.resolve();
+
+        return new Promise(resolve => {
+            const id = Main.overview.connect('hidden', () => {
+                Main.overview.disconnect(id);
+                resolve();
+            });
+        });
+    }
+
+    async _mapWindow(shellwm, actor) {
         actor._windowType = actor.meta_window.get_window_type();
         actor._notifyWindowTypeSignalId =
             actor.meta_window.connect('notify::window-type', () => {
@@ -1494,6 +1500,7 @@ var WindowManager = class {
             actor.show();
             this._mapping.add(actor);
 
+            await this._waitForOverviewToHide();
             actor.ease({
                 opacity: 255,
                 scale_x: 1,
@@ -1511,6 +1518,7 @@ var WindowManager = class {
             actor.show();
             this._mapping.add(actor);
 
+            await this._waitForOverviewToHide();
             actor.ease({
                 opacity: 255,
                 scale_x: 1,
