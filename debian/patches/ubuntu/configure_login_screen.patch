@@ -119,7 +119,7 @@ index 4a1e16d..771bba1 100644
    command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
    build_by_default: true)
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 93240d2..e77541b 100644
+index 4156ede..935bdc9 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
 @@ -26,6 +26,12 @@ const DISABLE_LOCK_KEY = 'disable-lock-screen';
@@ -152,7 +152,7 @@ index 93240d2..e77541b 100644
          this._isModal = false;
          this._isGreeter = false;
          this._isActive = false;
-@@ -204,6 +220,27 @@ var ScreenShield = class {
+@@ -205,6 +221,27 @@ var ScreenShield = class {
          return this._isModal;
      }
  
@@ -178,5 +178,5 @@ index 93240d2..e77541b 100644
 +    }
 +
      _syncInhibitor() {
-         let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY) ||
-                           this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY);
+         const lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY) ||
+                             this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY);

@@ -10,9 +10,12 @@ Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1943
 Bug-Ubuntu: https://bugs.launchpad.net/bugs/1940925
 Forwarded: yes
 Last-Update: 2021-08-25
+---
+ js/ui/layout.js | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 70ece6cab..a8e6588b6 100644
+index cc21c1d..26fe461 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
 @@ -198,6 +198,8 @@ var LayoutManager = GObject.registerClass({

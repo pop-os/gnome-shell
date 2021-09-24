@@ -16,7 +16,7 @@ Forwarded: yes
  2 files changed, 73 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 70ece6c..27a3801 100644
+index e3c5f49..e8d0c3a 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
 @@ -911,22 +911,38 @@ var LayoutManager = GObject.registerClass({
@@ -63,7 +63,7 @@ index 70ece6c..27a3801 100644
          if (!this._updateRegionIdle) {
              this._updateRegionIdle = Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
 diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
-index 75cc1f9..bb37ee0 100644
+index 11fde37..9e254f1 100644
 --- a/js/ui/magnifier.js
 +++ b/js/ui/magnifier.js
 @@ -44,6 +44,8 @@ var MouseSpriteContent = GObject.registerClass({
@@ -138,7 +138,7 @@ index 75cc1f9..bb37ee0 100644
              this.invalidate_size();
      }
  });
-@@ -112,6 +152,8 @@ var Magnifier = class Magnifier {
+@@ -109,6 +149,8 @@ var Magnifier = class Magnifier {
          this._settingsInit(aZoomRegion);
          aZoomRegion.scrollContentsTo(this.xMouse, this.yMouse);
  
@@ -147,7 +147,7 @@ index 75cc1f9..bb37ee0 100644
          St.Settings.get().connect('notify::magnifier-active', () => {
              this.setActive(St.Settings.get().magnifier_active);
          });
-@@ -119,6 +161,13 @@ var Magnifier = class Magnifier {
+@@ -116,6 +158,13 @@ var Magnifier = class Magnifier {
          this.setActive(St.Settings.get().magnifier_active);
      }
  
@@ -161,12 +161,12 @@ index 75cc1f9..bb37ee0 100644
      /**
       * showSystemCursor:
       * Show the system mouse pointer.
-@@ -237,6 +286,8 @@ var Magnifier = class Magnifier {
-             this.xMouse = xMouse;
-             this.yMouse = yMouse;
+@@ -238,6 +287,8 @@ var Magnifier = class Magnifier {
+         this.xMouse = xMouse;
+         this.yMouse = yMouse;
  
-+            this._updateContentScale();
++        this._updateContentScale();
 +
-             let sysMouseOverAny = false;
-             this._zoomRegions.forEach(zoomRegion => {
-                 if (zoomRegion.scrollToMousePos())
+         let sysMouseOverAny = false;
+         this._zoomRegions.forEach(zoomRegion => {
+             if (zoomRegion.scrollToMousePos())

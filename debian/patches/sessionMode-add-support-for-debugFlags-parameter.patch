@@ -15,10 +15,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 4 insertions(+)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index 979fcef..541df51 100644
+index 7cfbba3..eac64bf 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
-@@ -139,6 +139,9 @@ function _sessionUpdated() {
+@@ -145,6 +145,9 @@ function _sessionUpdated() {
              _remoteAccessInhibited = true;
          }
      }
