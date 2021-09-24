@@ -1,4 +1,4 @@
-gnome-shell (40.5-1) UNRELEASED; urgency=medium
+gnome-shell (40.5-1) unstable; urgency=medium
 
   * New upstream release:
     - Optimize rendering of fullscreen zoom
@@ -12,7 +12,7 @@ gnome-shell (40.5-1) UNRELEASED; urgency=medium
   * Revert "Avoid libgweather 40 dependency"
     libgweather 40 has now been uploaded to unstable.
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 24 Sep 2021 21:54:53 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 24 Sep 2021 22:07:26 +0200
 
 gnome-shell (40.4-3) unstable; urgency=medium
 
