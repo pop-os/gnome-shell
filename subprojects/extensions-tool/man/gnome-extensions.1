@@ -1,0 +1,297 @@
+'\" t
+.\"     Title: gnome-extensions
+.\"    Author: [FIXME: author] [see http://www.docbook.org/tdg5/en/html/author]
+.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\"      Date: August 2018
+.\"    Manual: User Commands
+.\"    Source: GNOME-EXTENSIONS-TOOL
+.\"  Language: English
+.\"
+.TH "GNOME\-EXTENSIONS" "1" "August 2018" "GNOME\-EXTENSIONS\-TOOL" "User Commands"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+gnome-extensions \- Command line tool for managing GNOME extensions
+.SH "SYNOPSIS"
+.sp
+\fBgnome\-extensions\fR help [\fICOMMAND\fR]
+.sp
+\fBgnome\-extensions\fR version
+.sp
+\fBgnome\-extensions\fR enable \fIUUID\fR
+.sp
+\fBgnome\-extensions\fR disable \fIUUID\fR
+.sp
+\fBgnome\-extensions\fR reset \fIUUID\fR
+.sp
+\fBgnome\-extensions\fR info \fIUUID\fR
+.sp
+\fBgnome\-extensions\fR show \fIUUID\fR
+.sp
+\fBgnome\-extensions\fR list [\fIOPTION\fR\&...]
+.sp
+\fBgnome\-extensions\fR prefs \fIUUID\fR
+.sp
+\fBgnome\-extensions\fR create [\fIOPTION\fR\&...]
+.sp
+\fBgnome\-extensions\fR pack [\fIOPTION\fR\&...]
+.sp
+\fBgnome\-extensions\fR install [\fIOPTION\fR\&...] \fIPACK\fR
+.sp
+\fBgnome\-extensions\fR uninstall \fIUUID\fR
+.SH "DESCRIPTION"
+.sp
+\fBgnome\-extensions\fR is a utility that makes some common GNOME extensions operations available on the command line\&.
+.SH "COMMON OPTIONS"
+.sp
+All commands except for \fBhelp\fR and \fBversion\fR handle the following options:
+.PP
+\fB\-\-quiet\fR, \fB\-q\fR
+.RS 4
+Do not print error messages
+.RE
+.SH "COMMANDS"
+.PP
+\fBhelp\fR [\fICOMMAND\fR]
+.RS 4
+Displays a short synopsis of the available commands or provides detailed help on a specific command\&.
+.RE
+.PP
+\fBversion\fR
+.RS 4
+Prints the program version\&.
+.RE
+.PP
+\fBenable\fR \fIUUID\fR
+.RS 4
+Enables the extension identified by
+\fIUUID\fR\&.
+.sp
+The command will not detect any errors from the extension itself, use the
+\fBinfo\fR
+command to confirm that the extension state is
+\fBENABLED\fR\&.
+.sp
+If the extension is already enabled, the command will do nothing\&.
+.RE
+.PP
+\fBdisable\fR \fIUUID\fR
+.RS 4
+Disables the extension identified by
+\fIUUID\fR\&.
+.sp
+If the extension is not enabled, the command will do nothing\&.
+.RE
+.PP
+\fBreset\fR \fIUUID\fR
+.RS 4
+Reset the extension identified by
+\fIUUID\fR\&.
+.sp
+The extension will be disabled in GNOME, but may be enabled by other sessions like GNOME Classic\&.
+.RE
+.PP
+\fBinfo\fR \fIUUID\fR
+.RS 4
+Show details of the extension identified by
+\fIUUID\fR, including name, description and state\&.
+.RE
+.PP
+\fBshow\fR \fIUUID\fR
+.RS 4
+Synonym of info\&.
+.RE
+.PP
+\fBlist\fR [\fIOPTION\fR\&...]
+.RS 4
+Displays a list of installed extensions\&.
+.PP
+\fBOptions\fR
+.RS 4
+.\".PP
+\fB\-\-user\fR
+.RS 4
+Include extensions installed in the user\(cqs
+\fB$HOME\fR
+.RE
+.PP
+\fB\-\-system\fR
+.RS 4
+Include extensions installed in the system
+.RE
+.PP
+\fB\-\-enabled\fR
+.RS 4
+Include enabled extensions
+.RE
+.PP
+\fB\-\-disabled\fR
+.RS 4
+Include disabled extensions
+.RE
+.PP
+\fB\-\-prefs\fR
+.RS 4
+Only include extensions with preferences
+.RE
+.PP
+\fB\-\-updates\fR
+.RS 4
+Only include extensions with pending updates
+.RE
+.PP
+\fB\-d\fR, \fB\-\-details\fR
+.RS 4
+Show some extra information for each extension
+.RE
+.RE
+.RE
+.PP
+\fBprefs\fR \fIUUID\fR
+.RS 4
+Open the preference dialog of the extension identified by
+\fIUUID\fR\&.
+.RE
+.PP
+\fBcreate\fR [\fIOPTION\fR\&...]
+.RS 4
+Creates a new extension from a template\&.
+.PP
+\fBOptions\fR
+.RS 4
+.\".PP
+\fB\-\-name\fR=\fINAME\fR
+.RS 4
+Set the user\-visible name in the extension\(cqs metadata to
+\fINAME\fR
+.RE
+.PP
+\fB\-\-description\fR=\fIDESC\fR
+.RS 4
+Set the description in the extension\(cqs metadata to
+\fIDESC\fR
+.RE
+.PP
+\fB\-\-uuid\fR=\fIUUID\fR
+.RS 4
+Set the unique extension ID in the metadata to
+\fIUUID\fR
+.RE
+.PP
+\fB\-\-template\fR=\fITEMPLATE\fR
+.RS 4
+Use
+\fITEMPLATE\fR
+as base for the new extension
+.RE
+.PP
+\fB\-i\fR, \fB\-\-interactive\fR
+.RS 4
+Prompt for any extension metadata that hasn\(cqt been provided on the command line
+.RE
+.RE
+.RE
+.PP
+\fBpack\fR [\fIOPTION\fR\&...] [\fISOURCE\-DIRECTORY\fR]
+.RS 4
+Creates an extension bundle that is suitable for publishing\&.
+.sp
+The bundle will always include the required files extension\&.js and metadata\&.json, as well as the optional stylesheet\&.css and prefs\&.js if found\&. Each additional source that should be included must be specified with
+\fB\-\-extra\-source\fR\&.
+.sp
+If the extension includes one or more GSettings schemas, they can either be placed in a schemas/ folder to be picked up automatically, or be specified with
+\fB\-\-schema\fR\&.
+.sp
+Similarily, translations are included automatically when they are located in a po/ folder, otherwise the
+\fB\-\-podir\fR
+option can be used to point to the correct directory\&. If no gettext domain is provided on the command line, the value of the
+\fBgettext\-domain\fR
+metadata field is used if it exists, and the extension UUID if not\&.
+.sp
+All files are searched in
+\fISOURCE\-DIRECTORY\fR
+if specified, or the current directory otherwise\&.
+.PP
+\fBOptions\fR
+.RS 4
+.\".PP
+\fB\-\-extra\-source\fR=\fIFILE\fR
+.RS 4
+Additional source to include in the bundle
+.RE
+.PP
+\fB\-\-schema\fR=\fISCHEMA\fR
+.RS 4
+A GSettings schema that should be compiled and included
+.RE
+.PP
+\fB\-\-podir\fR=\fIPODIR\fR
+.RS 4
+A directory with translations that should be compiled and included
+.RE
+.PP
+\fB\-\-gettext\-domain\fR=\fIDOMAIN\fR
+.RS 4
+The gettext domain to use for translations
+.RE
+.PP
+\fB\-f\fR, \fB\-\-force\fR
+.RS 4
+Overwrite an existing pack
+.RE
+.PP
+\fB\-o\fR, \fB\-\-out\-dir\fR=\fIDIRECTORY\fR
+.RS 4
+The directory where the pack should be created
+.RE
+.RE
+.RE
+.PP
+\fBinstall\fR [\fIOPTION\fR\&...] \fIPACK\fR
+.RS 4
+Installs an extension from the bundle
+\fIPACK\fR\&.
+.sp
+The command unpacks the extension files and moves them to the expected location in the user\(cqs
+\fB$HOME\fR, so that it will be loaded in the next session\&.
+.sp
+It is mainly intended for testing, not as a replacement for GNOME Software or the extension website\&. As extensions have privileged access to the user\(cqs session, it is advised to never load extensions from untrusted sources without carefully reviewing their content\&.
+.PP
+\fBOptions\fR
+.RS 4
+.\".PP
+\fB\-\-force\fR
+.RS 4
+Override an existing extension
+.RE
+.RE
+.RE
+.PP
+\fBuninstall\fR \fIUUID\fR
+.RS 4
+Uninstalls the extension identified by
+\fIUUID\fR\&.
+.RE
+.SH "EXIT STATUS"
+.sp
+On success 0 is returned, a non\-zero failure code otherwise\&.
+.SH "BUGS"
+.sp
+The tool is part of the gnome\-shell project, and bugs should be reported in its issue tracker at \m[blue]\fBhttps://gitlab\&.gnome\&.org/GNOME/gnome\-shell/issues\fR\m[]\&.

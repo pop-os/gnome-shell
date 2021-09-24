@@ -1,10 +1,19 @@
 project('gnome-extensions-app',
-  version: '3.38.6',
+  version: '40.4',
   meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
 
-app_id = 'org.gnome.Extensions'
+if get_option('profile') == 'development'
+  profile = '.Devel'
+  vcs_tag = run_command('git', 'rev-parse', '--short', '@').stdout().strip()
+else
+  profile = ''
+  vcs_tag = ''
+endif
+
+base_id = 'org.gnome.Extensions'
+app_id = base_id + profile
 prgname = 'gnome-extensions-app'
 
 gnome = import('gnome')

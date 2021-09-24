@@ -1,3 +1,133 @@
+gnome-shell (40.4-3) unstable; urgency=medium
+
+  * Team upload
+
+  [ Simon McVittie ]
+  * gnome-shell-extension-prefs: Add patch to give Debian-specific advice.
+    We package gnome-extensions-app in the same binary package as
+    gnome-shell-extension-prefs, so there's never a need to install it
+    separately, either via Debian packages or from Flathub.
+  * gnome-shell-extension-prefs: Add Provides on gnome-extensions-app.
+    The gnome-shell-extension-prefs program in this package is deprecated,
+    and the gnome-extensions-app program is now the main reason to want to
+    install it, so let's make it a bit more discoverable.
+  * gnome-shell: Add Suggests on gnome-shell-extension-prefs.
+    The g-s-e-p program itself is deprecated, but the g-s-e-p package also
+    contains gnome-extensions-app, which is the recommended UI for
+    extensions management.
+
+  [ Jeremy Bicha ]
+  * debian/watch: Watch for stable releases
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/control: Add missing dependency on gir1.2-gtk-4.0
+
+  [ Gunnar Hjalmarsson ]
+  * Add libgtk-3-bin to Build-Depends for dh_translations (LP: #1941954)
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 12 Sep 2021 16:44:18 +0100
+
+gnome-shell (40.4-2) unstable; urgency=medium
+
+  * Team upload
+  * Release to unstable (transition: #992870)
+  * Depend on gnome-settings-daemon 40.
+    Older versions don't autostart the screensaver service, causing screen
+    locking to fail.
+    Thanks to jordi
+  * Depend on gsettings-desktop-schemas 40.
+    This is implicit in our dependency on a newer gnome-settings-daemon,
+    but let's make it explicit that all the core GNOME packages need to
+    go together.
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 11 Sep 2021 21:54:49 +0100
+
+gnome-shell (40.4-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream release
+    - Don't include hidden search results in keyboard navigation
+    - Fix visual issues with extensions that occupy screen edges
+    - Add focus indications for switch widgets, such as VPN toggles
+    - Fix visual glitch when dragging window preview in overview
+    - Avoid windows that should not be in the overview appearing on
+      Shell startup, for example with desktop-icons-ng
+    - Fix suspend inhibitor accounting
+    - Avoid a crash when running in "headless" mode
+    - Be compatible with more combinations of new GLib and old gjs
+      (not applicable in Debian, we already have the new gjs)
+    - Fix spurious warnings for virtual input devices
+    - Minor optimization for screen magnifier
+    - Avoid a warning when displaying app details
+    - Use the same location permissions as gnome-control-center
+    - Fix some small memory leaks
+    - Fix glitch in transition from app grid to session
+    - Fix input method popup visibility when in fullscreen
+    - magnifier: Fix view jumps when using caret tracking
+    - Fix shadow rendering glitches
+    - Fix vertical scrollbars in RTL locales
+    - Fix a crash if an app moves between monitors during startup
+    - Remove timeout for starting Xwayland on-demand
+    - Fix D-Bus-initiated app focus changes
+    - Make sure to return a value from D-Bus methods so callers won't
+      time out
+    - Make sure power menu stays in sync with upower
+    - Handle non-widget source actors
+    - Optimize shadows in overview
+    - Use mallinfo2() instead of deprecated mallinfo() if glibc is new
+      enough (not applicable in Debian yet)
+    - Fix runtime warnings related to magnifier and shutdown
+    - Translation updates
+  * d/p/weather-Cope-with-either-libgweather-40-or-3.36.patch:
+    Avoid libgweather 40 dependency.
+    It'll be easier to do the libmutter-8-0 transition if we can decouple
+    it from libgweather, and gnome-shell is written in a dynamic language,
+    so we can easily avoid the dependency.
+  * Relax Breaks on top-icons-plus extension.
+    There doesn't seem to have been an official upstream release for v28,
+    so the version fixing GNOME 40 compatibility will be 27-3.
+    It has a versioned Depends anyway, so we don't need to be completely
+    precise here.
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 31 Aug 2021 10:03:33 +0100
+
+gnome-shell (40.2-1) experimental; urgency=medium
+
+  * New upstream release:
+    - Unbreak Xwayland apps when not using systemd in user session
+    - Fix distributed man pages
+    - Avoid unnecessary icon shadow changes
+    - Immediately start app grid drags for non-touch devices
+    - Handle screencast failures more gracefully
+  * debian/patches: Dropped, all applied upstream
+  * debian/control: Add break on unreleased version of
+    gnome-shell-extension-desktop-icons
+  * debian/control: Break on gnome-shell-extension-desktop-icons-ng << 0.16
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 16 Jun 2021 00:47:49 +0200
+
+gnome-shell (40.1-1) experimental; urgency=medium
+
+  * New upstream release
+  * debian/patches: Remove (all applied upstream)
+  * debian/control:
+    - Bump dependency to mutter-8
+    - Update extensions breaks.
+      This version will break various extensions so update broken versions
+    - Build depend on gtk4.
+      It's needed by shew subproject
+    - Add runtime dependency on gtk4 to the extensions prefs
+    - Add missing runtime dependencies and suggestions.
+      All dependencies can be found with a script such as:
+      grep "imports\.gi" --include "*.js" -rh js \
+       | grep -o "\b[A-Z][A-Za-z]\+\(,\|\s\|\b\)" | sed "s/,\?\s*$//g" | sort -u
+  * debian/patches:
+    - Rebuild manual files to use the manpage format
+    - Cherry-pick upstream patch fixing non-systemd case
+    - Cherry-pick upstream crash fix
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sun, 30 May 2021 17:55:32 +0200
+
 gnome-shell (3.38.6-1) unstable; urgency=medium
 
   * Team upload
@@ -25,6 +155,16 @@ gnome-shell (3.38.6-1) unstable; urgency=medium
   * d/gbp.conf, d/control.in: Update VCS details for debian/unstable branch
 
  -- Simon McVittie <smcv@debian.org>  Thu, 26 Aug 2021 08:50:50 +0100
+
+gnome-shell (3.38.4-2) experimental; urgency=medium
+
+  * debian/patches: Import upstream patches needed to support libgweather 40.
+    libgweather 40 had an internal API change that caused runtime issues, so
+    we need to update the shell code in order to make the shell to work and
+    show the weather information.
+  * debian/control: Bump runtime dependency on gweather 40
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 26 May 2021 13:37:14 +0200
 
 gnome-shell (3.38.4-1) unstable; urgency=medium
 

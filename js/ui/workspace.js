@@ -1,14 +1,17 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Workspace */
 
-const { Clutter, GLib, GObject, St } = imports.gi;
+const { Clutter, GLib, GObject, Graphene, Meta, St } = imports.gi;
 
+const Background = imports.ui.background;
 const DND = imports.ui.dnd;
 const Main = imports.ui.main;
-const Overview = imports.ui.overview;
+const OverviewControls = imports.ui.overviewControls;
+const Params = imports.misc.params;
+const Util = imports.misc.util;
 const { WindowPreview } = imports.ui.windowPreview;
 
-var WINDOW_PREVIEW_MAXIMUM_SCALE = 1.0;
+var WINDOW_PREVIEW_MAXIMUM_SCALE = 0.95;
 
 var WINDOW_REPOSITIONING_DELAY = 750;
 
@@ -20,11 +23,8 @@ var WINDOW_REPOSITIONING_DELAY = 750;
 var LAYOUT_SCALE_WEIGHT = 1;
 var LAYOUT_SPACE_WEIGHT = 0.1;
 
-var WINDOW_ANIMATION_MAX_NUMBER_BLENDING = 3;
-
-function _interpolate(start, end, step) {
-    return start + (end - start) * step;
-}
+const BACKGROUND_CORNER_RADIUS_PIXELS = 30;
+const BACKGROUND_MARGIN = 12;
 
 // Window Thumbnail Layout Algorithm
 // =================================
@@ -97,15 +97,49 @@ function _interpolate(start, end, step) {
 // and center it horizontally, and align it to the bottom vertically.
 
 var LayoutStrategy = class {
-    constructor(monitor, rowSpacing, columnSpacing) {
-        if (this.constructor === LayoutStrategy)
-            throw new TypeError(`Cannot instantiate abstract type ${this.constructor.name}`);
+    constructor(params) {
+        params = Params.parse(params, {
+            monitor: null,
+            rowSpacing: 0,
+            columnSpacing: 0,
+        });
 
-        this._monitor = monitor;
-        this._rowSpacing = rowSpacing;
-        this._columnSpacing = columnSpacing;
+        if (!params.monitor)
+            throw new Error(`No monitor param passed to ${this.constructor.name}`);
+
+        this._monitor = params.monitor;
+        this._rowSpacing = params.rowSpacing;
+        this._columnSpacing = params.columnSpacing;
     }
 
+    // Compute a strategy-specific overall layout given a list of WindowPreviews
+    // @windows and the strategy-specific @layoutParams.
+    //
+    // Returns a strategy-specific layout object that is opaque to the user.
+    computeLayout(_windows, _layoutParams) {
+        throw new GObject.NotImplementedError(`computeLayout in ${this.constructor.name}`);
+    }
+
+    // Given @layout and @area, compute the overall scale of the layout and
+    // space occupied by the layout.
+    //
+    // This method returns an array where the first element is the scale and
+    // the second element is the space.
+    //
+    // This method must be called before calling computeWindowSlots(), as it
+    // sets the fixed overall scale of the layout.
+    computeScaleAndSpace(_layout, _area) {
+        throw new GObject.NotImplementedError(`computeScaleAndSpace in ${this.constructor.name}`);
+    }
+
+    // Returns an array with final position and size information for each
+    // window of the layout, given a bounding area that it will be inside of.
+    computeWindowSlots(_layout, _area) {
+        throw new GObject.NotImplementedError(`computeWindowSlots in ${this.constructor.name}`);
+    }
+};
+
+var UnalignedLayoutStrategy = class extends LayoutStrategy {
     _newRow() {
         // Row properties:
         //
@@ -139,43 +173,105 @@ var LayoutStrategy = class {
         // good. We'll use a multiplier of 1.5 for this.
 
         // Map from [0, 1] to [1.5, 1]
-        return _interpolate(1.5, 1, ratio);
+        return Util.lerp(1.5, 1, ratio);
     }
 
-    // Compute the size of each row, by assigning to the properties
-    // row.width, row.height, row.fullWidth, row.fullHeight, and
-    // (optionally) for each row in @layout.rows. This method is
-    // intended to be called by subclasses.
-    _computeRowSizes(_layout) {
-        throw new GObject.NotImplementedError(`_computeRowSizes in ${this.constructor.name}`);
+    _computeRowSizes(layout) {
+        let { rows, scale } = layout;
+        for (let i = 0; i < rows.length; i++) {
+            let row = rows[i];
+            row.width = row.fullWidth * scale + (row.windows.length - 1) * this._columnSpacing;
+            row.height = row.fullHeight * scale;
+        }
     }
 
-    // Compute strategy-specific window slots for each window in
-    // @windows, given the @layout. The strategy may also use @layout
-    // as strategy-specific storage.
-    //
-    // This must calculate:
-    //  * maxColumns - The maximum number of columns used by the layout.
-    //  * gridWidth - The total width used by the grid, unscaled, unspaced.
-    //  * gridHeight - The totial height used by the grid, unscaled, unspaced.
-    //  * rows - A list of rows, which should be instantiated by _newRow.
-    computeLayout(_windows, _layout) {
-        throw new GObject.NotImplementedError(`computeLayout in ${this.constructor.name}`);
+    _keepSameRow(row, window, width, idealRowWidth) {
+        if (row.fullWidth + width <= idealRowWidth)
+            return true;
+
+        let oldRatio = row.fullWidth / idealRowWidth;
+        let newRatio = (row.fullWidth + width) / idealRowWidth;
+
+        if (Math.abs(1 - newRatio) < Math.abs(1 - oldRatio))
+            return true;
+
+        return false;
     }
 
-    // Given @layout, compute the overall scale and space of the layout.
-    // The scale is the individual, non-fancy scale of each window, and
-    // the space is the percentage of the available area eventually
-    // used by the layout.
+    _sortRow(row) {
+        // Sort windows horizontally to minimize travel distance.
+        // This affects in what order the windows end up in a row.
+        row.windows.sort((a, b) => a.windowCenter.x - b.windowCenter.x);
+    }
 
-    // This method does not return anything, but instead installs
-    // the properties "scale" and "space" on @layout directly.
-    //
-    // Make sure to call this methods before calling computeWindowSlots(),
-    // as it depends on the scale property installed in @layout here.
-    computeScaleAndSpace(layout) {
-        let area = layout.area;
+    computeLayout(windows, layoutParams) {
+        layoutParams = Params.parse(layoutParams, {
+            numRows: 0,
+        });
 
+        if (layoutParams.numRows === 0)
+            throw new Error(`${this.constructor.name}: No numRows given in layout params`);
+
+        const numRows = layoutParams.numRows;
+
+        let rows = [];
+        let totalWidth = 0;
+        for (let i = 0; i < windows.length; i++) {
+            let window = windows[i];
+            let s = this._computeWindowScale(window);
+            totalWidth += window.boundingBox.width * s;
+        }
+
+        let idealRowWidth = totalWidth / numRows;
+
+        // Sort windows vertically to minimize travel distance.
+        // This affects what rows the windows get placed in.
+        let sortedWindows = windows.slice();
+        sortedWindows.sort((a, b) => a.windowCenter.y - b.windowCenter.y);
+
+        let windowIdx = 0;
+        for (let i = 0; i < numRows; i++) {
+            let row = this._newRow();
+            rows.push(row);
+
+            for (; windowIdx < sortedWindows.length; windowIdx++) {
+                let window = sortedWindows[windowIdx];
+                let s = this._computeWindowScale(window);
+                let width = window.boundingBox.width * s;
+                let height = window.boundingBox.height * s;
+                row.fullHeight = Math.max(row.fullHeight, height);
+
+                // either new width is < idealWidth or new width is nearer from idealWidth then oldWidth
+                if (this._keepSameRow(row, window, width, idealRowWidth) || (i === numRows - 1)) {
+                    row.windows.push(window);
+                    row.fullWidth += width;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        let gridHeight = 0;
+        let maxRow;
+        for (let i = 0; i < numRows; i++) {
+            let row = rows[i];
+            this._sortRow(row);
+
+            if (!maxRow || row.fullWidth > maxRow.fullWidth)
+                maxRow = row;
+            gridHeight += row.fullHeight;
+        }
+
+        return {
+            numRows,
+            rows,
+            maxColumns: maxRow.windows.length,
+            gridWidth: maxRow.fullWidth,
+            gridHeight,
+        };
+    }
+
+    computeScaleAndSpace(layout, area) {
         let hspacing = (layout.maxColumns - 1) * this._columnSpacing;
         let vspacing = (layout.numRows - 1) * this._rowSpacing;
 
@@ -194,7 +290,8 @@ var LayoutStrategy = class {
         let space = (scaledLayoutWidth * scaledLayoutHeight) / (area.width * area.height);
 
         layout.scale = scale;
-        layout.space = space;
+
+        return [scale, space];
     }
 
     computeWindowSlots(layout, area) {
@@ -246,7 +343,10 @@ var LayoutStrategy = class {
         compensation /= 2;
 
         for (let i = 0; i < rows.length; i++) {
-            let row = rows[i];
+            const row = rows[i];
+            const rowY = row.y + compensation;
+            const rowHeight = row.height * row.additionalScale;
+
             let x = row.x;
             for (let j = 0; j < row.windows.length; j++) {
                 let window = row.windows[j];
@@ -260,7 +360,14 @@ var LayoutStrategy = class {
                 const cloneHeight = window.boundingBox.height * s;
 
                 let cloneX = x + (cellWidth - cloneWidth) / 2;
-                let cloneY = row.y + row.height * row.additionalScale - cellHeight + compensation;
+                let cloneY;
+
+                // If there's only one row, align windows vertically centered inside the row
+                if (rows.length === 1)
+                    cloneY = rowY + (rowHeight - cloneHeight) / 2;
+                // If there are multiple rows, align windows to the bottom edge of the row
+                else
+                    cloneY = rowY + rowHeight - cellHeight;
 
                 // Align with the pixel grid to prevent blurry windows at scale = 1
                 cloneX = Math.floor(cloneX);
@@ -274,101 +381,7 @@ var LayoutStrategy = class {
     }
 };
 
-var UnalignedLayoutStrategy = class extends LayoutStrategy {
-    _computeRowSizes(layout) {
-        let { rows, scale } = layout;
-        for (let i = 0; i < rows.length; i++) {
-            let row = rows[i];
-            row.width = row.fullWidth * scale + (row.windows.length - 1) * this._columnSpacing;
-            row.height = row.fullHeight * scale;
-        }
-    }
-
-    _keepSameRow(row, window, width, idealRowWidth) {
-        if (row.fullWidth + width <= idealRowWidth)
-            return true;
-
-        let oldRatio = row.fullWidth / idealRowWidth;
-        let newRatio = (row.fullWidth + width) / idealRowWidth;
-
-        if (Math.abs(1 - newRatio) < Math.abs(1 - oldRatio))
-            return true;
-
-        return false;
-    }
-
-    _sortRow(row) {
-        // Sort windows horizontally to minimize travel distance.
-        // This affects in what order the windows end up in a row.
-        row.windows.sort((a, b) => a.windowCenter.x - b.windowCenter.x);
-    }
-
-    computeLayout(windows, layout) {
-        let numRows = layout.numRows;
-
-        let rows = [];
-        let totalWidth = 0;
-        for (let i = 0; i < windows.length; i++) {
-            let window = windows[i];
-            let s = this._computeWindowScale(window);
-            totalWidth += window.boundingBox.width * s;
-        }
-
-        let idealRowWidth = totalWidth / numRows;
-
-        // Sort windows vertically to minimize travel distance.
-        // This affects what rows the windows get placed in.
-        let sortedWindows = windows.slice();
-        sortedWindows.sort((a, b) => a.windowCenter.y - b.windowCenter.y);
-
-        let windowIdx = 0;
-        for (let i = 0; i < numRows; i++) {
-            let row = this._newRow();
-            rows.push(row);
-
-            for (; windowIdx < sortedWindows.length; windowIdx++) {
-                let window = sortedWindows[windowIdx];
-                let s = this._computeWindowScale(window);
-                let width = window.boundingBox.width * s;
-                let height = window.boundingBox.height * s;
-                row.fullHeight = Math.max(row.fullHeight, height);
-
-                // either new width is < idealWidth or new width is nearer from idealWidth then oldWidth
-                if (this._keepSameRow(row, window, width, idealRowWidth) || (i == numRows - 1)) {
-                    row.windows.push(window);
-                    row.fullWidth += width;
-                } else {
-                    break;
-                }
-            }
-        }
-
-        let gridHeight = 0;
-        let maxRow;
-        for (let i = 0; i < numRows; i++) {
-            let row = rows[i];
-            this._sortRow(row);
-
-            if (!maxRow || row.fullWidth > maxRow.fullWidth)
-                maxRow = row;
-            gridHeight += row.fullHeight;
-        }
-
-        layout.rows = rows;
-        layout.maxColumns = maxRow.windows.length;
-        layout.gridWidth = maxRow.fullWidth;
-        layout.gridHeight = gridHeight;
-    }
-};
-
 function animateAllocation(actor, box) {
-    if (actor.allocation.equal(box) ||
-        actor.allocation.get_width() === 0 ||
-        actor.allocation.get_height() === 0) {
-        actor.allocate(box);
-        return null;
-    }
-
     actor.save_easing_state();
     actor.set_easing_mode(Clutter.AnimationMode.EASE_OUT_QUAD);
     actor.set_easing_duration(200);
@@ -392,16 +405,15 @@ var WorkspaceLayout = GObject.registerClass({
             false),
     },
 }, class WorkspaceLayout extends Clutter.LayoutManager {
-    _init(metaWorkspace, monitorIndex) {
+    _init(metaWorkspace, monitorIndex, overviewAdjustment) {
         super._init();
 
         this._spacing = 20;
         this._layoutFrozen = false;
 
+        this._metaWorkspace = metaWorkspace;
         this._monitorIndex = monitorIndex;
-        this._workarea = metaWorkspace
-            ? metaWorkspace.get_work_area_for_monitor(this._monitorIndex)
-            : Main.layoutManager.getWorkAreaForMonitor(this._monitorIndex);
+        this._overviewAdjustment = overviewAdjustment;
 
         this._container = null;
         this._windows = new Map();
@@ -417,26 +429,25 @@ var WorkspaceLayout = GObject.registerClass({
         });
 
         this._stateAdjustment.connect('notify::value', () => {
-            [...this._windows.keys()].forEach(
-                preview => this._syncOverlay(preview));
+            this.syncOverlays();
             this.layout_changed();
         });
+
+        this._workarea = null;
+        this._workareasChangedId = 0;
     }
 
-    _isBetterLayout(oldLayout, newLayout) {
-        if (oldLayout.scale === undefined)
-            return true;
+    _isBetterScaleAndSpace(oldScale, oldSpace, scale, space) {
+        let spacePower = (space - oldSpace) * LAYOUT_SPACE_WEIGHT;
+        let scalePower = (scale - oldScale) * LAYOUT_SCALE_WEIGHT;
 
-        let spacePower = (newLayout.space - oldLayout.space) * LAYOUT_SPACE_WEIGHT;
-        let scalePower = (newLayout.scale - oldLayout.scale) * LAYOUT_SCALE_WEIGHT;
-
-        if (newLayout.scale > oldLayout.scale && newLayout.space > oldLayout.space) {
+        if (scale > oldScale && space > oldSpace) {
             // Win win -- better scale and better space
             return true;
-        } else if (newLayout.scale > oldLayout.scale && newLayout.space <= oldLayout.space) {
+        } else if (scale > oldScale && space <= oldSpace) {
             // Keep new layout only if scale gain outweighs aspect space loss
             return scalePower > spacePower;
-        } else if (newLayout.scale <= oldLayout.scale && newLayout.space > oldLayout.space) {
+        } else if (scale <= oldScale && space > oldSpace) {
             // Keep new layout only if aspect space gain outweighs scale loss
             return spacePower > scalePower;
         } else {
@@ -447,7 +458,7 @@ var WorkspaceLayout = GObject.registerClass({
 
     _adjustSpacingAndPadding(rowSpacing, colSpacing, containerBox) {
         if (this._sortedWindows.length === 0)
-            return [colSpacing, rowSpacing, containerBox];
+            return [rowSpacing, colSpacing, containerBox];
 
         // All of the overlays have the same chrome sizes,
         // so just pick the first one.
@@ -456,51 +467,71 @@ var WorkspaceLayout = GObject.registerClass({
         const [topOversize, bottomOversize] = window.chromeHeights();
         const [leftOversize, rightOversize] = window.chromeWidths();
 
-        if (rowSpacing)
-            rowSpacing += Math.max(topOversize, bottomOversize);
-        if (colSpacing)
-            colSpacing += Math.max(leftOversize, rightOversize);
+        const oversize =
+            Math.max(topOversize, bottomOversize, leftOversize, rightOversize);
+
+        if (rowSpacing !== null)
+            rowSpacing += oversize;
+        if (colSpacing !== null)
+            colSpacing += oversize;
 
         if (containerBox) {
-            containerBox.x1 += leftOversize;
-            containerBox.x2 -= rightOversize;
-            containerBox.y1 += topOversize;
-            containerBox.y2 -= bottomOversize;
+            const monitor = Main.layoutManager.monitors[this._monitorIndex];
+
+            const bottomPoint = new Graphene.Point3D({ y: containerBox.y2 });
+            const transformedBottomPoint =
+                this._container.apply_transform_to_point(bottomPoint);
+            const bottomFreeSpace =
+                (monitor.y + monitor.height) - transformedBottomPoint.y;
+
+            const [, bottomOverlap] = window.overlapHeights();
+
+            if ((bottomOverlap + oversize) > bottomFreeSpace)
+                containerBox.y2 -= (bottomOverlap + oversize) - bottomFreeSpace;
         }
 
         return [rowSpacing, colSpacing, containerBox];
     }
 
     _createBestLayout(area) {
-        const [rowSpacing, colSpacing] =
+        const [rowSpacing, columnSpacing] =
             this._adjustSpacingAndPadding(this._spacing, this._spacing, null);
 
         // We look for the largest scale that allows us to fit the
         // largest row/tallest column on the workspace.
-        const strategy = new UnalignedLayoutStrategy(
-            Main.layoutManager.monitors[this._monitorIndex],
+        this._layoutStrategy = new UnalignedLayoutStrategy({
+            monitor: Main.layoutManager.monitors[this._monitorIndex],
             rowSpacing,
-            colSpacing);
+            columnSpacing,
+        });
 
-        let lastLayout = {};
+        let lastLayout = null;
+        let lastNumColumns = -1;
+        let lastScale = 0;
+        let lastSpace = 0;
 
         for (let numRows = 1; ; numRows++) {
-            let numColumns = Math.ceil(this._sortedWindows.length / numRows);
+            const numColumns = Math.ceil(this._sortedWindows.length / numRows);
 
             // If adding a new row does not change column count just stop
             // (for instance: 9 windows, with 3 rows -> 3 columns, 4 rows ->
             // 3 columns as well => just use 3 rows then)
-            if (numColumns === lastLayout.numColumns)
+            if (numColumns === lastNumColumns)
                 break;
 
-            let layout = { area, strategy, numRows, numColumns };
-            strategy.computeLayout(this._sortedWindows, layout);
-            strategy.computeScaleAndSpace(layout);
+            const layout = this._layoutStrategy.computeLayout(this._sortedWindows, {
+                numRows,
+            });
 
-            if (!this._isBetterLayout(lastLayout, layout))
+            const [scale, space] = this._layoutStrategy.computeScaleAndSpace(layout, area);
+
+            if (lastLayout && !this._isBetterScaleAndSpace(lastScale, lastSpace, scale, space))
                 break;
 
             lastLayout = layout;
+            lastNumColumns = numColumns;
+            lastScale = scale;
+            lastSpace = space;
         }
 
         return lastLayout;
@@ -517,7 +548,7 @@ var WorkspaceLayout = GObject.registerClass({
             height: parseInt(containerBox.get_height()),
         };
 
-        return this._layout.strategy.computeWindowSlots(this._layout, availArea);
+        return this._layoutStrategy.computeWindowSlots(this._layout, availArea);
     }
 
     _getAdjustedWorkarea(container) {
@@ -532,8 +563,25 @@ var WorkspaceLayout = GObject.registerClass({
         return workarea;
     }
 
+    _syncWorkareaTracking() {
+        if (this._container) {
+            if (this._workAreaChangedId)
+                return;
+            this._workarea = Main.layoutManager.getWorkAreaForMonitor(this._monitorIndex);
+            this._workareasChangedId =
+                global.display.connect('workareas-changed', () => {
+                    this._workarea = Main.layoutManager.getWorkAreaForMonitor(this._monitorIndex);
+                    this.layout_changed();
+                });
+        } else if (this._workareasChangedId) {
+            global.display.disconnect(this._workareasChangedId);
+            this._workareasChangedId = 0;
+        }
+    }
+
     vfunc_set_container(container) {
         this._container = container;
+        this._syncWorkareaTracking();
         this._stateAdjustment.actor = container;
     }
 
@@ -561,6 +609,7 @@ var WorkspaceLayout = GObject.registerClass({
 
     vfunc_allocate(container, box) {
         const containerBox = container.allocation;
+        const [containerWidth, containerHeight] = containerBox.get_size();
         const containerAllocationChanged =
             this._lastBox === null || !this._lastBox.equal(containerBox);
         this._lastBox = containerBox.copy();
@@ -577,6 +626,28 @@ var WorkspaceLayout = GObject.registerClass({
             this.notify('layout-frozen');
         }
 
+        const { ControlsState } = OverviewControls;
+        const { currentState, transitioning } =
+            this._overviewAdjustment.getStateTransitionParams();
+        const inSessionTransition = currentState <= ControlsState.WINDOW_PICKER;
+
+        const window = this._sortedWindows[0];
+
+        if (inSessionTransition || !window) {
+            container.remove_clip();
+        } else {
+            const [, bottomOversize] = window.chromeHeights();
+            const [containerX, containerY] = containerBox.get_origin();
+
+            const extraHeightProgress =
+                currentState - OverviewControls.ControlsState.WINDOW_PICKER;
+
+            const extraClipHeight = bottomOversize * (1 - extraHeightProgress);
+
+            container.set_clip(containerX, containerY,
+                containerWidth, containerHeight + extraClipHeight);
+        }
+
         let layoutChanged = false;
         if (!this._layoutFrozen) {
             if (this._layout === null) {
@@ -588,53 +659,58 @@ var WorkspaceLayout = GObject.registerClass({
                 this._windowSlots = this._getWindowSlots(box.copy());
         }
 
-        const allocationScale = containerBox.get_width() / this._workarea.width;
+        const workareaX = this._workarea.x;
+        const workareaY = this._workarea.y;
+        const workareaWidth = this._workarea.width;
+        const stateAdjustementValue = this._stateAdjustment.value;
 
-        const workspaceBox = new Clutter.ActorBox();
-        const layoutBox = new Clutter.ActorBox();
-        let childBox = new Clutter.ActorBox();
+        const allocationScale = containerWidth / workareaWidth;
 
-        for (const child of container) {
+        const childBox = new Clutter.ActorBox();
+
+        const nSlots = this._windowSlots.length;
+        for (let i = 0; i < nSlots; i++) {
+            let [x, y, width, height, child] = this._windowSlots[i];
             if (!child.visible)
                 continue;
 
-            // The fifth element in the slot array is the WindowPreview
-            const index = this._windowSlots.findIndex(s => s[4] === child);
-            if (index === -1) {
-                log('Couldn\'t find child %s in window slots'.format(child));
-                child.allocate(childBox);
-                continue;
-            }
-
-            const [x, y, width, height] = this._windowSlots[index];
             const windowInfo = this._windows.get(child);
 
-            if (windowInfo.metaWindow.showing_on_its_workspace()) {
-                workspaceBox.x1 = child.boundingBox.x - this._workarea.x;
-                workspaceBox.x2 = workspaceBox.x1 + child.boundingBox.width;
-                workspaceBox.y1 = child.boundingBox.y - this._workarea.y;
-                workspaceBox.y2 = workspaceBox.y1 + child.boundingBox.height;
-            } else {
-                workspaceBox.set_origin(this._workarea.x, this._workarea.y);
-                workspaceBox.set_size(0, 0);
+            let workspaceBoxX, workspaceBoxY;
+            let workspaceBoxWidth, workspaceBoxHeight;
 
-                child.opacity = this._stateAdjustment.value * 255;
+            if (windowInfo.metaWindow.showing_on_its_workspace()) {
+                workspaceBoxX = (child.boundingBox.x - workareaX) * allocationScale;
+                workspaceBoxY = (child.boundingBox.y - workareaY) * allocationScale;
+                workspaceBoxWidth = child.boundingBox.width * allocationScale;
+                workspaceBoxHeight = child.boundingBox.height * allocationScale;
+            } else {
+                workspaceBoxX = workareaX * allocationScale;
+                workspaceBoxY = workareaY * allocationScale;
+                workspaceBoxWidth = 0;
+                workspaceBoxHeight = 0;
+
+                if (transitioning)
+                    child.opacity = stateAdjustementValue * 255;
             }
 
-            workspaceBox.scale(allocationScale);
-            // don't allow the scaled floating size to drop below
-            // the target layout size
-            workspaceBox.set_size(
-                Math.max(workspaceBox.get_width(), width),
-                Math.max(workspaceBox.get_height(), height));
+            // Don't allow the scaled floating size to drop below
+            // the target layout size.
+            // We only want to apply this when the scaled floating size is
+            // actually larger than the target layout size, that is while
+            // animating between the session and the window picker.
+            if (inSessionTransition) {
+                workspaceBoxWidth = Math.max(workspaceBoxWidth, width);
+                workspaceBoxHeight = Math.max(workspaceBoxHeight, height);
+            }
 
-            layoutBox.x1 = x;
-            layoutBox.x2 = layoutBox.x1 + width;
-            layoutBox.y1 = y;
-            layoutBox.y2 = layoutBox.y1 + height;
+            x = Util.lerp(workspaceBoxX, x, stateAdjustementValue);
+            y = Util.lerp(workspaceBoxY, y, stateAdjustementValue);
+            width = Util.lerp(workspaceBoxWidth, width, stateAdjustementValue);
+            height = Util.lerp(workspaceBoxHeight, height, stateAdjustementValue);
 
-            childBox = workspaceBox.interpolate(layoutBox,
-                this._stateAdjustment.value);
+            childBox.set_origin(x, y);
+            childBox.set_size(width, height);
 
             if (windowInfo.currentTransition) {
                 windowInfo.currentTransition.get_interval().set_final(childBox);
@@ -670,7 +746,17 @@ var WorkspaceLayout = GObject.registerClass({
     }
 
     _syncOverlay(preview) {
-        preview.overlay_enabled = this._stateAdjustment.value === 1;
+        const active = this._metaWorkspace?.active ?? true;
+        preview.overlayEnabled = active && this._stateAdjustment.value === 1;
+    }
+
+    /**
+     * syncOverlays:
+     *
+     * Synchronizes the overlay state of all window previews.
+     */
+    syncOverlays() {
+        [...this._windows.keys()].forEach(preview => this._syncOverlay(preview));
     }
 
     /**
@@ -813,13 +899,11 @@ var WorkspaceLayout = GObject.registerClass({
         this.layout_changed();
     }
 
-    // eslint-disable-next-line camelcase
-    get layout_frozen() {
+    get layoutFrozen() {
         return this._layoutFrozen;
     }
 
-    // eslint-disable-next-line camelcase
-    set layout_frozen(f) {
+    set layoutFrozen(f) {
         if (this._layoutFrozen === f)
             return;
 
@@ -831,18 +915,172 @@ var WorkspaceLayout = GObject.registerClass({
     }
 });
 
+var WorkspaceBackground = GObject.registerClass(
+class WorkspaceBackground extends St.Widget {
+    _init(monitorIndex, stateAdjustment) {
+        super._init({
+            style_class: 'workspace-background',
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
+
+        this._monitorIndex = monitorIndex;
+        this._workarea = Main.layoutManager.getWorkAreaForMonitor(monitorIndex);
+
+        this._stateAdjustment = stateAdjustment;
+        stateAdjustment.connect('notify::value', () => {
+            this._updateBorderRadius();
+            this.queue_relayout();
+        });
+
+        this._bin = new Clutter.Actor({
+            layout_manager: new Clutter.BinLayout(),
+            clip_to_allocation: true,
+        });
+
+        this._backgroundGroup = new Meta.BackgroundGroup({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
+        this._bin.add_child(this._backgroundGroup);
+        this.add_child(this._bin);
+
+        this._bgManager = new Background.BackgroundManager({
+            container: this._backgroundGroup,
+            monitorIndex: this._monitorIndex,
+            controlPosition: false,
+            useContentSize: false,
+        });
+
+        this._workareasChangedId =
+            global.display.connect('workareas-changed', () => {
+                this._workarea = Main.layoutManager.getWorkAreaForMonitor(monitorIndex);
+                this._updateRoundedClipBounds();
+                this.queue_relayout();
+            });
+        this._updateRoundedClipBounds();
+
+        this.connect('destroy', this._onDestroy.bind(this));
+    }
+
+    _updateBorderRadius() {
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const cornerRadius = scaleFactor * BACKGROUND_CORNER_RADIUS_PIXELS;
+
+        const backgroundContent = this._bgManager.backgroundActor.content;
+        backgroundContent.rounded_clip_radius =
+            Util.lerp(0, cornerRadius, this._stateAdjustment.value);
+    }
+
+    _updateRoundedClipBounds() {
+        const monitor = Main.layoutManager.monitors[this._monitorIndex];
+
+        const rect = new Graphene.Rect();
+        rect.origin.x = this._workarea.x - monitor.x;
+        rect.origin.y = this._workarea.y - monitor.y;
+        rect.size.width = this._workarea.width;
+        rect.size.height = this._workarea.height;
+
+        this._bgManager.backgroundActor.content.set_rounded_clip_bounds(rect);
+    }
+
+    vfunc_allocate(box) {
+        const [width, height] = box.get_size();
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const scaledHeight = height - (BACKGROUND_MARGIN * 2 * scaleFactor);
+        const scaledWidth = (scaledHeight / height) * width;
+
+        const scaledBox = box.copy();
+        scaledBox.set_origin(
+            box.x1 + (width - scaledWidth) / 2,
+            box.y1 + (height - scaledHeight) / 2);
+        scaledBox.set_size(scaledWidth, scaledHeight);
+
+        const progress = this._stateAdjustment.value;
+
+        if (progress === 1)
+            box = scaledBox;
+        else if (progress !== 0)
+            box = box.interpolate(scaledBox, progress);
+
+        this.set_allocation(box);
+
+        const themeNode = this.get_theme_node();
+        const contentBox = themeNode.get_content_box(box);
+
+        this._bin.allocate(contentBox);
+
+        const [contentWidth, contentHeight] = contentBox.get_size();
+        const monitor = Main.layoutManager.monitors[this._monitorIndex];
+        const [mX1, mX2] = [monitor.x, monitor.x + monitor.width];
+        const [mY1, mY2] = [monitor.y, monitor.y + monitor.height];
+        const [wX1, wX2] = [this._workarea.x, this._workarea.x + this._workarea.width];
+        const [wY1, wY2] = [this._workarea.y, this._workarea.y + this._workarea.height];
+        const xScale = contentWidth / this._workarea.width;
+        const yScale = contentHeight / this._workarea.height;
+        const leftOffset = wX1 - mX1;
+        const topOffset = wY1 - mY1;
+        const rightOffset = mX2 - wX2;
+        const bottomOffset = mY2 - wY2;
+
+        contentBox.set_origin(-leftOffset * xScale, -topOffset * yScale);
+        contentBox.set_size(
+            contentWidth + (leftOffset + rightOffset) * xScale,
+            contentHeight + (topOffset + bottomOffset) * yScale);
+        this._backgroundGroup.allocate(contentBox);
+    }
+
+    _onDestroy() {
+        if (this._bgManager) {
+            this._bgManager.destroy();
+            this._bgManager = null;
+        }
+
+        if (this._workareasChangedId) {
+            global.display.disconnect(this._workareasChangedId);
+            delete this._workareasChangedId;
+        }
+    }
+});
+
 /**
  * @metaWorkspace: a #Meta.Workspace, or null
  */
 var Workspace = GObject.registerClass(
 class Workspace extends St.Widget {
-    _init(metaWorkspace, monitorIndex) {
+    _init(metaWorkspace, monitorIndex, overviewAdjustment) {
         super._init({
             style_class: 'window-picker',
-            layout_manager: new WorkspaceLayout(metaWorkspace, monitorIndex),
+            pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
+            layout_manager: new Clutter.BinLayout(),
         });
 
+        const layoutManager = new WorkspaceLayout(metaWorkspace, monitorIndex,
+            overviewAdjustment);
+
+        // Background
+        this._background =
+            new WorkspaceBackground(monitorIndex, layoutManager.stateAdjustment);
+        this.add_child(this._background);
+
+        // Window previews
+        this._container = new Clutter.Actor({
+            reactive: true,
+            x_expand: true,
+            y_expand: true,
+        });
+        this._container.layout_manager = layoutManager;
+        this.add_child(this._container);
+
         this.metaWorkspace = metaWorkspace;
+        this._activeWorkspaceChangedId =
+            this.metaWorkspace?.connect('notify::active', () => {
+                layoutManager.syncOverlays();
+            });
+
+        this._overviewAdjustment = overviewAdjustment;
 
         this.monitorIndex = monitorIndex;
         this._monitor = Main.layoutManager.monitors[this.monitorIndex];
@@ -850,9 +1088,25 @@ class Workspace extends St.Widget {
         if (monitorIndex != Main.layoutManager.primaryIndex)
             this.add_style_class_name('external-monitor');
 
+        const clickAction = new Clutter.ClickAction();
+        clickAction.connect('clicked', action => {
+            // Switch to the workspace when not the active one, leave the
+            // overview otherwise.
+            if (action.get_button() === 1 || action.get_button() === 0) {
+                const leaveOverview = this._shouldLeaveOverview();
+
+                this.metaWorkspace?.activate(global.get_current_time());
+                if (leaveOverview)
+                    Main.overview.hide();
+            }
+        });
+        this.bind_property('mapped', clickAction, 'enabled', GObject.BindingFlags.SYNC_CREATE);
+        this._container.add_action(clickAction);
+
         this.connect('style-changed', this._onStyleChanged.bind(this));
         this.connect('destroy', this._onDestroy.bind(this));
 
+        this._skipTaskbarSignals = new Map();
         const windows = global.get_window_actors().map(a => a.meta_window)
             .filter(this._isMyWindow, this);
 
@@ -864,25 +1118,33 @@ class Workspace extends St.Widget {
                 this._addWindowClone(windows[i]);
         }
 
-        // Track window changes
+        // Track window changes, but let the window tracker process them first
         if (this.metaWorkspace) {
-            this._windowAddedId = this.metaWorkspace.connect('window-added',
-                                                             this._windowAdded.bind(this));
-            this._windowRemovedId = this.metaWorkspace.connect('window-removed',
-                                                               this._windowRemoved.bind(this));
+            this._windowAddedId = this.metaWorkspace.connect_after(
+                'window-added', this._windowAdded.bind(this));
+            this._windowRemovedId = this.metaWorkspace.connect_after(
+                'window-removed', this._windowRemoved.bind(this));
         }
-        this._windowEnteredMonitorId = global.display.connect('window-entered-monitor',
-                                                              this._windowEnteredMonitor.bind(this));
-        this._windowLeftMonitorId = global.display.connect('window-left-monitor',
-                                                           this._windowLeftMonitor.bind(this));
+        this._windowEnteredMonitorId = global.display.connect_after(
+            'window-entered-monitor', this._windowEnteredMonitor.bind(this));
+        this._windowLeftMonitorId = global.display.connect_after(
+            'window-left-monitor', this._windowLeftMonitor.bind(this));
         this._layoutFrozenId = 0;
 
         // DND requires this to be set
         this._delegate = this;
     }
 
+    _shouldLeaveOverview() {
+        if (!this.metaWorkspace || this.metaWorkspace.active)
+            return true;
+
+        const overviewState = this._overviewAdjustment.value;
+        return overviewState > OverviewControls.ControlsState.WINDOW_PICKER;
+    }
+
     vfunc_get_focus_chain() {
-        return this.layout_manager.getFocusChain();
+        return this._container.layout_manager.getFocusChain();
     }
 
     _lookupIndex(metaWindow) {
@@ -898,7 +1160,7 @@ class Workspace extends St.Widget {
     }
 
     syncStacking(stackIndices) {
-        this.layout_manager.syncStacking(stackIndices);
+        this._container.layout_manager.syncStacking(stackIndices);
     }
 
     _doRemoveWindow(metaWin) {
@@ -913,7 +1175,7 @@ class Workspace extends St.Widget {
         // around while the user is interacting with the workspace, we delay
         // the positioning until the pointer remains still for at least 750 ms
         // or is moved outside the workspace
-        this.layout_manager.layout_frozen = true;
+        this._container.layout_manager.layout_frozen = true;
 
         if (this._layoutFrozenId > 0) {
             GLib.source_remove(this._layoutFrozenId);
@@ -938,7 +1200,7 @@ class Workspace extends St.Widget {
                     return GLib.SOURCE_CONTINUE;
                 }
 
-                this.layout_manager.layout_frozen = false;
+                this._container.layout_manager.layout_frozen = false;
                 this._layoutFrozenId = 0;
                 return GLib.SOURCE_REMOVE;
             });
@@ -971,6 +1233,14 @@ class Workspace extends St.Widget {
         if (!this._isMyWindow(metaWin))
             return;
 
+        this._skipTaskbarSignals.set(metaWin,
+            metaWin.connect('notify::skip-taskbar', () => {
+                if (metaWin.skip_taskbar)
+                    this._doRemoveWindow(metaWin);
+                else
+                    this._doAddWindow(metaWin);
+            }));
+
         if (!this._isOverviewWindow(metaWin)) {
             if (metaWin.get_transient_for() == null)
                 return;
@@ -1002,7 +1272,7 @@ class Workspace extends St.Widget {
         if (this._layoutFrozenId > 0) {
             // If a window was closed before, unfreeze the layout to ensure
             // the new window is immediately shown
-            this.layout_manager.layout_frozen = false;
+            this._container.layout_manager.layout_frozen = false;
 
             GLib.source_remove(this._layoutFrozenId);
             this._layoutFrozenId = 0;
@@ -1039,58 +1309,14 @@ class Workspace extends St.Widget {
         return false;
     }
 
-    fadeToOverview() {
-        // We don't want to reposition windows while animating in this way.
-        this.layout_manager.layout_frozen = true;
-        this._overviewShownId = Main.overview.connect('shown', this._doneShowingOverview.bind(this));
-        if (this._windows.length == 0)
-            return;
-
-        if (this.metaWorkspace !== null && !this.metaWorkspace.active)
-            return;
-
-        this.layout_manager.stateAdjustment.value = 0;
-
-        // Special case maximized windows, since it doesn't make sense
-        // to animate windows below in the stack
-        let topMaximizedWindow;
-        // It is ok to treat the case where there is no maximized
-        // window as if the bottom-most window was maximized given that
-        // it won't affect the result of the animation
-        for (topMaximizedWindow = this._windows.length - 1; topMaximizedWindow > 0; topMaximizedWindow--) {
-            let metaWindow = this._windows[topMaximizedWindow].metaWindow;
-            if (metaWindow.maximized_horizontally && metaWindow.maximized_vertically)
-                break;
-        }
-
-        let nTimeSlots = Math.min(WINDOW_ANIMATION_MAX_NUMBER_BLENDING + 1, this._windows.length - topMaximizedWindow);
-        let windowBaseTime = Overview.ANIMATION_TIME / nTimeSlots;
-
-        let topIndex = this._windows.length - 1;
-        for (let i = 0; i < this._windows.length; i++) {
-            if (i < topMaximizedWindow) {
-                // below top-most maximized window, don't animate
-                this._windows[i].hideOverlay(false);
-                this._windows[i].opacity = 0;
-            } else {
-                let fromTop = topIndex - i;
-                let time;
-                if (fromTop < nTimeSlots) // animate top-most windows gradually
-                    time = windowBaseTime * (nTimeSlots - fromTop);
-                else
-                    time = windowBaseTime;
-
-                this._windows[i].opacity = 255;
-                this._fadeWindow(i, time, 0);
-            }
-        }
+    _clearSkipTaskbarSignals() {
+        for (const [metaWin, id] of this._skipTaskbarSignals)
+            metaWin.disconnect(id);
+        this._skipTaskbarSignals.clear();
     }
 
-    fadeFromOverview() {
-        this.layout_manager.layout_frozen = true;
-        this._overviewHiddenId = Main.overview.connect('hidden', this._doneLeavingOverview.bind(this));
-        if (this._windows.length == 0)
-            return;
+    prepareToLeaveOverview() {
+        this._clearSkipTaskbarSignals();
 
         for (let i = 0; i < this._windows.length; i++)
             this._windows[i].remove_all_transitions();
@@ -1100,108 +1326,22 @@ class Workspace extends St.Widget {
             this._layoutFrozenId = 0;
         }
 
-        if (this.metaWorkspace !== null && !this.metaWorkspace.active)
-            return;
-
-        this.layout_manager.stateAdjustment.value = 0;
-
-        // Special case maximized windows, since it doesn't make sense
-        // to animate windows below in the stack
-        let topMaximizedWindow;
-        // It is ok to treat the case where there is no maximized
-        // window as if the bottom-most window was maximized given that
-        // it won't affect the result of the animation
-        for (topMaximizedWindow = this._windows.length - 1; topMaximizedWindow > 0; topMaximizedWindow--) {
-            let metaWindow = this._windows[topMaximizedWindow].metaWindow;
-            if (metaWindow.maximized_horizontally && metaWindow.maximized_vertically)
-                break;
-        }
-
-        let nTimeSlots = Math.min(WINDOW_ANIMATION_MAX_NUMBER_BLENDING + 1, this._windows.length - topMaximizedWindow);
-        let windowBaseTime = Overview.ANIMATION_TIME / nTimeSlots;
-
-        let topIndex = this._windows.length - 1;
-        for (let i = 0; i < this._windows.length; i++) {
-            if (i < topMaximizedWindow) {
-                // below top-most maximized window, don't animate
-                this._windows[i].hideOverlay(false);
-                this._windows[i].opacity = 0;
-            } else {
-                let fromTop = topIndex - i;
-                let time;
-                if (fromTop < nTimeSlots) // animate top-most windows gradually
-                    time = windowBaseTime * (fromTop + 1);
-                else
-                    time = windowBaseTime * nTimeSlots;
-
-                this._windows[i].opacity = 0;
-                this._fadeWindow(i, time, 255);
-            }
-        }
-    }
-
-    _fadeWindow(index, duration, opacity) {
-        let clone = this._windows[index];
-        clone.hideOverlay(false);
-
-        if (clone.metaWindow.showing_on_its_workspace()) {
-            clone.ease({
-                opacity,
-                duration,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
-        } else {
-            // The window is hidden
-            clone.opacity = 0;
-        }
-    }
-
-    zoomToOverview() {
-        const animate =
-            this.metaWorkspace === null || this.metaWorkspace.active;
-
-        const adj = this.layout_manager.stateAdjustment;
-        adj.ease(1, {
-            duration: animate ? Overview.ANIMATION_TIME : 0,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
-    }
-
-    zoomFromOverview() {
-        for (let i = 0; i < this._windows.length; i++)
-            this._windows[i].remove_all_transitions();
-
-        if (this._layoutFrozenId > 0) {
-            GLib.source_remove(this._layoutFrozenId);
-            this._layoutFrozenId = 0;
-        }
-
-        this.layout_manager.layout_frozen = true;
+        this._container.layout_manager.layout_frozen = true;
         this._overviewHiddenId = Main.overview.connect('hidden', this._doneLeavingOverview.bind(this));
-
-        if (this.metaWorkspace !== null && !this.metaWorkspace.active)
-            return;
-
-        this.layout_manager.stateAdjustment.ease(0, {
-            duration: Overview.ANIMATION_TIME,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
     }
 
     _onDestroy() {
+        this._clearSkipTaskbarSignals();
+
         if (this._overviewHiddenId) {
             Main.overview.disconnect(this._overviewHiddenId);
             this._overviewHiddenId = 0;
         }
 
-        if (this._overviewShownId) {
-            Main.overview.disconnect(this._overviewShownId);
-            this._overviewShownId = 0;
-        }
-
         if (this.metaWorkspace) {
             this.metaWorkspace.disconnect(this._windowAddedId);
             this.metaWorkspace.disconnect(this._windowRemovedId);
+            this.metaWorkspace.disconnect(this._activeWorkspaceChangedId);
         }
         global.display.disconnect(this._windowEnteredMonitorId);
         global.display.disconnect(this._windowLeftMonitorId);
@@ -1215,15 +1355,11 @@ class Workspace extends St.Widget {
     }
 
     _doneLeavingOverview() {
-        this.layout_manager.layout_frozen = false;
-        this.layout_manager.stateAdjustment.value = 0;
-        this._windows.forEach(w => (w.opacity = 255));
+        this._container.layout_manager.layout_frozen = false;
     }
 
     _doneShowingOverview() {
-        this.layout_manager.layout_frozen = false;
-        this.layout_manager.stateAdjustment.value = 1;
-        this._windows.forEach(w => (w.opacity = 255));
+        this._container.layout_manager.layout_frozen = false;
     }
 
     _isMyWindow(window) {
@@ -1240,7 +1376,7 @@ class Workspace extends St.Widget {
 
     // Create a clone of a (non-desktop) window and add it to the window list
     _addWindowClone(metaWindow) {
-        let clone = new WindowPreview(metaWindow, this);
+        let clone = new WindowPreview(metaWindow, this, this._overviewAdjustment);
 
         clone.connect('selected',
                       this._onCloneSelected.bind(this));
@@ -1267,7 +1403,7 @@ class Workspace extends St.Widget {
             this._doRemoveWindow(metaWindow);
         });
 
-        this.layout_manager.addWindow(clone, metaWindow);
+        this._container.layout_manager.addWindow(clone, metaWindow);
 
         if (this._windows.length == 0)
             clone.setStackAbove(null);
@@ -1286,21 +1422,23 @@ class Workspace extends St.Widget {
         if (index == -1)
             return null;
 
-        this.layout_manager.removeWindow(this._windows[index]);
+        this._container.layout_manager.removeWindow(this._windows[index]);
 
         return this._windows.splice(index, 1).pop();
     }
 
     _onStyleChanged() {
         const themeNode = this.get_theme_node();
-        this.layout_manager.spacing = themeNode.get_length('spacing');
+        this._container.layout_manager.spacing = themeNode.get_length('spacing');
     }
 
     _onCloneSelected(clone, time) {
-        let wsIndex;
-        if (this.metaWorkspace)
-            wsIndex = this.metaWorkspace.index();
-        Main.activateWindow(clone.metaWindow, time, wsIndex);
+        const wsIndex = this.metaWorkspace?.index();
+
+        if (this._shouldLeaveOverview())
+            Main.activateWindow(clone.metaWindow, time, wsIndex);
+        else
+            this.metaWorkspace?.activate(time);
     }
 
     // Draggable target interface
@@ -1349,5 +1487,9 @@ class Workspace extends St.Widget {
         }
 
         return false;
+    }
+
+    get stateAdjustment() {
+        return this._container.layout_manager.stateAdjustment;
     }
 });

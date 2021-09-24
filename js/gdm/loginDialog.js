@@ -762,6 +762,9 @@ var LoginDialog = GObject.registerClass({
 
             if (this._authPrompt.verificationStatus == AuthPrompt.AuthPromptStatus.NOT_VERIFYING)
                 this._authPrompt.reset();
+
+            if (this._disableUserList && this._timedLoginUserListHold)
+                this._timedLoginUserListHold.release();
         }
     }
 
@@ -855,6 +858,7 @@ var LoginDialog = GObject.registerClass({
         this._resetGreeterProxy();
         this._sessionMenuButton.updateSensitivity(true);
 
+        const previousUser = this._user;
         this._user = null;
 
         if (this._nextSignalId) {
@@ -862,7 +866,11 @@ var LoginDialog = GObject.registerClass({
             this._nextSignalId = 0;
         }
 
-        if (beginRequest == AuthPrompt.BeginRequestType.PROVIDE_USERNAME) {
+        if (previousUser && beginRequest === AuthPrompt.BeginRequestType.REUSE_USERNAME) {
+            this._user = previousUser;
+            this._authPrompt.setUser(this._user);
+            this._authPrompt.begin({ userName: previousUser.get_user_name() });
+        } else if (beginRequest === AuthPrompt.BeginRequestType.PROVIDE_USERNAME) {
             if (!this._disableUserList)
                 this._showUserList();
             else
@@ -1043,54 +1051,72 @@ var LoginDialog = GObject.registerClass({
         let loginItem = null;
         let animationTime;
 
-        let tasks = [() => this._waitForItemForUser(userName),
+        let tasks = [
+            () => {
+                if (this._disableUserList)
+                    return;
 
-                     () => {
-                         loginItem = this._userList.getItemFromUserName(userName);
+                this._timedLoginUserListHold = this._waitForItemForUser(userName);
+            },
 
-                         // If there is an animation running on the item, reset it.
-                         loginItem.hideTimedLoginIndicator();
-                     },
+            () => {
+                this._timedLoginUserListHold = null;
 
-                     () => {
-                         // If we're just starting out, start on the right item.
-                         if (!this._userManager.is_loaded)
-                             this._userList.jumpToItem(loginItem);
-                     },
+                if (this._disableUserList)
+                    loginItem = this._authPrompt;
+                else
+                    loginItem = this._userList.getItemFromUserName(userName);
 
-                     () => {
-                         // This blocks the timed login animation until a few
-                         // seconds after the user stops interacting with the
-                         // login screen.
+                // If there is an animation running on the item, reset it.
+                loginItem.hideTimedLoginIndicator();
+            },
 
-                         // We skip this step if the timed login delay is very short.
-                         if (delay > _TIMED_LOGIN_IDLE_THRESHOLD) {
-                             animationTime = delay - _TIMED_LOGIN_IDLE_THRESHOLD;
-                             return this._blockTimedLoginUntilIdle();
-                         } else {
-                             animationTime = delay;
-                             return null;
-                         }
-                     },
+            () => {
+                if (this._disableUserList)
+                    return;
 
-                     () => {
-                         // If idle timeout is done, make sure the timed login indicator is shown
-                         if (delay > _TIMED_LOGIN_IDLE_THRESHOLD &&
-                             this._authPrompt.visible)
-                             this._authPrompt.cancel();
+                // If we're just starting out, start on the right item.
+                if (!this._userManager.is_loaded)
+                    this._userList.jumpToItem(loginItem);
+            },
 
-                         if (delay > _TIMED_LOGIN_IDLE_THRESHOLD || firstRun) {
-                             this._userList.scrollToItem(loginItem);
-                             loginItem.grab_key_focus();
-                         }
-                     },
+            () => {
+                // This blocks the timed login animation until a few
+                // seconds after the user stops interacting with the
+                // login screen.
 
-                     () => loginItem.showTimedLoginIndicator(animationTime),
+                // We skip this step if the timed login delay is very short.
+                if (delay > _TIMED_LOGIN_IDLE_THRESHOLD) {
+                    animationTime = delay - _TIMED_LOGIN_IDLE_THRESHOLD;
+                    return this._blockTimedLoginUntilIdle();
+                } else {
+                    animationTime = delay;
+                    return null;
+                }
+            },
 
-                     () => {
-                         this._timedLoginBatch = null;
-                         this._greeter.call_begin_auto_login_sync(userName, null);
-                     }];
+            () => {
+                if (this._disableUserList)
+                    return;
+
+                // If idle timeout is done, make sure the timed login indicator is shown
+                if (delay > _TIMED_LOGIN_IDLE_THRESHOLD &&
+                    this._authPrompt.visible)
+                    this._authPrompt.cancel();
+
+                if (delay > _TIMED_LOGIN_IDLE_THRESHOLD || firstRun) {
+                    this._userList.scrollToItem(loginItem);
+                    loginItem.grab_key_focus();
+                }
+            },
+
+            () => loginItem.showTimedLoginIndicator(animationTime),
+
+            () => {
+                this._timedLoginBatch = null;
+                this._greeter.call_begin_auto_login_sync(userName, null);
+            },
+        ];
 
         this._timedLoginBatch = new Batch.ConsecutiveBatch(this, tasks);
 

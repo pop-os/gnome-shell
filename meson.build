@@ -1,5 +1,5 @@
 project('gnome-shell', 'c',
-  version: '3.38.6',
+  version: '40.4',
   meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
@@ -10,7 +10,7 @@ split_version = meson.project_version().split('.')
 # the Cogl and Clutter libraries also use this API version.
 # The API version is increased automatically each development cycle,
 # starting with 0 in 3.23.x
-api_version = (split_version[1].to_int() - 23) / 2
+api_version = split_version[0].to_int() - 32
 mutter_api_version = '@0@'.format(api_version)
 
 clutter_pc = 'mutter-clutter-' + mutter_api_version
@@ -25,7 +25,7 @@ gio_req = '>= 2.56.0'
 gi_req = '>= 1.49.1'
 gjs_req = '>= 1.65.1'
 gtk_req = '>= 3.15.0'
-mutter_req = '>= 3.38.0'
+mutter_req = '>= 40.0'
 polkit_req = '>= 0.100'
 schemas_req = '>= 3.33.1'
 startup_req = '>= 0.11'
@@ -37,6 +37,7 @@ gst_req = '>= 0.11.92'
 nm_req = '>= 1.10.4'
 secret_req = '>= 0.18'
 
+fs = import('fs')
 gnome = import('gnome')
 i18n  = import('i18n')
 
@@ -80,6 +81,7 @@ gi_dep = dependency('gobject-introspection-1.0', version: gi_req)
 gio_dep = dependency('gio-2.0', version: gio_req)
 gio_unix_dep = dependency('gio-unix-2.0', version: gio_req)
 gjs_dep = dependency('gjs-1.0', version: gjs_req)
+gmodule_dep = dependency('gmodule-2.0')
 gtk_dep = dependency('gtk+-3.0', version: gtk_req)
 libxml_dep = dependency('libxml-2.0')
 clutter_dep = dependency(clutter_pc, version: mutter_req)
@@ -126,14 +128,16 @@ else
 endif
 
 if get_option('man')
-  xsltproc = find_program('xsltproc')
-
-  subdir('man')
+  if fs.exists('man/gnome-shell.1')
+    install_man('man/gnome-shell.1')
+  else
+    a2x = find_program('a2x')
+    subdir('man')
+  endif
 endif
 
 mutter_typelibdir = mutter_dep.get_pkgconfig_variable('typelibdir')
 python = find_program('python3')
-sassc = find_program('sassc')
 gjs = find_program('gjs')
 
 cc = meson.get_compiler('c')
@@ -289,6 +293,8 @@ if get_option('gtk_doc')
 endif
 
 meson.add_install_script('meson/postinstall.py')
+meson.add_dist_script('meson/generate-manpages.py')
+meson.add_dist_script('meson/generate-stylesheets.py')
 
 summary_options = {
   'networkmanager': get_option('networkmanager'),

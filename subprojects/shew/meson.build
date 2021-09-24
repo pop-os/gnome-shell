@@ -1,5 +1,5 @@
 project('shew', 'c',
-  version: '3.38.6',
+  version: '40.4',
   meson_version: '>= 0.53.0',
   license: 'LGPLv2+',
 )
@@ -22,6 +22,7 @@ pkglibdir = join_paths(get_option('libdir'), package_name)
 girdir = join_paths(pkgdatadir, 'gir-1.0')
 typelibdir = join_paths(pkglibdir, 'girepository-1.0')
 
-gtk_dep = dependency('gtk+-3.0')
+gtk_dep = dependency('gtk4')
+x11_dep = dependency('x11', required: false)
 
 subdir('src')

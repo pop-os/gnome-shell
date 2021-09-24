@@ -5,188 +5,22 @@ const { Atk, Clutter, GLib, GObject,
         Graphene, Meta, Pango, Shell, St } = imports.gi;
 
 const DND = imports.ui.dnd;
+const OverviewControls = imports.ui.overviewControls;
 
 var WINDOW_DND_SIZE = 256;
 
 var WINDOW_OVERLAY_IDLE_HIDE_TIMEOUT = 750;
 var WINDOW_OVERLAY_FADE_TIME = 200;
 
+var WINDOW_SCALE_TIME = 200;
+var WINDOW_ACTIVE_SIZE_INC = 5; // in each direction
+
 var DRAGGING_WINDOW_OPACITY = 100;
 
-var WindowPreviewLayout = GObject.registerClass({
-    Properties: {
-        'bounding-box': GObject.ParamSpec.boxed(
-            'bounding-box', 'Bounding box', 'Bounding box',
-            GObject.ParamFlags.READABLE,
-            Clutter.ActorBox.$gtype),
-    },
-}, class WindowPreviewLayout extends Clutter.LayoutManager {
-    _init() {
-        super._init();
+const ICON_SIZE = 64;
+const ICON_OVERLAP = 0.7;
 
-        this._container = null;
-        this._boundingBox = new Clutter.ActorBox();
-        this._windows = new Map();
-    }
-
-    _layoutChanged() {
-        let frameRect;
-
-        for (const windowInfo of this._windows.values()) {
-            const frame = windowInfo.metaWindow.get_frame_rect();
-            frameRect = frameRect ? frameRect.union(frame) : frame;
-        }
-
-        if (!frameRect)
-            frameRect = new Meta.Rectangle();
-
-        const oldBox = this._boundingBox.copy();
-        this._boundingBox.set_origin(frameRect.x, frameRect.y);
-        this._boundingBox.set_size(frameRect.width, frameRect.height);
-
-        if (!this._boundingBox.equal(oldBox))
-            this.notify('bounding-box');
-
-        // Always call layout_changed(), a size or position change of an
-        // attached dialog might not affect the boundingBox
-        this.layout_changed();
-    }
-
-    vfunc_set_container(container) {
-        this._container = container;
-    }
-
-    vfunc_get_preferred_height(_container, _forWidth) {
-        return [0, this._boundingBox.get_height()];
-    }
-
-    vfunc_get_preferred_width(_container, _forHeight) {
-        return [0, this._boundingBox.get_width()];
-    }
-
-    vfunc_allocate(container, box) {
-        // If the scale isn't 1, we weren't allocated our preferred size
-        // and have to scale the children allocations accordingly.
-        const scaleX = this._boundingBox.get_width() > 0
-            ? box.get_width() / this._boundingBox.get_width()
-            : 1;
-        const scaleY = this._boundingBox.get_height() > 0
-            ? box.get_height() / this._boundingBox.get_height()
-            : 1;
-
-        const childBox = new Clutter.ActorBox();
-
-        for (const child of container) {
-            if (!child.visible)
-                continue;
-
-            const windowInfo = this._windows.get(child);
-            if (windowInfo) {
-                const bufferRect = windowInfo.metaWindow.get_buffer_rect();
-                childBox.set_origin(
-                    bufferRect.x - this._boundingBox.x1,
-                    bufferRect.y - this._boundingBox.y1);
-
-                const [, , natWidth, natHeight] = child.get_preferred_size();
-                childBox.set_size(natWidth, natHeight);
-
-                childBox.x1 *= scaleX;
-                childBox.x2 *= scaleX;
-                childBox.y1 *= scaleY;
-                childBox.y2 *= scaleY;
-
-                child.allocate(childBox);
-            } else {
-                child.allocate_preferred_size(0, 0);
-            }
-        }
-    }
-
-    /**
-     * addWindow:
-     * @param {Meta.Window} window: the MetaWindow instance
-     *
-     * Creates a ClutterActor drawing the texture of @window and adds it
-     * to the container. If @window is already part of the preview, this
-     * function will do nothing.
-     *
-     * @returns {Clutter.Actor} The newly created actor drawing @window
-     */
-    addWindow(window) {
-        const index = [...this._windows.values()].findIndex(info =>
-            info.metaWindow === window);
-
-        if (index !== -1)
-            return null;
-
-        const windowActor = window.get_compositor_private();
-        const actor = new Clutter.Clone({ source: windowActor });
-
-        this._windows.set(actor, {
-            metaWindow: window,
-            windowActor,
-            sizeChangedId: window.connect('size-changed', () =>
-                this._layoutChanged()),
-            positionChangedId: window.connect('position-changed', () =>
-                this._layoutChanged()),
-            windowActorDestroyId: windowActor.connect('destroy', () =>
-                actor.destroy()),
-            destroyId: actor.connect('destroy', () =>
-                this.removeWindow(window)),
-        });
-
-        this._container.add_child(actor);
-
-        this._layoutChanged();
-
-        return actor;
-    }
-
-    /**
-     * removeWindow:
-     * @param {Meta.Window} window: the window to remove from the preview
-     *
-     * Removes a MetaWindow @window from the preview which has been added
-     * previously using addWindow(). If @window is not part of preview,
-     * this function will do nothing.
-     */
-    removeWindow(window) {
-        const entry = [...this._windows].find(
-            ([, i]) => i.metaWindow === window);
-
-        if (!entry)
-            return;
-
-        const [actor, windowInfo] = entry;
-
-        windowInfo.metaWindow.disconnect(windowInfo.sizeChangedId);
-        windowInfo.metaWindow.disconnect(windowInfo.positionChangedId);
-        windowInfo.windowActor.disconnect(windowInfo.windowActorDestroyId);
-        actor.disconnect(windowInfo.destroyId);
-
-        this._windows.delete(actor);
-        this._container.remove_child(actor);
-
-        this._layoutChanged();
-    }
-
-    /**
-     * getWindows:
-     *
-     * Gets an array of all MetaWindows that were added to the layout
-     * using addWindow(), ordered by the insertion order.
-     *
-     * @returns {Array} An array including all windows
-     */
-    getWindows() {
-        return [...this._windows.values()].map(i => i.metaWindow);
-    }
-
-    // eslint-disable-next-line camelcase
-    get bounding_box() {
-        return this._boundingBox;
-    }
-});
+const ICON_TITLE_SPACING = 6;
 
 var WindowPreview = GObject.registerClass({
     Properties: {
@@ -203,12 +37,13 @@ var WindowPreview = GObject.registerClass({
         'show-chrome': {},
         'size-changed': {},
     },
-}, class WindowPreview extends St.Widget {
-    _init(metaWindow, workspace) {
+}, class WindowPreview extends Shell.WindowPreview {
+    _init(metaWindow, workspace, overviewAdjustment) {
         this.metaWindow = metaWindow;
         this.metaWindow._delegate = this;
         this._windowActor = metaWindow.get_compositor_private();
         this._workspace = workspace;
+        this._overviewAdjustment = overviewAdjustment;
 
         super._init({
             reactive: true,
@@ -217,13 +52,19 @@ var WindowPreview = GObject.registerClass({
             offscreen_redirect: Clutter.OffscreenRedirect.AUTOMATIC_FOR_OPACITY,
         });
 
-        this._windowContainer = new Clutter.Actor();
+        const windowContainer = new Clutter.Actor({
+            pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
+        });
+        this.window_container = windowContainer;
+
+        windowContainer.connect('notify::scale-x',
+            () => this._adjustOverlayOffsets());
         // gjs currently can't handle setting an actors layout manager during
         // the initialization of the actor if that layout manager keeps track
         // of its container, so set the layout manager after creating the
         // container
-        this._windowContainer.layout_manager = new WindowPreviewLayout();
-        this.add_child(this._windowContainer);
+        windowContainer.layout_manager = new Shell.WindowPreviewLayout();
+        this.add_child(windowContainer);
 
         this._addWindow(metaWindow);
 
@@ -231,8 +72,22 @@ var WindowPreview = GObject.registerClass({
 
         this._stackAbove = null;
 
-        this._windowContainer.layout_manager.connect(
+        this._cachedBoundingBox = {
+            x: windowContainer.layout_manager.bounding_box.x1,
+            y: windowContainer.layout_manager.bounding_box.y1,
+            width: windowContainer.layout_manager.bounding_box.get_width(),
+            height: windowContainer.layout_manager.bounding_box.get_height(),
+        };
+
+        windowContainer.layout_manager.connect(
             'notify::bounding-box', layout => {
+                this._cachedBoundingBox = {
+                    x: layout.bounding_box.x1,
+                    y: layout.bounding_box.y1,
+                    width: layout.bounding_box.get_width(),
+                    height: layout.bounding_box.get_height(),
+                };
+
                 // A bounding box of 0x0 means all windows were removed
                 if (layout.bounding_box.get_area() > 0)
                     this.emit('size-changed');
@@ -261,58 +116,61 @@ var WindowPreview = GObject.registerClass({
 
         this._selected = false;
         this._overlayEnabled = true;
+        this._overlayShown = false;
         this._closeRequested = false;
         this._idleHideOverlayId = 0;
 
-        this._border = new St.Widget({
-            visible: false,
-            style_class: 'window-clone-border',
+        const tracker = Shell.WindowTracker.get_default();
+        const app = tracker.get_window_app(this.metaWindow);
+        this._icon = app.create_icon_texture(ICON_SIZE);
+        this._icon.add_style_class_name('icon-dropshadow');
+        this._icon.set({
+            reactive: true,
+            pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
         });
-        this._borderConstraint = new Clutter.BindConstraint({
-            source: this._windowContainer,
-            coordinate: Clutter.BindCoordinate.SIZE,
-        });
-        this._border.add_constraint(this._borderConstraint);
-        this._border.add_constraint(new Clutter.AlignConstraint({
-            source: this._windowContainer,
-            align_axis: Clutter.AlignAxis.BOTH,
+        this._icon.add_constraint(new Clutter.BindConstraint({
+            source: windowContainer,
+            coordinate: Clutter.BindCoordinate.POSITION,
+        }));
+        this._icon.add_constraint(new Clutter.AlignConstraint({
+            source: windowContainer,
+            align_axis: Clutter.AlignAxis.X_AXIS,
             factor: 0.5,
         }));
-        this._borderCenter = new Clutter.Actor();
-        this._border.bind_property('visible', this._borderCenter, 'visible',
-            GObject.BindingFlags.SYNC_CREATE);
-        this._borderCenterConstraint = new Clutter.BindConstraint({
-            source: this._windowContainer,
-            coordinate: Clutter.BindCoordinate.SIZE,
-        });
-        this._borderCenter.add_constraint(this._borderCenterConstraint);
-        this._borderCenter.add_constraint(new Clutter.AlignConstraint({
-            source: this._windowContainer,
-            align_axis: Clutter.AlignAxis.BOTH,
-            factor: 0.5,
+        this._icon.add_constraint(new Clutter.AlignConstraint({
+            source: windowContainer,
+            align_axis: Clutter.AlignAxis.Y_AXIS,
+            pivot_point: new Graphene.Point({ x: -1, y: ICON_OVERLAP }),
+            factor: 1,
         }));
-        this._border.connect('style-changed',
-            this._onBorderStyleChanged.bind(this));
 
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
         this._title = new St.Label({
             visible: false,
             style_class: 'window-caption',
             text: this._getCaption(),
             reactive: true,
         });
+        this._title.clutter_text.single_line_mode = true;
         this._title.add_constraint(new Clutter.BindConstraint({
-            source: this._borderCenter,
-            coordinate: Clutter.BindCoordinate.POSITION,
+            source: windowContainer,
+            coordinate: Clutter.BindCoordinate.X,
+        }));
+        const iconBottomOverlap = ICON_SIZE * (1 - ICON_OVERLAP);
+        this._title.add_constraint(new Clutter.BindConstraint({
+            source: windowContainer,
+            coordinate: Clutter.BindCoordinate.Y,
+            offset: scaleFactor * (iconBottomOverlap + ICON_TITLE_SPACING),
         }));
         this._title.add_constraint(new Clutter.AlignConstraint({
-            source: this._borderCenter,
+            source: windowContainer,
             align_axis: Clutter.AlignAxis.X_AXIS,
             factor: 0.5,
         }));
         this._title.add_constraint(new Clutter.AlignConstraint({
-            source: this._borderCenter,
+            source: windowContainer,
             align_axis: Clutter.AlignAxis.Y_AXIS,
-            pivot_point: new Graphene.Point({ x: -1, y: 0.5 }),
+            pivot_point: new Graphene.Point({ x: -1, y: 0 }),
             factor: 1,
         }));
         this._title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
@@ -329,75 +187,59 @@ var WindowPreview = GObject.registerClass({
         this._closeButton = new St.Button({
             visible: false,
             style_class: 'window-close',
-            child: new St.Icon({ icon_name: 'window-close-symbolic' }),
+            child: new St.Icon({ icon_name: 'preview-close-symbolic' }),
         });
         this._closeButton.add_constraint(new Clutter.BindConstraint({
-            source: this._borderCenter,
+            source: windowContainer,
             coordinate: Clutter.BindCoordinate.POSITION,
         }));
         this._closeButton.add_constraint(new Clutter.AlignConstraint({
-            source: this._borderCenter,
+            source: windowContainer,
             align_axis: Clutter.AlignAxis.X_AXIS,
             pivot_point: new Graphene.Point({ x: 0.5, y: -1 }),
             factor: this._closeButtonSide === St.Side.LEFT ? 0 : 1,
         }));
         this._closeButton.add_constraint(new Clutter.AlignConstraint({
-            source: this._borderCenter,
+            source: windowContainer,
             align_axis: Clutter.AlignAxis.Y_AXIS,
             pivot_point: new Graphene.Point({ x: -1, y: 0.5 }),
             factor: 0,
         }));
         this._closeButton.connect('clicked', () => this._deleteAll());
 
-        this.add_child(this._borderCenter);
-        this.add_child(this._border);
         this.add_child(this._title);
+        this.add_child(this._icon);
         this.add_child(this._closeButton);
+
+        this._adjustmentChangedId =
+            this._overviewAdjustment.connect('notify::value', () => {
+                this._updateIconScale();
+            });
+        this._updateIconScale();
 
         this.connect('notify::realized', () => {
             if (!this.realized)
                 return;
 
-            this._border.ensure_style();
             this._title.ensure_style();
+            this._icon.ensure_style();
         });
     }
 
-    vfunc_get_preferred_width(forHeight) {
-        const themeNode = this.get_theme_node();
+    _updateIconScale() {
+        const { ControlsState } = OverviewControls;
+        const { currentState, initialState, finalState } =
+            this._overviewAdjustment.getStateTransitionParams();
+        const visible =
+            initialState === ControlsState.WINDOW_PICKER ||
+            finalState === ControlsState.WINDOW_PICKER;
+        const scale = visible
+            ? 1 - Math.abs(ControlsState.WINDOW_PICKER - currentState) : 0;
 
-        // Only include window previews in size request, not chrome
-        const [minWidth, natWidth] =
-            this._windowContainer.get_preferred_width(
-                themeNode.adjust_for_height(forHeight));
-
-        return themeNode.adjust_preferred_width(minWidth, natWidth);
-    }
-
-    vfunc_get_preferred_height(forWidth) {
-        const themeNode = this.get_theme_node();
-        const [minHeight, natHeight] =
-            this._windowContainer.get_preferred_height(
-                themeNode.adjust_for_width(forWidth));
-
-        return themeNode.adjust_preferred_height(minHeight, natHeight);
-    }
-
-    vfunc_allocate(box) {
-        this.set_allocation(box);
-
-        for (const child of this)
-            child.allocate_available_size(0, 0, box.get_width(), box.get_height());
-    }
-
-    _onBorderStyleChanged() {
-        let borderNode = this._border.get_theme_node();
-        this._borderSize = borderNode.get_border_width(St.Side.TOP);
-
-        // Increase the size of the border actor so the border outlines
-        // the bounding box
-        this._borderConstraint.offset = this._borderSize * 2;
-        this._borderCenterConstraint.offset = this._borderSize;
+        this._icon.set({
+            scale_x: scale,
+            scale_y: scale,
+        });
     }
 
     _windowCanClose() {
@@ -414,51 +256,69 @@ var WindowPreview = GObject.registerClass({
         return app.get_name();
     }
 
-    chromeHeights() {
-        const [, closeButtonHeight] = this._closeButton.get_preferred_height(-1);
+    overlapHeights() {
         const [, titleHeight] = this._title.get_preferred_height(-1);
 
-        const topOversize = (this._borderSize / 2) + (closeButtonHeight / 2);
-        const bottomOversize = Math.max(
-            this._borderSize,
-            (titleHeight / 2) + (this._borderSize / 2));
+        const topOverlap = 0;
+        const bottomOverlap = ICON_TITLE_SPACING + titleHeight;
 
-        return [topOversize, bottomOversize];
+        return [topOverlap, bottomOverlap];
+    }
+
+    chromeHeights() {
+        const [, closeButtonHeight] = this._closeButton.get_preferred_height(-1);
+        const [, iconHeight] = this._icon.get_preferred_height(-1);
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const activeExtraSize = WINDOW_ACTIVE_SIZE_INC * scaleFactor;
+
+        const topOversize = closeButtonHeight / 2;
+        const bottomOversize = (1 - ICON_OVERLAP) * iconHeight;
+
+        return [
+            topOversize + activeExtraSize,
+            bottomOversize + activeExtraSize,
+        ];
     }
 
     chromeWidths() {
         const [, closeButtonWidth] = this._closeButton.get_preferred_width(-1);
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const activeExtraSize = WINDOW_ACTIVE_SIZE_INC * scaleFactor;
 
         const leftOversize = this._closeButtonSide === St.Side.LEFT
-            ? (this._borderSize / 2) + (closeButtonWidth / 2)
-            : this._borderSize;
+            ? closeButtonWidth / 2
+            : 0;
         const rightOversize = this._closeButtonSide === St.Side.LEFT
-            ? this._borderSize
-            : (this._borderSize / 2) + (closeButtonWidth / 2);
+            ? 0
+            : closeButtonWidth / 2;
 
-        return [leftOversize, rightOversize];
+        return [
+            leftOversize + activeExtraSize,
+            rightOversize  + activeExtraSize,
+        ];
     }
 
     showOverlay(animate) {
         if (!this._overlayEnabled)
             return;
 
-        const ongoingTransition = this._border.get_transition('opacity');
-
-        // Don't do anything if we're fully visible already
-        if (this._border.visible && !ongoingTransition)
+        if (this._overlayShown)
             return;
+
+        this._overlayShown = true;
+        this._restack();
 
         // If we're supposed to animate and an animation in our direction
         // is already happening, let that one continue
+        const ongoingTransition = this._title.get_transition('opacity');
         if (animate &&
             ongoingTransition &&
             ongoingTransition.get_interval().peek_final_value() === 255)
             return;
 
         const toShow = this._windowCanClose()
-            ? [this._border, this._title, this._closeButton]
-            : [this._border, this._title];
+            ? [this._title, this._closeButton]
+            : [this._title];
 
         toShow.forEach(a => {
             a.opacity = 0;
@@ -470,24 +330,38 @@ var WindowPreview = GObject.registerClass({
             });
         });
 
+        const [width, height] = this.window_container.get_size();
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const activeExtraSize = WINDOW_ACTIVE_SIZE_INC * 2 * scaleFactor;
+        const origSize = Math.max(width, height);
+        const scale = (origSize + activeExtraSize) / origSize;
+
+        this.window_container.ease({
+            scale_x: scale,
+            scale_y: scale,
+            duration: animate ? WINDOW_SCALE_TIME : 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+
         this.emit('show-chrome');
     }
 
     hideOverlay(animate) {
-        const ongoingTransition = this._border.get_transition('opacity');
-
-        // Don't do anything if we're fully hidden already
-        if (!this._border.visible && !ongoingTransition)
+        if (!this._overlayShown)
             return;
+
+        this._overlayShown = false;
+        this._restack();
 
         // If we're supposed to animate and an animation in our direction
         // is already happening, let that one continue
+        const ongoingTransition = this._title.get_transition('opacity');
         if (animate &&
             ongoingTransition &&
             ongoingTransition.get_interval().peek_final_value() === 0)
             return;
 
-        [this._border, this._title, this._closeButton].forEach(a => {
+        [this._title, this._closeButton].forEach(a => {
             a.opacity = 255;
             a.ease({
                 opacity: 0,
@@ -496,10 +370,40 @@ var WindowPreview = GObject.registerClass({
                 onComplete: () => a.hide(),
             });
         });
+
+        this.window_container.ease({
+            scale_x: 1,
+            scale_y: 1,
+            duration: animate ? WINDOW_SCALE_TIME : 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+    }
+
+    _adjustOverlayOffsets() {
+        // Assume that scale-x and scale-y update always set
+        // in lock-step; that allows us to not use separate
+        // handlers for horizontal and vertical offsets
+        const previewScale = this.window_container.scale_x;
+        const [previewWidth, previewHeight] =
+            this.window_container.allocation.get_size();
+
+        const heightIncrease =
+            Math.floor(previewHeight * (previewScale - 1) / 2);
+        const widthIncrease =
+            Math.floor(previewWidth * (previewScale - 1) / 2);
+
+        const closeAlign = this._closeButtonSide === St.Side.LEFT ? -1 : 1;
+
+        this._icon.translation_y = heightIncrease;
+        this._title.translation_y = heightIncrease;
+        this._closeButton.set({
+            translation_x: closeAlign * widthIncrease,
+            translation_y: -heightIncrease,
+        });
     }
 
     _addWindow(metaWindow) {
-        const clone = this._windowContainer.layout_manager.addWindow(metaWindow);
+        const clone = this.window_container.layout_manager.add_window(metaWindow);
         if (!clone)
             return;
 
@@ -512,11 +416,13 @@ var WindowPreview = GObject.registerClass({
     }
 
     vfunc_has_overlaps() {
-        return this._hasAttachedDialogs();
+        return this._hasAttachedDialogs() ||
+            this._icon.visible ||
+            this._closeButton.visible;
     }
 
     _deleteAll() {
-        const windows = this._windowContainer.layout_manager.getWindows();
+        const windows = this.window_container.layout_manager.get_windows();
 
         // Delete all windows, starting from the bottom-most (most-modal) one
         for (const window of windows.reverse())
@@ -541,7 +447,7 @@ var WindowPreview = GObject.registerClass({
     }
 
     _hasAttachedDialogs() {
-        return this._windowContainer.layout_manager.getWindows().length > 1;
+        return this.window_container.layout_manager.get_windows().length > 1;
     }
 
     _updateAttachedDialogs() {
@@ -561,32 +467,21 @@ var WindowPreview = GObject.registerClass({
     }
 
     get boundingBox() {
-        const box = this._windowContainer.layout_manager.bounding_box;
-
-        return {
-            x: box.x1,
-            y: box.y1,
-            width: box.get_width(),
-            height: box.get_height(),
-        };
+        return { ...this._cachedBoundingBox };
     }
 
     get windowCenter() {
-        const box = this._windowContainer.layout_manager.bounding_box;
-
-        return new Graphene.Point({
-            x: box.get_x() + box.get_width() / 2,
-            y: box.get_y() + box.get_height() / 2,
-        });
+        return {
+            x: this._cachedBoundingBox.x + this._cachedBoundingBox.width / 2,
+            y: this._cachedBoundingBox.y + this._cachedBoundingBox.height / 2,
+        };
     }
 
-    // eslint-disable-next-line camelcase
-    get overlay_enabled() {
+    get overlayEnabled() {
         return this._overlayEnabled;
     }
 
-    // eslint-disable-next-line camelcase
-    set overlay_enabled(enabled) {
+    set overlayEnabled(enabled) {
         if (this._overlayEnabled === enabled)
             return;
 
@@ -644,6 +539,11 @@ var WindowPreview = GObject.registerClass({
         if (this._idleHideOverlayId > 0) {
             GLib.source_remove(this._idleHideOverlayId);
             this._idleHideOverlayId = 0;
+        }
+
+        if (this._adjustmentChangedId > 0) {
+            this._overviewAdjustment.disconnect(this._adjustmentChangedId);
+            this._adjustmentChangedId = 0;
         }
 
         if (this.inDrag) {
@@ -721,8 +621,10 @@ var WindowPreview = GObject.registerClass({
             // run - make sure to not start a drag in that case
             this._longPressLater = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
                 delete this._longPressLater;
-                if (this._selected)
+                if (this._selected) {
+                    this._selected = false;
                     return;
+                }
                 let [x, y] = action.get_coords();
                 action.release();
                 this._draggable.startDrag(x, y, global.get_current_time(), this._dragTouchSequence, event.get_device());
@@ -731,6 +633,21 @@ var WindowPreview = GObject.registerClass({
             this.showOverlay(true);
         }
         return true;
+    }
+
+    _restack() {
+        // We may not have a parent if DnD completed successfully, in
+        // which case our clone will shortly be destroyed and replaced
+        // with a new one on the target workspace.
+        const parent = this.get_parent();
+        if (parent !== null) {
+            if (this._overlayShown)
+                parent.set_child_above_sibling(this, null);
+            else if (this._stackAbove === null)
+                parent.set_child_below_sibling(this, null);
+            else if (!this._stackAbove._overlayShown)
+                parent.set_child_above_sibling(this, this._stackAbove);
+        }
     }
 
     _onDragBegin(_draggable, _time) {
@@ -754,16 +671,7 @@ var WindowPreview = GObject.registerClass({
     _onDragEnd(_draggable, _time, _snapback) {
         this.inDrag = false;
 
-        // We may not have a parent if DnD completed successfully, in
-        // which case our clone will shortly be destroyed and replaced
-        // with a new one on the target workspace.
-        let parent = this.get_parent();
-        if (parent !== null) {
-            if (this._stackAbove == null)
-                parent.set_child_below_sibling(this, null);
-            else
-                parent.set_child_above_sibling(this, this._stackAbove);
-        }
+        this._restack();
 
         if (this['has-pointer'])
             this.showOverlay(true);

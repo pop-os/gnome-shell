@@ -101,6 +101,8 @@ const LoginManager = imports.misc.loginManager;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
 
+Gio._promisify(Gio._LocalFilePrototype, 'query_info_async', 'query_info_finish');
+
 var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
 
 const BACKGROUND_SCHEMA = 'org.gnome.desktop.background';
@@ -479,8 +481,15 @@ var Background = GObject.registerClass({
         }
     }
 
-    _loadFile(file) {
-        if (file.get_basename().endsWith('.xml'))
+    async _loadFile(file) {
+        const info = await file.query_info_async(
+            Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+            Gio.FileQueryInfoFlags.NONE,
+            0,
+            null);
+
+        const contentType = info.get_content_type();
+        if (contentType === 'application/xml')
             this._loadAnimation(file);
         else
             this._loadImage(file);
@@ -655,12 +664,15 @@ class Animation extends GnomeDesktop.BGSlideShow {
 
 var BackgroundManager = class BackgroundManager {
     constructor(params) {
-        params = Params.parse(params, { container: null,
-                                        layoutManager: Main.layoutManager,
-                                        monitorIndex: null,
-                                        vignette: false,
-                                        controlPosition: true,
-                                        settingsSchema: BACKGROUND_SCHEMA });
+        params = Params.parse(params, {
+            container: null,
+            layoutManager: Main.layoutManager,
+            monitorIndex: null,
+            vignette: false,
+            controlPosition: true,
+            settingsSchema: BACKGROUND_SCHEMA,
+            useContentSize: true,
+        });
 
         let cache = getBackgroundCache();
         this._settingsSchema = params.settingsSchema;
@@ -671,6 +683,7 @@ var BackgroundManager = class BackgroundManager {
         this._vignette = params.vignette;
         this._monitorIndex = params.monitorIndex;
         this._controlPosition = params.controlPosition;
+        this._useContentSize = params.useContentSize;
 
         this.backgroundActor = this._createBackgroundActor();
         this._newBackgroundActor = null;
@@ -745,6 +758,11 @@ var BackgroundManager = class BackgroundManager {
         let backgroundActor = new Meta.BackgroundActor({
             meta_display: global.display,
             monitor: this._monitorIndex,
+            request_mode: this._useContentSize
+                ? Clutter.RequestMode.CONTENT_SIZE
+                : Clutter.RequestMode.HEIGHT_FOR_WIDTH,
+            x_expand: !this._useContentSize,
+            y_expand: !this._useContentSize,
         });
         backgroundActor.content.set({
             background,

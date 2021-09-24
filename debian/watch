@@ -1,3 +1,4 @@
 version=4
-https://download.gnome.org/sources/@PACKAGE@/(3.38)/ \
-	@PACKAGE@@ANY_VERSION@\.tar\.xz
+opts="searchmode=plain, uversionmangle=s/\.(alpha|beta|rc)/~$1/" \
+https://download.gnome.org/sources/@PACKAGE@/cache.json \
+	\d+/@PACKAGE@-([\d.]+)@ARCHIVE_EXT@

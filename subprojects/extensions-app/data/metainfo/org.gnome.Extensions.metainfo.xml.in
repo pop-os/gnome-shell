@@ -39,18 +39,14 @@
   </description>
 
   <releases>
-    <release version="3.38.6" date="2021-08-18"/>
-    <release version="3.38.5" date="2021-06-10"/>
-    <release version="3.38.4" date="2021-03-15"/>
-    <release version="3.38.3" date="2021-01-14"/>
-    <release version="3.38.2" date="2020-12-02"/>
-    <release version="3.38.1" date="2020-10-05"/>
-    <release version="3.38.0" date="2020-09-14">
-      <desciption>
-        <p>
-          Indicate extension errors.
-        </p>
-      </desciption>
+    <release version="40.4" date="2021-08-18"/>
+    <release version="40.3" date="2021-07-11"/>
+    <release version="40.2" date="2021-05-14"/>
+    <release version="40.1" date="2021-05-13"/>
+    <release version="40.0" date="2021-03-15">
+      <description>
+        <p>It is now possible to search the list of installed extensions.</p>
+      </description>
     </release>
   </releases>
 

@@ -51,6 +51,11 @@ typedef struct {
   float          resource_scale;
 } StCornerSpec;
 
+typedef enum {
+  ST_PAINT_BORDERS_MODE_COLOR,
+  ST_PAINT_BORDERS_MODE_SILHOUETTE
+} StPaintBordersMode;
+
 static void
 elliptical_arc (cairo_t *cr,
                 double   x_center,
@@ -409,7 +414,12 @@ st_theme_node_lookup_corner (StThemeNode    *node,
   if (corner.color.alpha == 0 &&
       corner.border_color_1.alpha == 0 &&
       corner.border_color_2.alpha == 0)
-    return NULL;
+    {
+      if (node->box_shadow == NULL)
+        return NULL;
+      else  /* We still need a corner texture to render the box-shadow */
+        corner.color = (ClutterColor) {0, 0, 0, 255};
+    }
 
   key = corner_to_string (&corner);
   texture = st_texture_cache_load (cache, key, ST_TEXTURE_CACHE_POLICY_FOREVER, load_corner, &corner, NULL);
@@ -928,7 +938,7 @@ paint_inset_box_shadow_to_cairo_context (StThemeNode     *node,
   shrunk_extents_x2 = extents_x2 + shadow_spec->xoffset - shadow_spec->spread;
   shrunk_extents_y2 = extents_y2 + shadow_spec->yoffset - shadow_spec->spread;
 
-  if (shrunk_extents_x1 >= shrunk_extents_x2 || shrunk_extents_y1 >= shrunk_extents_x2)
+  if (shrunk_extents_x1 >= shrunk_extents_x2 || shrunk_extents_y1 >= shrunk_extents_y2)
     {
       /* Shadow occupies entire area within border */
       shadow_pattern = cairo_pattern_create_rgb (0., 0., 0.);
@@ -1355,6 +1365,7 @@ st_theme_node_prerender_background (StThemeNode *node,
 static void st_theme_node_paint_borders (StThemeNodePaintState *state,
                                          CoglFramebuffer       *framebuffer,
                                          const ClutterActorBox *box,
+                                         StPaintBordersMode     mode,
                                          guint8                 paint_opacity);
 
 void
@@ -1580,7 +1591,7 @@ st_theme_node_render_resources (StThemeNodePaintState *state,
         state->box_shadow_pipeline = _st_create_shadow_pipeline (box_shadow_spec,
                                                                  state->prerendered_texture,
                                                                  state->resource_scale);
-      else if (node->background_color.alpha > 0 || has_border)
+      else
         st_theme_node_prerender_shadow (state);
     }
 
@@ -1697,6 +1708,7 @@ static void
 st_theme_node_paint_borders (StThemeNodePaintState *state,
                              CoglFramebuffer       *framebuffer,
                              const ClutterActorBox *box,
+                             StPaintBordersMode     mode,
                              guint8                 paint_opacity)
 {
   StThemeNode *node = state->node;
@@ -1708,6 +1720,7 @@ st_theme_node_paint_borders (StThemeNodePaintState *state,
   int corner_id, side_id;
   ClutterColor border_color;
   guint8 alpha;
+  gboolean corners_are_transparent;
 
   width = box->x2 - box->x1;
   height = box->y2 - box->y1;
@@ -1802,8 +1815,12 @@ st_theme_node_paint_borders (StThemeNodePaintState *state,
         }
     }
 
+  corners_are_transparent = mode == ST_PAINT_BORDERS_MODE_COLOR &&
+                            node->background_color.alpha == 0 &&
+                            node->border_color[0].alpha == 0;
+
   /* corners */
-  if (max_border_radius > 0 && paint_opacity > 0)
+  if (max_border_radius > 0 && paint_opacity > 0 && !corners_are_transparent)
     {
       for (corner_id = 0; corner_id < 4; corner_id++)
         {
@@ -1852,7 +1869,9 @@ st_theme_node_paint_borders (StThemeNodePaintState *state,
     }
 
   /* background color */
-  alpha = paint_opacity * node->background_color.alpha / 255;
+  alpha = mode == ST_PAINT_BORDERS_MODE_SILHOUETTE ?
+          255 :
+          paint_opacity * node->background_color.alpha / 255;
   if (alpha > 0)
     {
       st_theme_node_ensure_color_pipeline (node);
@@ -2035,7 +2054,7 @@ st_theme_node_paint_sliced_shadow (StThemeNodePaintState *state,
   if (box_shadow_spec->blur == 0)
     shadow_blur_radius = 0;
   else
-    shadow_blur_radius = (5 * (box_shadow_spec->blur / 2.0)) / 2;
+    shadow_blur_radius = ceilf (1.5 * box_shadow_spec->blur / 2.0) * 2.0;
 
   shadow_width = state->box_shadow_width + 2 * shadow_blur_radius;
   shadow_height = state->box_shadow_height + 2 * shadow_blur_radius;
@@ -2280,7 +2299,8 @@ st_theme_node_prerender_shadow (StThemeNodePaintState *state)
   CoglContext *ctx;
   int fb_width, fb_height;
   CoglTexture *buffer;
-  CoglFramebuffer *offscreen = NULL;
+  CoglOffscreen *offscreen = NULL;
+  CoglFramebuffer *framebuffer;
   GError *error = NULL;
 
   ctx = clutter_backend_get_cogl_context (clutter_get_default_backend ());
@@ -2293,26 +2313,27 @@ st_theme_node_prerender_shadow (StThemeNodePaintState *state)
     return;
 
   offscreen = cogl_offscreen_new_with_texture (buffer);
+  framebuffer = COGL_FRAMEBUFFER (offscreen);
 
-  if (cogl_framebuffer_allocate (COGL_FRAMEBUFFER (offscreen), &error))
+  if (cogl_framebuffer_allocate (framebuffer, &error))
     {
       ClutterActorBox box = { 0, 0, state->box_shadow_width, state->box_shadow_height};
 
-      cogl_framebuffer_orthographic (offscreen, 0, 0,
+      cogl_framebuffer_orthographic (framebuffer, 0, 0,
                                      fb_width, fb_height, 0, 1.0);
-      cogl_framebuffer_scale (offscreen,
+      cogl_framebuffer_scale (framebuffer,
                               state->resource_scale,
                               state->resource_scale, 1);
-      cogl_framebuffer_clear4f (offscreen, COGL_BUFFER_BIT_COLOR, 0, 0, 0, 0);
+      cogl_framebuffer_clear4f (framebuffer, COGL_BUFFER_BIT_COLOR, 0, 0, 0, 0);
 
-      st_theme_node_paint_borders (state, offscreen, &box, 0xFF);
+      st_theme_node_paint_borders (state, framebuffer, &box, ST_PAINT_BORDERS_MODE_SILHOUETTE, 0xFF);
 
       state->box_shadow_pipeline = _st_create_shadow_pipeline (st_theme_node_get_box_shadow (node),
                                                                buffer, state->resource_scale);
     }
 
   g_clear_error (&error);
-  cogl_clear_object (&offscreen);
+  g_clear_object (&offscreen);
   cogl_clear_object (&buffer);
 }
 
@@ -2661,7 +2682,7 @@ st_theme_node_paint (StThemeNode           *node,
     }
   else
     {
-      st_theme_node_paint_borders (state, framebuffer, box, paint_opacity);
+      st_theme_node_paint_borders (state, framebuffer, box, ST_PAINT_BORDERS_MODE_COLOR, paint_opacity);
     }
 
   st_theme_node_paint_outline (node, framebuffer, box, paint_opacity);

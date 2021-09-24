@@ -143,6 +143,15 @@ static AtkObject * st_widget_get_accessible (ClutterActor *actor);
 static gboolean    st_widget_has_accessible (ClutterActor *actor);
 
 static void
+st_widget_update_insensitive (StWidget *widget)
+{
+  if (clutter_actor_get_reactive (CLUTTER_ACTOR (widget)))
+    st_widget_remove_style_pseudo_class (widget, "insensitive");
+  else
+    st_widget_add_style_pseudo_class (widget, "insensitive");
+}
+
+static void
 st_widget_set_property (GObject      *gobject,
                         guint         prop_id,
                         const GValue *value,
@@ -245,6 +254,14 @@ st_widget_get_property (GObject    *gobject,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (gobject, prop_id, pspec);
       break;
     }
+}
+
+static void
+st_widget_constructed (GObject *gobject)
+{
+  G_OBJECT_CLASS (st_widget_parent_class)->constructed (gobject);
+
+  st_widget_update_insensitive (ST_WIDGET (gobject));
 }
 
 static void
@@ -777,6 +794,16 @@ st_widget_get_paint_volume (ClutterActor *self,
   if (!clutter_actor_get_clip_to_allocation (self))
     {
       ClutterActor *child;
+      StShadow *shadow_spec = st_theme_node_get_text_shadow (theme_node);
+
+      if (shadow_spec)
+        {
+          ClutterActorBox shadow_box;
+
+          st_shadow_get_box (shadow_spec, &alloc_box, &shadow_box);
+          clutter_paint_volume_union_box (volume, &shadow_box);
+        }
+
       /* Based on ClutterGroup/ClutterBox; include the children's
        * paint volumes, since they may paint outside our allocation.
        */
@@ -840,6 +867,7 @@ st_widget_class_init (StWidgetClass *klass)
 
   gobject_class->set_property = st_widget_set_property;
   gobject_class->get_property = st_widget_get_property;
+  gobject_class->constructed = st_widget_constructed;
   gobject_class->dispose = st_widget_dispose;
   gobject_class->finalize = st_widget_finalize;
 
@@ -1471,10 +1499,7 @@ st_widget_reactive_notify (StWidget   *widget,
 {
   StWidgetPrivate *priv = st_widget_get_instance_private (widget);
 
-  if (clutter_actor_get_reactive (CLUTTER_ACTOR (widget)))
-    st_widget_remove_style_pseudo_class (widget, "insensitive");
-  else
-    st_widget_add_style_pseudo_class (widget, "insensitive");
+  st_widget_update_insensitive (widget);
 
   if (priv->track_hover)
     st_widget_sync_hover(widget);
@@ -1707,6 +1732,20 @@ st_widget_recompute_style (StWidget    *widget,
 
   if (!paint_equal)
     {
+      static gboolean invalidate_paint_volume_valid = FALSE;
+      static void (* invalidate_paint_volume) (ClutterActor *) = NULL;
+
+      if (!invalidate_paint_volume_valid)
+        {
+          g_module_symbol (g_module_open (NULL, G_MODULE_BIND_LAZY),
+                           "clutter_actor_invalidate_paint_volume",
+                           (gpointer *)&invalidate_paint_volume);
+          invalidate_paint_volume_valid = TRUE;
+        }
+
+      if (invalidate_paint_volume)
+        invalidate_paint_volume (CLUTTER_ACTOR (widget));
+
       next_paint_state (widget);
 
       if (!st_theme_node_paint_equal (new_theme_node, current_paint_state (widget)->node))
@@ -1865,12 +1904,17 @@ void
 st_widget_sync_hover (StWidget *widget)
 {
   ClutterInputDevice *pointer;
+  ClutterActor *stage;
   ClutterActor *pointer_actor;
   ClutterSeat *seat;
 
   seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
   pointer = clutter_seat_get_pointer (seat);
-  pointer_actor = clutter_input_device_get_actor (pointer, NULL);
+  stage = clutter_actor_get_stage (CLUTTER_ACTOR (widget));
+  if (!stage)
+    return;
+
+  pointer_actor = clutter_stage_get_device_actor (CLUTTER_STAGE (stage), pointer, NULL);
   if (pointer_actor && clutter_actor_get_reactive (CLUTTER_ACTOR (widget)))
     st_widget_set_hover (widget, clutter_actor_contains (CLUTTER_ACTOR (widget), pointer_actor));
   else

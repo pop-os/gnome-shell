@@ -278,7 +278,7 @@ blur_pixels (guchar  *pixels_in,
              gdouble  blur,
              gint    *width_out,
              gint    *height_out,
-             gint    *rowstride_out)
+             size_t  *rowstride_out)
 {
   guchar *pixels_out;
   gdouble sigma;
@@ -295,7 +295,7 @@ blur_pixels (guchar  *pixels_in,
       *width_out  = width_in;
       *height_out = height_in;
       *rowstride_out = rowstride_in;
-      pixels_out = g_memdup (pixels_in, *rowstride_out * *height_out);
+      pixels_out = g_memdup2 (pixels_in, *rowstride_out * *height_out);
     }
   else
     {
@@ -382,46 +382,74 @@ _st_create_shadow_pipeline (StShadow    *shadow_spec,
 {
   ClutterBackend *backend = clutter_get_default_backend ();
   CoglContext *ctx = clutter_backend_get_cogl_context (backend);
-  GError *error = NULL;
-
-  static CoglPipeline *shadow_pipeline_template = NULL;
-
+  g_autoptr (ClutterPaintNode) texture_node = NULL;
+  g_autoptr (ClutterPaintNode) blur_node = NULL;
+  g_autoptr (CoglOffscreen) offscreen = NULL;
+  g_autoptr (GError) error = NULL;
+  ClutterPaintContext *paint_context;
+  CoglFramebuffer *fb;
   CoglPipeline *pipeline;
   CoglTexture *texture;
-  guchar *pixels_in, *pixels_out;
-  gint width_in, height_in, rowstride_in;
-  gint width_out, height_out, rowstride_out;
+  float sampling_radius;
+  float sigma;
+  int src_height, dst_height;
+  int src_width, dst_width;
+
+  static CoglPipeline *shadow_pipeline_template = NULL;
 
   g_return_val_if_fail (shadow_spec != NULL, NULL);
   g_return_val_if_fail (src_texture != NULL, NULL);
 
-  width_in  = cogl_texture_get_width  (src_texture);
-  height_in = cogl_texture_get_height (src_texture);
-  rowstride_in = (width_in + 3) & ~3;
+  sampling_radius = resource_scale * shadow_spec->blur;
+  sigma = sampling_radius / 2.f;
+  sampling_radius = ceilf (sampling_radius);
 
-  pixels_in  = g_malloc0 (rowstride_in * height_in);
+  src_width = cogl_texture_get_width (src_texture);
+  src_height = cogl_texture_get_height (src_texture);
+  dst_width = src_width + 2 * sampling_radius;
+  dst_height = src_height + 2 * sampling_radius;
 
-  cogl_texture_get_data (src_texture, COGL_PIXEL_FORMAT_A_8,
-                         rowstride_in, pixels_in);
+  texture = cogl_texture_2d_new_with_size (ctx, dst_width, dst_height);
+  if (!texture)
+    return NULL;
 
-  pixels_out = blur_pixels (pixels_in, width_in, height_in, rowstride_in,
-                            shadow_spec->blur * resource_scale,
-                            &width_out, &height_out, &rowstride_out);
-  g_free (pixels_in);
-
-  texture = COGL_TEXTURE (cogl_texture_2d_new_from_data (ctx, width_out, height_out,
-                                                         COGL_PIXEL_FORMAT_A_8,
-                                                         rowstride_out,
-                                                         pixels_out,
-                                                         &error));
-
-  if (error)
+  offscreen = cogl_offscreen_new_with_texture (texture);
+  fb = COGL_FRAMEBUFFER (offscreen);
+  if (!cogl_framebuffer_allocate (fb, &error))
     {
-      g_warning ("Failed to allocate texture: %s", error->message);
-      g_error_free (error);
+      cogl_clear_object (&texture);
+      return NULL;
     }
 
-  g_free (pixels_out);
+  cogl_framebuffer_clear4f (fb, COGL_BUFFER_BIT_COLOR, 0.f, 0.f, 0.f, 0.f);
+  cogl_framebuffer_orthographic (fb, 0, 0, dst_width, dst_height, 0, 1.0);
+
+  /* Blur */
+  blur_node = clutter_blur_node_new (dst_width, dst_height, sigma);
+  clutter_paint_node_add_rectangle (blur_node,
+                                    &(ClutterActorBox) {
+                                      0.f, 0.f,
+                                      dst_width, dst_height,
+                                    });
+
+  /* Texture */
+  texture_node = clutter_texture_node_new (src_texture,
+                                           0,
+                                           CLUTTER_SCALING_FILTER_NEAREST,
+                                           CLUTTER_SCALING_FILTER_NEAREST);
+  clutter_paint_node_add_child (blur_node, texture_node);
+  clutter_paint_node_add_rectangle (texture_node,
+                                    &(ClutterActorBox) {
+                                      .x1 = sampling_radius,
+                                      .y1 = sampling_radius,
+                                      .x2 = src_width + sampling_radius,
+                                      .y2 = src_height + sampling_radius,
+                                    });
+
+  paint_context =
+    clutter_paint_context_new_for_framebuffer (fb, NULL, CLUTTER_PAINT_FLAG_NONE);
+  clutter_paint_node_paint (blur_node, paint_context);
+  clutter_paint_context_destroy (paint_context);
 
   if (G_UNLIKELY (shadow_pipeline_template == NULL))
     {
@@ -438,8 +466,7 @@ _st_create_shadow_pipeline (StShadow    *shadow_spec,
   pipeline = cogl_pipeline_copy (shadow_pipeline_template);
   cogl_pipeline_set_layer_texture (pipeline, 0, texture);
 
-  if (texture)
-    cogl_object_unref (texture);
+  cogl_clear_object (&texture);
 
   return pipeline;
 }
@@ -501,7 +528,7 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
       if (!cogl_framebuffer_allocate (fb, &catch_error))
         {
           g_error_free (catch_error);
-          cogl_object_unref (offscreen);
+          g_object_unref (offscreen);
           cogl_object_unref (buffer);
           return NULL;
         }
@@ -526,7 +553,7 @@ _st_create_shadow_pipeline_from_actor (StShadow     *shadow_spec,
 
       clutter_actor_set_opacity_override (actor, -1);
 
-      cogl_object_unref (fb);
+      g_object_unref (fb);
 
       shadow_pipeline = _st_create_shadow_pipeline (shadow_spec, buffer,
                                                     resource_scale);
@@ -567,7 +594,8 @@ _st_create_shadow_cairo_pattern (StShadow        *shadow_spec_in,
   cairo_pattern_t *dst_pattern;
   guchar          *pixels_in, *pixels_out;
   gint             width_in, height_in, rowstride_in;
-  gint             width_out, height_out, rowstride_out;
+  gint             width_out, height_out;
+  size_t           rowstride_out;
   cairo_matrix_t   shadow_matrix;
   double           xscale_in, yscale_in;
   int i, j;

@@ -18,48 +18,6 @@ var APP_MENU_ICON_MARGIN = 0;
 
 var BUTTON_DND_ACTIVATION_TIMEOUT = 250;
 
-// To make sure the panel corners blend nicely with the panel,
-// we draw background and borders the same way, e.g. drawing
-// them as filled shapes from the outside inwards instead of
-// using cairo stroke(). So in order to give the border the
-// appearance of being drawn on top of the background, we need
-// to blend border and background color together.
-// For that purpose we use the following helper methods, taken
-// from st-theme-node-drawing.c
-function _norm(x) {
-    return Math.round(x / 255);
-}
-
-function _over(srcColor, dstColor) {
-    let src = _premultiply(srcColor);
-    let dst = _premultiply(dstColor);
-    let result = new Clutter.Color();
-
-    result.alpha = src.alpha + _norm((255 - src.alpha) * dst.alpha);
-    result.red = src.red + _norm((255 - src.alpha) * dst.red);
-    result.green = src.green + _norm((255 - src.alpha) * dst.green);
-    result.blue = src.blue + _norm((255 - src.alpha) * dst.blue);
-
-    return _unpremultiply(result);
-}
-
-function _premultiply(color) {
-    return new Clutter.Color({ red: _norm(color.red * color.alpha),
-                               green: _norm(color.green * color.alpha),
-                               blue: _norm(color.blue * color.alpha),
-                               alpha: color.alpha });
-}
-
-function _unpremultiply(color) {
-    if (color.alpha == 0)
-        return new Clutter.Color();
-
-    let red = Math.min((color.red * 255 + 127) / color.alpha, 255);
-    let green = Math.min((color.green * 255 + 127) / color.alpha, 255);
-    let blue = Math.min((color.blue * 255 + 127) / color.alpha, 255);
-    return new Clutter.Color({ red, green, blue, alpha: color.alpha });
-}
-
 class AppMenu extends PopupMenu.PopupMenu {
     constructor(sourceActor) {
         super(sourceActor, 0.5, St.Side.TOP);
@@ -72,7 +30,8 @@ class AppMenu extends PopupMenu.PopupMenu {
         this._windowsChangedId = 0;
 
         /* Translators: This is the heading of a list of open windows */
-        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(_("Open Windows")));
+        this._openWindowsHeader = new PopupMenu.PopupSeparatorMenuItem(_('Open Windows'));
+        this.addMenuItem(this._openWindowsHeader);
 
         this._windowSection = new PopupMenu.PopupMenuSection();
         this.addMenuItem(this._windowSection);
@@ -143,8 +102,8 @@ class AppMenu extends PopupMenu.PopupMenu {
 
         this._updateWindowsSection();
 
-        let appInfo = app ? app.app_info : null;
-        let actions = appInfo ? appInfo.list_actions() : [];
+        const appInfo = app?.app_info;
+        const actions = appInfo?.list_actions() ?? [];
 
         this._actionSection.removeAll();
         actions.forEach(action => {
@@ -160,11 +119,17 @@ class AppMenu extends PopupMenu.PopupMenu {
 
     _updateWindowsSection() {
         this._windowSection.removeAll();
+        this._openWindowsHeader.hide();
 
         if (!this._app)
             return;
 
         let windows = this._app.get_windows();
+        if (windows.length < 2)
+            return;
+
+        this._openWindowsHeader.show();
+
         windows.forEach(window => {
             let title = window.title || this._app.get_name();
             let item = this._windowSection.addAction(title, event => {
@@ -229,8 +194,6 @@ var AppMenuButton = GObject.registerClass({
         this._label = new St.Label({ y_expand: true,
                                      y_align: Clutter.ActorAlign.CENTER });
         this._container.add_actor(this._label);
-        this._arrow = PopupMenu.arrowIcon(St.Side.BOTTOM);
-        this._container.add_actor(this._arrow);
 
         this._visible = !Main.overview.visible;
         if (!this._visible)
@@ -266,7 +229,6 @@ var AppMenuButton = GObject.registerClass({
 
         this._visible = true;
         this.reactive = true;
-        this.show();
         this.remove_all_transitions();
         this.ease({
             opacity: 255,
@@ -286,15 +248,11 @@ var AppMenuButton = GObject.registerClass({
             opacity: 0,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             duration: Overview.ANIMATION_TIME,
-            onComplete: () => this.hide(),
         });
     }
 
-    _syncIcon() {
-        if (!this._targetApp)
-            return;
-
-        let icon = this._targetApp.create_icon_texture(PANEL_ICON_SIZE - APP_MENU_ICON_MARGIN);
+    _syncIcon(app) {
+        const icon = app.create_icon_texture(PANEL_ICON_SIZE - APP_MENU_ICON_MARGIN);
         this._iconBox.set_child(icon);
     }
 
@@ -302,7 +260,8 @@ var AppMenuButton = GObject.registerClass({
         if (this._iconBox.child == null)
             return;
 
-        this._syncIcon();
+        if (this._targetApp)
+            this._syncIcon(this._targetApp);
     }
 
     stopAnimation() {
@@ -370,6 +329,8 @@ var AppMenuButton = GObject.registerClass({
                 this._busyNotifyId = this._targetApp.connect('notify::busy', this._sync.bind(this));
                 this._label.set_text(this._targetApp.get_name());
                 this.set_accessible_name(this._targetApp.get_name());
+
+                this._syncIcon(this._targetApp);
             }
         }
 
@@ -389,7 +350,6 @@ var AppMenuButton = GObject.registerClass({
 
         this.reactive = visible && !isBusy;
 
-        this._syncIcon();
         this.menu.setApp(this._targetApp);
         this.emit('changed');
     }
@@ -616,10 +576,6 @@ class PanelCorner extends St.DrawingArea {
                     let pseudoClass = button.get_style_pseudo_class();
                     this.set_style_pseudo_class(pseudoClass);
                 });
-
-            // The corner doesn't support theme transitions, so override
-            // the .panel-button default
-            button.style = 'transition-duration: 0ms';
         }
     }
 
@@ -630,15 +586,11 @@ class PanelCorner extends St.DrawingArea {
         let borderWidth = node.get_length('-panel-corner-border-width');
 
         let backgroundColor = node.get_color('-panel-corner-background-color');
-        let borderColor = node.get_color('-panel-corner-border-color');
-
-        let overlap = borderColor.alpha != 0;
-        let offsetY = overlap ? 0 : borderWidth;
 
         let cr = this.get_context();
         cr.setOperator(Cairo.Operator.SOURCE);
 
-        cr.moveTo(0, offsetY);
+        cr.moveTo(0, 0);
         if (this._side == St.Side.LEFT) {
             cr.arc(cornerRadius,
                    borderWidth + cornerRadius,
@@ -648,26 +600,11 @@ class PanelCorner extends St.DrawingArea {
                    borderWidth + cornerRadius,
                    cornerRadius, 3 * Math.PI / 2, 2 * Math.PI);
         }
-        cr.lineTo(cornerRadius, offsetY);
+        cr.lineTo(cornerRadius, 0);
         cr.closePath();
 
-        let savedPath = cr.copyPath();
-
-        let xOffsetDirection = this._side == St.Side.LEFT ? -1 : 1;
-        let over = _over(borderColor, backgroundColor);
-        Clutter.cairo_set_source_color(cr, over);
+        Clutter.cairo_set_source_color(cr, backgroundColor);
         cr.fill();
-
-        if (overlap) {
-            let offset = borderWidth;
-            Clutter.cairo_set_source_color(cr, backgroundColor);
-
-            cr.save();
-            cr.translate(xOffsetDirection * offset, -offset);
-            cr.appendPath(savedPath);
-            cr.fill();
-            cr.restore();
-        }
 
         cr.$dispose();
     }
@@ -679,8 +616,18 @@ class PanelCorner extends St.DrawingArea {
         let cornerRadius = node.get_length("-panel-corner-radius");
         let borderWidth = node.get_length('-panel-corner-border-width');
 
+        const transitionDuration = node.get_transition_duration();
+        const opacity = node.get_double('-panel-corner-opacity');
+
         this.set_size(cornerRadius, borderWidth + cornerRadius);
         this.translation_y = -borderWidth;
+
+        this.remove_transition('opacity');
+        this.ease({
+            opacity: opacity * 255,
+            duration: transitionDuration,
+            mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+        });
     }
 });
 
@@ -756,7 +703,6 @@ class AggregateMenu extends PanelMenu.Button {
         this._indicators.add_child(this._rfkill);
         this._indicators.add_child(this._volume);
         this._indicators.add_child(this._power);
-        this._indicators.add_child(PopupMenu.arrowIcon(St.Side.BOTTOM));
 
         this.menu.addMenuItem(this._volume.menu);
         this.menu.addMenuItem(this._brightness.menu);
@@ -814,9 +760,11 @@ class Panel extends St.Widget {
         this.add_child(this._rightBox);
 
         this._leftCorner = new PanelCorner(St.Side.LEFT);
+        this.bind_property('style', this._leftCorner, 'style', GObject.BindingFlags.SYNC_CREATE);
         this.add_child(this._leftCorner);
 
         this._rightCorner = new PanelCorner(St.Side.RIGHT);
+        this.bind_property('style', this._rightCorner, 'style', GObject.BindingFlags.SYNC_CREATE);
         this.add_child(this._rightCorner);
 
         Main.overview.connect('showing', () => {

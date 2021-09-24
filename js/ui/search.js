@@ -429,6 +429,7 @@ var GridSearchResultsLayout = GObject.registerClass({
                 childBox.set_size(0, 0);
 
             child.allocate(childBox);
+            child.can_focus = childBox.get_area() > 0;
 
             childBox.x1 += childWidth;
         }
@@ -873,7 +874,7 @@ var SearchResultsView = GObject.registerClass({
             return;
         }
 
-        let from = this._defaultResult ? this._defaultResult : null;
+        const from = this._defaultResult ?? null;
         this.navigate_focus(from, direction, false);
     }
 

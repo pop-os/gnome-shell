@@ -353,7 +353,7 @@ texture_load_data_free (gpointer p)
   if (data->actors)
     g_slist_free_full (data->actors, (GDestroyNotify) g_object_unref);
 
-  g_slice_free (AsyncTextureLoadData, data);
+  g_free (data);
 }
 
 /**
@@ -815,7 +815,7 @@ st_texture_cache_free_bind (gpointer data)
   StTextureCachePropertyBind *bind = data;
   if (bind->weakref_active)
     g_object_weak_unref (G_OBJECT (bind->image), st_texture_cache_bind_weak_notify, bind);
-  g_slice_free (StTextureCachePropertyBind, bind);
+  g_free (bind);
 }
 
 /**
@@ -841,7 +841,7 @@ st_texture_cache_bind_cairo_surface_property (StTextureCache    *cache,
   gchar *notify_key;
   StTextureCachePropertyBind *bind;
 
-  bind = g_slice_new0 (StTextureCachePropertyBind);
+  bind = g_new0 (StTextureCachePropertyBind, 1);
   bind->cache = cache;
   bind->source = object;
 
@@ -957,7 +957,7 @@ ensure_request (StTextureCache        *cache,
   if (pending == NULL)
     {
       /* Not cached and no pending request, create it */
-      *request = g_slice_new0 (AsyncTextureLoadData);
+      *request = g_new0 (AsyncTextureLoadData, 1);
       if (policy != ST_TEXTURE_CACHE_POLICY_NONE)
         g_hash_table_insert (cache->priv->outstanding_requests, g_strdup (key), *request);
     }
@@ -998,10 +998,9 @@ st_texture_cache_load_gicon (StTextureCache    *cache,
   ClutterActor *actor;
   gint scale;
   char *gicon_string;
-  char *key;
+  g_autofree char *key = NULL;
   float actor_size;
   GtkIconTheme *theme;
-  GtkIconInfo *info;
   StTextureCachePolicy policy;
   StIconColors *colors = NULL;
   StIconStyle icon_style = ST_ICON_STYLE_REQUESTED;
@@ -1021,7 +1020,7 @@ st_texture_cache_load_gicon (StTextureCache    *cache,
         return NULL;
 
       return g_object_new (CLUTTER_TYPE_ACTOR,
-                           "request-mode", CLUTTER_REQUEST_CONTENT_SIZE,
+                           "content-gravity", CLUTTER_CONTENT_GRAVITY_RESIZE_ASPECT,
                            "width", actor_size,
                            "height", actor_size,
                            "content", CLUTTER_CONTENT (icon),
@@ -1050,11 +1049,6 @@ st_texture_cache_load_gicon (StTextureCache    *cache,
     lookup_flags |= GTK_ICON_LOOKUP_DIR_LTR;
 
   scale = ceilf (paint_scale * resource_scale);
-  info = gtk_icon_theme_lookup_by_gicon_for_scale (theme, icon,
-                                                   size, scale,
-                                                   lookup_flags);
-  if (info == NULL)
-    return NULL;
 
   gicon_string = g_icon_to_string (icon);
   /* A return value of NULL indicates that the icon can not be serialized,
@@ -1081,20 +1075,27 @@ st_texture_cache_load_gicon (StTextureCache    *cache,
   g_free (gicon_string);
 
   actor = create_invisible_actor ();
+  clutter_actor_set_content_gravity  (actor, CLUTTER_CONTENT_GRAVITY_RESIZE_ASPECT);
   clutter_actor_set_size (actor, actor_size, actor_size);
-  if (ensure_request (cache, key, policy, &request, actor))
-    {
-      /* If there's an outstanding request, we've just added ourselves to it */
-      g_object_unref (info);
-      g_free (key);
-    }
-  else
+  if (!ensure_request (cache, key, policy, &request, actor))
     {
       /* Else, make a new request */
+      GtkIconInfo *info;
+
+      info = gtk_icon_theme_lookup_by_gicon_for_scale (theme, icon,
+                                                       size, scale,
+                                                       lookup_flags);
+      if (info == NULL)
+        {
+          g_hash_table_remove (cache->priv->outstanding_requests, key);
+          texture_load_data_free (request);
+          g_object_unref (actor);
+          return NULL;
+        }
 
       request->cache = cache;
       /* Transfer ownership of key */
-      request->key = key;
+      request->key = g_steal_pointer (&key);
       request->policy = policy;
       request->colors = colors ? st_icon_colors_ref (colors) : NULL;
       request->icon_info = info;
@@ -1228,7 +1229,7 @@ on_data_destroy (gpointer data)
   g_object_unref (d->gfile);
   g_object_unref (d->actor);
   g_object_unref (d->cancellable);
-  g_slice_free (AsyncImageData, d);
+  g_free (d);
 }
 
 static void
@@ -1393,7 +1394,7 @@ st_texture_cache_load_sliced_image (StTextureCache *cache,
   g_assert (paint_scale > 0);
   g_assert (resource_scale > 0);
 
-  data = g_slice_new0 (AsyncImageData);
+  data = g_new0 (AsyncImageData, 1);
   data->grid_width = grid_width;
   data->grid_height = grid_height;
   data->paint_scale = paint_scale;

@@ -7,7 +7,6 @@ const Signals = imports.signals;
 const Background = imports.ui.background;
 const FocusCaretTracker = imports.ui.focusCaretTracker;
 const Main = imports.ui.main;
-const MagnifierDBus = imports.ui.magnifierDBus;
 const Params = imports.misc.params;
 const PointerWatcher = imports.ui.pointerWatcher;
 
@@ -114,8 +113,6 @@ var Magnifier = class Magnifier {
             this.setActive(St.Settings.get().magnifier_active);
         });
 
-        // Export to dbus.
-        new MagnifierDBus.ShellMagnifier();
         this.setActive(St.Settings.get().magnifier_active);
     }
 
@@ -231,26 +228,25 @@ var Magnifier = class Magnifier {
      * scrollToMousePos:
      * Position all zoom regions' ROI relative to the current location of the
      * system pointer.
-     * @returns {bool} true.
      */
     scrollToMousePos() {
         let [xMouse, yMouse] = global.get_pointer();
 
-        if (xMouse != this.xMouse || yMouse != this.yMouse) {
-            this.xMouse = xMouse;
-            this.yMouse = yMouse;
+        if (xMouse === this.xMouse && yMouse === this.yMouse)
+            return;
 
-            let sysMouseOverAny = false;
-            this._zoomRegions.forEach(zoomRegion => {
-                if (zoomRegion.scrollToMousePos())
-                    sysMouseOverAny = true;
-            });
-            if (sysMouseOverAny)
-                this.hideSystemCursor();
-            else
-                this.showSystemCursor();
-        }
-        return true;
+        this.xMouse = xMouse;
+        this.yMouse = yMouse;
+
+        let sysMouseOverAny = false;
+        this._zoomRegions.forEach(zoomRegion => {
+            if (zoomRegion.scrollToMousePos())
+                sysMouseOverAny = true;
+        });
+        if (sysMouseOverAny)
+            this.hideSystemCursor();
+        else
+            this.showSystemCursor();
     }
 
     /**
@@ -1664,7 +1660,6 @@ var ZoomRegion = class ZoomRegion {
 var Crosshairs = GObject.registerClass(
 class Crosshairs extends Clutter.Actor {
     _init() {
-
         // Set the group containing the crosshairs to three times the desktop
         // size in case the crosshairs need to appear to be infinite in
         // length (i.e., extend beyond the edges of the view they appear in).

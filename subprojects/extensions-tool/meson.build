@@ -1,11 +1,12 @@
 project('gnome-extensions-tool', 'c',
-  version: '3.38.6',
+  version: '40.4',
   meson_version: '>= 0.53.0',
   license: 'GPLv2+'
 )
 
 gio_req = '>= 2.56.0'
 
+fs = import('fs')
 gnome = import('gnome')
 i18n  = import('i18n')
 
@@ -46,9 +47,12 @@ if bash_completion.found()
 endif
 
 if get_option('man')
-  a2x = find_program('a2x')
-
-  subdir('man')
+  if fs.exists('man/gnome-extensions.1')
+    install_man('man/gnome-extensions.1')
+  else
+    a2x = find_program('a2x')
+    subdir('man')
+  endif
 endif
 
 if not meson.is_subproject()

@@ -122,6 +122,7 @@ var ScreenShield = class {
         this._isActive = false;
         this._isLocked = false;
         this._inUnlockAnimation = false;
+        this._inhibited = false;
         this._activationTime = 0;
         this._becameActiveId = 0;
         this._lockTimeoutId = 0;
@@ -151,10 +152,18 @@ var ScreenShield = class {
         if (prevIsActive != this._isActive)
             this.emit('active-changed');
 
-        if (this._loginSession)
-            this._loginSession.SetLockedHintRemote(active);
-
         this._syncInhibitor();
+    }
+
+    _setLocked(locked) {
+        let prevIsLocked = this._isLocked;
+        this._isLocked = locked;
+
+        if (prevIsLocked !== this._isLocked)
+            this.emit('locked-changed');
+
+        if (this._loginSession)
+            this._loginSession.SetLockedHintRemote(locked);
     }
 
     _activateDialog() {
@@ -195,20 +204,35 @@ var ScreenShield = class {
     }
 
     _syncInhibitor() {
-        let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY);
-        let lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
-        let inhibit = this._loginSession && this._loginSession.Active &&
-                       !this._isActive && lockEnabled && !lockLocked && Main.sessionMode.unlockDialog;
+        const lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY);
+        const lockLocked = this._lockSettings.get_boolean(DISABLE_LOCK_KEY);
+        const inhibit = !!this._loginSession && this._loginSession.Active &&
+                         !this._isActive && lockEnabled && !lockLocked &&
+                         !!Main.sessionMode.unlockDialog;
+
+        if (inhibit === this._inhibited)
+            return;
+
+        this._inhibited = inhibit;
+
         if (inhibit) {
-            this._loginManager.inhibit(_("GNOME needs to lock the screen"),
+            this._loginManager.inhibit(_('GNOME needs to lock the screen'),
                 inhibitor => {
-                    if (this._inhibitor)
-                        this._inhibitor.close(null);
-                    this._inhibitor = inhibitor;
+                    if (inhibitor) {
+                        if (this._inhibitor)
+                            inhibitor.close(null);
+                        else
+                            this._inhibitor = inhibitor;
+                    }
+
+                    // Handle uninhibits that happened after the start
+                    if (!this._inhibited) {
+                        this._inhibitor?.close(null);
+                        this._inhibitor = null;
+                    }
                 });
         } else {
-            if (this._inhibitor)
-                this._inhibitor.close(null);
+            this._inhibitor?.close(null);
             this._inhibitor = null;
         }
     }
@@ -563,8 +587,7 @@ var ScreenShield = class {
 
         this._activationTime = 0;
         this._setActive(false);
-        this._isLocked = false;
-        this.emit('locked-changed');
+        this._setLocked(false);
         global.set_runtime_state(LOCKED_STATE_STR, null);
     }
 
@@ -624,14 +647,12 @@ var ScreenShield = class {
         let userManager = AccountsService.UserManager.get_default();
         let user = userManager.get_user(GLib.get_user_name());
 
-        if (this._isGreeter)
-            this._isLocked = true;
-        else
-            this._isLocked = user.password_mode != AccountsService.UserPasswordMode.NONE;
-
         this.activate(animate);
 
-        this.emit('locked-changed');
+        const lock = this._isGreeter
+            ? true
+            : user.password_mode !== AccountsService.UserPasswordMode.NONE;
+        this._setLocked(lock);
     }
 
     // If the previous shell crashed, and gnome-session restarted us, then re-lock

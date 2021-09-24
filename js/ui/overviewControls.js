@@ -1,423 +1,326 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported ControlsManager */
 
-const { Clutter, GObject, Meta, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
+const AppDisplay = imports.ui.appDisplay;
 const Dash = imports.ui.dash;
+const Layout = imports.ui.layout;
 const Main = imports.ui.main;
-const Params = imports.misc.params;
-const ViewSelector = imports.ui.viewSelector;
-const WorkspaceThumbnail = imports.ui.workspaceThumbnail;
 const Overview = imports.ui.overview;
+const SearchController = imports.ui.searchController;
+const Util = imports.misc.util;
+const WindowManager = imports.ui.windowManager;
+const WorkspaceThumbnail = imports.ui.workspaceThumbnail;
+const WorkspacesView = imports.ui.workspacesView;
+
+const SMALL_WORKSPACE_RATIO = 0.15;
+const DASH_MAX_HEIGHT_RATIO = 0.15;
+
+const A11Y_SCHEMA = 'org.gnome.desktop.a11y.keyboard';
 
 var SIDE_CONTROLS_ANIMATION_TIME = Overview.ANIMATION_TIME;
 
-function getRtlSlideDirection(direction, actor) {
-    let rtl = actor.text_direction == Clutter.TextDirection.RTL;
-    if (rtl) {
-        direction = direction == SlideDirection.LEFT
-            ? SlideDirection.RIGHT : SlideDirection.LEFT;
-    }
-    return direction;
-}
-
-var SlideDirection = {
-    LEFT: 0,
-    RIGHT: 1,
+var ControlsState = {
+    HIDDEN: 0,
+    WINDOW_PICKER: 1,
+    APP_GRID: 2,
 };
 
-var SlideLayout = GObject.registerClass({
-    Properties: {
-        'slide-x': GObject.ParamSpec.double(
-            'slide-x', 'slide-x', 'slide-x',
-            GObject.ParamFlags.READWRITE,
-            0, 1, 1),
-    },
-}, class SlideLayout extends Clutter.FixedLayout {
-    _init(params) {
-        this._slideX = 1;
-        this._direction = SlideDirection.LEFT;
+var ControlsManagerLayout = GObject.registerClass(
+class ControlsManagerLayout extends Clutter.BoxLayout {
+    _init(searchEntry, appDisplay, workspacesDisplay, workspacesThumbnails,
+        searchController, dash, stateAdjustment) {
+        super._init({ orientation: Clutter.Orientation.VERTICAL });
 
-        super._init(params);
-    }
-
-    vfunc_get_preferred_width(container, forHeight) {
-        let child = container.get_first_child();
-
-        let [minWidth, natWidth] = child.get_preferred_width(forHeight);
-
-        minWidth *= this._slideX;
-        natWidth *= this._slideX;
-
-        return [minWidth, natWidth];
-    }
-
-    vfunc_allocate(container, box) {
-        let child = container.get_first_child();
-
-        let availWidth = Math.round(box.x2 - box.x1);
-        let availHeight = Math.round(box.y2 - box.y1);
-        let [, natWidth] = child.get_preferred_width(availHeight);
-
-        // Align the actor inside the clipped box, as the actor's alignment
-        // flags only determine what to do if the allocated box is bigger
-        // than the actor's box.
-        let realDirection = getRtlSlideDirection(this._direction, child);
-        let alignX = realDirection == SlideDirection.LEFT
-            ? availWidth - natWidth
-            : availWidth - natWidth * this._slideX;
-
-        let actorBox = new Clutter.ActorBox();
-        actorBox.x1 = box.x1 + alignX;
-        actorBox.x2 = actorBox.x1 + (child.x_expand ? availWidth : natWidth);
-        actorBox.y1 = box.y1;
-        actorBox.y2 = actorBox.y1 + availHeight;
-
-        child.allocate(actorBox);
-    }
-
-    // eslint-disable-next-line camelcase
-    set slide_x(value) {
-        if (this._slideX == value)
-            return;
-        this._slideX = value;
-        this.notify('slide-x');
-        this.layout_changed();
-    }
-
-    // eslint-disable-next-line camelcase
-    get slide_x() {
-        return this._slideX;
-    }
-
-    set slideDirection(direction) {
-        this._direction = direction;
-        this.layout_changed();
-    }
-
-    get slideDirection() {
-        return this._direction;
-    }
-});
-
-var SlidingControl = GObject.registerClass(
-class SlidingControl extends St.Widget {
-    _init(params) {
-        params = Params.parse(params, { slideDirection: SlideDirection.LEFT });
-
-        this.layout = new SlideLayout();
-        this.layout.slideDirection = params.slideDirection;
-        super._init({
-            layout_manager: this.layout,
-            style_class: 'overview-controls',
-            clip_to_allocation: true,
-        });
-
-        this._visible = true;
-        this._inDrag = false;
-
-        Main.overview.connect('hiding', this._onOverviewHiding.bind(this));
-
-        Main.overview.connect('item-drag-begin', this._onDragBegin.bind(this));
-        Main.overview.connect('item-drag-end', this._onDragEnd.bind(this));
-        Main.overview.connect('item-drag-cancelled', this._onDragEnd.bind(this));
-
-        Main.overview.connect('window-drag-begin', this._onWindowDragBegin.bind(this));
-        Main.overview.connect('window-drag-cancelled', this._onWindowDragEnd.bind(this));
-        Main.overview.connect('window-drag-end', this._onWindowDragEnd.bind(this));
-    }
-
-    _getSlide() {
-        throw new GObject.NotImplementedError('_getSlide in %s'.format(this.constructor.name));
-    }
-
-    _updateSlide() {
-        this.ease_property('@layout.slide-x', this._getSlide(), {
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            duration: SIDE_CONTROLS_ANIMATION_TIME,
-        });
-    }
-
-    getVisibleWidth() {
-        let child = this.get_first_child();
-        let [, , natWidth] = child.get_preferred_size();
-        return natWidth;
-    }
-
-    _getTranslation() {
-        let child = this.get_first_child();
-        let direction = getRtlSlideDirection(this.layout.slideDirection, child);
-        let visibleWidth = this.getVisibleWidth();
-
-        if (direction == SlideDirection.LEFT)
-            return -visibleWidth;
-        else
-            return visibleWidth;
-    }
-
-    _updateTranslation() {
-        let translationStart = 0;
-        let translationEnd = 0;
-        let translation = this._getTranslation();
-
-        let shouldShow = this._getSlide() > 0;
-        if (shouldShow)
-            translationStart = translation;
-        else
-            translationEnd = translation;
-
-        if (this.translation_x === translationEnd)
-            return;
-
-        this.translation_x = translationStart;
-        this.ease({
-            translation_x: translationEnd,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            duration: SIDE_CONTROLS_ANIMATION_TIME,
-        });
-    }
-
-    _onOverviewHiding() {
-        // We need to explicitly slideOut since showing pages
-        // doesn't imply sliding out, instead, hiding the overview does.
-        this.slideOut();
-    }
-
-    _onWindowDragBegin() {
-        this._onDragBegin();
-    }
-
-    _onWindowDragEnd() {
-        this._onDragEnd();
-    }
-
-    _onDragBegin() {
-        this._inDrag = true;
-        this._updateTranslation();
-        this._updateSlide();
-    }
-
-    _onDragEnd() {
-        this._inDrag = false;
-        this._updateSlide();
-    }
-
-    fadeIn() {
-        this.ease({
-            opacity: 255,
-            duration: SIDE_CONTROLS_ANIMATION_TIME / 2,
-            mode: Clutter.AnimationMode.EASE_IN_QUAD,
-        });
-    }
-
-    fadeHalf() {
-        this.ease({
-            opacity: 128,
-            duration: SIDE_CONTROLS_ANIMATION_TIME / 2,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
-    }
-
-    slideIn() {
-        this._visible = true;
-        // we will update slide_x and the translation from pageEmpty
-    }
-
-    slideOut() {
-        this._visible = false;
-        this._updateTranslation();
-        // we will update slide_x from pageEmpty
-    }
-
-    pageEmpty() {
-        // When pageEmpty is received, there's no visible view in the
-        // selector; this means we can now safely set the full slide for
-        // the next page, since slideIn or slideOut might have been called,
-        // changing the visibility
-        this.remove_transition('@layout.slide-x');
-        this.layout.slide_x = this._getSlide();
-        this._updateTranslation();
-    }
-});
-
-var ThumbnailsSlider = GObject.registerClass(
-class ThumbnailsSlider extends SlidingControl {
-    _init(thumbnailsBox) {
-        super._init({ slideDirection: SlideDirection.RIGHT });
-
-        this._thumbnailsBox = thumbnailsBox;
-
-        this.request_mode = Clutter.RequestMode.WIDTH_FOR_HEIGHT;
-        this.reactive = true;
-        this.track_hover = true;
-        this.add_actor(this._thumbnailsBox);
-
-        Main.layoutManager.connect('monitors-changed', this._updateSlide.bind(this));
-        global.workspace_manager.connect('active-workspace-changed',
-                                         this._updateSlide.bind(this));
-        global.workspace_manager.connect('notify::n-workspaces',
-                                         this._updateSlide.bind(this));
-        this.connect('notify::hover', this._updateSlide.bind(this));
-        this._thumbnailsBox.bind_property('visible', this, 'visible', GObject.BindingFlags.SYNC_CREATE);
-    }
-
-    _getAlwaysZoomOut() {
-        // Always show the pager on hover, during a drag, or if workspaces are
-        // actually used, e.g. there are windows on any non-active workspace
-        let workspaceManager = global.workspace_manager;
-        let alwaysZoomOut = this.hover ||
-                            this._inDrag ||
-                            !Meta.prefs_get_dynamic_workspaces() ||
-                            workspaceManager.n_workspaces > 2 ||
-                            workspaceManager.get_active_workspace_index() != 0;
-
-        if (!alwaysZoomOut) {
-            let monitors = Main.layoutManager.monitors;
-            let primary = Main.layoutManager.primaryMonitor;
-
-            /* Look for any monitor to the right of the primary, if there is
-             * one, we always keep zoom out, otherwise its hard to reach
-             * the thumbnail area without passing into the next monitor. */
-            for (let i = 0; i < monitors.length; i++) {
-                if (monitors[i].x >= primary.x + primary.width) {
-                    alwaysZoomOut = true;
-                    break;
-                }
-            }
-        }
-
-        return alwaysZoomOut;
-    }
-
-    getNonExpandedWidth() {
-        let child = this.get_first_child();
-        return child.get_theme_node().get_length('visible-width');
-    }
-
-    _onDragEnd() {
-        this.sync_hover();
-        super._onDragEnd();
-    }
-
-    _getSlide() {
-        if (!this._visible)
-            return 0;
-
-        let alwaysZoomOut = this._getAlwaysZoomOut();
-        if (alwaysZoomOut)
-            return 1;
-
-        let child = this.get_first_child();
-        let preferredHeight = child.get_preferred_height(-1)[1];
-        let expandedWidth = child.get_preferred_width(preferredHeight)[1];
-
-        return this.getNonExpandedWidth() / expandedWidth;
-    }
-
-    getVisibleWidth() {
-        let alwaysZoomOut = this._getAlwaysZoomOut();
-        if (alwaysZoomOut)
-            return super.getVisibleWidth();
-        else
-            return this.getNonExpandedWidth();
-    }
-});
-
-var DashSlider = GObject.registerClass(
-class DashSlider extends SlidingControl {
-    _init(dash) {
-        super._init({ slideDirection: SlideDirection.LEFT });
-
+        this._appDisplay = appDisplay;
+        this._workspacesDisplay = workspacesDisplay;
+        this._workspacesThumbnails = workspacesThumbnails;
+        this._stateAdjustment = stateAdjustment;
+        this._searchEntry = searchEntry;
+        this._searchController = searchController;
         this._dash = dash;
 
-        // SlideLayout reads the actor's expand flags to decide
-        // whether to allocate the natural size to its child, or the whole
-        // available allocation
-        this._dash.x_expand = true;
+        this._cachedWorkspaceBoxes = new Map();
+        this._postAllocationCallbacks = [];
 
-        this.x_expand = true;
-        this.x_align = Clutter.ActorAlign.START;
-        this.y_expand = true;
-
-        this.add_actor(this._dash);
-
-        this._dash.connect('icon-size-changed', this._updateSlide.bind(this));
+        stateAdjustment.connect('notify::value', () => this.layout_changed());
     }
 
-    _getSlide() {
-        if (this._visible || this._inDrag)
-            return 1;
-        else
-            return 0;
+    _computeWorkspacesBoxForState(state, workAreaBox, searchHeight, dashHeight, thumbnailsHeight) {
+        const workspaceBox = workAreaBox.copy();
+        const [startX, startY] = workAreaBox.get_origin();
+        const [width, height] = workspaceBox.get_size();
+        const { spacing } = this;
+        const { expandFraction } = this._workspacesThumbnails;
+
+        switch (state) {
+        case ControlsState.HIDDEN:
+            break;
+        case ControlsState.WINDOW_PICKER:
+            workspaceBox.set_origin(startX,
+                startY + searchHeight + spacing +
+                thumbnailsHeight + spacing * expandFraction);
+            workspaceBox.set_size(width,
+                height -
+                dashHeight - spacing -
+                searchHeight - spacing -
+                thumbnailsHeight - spacing * expandFraction);
+            break;
+        case ControlsState.APP_GRID:
+            workspaceBox.set_origin(startX, startY + searchHeight + spacing);
+            workspaceBox.set_size(
+                width,
+                Math.round(height * SMALL_WORKSPACE_RATIO));
+            break;
+        }
+
+        return workspaceBox;
     }
 
-    _onWindowDragBegin() {
-        this.fadeHalf();
+    _getAppDisplayBoxForState(state, workAreaBox, searchHeight, dashHeight, appGridBox) {
+        const [startX, startY] = workAreaBox.get_origin();
+        const [width, height] = workAreaBox.get_size();
+        const appDisplayBox = new Clutter.ActorBox();
+        const { spacing } = this;
+
+        switch (state) {
+        case ControlsState.HIDDEN:
+        case ControlsState.WINDOW_PICKER:
+            appDisplayBox.set_origin(startX, workAreaBox.y2);
+            break;
+        case ControlsState.APP_GRID:
+            appDisplayBox.set_origin(startX,
+                startY + searchHeight + spacing + appGridBox.get_height());
+            break;
+        }
+
+        appDisplayBox.set_size(width,
+            height -
+            searchHeight - spacing -
+            appGridBox.get_height() - spacing -
+            dashHeight);
+
+        return appDisplayBox;
     }
 
-    _onWindowDragEnd() {
-        this.fadeIn();
+    _runPostAllocation() {
+        if (this._postAllocationCallbacks.length === 0)
+            return;
+
+        this._postAllocationCallbacks.forEach(cb => cb());
+        this._postAllocationCallbacks = [];
+    }
+
+    vfunc_set_container(container) {
+        this._container = container;
+        if (container)
+            this.hookup_style(container);
+    }
+
+    vfunc_get_preferred_width(_container, _forHeight) {
+        // The MonitorConstraint will allocate us a fixed size anyway
+        return [0, 0];
+    }
+
+    vfunc_get_preferred_height(_container, _forWidth) {
+        // The MonitorConstraint will allocate us a fixed size anyway
+        return [0, 0];
+    }
+
+    vfunc_allocate(_container, _box) {
+        const childBox = new Clutter.ActorBox();
+
+        const { spacing } = this;
+
+        const monitor = Main.layoutManager.findMonitorForActor(this._container);
+        const workArea = Main.layoutManager.getWorkAreaForMonitor(monitor.index);
+        const startX = workArea.x - monitor.x;
+        const startY = workArea.y - monitor.y;
+        const workAreaBox = new Clutter.ActorBox();
+        workAreaBox.set_origin(startX, startY);
+        workAreaBox.set_size(workArea.width, workArea.height);
+        const [width, height] = workAreaBox.get_size();
+        let availableHeight = height;
+        const availableWidth = width;
+
+        // Search entry
+        let [searchHeight] = this._searchEntry.get_preferred_height(width);
+        childBox.set_origin(startX, startY);
+        childBox.set_size(width, searchHeight);
+        this._searchEntry.allocate(childBox);
+
+        availableHeight -= searchHeight + spacing;
+
+        // Dash
+        const maxDashHeight = Math.round(workAreaBox.get_height() * DASH_MAX_HEIGHT_RATIO);
+        this._dash.setMaxSize(width, maxDashHeight);
+
+        let [, dashHeight] = this._dash.get_preferred_height(width);
+        dashHeight = Math.min(dashHeight, maxDashHeight);
+        childBox.set_origin(startX, startY + height - dashHeight);
+        childBox.set_size(width, dashHeight);
+        this._dash.allocate(childBox);
+
+        availableHeight -= dashHeight + spacing;
+
+        // Workspace Thumbnails
+        let thumbnailsHeight = 0;
+        if (this._workspacesThumbnails.visible) {
+            const { expandFraction } = this._workspacesThumbnails;
+            [thumbnailsHeight] =
+                this._workspacesThumbnails.get_preferred_height(width);
+            thumbnailsHeight = Math.min(
+                thumbnailsHeight * expandFraction,
+                height * WorkspaceThumbnail.MAX_THUMBNAIL_SCALE);
+            childBox.set_origin(startX, startY + searchHeight + spacing);
+            childBox.set_size(width, thumbnailsHeight);
+            this._workspacesThumbnails.allocate(childBox);
+        }
+
+        // Workspaces
+        let params = [workAreaBox, searchHeight, dashHeight, thumbnailsHeight];
+        const transitionParams = this._stateAdjustment.getStateTransitionParams();
+
+        // Update cached boxes
+        for (const state of Object.values(ControlsState)) {
+            this._cachedWorkspaceBoxes.set(
+                state, this._computeWorkspacesBoxForState(state, ...params));
+        }
+
+        let workspacesBox;
+        if (!transitionParams.transitioning) {
+            workspacesBox = this._cachedWorkspaceBoxes.get(transitionParams.currentState);
+        } else {
+            const initialBox = this._cachedWorkspaceBoxes.get(transitionParams.initialState);
+            const finalBox = this._cachedWorkspaceBoxes.get(transitionParams.finalState);
+            workspacesBox = initialBox.interpolate(finalBox, transitionParams.progress);
+        }
+
+        this._workspacesDisplay.allocate(workspacesBox);
+
+        // AppDisplay
+        if (this._appDisplay.visible) {
+            const workspaceAppGridBox =
+                this._cachedWorkspaceBoxes.get(ControlsState.APP_GRID);
+
+            params = [workAreaBox, searchHeight, dashHeight, workspaceAppGridBox];
+            let appDisplayBox;
+            if (!transitionParams.transitioning) {
+                appDisplayBox =
+                    this._getAppDisplayBoxForState(transitionParams.currentState, ...params);
+            } else {
+                const initialBox =
+                    this._getAppDisplayBoxForState(transitionParams.initialState, ...params);
+                const finalBox =
+                    this._getAppDisplayBoxForState(transitionParams.finalState, ...params);
+
+                appDisplayBox = initialBox.interpolate(finalBox, transitionParams.progress);
+            }
+
+            this._appDisplay.allocate(appDisplayBox);
+        }
+
+        // Search
+        childBox.set_origin(startX, startY + searchHeight + spacing);
+        childBox.set_size(availableWidth, availableHeight);
+
+        this._searchController.allocate(childBox);
+
+        this._runPostAllocation();
+    }
+
+    ensureAllocation() {
+        this.layout_changed();
+        return new Promise(
+            resolve => this._postAllocationCallbacks.push(resolve));
+    }
+
+    getWorkspacesBoxForState(state) {
+        return this._cachedWorkspaceBoxes.get(state);
     }
 });
 
-var DashSpacer = GObject.registerClass(
-class DashSpacer extends St.Widget {
-    _init(params) {
-        super._init(params);
-
-        this._bindConstraint = null;
+var OverviewAdjustment = GObject.registerClass({
+    Properties: {
+        'gesture-in-progress': GObject.ParamSpec.boolean(
+            'gesture-in-progress', 'Gesture in progress', 'Gesture in progress',
+            GObject.ParamFlags.READWRITE,
+            false),
+    },
+}, class OverviewAdjustment extends St.Adjustment {
+    _init(actor) {
+        super._init({
+            actor,
+            value: ControlsState.WINDOW_PICKER,
+            lower: ControlsState.HIDDEN,
+            upper: ControlsState.APP_GRID,
+        });
     }
 
-    setDashActor(dashActor) {
-        if (this._bindConstraint) {
-            this.remove_constraint(this._bindConstraint);
-            this._bindConstraint = null;
+    getStateTransitionParams() {
+        const currentState = this.value;
+
+        const transition = this.get_transition('value');
+        let initialState = transition
+            ? transition.get_interval().peek_initial_value()
+            : currentState;
+        let finalState = transition
+            ? transition.get_interval().peek_final_value()
+            : currentState;
+
+        if (initialState > finalState) {
+            initialState = Math.ceil(initialState);
+            finalState = Math.floor(finalState);
+        } else {
+            initialState = Math.floor(initialState);
+            finalState = Math.ceil(finalState);
         }
 
-        if (dashActor) {
-            this._bindConstraint = new Clutter.BindConstraint({ source: dashActor,
-                                                                coordinate: Clutter.BindCoordinate.SIZE });
-            this.add_constraint(this._bindConstraint);
-        }
-    }
+        const length = Math.abs(finalState - initialState);
+        const progress = length > 0
+            ? Math.abs((currentState - initialState) / length)
+            : 1;
 
-    vfunc_get_preferred_width(forHeight) {
-        if (this._bindConstraint)
-            return this._bindConstraint.source.get_preferred_width(forHeight);
-        return super.vfunc_get_preferred_width(forHeight);
-    }
-
-    vfunc_get_preferred_height(forWidth) {
-        if (this._bindConstraint)
-            return this._bindConstraint.source.get_preferred_height(forWidth);
-        return super.vfunc_get_preferred_height(forWidth);
-    }
-});
-
-var ControlsLayout = GObject.registerClass({
-    Signals: { 'allocation-changed': {} },
-}, class ControlsLayout extends Clutter.BinLayout {
-    vfunc_allocate(container, box) {
-        super.vfunc_allocate(container, box);
-        this.emit('allocation-changed');
+        return {
+            transitioning: transition !== null || this.gestureInProgress,
+            currentState,
+            initialState,
+            finalState,
+            progress,
+        };
     }
 });
 
 var ControlsManager = GObject.registerClass(
 class ControlsManager extends St.Widget {
-    _init(searchEntry) {
-        let layout = new ControlsLayout();
+    _init() {
         super._init({
-            layout_manager: layout,
+            style_class: 'controls-manager',
             x_expand: true,
             y_expand: true,
             clip_to_allocation: true,
         });
 
+        this._ignoreShowAppsButtonToggle = false;
+
+        this._searchEntry = new St.Entry({
+            style_class: 'search-entry',
+            /* Translators: this is the text displayed
+               in the search entry when no search is
+               active; it should not exceed ~30
+               characters. */
+            hint_text: _('Type to search'),
+            track_hover: true,
+            can_focus: true,
+        });
+        this._searchEntry.set_offscreen_redirect(Clutter.OffscreenRedirect.ALWAYS);
+        this._searchEntryBin = new St.Bin({
+            child: this._searchEntry,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+
         this.dash = new Dash.Dash();
-        this._dashSlider = new DashSlider(this.dash);
-        this._dashSpacer = new DashSpacer();
-        this._dashSpacer.setDashActor(this._dashSlider);
 
         let workspaceManager = global.workspace_manager;
         let activeWorkspaceIndex = workspaceManager.get_active_workspace_index();
@@ -432,32 +335,320 @@ class ControlsManager extends St.Widget {
             upper: workspaceManager.n_workspaces,
         });
 
+        this._stateAdjustment = new OverviewAdjustment(this);
+        this._stateAdjustment.connect('notify::value', this._update.bind(this));
+
         this._nWorkspacesNotifyId =
             workspaceManager.connect('notify::n-workspaces',
                 this._updateAdjustment.bind(this));
 
-        this._thumbnailsBox =
-            new WorkspaceThumbnail.ThumbnailsBox(this._workspaceAdjustment);
-        this._thumbnailsSlider = new ThumbnailsSlider(this._thumbnailsBox);
+        this._searchController = new SearchController.SearchController(
+            this._searchEntry,
+            this.dash.showAppsButton);
+        this._searchController.connect('notify::search-active', this._onSearchChanged.bind(this));
 
-        this.viewSelector = new ViewSelector.ViewSelector(searchEntry,
-            this._workspaceAdjustment, this.dash.showAppsButton);
-        this.viewSelector.connect('page-changed', this._setVisibility.bind(this));
-        this.viewSelector.connect('page-empty', this._onPageEmpty.bind(this));
+        Main.layoutManager.connect('monitors-changed', () => {
+            this._thumbnailsBox.setMonitorIndex(Main.layoutManager.primaryIndex);
+        });
+        this._thumbnailsBox = new WorkspaceThumbnail.ThumbnailsBox(
+            this._workspaceAdjustment, Main.layoutManager.primaryIndex);
+        this._thumbnailsBox.connect('notify::should-show', () => {
+            this._thumbnailsBox.show();
+            this._thumbnailsBox.ease_property('expand-fraction',
+                this._thumbnailsBox.should_show ? 1 : 0, {
+                    duration: SIDE_CONTROLS_ANIMATION_TIME,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    onComplete: () => this._updateThumbnailsBox(),
+                });
+        });
 
-        this._group = new St.BoxLayout({ name: 'overview-group',
-                                         x_expand: true, y_expand: true });
-        this.add_actor(this._group);
+        this._workspacesDisplay = new WorkspacesView.WorkspacesDisplay(
+            this,
+            this._workspaceAdjustment,
+            this._stateAdjustment);
+        this._appDisplay = new AppDisplay.AppDisplay();
 
-        this.add_actor(this._dashSlider);
+        this.add_child(this._searchEntryBin);
+        this.add_child(this._appDisplay);
+        this.add_child(this.dash);
+        this.add_child(this._searchController);
+        this.add_child(this._thumbnailsBox);
+        this.add_child(this._workspacesDisplay);
 
-        this._group.add_actor(this._dashSpacer);
-        this._group.add_child(this.viewSelector);
-        this._group.add_actor(this._thumbnailsSlider);
+        this.layout_manager = new ControlsManagerLayout(
+            this._searchEntryBin,
+            this._appDisplay,
+            this._workspacesDisplay,
+            this._thumbnailsBox,
+            this._searchController,
+            this.dash,
+            this._stateAdjustment);
 
-        Main.overview.connect('showing', this._updateSpacerVisibility.bind(this));
+        this.dash.showAppsButton.connect('notify::checked',
+            this._onShowAppsButtonToggled.bind(this));
+
+        Main.ctrlAltTabManager.addGroup(
+            this.appDisplay,
+            _('Applications'),
+            'view-app-grid-symbolic', {
+                proxy: this,
+                focusCallback: () => {
+                    this.dash.showAppsButton.checked = true;
+                    this.appDisplay.navigate_focus(
+                        null, St.DirectionType.TAB_FORWARD, false);
+                },
+            });
+
+        Main.ctrlAltTabManager.addGroup(
+            this._workspacesDisplay,
+            _('Windows'),
+            'focus-windows-symbolic', {
+                proxy: this,
+                focusCallback: () => {
+                    this.dash.showAppsButton.checked = false;
+                    this._workspacesDisplay.navigate_focus(
+                        null, St.DirectionType.TAB_FORWARD, false);
+                },
+            });
+
+        this._a11ySettings = new Gio.Settings({ schema_id: A11Y_SCHEMA });
+
+        this._lastOverlayKeyTime = 0;
+        global.display.connect('overlay-key', () => {
+            if (this._a11ySettings.get_boolean('stickykeys-enable'))
+                return;
+
+            const { initialState, finalState, transitioning } =
+                this._stateAdjustment.getStateTransitionParams();
+
+            const time = GLib.get_monotonic_time() / 1000;
+            const timeDiff = time - this._lastOverlayKeyTime;
+            this._lastOverlayKeyTime = time;
+
+            const shouldShift = St.Settings.get().enable_animations
+                ? transitioning && finalState > initialState
+                : Main.overview.visible && timeDiff < Overview.ANIMATION_TIME;
+
+            if (shouldShift)
+                this._shiftState(Meta.MotionDirection.UP);
+            else
+                Main.overview.toggle();
+        });
+
+        Main.wm.addKeybinding(
+            'toggle-application-view',
+            new Gio.Settings({ schema_id: WindowManager.SHELL_KEYBINDINGS_SCHEMA }),
+            Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
+            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+            this._toggleAppsPage.bind(this));
+
+        Main.wm.addKeybinding('shift-overview-up',
+            new Gio.Settings({ schema_id: WindowManager.SHELL_KEYBINDINGS_SCHEMA }),
+            Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
+            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+            () => this._shiftState(Meta.MotionDirection.UP));
+
+        Main.wm.addKeybinding('shift-overview-down',
+            new Gio.Settings({ schema_id: WindowManager.SHELL_KEYBINDINGS_SCHEMA }),
+            Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
+            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+            () => this._shiftState(Meta.MotionDirection.DOWN));
 
         this.connect('destroy', this._onDestroy.bind(this));
+
+        this._update();
+    }
+
+    _getFitModeForState(state) {
+        switch (state) {
+        case ControlsState.HIDDEN:
+        case ControlsState.WINDOW_PICKER:
+            return WorkspacesView.FitMode.SINGLE;
+        case ControlsState.APP_GRID:
+            return WorkspacesView.FitMode.ALL;
+        default:
+            return WorkspacesView.FitMode.SINGLE;
+        }
+    }
+
+    _getThumbnailsBoxParams() {
+        const { initialState, finalState, progress } =
+            this._stateAdjustment.getStateTransitionParams();
+
+        const paramsForState = s => {
+            let opacity, scale, translationY;
+            switch (s) {
+            case ControlsState.HIDDEN:
+            case ControlsState.WINDOW_PICKER:
+                opacity = 255;
+                scale = 1;
+                translationY = 0;
+                break;
+            case ControlsState.APP_GRID:
+                opacity = 0;
+                scale = 0.5;
+                translationY = this._thumbnailsBox.height / 2;
+                break;
+            default:
+                opacity = 255;
+                scale = 1;
+                translationY = 0;
+                break;
+            }
+
+            return { opacity, scale, translationY };
+        };
+
+        const initialParams = paramsForState(initialState);
+        const finalParams = paramsForState(finalState);
+
+        return [
+            Util.lerp(initialParams.opacity, finalParams.opacity, progress),
+            Util.lerp(initialParams.scale, finalParams.scale, progress),
+            Util.lerp(initialParams.translationY, finalParams.translationY, progress),
+        ];
+    }
+
+    _updateThumbnailsBox(animate = false) {
+        const { shouldShow } = this._thumbnailsBox;
+        const { searchActive } = this._searchController;
+        const [opacity, scale, translationY] = this._getThumbnailsBoxParams();
+
+        const thumbnailsBoxVisible = shouldShow && !searchActive && opacity !== 0;
+        if (thumbnailsBoxVisible) {
+            this._thumbnailsBox.opacity = 0;
+            this._thumbnailsBox.visible = thumbnailsBoxVisible;
+        }
+
+        const params = {
+            opacity: searchActive ? 0 : opacity,
+            duration: animate ? SIDE_CONTROLS_ANIMATION_TIME : 0,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => (this._thumbnailsBox.visible = thumbnailsBoxVisible),
+        };
+
+        if (!searchActive) {
+            params.scale_x = scale;
+            params.scale_y = scale;
+            params.translation_y = translationY;
+        }
+
+        this._thumbnailsBox.ease(params);
+    }
+
+    _updateAppDisplayVisibility(stateTransitionParams = null) {
+        if (!stateTransitionParams)
+            stateTransitionParams = this._stateAdjustment.getStateTransitionParams();
+
+        const { initialState, finalState } = stateTransitionParams;
+        const state = Math.max(initialState, finalState);
+
+        this._appDisplay.visible =
+            state > ControlsState.WINDOW_PICKER &&
+            !this._searchController.searchActive;
+    }
+
+    _update() {
+        const params = this._stateAdjustment.getStateTransitionParams();
+
+        const fitMode = Util.lerp(
+            this._getFitModeForState(params.initialState),
+            this._getFitModeForState(params.finalState),
+            params.progress);
+
+        const { fitModeAdjustment } = this._workspacesDisplay;
+        fitModeAdjustment.value = fitMode;
+
+        this._updateThumbnailsBox();
+        this._updateAppDisplayVisibility(params);
+    }
+
+    _onSearchChanged() {
+        const { searchActive } = this._searchController;
+
+        if (!searchActive) {
+            this._updateAppDisplayVisibility();
+            this._workspacesDisplay.reactive = true;
+            this._workspacesDisplay.setPrimaryWorkspaceVisible(true);
+        } else {
+            this._searchController.show();
+        }
+
+        this._updateThumbnailsBox(true);
+
+        this._appDisplay.ease({
+            opacity: searchActive ? 0 : 255,
+            duration: SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => this._updateAppDisplayVisibility(),
+        });
+        this._workspacesDisplay.ease({
+            opacity: searchActive ? 0 : 255,
+            duration: SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                this._workspacesDisplay.reactive = !searchActive;
+                this._workspacesDisplay.setPrimaryWorkspaceVisible(!searchActive);
+            },
+        });
+        this._searchController.ease({
+            opacity: searchActive ? 255 : 0,
+            duration: SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => (this._searchController.visible = searchActive),
+        });
+    }
+
+    _onShowAppsButtonToggled() {
+        if (this._ignoreShowAppsButtonToggle)
+            return;
+
+        const checked = this.dash.showAppsButton.checked;
+
+        const value = checked
+            ? ControlsState.APP_GRID : ControlsState.WINDOW_PICKER;
+        this._stateAdjustment.remove_transition('value');
+        this._stateAdjustment.ease(value, {
+            duration: SIDE_CONTROLS_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+    }
+
+    _toggleAppsPage() {
+        if (Main.overview.visible) {
+            const checked = this.dash.showAppsButton.checked;
+            this.dash.showAppsButton.checked = !checked;
+        } else {
+            Main.overview.show(ControlsState.APP_GRID);
+        }
+    }
+
+    _shiftState(direction) {
+        let { currentState, finalState } = this._stateAdjustment.getStateTransitionParams();
+
+        if (direction === Meta.MotionDirection.DOWN)
+            finalState = Math.max(finalState - 1, ControlsState.HIDDEN);
+        else if (direction === Meta.MotionDirection.UP)
+            finalState = Math.min(finalState + 1, ControlsState.APP_GRID);
+
+        if (finalState === currentState)
+            return;
+
+        if (currentState === ControlsState.HIDDEN &&
+            finalState === ControlsState.WINDOW_PICKER) {
+            Main.overview.show();
+        } else if (finalState === ControlsState.HIDDEN) {
+            Main.overview.hide();
+        } else {
+            this._stateAdjustment.ease(finalState, {
+                duration: SIDE_CONTROLS_ANIMATION_TIME,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                onComplete: () => {
+                    this.dash.showAppsButton.checked =
+                        finalState === ControlsState.APP_GRID;
+                },
+            });
+        }
     }
 
     _onDestroy() {
@@ -477,43 +668,160 @@ class ControlsManager extends St.Widget {
         this._workspaceAdjustment.value = activeIndex;
     }
 
-    _setVisibility() {
-        // Ignore the case when we're leaving the overview, since
-        // actors will be made visible again when entering the overview
-        // next time, and animating them while doing so is just
-        // unnecessary noise
-        if (!Main.overview.visible ||
-            (Main.overview.animationInProgress && !Main.overview.visibleTarget))
-            return;
-
-        let activePage = this.viewSelector.getActivePage();
-        let dashVisible = activePage == ViewSelector.ViewPage.WINDOWS ||
-                           activePage == ViewSelector.ViewPage.APPS;
-        let thumbnailsVisible = activePage == ViewSelector.ViewPage.WINDOWS;
-
-        if (dashVisible)
-            this._dashSlider.slideIn();
-        else
-            this._dashSlider.slideOut();
-
-        if (thumbnailsVisible)
-            this._thumbnailsSlider.slideIn();
-        else
-            this._thumbnailsSlider.slideOut();
+    vfunc_unmap() {
+        this._workspacesDisplay.hide();
+        super.vfunc_unmap();
     }
 
-    _updateSpacerVisibility() {
-        if (Main.overview.animationInProgress && !Main.overview.visibleTarget)
-            return;
+    animateToOverview(state, callback) {
+        this._ignoreShowAppsButtonToggle = true;
 
-        let activePage = this.viewSelector.getActivePage();
-        this._dashSpacer.visible = activePage == ViewSelector.ViewPage.WINDOWS;
+        this._searchController.prepareToEnterOverview();
+        this._workspacesDisplay.prepareToEnterOverview();
+        if (!this._workspacesDisplay.activeWorkspaceHasMaximizedWindows())
+            Main.overview.fadeOutDesktop();
+
+        this._stateAdjustment.value = ControlsState.HIDDEN;
+        this._stateAdjustment.ease(state, {
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onStopped: () => {
+                if (callback)
+                    callback();
+            },
+        });
+
+        this.dash.showAppsButton.checked =
+            state === ControlsState.APP_GRID;
+
+        this._ignoreShowAppsButtonToggle = false;
     }
 
-    _onPageEmpty() {
-        this._dashSlider.pageEmpty();
-        this._thumbnailsSlider.pageEmpty();
+    animateFromOverview(callback) {
+        this._ignoreShowAppsButtonToggle = true;
 
-        this._updateSpacerVisibility();
+        this._workspacesDisplay.prepareToLeaveOverview();
+        if (!this._workspacesDisplay.activeWorkspaceHasMaximizedWindows())
+            Main.overview.fadeInDesktop();
+
+        this._stateAdjustment.ease(ControlsState.HIDDEN, {
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onStopped: () => {
+                this.dash.showAppsButton.checked = false;
+                this._ignoreShowAppsButtonToggle = false;
+
+                if (callback)
+                    callback();
+            },
+        });
+    }
+
+    getWorkspacesBoxForState(state) {
+        return this.layoutManager.getWorkspacesBoxForState(state);
+    }
+
+    gestureBegin(tracker) {
+        const baseDistance = global.screen_height;
+        const progress = this._stateAdjustment.value;
+        const points = [
+            ControlsState.HIDDEN,
+            ControlsState.WINDOW_PICKER,
+            ControlsState.APP_GRID,
+        ];
+
+        const transition = this._stateAdjustment.get_transition('value');
+        const cancelProgress = transition
+            ? transition.get_interval().peek_final_value()
+            : Math.round(progress);
+        this._stateAdjustment.remove_transition('value');
+
+        tracker.confirmSwipe(baseDistance, points, progress, cancelProgress);
+        this._workspacesDisplay.prepareToEnterOverview();
+        this._searchController.prepareToEnterOverview();
+        this._stateAdjustment.gestureInProgress = true;
+    }
+
+    gestureProgress(progress) {
+        this._stateAdjustment.value = progress;
+    }
+
+    gestureEnd(target, duration, onComplete) {
+        if (target === ControlsState.HIDDEN)
+            this._workspacesDisplay.prepareToLeaveOverview();
+
+        this.dash.showAppsButton.checked =
+            target === ControlsState.APP_GRID;
+
+        this._stateAdjustment.remove_transition('value');
+        this._stateAdjustment.ease(target, {
+            duration,
+            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+            onComplete,
+        });
+
+        this._stateAdjustment.gestureInProgress = false;
+    }
+
+    async runStartupAnimation(callback) {
+        this._ignoreShowAppsButtonToggle = true;
+
+        this._searchController.prepareToEnterOverview();
+        this._workspacesDisplay.prepareToEnterOverview();
+
+        this._stateAdjustment.value = ControlsState.HIDDEN;
+        this._stateAdjustment.ease(ControlsState.WINDOW_PICKER, {
+            duration: Overview.ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+
+        this.dash.showAppsButton.checked = false;
+        this._ignoreShowAppsButtonToggle = false;
+
+        // Set the opacity here to avoid a 1-frame flicker
+        this.opacity = 0;
+
+        // We can't run the animation before the first allocation happens
+        await this.layout_manager.ensureAllocation();
+
+        const { STARTUP_ANIMATION_TIME } = Layout;
+
+        // Opacity
+        this.ease({
+            opacity: 255,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.LINEAR,
+        });
+
+        // Search bar falls from the ceiling
+        const { primaryMonitor } = Main.layoutManager;
+        const [, y] = this._searchEntryBin.get_transformed_position();
+        const yOffset = y - primaryMonitor.y;
+
+        this._searchEntryBin.translation_y = -(yOffset + this._searchEntryBin.height);
+        this._searchEntryBin.ease({
+            translation_y: 0,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+
+        // The Dash rises from the bottom. This is the last animation to finish,
+        // so run the callback there.
+        this.dash.translation_y = this.dash.height;
+        this.dash.ease({
+            translation_y: 0,
+            delay: STARTUP_ANIMATION_TIME,
+            duration: STARTUP_ANIMATION_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => callback(),
+        });
+    }
+
+    get searchEntry() {
+        return this._searchEntry;
+    }
+
+    get appDisplay() {
+        return this._appDisplay;
     }
 });

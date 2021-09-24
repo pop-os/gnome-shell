@@ -359,7 +359,8 @@ st_icon_update_shadow_pipeline (StIcon *icon)
       ClutterActorBox box;
       float width, height;
 
-      clutter_actor_get_allocation_box (CLUTTER_ACTOR (icon), &box);
+      clutter_actor_get_allocation_box (CLUTTER_ACTOR (priv->icon_texture),
+                                        &box);
       clutter_actor_box_get_size (&box, &width, &height);
 
       if (priv->shadow_pipeline == NULL ||
@@ -455,11 +456,11 @@ st_icon_update (StIcon *icon)
       return;
     }
 
-  resource_scale = clutter_actor_get_resource_scale (CLUTTER_ACTOR (icon));
-
   theme_node = st_widget_peek_theme_node (ST_WIDGET (icon));
   if (theme_node == NULL)
     return;
+
+  resource_scale = clutter_actor_get_resource_scale (CLUTTER_ACTOR (icon));
 
   stage = clutter_actor_get_stage (CLUTTER_ACTOR (icon));
   context = st_theme_context_get_for_stage (CLUTTER_STAGE (stage));

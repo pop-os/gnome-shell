@@ -1,95 +1,308 @@
-3.38.6
-======
+40.4
+====
+* Don't include hidden search results in keynav [Florian; #4470]
+* Always take workarea into account when allocating workspaces [Marco; !1892]
+* Add focus indication for switches [vanadiae; !1920]
+* Fix glitch when dragging window preview in overview [Sebastian; !1847]
+* workspace: Handle skip-taskbar changes  [Daniel; !1925]
+* screenShield: Fix suspend inhibitor accounting [Sebastian; !1927]
+* Fixed crash [Florian; !1935]
+* Misc. bug fixes and cleanups [Florian, Sebastian; !1921, !1926, !1932,
+  !1938, !1945, !1950]
+
+Contributors:
+  Marco Trevisan (Treviño), Sebastian Keller, Florian Müllner, Daniel van Vugt,
+  vanadiae
+
+Translators:
+  Quentin PAGÈS [oc]
+
+40.3
+====
+* Fix glitch in app grid → session transition [Harshad; !1886]
 * Fix IM popup visibility when in fullscreen [Florian; !1900]
 * magnifier: Fix view jumps when using caret tracking [Lee; !1823]
+* Fix shadow rendering glitches [Daniel; !1897]
+* Fix vertical scrollbars in RTL locales [Florian; !1910]
 * Fixed crash [Florian; !1885]
-* Misc. bug fixes and cleanups [Florian, Carlos, Robert; !1891, !1902,
-  !1901, !1786, !1909]
+* Misc. bug fixes and cleanups [Olivier, Florian, Carlos, Daniel, Robert;
+  !1889, !1891, !1902, !1901, !1903, !1904, !1786, !1909]
 
 Contributors:
-  Carlos Garnacho, Lee, Robert Mader, Florian Müllner
+  Olivier Fourdan, Carlos Garnacho, Harshad Gavali, Lee, Robert Mader,
+  Florian Müllner, Daniel van Vugt
 
 Translators:
-  Hugo Carvalho [pt]
+  Ivan Komaritsyn [ru], Quentin PAGÈS [oc], Hugo Carvalho [pt]
 
-3.38.5
-======
-* Improve handling of authentication cancellation at login [Marco; !1783]
-* Fix word suggestions in on-screen keyboard [Jia; !1806]
-* Fix freeze after cancelling (some) system-modal dialogs
-  [Daniel, Florian; !1757, !1819]
+40.2
+====
+* Unbreak Xwayland apps when not using systemd in user session [Olivier; !1850]
+* Fix distributed man pages [Florian; !1859]
+* Avoid unnecessary icon shadow changes [Daniel; !1869]
+* Immediately start app grid drags for non-touch devices [Georges; !1872]
+* Handle screencast failures more gracefully [Florian; !1878]
 * Fixed crashes [Gustavo; !1848]
-* Misc. bug fixes [Daniel; !1758]
+* Misc. bug fixes [Georges, Florian, Daniel; !1867, !1854, !1860, !1876]
 
 Contributors:
-  Jia Chao, Florian Müllner, Gustavo Noronha Silva, Marco Trevisan (Treviño),
-  Daniel van Vugt
+  Olivier Fourdan, Florian Müllner, Georges Basile Stavracas Neto,
+  Gustavo Noronha Silva, Daniel van Vugt
 
 Translators:
-  Emin Tufan Çetin [tr]
+  Quentin PAGÈS [oc], Cheng-Chia Tseng [zh_TW], Hugo Carvalho [pt]
 
-3.38.4
-======
+40.1
+====
+* Fix keyboard preview for IM that use 'default' layout [Peng; !1756]
+* extensions: Fix copying technical details on prefs crash [Jan; !1795, !1796]
+* Make window previews as large as possible [Jonas D.; !1670, !1813]
+* Fix PgUp/PgDown handling in overview [Florian; !1798]
+* Fix scroll view following keyboard focus [Andrew; !1802]
+* Fix word suggestions in on-screen keyboard [Jia; !1806]
+* Support animated backgrounds set via the wallpaper portal  [Alexander; !1816]
+* Fix freeze after cancelling (some) system-modal dialogs [Florian; !1819]
+* Support double-super when animations are disabled [Florian; !1811]
+* gdm: Allow timed login with disabled user list [Ray; !1809]
+* status: Report real battery percentage when full [Prajna; !1787]
+* Allow tap-drag-release to select variants in OSK [Carlos; !1789]
+* Fix password authentication after fingerprint failure [Ray, Benjamin; !1821]
+* Fix screen blanking on idle [Florian; !1824]
+* Fix oversized system action icons in search [Sebastian; !1777]
+* Only show 'Open Windows' in app menus if there are multiple [Leleat; !1827]
+* Fix duplicated workspaces in minimap [Sebastian; !1828]
+* Fix repeated letters in type-to-find overview search [Sebastian; !1828]
+* Improve workspace placeholder in overview minimap [Joonas; !1801]
+* screencasts: Improve default gstreamer pipeline [Jonas D.; !1633]
+* Leave overview when activating app via shortcut [Nishal; !1839]
+* Fix invisible scroll bars in faded views [Florian; !1831]
+* Correct arrow navigation in alt-tab switcher in RTL locales [Leleat; !1835]
+* Improve touch interaction of app grid actions [Carlos; !1774]
+* Fixed crashes [Jonas Å., Sebastian; !1810, !1817]
+* Misc. bug fixes and cleanups [Carlos, Yuri, Sebastian, Suryashankar, Zander,
+  arushsharma24, Florian, Georges, Jonas D., Frederic, Leleat, Jakub,
+  theRealPadster, Simon, Olivier; !1770, !1781, !1782, !1775, !1769, !1791,
+  !1764, !1793, !1799, !1805, !1484, !1815, !1820, !1807, !1825, !1822, !1800,
+  !1818, !1830, !1790, !1812, !1771, !1844, !1845, !1837, !1842]
+
+Contributors:
+  Jonas Ådahl, arushsharma24, Benjamin Berg, Zander Brown, Jia Chao,
+  Frederic Crozat, Suryashankar Das, Jonas Dreßler, Olivier Fourdan,
+  Carlos Garnacho, Joonas Henriksson, Sebastian Keller, Yuri Konotopov,
+  Nishal Kulkarni, Leleat, Alexander Mikhaylenko, Florian Müllner,
+  Georges Basile Stavracas Neto, Prajna Sariputra, Simon Schneegans,
+  Jakub Steiner, Ray Strode, theRealPadster, Jan Tojnar, Peng Wu, Andrew Zaech
+
+Translators:
+  Timo Jyrinki [fi], Boyuan Yang [zh_CN], Hannie Dumoleyn [nl], Dz Chen [zh_CN],
+  Ngọc Quân Trần [vi], Hugo Carvalho [pt], Yosef Or Boczko [he],
+  Yaron Shahrabani [he], Nathan Follens [nl], Cédric Valmary [oc],
+  Carmen Bianca BAKKER [eo], Emin Tufan Çetin [tr], Dušan Kazik [sk],
+  Stas Solovey [ru], Pawan Chitrakar [ne], Jordi Mas [ca], Quentin PAGÈS [oc]
+
+40.0
+====
+
+Translators:
+  Zander Brown [en_GB], Dušan Kazik [sk]
+
+40.rc
+=====
+* Define default app grid arrangement [Allan; !1700]
+* Fix shading behind system modal dialogs [Florian; !1712]
+* Only show logout-inhibiting apps in end-session dialog [Michael; !1424]
+* Fix minimap previews on multi-monitor systems [Florian; !1721]
+* Drop strict extension version match for unstable releases [Florian; !1719]
+* Fix missing app menu after overview gesture [Florian; !1726]
+* Improve app folder appearance [Jakub; !1714]
+* Fix window previews becoming undraggable after workspace switch
+  [Sebastian; !1717]
+* Fix dragging icons to a different page in RTL locales [Carlos; !1734]
+* Support double super for opening app grid [Florian; !1736]
+* Improve workspace handling on secondary monitors [Florian; !1735]
+* Improve interaction when dragging between app grid pages [Carlos; !1630]
+* Fix launching on requested workspace on wayland [Florian; !1316]
+* Make wifi strength indicator consistent with icons in Settings [Remi; !1432]
+* Start session in overview [Georges; !1678]
+* Tweak window preview layout in overview [Jonas D.; !1702, !1737]
+* Improve overview performance [Jonas D.; !1713, !1733, !1743, !1755]
+* Fix new workspaces being invisible in minimap [Florian; !1716]
+* Fix glitch after dragging window preview from second monitor [Ivan; !1727]
+* Do not switch workspaces when scrolling during super-tab [Florian; !1746]
+* Make OSK shifting up windows more reliable [Jonas D.; !1728, !1760]
+* Fix swipe gesture glitches [Alexander; !1731]
+* Fix mis-scaled preview icons in window picker [Sebastian; !1751]
+* Fix unintended app grid changes during icon DND in dash [Sebastian; !1767]
+* Fix missing X11 fallback icons [Florian; !1761]
+* Fixed crashes [Sebastian; !1718]
+* Misc. bug fixes and cleanups [Jonas Å., Sebastian, Abderrahim, Florian,
+  Alexander, Felix, Ivan, Jonas D., Jakub, Daniel; !1710, !1707, !1720, !1722,
+  !1724, !1732, !1246, !1738, !1740] !1742, !1741, !1745, !1748, !1749, !1765,
+  !1766, !1757, !1758]
+
+Contributors:
+  Jonas Ådahl, arushsharma24, Allan Day, Felix Divo, Jonas Dreßler,
+  Carlos Garnacho, Sebastian Keller, Abderrahim Kitouni, Alexander Mikhaylenko,
+  Ivan Molodetskikh, Florian Müllner, Georges Basile Stavracas Neto,
+  Remi Salmon, Jakub Steiner, Michael Terry, Daniel van Vugt
+
+Translators:
+  Fran Dieguez [gl], Balázs Meskó [hu], Baurzhan Muftakhidinov [kk],
+  Goran Vidović [hr], Christian Kirbach [de], Марко Костић [sr],
+  Asier Sarasua Garmendia [eu], Guillaume Bernard [fr], Tim Sabsch [de],
+  Philipp Kiemle [de], Danial Behzadi [fa], Piotr Drąg [pl],
+  Rūdolfs Mazurs [lv], Daniel Mustieles [es], Marek Černocký [cs],
+  Fabio Tomat [fur], Changwoo Ryu [ko], Kjartan Maraas [nb], A S Alam [pa],
+  Milo Casagrande [it]
+
+40.beta
+=======
+* Overview redesign
+ - Move dash to the bottom [Georges, Abderrahim, Jakub; !1559]
+ - Do not duplicate dash icons in app grid [Florian; !1580]
+ - Separate favorites from running apps in dash [Florian; !1606, !1610, !1659]
+ - Change to a horizontal workspace layout [Georges; !1593, !1603]
+ - Move background to workspaces [Georges, Florian, Jakub; !1599]
+ - Overhaul window preview style [Florian, Jakub; !1605, !1654, !1657]
+ - Rework workspace switching animation [Alexander; !1326]
+ - Show workspace side-by-side [Georges; !1613]
+ - Allow switching workspaces with super+scroll on wayland [Florian; !1612]
+ - Allow swiping through more than one workspace at a time [Alexander; !1647]
+ - Extend active dash area to the screen edge [Florian; !1660]
+ - Change overall overview layout [Georges, Florian; !1624]
+ - Refine workspace activation in overview [Georges; !1645]
+ - Add vertical swipe gesture to shift through overview [Carlos; !1643]
+ - Add shortcuts for shifting through overview [Florian; !1695]
+ - Round background corners in overview [Jonas D.; !1651, !1697]
+ - Hide workspace minimap when using less than two workspaces [Florian; !1696]
+ - Scale down backgrounds in window picker [Georges; !1691]
+ - Minor improvements and bug fixes [Florian, Abderrahim, Georges, Sebastian,
+   Jakub, Pascal, Jonas D.; !1594, !1609, !1608, !1620, !1629, !1625, !1634,
+   !1640, #3669, !1636, !1655, !1656, !1665, !1667, !1638, !1680, !1682, !1684,
+   !1681, !1687, !1693, !1694, !1692]
+* Fix glitch in app folder icons on smaller displays [Sebastian; !1581]
+* Remove arrows from top bar menus [Doan, Florian, Razze; !1583, !1618, !1615]
 * Fix stuck grab after failed area screenshots [Sebastian; !1600]
 * Prefer image-data hint over app-icon in notifications [Guilherme; !1616]
-* Make sure fullscreen apps can't block the workspace switch animation
-  [Razze; #3636]
+* Fix drag actor position when animations are turned off [Sebastian; !1627]
+* Improve spacing in MPRIS notifications with small text [Sebastian; !1632]
+* Add Welcome dialog after major updates [Bastien; !1619]
+* Do not save empty commands in run dialog history [Lucas; !1442, !1653]
+* Consider device type for fingerprint hint on login screen [Razze; !1572]
+* Add tooltip to Extensions app to view unellipsized description [Leleat; !1663]
 * Fix stuck polkit dialog when using non-password auth [Florian; !1662]
-* Fix glitch after dragging window preview from second monitor [Ivan; !1727]
-* Fix missing X11 fallback icons [Florian; !1761]
-* Fixed crashes [Jonas D., Carlos, Sebastian; !1673, !1672, !1718]
-* Misc. bug fixes and cleanups [Florian, Marco, Abderrahim, Frederic; !1595,
-  !1598, !1635, !1725, !1750]
+* Provide screenshot feedback (flash, shutter) before writing file to disk
+  [Brion, Jonas; !1658]
+* Improve Thai layout in on-screen keyboard [Panawat; !1427]
+* Improve error handling for fingerprint auth [Marco; !1652]
+* Handle a large number of window previews more gracefully [Sebastian; !1685]
+* Follow swipe gesture when bringing up on-screen keyboard [Carlos; !1668]
+* Disable out-of-date extensions by default (again) [Evan; !1706]
+* Fixed crashes [Jonas D., Carlos; !1673, !1672]
+* Misc. bug fixes and cleanups [Florian, Sebastian, Razze, Georges, Daniel,
+  Robert, Jonas D., Jonas Å., Marco, Bastien, TerraAr, Carlos; !1575, !1579,
+  !1577, !1578, !1585, !1587, !1588, !1590, !1591, !1592, !1595, !1596, !1597,
+  !1598, !1582, !1589, !1617, !1611, !1637, !1635, !1641, !1646, !1546, !1648,
+  !1650, !1649, !1644, !1661, !1622, !1075, !1674, !1556, !1686, !1683, !1688,
+  !1699, !1698, !1701, !1709]
 
 Contributors:
-  Frederic Crozat, Jonas Dreßler, Carlos Garnacho, Sebastian Keller,
-  Abderrahim Kitouni, Ivan Molodetskikh, Florian Müllner, Razze,
-  Guilherme Silva, Marco Trevisan (Treviño)
+  Jonas Ådahl, Jonas Dreßler, Carlos Garnacho, Sebastian Keller,
+  Abderrahim Kitouni, Leleat, Robert Mader, Alexander Mikhaylenko,
+  Florian Müllner, Georges Basile Stavracas Neto, Bastien Nocera, Pascal Nowack,
+  Razze, Guilherme Silva, Jakub Steiner, TerraAr, Marco Trevisan (Treviño),
+  Brion Vibber, Doan Nam Long Vu, Daniel van Vugt, Evan Welsh,
+  Lucas Werkmeister, Panawat Wong-kleaw
 
 Translators:
-  Philipp Kiemle [de]
+  Balázs Úr [hu], Danial Behzadi [fa], Rafael Fontenelle [pt_BR], A S Alam [pa],
+  Anders Jonsson [sv], Yuri Chornoivan [uk], Marek Černocký [cs],
+  Hugo Carvalho [pt], Fran Dieguez [gl], Daniel Șerbănescu [ro],
+  Florentina Mușat [ro], Daniel Mustieles [es], Jordi Mas [ca],
+  Matej Urbančič [sl], Kukuh Syafaat [id], Bruno Lopes da Silva [pt_BR],
+  Аляксей [be], Balázs Meskó [hu], Марко Костић [sr], Enrico Nicoletto [pt_BR],
+  Emin Tufan Çetin [tr], Jiri Grönroos [fi], Aurimas Černius [lt]
 
-3.38.3
-======
-* Fix disappearing app grid [Georges; !1532]
-* Fix screenshots of unredirected fullscreen windows on X11
-  [Jonas, LuK1337; !1536, !1552]
-* Fix storing VPN secrets [Sebastian; !1535]
-* Fix glitches in overview transitions [Jonas, Ivan; !1564, !1550]
-* Improve login screen accessibility [Mike; !1567]
-* Fixed crashes [Jonas; !1540]
-* Misc. bug fixes and cleanups [Florian, Jonas, Ivan;
-  !1530, !1531, !1541, !1548, !1551]
+40.alpha.1.1
+============
+* Adapt to settings moving to gsettings-desktop-schemas [Florian; !1573]
+* Misc. bug fixes [Georges, Florian; !1571, !1574]
 
 Contributors:
-  Jonas Ådahl, Mike Gerow, Sebastian Keller, LuK1337, Ivan Molodetskikh,
   Florian Müllner, Georges Basile Stavracas Neto
 
 Translators:
-  Florentina Mușat [ro], Kjartan Maraas [nb]
+  Марко Костић [sr], Marek Černocký [cs], Fabio Tomat [fur]
 
-3.38.2
-======
+40.alpha.1
+==========
+* Restore app picker fade during swipes [Georges, Florian; !1519, !1569]
+* Sort extensions in Looking Glass alphabetically [Florijan; !1516]
+* Fix screenshots of unredirected fullscreen windows on X11
+  [Jonas Å., LuK1337; !1534, !1549]
+* Use GPU to render (most) shadows [Georges; !1539]
+* Refine avatar styling [Joonas; !1490]
+* Fix storing VPN secrets [Sebastian; !1535]
+* Don't depend on asciidoc and sassc when building from tarball
+  [Florian; !1553, !1555]
+* Use horizontal pages in app picker [Georges; !1554]
+* Avoid costly icon theme lookups unless when needed [Ivan; !1558]
+* Properly expose locked state to logind [Florian; !1561]
+* Use 3 fingers for system swipe gestures [Georges; !1562]
+* Fix glitches in overview transitions [Jonas Å., Ivan; !1545, !1550]
+* Improve login screen accessibility [Mike; !1567]
+* Overhaul top bar styling [Jonas D.; !1397]
+* Allow changing input volume by scrolling over microphone icon [Razze; !1566]
+* Port Extensions app and portal to GTK4 [Florian; !1495]
+* Fixed crashes [Jonas Å.; !1527]
+* Misc. bug fixes and cleanups [Georges, Florian, Tom, Hans, Jonas D., Ivan,
+  Sebastian, Daniel; !1518, !1521, !1523, !1525, !1520, !1526, !1472, !1339,
+  !1529, !1531, !1532, !1533, !1528, !1350] !1542, !1537, !1548, !1551, !1557,
+  !1543, !1560, !1544, !1565]
+
+Contributors:
+  Jonas Ådahl, Jonas Dreßler, Mike Gerow, Florijan Hamzic, Joonas Henriksson,
+  Sebastian Keller, Tom Levy, LuK1337, Ivan Molodetskikh, Florian Müllner,
+  Georges Basile Stavracas Neto, Hans Ulrich Niedermann, Razze, Daniel van Vugt
+
+Translators:
+  Florentina Mușat [ro], Fabio Tomat [fur], Hugo Carvalho [pt],
+  Jordi Mas i Hernandez [ca], Philipp Kiemle [de], Fran Dieguez [gl],
+  Jordi Mas [ca], Kukuh Syafaat [id], Kjartan Maraas [nb],
+  Daniel Șerbănescu [ro], Matej Urbančič [sl]
+
+40.alpha
+========
 * Handle @content properties in ease() functions [Andre; !1461]
 * Fix screencast indicator on Xorg [Jonas Å.; !1466]
+* Expand ellipsized app picker labels on hover [Georges; !1477, !1496]
 * Fix inline-replies in chat notifications [Florian; #3226]
+* Refine MPRIS notification layout [Harry; !1480]
 * Improve do-not-disturb support [Florian; #2873, !1511]
 * Fix mobile broadband support [Popax21; #3203]
+* Add extension filtering in Extensions app [Florian; #3382]
 * Improve app picker spacing on larger resolutions [Georges; !1510]
 * Plugged leaks [Ray; !1460, !1459]
 * Fixed crashes [Daniel, Florian; !1453, #3258, !1507]
-* Misc. bug fixes and cleanups [Florian, Ian, Jonas D., Carlos, Daniel M.,
-  Sebastian, Daniel, Georges; #3252, #3307, #3342, !1482, !1486, #3388, !1489,
-  !1483, !1481, !1512, !1417, !1518]
+* Misc. bug fixes and cleanups [Florian, Georges, Carlos, Joonas, Jan,
+  Jonas Å., Robert, Jonas D., Ian, Daniel, Sebastian, Jordan; !1456, !1436,
+  !1405, !1421, #3252, !1464, !1469, !1465, !1473, !1475, #3307, !1479,
+  !1482, !1470, !1486, #3335, #3342, #3388, !1497, !1498, !1491, !1501,
+  !1492, !1489, !1502, !1505, !1504, !1506, !1503, !1483, !1508, !1481,
+  !1509, !1512, !1417, !1517]
 
 Contributors:
-  Jonas Dreßler, Carlos Garnacho, Sebastian Keller, Andre Moreira Magalhaes,
-  Daniel García Moreno, Florian Müllner, Popax21, Ian Douglas Scott, Ray Strode,
-  Daniel van Vugt, Jonas Ådahl
+  Jonas Dreßler, Carlos Garnacho, Joonas Henriksson, Sebastian Keller,
+  Robert Mader, Andre Moreira Magalhaes, Daniel García Moreno, Harry Míchal,
+  Florian Müllner, Georges Basile Stavracas Neto, Jordan Petridis, Popax21,
+  Ian Douglas Scott, Ray Strode, Jan Tojnar, Olav Vitters, Daniel van Vugt,
+  Jonas Ådahl
 
 Translators:
   Juliano de Souza Camargo [pt], Fabio Tomat [fur], Akarshan Biswas [bn_IN],
-  Daniel Mustieles [es], Boyuan Yang [zh_CN], Kjartan Maraas [nb]
+  Carmen Bianca BAKKER [eo], Daniel Mustieles [es],
+  Asier Sarasua Garmendia [eu], Ask Hjorth Larsen [da], Yuri Chornoivan [uk],
+  Anders Jonsson [sv], Kjartan Maraas [nb]
 
 3.38.1
 ======

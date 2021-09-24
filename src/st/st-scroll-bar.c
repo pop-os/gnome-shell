@@ -200,23 +200,11 @@ scroll_bar_allocate_children (StScrollBar           *bar,
 
   st_theme_node_get_content_box (theme_node, box, &content_box);
 
-  if (priv->vertical)
-    {
-      trough_box.x1 = content_box.x1;
-      trough_box.y1 = content_box.y1;
-      trough_box.x2 = content_box.x2;
-      trough_box.y2 = content_box.y2;
-      clutter_actor_allocate (priv->trough, &trough_box);
-    }
-  else
-    {
-      trough_box.x1 = content_box.x1;
-      trough_box.y1 = content_box.y1;
-      trough_box.x2 = content_box.x2;
-      trough_box.y2 = content_box.y2;
-      clutter_actor_allocate (priv->trough, &trough_box);
-    }
-
+  trough_box.x1 = content_box.x1;
+  trough_box.y1 = content_box.y1;
+  trough_box.x2 = content_box.x2;
+  trough_box.y2 = content_box.y2;
+  clutter_actor_allocate (priv->trough, &trough_box);
 
   if (priv->adjustment)
     {
@@ -633,7 +621,7 @@ move_slider (StScrollBar *bar,
                             &page_size);
 
   direction = clutter_actor_get_text_direction (CLUTTER_ACTOR (bar));
-  if (direction == CLUTTER_TEXT_DIRECTION_RTL)
+  if (!priv->vertical && direction == CLUTTER_TEXT_DIRECTION_RTL)
     pos = size - pos;
 
   position = ((pos / size)
@@ -778,7 +766,7 @@ trough_paging_cb (StScrollBar *self)
                                        &tx, &ty);
 
   direction = clutter_actor_get_text_direction (CLUTTER_ACTOR (self));
-  if (direction == CLUTTER_TEXT_DIRECTION_RTL)
+  if (!priv->vertical && direction == CLUTTER_TEXT_DIRECTION_RTL)
     page_increment *= -1;
 
   if (priv->vertical)
