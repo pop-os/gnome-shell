@@ -1,3 +1,10 @@
+gnome-shell (40.2-1ubuntu7) UNRELEASED; urgency=medium
+
+  [ Jeremy Bicha ]
+  * Revert "Skip ppc64el tests to fix FTBFS"
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 24 Sep 2021 22:22:46 +0200
+
 gnome-shell (40.2-1ubuntu6) impish; urgency=medium
 
   * d/rules:
