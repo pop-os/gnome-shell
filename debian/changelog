@@ -8,6 +8,10 @@ gnome-shell (40.5-1) UNRELEASED; urgency=medium
     - Fix work area getting messed up by hidden panels
     - Fix IM candidate popover position
 
+  [ Simon McVittie ]
+  * Revert "Avoid libgweather 40 dependency"
+    libgweather 40 has now been uploaded to unstable.
+
  -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 24 Sep 2021 21:54:53 +0200
 
 gnome-shell (40.4-3) unstable; urgency=medium
