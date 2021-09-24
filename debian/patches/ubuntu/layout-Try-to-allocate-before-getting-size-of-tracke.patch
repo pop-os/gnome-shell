@@ -1,7 +1,6 @@
 From: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Date: Wed, 31 Mar 2021 17:59:09 +0800
-Subject: [PATCH] layout: Try to allocate before getting size of tracked
- actors
+Subject: layout: Try to allocate before getting size of tracked actors
 
 Because we're about to `get_transformed_{position,size}` of each,
 which will return NaNs if not yet allocated. Those NaNs were finding
