@@ -1,3 +1,61 @@
+gnome-shell (40.5-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with debian
+  * debian/patches: Refresh and update to current upstream
+  * debian/patches: Move ubuntu-only patches into the ubuntu namespace
+  * Remaining changes with debian:
+    - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    - Add some Recommends:
+      + ubuntu-session (| gnome-session) to have the ubuntu session available
+      + xserver-xorg-legacy
+      + yaru-theme-gnome-shell for the default ubuntu theming
+    - Update debian/gbp.conf with Ubuntu settings
+    - gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    - ubuntu/desktop_detect.patch:
+      + add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    - ubuntu/smarter_alt_tab.patch:
+      + quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    - ubuntu/lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - ubuntu/lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - ubuntu/background_login.patch
+      + Change default background color as we modified the default GDM color
+        for our ubuntu session.
+    - ubuntu/gdm_alternatives.patch
+      + Add support for GDM3 theme alternatives
+    - optional-hot-corner.patch
+      + enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    - main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      + Improve debug JS tracing for crash reports
+    - st-scroll-view-Handle-the-case-where-scrollbars-are-NULL.patch:
+      + Fix crash on theme changes
+    - ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      + stop searches when requested from UI
+    - magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      + Show monitor scaled cursor when magnifier is enabled
+    - ubuntu/layout-Make-starting-in-the-overview-optional.patch:
+      + Makes dock replace overview easier
+    - ubuntu/layout-Try-to-allocate-before-getting-size-of-tracke.patch:
+      + Ensure windows don't get maximized under the panels / dock
+    - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
+
+  [ Jeremy Bicha ]
+  * Revert "Skip ppc64el tests to fix FTBFS"
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sat, 25 Sep 2021 12:33:52 +0200
+
 gnome-shell (40.5-1) unstable; urgency=medium
 
   * New upstream release:
@@ -106,13 +164,6 @@ gnome-shell (40.4-1) experimental; urgency=medium
     precise here.
 
  -- Simon McVittie <smcv@debian.org>  Tue, 31 Aug 2021 10:03:33 +0100
-
-gnome-shell (40.2-1ubuntu7) UNRELEASED; urgency=medium
-
-  [ Jeremy Bicha ]
-  * Revert "Skip ppc64el tests to fix FTBFS"
-
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 24 Sep 2021 22:22:46 +0200
 
 gnome-shell (40.2-1ubuntu6) impish; urgency=medium
 
