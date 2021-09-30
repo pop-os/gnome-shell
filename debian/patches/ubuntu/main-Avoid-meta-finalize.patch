@@ -1,0 +1,65 @@
+From: Daniel van Vugt <daniel.van.vugt@canonical.com>
+Date: Tue, 5 Oct 2021 04:39:09 +0200
+Subject: main: Avoid meta finalize
+
+This is a workaround to maintain a clean environment for gnome-shell
+and particularly JavaScript/GJS to shutdown without crashing.
+
+The main cause of shutdown crashes is _shell_global_destroy_gjs_context
+needing Clutter/Cogl resources to clean up, when those resources have
+already been destroyed by meta_finalize in meta_run. So by never calling
+meta_finalize via meta_run, we can simply avoid all those ordering
+conflicts that cause so many crashes.
+
+https://launchpad.net/bugs/1936826 verified fixed
+https://launchpad.net/bugs/1942031 verified fixed
+https://launchpad.net/bugs/1942121 verified fixed
+https://launchpad.net/bugs/1943406 expected fixed
+https://launchpad.net/bugs/1944054 expected fixed
+https://launchpad.net/bugs/1945010 expected fixed
+https://launchpad.net/bugs/1945116 expected fixed
+https://launchpad.net/bugs/1944388 expected fixed
+
+Proper fixes will eventually come upstream when these are finished or
+replaced by something else:
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/1759
+https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/648
+
+Given that, and upstream's usual preference for proper permanent fixes,
+this will not be forwarded.
+
+This patch is currently for GNOME 40. In GNOME 41, the workaround will
+need to change to:
+-  meta_context_destroy (g_steal_pointer (&context));
++  g_steal_pointer (&context);
+
+Bug-Ubuntu: https://launchpad.net/bugs/1936826,
+            https://launchpad.net/bugs/1942031,
+            https://launchpad.net/bugs/1942121,
+            https://launchpad.net/bugs/1943406,
+            https://launchpad.net/bugs/1944054,
+            https://launchpad.net/bugs/1945010,
+            https://launchpad.net/bugs/1945116,
+            https://launchpad.net/bugs/1944388
+Forwarded: no
+Last-Update: 2021-09-30
+---
+ src/main.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/main.c b/src/main.c
+index 86a930a..6217dd6 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -589,7 +589,9 @@ main (int argc, char **argv)
+   setup_debug_signal_listners ();
+ 
+   shell_profiler_init ();
+-  ecode = meta_run ();
++  meta_start ();
++  meta_run_main_loop ();
++  ecode = meta_get_exit_code ();
+   shell_profiler_shutdown ();
+ 
+   g_debug ("Doing final cleanup");
