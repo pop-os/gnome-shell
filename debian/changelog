@@ -1,11 +1,11 @@
-gnome-shell (40.5-1ubuntu2) UNRELEASED; urgency=medium
+gnome-shell (40.5-1ubuntu2) impish; urgency=medium
 
   [ Daniel van Vugt ]
   * debian/patches: Avoid full meta context finalization.
     To workaround (prevent) shutdown crashes (LP: #1936826, #1942031, #1942121,
     LP: #1943406, #1944054, #1945010, #1945116, #1944388)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 05 Oct 2021 04:45:30 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 05 Oct 2021 04:52:11 +0200
 
 gnome-shell (40.5-1ubuntu1) impish; urgency=medium
 
