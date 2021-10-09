@@ -1,7 +1,5 @@
 gnome-shell (41.0-1) UNRELEASED; urgency=medium
 
-  * Revert "Avoid libgweather 40 dependency".
-    libgweather 40 has now been uploaded to unstable.
   * New upstream release
   * Update dependency versions
   * d/rules: Stay with libsoup 2.4 for now
