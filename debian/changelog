@@ -12,6 +12,22 @@ gnome-shell (41.0-1) UNRELEASED; urgency=medium
 
  -- Simon McVittie <smcv@debian.org>  Tue, 21 Sep 2021 17:58:08 +0100
 
+gnome-shell (40.5-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Optimize rendering of fullscreen zoom
+    - Fix glitchy launch animations when leaving overview
+    - Fix wrong separator position in dash
+    - Fix OSK not registering button presses on X11
+    - Fix work area getting messed up by hidden panels
+    - Fix IM candidate popover position
+
+  [ Simon McVittie ]
+  * Revert "Avoid libgweather 40 dependency"
+    libgweather 40 has now been uploaded to unstable.
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 24 Sep 2021 22:07:26 +0200
+
 gnome-shell (40.4-3) unstable; urgency=medium
 
   * Team upload
@@ -158,7 +174,7 @@ gnome-shell (3.38.6-1) unstable; urgency=medium
     - Fix double-free crash in calendar on non-x86 (LP: #1915929)
     - Improve OSK compatibility with gjs 1.68.x (LP: #1918738)
     - Fix input-method popup visibility over fullscreen applications
-    - Fix a crash if an app if an app moves between monitors during startup
+    - Fix a crash if an app moves between monitors during startup
     - Fix D-Bus-initiated app focus changes
     - Make sure to return a value from D-Bus methods so callers won't
       time out
