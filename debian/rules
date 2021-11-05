@@ -24,7 +24,7 @@ endif
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		--libdir=/usr/lib \
-		-Dbash_completion=true \
+		-Dextensions-tool:bash_completion=enabled \
 		$(CONFFLAGS)
 
 override_dh_makeshlibs:
