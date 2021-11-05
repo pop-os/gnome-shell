@@ -111,6 +111,8 @@ class InputMethod extends Clutter.InputMethod {
             return;
 
         let preedit = text.get_text();
+        if (preedit === '')
+            preedit = null;
 
         if (visible)
             this.set_preedit_text(preedit, pos, mode);
@@ -165,7 +167,7 @@ class InputMethod extends Clutter.InputMethod {
         if (this._context)
             this._context.focus_out();
 
-        if (this._preeditStr) {
+        if (this._preeditStr && this._preeditVisible) {
             // Unset any preedit text
             this.set_preedit_text(null, 0, this._preeditCommitMode);
             this._preeditStr = null;
@@ -179,16 +181,12 @@ class InputMethod extends Clutter.InputMethod {
     }
 
     vfunc_reset() {
-        if (this._preeditStr !== null) {
-            // Unset any preedit text
-            this.set_preedit_text(null, 0, Clutter.PreeditResetMode.CLEAR);
-            this._preeditStr = null;
-        }
-
         if (this._context) {
             this._context.reset();
             this._emitRequestSurrounding();
         }
+
+        this._preeditStr = null;
     }
 
     vfunc_set_cursor_location(rect) {
