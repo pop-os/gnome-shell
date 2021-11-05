@@ -1,8 +1,11 @@
 gnome-shell (41.1-1) UNRELEASED; urgency=medium
 
   * New upstream release
+  * d/rules: Pass bash_completion Meson option to correct subproject.
+    With Meson 0.60.x, unknown -D options are an error. (Closes: #998589)
+  * Adjust Lintian overrides
 
- -- Simon McVittie <smcv@debian.org>  Fri, 05 Nov 2021 14:24:31 +0000
+ -- Simon McVittie <smcv@debian.org>  Fri, 05 Nov 2021 15:08:33 +0000
 
 gnome-shell (41.0-2) unstable; urgency=medium
 
