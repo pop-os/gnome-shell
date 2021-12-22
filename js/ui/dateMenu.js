@@ -127,9 +127,10 @@ class EventsSection extends St.Button {
     }
 
     setDate(date) {
-        const day = [date.getFullYear(), date.getMonth(), date.getDate()];
-        this._startDate = new Date(...day);
-        this._endDate = new Date(...day, 23, 59, 59, 999);
+        this._startDate =
+            new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        this._endDate =
+            new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
 
         this._updateTitle();
         this._reloadEvents();
@@ -156,11 +157,11 @@ class EventsSection extends St.Button {
         const timeSpanDay = GLib.TIME_SPAN_DAY / 1000;
         const now = new Date();
 
-        if (this._startDate <= now && now <= this._endDate)
+        if (this._startDate <= now && now < this._endDate)
             this._title.text = _('Today');
-        else if (this._endDate < now && now - this._endDate < timeSpanDay)
+        else if (this._endDate <= now && now - this._endDate < timeSpanDay)
             this._title.text = _('Yesterday');
-        else if (this._startDate > now && this._startDate - now < timeSpanDay)
+        else if (this._startDate > now && this._startDate - now <= timeSpanDay)
             this._title.text = _('Tomorrow');
         else if (this._startDate.getFullYear() === now.getFullYear())
             this._title.text = this._startDate.toLocaleFormat(sameYearFormat);
@@ -169,8 +170,8 @@ class EventsSection extends St.Button {
     }
 
     _formatEventTime(event) {
-        const allDay = event.allDay ||
-            (event.date <= this._startDate && event.end >= this._endDate);
+        const allDay =
+            event.date <= this._startDate && event.end >= this._endDate;
 
         let title;
         if (allDay) {
@@ -184,13 +185,13 @@ class EventsSection extends St.Button {
         }
 
         const rtl = Clutter.get_default_text_direction() === Clutter.TextDirection.RTL;
-        if (event.date < this._startDate && !event.allDay) {
+        if (event.date < this._startDate) {
             if (rtl)
                 title = '%s%s'.format(title, ELLIPSIS_CHAR);
             else
                 title = '%s%s'.format(ELLIPSIS_CHAR, title);
         }
-        if (event.end > this._endDate && !event.allDay) {
+        if (event.end > this._endDate) {
             if (rtl)
                 title = '%s%s'.format(ELLIPSIS_CHAR, title);
             else
