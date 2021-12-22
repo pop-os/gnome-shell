@@ -1,0 +1,50 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Wed, 17 Nov 2021 19:17:59 +0100
+Subject: shell/window-tracker: Track all initial windows
+
+meta_workspace_list_windows() doesn't include OR windows, so go
+through shell_global_get_window_actors() instead.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2071>
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4751
+Origin: upstream, 41.3, commit:9bf1988b5daf07c4c3f65c0fe93123d9a7fa655b
+---
+ src/shell-window-tracker.c | 22 +++++-----------------
+ 1 file changed, 5 insertions(+), 17 deletions(-)
+
+diff --git a/src/shell-window-tracker.c b/src/shell-window-tracker.c
+index 11e777d..7ef94e7 100644
+--- a/src/shell-window-tracker.c
++++ b/src/shell-window-tracker.c
+@@ -591,26 +591,14 @@ disassociate_window (ShellWindowTracker   *self,
+ static void
+ load_initial_windows (ShellWindowTracker *tracker)
+ {
+-  MetaDisplay *display = shell_global_get_display (shell_global_get ());
+-  MetaWorkspaceManager *workspace_manager =
+-    meta_display_get_workspace_manager (display);
+-  GList *workspaces;
++  g_autoptr (GList) window_actors = NULL;
+   GList *l;
+ 
+-  workspaces = meta_workspace_manager_get_workspaces (workspace_manager);
+-  for (l = workspaces; l; l = l->next)
++  window_actors = shell_global_get_window_actors (shell_global_get ());
++  for (l = window_actors; l; l = l->next)
+     {
+-      MetaWorkspace *workspace = l->data;
+-      GList *windows = meta_workspace_list_windows (workspace);
+-      GList *window_iter;
+-
+-      for (window_iter = windows; window_iter; window_iter = window_iter->next)
+-        {
+-          MetaWindow *window = window_iter->data;
+-          track_window (tracker, window);
+-        }
+-
+-      g_list_free (windows);
++      MetaWindowActor *actor = l->data;
++      track_window (tracker, meta_window_actor_get_meta_window (actor));
+     }
+ }
+ 

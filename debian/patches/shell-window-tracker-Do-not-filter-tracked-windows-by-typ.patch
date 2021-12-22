@@ -1,0 +1,42 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Thu, 11 Nov 2021 18:40:42 +0100
+Subject: shell/window-tracker: Do not filter tracked windows by type
+
+The window-type property may change, and with it the skip-taskbar
+property that decides whether we consider it "interesting".
+
+As a result we can end up showing untracked window, i.e. one
+which does not have an associated app.
+
+Cover this case by simply tracking all windows regardless of
+their type. This won't change the app's running state, as that
+is solely based on the skip-taskbar property (which is enforced
+for all previously excluded window types).
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2071>
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4751
+Origin: upstream, 41.3, commit:69d98aac6bc27a34df439db4a77b8a212eb8fb86
+---
+ src/shell-window-tracker.c | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
+
+diff --git a/src/shell-window-tracker.c b/src/shell-window-tracker.c
+index 5c9d2ec..4fb2542 100644
+--- a/src/shell-window-tracker.c
++++ b/src/shell-window-tracker.c
+@@ -553,14 +553,7 @@ shell_window_tracker_on_window_added (MetaWorkspace   *workspace,
+                                       MetaWindow      *window,
+                                       gpointer         user_data)
+ {
+-  ShellWindowTracker *self = SHELL_WINDOW_TRACKER (user_data);
+-  MetaWindowType window_type = meta_window_get_window_type (window);
+-
+-  if (window_type == META_WINDOW_NORMAL ||
+-      window_type == META_WINDOW_DIALOG ||
+-      window_type == META_WINDOW_UTILITY ||
+-      window_type == META_WINDOW_MODAL_DIALOG)
+-    track_window (self, window);
++  track_window (SHELL_WINDOW_TRACKER (user_data), window);
+ }
+ 
+ static void
