@@ -12,7 +12,6 @@ const Util = imports.misc.util;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
-var MSECS_IN_DAY = 24 * 60 * 60 * 1000;
 var SHOW_WEEKDATE_KEY = 'show-weekdate';
 
 var MESSAGE_ICON_SIZE = -1; // pick up from CSS
@@ -47,11 +46,8 @@ function _getBeginningOfDay(date) {
 }
 
 function _getEndOfDay(date) {
-    let ret = new Date(date.getTime());
-    ret.setHours(23);
-    ret.setMinutes(59);
-    ret.setSeconds(59);
-    ret.setMilliseconds(999);
+    const ret = _getBeginningOfDay(date);
+    ret.setDate(ret.getDate() + 1);
     return ret;
 }
 
@@ -82,12 +78,11 @@ function _getCalendarDayAbbreviation(dayNumber) {
 // Abstraction for an appointment/event in a calendar
 
 var CalendarEvent = class CalendarEvent {
-    constructor(id, date, end, summary, allDay) {
+    constructor(id, date, end, summary) {
         this.id = id;
         this.date = date;
         this.end = end;
         this.summary = summary;
-        this.allDay = allDay;
     }
 };
 
@@ -175,13 +170,26 @@ function _datesEqual(a, b) {
     return true;
 }
 
-function _dateIntervalsOverlap(a0, a1, b0, b1) {
-    if (a1 <= b0)
-        return false;
-    else if (b1 <= a0)
-        return false;
-    else
+/**
+ * Checks whether an event overlaps a given interval
+ *
+ * @param {Date} e0 Beginning of the event
+ * @param {Date} e1 End of the event
+ * @param {Date} i0 Beginning of the interval
+ * @param {Date} i1 End of the interval
+ * @returns {boolean} Whether there was an overlap
+ */
+function _eventOverlapsInterval(e0, e1, i0, i1) {
+    // This also ensures zero-length events are included
+    if (e0 >= i0 && e1 < i1)
         return true;
+
+    if (e1 <= i0)
+        return false;
+    if (i1 <= e0)
+        return false;
+
+    return true;
 }
 
 // an implementation that reads data from a session bus service
@@ -279,10 +287,10 @@ class DBusEventSource extends EventSourceBase {
         let changed = false;
 
         for (let n = 0; n < appointments.length; n++) {
-            const [id, summary, allDay, startTime, endTime] = appointments[n];
+            const [id, summary, startTime, endTime] = appointments[n];
             const date = new Date(startTime * 1000);
             const end = new Date(endTime * 1000);
-            let event = new CalendarEvent(id, date, end, summary, allDay);
+            let event = new CalendarEvent(id, date, end, summary);
             this._events.set(event.id, event);
 
             changed = true;
@@ -347,7 +355,7 @@ class DBusEventSource extends EventSourceBase {
 
     *_getFilteredEvents(begin, end) {
         for (const event of this._events.values()) {
-            if (_dateIntervalsOverlap(event.date, event.end, begin, end))
+            if (_eventOverlapsInterval(event.date, event.end, begin, end))
                 yield event;
         }
     }
@@ -501,7 +509,7 @@ var Calendar = GObject.registerClass({
             else
                 col = offsetCols + (7 + iter.getDay() - this._weekStart) % 7;
             layout.attach(label, col, 1, 1, 1);
-            iter.setTime(iter.getTime() + MSECS_IN_DAY);
+            iter.setDate(iter.getDate() + 1);
         }
 
         // All the children after this are days, and get removed when we update the calendar
@@ -602,10 +610,8 @@ var Calendar = GObject.registerClass({
         // Actually computing the number of weeks is complex, but we know that the
         // problematic categories (2 and 4) always start on week start, and that
         // all months at the end have 6 weeks.
-        let beginDate = new Date(this._selectedDate);
-        beginDate.setDate(1);
-        beginDate.setSeconds(0);
-        beginDate.setHours(12);
+        let beginDate = new Date(
+            this._selectedDate.getFullYear(), this._selectedDate.getMonth(), 1);
 
         this._calendarBegin = new Date(beginDate);
         this._markedAsToday = now;
@@ -614,7 +620,7 @@ var Calendar = GObject.registerClass({
         let startsOnWeekStart = daysToWeekStart == 0;
         let weekPadding = startsOnWeekStart ? 7 : 0;
 
-        beginDate.setTime(beginDate.getTime() - (weekPadding + daysToWeekStart) * MSECS_IN_DAY);
+        beginDate.setDate(beginDate.getDate() - (weekPadding + daysToWeekStart));
 
         let layout = this.layout_manager;
         let iter = new Date(beginDate);
@@ -685,7 +691,7 @@ var Calendar = GObject.registerClass({
                 layout.attach(label, rtl ? 7 : 0, row, 1, 1);
             }
 
-            iter.setTime(iter.getTime() + MSECS_IN_DAY);
+            iter.setDate(iter.getDate() + 1);
 
             if (iter.getDay() == this._weekStart)
                 row++;
