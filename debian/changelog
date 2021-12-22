@@ -1,11 +1,13 @@
-gnome-shell (41.2-1) UNRELEASED; urgency=medium
+gnome-shell (41.2-1) unstable; urgency=medium
 
+  * Team upload
   * New upstream release
   * d/patches: Update to upstream gnome-41 branch commit 41.2-5-g9bf1988b5:
     - Fix a freeze involving window tracking
     - Update Turkish translation
+  * Adjust Lintian overrides syntax for newer Lintian
 
- -- Simon McVittie <smcv@debian.org>  Wed, 22 Dec 2021 10:34:19 +0000
+ -- Simon McVittie <smcv@debian.org>  Wed, 22 Dec 2021 11:51:59 +0000
 
 gnome-shell (41.1-1) unstable; urgency=medium
 
