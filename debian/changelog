@@ -1,3 +1,10 @@
+gnome-shell (41.2-2) UNRELEASED; urgency=medium
+
+  * d/patches: Update to upstream gnome-41 branch commit 41.2-6-g378e8ee7b
+    - Speed up a fade animation on older Intel GPUs (Closes: #1000172)
+
+ -- Simon McVittie <smcv@debian.org>  Thu, 23 Dec 2021 16:17:20 +0000
+
 gnome-shell (41.2-1) unstable; urgency=medium
 
   * Team upload

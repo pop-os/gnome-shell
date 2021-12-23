@@ -1,0 +1,64 @@
+From: Sebastian Keller <skeller@gnome.org>
+Date: Mon, 20 Dec 2021 23:15:40 +0100
+Subject: st/scroll-view-fade: Simplify shader a bit
+
+The shader was using too many ALU instructions for Intel 945GM hardware,
+so simplify it a bit. The resulting math is the same, but a few
+redundant operations have been removed.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2072>
+(cherry picked from commit 7e0c6dc2c105b0a0b46bc1e4b32280f6ae9be959)
+
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4883
+Bug-Debian: https://bugs.debian.org/1000172
+Origin: upstream, 41.3, commit:378e8ee7b88c4ae4a92ab4e9a163c336448bff0c
+---
+ src/st/st-scroll-view-fade.glsl | 28 ++++++++++++----------------
+ 1 file changed, 12 insertions(+), 16 deletions(-)
+
+diff --git a/src/st/st-scroll-view-fade.glsl b/src/st/st-scroll-view-fade.glsl
+index 39ed6a3..ba6582f 100644
+--- a/src/st/st-scroll-view-fade.glsl
++++ b/src/st/st-scroll-view-fade.glsl
+@@ -44,29 +44,25 @@ void main ()
+     if (x > fade_area_topleft[0] && x < fade_area_bottomright[0] &&
+         y > fade_area_topleft[1] && y < fade_area_bottomright[1])
+     {
+-        float fade_top_start = fade_area_topleft[1] + fade_offset_top;
+-        float fade_left_start = fade_area_topleft[0] + fade_offset_left;
+-        float fade_bottom_start = fade_area_bottomright[1] - fade_offset_bottom;
+-        float fade_right_start = fade_area_bottomright[0] - fade_offset_right;
+-        bool fade_top = y < fade_top_start && fade_edges_top;
+-        bool fade_bottom = y > fade_bottom_start && fade_edges_bottom;
+-        bool fade_left = x < fade_left_start && fade_edges_left;
+-        bool fade_right = x > fade_right_start && fade_edges_right;
++        float after_left = x - fade_area_topleft[0];
++        float before_right = fade_area_bottomright[0] - x;
++        float after_top = y - fade_area_topleft[1];
++        float before_bottom = fade_area_bottomright[1] - y;
+ 
+-        if (fade_top) {
+-            ratio *= (fade_area_topleft[1] - y) / (fade_area_topleft[1] - fade_top_start);
++        if (after_top < fade_offset_top && fade_edges_top) {
++            ratio *= after_top / fade_offset_top;
+         }
+ 
+-        if (fade_bottom) {
+-            ratio *= (fade_area_bottomright[1] - y) / (fade_area_bottomright[1] - fade_bottom_start);
++        if (before_bottom < fade_offset_bottom && fade_edges_bottom) {
++            ratio *= before_bottom / fade_offset_bottom;
+         }
+ 
+-        if (fade_left) {
+-            ratio *= (fade_area_topleft[0] - x) / (fade_area_topleft[0] - fade_left_start);
++        if (after_left < fade_offset_left && fade_edges_left) {
++            ratio *= after_left / fade_offset_left;
+         }
+ 
+-        if (fade_right) {
+-            ratio *= (fade_area_bottomright[0] - x) / (fade_area_bottomright[0] - fade_right_start);
++        if (before_right < fade_offset_right && fade_edges_right) {
++            ratio *= before_right / fade_offset_right;
+         }
+     } else if (extend_fade_area) {
+         if (x <= fade_area_topleft[0] && fade_edges_left ||
