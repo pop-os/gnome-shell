@@ -8,8 +8,11 @@ gnome-shell (41.3-1) UNRELEASED; urgency=medium
     - Don't wake up screen in DND mode
     - Fix immediately withdrawn notifications getting stuck
     - Honor XDG SingleMainWindow key in .desktop files
+  * debian/patches:
+    - Drop applied upstream
+    - Do not use positional arguments in i18n.merge_file
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Jan 2022 14:48:53 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Jan 2022 16:32:59 +0100
 
 gnome-shell (41.2-1) unstable; urgency=medium
 
