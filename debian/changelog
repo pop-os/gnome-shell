@@ -1,4 +1,4 @@
-gnome-shell (41.3-1) UNRELEASED; urgency=medium
+gnome-shell (41.3-1) unstable; urgency=medium
 
   * New upstream release:
     - Speed up a fade animation on older Intel GPUs (Closes: #1000172)
@@ -12,7 +12,7 @@ gnome-shell (41.3-1) UNRELEASED; urgency=medium
     - Drop applied upstream
     - Do not use positional arguments in i18n.merge_file
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Jan 2022 16:32:59 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Jan 2022 16:34:22 +0100
 
 gnome-shell (41.2-1) unstable; urgency=medium
 
