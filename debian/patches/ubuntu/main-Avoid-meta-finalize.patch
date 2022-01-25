@@ -45,21 +45,20 @@ Bug-Ubuntu: https://launchpad.net/bugs/1936826,
 Forwarded: no
 Last-Update: 2021-09-30
 ---
- src/main.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ src/main.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/src/main.c b/src/main.c
-index 86a930a..6217dd6 100644
+index e9219e7..93cb5fd 100644
 --- a/src/main.c
 +++ b/src/main.c
-@@ -589,7 +589,9 @@ main (int argc, char **argv)
-   setup_debug_signal_listners ();
+@@ -650,7 +650,8 @@ main (int argc, char **argv)
+       ecode = EXIT_FAILURE;
+     }
  
-   shell_profiler_init ();
--  ecode = meta_run ();
-+  meta_start ();
-+  meta_run_main_loop ();
-+  ecode = meta_get_exit_code ();
+-  meta_context_destroy (g_steal_pointer (&context));
++  // FIXME: We're leaking context here, but that's to prevent LP: #1936826
++  g_steal_pointer (&context);
+ 
    shell_profiler_shutdown ();
  
-   g_debug ("Doing final cleanup");

@@ -93,10 +93,10 @@ index 0000000..ee8b3a2
 +  </schema>
 +</schemalist>
 diff --git a/data/meson.build b/data/meson.build
-index 4a1e16d..771bba1 100644
+index 76ae45c..a717b2e 100644
 --- a/data/meson.build
 +++ b/data/meson.build
-@@ -86,6 +86,12 @@ schema = configure_file(
+@@ -90,6 +90,12 @@ schema = configure_file(
    configuration: schemaconf,
    install_dir: schemadir
  )
@@ -109,7 +109,7 @@ index 4a1e16d..771bba1 100644
  install_data('00_org.gnome.shell.gschema.override', install_dir: schemadir)
  
  overrides_migration_conf = configuration_data()
-@@ -123,7 +129,7 @@ endif
+@@ -127,7 +133,7 @@ endif
  
  # for unit tests - gnome.compile_schemas() only looks in srcdir
  custom_target('compile-schemas',
@@ -119,7 +119,7 @@ index 4a1e16d..771bba1 100644
    command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
    build_by_default: true)
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 4156ede..935bdc9 100644
+index 72b14b5..6146b09 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
 @@ -26,6 +26,12 @@ const DISABLE_LOCK_KEY = 'disable-lock-screen';
@@ -177,6 +177,6 @@ index 4156ede..935bdc9 100644
 +        this._lockDialogGroup.set_style(inlineStyle.join('; '));
 +    }
 +
-     _syncInhibitor() {
+     async _syncInhibitor() {
          const lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY) ||
                              this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY);

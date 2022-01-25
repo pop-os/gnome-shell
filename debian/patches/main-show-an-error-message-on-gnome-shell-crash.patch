@@ -16,7 +16,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  1 file changed, 2 insertions(+)
 
 diff --git a/src/main.c b/src/main.c
-index 91e5493..05db0c7 100644
+index 3cd9e10..9d952f0 100644
 --- a/src/main.c
 +++ b/src/main.c
 @@ -330,6 +330,8 @@ dump_gjs_stack_on_signal_handler (int signo)

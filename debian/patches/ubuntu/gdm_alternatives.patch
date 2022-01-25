@@ -16,7 +16,7 @@ Last-Update: 2017-09-08
  2 files changed, 3 insertions(+)
 
 diff --git a/data/gnome-shell-theme.gresource.xml b/data/gnome-shell-theme.gresource.xml
-index 7857f44..8bb52c7 100644
+index 1be2937..d581905 100644
 --- a/data/gnome-shell-theme.gresource.xml
 +++ b/data/gnome-shell-theme.gresource.xml
 @@ -9,6 +9,7 @@
@@ -28,10 +28,10 @@ index 7857f44..8bb52c7 100644
      <file>gnome-shell-high-contrast.css</file>
      <file>gnome-shell-start.svg</file>
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index aa69fd1..db9ab8d 100644
+index afcd67c..735cd86 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -44,6 +44,8 @@ const _modes = {
+@@ -43,6 +43,8 @@ const _modes = {
  
      'gdm': {
          hasNotifications: true,

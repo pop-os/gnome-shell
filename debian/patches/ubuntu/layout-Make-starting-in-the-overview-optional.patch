@@ -15,7 +15,7 @@ Last-Update: 2021-08-25
  1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index cc21c1d..26fe461 100644
+index d83a3e1..ee76135 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
 @@ -198,6 +198,8 @@ var LayoutManager = GObject.registerClass({
