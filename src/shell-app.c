@@ -38,8 +38,6 @@ typedef struct {
   /* Signal connection to dirty window sort list on workspace changes */
   gulong workspace_switch_id;
 
-  gulong icon_changed_id;
-
   GSList *windows;
 
   guint interesting_windows;
@@ -81,6 +79,7 @@ struct _ShellApp
                           * the way shell-window-tracker.c works).
                           */
   GIcon *fallback_icon;
+  MetaWindow *fallback_icon_window;
 
   ShellAppRunningState *running_state;
 
@@ -210,6 +209,9 @@ on_window_icon_changed (GObject          *object,
   g_clear_object (&app->fallback_icon);
   app->fallback_icon = x11_window_create_fallback_gicon (window);
 
+  if (!app->fallback_icon)
+    app->fallback_icon = g_themed_icon_new ("application-x-executable");
+
   g_object_notify (G_OBJECT (app), "icon");
 }
 
@@ -243,10 +245,10 @@ shell_app_get_icon (ShellApp *app)
   if (window &&
       meta_window_get_client_type (window) == META_WINDOW_CLIENT_TYPE_X11)
     {
+      app->fallback_icon_window = window;
       app->fallback_icon = x11_window_create_fallback_gicon (window);
-      app->running_state->icon_changed_id =
-        g_signal_connect (G_OBJECT (window),
-                         "notify::icon", G_CALLBACK (on_window_icon_changed), app);
+      g_signal_connect (G_OBJECT (window),
+                        "notify::icon", G_CALLBACK (on_window_icon_changed), app);
     }
   else
     {
@@ -659,7 +661,16 @@ shell_app_can_open_new_window (ShellApp *app)
 
   desktop_info = G_DESKTOP_APP_INFO (app->info);
 
-  /* If the app is explicitly telling us, then we know for sure */
+  /* If the app is explicitly telling us via its desktop file, then we know
+   * for sure
+  */
+  if (g_desktop_app_info_has_key (desktop_info, "SingleMainWindow"))
+      return !g_desktop_app_info_get_boolean (desktop_info,
+                                              "SingleMainWindow");
+
+  /* GNOME-specific key, for backwards compatibility with apps that haven't
+   * started using the XDG "SingleMainWindow" key yet
+  */
   if (g_desktop_app_info_has_key (desktop_info, "X-GNOME-SingleWindow"))
     return !g_desktop_app_info_get_boolean (desktop_info,
                                             "X-GNOME-SingleWindow");
@@ -943,13 +954,6 @@ shell_app_state_transition (ShellApp      *app,
 }
 
 static void
-shell_app_on_unmanaged (MetaWindow      *window,
-                        ShellApp *app)
-{
-  _shell_app_remove_window (app, window);
-}
-
-static void
 shell_app_on_user_time_changed (MetaWindow *window,
                                 GParamSpec *pspec,
                                 ShellApp   *app)
@@ -1115,7 +1119,6 @@ _shell_app_add_window (ShellApp        *app,
 
   app->running_state->window_sort_stale = TRUE;
   app->running_state->windows = g_slist_prepend (app->running_state->windows, g_object_ref (window));
-  g_signal_connect_object (window, "unmanaged", G_CALLBACK(shell_app_on_unmanaged), app, 0);
   g_signal_connect_object (window, "notify::user-time", G_CALLBACK(shell_app_on_user_time_changed), app, 0);
   g_signal_connect_object (window, "notify::skip-taskbar", G_CALLBACK(shell_app_on_skip_taskbar_changed), app, 0);
 
@@ -1144,21 +1147,28 @@ _shell_app_remove_window (ShellApp   *app,
   if (!g_slist_find (app->running_state->windows, window))
     return;
 
-  g_signal_handlers_disconnect_by_func (window, G_CALLBACK(shell_app_on_unmanaged), app);
-  g_signal_handlers_disconnect_by_func (window, G_CALLBACK(shell_app_on_user_time_changed), app);
-  g_signal_handlers_disconnect_by_func (window, G_CALLBACK(shell_app_on_skip_taskbar_changed), app);
   app->running_state->windows = g_slist_remove (app->running_state->windows, window);
-
-  g_clear_signal_handler (&app->running_state->icon_changed_id, window);
 
   if (!meta_window_is_skip_taskbar (window))
     app->running_state->interesting_windows--;
   shell_app_sync_running_state (app);
 
-  g_object_unref (window);
-
   if (app->running_state->windows == NULL)
     g_clear_pointer (&app->running_state, unref_running_state);
+
+  g_signal_handlers_disconnect_by_func (window, G_CALLBACK(shell_app_on_user_time_changed), app);
+  g_signal_handlers_disconnect_by_func (window, G_CALLBACK(shell_app_on_skip_taskbar_changed), app);
+  if (window == app->fallback_icon_window)
+    {
+      g_signal_handlers_disconnect_by_func (window, G_CALLBACK(on_window_icon_changed), app);
+      app->fallback_icon_window = NULL;
+
+      /* Select a new icon from a different window. */
+      g_clear_object (&app->fallback_icon);
+      g_object_notify (G_OBJECT (app), "icon");
+    }
+
+  g_object_unref (window);
 
   g_signal_emit (app, shell_app_signals[WINDOWS_CHANGED], 0);
 }
