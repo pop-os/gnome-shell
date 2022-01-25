@@ -1,9 +1,15 @@
-gnome-shell (41.2-2) UNRELEASED; urgency=medium
+gnome-shell (41.3-1) UNRELEASED; urgency=medium
 
-  * d/patches: Update to upstream gnome-41 branch commit 41.2-6-g378e8ee7b
+  * New upstream release:
     - Speed up a fade animation on older Intel GPUs (Closes: #1000172)
+    - Improve window tracking (LP: #1934458)
+    - Simplify scroll fade shader to work with old hardware
+    - Tweak (un)minimize animations (LP: #1713021)
+    - Don't wake up screen in DND mode
+    - Fix immediately withdrawn notifications getting stuck
+    - Honor XDG SingleMainWindow key in .desktop files
 
- -- Simon McVittie <smcv@debian.org>  Thu, 23 Dec 2021 16:17:20 +0000
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Jan 2022 14:48:53 +0100
 
 gnome-shell (41.2-1) unstable; urgency=medium
 
