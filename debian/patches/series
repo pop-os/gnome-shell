@@ -1,7 +1,1 @@
-Update-Turkish-translation.patch
-shell-window-tracker-Do-not-filter-tracked-windows-by-typ.patch
-shell-window-tracker-Track-windows-getting-unmanaged.patch
-shell-window-tracker-Track-window-created.patch
-shell-window-tracker-Track-all-initial-windows.patch
-st-scroll-view-fade-Simplify-shader-a-bit.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
