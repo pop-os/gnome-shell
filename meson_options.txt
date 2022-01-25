@@ -22,6 +22,12 @@ option('man',
   description: 'Generate man pages'
 )
 
+option('tests',
+  type: 'boolean',
+  value: true,
+  description: 'Enable tests'
+)
+
 option('networkmanager',
   type: 'boolean',
   value: true,
@@ -32,4 +38,10 @@ option('systemd',
   type: 'boolean',
   value: true,
   description: 'Enable systemd integration'
+)
+
+option('soup2',
+  type: 'boolean',
+  value: true,
+  description: 'Use Soup 2.4 instead of Soup 3. Must be in sync with libgweather'
 )

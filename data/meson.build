@@ -73,9 +73,13 @@ configure_file(
   install_dir: pkgdatadir
 )
 
+keybinding_files = [
+  '50-gnome-shell-launchers.xml',
+  '50-gnome-shell-system.xml',
+]
 
 install_data('gnome-shell.portal', install_dir: portaldir)
-install_data('50-gnome-shell-system.xml', install_dir: keysdir)
+install_data(keybinding_files, install_dir: keysdir)
 
 
 schemaconf = configuration_data()
@@ -127,5 +131,3 @@ custom_target('compile-schemas',
   output: 'gschemas.compiled',
   command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
   build_by_default: true)
-
-install_data('gnome-shell-overrides.convert', install_dir: convertdir)

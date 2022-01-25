@@ -25,7 +25,7 @@
 #include "st-button.h"
 #include <math.h>
 #include <string.h>
-#include <meta/main.h>
+#include <meta-test/meta-context-test.h>
 #include <meta/meta-backend.h>
 
 static ClutterActor *stage;
@@ -538,9 +538,11 @@ test_inline_style (void)
 int
 main (int argc, char **argv)
 {
+  MetaContext *context;
+  g_autoptr (GError) error = NULL;
   MetaBackend *backend;
   StTheme *theme;
-  StThemeContext *context;
+  StThemeContext *theme_context;
   PangoFontDescription *font_desc;
   GFile *file;
   g_autofree char *cwd = NULL;
@@ -550,7 +552,13 @@ main (int argc, char **argv)
   /* meta_init() cds to $HOME */
   cwd = g_get_current_dir ();
 
-  meta_test_init ();
+  context = meta_create_test_context (META_CONTEXT_TEST_TYPE_NESTED,
+                                      META_CONTEXT_TEST_FLAG_NONE);
+  if (!meta_context_configure (context, &argc, &argv, &error))
+    g_error ("Failed to configure: %s", error->message);
+
+  if (!meta_context_setup (context, &error))
+    g_error ("Failed to setup: %s", error->message);
 
   if (chdir (cwd) < 0)
     g_error ("chdir('%s') failed: %s", cwd, g_strerror (errno));
@@ -564,36 +572,36 @@ main (int argc, char **argv)
 
   backend = meta_get_backend ();
   stage = meta_backend_get_stage (backend);
-  context = st_theme_context_get_for_stage (CLUTTER_STAGE (stage));
-  st_theme_context_set_theme (context, theme);
+  theme_context = st_theme_context_get_for_stage (CLUTTER_STAGE (stage));
+  st_theme_context_set_theme (theme_context, theme);
 
   font_desc = pango_font_description_from_string ("sans-serif 12");
-  st_theme_context_set_font (context, font_desc);
+  st_theme_context_set_font (theme_context, font_desc);
   pango_font_description_free (font_desc);
 
-  root = st_theme_context_get_root_node (context);
-  group1 = st_theme_node_new (context, root, NULL,
+  root = st_theme_context_get_root_node (theme_context);
+  group1 = st_theme_node_new (theme_context, root, NULL,
                               CLUTTER_TYPE_ACTOR, "group1", NULL, NULL, NULL);
-  text1 = st_theme_node_new  (context, group1, NULL,
+  text1 = st_theme_node_new  (theme_context, group1, NULL,
                               CLUTTER_TYPE_TEXT, "text1", "special-text", NULL, NULL);
-  text2 = st_theme_node_new  (context, group1, NULL,
+  text2 = st_theme_node_new  (theme_context, group1, NULL,
                               CLUTTER_TYPE_TEXT, "text2", NULL, NULL, NULL);
-  group2 = st_theme_node_new (context, root, NULL,
+  group2 = st_theme_node_new (theme_context, root, NULL,
                               CLUTTER_TYPE_ACTOR, "group2", NULL, NULL, NULL);
-  group4 = st_theme_node_new (context, root, NULL,
+  group4 = st_theme_node_new (theme_context, root, NULL,
                               CLUTTER_TYPE_ACTOR, "group4", NULL, NULL, NULL);
-  group5 = st_theme_node_new (context, root, NULL,
+  group5 = st_theme_node_new (theme_context, root, NULL,
                               CLUTTER_TYPE_ACTOR, "group5", NULL, NULL, NULL);
-  group6 = st_theme_node_new (context, root, NULL,
+  group6 = st_theme_node_new (theme_context, root, NULL,
                               CLUTTER_TYPE_ACTOR, "group6", NULL, NULL, NULL);
-  text3 = st_theme_node_new  (context, group2, NULL,
+  text3 = st_theme_node_new  (theme_context, group2, NULL,
                               CLUTTER_TYPE_TEXT, "text3", NULL, NULL,
                               "color: #0000ff; padding-bottom: 12px;");
-  text4 = st_theme_node_new  (context, group2, NULL,
+  text4 = st_theme_node_new  (theme_context, group2, NULL,
                               CLUTTER_TYPE_TEXT, "text4", NULL, "visited hover", NULL);
-  group3 = st_theme_node_new (context, group2, NULL,
+  group3 = st_theme_node_new (theme_context, group2, NULL,
                               CLUTTER_TYPE_ACTOR, "group3", NULL, "hover", NULL);
-  button = st_theme_node_new (context, root, NULL,
+  button = st_theme_node_new (theme_context, root, NULL,
                               ST_TYPE_BUTTON, "button", NULL, NULL, NULL);
 
   test_defaults ();
@@ -623,7 +631,7 @@ main (int argc, char **argv)
   g_object_unref (text4);
   g_object_unref (theme);
 
-  clutter_actor_destroy (stage);
+  g_object_unref (context);
 
   return fail ? 1 : 0;
 }

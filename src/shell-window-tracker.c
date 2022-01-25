@@ -528,6 +528,13 @@ on_gtk_application_id_changed (MetaWindow  *window,
 }
 
 static void
+on_window_unmanaged (MetaWindow *window,
+                     gpointer    user_data)
+{
+  disassociate_window (SHELL_WINDOW_TRACKER (user_data), window);
+}
+
+static void
 track_window (ShellWindowTracker *self,
               MetaWindow      *window)
 {
@@ -542,6 +549,7 @@ track_window (ShellWindowTracker *self,
 
   g_signal_connect (window, "notify::wm-class", G_CALLBACK (on_wm_class_changed), self);
   g_signal_connect (window, "notify::gtk-application-id", G_CALLBACK (on_gtk_application_id_changed), self);
+  g_signal_connect (window, "unmanaged", G_CALLBACK (on_window_unmanaged), self);
 
   _shell_app_add_window (app, window);
 
@@ -549,18 +557,11 @@ track_window (ShellWindowTracker *self,
 }
 
 static void
-shell_window_tracker_on_window_added (MetaWorkspace   *workspace,
-                                      MetaWindow      *window,
-                                      gpointer         user_data)
+on_window_created (MetaDisplay *display,
+                   MetaWindow  *window,
+                   gpointer     user_data)
 {
-  ShellWindowTracker *self = SHELL_WINDOW_TRACKER (user_data);
-  MetaWindowType window_type = meta_window_get_window_type (window);
-
-  if (window_type == META_WINDOW_NORMAL ||
-      window_type == META_WINDOW_DIALOG ||
-      window_type == META_WINDOW_UTILITY ||
-      window_type == META_WINDOW_MODAL_DIALOG)
-    track_window (self, window);
+  track_window (SHELL_WINDOW_TRACKER (user_data), window);
 }
 
 static void
@@ -580,6 +581,7 @@ disassociate_window (ShellWindowTracker   *self,
   _shell_app_remove_window (app, window);
   g_signal_handlers_disconnect_by_func (window, G_CALLBACK (on_wm_class_changed), self);
   g_signal_handlers_disconnect_by_func (window, G_CALLBACK (on_gtk_application_id_changed), self);
+  g_signal_handlers_disconnect_by_func (window, G_CALLBACK (on_window_unmanaged), self);
 
   g_signal_emit (self, signals[TRACKED_WINDOWS_CHANGED], 0);
 
@@ -587,68 +589,16 @@ disassociate_window (ShellWindowTracker   *self,
 }
 
 static void
-shell_window_tracker_on_window_removed (MetaWorkspace   *workspace,
-                                     MetaWindow      *window,
-                                     gpointer         user_data)
-{
-  disassociate_window (SHELL_WINDOW_TRACKER (user_data), window);
-}
-
-static void
 load_initial_windows (ShellWindowTracker *tracker)
 {
-  MetaDisplay *display = shell_global_get_display (shell_global_get ());
-  MetaWorkspaceManager *workspace_manager =
-    meta_display_get_workspace_manager (display);
-  GList *workspaces;
+  g_autoptr (GList) window_actors = NULL;
   GList *l;
 
-  workspaces = meta_workspace_manager_get_workspaces (workspace_manager);
-  for (l = workspaces; l; l = l->next)
+  window_actors = shell_global_get_window_actors (shell_global_get ());
+  for (l = window_actors; l; l = l->next)
     {
-      MetaWorkspace *workspace = l->data;
-      GList *windows = meta_workspace_list_windows (workspace);
-      GList *window_iter;
-
-      for (window_iter = windows; window_iter; window_iter = window_iter->next)
-        {
-          MetaWindow *window = window_iter->data;
-          track_window (tracker, window);
-        }
-
-      g_list_free (windows);
-    }
-}
-
-static void
-shell_window_tracker_on_n_workspaces_changed (MetaWorkspaceManager *workspace_manager,
-                                              GParamSpec           *pspec,
-                                              gpointer              user_data)
-{
-  ShellWindowTracker *self = SHELL_WINDOW_TRACKER (user_data);
-  GList *workspaces;
-  GList *l;
-
-  workspaces = meta_workspace_manager_get_workspaces (workspace_manager);
-  for (l = workspaces; l; l = l->next)
-    {
-      MetaWorkspace *workspace = l->data;
-
-      /* This pair of disconnect/connect is idempotent if we were
-       * already connected, while ensuring we get connected for
-       * new workspaces.
-       */
-      g_signal_handlers_disconnect_by_func (workspace,
-                                            shell_window_tracker_on_window_added,
-                                            self);
-      g_signal_handlers_disconnect_by_func (workspace,
-                                            shell_window_tracker_on_window_removed,
-                                            self);
-
-      g_signal_connect (workspace, "window-added",
-                        G_CALLBACK (shell_window_tracker_on_window_added), self);
-      g_signal_connect (workspace, "window-removed",
-                        G_CALLBACK (shell_window_tracker_on_window_removed), self);
+      MetaWindowActor *actor = l->data;
+      track_window (tracker, meta_window_actor_get_meta_window (actor));
     }
 }
 
@@ -656,15 +606,11 @@ static void
 init_window_tracking (ShellWindowTracker *self)
 {
   MetaDisplay *display = shell_global_get_display (shell_global_get ());
-  MetaWorkspaceManager *workspace_manager =
-    meta_display_get_workspace_manager (display);
 
-  g_signal_connect (workspace_manager, "notify::n-workspaces",
-                    G_CALLBACK (shell_window_tracker_on_n_workspaces_changed), self);
   g_signal_connect (display, "notify::focus-window",
                     G_CALLBACK (on_focus_window_changed), self);
-
-  shell_window_tracker_on_n_workspaces_changed (workspace_manager, NULL, self);
+  g_signal_connect(display, "window-created",
+                   G_CALLBACK (on_window_created), self);
 }
 
 static void

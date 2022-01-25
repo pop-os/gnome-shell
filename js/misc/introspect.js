@@ -1,13 +1,15 @@
 /* exported IntrospectService */
 const { Gio, GLib, Meta, Shell, St } = imports.gi;
 
-const INTROSPECT_SCHEMA = 'org.gnome.shell';
-const INTROSPECT_KEY = 'introspect';
-const APP_ALLOWLIST = ['org.freedesktop.impl.portal.desktop.gtk'];
+const APP_ALLOWLIST = [
+    'org.freedesktop.impl.portal.desktop.gtk',
+    'org.freedesktop.impl.portal.desktop.gnome',
+];
 
 const INTROSPECT_DBUS_API_VERSION = 3;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
+const { DBusSenderChecker } = imports.misc.util;
 
 const IntrospectDBusIface = loadInterfaceXML('org.gnome.Shell.Introspect');
 
@@ -33,10 +35,6 @@ var IntrospectService = class {
                                     this._syncRunningApplications();
                                 });
 
-        this._introspectSettings = new Gio.Settings({
-            schema_id: INTROSPECT_SCHEMA,
-        });
-
         let tracker = Shell.WindowTracker.get_default();
         tracker.connect('notify::focus-app',
                         () => {
@@ -46,14 +44,7 @@ var IntrospectService = class {
 
         this._syncRunningApplications();
 
-        this._allowlistMap = new Map();
-        APP_ALLOWLIST.forEach(appName => {
-            Gio.DBus.watch_name(Gio.BusType.SESSION,
-                appName,
-                Gio.BusNameWatcherFlags.NONE,
-                (conn, name, owner) => this._allowlistMap.set(name, owner),
-                (conn, name) => this._allowlistMap.delete(name));
-        });
+        this._senderChecker = new DBusSenderChecker(APP_ALLOWLIST);
 
         this._settings = St.Settings.get();
         this._settings.connect('notify::enable-animations',
@@ -68,14 +59,6 @@ var IntrospectService = class {
 
     _isStandaloneApp(app) {
         return app.get_windows().some(w => w.transient_for == null);
-    }
-
-    _isIntrospectEnabled() {
-        return this._introspectSettings.get_boolean(INTROSPECT_KEY);
-    }
-
-    _isSenderAllowed(sender) {
-        return [...this._allowlistMap.values()].includes(sender);
     }
 
     _getSandboxedAppId(app) {
@@ -134,36 +117,26 @@ var IntrospectService = class {
                 type == Meta.WindowType.UTILITY;
     }
 
-    _isInvocationAllowed(invocation) {
-        if (this._isIntrospectEnabled())
-            return true;
-
-        if (this._isSenderAllowed(invocation.get_sender()))
-            return true;
-
-        return false;
-    }
-
-    GetRunningApplicationsAsync(params, invocation) {
-        if (!this._isInvocationAllowed(invocation)) {
-            invocation.return_error_literal(Gio.DBusError,
-                                            Gio.DBusError.ACCESS_DENIED,
-                                            'App introspection not allowed');
+    async GetRunningApplicationsAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
             return;
         }
 
         invocation.return_value(new GLib.Variant('(a{sa{sv}})', [this._runningApplications]));
     }
 
-    GetWindowsAsync(params, invocation) {
+    async GetWindowsAsync(params, invocation) {
         let focusWindow = global.display.get_focus_window();
         let apps = this._appSystem.get_running();
         let windowsList = {};
 
-        if (!this._isInvocationAllowed(invocation)) {
-            invocation.return_error_literal(Gio.DBusError,
-                                            Gio.DBusError.ACCESS_DENIED,
-                                            'App introspection not allowed');
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
             return;
         }
 

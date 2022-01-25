@@ -15,6 +15,7 @@ Gio._promisify(Shell.Screenshot.prototype,
     'screenshot_area', 'screenshot_area_finish');
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
+const { DBusSenderChecker } = imports.misc.util;
 
 const ScreenshotIface = loadInterfaceXML('org.gnome.Shell.Screenshot');
 
@@ -24,13 +25,19 @@ var ScreenshotService = class {
         this._dbusImpl.export(Gio.DBus.session, '/org/gnome/Shell/Screenshot');
 
         this._screenShooter = new Map();
+        this._senderChecker = new DBusSenderChecker([
+            'org.gnome.SettingsDaemon.MediaKeys',
+            'org.freedesktop.impl.portal.desktop.gtk',
+            'org.freedesktop.impl.portal.desktop.gnome',
+            'org.gnome.Screenshot',
+        ]);
 
         this._lockdownSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.lockdown' });
 
         Gio.DBus.session.own_name('org.gnome.Shell.Screenshot', Gio.BusNameOwnerFlags.REPLACE, null, null);
     }
 
-    _createScreenshot(invocation, needsDisk = true) {
+    async _createScreenshot(invocation, needsDisk = true, restrictCallers = true) {
         let lockedDown = false;
         if (needsDisk)
             lockedDown = this._lockdownSettings.get_boolean('disable-save-to-disk');
@@ -46,6 +53,13 @@ var ScreenshotService = class {
                 Gio.IOErrorEnum, Gio.IOErrorEnum.PERMISSION_DENIED,
                 'Saving to disk is disabled');
             return null;
+        } else if (restrictCallers) {
+            try {
+                await this._senderChecker.checkInvocation(invocation);
+            } catch (e) {
+                invocation.return_gerror(e);
+                return null;
+            }
         }
 
         let shooter = new Shell.Screenshot();
@@ -186,7 +200,7 @@ var ScreenshotService = class {
                                             "Invalid params");
             return;
         }
-        let screenshot = this._createScreenshot(invocation);
+        let screenshot = await this._createScreenshot(invocation);
         if (!screenshot)
             return;
 
@@ -209,7 +223,7 @@ var ScreenshotService = class {
 
     async ScreenshotWindowAsync(params, invocation) {
         let [includeFrame, includeCursor, flash, filename] = params;
-        let screenshot = this._createScreenshot(invocation);
+        let screenshot = await this._createScreenshot(invocation);
         if (!screenshot)
             return;
 
@@ -232,7 +246,7 @@ var ScreenshotService = class {
 
     async ScreenshotAsync(params, invocation) {
         let [includeCursor, flash, filename] = params;
-        let screenshot = this._createScreenshot(invocation);
+        let screenshot = await this._createScreenshot(invocation);
         if (!screenshot)
             return;
 
@@ -254,6 +268,13 @@ var ScreenshotService = class {
     }
 
     async SelectAreaAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let selectArea = new SelectArea();
         try {
             let areaRectangle = await selectArea.selectAsync();
@@ -268,7 +289,14 @@ var ScreenshotService = class {
         }
     }
 
-    FlashAreaAsync(params, invocation) {
+    async FlashAreaAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let [x, y, width, height] = params;
         [x, y, width, height] = this._scaleArea(x, y, width, height);
         if (!this._checkArea(x, y, width, height)) {
@@ -283,7 +311,7 @@ var ScreenshotService = class {
     }
 
     async PickColorAsync(params, invocation) {
-        const screenshot = this._createScreenshot(invocation, false);
+        const screenshot = await this._createScreenshot(invocation, false, false);
         if (!screenshot)
             return;
 

@@ -10,6 +10,7 @@ const Main = imports.ui.main;
 const Screenshot = imports.ui.screenshot;
 
 const { loadInterfaceXML } = imports.misc.fileUtils;
+const { DBusSenderChecker } = imports.misc.util;
 const { ControlsState } = imports.ui.overviewControls;
 
 const GnomeShellIface = loadInterfaceXML('org.gnome.Shell');
@@ -19,6 +20,11 @@ var GnomeShell = class {
     constructor() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(GnomeShellIface, this);
         this._dbusImpl.export(Gio.DBus.session, '/org/gnome/Shell');
+
+        this._senderChecker = new DBusSenderChecker([
+            'org.gnome.ControlCenter',
+            'org.gnome.SettingsDaemon.MediaKeys',
+        ]);
 
         this._extensionsService = new GnomeShellExtensions();
         this._screenshotService = new Screenshot.ScreenshotService();
@@ -54,7 +60,7 @@ var GnomeShell = class {
      *
      */
     Eval(code) {
-        if (!global.settings.get_boolean('development-tools'))
+        if (!global.context.unsafe_mode)
             return [false, ''];
 
         let returnValue;
@@ -72,11 +78,42 @@ var GnomeShell = class {
         return [success, returnValue];
     }
 
-    FocusSearch() {
+    /**
+     * Focus the overview's search entry
+     *
+     * @async
+     * @param {...any} params - method parameters
+     * @param {Gio.DBusMethodInvocation} invocation - the invocation
+     * @returns {void}
+     */
+    async FocusSearchAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         Main.overview.focusSearch();
+        invocation.return_value(null);
     }
 
-    ShowOSD(params) {
+    /**
+     * Show OSD with the specified parameters
+     *
+     * @async
+     * @param {...any} params - method parameters
+     * @param {Gio.DBusMethodInvocation} invocation - the invocation
+     * @returns {void}
+     */
+    async ShowOSDAsync([params], invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         for (let param in params)
             params[param] = params[param].deep_unpack();
 
@@ -97,24 +134,71 @@ var GnomeShell = class {
             icon = Gio.Icon.new_for_string(serializedIcon);
 
         Main.osdWindowManager.show(monitorIndex, icon, label, level, maxLevel);
+        invocation.return_value(null);
     }
 
-    FocusApp(id) {
+    /**
+     * Focus specified app in the overview's app grid
+     *
+     * @async
+     * @param {string} id - an application ID
+     * @param {Gio.DBusMethodInvocation} invocation - the invocation
+     * @returns {void}
+     */
+    async FocusAppAsync([id], invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         Main.overview.selectApp(id);
+        invocation.return_value(null);
     }
 
-    ShowApplications() {
+    /**
+     * Show the overview's app grid
+     *
+     * @async
+     * @param {...any} params - method parameters
+     * @param {Gio.DBusMethodInvocation} invocation - the invocation
+     * @returns {void}
+     */
+    async ShowApplicationsAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         Main.overview.show(ControlsState.APP_GRID);
+        invocation.return_value(null);
     }
 
-    GrabAcceleratorAsync(params, invocation) {
+    async GrabAcceleratorAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let [accel, modeFlags, grabFlags] = params;
         let sender = invocation.get_sender();
         let bindingAction = this._grabAcceleratorForSender(accel, modeFlags, grabFlags, sender);
         invocation.return_value(GLib.Variant.new('(u)', [bindingAction]));
     }
 
-    GrabAcceleratorsAsync(params, invocation) {
+    async GrabAcceleratorsAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let [accels] = params;
         let sender = invocation.get_sender();
         let bindingActions = [];
@@ -125,7 +209,14 @@ var GnomeShell = class {
         invocation.return_value(GLib.Variant.new('(au)', [bindingActions]));
     }
 
-    UngrabAcceleratorAsync(params, invocation) {
+    async UngrabAcceleratorAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let [action] = params;
         let sender = invocation.get_sender();
         let ungrabSucceeded = this._ungrabAcceleratorForSender(action, sender);
@@ -133,7 +224,14 @@ var GnomeShell = class {
         invocation.return_value(GLib.Variant.new('(b)', [ungrabSucceeded]));
     }
 
-    UngrabAcceleratorsAsync(params, invocation) {
+    async UngrabAcceleratorsAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let [actions] = params;
         let sender = invocation.get_sender();
         let ungrabSucceeded = true;
@@ -213,14 +311,28 @@ var GnomeShell = class {
         this._grabbers.delete(name);
     }
 
-    ShowMonitorLabelsAsync(params, invocation) {
+    async ShowMonitorLabelsAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let sender = invocation.get_sender();
         let [dict] = params;
         Main.osdMonitorLabeler.show(sender, dict);
         invocation.return_value(null);
     }
 
-    HideMonitorLabelsAsync(params, invocation) {
+    async HideMonitorLabelsAsync(params, invocation) {
+        try {
+            await this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
         let sender = invocation.get_sender();
         Main.osdMonitorLabeler.hide(sender);
         invocation.return_value(null);

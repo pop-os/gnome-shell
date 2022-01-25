@@ -1,7 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported findUrls, spawn, spawnCommandLine, spawnApp, trySpawnCommandLine,
             formatTime, formatTimeSpan, createTimeLabel, insertSorted,
-            ensureActorVisibleInScrollView, wiggle, lerp, GNOMEversionCompare */
+            ensureActorVisibleInScrollView, wiggle, lerp, GNOMEversionCompare,
+            DBusSenderChecker */
 
 const { Clutter, Gio, GLib, Shell, St, GnomeDesktop } = imports.gi;
 const Gettext = imports.gettext;
@@ -477,3 +478,80 @@ function GNOMEversionCompare(version1, version2) {
 
     return 0;
 }
+
+var DBusSenderChecker = class {
+    /**
+     * @param {string[]} allowList - list of allowed well-known names
+     */
+    constructor(allowList) {
+        this._allowlistMap = new Map();
+
+        this._uninitializedNames = new Set(allowList);
+        this._initializedPromise = new Promise(resolve => {
+            this._resolveInitialized = resolve;
+        });
+
+        this._watchList = allowList.map(name => {
+            return Gio.DBus.watch_name(Gio.BusType.SESSION,
+                name,
+                Gio.BusNameWatcherFlags.NONE,
+                (conn_, name_, owner) => {
+                    this._allowlistMap.set(name, owner);
+                    this._checkAndResolveInitialized(name);
+                },
+                () => {
+                    this._allowlistMap.delete(name);
+                    this._checkAndResolveInitialized(name);
+                });
+        });
+    }
+
+    /**
+     * @param {string} name - bus name for which the watcher got initialized
+     */
+    _checkAndResolveInitialized(name) {
+        if (this._uninitializedNames.delete(name) &&
+            this._uninitializedNames.size === 0)
+            this._resolveInitialized();
+    }
+
+    /**
+     * @async
+     * @param {string} sender - the bus name that invoked the checked method
+     * @returns {bool}
+     */
+    async _isSenderAllowed(sender) {
+        await this._initializedPromise;
+        return [...this._allowlistMap.values()].includes(sender);
+    }
+
+    /**
+     * Check whether the bus name that invoked @invocation maps
+     * to an entry in the allow list.
+     *
+     * @async
+     * @throws
+     * @param {Gio.DBusMethodInvocation} invocation - the invocation
+     * @returns {void}
+     */
+    async checkInvocation(invocation) {
+        if (global.context.unsafe_mode)
+            return;
+
+        if (await this._isSenderAllowed(invocation.get_sender()))
+            return;
+
+        throw new GLib.Error(Gio.DBusError,
+            Gio.DBusError.ACCESS_DENIED,
+            '%s is not allowed'.format(invocation.get_method_name()));
+    }
+
+    /**
+     * @returns {void}
+     */
+    destroy() {
+        for (const id in this._watchList)
+            Gio.DBus.unwatch_name(id);
+        this._watchList = [];
+    }
+};

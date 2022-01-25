@@ -229,8 +229,8 @@ var Magnifier = class Magnifier {
      * Position all zoom regions' ROI relative to the current location of the
      * system pointer.
      */
-    scrollToMousePos() {
-        let [xMouse, yMouse] = global.get_pointer();
+    scrollToMousePos(...args) {
+        const [xMouse, yMouse] = args.length ? args : global.get_pointer();
 
         if (xMouse === this.xMouse && yMouse === this.yMouse)
             return;
@@ -749,7 +749,7 @@ var ZoomRegion = class ZoomRegion {
         this._xCaret = 0;
         this._yCaret = 0;
 
-        this._pointerIdleMonitor = Meta.IdleMonitor.get_core();
+        this._pointerIdleMonitor = global.backend.get_core_idle_monitor();
         this._scrollContentsTimerId = 0;
     }
 
@@ -1898,6 +1898,7 @@ var MagShaderEffects = class MagShaderEffects {
         this._colorDesaturation = new Clutter.DesaturateEffect();
         this._inverse.set_enabled(false);
         this._brightnessContrast.set_enabled(false);
+        this._colorDesaturation.set_enabled(false);
 
         this._magView = uiGroupClone;
         this._magView.add_effect(this._inverse);
@@ -1930,6 +1931,7 @@ var MagShaderEffects = class MagShaderEffects {
 
     setColorSaturation(factor) {
         this._colorDesaturation.set_factor(1.0 - factor);
+        this._colorDesaturation.set_enabled(factor !== 1.0);
     }
 
     /**

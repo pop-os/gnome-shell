@@ -7,9 +7,19 @@ imports.gi.versions.Clutter = Config.LIBMUTTER_API_VERSION;
 imports.gi.versions.Gio = '2.0';
 imports.gi.versions.GdkPixbuf = '2.0';
 imports.gi.versions.Gtk = '3.0';
-imports.gi.versions.Soup = '2.4';
+imports.gi.versions.Soup = '3.0';
 imports.gi.versions.TelepathyGLib = '0.12';
 imports.gi.versions.TelepathyLogger = '0.2';
+
+try {
+    if (Config.HAVE_SOUP2)
+        throw new Error('Soup3 support not enabled');
+    const Soup_ = imports.gi.Soup;
+} catch (e) {
+    imports.gi.versions.Soup = '2.4';
+    const { Soup } = imports.gi;
+    _injectSoup3Compat(Soup);
+}
 
 const { Clutter, Gio, GLib, GObject, Meta, Polkit, Shell, St } = imports.gi;
 const Gettext = imports.gettext;
@@ -67,6 +77,42 @@ function _patchLayoutClass(layoutClass, styleProps) {
             });
         };
     }
+}
+
+/**
+ * Mimick the Soup 3 APIs we use when falling back to Soup 2.4
+ *
+ * @param {object} Soup 2.4 namespace
+ * @returns {void}
+ */
+function _injectSoup3Compat(Soup) {
+    Soup.StatusCode = Soup.KnownStatusCode;
+
+    Soup.Message.new_from_encoded_form =
+        function (method, uri, form) {
+            const soupUri = new Soup.URI(uri);
+            soupUri.set_query(form);
+            return Soup.Message.new_from_uri(method, soupUri);
+        };
+    Soup.Message.prototype.set_request_body_from_bytes =
+        function (contentType, bytes) {
+            this.set_request(
+                contentType,
+                Soup.MemoryUse.COPY,
+                new TextDecoder().decode(bytes.get_data()));
+        };
+
+    Soup.Session.prototype.send_and_read_async =
+        function (message, prio, cancellable, callback) {
+            this.queue_message(message, () => callback(this, message));
+        };
+    Soup.Session.prototype.send_and_read_finish =
+        function (message) {
+            if (message.status_code !== Soup.KnownStatusCode.OK)
+                return null;
+
+            return message.response_body.flatten().get_as_bytes();
+        };
 }
 
 function _makeEaseCallback(params, cleanup) {
@@ -155,20 +201,23 @@ function _easeActor(actor, params) {
         actor.set(params);
     actor.restore_easing_state();
 
-    let transition = animatedProps.map(p => actor.get_transition(p))
-        .find(t => t !== null);
+    const transitions = animatedProps
+        .map(p => actor.get_transition(p))
+        .filter(t => t !== null);
+
+    transitions.forEach(t => t.set({ repeatCount, autoReverse }));
+
+    const [transition] = transitions;
 
     if (transition && transition.delay)
         transition.connect('started', () => prepare());
     else
         prepare();
 
-    if (transition) {
-        transition.set({ repeatCount, autoReverse });
+    if (transition)
         transition.connect('stopped', (t, finished) => callback(finished));
-    } else {
+    else
         callback(true);
-    }
 }
 
 function _easeActorProperty(actor, propName, target, params) {

@@ -180,7 +180,7 @@ st_cflags = [
 libst = shared_library('st-1.0',
   sources: st_gir_sources + st_nogir_sources + croco_sources,
   c_args: st_cflags,
-  dependencies: [clutter_dep, gmodule_dep, gtk_dep, mutter_dep, libxml_dep, m_dep],
+  dependencies: [clutter_dep, gtk_dep, mutter_dep, libxml_dep, m_dep],
   build_rpath: mutter_typelibdir,
   install_rpath: mutter_typelibdir,
   install_dir: pkglibdir,
@@ -191,17 +191,20 @@ libst_dep = declare_dependency(link_with: libst,
   sources: st_enums[1]
 )
 
-test_theme = executable('test-theme',
-  sources: 'test-theme.c',
-  c_args: st_cflags,
-  dependencies: [mutter_dep, gtk_dep, libxml_dep],
-  build_rpath: mutter_typelibdir,
-  link_with: libst
-)
+if get_option('tests')
+  mutter_test_dep = dependency(libmutter_test_pc, version: mutter_req)
+  test_theme = executable('test-theme',
+    sources: 'test-theme.c',
+    c_args: st_cflags,
+    dependencies: [mutter_test_dep, gtk_dep, libxml_dep],
+    build_rpath: mutter_typelibdir,
+    link_with: libst
+  )
 
-test('CSS styling support', test_theme,
-  workdir: meson.current_source_dir()
-)
+  test('CSS styling support', test_theme,
+    workdir: meson.current_source_dir()
+  )
+endif
 
 libst_gir = gnome.generate_gir(libst,
   sources: st_gir_sources,

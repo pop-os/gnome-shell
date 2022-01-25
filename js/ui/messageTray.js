@@ -771,6 +771,9 @@ var Source = GObject.registerClass({
         notification.acknowledged = false;
         this.pushNotification(notification);
 
+        if (notification.urgency === Urgency.LOW)
+            return;
+
         if (this.policy.showBanners || notification.urgency == Urgency.CRITICAL)
             this.emit('notification-show', notification);
     }
@@ -855,7 +858,7 @@ var MessageTray = GObject.registerClass({
 
         this._userActiveWhileNotificationShown = false;
 
-        this.idleMonitor = Meta.IdleMonitor.get_core();
+        this.idleMonitor = global.backend.get_core_idle_monitor();
 
         this._useLongerNotificationLeftTimeout = false;
 
@@ -1022,17 +1025,20 @@ var MessageTray = GObject.registerClass({
     }
 
     _onNotificationDestroy(notification) {
-        if (this._notification == notification && (this._notificationState == State.SHOWN || this._notificationState == State.SHOWING)) {
-            this._updateNotificationTimeout(0);
-            this._notificationRemoved = true;
-            this._updateState();
-            return;
-        }
+        this._notificationRemoved = this._notification === notification;
 
-        let index = this._notificationQueue.indexOf(notification);
-        if (index != -1) {
-            this._notificationQueue.splice(index, 1);
-            this.emit('queue-changed');
+        if (this._notificationRemoved) {
+            if (this._notificationState === State.SHOWN ||
+                this._notificationState === State.SHOWING) {
+                this._updateNotificationTimeout(0);
+                this._updateState();
+            }
+        } else {
+            const index = this._notificationQueue.indexOf(notification);
+            if (index !== -1) {
+                this._notificationQueue.splice(index, 1);
+                this.emit('queue-changed');
+            }
         }
     }
 
@@ -1198,7 +1204,8 @@ var MessageTray = GObject.registerClass({
                 if (showNextNotification)
                     this._showNotification();
             }
-        } else if (this._notificationState == State.SHOWN) {
+        } else if (this._notificationState === State.SHOWING ||
+                   this._notificationState === State.SHOWN) {
             let expired = (this._userActiveWhileNotificationShown &&
                            this._notificationTimeoutId == 0 &&
                            this._notification.urgency != Urgency.CRITICAL &&
@@ -1209,10 +1216,12 @@ var MessageTray = GObject.registerClass({
             if (mustClose) {
                 let animate = hasNotifications && !this._notificationRemoved;
                 this._hideNotification(animate);
-            } else if (this._pointerInNotification && !this._banner.expanded) {
-                this._expandBanner(false);
-            } else if (this._pointerInNotification) {
-                this._ensureBannerFocused();
+            } else if (this._notificationState === State.SHOWN &&
+                       this._pointerInNotification) {
+                if (!this._banner.expanded)
+                    this._expandBanner(false);
+                else
+                    this._ensureBannerFocused();
             }
         }
 

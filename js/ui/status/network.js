@@ -1,6 +1,6 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported NMApplet */
-const { Clutter, Gio, GLib, GObject, NM, St } = imports.gi;
+const { Clutter, Gio, GLib, GObject, Meta, NM, Polkit, St } = imports.gi;
 const Signals = imports.signals;
 
 const Animation = imports.ui.animation;
@@ -543,7 +543,11 @@ var NMDeviceModem = class extends NMConnectionDevice {
     constructor(client, device) {
         super(client, device);
 
-        this.item.menu.addSettingsAction(_("Mobile Broadband Settings"), 'gnome-network-panel.desktop');
+        const settingsPanel = this._useWwanPanel()
+            ? 'gnome-wwan-panel.desktop'
+            : 'gnome-network-panel.desktop';
+
+        this.item.menu.addSettingsAction(_('Mobile Broadband Settings'), settingsPanel);
 
         this._mobileDevice = null;
 
@@ -563,14 +567,33 @@ var NMDeviceModem = class extends NMConnectionDevice {
                 this._iconChanged();
             });
         }
+
+        this._sessionUpdatedId =
+            Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
+        this._sessionUpdated();
     }
 
     get category() {
         return NMConnectionCategory.WWAN;
     }
 
+    _useWwanPanel() {
+        // Currently, wwan panel doesn't support CDMA_EVDO modems
+        const supportedCaps =
+            NM.DeviceModemCapabilities.GSM_UMTS |
+            NM.DeviceModemCapabilities.LTE;
+        return this._device.current_capabilities & supportedCaps;
+    }
+
     _autoConnect() {
-        launchSettingsPanel('network', 'connect-3g', this._device.get_path());
+        if (this._useWwanPanel())
+            launchSettingsPanel('wwan', 'show-device', this._device.udi);
+        else
+            launchSettingsPanel('network', 'connect-3g', this._device.get_path());
+    }
+
+    _sessionUpdated() {
+        this._autoConnectItem.sensitive = Main.sessionMode.hasWindows;
     }
 
     destroy() {
@@ -581,6 +604,10 @@ var NMDeviceModem = class extends NMConnectionDevice {
         if (this._signalQualityId) {
             this._mobileDevice.disconnect(this._signalQualityId);
             this._signalQualityId = 0;
+        }
+        if (this._sessionUpdatedId) {
+            Main.sessionMode.disconnect(this._sessionUpdatedId);
+            this._sessionUpdatedId = 0;
         }
 
         super.destroy();
@@ -803,6 +830,11 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         if (this._scanTimeoutId) {
             GLib.source_remove(this._scanTimeoutId);
             this._scanTimeoutId = 0;
+        }
+
+        if (this._syncVisibilityId) {
+            Meta.later_remove(this._syncVisibilityId);
+            this._syncVisibilityId = 0;
         }
     }
 
@@ -1137,7 +1169,30 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
             this._itemBox.insert_child_at_index(network.item, newPos);
         }
 
+        this._queueSyncItemVisibility();
         this._syncView();
+    }
+
+    _queueSyncItemVisibility() {
+        if (this._syncVisibilityId)
+            return;
+
+        this._syncVisibilityId = Meta.later_add(
+            Meta.LaterType.BEFORE_REDRAW,
+            () => {
+                const { hasWindows } = Main.sessionMode;
+                const { WPA2_ENT, WPA_ENT } = NMAccessPointSecurity;
+
+                for (const network of this._networks) {
+                    const [firstAp] = network.accessPoints;
+                    network.item.visible =
+                        hasWindows ||
+                        network.connections.length > 0 ||
+                        (firstAp._secType !== WPA2_ENT && firstAp._secType !== WPA_ENT);
+                }
+                this._syncVisibilityId = 0;
+                return GLib.SOURCE_REMOVE;
+            });
     }
 
     _accessPointRemoved(device, accessPoint) {
@@ -1188,6 +1243,7 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
     _createNetworkItem(network) {
         network.item = new NMWirelessDialogItem(network);
         network.item.setActive(network == this._selectedNetwork);
+        network.item.hide();
         network.item.connect('selected', () => {
             Util.ensureActorVisibleInScrollView(this._scrollView, network.item);
             this._selectNetwork(network);
@@ -1709,12 +1765,22 @@ class Indicator extends PanelMenu.SystemIndicator {
         this._client.connect('connection-added', this._connectionAdded.bind(this));
         this._client.connect('connection-removed', this._connectionRemoved.bind(this));
 
+        try {
+            this._configPermission = await Polkit.Permission.new(
+                'org.freedesktop.NetworkManager.network-control', null, null);
+        } catch (e) {
+            log('No permission to control network connections: %s'.format(e.toString()));
+            this._configPermission = null;
+        }
+
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
         this._sessionUpdated();
     }
 
     _sessionUpdated() {
-        let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
+        const sensitive =
+            !Main.sessionMode.isLocked &&
+            this._configPermission && this._configPermission.allowed;
         this.menu.setSensitive(sensitive);
     }
 

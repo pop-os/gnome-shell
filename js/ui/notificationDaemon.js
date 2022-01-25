@@ -25,17 +25,6 @@ var Urgency = {
     CRITICAL: 2,
 };
 
-const rewriteRules = {
-    'XChat': [
-        { pattern:     /^XChat: Private message from: (\S*) \(.*\)$/,
-          replacement: '<$1>' },
-        { pattern:     /^XChat: New public message from: (\S*) \((.*)\)$/,
-          replacement: '$2 <$1>' },
-        { pattern:     /^XChat: Highlighted message from: (\S*) \((.*)\)$/,
-          replacement: '$2 <$1>' },
-    ],
-};
-
 var FdoNotificationDaemon = class FdoNotificationDaemon {
     constructor() {
         this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(FdoNotificationsIface, this);
@@ -166,15 +155,6 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
             return invocation.return_value(GLib.Variant.new('(u)', [id]));
         }
 
-        let rewrites = rewriteRules[appName];
-        if (rewrites) {
-            for (let i = 0; i < rewrites.length; i++) {
-                let rule = rewrites[i];
-                if (summary.search(rule.pattern) != -1)
-                    summary = summary.replace(rule.pattern, rule.replacement);
-            }
-        }
-
         // Be compatible with the various hints for image data and image path
         // 'image-data' and 'image-path' are the latest name of these hints, introduced in 1.2
 
@@ -249,11 +229,16 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
         if (!gicon)
             gicon = this._fallbackIconForNotificationData(hints);
 
-        notification.update(summary, body, { gicon,
-                                             bannerMarkup: true,
-                                             clear: true,
-                                             soundFile: hints['sound-file'],
-                                             soundName: hints['sound-name'] });
+        const soundFile = 'sound-file' in hints
+            ? Gio.File.new_for_path(hints['sound-file']) : null;
+
+        notification.update(summary, body, {
+            gicon,
+            bannerMarkup: true,
+            clear: true,
+            soundFile,
+            soundName: hints['sound-name'],
+        });
 
         let hasDefaultAction = false;
 

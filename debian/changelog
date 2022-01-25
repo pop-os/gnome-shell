@@ -1,3 +1,63 @@
+gnome-shell (41.3-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Speed up a fade animation on older Intel GPUs (Closes: #1000172)
+    - Improve window tracking (LP: #1934458)
+    - Simplify scroll fade shader to work with old hardware
+    - Tweak (un)minimize animations (LP: #1713021)
+    - Don't wake up screen in DND mode
+    - Fix immediately withdrawn notifications getting stuck
+    - Honor XDG SingleMainWindow key in .desktop files
+  * debian/patches:
+    - Drop applied upstream
+    - Do not use positional arguments in i18n.merge_file
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Jan 2022 16:34:22 +0100
+
+gnome-shell (41.2-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+  * d/patches: Update to upstream gnome-41 branch commit 41.2-5-g9bf1988b5:
+    - Fix a freeze involving window tracking
+    - Update Turkish translation
+  * Adjust Lintian overrides syntax for newer Lintian
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 22 Dec 2021 11:51:59 +0000
+
+gnome-shell (41.1-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+  * d/rules: Pass bash_completion Meson option to correct subproject.
+    With Meson 0.60.x, unknown -D options are an error. (Closes: #998589)
+  * Adjust Lintian overrides
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 05 Nov 2021 15:23:00 +0000
+
+gnome-shell (41.0-2) unstable; urgency=medium
+
+  * Team upload
+  * Update Lintian overrides for RUNPATH
+  * Upload to unstable
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 16 Oct 2021 19:27:01 +0100
+
+gnome-shell (41.0-1) experimental; urgency=medium
+
+  * Team upload
+  * New upstream release
+  * Update dependency versions
+  * d/rules: Stay with libsoup 2.4 for now
+  * Build-depend on libmutter-test-9 if tests are enabled
+  * Enable or disable tests according to nocheck build option
+  * Stop installing gconf -> gsettings migration rules, removed upstream
+  * Standards-Version: 4.6.0 (no changes required)
+  * Build-depend on mutter <!nocheck>
+    Some tests need the libdefault.so plugin.
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 10 Oct 2021 21:26:33 +0100
+
 gnome-shell (40.5-1ubuntu2) impish; urgency=medium
 
   [ Daniel van Vugt ]
