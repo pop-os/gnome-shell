@@ -1,4 +1,4 @@
-gnome-shell (41.3-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (41.3-1ubuntu1) jammy; urgency=medium
 
   * Merge with debian, containing various upstream fixes:
     - Window size is wrong after exiting full-screen (LP: #1947467)
@@ -56,7 +56,7 @@ gnome-shell (41.3-1ubuntu1) UNRELEASED; urgency=medium
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
   * debian/patches: Remove patch to make overview starting optional
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 25 Jan 2022 23:48:27 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 27 Jan 2022 04:09:39 +0100
 
 gnome-shell (41.3-1) unstable; urgency=medium
 
