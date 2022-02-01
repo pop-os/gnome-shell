@@ -6,3 +6,4 @@ Update-Japanese-translation.patch
 Update-Japanese-translation-1.patch
 Updated-Czech-translation.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
+Revert-dateMenu-Port-to-GWeather-4.0.patch

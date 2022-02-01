@@ -1,0 +1,74 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Tue, 1 Feb 2022 02:39:19 +0100
+Subject: Revert "dateMenu: Port to GWeather 4.0"
+
+This reverts commit ab52ce4591839e2c6883c6034dfdfe73b2e630be.
+
+New gweather is not yet in debian and it's not worth to add it now just
+for this tiny change
+---
+ js/ui/dateMenu.js    | 18 +++++++++---------
+ js/ui/environment.js |  2 +-
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/js/ui/dateMenu.js b/js/ui/dateMenu.js
+index 8928917..6edd790 100644
+--- a/js/ui/dateMenu.js
++++ b/js/ui/dateMenu.js
+@@ -339,13 +339,9 @@ class WorldClocksSection extends St.Button {
+                 this._locations.push({ location: l });
+         }
+ 
+-        const unixtime = GLib.DateTime.new_now_local().to_unix();
+         this._locations.sort((a, b) => {
+-            const tzA = a.location.get_timezone();
+-            const tzB = b.location.get_timezone();
+-            const intA = tzA.find_interval(GLib.TimeType.STANDARD, unixtime);
+-            const intB = tzA.find_interval(GLib.TimeType.STANDARD, unixtime);
+-            return tzA.get_offset(intA) - tzB.get_offset(intB);
++            return a.location.get_timezone().get_offset() -
++                   b.location.get_timezone().get_offset();
+         });
+ 
+         let layout = this._grid.layout_manager;
+@@ -416,9 +412,8 @@ class WorldClocksSection extends St.Button {
+     }
+ 
+     _getTimezoneOffsetAtLocation(location) {
+-        const tz = location.get_timezone();
+         const localOffset = GLib.DateTime.new_now_local().get_utc_offset();
+-        const utcOffset = GLib.DateTime.new_now(tz).get_utc_offset();
++        const utcOffset = this._getTimeAtLocation(location).get_utc_offset();
+         const offsetCurrentTz = utcOffset - localOffset;
+         const offsetHours = Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR;
+         const offsetMinutes =
+@@ -432,10 +427,15 @@ class WorldClocksSection extends St.Button {
+         return text;
+     }
+ 
++    _getTimeAtLocation(location) {
++        let tz = GLib.TimeZone.new(location.get_timezone().get_tzid());
++        return GLib.DateTime.new_now(tz);
++    }
++
+     _updateTimeLabels() {
+         for (let i = 0; i < this._locations.length; i++) {
+             let l = this._locations[i];
+-            const now = GLib.DateTime.new_now(l.location.get_timezone());
++            let now = this._getTimeAtLocation(l.location);
+             l.timeLabel.text = Util.formatTime(now, { timeOnly: true });
+         }
+     }
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index 6757115..ad2b8e4 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -9,7 +9,7 @@ imports.gi.versions.GdkPixbuf = '2.0';
+ imports.gi.versions.GnomeBluetooth = '1.0';
+ imports.gi.versions.GnomeDesktop = '3.0';
+ imports.gi.versions.Gtk = '3.0';
+-imports.gi.versions.GWeather = '4.0';
++imports.gi.versions.GWeather = '3.0';
+ imports.gi.versions.Soup = '3.0';
+ imports.gi.versions.TelepathyGLib = '0.12';
+ imports.gi.versions.TelepathyLogger = '0.2';
