@@ -1,3 +1,18 @@
+gnome-shell (41.3-2) unstable; urgency=medium
+
+  * Team upload
+  * d/p/environment-Require-GnomeBluetooth-1.0.patch,
+    d/p/environment-Require-gnome-desktop-3.0.patch:
+    Add patches from 42~alpha to avoid a crash with experimental GIR.
+    Previously, gnome-shell would crash if gir1.2-gnomedesktop-4.0 or
+    gir1.2-gnomebluetooth-2.0 were installed.
+  * d/patches: Update to gnome-41 branch commit 41.3-10-g3ca661b73
+    - Don't break extensions that look up a window's app on ::window-added,
+      fixing a regression in 41.3
+    - Translation updates: cs, es, he, is, ja
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 15 Feb 2022 13:11:19 +0000
+
 gnome-shell (41.3-1) unstable; urgency=medium
 
   * New upstream release:
