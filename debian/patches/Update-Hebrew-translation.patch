@@ -1,0 +1,410 @@
+From: Yosef Or Boczko <yoseforb@gnome.org>
+Date: Tue, 25 Jan 2022 20:53:26 +0000
+Subject: Update Hebrew translation
+
+Origin: upstream, 41.4, commit:dacda94746832a95020be0a43f5055fd39355e55
+---
+ po/he.po | 127 +++++++++++++++++++++++++++++++++------------------------------
+ 1 file changed, 66 insertions(+), 61 deletions(-)
+
+diff --git a/po/he.po b/po/he.po
+index 3c4e503..128a818 100644
+--- a/po/he.po
++++ b/po/he.po
+@@ -3,24 +3,24 @@
+ # This file is distributed under the same license as the gnome-shell package.
+ # liel <lielft@gmail.com>, 2009.
+ # Yaron Shahrabani <sh.yaron@gmail.com>, 2010.
+-# Yosef Or Boczko <yoseforb@gmail.com>, 2013-2021.
++# Yosef Or Boczko <yoseforb@gmail.com>, 2013-2022.
+ #
+ msgid ""
+ msgstr ""
+ "Project-Id-Version: gnome-shell master\n"
+ "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/gnome-shell/issues\n"
+-"POT-Creation-Date: 2021-09-23 14:20+0000\n"
+-"PO-Revision-Date: 2021-09-27 11:13+0300\n"
+-"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
+-"Language-Team: Hebrew <yoseforb@gmail.com>\n"
++"POT-Creation-Date: 2022-01-21 09:28+0000\n"
++"PO-Revision-Date: 2022-01-25 22:50+0200\n"
++"Last-Translator: Yosef Or Boczko <yoseforb@gmail.com>\n"
++"Language-Team: Hebrew <GNOME Hebrew Translation Project>\n"
+ "Language: he\n"
+ "MIME-Version: 1.0\n"
+ "Content-Type: text/plain; charset=UTF-8\n"
+ "Content-Transfer-Encoding: 8bit\n"
+ "Plural-Forms: nplurals=4; plural=(n==1 ? 0 : n==2 ? 1 : n>10 && n%10==0 ? "
+-"2 : 3);\n"
++"2 : 3)\n"
+ "X-Poedit-SourceCharset: UTF-8\n"
+-"X-Generator: Poedit 3.0\n"
++"X-Generator: Gtranslator 40.0\n"
+ 
+ #: data/50-gnome-shell-launchers.xml:6
+ msgid "Launchers"
+@@ -656,7 +656,7 @@ msgstr[1] "לפני שעתיים"
+ msgstr[2] "‫לפני %d שעות"
+ msgstr[3] "‫לפני %d שעות"
+ 
+-#: js/misc/util.js:192 js/ui/dateMenu.js:162
++#: js/misc/util.js:192 js/ui/dateMenu.js:163
+ msgid "Yesterday"
+ msgstr "אתמול"
+ 
+@@ -758,7 +758,7 @@ msgstr "%A, %l:%M %p"
+ #: js/misc/util.js:285
+ #, no-c-format
+ msgid "%B %-d, %l∶%M %p"
+-msgstr "%-d ב%B, %l:%M %p"
++msgstr "%d ב%B, %l:%M %p"
+ 
+ #. Translators: this is the month name, day number, year
+ #. number followed by a time string in 12h format.
+@@ -871,7 +871,7 @@ msgid "Settings"
+ msgstr "הגדרות"
+ 
+ #. Translators: Enter 0-6 (Sunday-Saturday) for non-work days. Examples: "0" (Sunday) "6" (Saturday) "06" (Sunday and Saturday).
+-#: js/ui/calendar.js:36
++#: js/ui/calendar.js:35
+ msgctxt "calendar-no-work"
+ msgid "06"
+ msgstr "65"
+@@ -881,43 +881,43 @@ msgstr "65"
+ #. * NOTE: These grid abbreviations are always shown together
+ #. * and in order, e.g. "S M T W T F S".
+ #.
+-#: js/ui/calendar.js:65
++#: js/ui/calendar.js:61
+ msgctxt "grid sunday"
+ msgid "S"
+ msgstr "א"
+ 
+ #. Translators: Calendar grid abbreviation for Monday
+-#: js/ui/calendar.js:67
++#: js/ui/calendar.js:63
+ msgctxt "grid monday"
+ msgid "M"
+ msgstr "ב"
+ 
+ #. Translators: Calendar grid abbreviation for Tuesday
+-#: js/ui/calendar.js:69
++#: js/ui/calendar.js:65
+ msgctxt "grid tuesday"
+ msgid "T"
+ msgstr "ג"
+ 
+ #. Translators: Calendar grid abbreviation for Wednesday
+-#: js/ui/calendar.js:71
++#: js/ui/calendar.js:67
+ msgctxt "grid wednesday"
+ msgid "W"
+ msgstr "ד"
+ 
+ #. Translators: Calendar grid abbreviation for Thursday
+-#: js/ui/calendar.js:73
++#: js/ui/calendar.js:69
+ msgctxt "grid thursday"
+ msgid "T"
+ msgstr "ה"
+ 
+ #. Translators: Calendar grid abbreviation for Friday
+-#: js/ui/calendar.js:75
++#: js/ui/calendar.js:71
+ msgctxt "grid friday"
+ msgid "F"
+ msgstr "ו"
+ 
+ #. Translators: Calendar grid abbreviation for Saturday
+-#: js/ui/calendar.js:77
++#: js/ui/calendar.js:73
+ msgctxt "grid saturday"
+ msgid "S"
+ msgstr "ש"
+@@ -928,7 +928,7 @@ msgstr "ש"
+ #. * "%OB" is the new format specifier introduced in glibc 2.27,
+ #. * in most cases you should not change it.
+ #.
+-#: js/ui/calendar.js:392
++#: js/ui/calendar.js:400
+ msgid "%OB"
+ msgstr "%OB"
+ 
+@@ -941,37 +941,37 @@ msgstr "%OB"
+ #. * in most cases you should not use the old "%B" here unless you
+ #. * absolutely know what you are doing.
+ #.
+-#: js/ui/calendar.js:402
++#: js/ui/calendar.js:410
+ msgid "%OB %Y"
+ msgstr "%OB %Y"
+ 
+-#: js/ui/calendar.js:461
++#: js/ui/calendar.js:469
+ msgid "Previous month"
+ msgstr "חודש קודם"
+ 
+-#: js/ui/calendar.js:476
++#: js/ui/calendar.js:484
+ msgid "Next month"
+ msgstr "חודש הבא"
+ 
+-#: js/ui/calendar.js:626
++#: js/ui/calendar.js:632
+ #, no-javascript-format
+ msgctxt "date day number format"
+ msgid "%d"
+ msgstr "%d"
+ 
+-#: js/ui/calendar.js:682
++#: js/ui/calendar.js:688
+ msgid "Week %V"
+ msgstr "שבוע %V"
+ 
+-#: js/ui/calendar.js:896
++#: js/ui/calendar.js:902
+ msgid "No Notifications"
+ msgstr "אין התרעות"
+ 
+-#: js/ui/calendar.js:950
++#: js/ui/calendar.js:956
+ msgid "Do Not Disturb"
+ msgstr "נא לא להפריע"
+ 
+-#: js/ui/calendar.js:971
++#: js/ui/calendar.js:977
+ msgid "Clear"
+ msgstr "ניקוי"
+ 
+@@ -1149,65 +1149,65 @@ msgstr "%-d ב%B %Y"
+ #.
+ #: js/ui/dateMenu.js:86
+ msgid "%A %B %e %Y"
+-msgstr "%A ה־%e ב%B %Y"
++msgstr "%A %e ב%B %Y"
+ 
+ #. Translators: Shown on calendar heading when selected day occurs on current year
+-#: js/ui/dateMenu.js:151
++#: js/ui/dateMenu.js:152
+ msgctxt "calendar heading"
+ msgid "%B %-d"
+ msgstr "%-d ב%B"
+ 
+ #. Translators: Shown on calendar heading when selected day occurs on different year
+-#: js/ui/dateMenu.js:154
++#: js/ui/dateMenu.js:155
+ msgctxt "calendar heading"
+ msgid "%B %-d %Y"
+ msgstr "%-d ב%B %Y"
+ 
+-#: js/ui/dateMenu.js:160
++#: js/ui/dateMenu.js:161
+ msgid "Today"
+ msgstr "היום"
+ 
+-#: js/ui/dateMenu.js:164
++#: js/ui/dateMenu.js:165
+ msgid "Tomorrow"
+ msgstr "מחר"
+ 
+ #. Translators: Shown in calendar event list for all day events
+ #. * Keep it short, best if you can use less then 10 characters
+ #.
+-#: js/ui/dateMenu.js:180
++#: js/ui/dateMenu.js:181
+ msgctxt "event list time"
+ msgid "All Day"
+ msgstr "יום שלם"
+ 
+-#: js/ui/dateMenu.js:231
++#: js/ui/dateMenu.js:232
+ msgid "No Events"
+ msgstr "אין אירועים"
+ 
+-#: js/ui/dateMenu.js:348
++#: js/ui/dateMenu.js:349
+ msgid "Add world clocks…"
+ msgstr "הוספת שעונים מהעולם…"
+ 
+-#: js/ui/dateMenu.js:349
++#: js/ui/dateMenu.js:350
+ msgid "World Clocks"
+ msgstr "שעוני העולם"
+ 
+-#: js/ui/dateMenu.js:629
++#: js/ui/dateMenu.js:630
+ msgid "Loading…"
+ msgstr "בטעינה…"
+ 
+-#: js/ui/dateMenu.js:639
++#: js/ui/dateMenu.js:640
+ msgid "Go online for weather information"
+ msgstr "יש להתחבר בשביל מידע על מזג האוויר"
+ 
+-#: js/ui/dateMenu.js:641
++#: js/ui/dateMenu.js:642
+ msgid "Weather information is currently unavailable"
+ msgstr "מידע על מזג האוויר לא זמין כרגע"
+ 
+-#: js/ui/dateMenu.js:651
++#: js/ui/dateMenu.js:652
+ msgid "Weather"
+ msgstr "מזג אוויר"
+ 
+-#: js/ui/dateMenu.js:653
++#: js/ui/dateMenu.js:654
+ msgid "Select weather location…"
+ msgstr "בחירת מיקום למזג אוויר…"
+ 
+@@ -1558,7 +1558,7 @@ msgstr "מסך נעילה מושבת"
+ msgid "Screen Locking requires the GNOME display manager."
+ msgstr "מסך נעיל דורש הרצת מנהל תצוגה של GNOME."
+ 
+-#: js/ui/messageTray.js:1443
++#: js/ui/messageTray.js:1446
+ msgid "System Information"
+ msgstr "פרטי המערכת"
+ 
+@@ -2317,23 +2317,23 @@ msgstr "מובנה בלבד"
+ 
+ #. Translators: This is a time format for a date in
+ #. long format
+-#: js/ui/unlockDialog.js:371
++#: js/ui/unlockDialog.js:380
+ msgid "%A %B %-d"
+-msgstr "%A, ה־%d ב%B"
++msgstr "%A, %-d ב%B"
+ 
+-#: js/ui/unlockDialog.js:377
++#: js/ui/unlockDialog.js:386
+ msgid "Swipe up to unlock"
+ msgstr "יש להחליק לשחרור"
+ 
+-#: js/ui/unlockDialog.js:378
++#: js/ui/unlockDialog.js:387
+ msgid "Click or press a key to unlock"
+ msgstr "יש ללחוץ או להקיש כדי לשחרר"
+ 
+-#: js/ui/unlockDialog.js:556
++#: js/ui/unlockDialog.js:565
+ msgid "Unlock Window"
+ msgstr "שחרור החלון"
+ 
+-#: js/ui/unlockDialog.js:565
++#: js/ui/unlockDialog.js:574
+ msgid "Log in as another user"
+ msgstr "כניסה בתור משתמש אחר"
+ 
+@@ -2360,23 +2360,23 @@ msgid "“%s” is ready"
+ msgstr "‏„%s” מוכן"
+ 
+ #. Translators: This string should be shorter than 30 characters
+-#: js/ui/windowManager.js:63
++#: js/ui/windowManager.js:64
+ msgid "Keep these display settings?"
+ msgstr "האם ברצונך לשמור הגדרות תצוגה אלה?"
+ 
+ #. Translators: this and the following message should be limited in length,
+ #. to avoid ellipsizing the labels.
+ #.
+-#: js/ui/windowManager.js:72
++#: js/ui/windowManager.js:73
+ msgid "Revert Settings"
+ msgstr "שחזור הגדרות"
+ 
+-#: js/ui/windowManager.js:75
++#: js/ui/windowManager.js:76
+ msgid "Keep Changes"
+ msgstr "שמירת שינויים"
+ 
+ # javascript-format
+-#: js/ui/windowManager.js:94
++#: js/ui/windowManager.js:95
+ #, javascript-format
+ msgid "Settings changes will revert in %d second"
+ msgid_plural "Settings changes will revert in %d seconds"
+@@ -2387,7 +2387,7 @@ msgstr[3] "‫שינויי הגדרות ישוחזרו בעוד %d שניות"
+ 
+ #. Translators: This represents the size of a window. The first number is
+ #. * the width of the window and the second is the height.
+-#: js/ui/windowManager.js:550
++#: js/ui/windowManager.js:551
+ #, javascript-format
+ msgid "%d × %d"
+ msgstr "%d × %d"
+@@ -2480,12 +2480,12 @@ msgstr "שימוש במצב מסוים, לדוגמה: „gdm“ למסך הכנ
+ msgid "List possible modes"
+ msgstr "הצגת המצבים האפשריים"
+ 
+-#: src/shell-app.c:298
++#: src/shell-app.c:300
+ msgctxt "program"
+ msgid "Unknown"
+ msgstr "לא ידוע"
+ 
+-#: src/shell-app.c:549
++#: src/shell-app.c:551
+ #, c-format
+ msgid "Failed to launch “%s”"
+ msgstr "אירע כשל בטעינת „%s”"
+@@ -2747,6 +2747,7 @@ msgstr "UUID, name and description are required"
+ #: subprojects/extensions-tool/src/command-enable.c:46
+ #: subprojects/extensions-tool/src/command-info.c:50
+ #: subprojects/extensions-tool/src/command-list.c:64
++#: subprojects/extensions-tool/src/main.c:146
+ msgid "Failed to connect to GNOME Shell\n"
+ msgstr "Failed to connect to GNOME Shell\n"
+ 
+@@ -2763,7 +2764,7 @@ msgstr "Disable an extension"
+ #: subprojects/extensions-tool/src/command-disable.c:119
+ #: subprojects/extensions-tool/src/command-enable.c:119
+ #: subprojects/extensions-tool/src/command-info.c:103
+-#: subprojects/extensions-tool/src/command-prefs.c:97
++#: subprojects/extensions-tool/src/command-prefs.c:105
+ #: subprojects/extensions-tool/src/command-reset.c:76
+ #: subprojects/extensions-tool/src/command-uninstall.c:104
+ msgid "No UUID given"
+@@ -2772,7 +2773,7 @@ msgstr "No UUID given"
+ #: subprojects/extensions-tool/src/command-disable.c:124
+ #: subprojects/extensions-tool/src/command-enable.c:124
+ #: subprojects/extensions-tool/src/command-info.c:108
+-#: subprojects/extensions-tool/src/command-prefs.c:102
++#: subprojects/extensions-tool/src/command-prefs.c:110
+ #: subprojects/extensions-tool/src/command-reset.c:81
+ #: subprojects/extensions-tool/src/command-uninstall.c:109
+ msgid "More than one UUID given"
+@@ -2902,7 +2903,12 @@ msgstr "More than one source directory specified"
+ msgid "Extension “%s” doesn't have preferences\n"
+ msgstr "Extension “%s” doesn't have preferences\n"
+ 
+-#: subprojects/extensions-tool/src/command-prefs.c:79
++#: subprojects/extensions-tool/src/command-prefs.c:62
++#, c-format
++msgid "Failed to open prefs for extension “%s”: %s\n"
++msgstr "פתיחת ההעדפות של ההרחבה „%s” נכשלה: %s\n"
++
++#: subprojects/extensions-tool/src/command-prefs.c:87
+ msgid "Opens extension preferences"
+ msgstr "Opens extension preferences"
+ 
+@@ -2927,10 +2933,6 @@ msgstr "Uninstall an extension"
+ msgid "Do not print error messages"
+ msgstr "Do not print error messages"
+ 
+-#: subprojects/extensions-tool/src/main.c:146
+-msgid "Failed to connect to GNOME Shell"
+-msgstr "Failed to connect to GNOME Shell"
+-
+ #: subprojects/extensions-tool/src/main.c:244
+ msgid "Path"
+ msgstr "Path"
+@@ -3065,6 +3067,9 @@ msgstr[3] "‏‫%u ערוצי קלט"
+ msgid "System Sounds"
+ msgstr "צלילי מערכת"
+ 
++#~ msgid "Failed to connect to GNOME Shell"
++#~ msgstr "Failed to connect to GNOME Shell"
++
+ #~ msgid "Enable introspection API"
+ #~ msgstr "Enable introspection API"
+ 
