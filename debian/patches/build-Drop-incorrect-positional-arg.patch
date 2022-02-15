@@ -6,7 +6,7 @@ Unlike other targets that take a name, i18n.merge_file() does not.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2078>
 
-Applied-Upstream: 42~alpha
+Origin: upstream, 42~alpha, commit:65450a836ee9e0722a2d4c3327f52345eae293c6
 ---
  data/meson.build                                      | 2 +-
  src/calendar-server/meson.build                       | 2 +-

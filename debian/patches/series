@@ -1,2 +1,4 @@
-debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 build-Drop-incorrect-positional-arg.patch
+environment-Require-GnomeBluetooth-1.0.patch
+environment-Require-gnome-desktop-3.0.patch
+debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
