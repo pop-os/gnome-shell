@@ -2,3 +2,5 @@ debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 Revert-dateMenu-Port-to-GWeather-4.0.patch
 Revert-status-bluetooth-Fix-wedged-state.patch
 Revert-status-bluetooth-Port-to-new-GListModel-API.patch
+Revert-js-Simplify-promisify-calls.patch
+Revert-cleanup-Use-logical-assignments.patch

@@ -1,0 +1,297 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 18 Feb 2022 05:21:54 +0100
+Subject: Revert "js: Simplify promisify() calls"
+
+This reverts commit 5442266f2882d5ddbf1d714103ee0c13d500e399.
+
+We don't have a such new gjs in debian yet
+---
+ js/dbusServices/notifications/notificationDaemon.js |  2 +-
+ js/gdm/util.js                                      | 11 +++++++----
+ js/misc/ibusManager.js                              |  3 ++-
+ js/misc/parentalControlsManager.js                  |  2 +-
+ js/misc/weather.js                                  |  2 +-
+ js/ui/background.js                                 |  2 +-
+ js/ui/components/networkAgent.js                    |  5 +++--
+ js/ui/components/telepathyClient.js                 | 11 +++++++----
+ js/ui/environment.js                                | 18 ++++++++++--------
+ js/ui/extensionDownloader.js                        | 12 ++++++++----
+ js/ui/main.js                                       |  4 ++--
+ js/ui/screenshot.js                                 | 17 +++++++++++------
+ js/ui/status/network.js                             |  7 ++++---
+ js/ui/windowManager.js                              |  6 ++++--
+ subprojects/extensions-app/js/main.js               |  4 ++--
+ 15 files changed, 64 insertions(+), 42 deletions(-)
+
+diff --git a/js/dbusServices/notifications/notificationDaemon.js b/js/dbusServices/notifications/notificationDaemon.js
+index d0c9786..1390752 100644
+--- a/js/dbusServices/notifications/notificationDaemon.js
++++ b/js/dbusServices/notifications/notificationDaemon.js
+@@ -9,7 +9,7 @@ const { ServiceImplementation } = imports.dbusService;
+ const NotificationsIface = loadInterfaceXML('org.freedesktop.Notifications');
+ const NotificationsProxy = Gio.DBusProxy.makeProxyWrapper(NotificationsIface);
+ 
+-Gio._promisify(Gio.DBusConnection.prototype, 'call');
++Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+ 
+ var NotificationDaemon = class extends ServiceImplementation {
+     constructor() {
+diff --git a/js/gdm/util.js b/js/gdm/util.js
+index 771cd18..402db3d 100644
+--- a/js/gdm/util.js
++++ b/js/gdm/util.js
+@@ -18,11 +18,14 @@ const FprintManagerProxy = Gio.DBusProxy.makeProxyWrapper(FprintManagerIface);
+ const FprintDeviceIface = loadInterfaceXML('net.reactivated.Fprint.Device');
+ const FprintDeviceProxy = Gio.DBusProxy.makeProxyWrapper(FprintDeviceIface);
+ 
+-Gio._promisify(Gdm.Client.prototype, 'open_reauthentication_channel');
+-Gio._promisify(Gdm.Client.prototype, 'get_user_verifier');
++Gio._promisify(Gdm.Client.prototype,
++    'open_reauthentication_channel', 'open_reauthentication_channel_finish');
++Gio._promisify(Gdm.Client.prototype,
++    'get_user_verifier', 'get_user_verifier_finish');
+ Gio._promisify(Gdm.UserVerifierProxy.prototype,
+-    'call_begin_verification_for_user');
+-Gio._promisify(Gdm.UserVerifierProxy.prototype, 'call_begin_verification');
++    'call_begin_verification_for_user', 'call_begin_verification_for_user_finish');
++Gio._promisify(Gdm.UserVerifierProxy.prototype,
++    'call_begin_verification', 'call_begin_verification_finish');
+ 
+ var PASSWORD_SERVICE_NAME = 'gdm-password';
+ var FINGERPRINT_SERVICE_NAME = 'gdm-fingerprint';
+diff --git a/js/misc/ibusManager.js b/js/misc/ibusManager.js
+index 55c0d30..59bb3ed 100644
+--- a/js/misc/ibusManager.js
++++ b/js/misc/ibusManager.js
+@@ -14,7 +14,8 @@ Gio._promisify(IBus.Bus.prototype,
+     'get_global_engine_async', 'get_global_engine_async_finish');
+ Gio._promisify(IBus.Bus.prototype,
+     'set_global_engine_async', 'set_global_engine_async_finish');
+-Gio._promisify(Shell, 'util_systemd_unit_exists');
++Gio._promisify(Shell,
++    'util_systemd_unit_exists', 'util_systemd_unit_exists_finish');
+ 
+ // Ensure runtime version matches
+ _checkIBusVersion(1, 5, 2);
+diff --git a/js/misc/parentalControlsManager.js b/js/misc/parentalControlsManager.js
+index 0927211..fc1e7ce 100644
+--- a/js/misc/parentalControlsManager.js
++++ b/js/misc/parentalControlsManager.js
+@@ -32,7 +32,7 @@ const HAVE_MALCONTENT = imports.package.checkSymbol(
+ var Malcontent = null;
+ if (HAVE_MALCONTENT) {
+     Malcontent = imports.gi.Malcontent;
+-    Gio._promisify(Malcontent.Manager.prototype, 'get_app_filter_async');
++    Gio._promisify(Malcontent.Manager.prototype, 'get_app_filter_async', 'get_app_filter_finish');
+ }
+ 
+ let _singleton = null;
+diff --git a/js/misc/weather.js b/js/misc/weather.js
+index 1cd4e38..2c7480a 100644
+--- a/js/misc/weather.js
++++ b/js/misc/weather.js
+@@ -7,7 +7,7 @@ const PermissionStore = imports.misc.permissionStore;
+ 
+ const { loadInterfaceXML } = imports.misc.fileUtils;
+ 
+-Gio._promisify(Geoclue.Simple, 'new');
++Gio._promisify(Geoclue.Simple, 'new', 'new_finish');
+ 
+ const WeatherIntegrationIface = loadInterfaceXML('org.gnome.Shell.WeatherIntegration');
+ 
+diff --git a/js/ui/background.js b/js/ui/background.js
+index 0b53f3f..256e2c5 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
+@@ -101,7 +101,7 @@ const LoginManager = imports.misc.loginManager;
+ const Main = imports.ui.main;
+ const Params = imports.misc.params;
+ 
+-Gio._promisify(Gio.File.prototype, 'query_info_async');
++Gio._promisify(Gio.File.prototype, 'query_info_async', 'query_info_finish');
+ 
+ var DEFAULT_BACKGROUND_COLOR = Clutter.Color.from_pixel(0x2e3436ff);
+ 
+diff --git a/js/ui/components/networkAgent.js b/js/ui/components/networkAgent.js
+index 1960ad1..a949a95 100644
+--- a/js/ui/components/networkAgent.js
++++ b/js/ui/components/networkAgent.js
+@@ -10,8 +10,9 @@ const MessageTray = imports.ui.messageTray;
+ const ModalDialog = imports.ui.modalDialog;
+ const ShellEntry = imports.ui.shellEntry;
+ 
+-Gio._promisify(Shell.NetworkAgent.prototype, 'init_async');
+-Gio._promisify(Shell.NetworkAgent.prototype, 'search_vpn_plugin');
++Gio._promisify(Shell.NetworkAgent.prototype, 'init_async', 'init_finish');
++Gio._promisify(Shell.NetworkAgent.prototype,
++    'search_vpn_plugin', 'search_vpn_plugin_finish');
+ 
+ const VPN_UI_GROUP = 'VPN Plugin UI';
+ 
+diff --git a/js/ui/components/telepathyClient.js b/js/ui/components/telepathyClient.js
+index 90c0cbd..8746700 100644
+--- a/js/ui/components/telepathyClient.js
++++ b/js/ui/components/telepathyClient.js
+@@ -8,10 +8,13 @@ var Tp = null;
+ try {
+     ({ TelepathyGLib: Tp, TelepathyLogger: Tpl } = imports.gi);
+ 
+-    Gio._promisify(Tp.Channel.prototype, 'close_async');
+-    Gio._promisify(Tp.TextChannel.prototype, 'send_message_async');
+-    Gio._promisify(Tp.ChannelDispatchOperation.prototype, 'claim_with_async');
+-    Gio._promisify(Tpl.LogManager.prototype, 'get_filtered_events_async');
++    Gio._promisify(Tp.Channel.prototype, 'close_async', 'close_finish');
++    Gio._promisify(Tp.TextChannel.prototype,
++        'send_message_async', 'send_message_finish');
++    Gio._promisify(Tp.ChannelDispatchOperation.prototype,
++        'claim_with_async', 'claim_with_finish');
++    Gio._promisify(Tpl.LogManager.prototype,
++        'get_filtered_events_async', 'get_filtered_events_finish');
+ } catch (e) {
+     log('Telepathy is not available, chat integration will be disabled.');
+ }
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index 73bfec8..0ae4f5f 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -28,14 +28,16 @@ const { Clutter, Gio, GLib, GObject, Meta, Polkit, Shell, St } = imports.gi;
+ const Gettext = imports.gettext;
+ const System = imports.system;
+ 
+-Gio._promisify(Gio.DataInputStream.prototype, 'fill_async');
+-Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async');
+-Gio._promisify(Gio.DBus, 'get');
+-Gio._promisify(Gio.DBusConnection.prototype, 'call');
+-Gio._promisify(Gio.DBusProxy, 'new');
+-Gio._promisify(Gio.DBusProxy.prototype, 'init_async');
+-Gio._promisify(Gio.DBusProxy.prototype, 'call_with_unix_fd_list');
+-Gio._promisify(Polkit.Permission, 'new');
++Gio._promisify(Gio.DataInputStream.prototype, 'fill_async', 'fill_finish');
++Gio._promisify(Gio.DataInputStream.prototype,
++    'read_line_async', 'read_line_finish');
++Gio._promisify(Gio.DBus, 'get', 'get_finish');
++Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
++Gio._promisify(Gio.DBusProxy, 'new', 'new_finish');
++Gio._promisify(Gio.DBusProxy.prototype, 'init_async', 'init_finish');
++Gio._promisify(Gio.DBusProxy.prototype,
++    'call_with_unix_fd_list', 'call_with_unix_fd_list_finish');
++Gio._promisify(Polkit.Permission, 'new', 'new_finish');
+ 
+ let _localTimeZone = null;
+ 
+diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
+index 94ba8fa..81a208a 100644
+--- a/js/ui/extensionDownloader.js
++++ b/js/ui/extensionDownloader.js
+@@ -10,10 +10,14 @@ const FileUtils = imports.misc.fileUtils;
+ const Main = imports.ui.main;
+ const ModalDialog = imports.ui.modalDialog;
+ 
+-Gio._promisify(Soup.Session.prototype, 'send_and_read_async');
+-Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
+-Gio._promisify(Gio.IOStream.prototype, 'close_async');
+-Gio._promisify(Gio.Subprocess.prototype, 'wait_check_async');
++Gio._promisify(Soup.Session.prototype,
++    'send_and_read_async', 'send_and_read_finish');
++Gio._promisify(Gio.OutputStream.prototype,
++    'write_bytes_async', 'write_bytes_finish');
++Gio._promisify(Gio.IOStream.prototype,
++    'close_async', 'close_finish');
++Gio._promisify(Gio.Subprocess.prototype,
++    'wait_check_async', 'wait_check_finish');
+ 
+ var REPOSITORY_URL_DOWNLOAD = 'https://extensions.gnome.org/download-extension/%s.shell-extension.zip';
+ var REPOSITORY_URL_INFO     = 'https://extensions.gnome.org/extension-info/';
+diff --git a/js/ui/main.js b/js/ui/main.js
+index 3d7a044..49a94cd 100644
+--- a/js/ui/main.js
++++ b/js/ui/main.js
+@@ -100,8 +100,8 @@ let _themeResource = null;
+ let _oskResource = null;
+ let _iconResource = null;
+ 
+-Gio._promisify(Gio.File.prototype, 'delete_async');
+-Gio._promisify(Gio.File.prototype, 'touch_async');
++Gio._promisify(Gio.File.prototype, 'delete_async', 'delete_finish');
++Gio._promisify(Gio.File.prototype, 'touch_async', 'touch_finish');
+ 
+ let _remoteAccessInhibited = false;
+ 
+diff --git a/js/ui/screenshot.js b/js/ui/screenshot.js
+index 8ed51ef..7398ab0 100644
+--- a/js/ui/screenshot.js
++++ b/js/ui/screenshot.js
+@@ -10,12 +10,17 @@ const Main = imports.ui.main;
+ const MessageTray = imports.ui.messageTray;
+ const Workspace = imports.ui.workspace;
+ 
+-Gio._promisify(Shell.Screenshot.prototype, 'pick_color');
+-Gio._promisify(Shell.Screenshot.prototype, 'screenshot');
+-Gio._promisify(Shell.Screenshot.prototype, 'screenshot_window');
+-Gio._promisify(Shell.Screenshot.prototype, 'screenshot_area');
+-Gio._promisify(Shell.Screenshot.prototype, 'screenshot_stage_to_content');
+-Gio._promisify(Shell.Screenshot, 'composite_to_stream');
++Gio._promisify(Shell.Screenshot.prototype, 'pick_color', 'pick_color_finish');
++Gio._promisify(Shell.Screenshot.prototype, 'screenshot', 'screenshot_finish');
++Gio._promisify(Shell.Screenshot.prototype,
++    'screenshot_window', 'screenshot_window_finish');
++Gio._promisify(Shell.Screenshot.prototype,
++    'screenshot_area', 'screenshot_area_finish');
++Gio._promisify(Shell.Screenshot.prototype,
++    'screenshot_stage_to_content', 'screenshot_stage_to_content_finish');
++Gio._promisify(
++    Shell.Screenshot,
++    'composite_to_stream', 'composite_to_stream_finish');
+ 
+ const { loadInterfaceXML } = imports.misc.fileUtils;
+ const { DBusSenderChecker } = imports.misc.util;
+diff --git a/js/ui/status/network.js b/js/ui/status/network.js
+index f7db379..bc129e4 100644
+--- a/js/ui/status/network.js
++++ b/js/ui/status/network.js
+@@ -15,9 +15,10 @@ const Util = imports.misc.util;
+ 
+ const { loadInterfaceXML } = imports.misc.fileUtils;
+ 
+-Gio._promisify(Gio.DBusConnection.prototype, 'call');
+-Gio._promisify(NM.Client, 'new_async');
+-Gio._promisify(NM.Client.prototype, 'check_connectivity_async');
++Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
++Gio._promisify(NM.Client, 'new_async', 'new_finish');
++Gio._promisify(NM.Client.prototype,
++    'check_connectivity_async', 'check_connectivity_finish');
+ 
+ const NMConnectionCategory = {
+     INVALID: 'invalid',
+diff --git a/js/ui/windowManager.js b/js/ui/windowManager.js
+index a4bbf75..deffd37 100644
+--- a/js/ui/windowManager.js
++++ b/js/ui/windowManager.js
+@@ -46,8 +46,10 @@ const GsdWacomProxy = Gio.DBusProxy.makeProxyWrapper(GsdWacomIface);
+ 
+ const WINDOW_DIMMER_EFFECT_NAME = "gnome-shell-window-dimmer";
+ 
+-Gio._promisify(Shell, 'util_start_systemd_unit');
+-Gio._promisify(Shell, 'util_stop_systemd_unit');
++Gio._promisify(Shell,
++    'util_start_systemd_unit', 'util_start_systemd_unit_finish');
++Gio._promisify(Shell,
++    'util_stop_systemd_unit', 'util_stop_systemd_unit_finish');
+ 
+ var DisplayChangeDialog = GObject.registerClass(
+ class DisplayChangeDialog extends ModalDialog.ModalDialog {
+diff --git a/subprojects/extensions-app/js/main.js b/subprojects/extensions-app/js/main.js
+index 361477d..7b500b2 100644
+--- a/subprojects/extensions-app/js/main.js
++++ b/subprojects/extensions-app/js/main.js
+@@ -14,8 +14,8 @@ const { ExtensionState, ExtensionType } = ExtensionUtils;
+ const GnomeShellIface = loadInterfaceXML('org.gnome.Shell.Extensions');
+ const GnomeShellProxy = Gio.DBusProxy.makeProxyWrapper(GnomeShellIface);
+ 
+-Gio._promisify(Gio.DBusConnection.prototype, 'call');
+-Gio._promisify(Shew.WindowExporter.prototype, 'export');
++Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
++Gio._promisify(Shew.WindowExporter.prototype, 'export', 'export_finish');
+ 
+ function loadInterfaceXML(iface) {
+     const uri = `resource:///org/gnome/Extensions/dbus-interfaces/${iface}.xml`;
