@@ -80,7 +80,6 @@ struct _ShellGlobal {
 
   GHashTable *save_ops;
 
-  gboolean has_modal;
   gboolean frame_timestamps;
   gboolean frame_finish_timestamp;
 
@@ -110,7 +109,11 @@ enum {
   PROP_FRAME_TIMESTAMPS,
   PROP_FRAME_FINISH_TIMESTAMP,
   PROP_SWITCHEROO_CONTROL,
+
+  N_PROPS
 };
+
+static GParamSpec *props[N_PROPS] = { NULL, };
 
 /* Signals */
 enum
@@ -145,7 +148,7 @@ got_switcheroo_control_gpus_property_cb (GObject      *source_object,
 
   global = user_data;
   g_dbus_proxy_set_cached_property (global->switcheroo_control, "GPUs", gpus);
-  g_object_notify (G_OBJECT (global), "switcheroo-control");
+  g_object_notify_by_pspec (G_OBJECT (global), props[PROP_SWITCHEROO_CONTROL]);
 }
 
 static void
@@ -174,7 +177,7 @@ switcheroo_control_ready_cb (GObject      *source_object,
   cached_props = g_dbus_proxy_get_cached_property_names (global->switcheroo_control);
   if (cached_props != NULL && g_strv_contains ((const gchar * const *) cached_props, "GPUs"))
     {
-      g_object_notify (G_OBJECT (global), "switcheroo-control");
+      g_object_notify_by_pspec (G_OBJECT (global), props[PROP_SWITCHEROO_CONTROL]);
       return;
     }
   /* Delay property notification until we have all the properties gathered */
@@ -210,10 +213,26 @@ shell_global_set_property(GObject         *object,
       global->session_mode = g_ascii_strdown (g_value_get_string (value), -1);
       break;
     case PROP_FRAME_TIMESTAMPS:
-      global->frame_timestamps = g_value_get_boolean (value);
+      {
+        gboolean enable = g_value_get_boolean (value);
+
+        if (global->frame_timestamps != enable)
+          {
+            global->frame_timestamps = enable;
+            g_object_notify_by_pspec (object, props[PROP_FRAME_TIMESTAMPS]);
+          }
+      }
       break;
     case PROP_FRAME_FINISH_TIMESTAMP:
-      global->frame_finish_timestamp = g_value_get_boolean (value);
+      {
+        gboolean enable = g_value_get_boolean (value);
+
+        if (global->frame_finish_timestamp != enable)
+          {
+            global->frame_finish_timestamp = enable;
+            g_object_notify_by_pspec (object, props[PROP_FRAME_FINISH_TIMESTAMP]);
+          }
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -331,7 +350,7 @@ switcheroo_vanished_cb (GDBusConnection *connection,
 
   g_debug ("switcheroo-control vanished");
   g_clear_object (&global->switcheroo_control);
-  g_object_notify (G_OBJECT (global), "switcheroo-control");
+  g_object_notify_by_pspec (G_OBJECT (global), props[PROP_SWITCHEROO_CONTROL]);
 }
 
 static void
@@ -489,145 +508,140 @@ shell_global_class_init (ShellGlobalClass *klass)
                     NULL, NULL, NULL,
                     G_TYPE_NONE, 0);
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_SESSION_MODE,
-                                   g_param_spec_string ("session-mode",
-                                                        "Session Mode",
-                                                        "The session mode to use",
-                                                        "user",
-                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+  props[PROP_SESSION_MODE] =
+    g_param_spec_string ("session-mode",
+                         "Session Mode",
+                         "The session mode to use",
+                         "user",
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_SCREEN_WIDTH,
-                                   g_param_spec_int ("screen-width",
-                                                     "Screen Width",
-                                                     "Screen width, in pixels",
-                                                     0, G_MAXINT, 1,
-                                                     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  props[PROP_SCREEN_WIDTH] =
+    g_param_spec_int ("screen-width",
+                      "Screen Width",
+                      "Screen width, in pixels",
+                      0, G_MAXINT, 1,
+                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_SCREEN_HEIGHT,
-                                   g_param_spec_int ("screen-height",
-                                                     "Screen Height",
-                                                     "Screen height, in pixels",
-                                                     0, G_MAXINT, 1,
-                                                     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_BACKEND,
-                                   g_param_spec_object ("backend",
-                                                        "Backend",
-                                                        "MetaBackend object",
-                                                        META_TYPE_BACKEND,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_CONTEXT,
-                                   g_param_spec_object ("context",
-                                                        "Context",
-                                                        "MetaContext object",
-                                                        META_TYPE_CONTEXT,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_DISPLAY,
-                                   g_param_spec_object ("display",
-                                                        "Display",
-                                                        "Metacity display object for the shell",
-                                                        META_TYPE_DISPLAY,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  props[PROP_SCREEN_HEIGHT] =
+    g_param_spec_int ("screen-height",
+                      "Screen Height",
+                      "Screen height, in pixels",
+                      0, G_MAXINT, 1,
+                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_WORKSPACE_MANAGER,
-                                   g_param_spec_object ("workspace-manager",
-                                                        "Workspace manager",
-                                                        "Workspace manager",
-                                                        META_TYPE_WORKSPACE_MANAGER,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  props[PROP_BACKEND] =
+    g_param_spec_object ("backend",
+                         "Backend",
+                         "MetaBackend object",
+                         META_TYPE_BACKEND,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_STAGE,
-                                   g_param_spec_object ("stage",
-                                                        "Stage",
-                                                        "Stage holding the desktop scene graph",
-                                                        CLUTTER_TYPE_ACTOR,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_WINDOW_GROUP,
-                                   g_param_spec_object ("window-group",
-                                                        "Window Group",
-                                                        "Actor holding window actors",
-                                                        CLUTTER_TYPE_ACTOR,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  props[PROP_CONTEXT] =
+    g_param_spec_object ("context",
+                         "Context",
+                         "MetaContext object",
+                         META_TYPE_CONTEXT,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-  g_object_class_install_property (gobject_class,
-                                     PROP_TOP_WINDOW_GROUP,
-                                     g_param_spec_object ("top-window-group",
-                                                          "Top Window Group",
-                                                          "Actor holding override-redirect windows",
-                                                          CLUTTER_TYPE_ACTOR,
-                                                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  props[PROP_DISPLAY] =
+    g_param_spec_object ("display",
+                         "Display",
+                         "Metacity display object for the shell",
+                         META_TYPE_DISPLAY,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_WINDOW_MANAGER,
-                                   g_param_spec_object ("window-manager",
-                                                        "Window Manager",
-                                                        "Window management interface",
-                                                        SHELL_TYPE_WM,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_SETTINGS,
-                                   g_param_spec_object ("settings",
-                                                        "Settings",
-                                                        "GSettings instance for gnome-shell configuration",
-                                                        G_TYPE_SETTINGS,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_DATADIR,
-                                   g_param_spec_string ("datadir",
-                                                        "Data directory",
-                                                        "Directory containing gnome-shell data files",
-                                                        NULL,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_IMAGEDIR,
-                                   g_param_spec_string ("imagedir",
-                                                        "Image directory",
-                                                        "Directory containing gnome-shell image files",
-                                                        NULL,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_USERDATADIR,
-                                   g_param_spec_string ("userdatadir",
-                                                        "User data directory",
-                                                        "Directory containing gnome-shell user data",
-                                                        NULL,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_FOCUS_MANAGER,
-                                   g_param_spec_object ("focus-manager",
-                                                        "Focus manager",
-                                                        "The shell's StFocusManager",
-                                                        ST_TYPE_FOCUS_MANAGER,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_FRAME_TIMESTAMPS,
-                                   g_param_spec_boolean ("frame-timestamps",
-                                                         "Frame Timestamps",
-                                                         "Whether to log frame timestamps in the performance log",
-                                                         FALSE,
-                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_FRAME_FINISH_TIMESTAMP,
-                                   g_param_spec_boolean ("frame-finish-timestamp",
-                                                         "Frame Finish Timestamps",
-                                                         "Whether at the end of a frame to call glFinish and log paintCompletedTimestamp",
-                                                         FALSE,
-                                                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (gobject_class,
-                                   PROP_SWITCHEROO_CONTROL,
-                                   g_param_spec_object ("switcheroo-control",
-                                                        "switcheroo-control",
-                                                        "D-Bus Proxy for switcheroo-control daemon",
-                                                        G_TYPE_DBUS_PROXY,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  props[PROP_WORKSPACE_MANAGER] =
+    g_param_spec_object ("workspace-manager",
+                         "Workspace manager",
+                         "Workspace manager",
+                         META_TYPE_WORKSPACE_MANAGER,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_STAGE] =
+    g_param_spec_object ("stage",
+                         "Stage",
+                         "Stage holding the desktop scene graph",
+                         CLUTTER_TYPE_ACTOR,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_WINDOW_GROUP] =
+    g_param_spec_object ("window-group",
+                         "Window Group",
+                         "Actor holding window actors",
+                         CLUTTER_TYPE_ACTOR,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_TOP_WINDOW_GROUP] =
+    g_param_spec_object ("top-window-group",
+                         "Top Window Group",
+                         "Actor holding override-redirect windows",
+                         CLUTTER_TYPE_ACTOR,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_WINDOW_MANAGER] =
+    g_param_spec_object ("window-manager",
+                         "Window Manager",
+                         "Window management interface",
+                         SHELL_TYPE_WM,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_SETTINGS] =
+    g_param_spec_object ("settings",
+                         "Settings",
+                         "GSettings instance for gnome-shell configuration",
+                         G_TYPE_SETTINGS,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_DATADIR] =
+    g_param_spec_string ("datadir",
+                         "Data directory",
+                         "Directory containing gnome-shell data files",
+                         NULL,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_IMAGEDIR] =
+    g_param_spec_string ("imagedir",
+                         "Image directory",
+                         "Directory containing gnome-shell image files",
+                         NULL,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_USERDATADIR] =
+    g_param_spec_string ("userdatadir",
+                         "User data directory",
+                         "Directory containing gnome-shell user data",
+                         NULL,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_FOCUS_MANAGER] =
+    g_param_spec_object ("focus-manager",
+                         "Focus manager",
+                         "The shell's StFocusManager",
+                         ST_TYPE_FOCUS_MANAGER,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  props[PROP_FRAME_TIMESTAMPS] =
+    g_param_spec_boolean ("frame-timestamps",
+                          "Frame Timestamps",
+                          "Whether to log frame timestamps in the performance log",
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  props[PROP_FRAME_FINISH_TIMESTAMP] =
+    g_param_spec_boolean ("frame-finish-timestamp",
+                          "Frame Finish Timestamps",
+                          "Whether at the end of a frame to call glFinish and log paintCompletedTimestamp",
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  props[PROP_SWITCHEROO_CONTROL] =
+    g_param_spec_object ("switcheroo-control",
+                         "switcheroo-control",
+                         "D-Bus Proxy for switcheroo-control daemon",
+                         G_TYPE_DBUS_PROXY,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_properties (gobject_class, N_PROPS, props);
 }
 
 /*
@@ -707,9 +721,6 @@ focus_window_changed (MetaDisplay *display,
 {
   ShellGlobal *global = user_data;
 
-  if (global->has_modal)
-    return;
-
   /* If the stage window became unfocused, drop the key focus
    * on Clutter's side. */
   if (!meta_stage_is_focused (global->meta_display))
@@ -735,9 +746,6 @@ static void
 sync_stage_window_focus (ShellGlobal *global)
 {
   ClutterActor *actor;
-
-  if (global->has_modal)
-    return;
 
   actor = get_key_focused_actor (global);
 
@@ -767,10 +775,7 @@ sync_input_region (ShellGlobal *global)
   MetaDisplay *display = global->meta_display;
   MetaX11Display *x11_display = meta_display_get_x11_display (display);
 
-  if (global->has_modal)
-    meta_x11_display_set_stage_input_region (x11_display, None);
-  else
-    meta_x11_display_set_stage_input_region (x11_display, global->input_region);
+  meta_x11_display_set_stage_input_region (x11_display, global->input_region);
 }
 
 /**
@@ -867,7 +872,7 @@ global_stage_notify_width (GObject    *gobject,
 {
   ShellGlobal *global = SHELL_GLOBAL (data);
 
-  g_object_notify (G_OBJECT (global), "screen-width");
+  g_object_notify_by_pspec (G_OBJECT (global), props[PROP_SCREEN_WIDTH]);
 }
 
 static void
@@ -877,7 +882,7 @@ global_stage_notify_height (GObject    *gobject,
 {
   ShellGlobal *global = SHELL_GLOBAL (data);
 
-  g_object_notify (G_OBJECT (global), "screen-height");
+  g_object_notify_by_pspec (G_OBJECT (global), props[PROP_SCREEN_HEIGHT]);
 }
 
 static gboolean
@@ -1076,74 +1081,6 @@ _shell_global_get_gjs_context (ShellGlobal *global)
   return global->js_context;
 }
 
-/**
- * shell_global_begin_modal:
- * @global: a #ShellGlobal
- *
- * Grabs the keyboard and mouse to the stage window. The stage will
- * receive all keyboard and mouse events until shell_global_end_modal()
- * is called. This is used to implement "modes" for the shell, such as the
- * overview mode or the "looking glass" debug overlay, that block
- * application and normal key shortcuts.
- *
- * Returns: %TRUE if we successfully entered the mode. %FALSE if we couldn't
- *  enter the mode. Failure may occur because an application has the pointer
- *  or keyboard grabbed, because Mutter is in a mode itself like moving a
- *  window or alt-Tab window selection, or because shell_global_begin_modal()
- *  was previously called.
- */
-gboolean
-shell_global_begin_modal (ShellGlobal       *global,
-                          guint32           timestamp,
-                          MetaModalOptions  options)
-{
-  if (!meta_display_get_compositor (global->meta_display))
-    return FALSE;
-
-  /* Make it an error to call begin_modal while we already
-   * have a modal active. */
-  if (global->has_modal)
-    return FALSE;
-
-  global->has_modal = meta_plugin_begin_modal (global->plugin, options, timestamp);
-  if (!meta_is_wayland_compositor ())
-    sync_input_region (global);
-  return global->has_modal;
-}
-
-/**
- * shell_global_end_modal:
- * @global: a #ShellGlobal
- *
- * Undoes the effect of shell_global_begin_modal().
- */
-void
-shell_global_end_modal (ShellGlobal *global,
-                        guint32      timestamp)
-{
-  if (!meta_display_get_compositor (global->meta_display))
-    return;
-
-  if (!global->has_modal)
-    return;
-
-  meta_plugin_end_modal (global->plugin, timestamp);
-  global->has_modal = FALSE;
-
-  /* If the stage window is unfocused, ensure that there's no
-   * actor focused on Clutter's side. */
-  if (!meta_stage_is_focused (global->meta_display))
-    clutter_stage_set_key_focus (global->stage, NULL);
-
-  /* An actor dropped key focus. Focus the default window. */
-  else if (get_key_focused_actor (global) && meta_stage_is_focused (global->meta_display))
-    meta_display_focus_default_window (global->meta_display,
-                                       get_current_time_maybe_roundtrip (global));
-
-  if (!meta_is_wayland_compositor ())
-    sync_input_region (global);
-}
-
 /* Code to close all file descriptors before we exec; copied from gspawn.c in GLib.
  *
  * Authors: Padraig O'Briain, Matthias Clasen, Lennart Poettering
@@ -1244,6 +1181,7 @@ shell_global_reexec_self (ShellGlobal *global)
 {
   GPtrArray *arr;
   gsize len;
+  MetaContext *meta_context;
 
 #if defined __linux__ || defined __sun
   char *buf;
@@ -1319,6 +1257,9 @@ shell_global_reexec_self (ShellGlobal *global)
    * objects.
    */
   pre_exec_close_fds ();
+
+  g_object_get (global, "context", &meta_context, NULL);
+  meta_context_restore_rlimit_nofile (meta_context, NULL);
 
   meta_display_close (shell_global_get_display (global),
                       shell_global_get_current_time (global));

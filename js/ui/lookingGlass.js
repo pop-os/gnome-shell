@@ -8,6 +8,7 @@ const System = imports.system;
 
 const History = imports.misc.history;
 const ExtensionUtils = imports.misc.extensionUtils;
+const PopupMenu = imports.ui.popupMenu;
 const ShellEntry = imports.ui.shellEntry;
 const Main = imports.ui.main;
 const JsParse = imports.misc.jsParse;
@@ -34,6 +35,15 @@ var AUTO_COMPLETE_SHOW_COMPLETION_ANIMATION_DURATION = 200;
 var AUTO_COMPLETE_GLOBAL_KEYWORDS = _getAutoCompleteGlobalKeywords();
 
 const LG_ANIMATION_TIME = 500;
+
+const CLUTTER_DEBUG_FLAG_CATEGORIES = new Map([
+    // Paint debugging can easily result in a non-responsive session
+    ['DebugFlag', { argPos: 0, exclude: ['PAINT'] }],
+    ['DrawDebugFlag', { argPos: 1, exclude: [] }],
+    // Exluded due to the only current option likely to result in shooting ones
+    // foot
+    // ['PickDebugFlag', { argPos: 2, exclude: [] }],
+]);
 
 function _getAutoCompleteGlobalKeywords() {
     const keywords = ['true', 'false', 'null', 'new'];
@@ -242,13 +252,7 @@ function objectToString(o) {
         // special case this since the default is way, way too verbose
         return '<js function>';
     } else {
-        if (o === undefined)
-            return 'undefined';
-
-        if (o === null)
-            return 'null';
-
-        return o.toString();
+        return `${o}`;
     }
 }
 
@@ -295,7 +299,7 @@ class Result extends St.BoxLayout {
         this.add(cmdTxt);
         let box = new St.BoxLayout({});
         this.add(box);
-        let resultTxt = new St.Label({ text: 'r(%d) = '.format(index) });
+        let resultTxt = new St.Label({ text: `r(${index}) = ` });
         resultTxt.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         box.add(resultTxt);
         let objLink = new ObjLink(this._lookingGlass, o);
@@ -335,7 +339,7 @@ var WindowList = GObject.registerClass({
             box.add_child(windowLink);
             let propsBox = new St.BoxLayout({ vertical: true, style: 'padding-left: 6px;' });
             box.add(propsBox);
-            propsBox.add(new St.Label({ text: 'wmclass: %s'.format(metaWindow.get_wm_class()) }));
+            propsBox.add(new St.Label({ text: `wmclass: ${metaWindow.get_wm_class()}` }));
             let app = tracker.get_window_app(metaWindow);
             if (app != null && !app.is_window_backed()) {
                 let icon = app.create_icon_texture(22);
@@ -393,7 +397,7 @@ class ObjInspector extends St.ScrollView {
         let hbox = new St.BoxLayout({ style_class: 'lg-obj-inspector-title' });
         this._container.add_actor(hbox);
         let label = new St.Label({
-            text: 'Inspecting: %s: %s'.format(typeof obj, objectToString(obj)),
+            text: `Inspecting: ${typeof obj}: ${objectToString(obj)}`,
             x_expand: true,
         });
         label.single_line_mode = true;
@@ -428,7 +432,7 @@ class ObjInspector extends St.ScrollView {
                     link = new St.Label({ text: '<error>' });
                 }
                 let box = new St.BoxLayout();
-                box.add(new St.Label({ text: '%s: '.format(propName) }));
+                box.add(new St.Label({ text: `${propName}: ` }));
                 box.add(link);
                 this._container.add_actor(box);
             }
@@ -548,12 +552,7 @@ var Inspector = GObject.registerClass({
         eventHandler.connect('scroll-event', this._onScrollEvent.bind(this));
         eventHandler.connect('motion-event', this._onMotionEvent.bind(this));
 
-        let seat = Clutter.get_default_backend().get_default_seat();
-        this._pointerDevice = seat.get_pointer();
-        this._keyboardDevice = seat.get_keyboard();
-
-        this._pointerDevice.grab(eventHandler);
-        this._keyboardDevice.grab(eventHandler);
+        this._grab = global.stage.grab(eventHandler);
 
         // this._target is the actor currently shown by the inspector.
         // this._pointerTarget is the actor directly under the pointer.
@@ -586,8 +585,10 @@ var Inspector = GObject.registerClass({
     }
 
     _close() {
-        this._pointerDevice.ungrab();
-        this._keyboardDevice.ungrab();
+        if (this._grab) {
+            this._grab.dismiss();
+            this._grab = null;
+        }
         this._eventHandler.destroy();
         this._eventHandler = null;
         this.emit('closed');
@@ -658,9 +659,9 @@ var Inspector = GObject.registerClass({
             this._target = target;
         this._pointerTarget = target;
 
-        let position = '[inspect x: %d y: %d]'.format(stageX, stageY);
+        let position = `[inspect x: ${stageX} y: ${stageY}]`;
         this._displayText.text = '';
-        this._displayText.text = '%s %s'.format(position, this._target);
+        this._displayText.text = `${position} ${this._target}`;
 
         this._lookingGlass.setBorderPaintTarget(this._target);
     }
@@ -1003,6 +1004,218 @@ class ActorTreeViewer extends St.BoxLayout {
     }
 });
 
+var DebugFlag = GObject.registerClass({
+    GTypeFlags: GObject.TypeFlags.ABSTRACT,
+}, class DebugFlag extends St.Button {
+    _init(label) {
+        const box = new St.BoxLayout();
+
+        const flagLabel = new St.Label({
+            text: label,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.START,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        box.add_child(flagLabel);
+
+        this._flagSwitch = new PopupMenu.Switch(false);
+        this._stateHandler = this._flagSwitch.connect('notify::state', () => {
+            if (this._flagSwitch.state)
+                this._enable();
+            else
+                this._disable();
+        });
+
+        // Update state whenever the switch is mapped, because most debug flags
+        // don't have a way of notifying us of changes.
+        this._flagSwitch.connect('notify::mapped', () => {
+            if (!this._flagSwitch.is_mapped())
+                return;
+
+            const state = this._isEnabled();
+            if (state === this._flagSwitch.state)
+                return;
+
+            this._flagSwitch.block_signal_handler(this._stateHandler);
+            this._flagSwitch.state = state;
+            this._flagSwitch.unblock_signal_handler(this._stateHandler);
+        });
+
+        box.add_child(this._flagSwitch);
+
+        super._init({
+            style_class: 'lg-debug-flag-button',
+            can_focus: true,
+            toggleMode: true,
+            child: box,
+            label_actor: flagLabel,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+
+        this.connect('clicked', () => this._flagSwitch.toggle());
+    }
+
+    _isEnabled() {
+        throw new Error('Method not implemented');
+    }
+
+    _enable() {
+        throw new Error('Method not implemented');
+    }
+
+    _disable() {
+        throw new Error('Method not implemented');
+    }
+});
+
+
+var ClutterDebugFlag = GObject.registerClass(
+class ClutterDebugFlag extends DebugFlag {
+    _init(categoryName, flagName) {
+        super._init(flagName);
+
+        this._argPos = CLUTTER_DEBUG_FLAG_CATEGORIES.get(categoryName).argPos;
+        this._enumValue = Clutter[categoryName][flagName];
+    }
+
+    _isEnabled() {
+        const enabledFlags = Meta.get_clutter_debug_flags();
+        return !!(enabledFlags[this._argPos] & this._enumValue);
+    }
+
+    _getArgs() {
+        const args = [0, 0, 0];
+        args[this._argPos] = this._enumValue;
+        return args;
+    }
+
+    _enable() {
+        Meta.add_clutter_debug_flags(...this._getArgs());
+    }
+
+    _disable() {
+        Meta.remove_clutter_debug_flags(...this._getArgs());
+    }
+});
+
+var MutterPaintDebugFlag = GObject.registerClass(
+class MutterPaintDebugFlag extends DebugFlag {
+    _init(flagName) {
+        super._init(flagName);
+
+        this._enumValue = Meta.DebugPaintFlag[flagName];
+    }
+
+    _isEnabled() {
+        return !!(Meta.get_debug_paint_flags() & this._enumValue);
+    }
+
+    _enable() {
+        Meta.add_debug_paint_flag(this._enumValue);
+    }
+
+    _disable() {
+        Meta.remove_debug_paint_flag(this._enumValue);
+    }
+});
+
+var MutterTopicDebugFlag = GObject.registerClass(
+class MutterTopicDebugFlag extends DebugFlag {
+    _init(flagName) {
+        super._init(flagName);
+
+        this._enumValue = Meta.DebugTopic[flagName];
+    }
+
+    _isEnabled() {
+        return Meta.is_topic_enabled(this._enumValue);
+    }
+
+    _enable() {
+        Meta.add_verbose_topic(this._enumValue);
+    }
+
+    _disable() {
+        Meta.remove_verbose_topic(this._enumValue);
+    }
+});
+
+var UnsafeModeDebugFlag = GObject.registerClass(
+class UnsafeModeDebugFlag extends DebugFlag {
+    _init() {
+        super._init('unsafe-mode');
+    }
+
+    _isEnabled() {
+        return global.context.unsafe_mode;
+    }
+
+    _enable() {
+        global.context.unsafe_mode = true;
+    }
+
+    _disable() {
+        global.context.unsafe_mode = false;
+    }
+});
+
+var DebugFlags = GObject.registerClass(
+class DebugFlags extends St.BoxLayout {
+    _init() {
+        super._init({
+            name: 'lookingGlassDebugFlags',
+            vertical: true,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+
+        // Clutter debug flags
+        for (const [categoryName, props] of CLUTTER_DEBUG_FLAG_CATEGORIES.entries()) {
+            this._addHeader(`Clutter${categoryName}`);
+            for (const flagName of this._getFlagNames(Clutter[categoryName])) {
+                if (props.exclude.includes(flagName))
+                    continue;
+                this.add_child(new ClutterDebugFlag(categoryName, flagName));
+            }
+        }
+
+        // Meta paint flags
+        this._addHeader('MetaDebugPaintFlag');
+        for (const flagName of this._getFlagNames(Meta.DebugPaintFlag))
+            this.add_child(new MutterPaintDebugFlag(flagName));
+
+        // Meta debug topics
+        this._addHeader('MetaDebugTopic');
+        for (const flagName of this._getFlagNames(Meta.DebugTopic))
+            this.add_child(new MutterTopicDebugFlag(flagName));
+
+        // MetaContext::unsafe-mode
+        this._addHeader('MetaContext');
+        this.add_child(new UnsafeModeDebugFlag());
+    }
+
+    _addHeader(title) {
+        const header = new St.Label({
+            text: title,
+            style_class: 'lg-debug-flags-header',
+            x_align: Clutter.ActorAlign.START,
+        });
+        this.add_child(header);
+    }
+
+    *_getFlagNames(enumObject) {
+        for (const flagName of Object.getOwnPropertyNames(enumObject)) {
+            if (typeof enumObject[flagName] !== 'number')
+                continue;
+
+            if (enumObject[flagName] <= 0)
+                continue;
+
+            yield flagName;
+        }
+    }
+});
+
+
 var LookingGlass = GObject.registerClass(
 class LookingGlass extends St.BoxLayout {
     _init() {
@@ -1045,14 +1258,17 @@ class LookingGlass extends St.BoxLayout {
 
         let toolbar = new St.BoxLayout({ name: 'Toolbar' });
         this.add_actor(toolbar);
-        let inspectIcon = new St.Icon({ icon_name: 'find-location-symbolic',
-                                        icon_size: 24 });
-        toolbar.add_actor(inspectIcon);
-        inspectIcon.reactive = true;
-        inspectIcon.connect('button-press-event', () => {
+        const inspectButton = new St.Button({
+            style_class: 'lg-toolbar-button',
+            child: new St.Icon({
+                icon_name: 'find-location-symbolic',
+            }),
+        });
+        toolbar.add_actor(inspectButton);
+        inspectButton.connect('clicked', () => {
             let inspector = new Inspector(this);
             inspector.connect('target', (i, target, stageX, stageY) => {
-                this._pushResult('inspect(%d, %d)'.format(Math.round(stageX), Math.round(stageY)), target);
+                this._pushResult(`inspect(${Math.round(stageX)}, ${Math.round(stageY)})`, target);
             });
             inspector.connect('closed', () => {
                 this.show();
@@ -1062,21 +1278,24 @@ class LookingGlass extends St.BoxLayout {
             return Clutter.EVENT_STOP;
         });
 
-        let gcIcon = new St.Icon({ icon_name: 'user-trash-full-symbolic',
-                                   icon_size: 24 });
-        toolbar.add_actor(gcIcon);
-        gcIcon.reactive = true;
-        gcIcon.connect('button-press-event', () => {
-            gcIcon.icon_name = 'user-trash-symbolic';
+        const gcButton = new St.Button({
+            style_class: 'lg-toolbar-button',
+            child: new St.Icon({
+                icon_name: 'user-trash-full-symbolic',
+            }),
+        });
+        toolbar.add_actor(gcButton);
+        gcButton.connect('clicked', () => {
+            gcButton.child.icon_name = 'user-trash-symbolic';
             System.gc();
             this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-                gcIcon.icon_name = 'user-trash-full-symbolic';
+                gcButton.child.icon_name = 'user-trash-full-symbolic';
                 this._timeoutId = 0;
                 return GLib.SOURCE_REMOVE;
             });
             GLib.Source.set_name_by_id(
                 this._timeoutId,
-                '[gnome-shell] gcIcon.icon_name = \'user-trash-full-symbolic\''
+                '[gnome-shell] gcButton.child.icon_name = \'user-trash-full-symbolic\''
             );
             return Clutter.EVENT_PROPAGATE;
         });
@@ -1124,6 +1343,9 @@ class LookingGlass extends St.BoxLayout {
         this._actorTreeViewer = new ActorTreeViewer(this);
         notebook.appendPage('Actors', this._actorTreeViewer);
 
+        this._debugFlags = new DebugFlags();
+        notebook.appendPage('Flags', this._debugFlags);
+
         this._entry.clutter_text.connect('activate', (o, _e) => {
             // Hide any completions we are currently showing
             this._hideCompletions();
@@ -1160,8 +1382,9 @@ class LookingGlass extends St.BoxLayout {
         // monospace font to be bold/oblique/etc. Could easily be added here.
         let size = fontDesc.get_size() / 1024.;
         let unit = fontDesc.get_size_is_absolute() ? 'px' : 'pt';
-        this.style = 'font-size: %d%s; font-family: "%s";'.format(
-            size, unit, fontDesc.get_family());
+        this.style = `
+            font-size: ${size}${unit};
+            font-family: "${fontDesc.get_family()}";`;
     }
 
     setBorderPaintTarget(obj) {
@@ -1244,7 +1467,7 @@ class LookingGlass extends St.BoxLayout {
             return;
 
         let lines = command.split(';');
-        lines.push('return %s'.format(lines.pop()));
+        lines.push(`return ${lines.pop()}`);
 
         let fullCmd = commandHeader + lines.join(';');
 
@@ -1252,7 +1475,7 @@ class LookingGlass extends St.BoxLayout {
         try {
             resultObj = Function(fullCmd)();
         } catch (e) {
-            resultObj = '<exception %s>'.format(e.toString());
+            resultObj = `<exception ${e}>`;
         }
 
         this._pushResult(command, resultObj);
@@ -1271,7 +1494,7 @@ class LookingGlass extends St.BoxLayout {
         try {
             return this._resultsArea.get_child_at_index(idx - this._offset).o;
         } catch (e) {
-            throw new Error('Unknown result at index %d'.format(idx));
+            throw new Error(`Unknown result at index ${idx}`);
         }
     }
 
@@ -1338,9 +1561,13 @@ class LookingGlass extends St.BoxLayout {
         if (this._open)
             return;
 
-        if (!Main.pushModal(this._entry, { actionMode: Shell.ActionMode.LOOKING_GLASS }))
+        let grab = Main.pushModal(this, { actionMode: Shell.ActionMode.LOOKING_GLASS });
+        if (grab.get_seat_state() === Clutter.GrabState.NONE) {
+            Main.popModal(grab);
             return;
+        }
 
+        this._grab = grab;
         this._notebook.selectIndex(0);
         this.show();
         this._open = true;
@@ -1358,6 +1585,7 @@ class LookingGlass extends St.BoxLayout {
         });
 
         this._windowList.update();
+        this._entry.grab_key_focus();
     }
 
     close() {
@@ -1379,7 +1607,8 @@ class LookingGlass extends St.BoxLayout {
             duration,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
-                Main.popModal(this._entry);
+                Main.popModal(this._grab);
+                this._grab = null;
                 this.hide();
             },
         });

@@ -69,9 +69,9 @@ var GeoclueAgent = GObject.registerClass({
         super._init();
 
         this._settings = new Gio.Settings({ schema_id: LOCATION_SCHEMA });
-        this._settings.connect('changed::%s'.format(ENABLED),
+        this._settings.connect(`changed::${ENABLED}`,
             () => this.notify('enabled'));
-        this._settings.connect('changed::%s'.format(MAX_ACCURACY_LEVEL),
+        this._settings.connect(`changed::${MAX_ACCURACY_LEVEL}`,
             this._onMaxAccuracyLevelChanged.bind(this));
 
         this._agent = Gio.DBusExportedObject.wrapJSObject(AgentIface, this);
@@ -232,13 +232,16 @@ class Indicator extends PanelMenu.SystemIndicator {
             GObject.BindingFlags.SYNC_CREATE);
 
         this._item.label.text = _('Location Enabled');
-        this._onOffAction = this._item.menu.addAction(_('Disable'), this._onOnOffAction.bind(this));
+        this._onOffAction = this._item.menu.addAction(_('Disable'),
+            () => (this._agent.enabled = !this._agent.enabled));
         this._item.menu.addSettingsAction(_('Privacy Settings'), 'gnome-location-panel.desktop');
 
         this.menu.addMenuItem(this._item);
 
-        this._inUseId = this._agent.connect('notify::in-use', this._updateMenuLabels.bind(this));
-        this._maxAccuracyId = this._agent.connect('notify::max-accuracy-level', this._updateMenuLabels.bind(this));
+        this._agentSignals = [
+            this._agent.connect('notify::enabled', () => this._sync()),
+            this._agent.connect('notify::in-use', () => this._sync()),
+        ];
 
         this.connect('destroy', this._onDestroy.bind(this));
 
@@ -247,12 +250,8 @@ class Indicator extends PanelMenu.SystemIndicator {
     }
 
     _onDestroy() {
-        this._agent.disconnect(this._inUseId);
-        this._agent.disconnect(this._maxAccuracyId);
-    }
-
-    _onOnOffAction() {
-        this.enabled = !this.enabled;
+        this._agentSignals.forEach(id => this._agent.disconnect(id));
+        this._agentSignals = [];
     }
 
     _onSessionUpdated() {
@@ -260,8 +259,8 @@ class Indicator extends PanelMenu.SystemIndicator {
         this.menu.setSensitive(sensitive);
     }
 
-    _updateMenuLabels() {
-        if (this.enabled) {
+    _sync() {
+        if (this._agent.enabled) {
             this._item.label.text = this._indicator.visible
                 ? _('Location In Use')
                 : _('Location Enabled');
@@ -288,7 +287,7 @@ var AppAuthorizer = class {
         this._onAuthDone = onAuthDone;
 
         let appSystem = Shell.AppSystem.get_default();
-        this._app = appSystem.lookup_app('%s.desktop'.format(this.desktopId));
+        this._app = appSystem.lookup_app(`${this.desktopId}.desktop`);
         if (this._app == null || this._permStoreProxy == null) {
             this._completeAuth();
 

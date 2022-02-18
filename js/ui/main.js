@@ -6,7 +6,7 @@
             screenSaverDBus, uiGroup, magnifier, xdndHandler, keyboard,
             kbdA11yDialog, introspectService, start, pushModal, popModal,
             activateWindow, createLookingGlass, initializeDeferredWork,
-            getThemeStylesheet, setThemeStylesheet */
+            getThemeStylesheet, setThemeStylesheet, screenshotUI */
 
 const { Clutter, Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
 
@@ -35,6 +35,7 @@ const LoginManager = imports.misc.loginManager;
 const LookingGlass = imports.ui.lookingGlass;
 const NotificationDaemon = imports.ui.notificationDaemon;
 const WindowAttentionHandler = imports.ui.windowAttentionHandler;
+const Screenshot = imports.ui.screenshot;
 const ScreenShield = imports.ui.screenShield;
 const Scripting = imports.ui.scripting;
 const SessionMode = imports.ui.sessionMode;
@@ -74,6 +75,7 @@ var padOsdService = null;
 var osdWindowManager = null;
 var osdMonitorLabeler = null;
 var sessionMode = null;
+var screenshotUI = null;
 var shellAccessDialogDBusService = null;
 var shellAudioSelectionDBusService = null;
 var shellDBusService = null;
@@ -96,9 +98,10 @@ let _defaultCssStylesheet = null;
 let _cssStylesheet = null;
 let _themeResource = null;
 let _oskResource = null;
+let _iconResource = null;
 
-Gio._promisify(Gio._LocalFilePrototype, 'delete_async', 'delete_finish');
-Gio._promisify(Gio._LocalFilePrototype, 'touch_async', 'touch_finish');
+Gio._promisify(Gio.File.prototype, 'delete_async');
+Gio._promisify(Gio.File.prototype, 'touch_async');
 
 let _remoteAccessInhibited = false;
 
@@ -154,7 +157,7 @@ function start() {
     sessionMode = new SessionMode.SessionMode();
     sessionMode.connect('updated', _sessionUpdated);
 
-    St.Settings.get().connect('notify::gtk-theme', _loadDefaultStylesheet);
+    St.Settings.get().connect('notify::high-contrast', _loadDefaultStylesheet);
 
     // Initialize ParentalControlsManager before the UI
     ParentalControlsManager.getDefault();
@@ -187,6 +190,7 @@ function _initializeUI() {
     Shell.AppUsage.get_default();
 
     reloadThemeResource();
+    _loadIcons();
     _loadOskLayouts();
     _loadDefaultStylesheet();
 
@@ -216,6 +220,8 @@ function _initializeUI() {
 
     inputMethod = new InputMethod.InputMethod();
     Clutter.get_default_backend().set_input_method(inputMethod);
+
+    screenshotUI = new Screenshot.ScreenshotUI();
 
     messageTray = new MessageTray.MessageTray();
     panel = new Panel.Panel();
@@ -297,7 +303,7 @@ function _initializeUI() {
         if (sessionMode.currentMode != 'gdm' &&
             sessionMode.currentMode != 'initial-setup') {
             GLib.log_structured(LOG_DOMAIN, GLib.LogLevelFlags.LEVEL_MESSAGE, {
-                'MESSAGE': 'GNOME Shell started at %s'.format(_startDate),
+                'MESSAGE': `GNOME Shell started at ${_startDate}`,
                 'MESSAGE_ID': GNOMESHELL_STARTED_MESSAGE_ID,
             });
         }
@@ -319,7 +325,7 @@ function _initializeUI() {
         let perfModuleName = GLib.getenv("SHELL_PERF_MODULE");
         if (perfModuleName) {
             let perfOutput = GLib.getenv("SHELL_PERF_OUTPUT");
-            let module = eval('imports.perf.%s;'.format(perfModuleName));
+            let module = eval(`imports.perf.${perfModuleName};`);
             Scripting.runPerfScript(module, perfOutput);
         }
     });
@@ -334,7 +340,7 @@ function _handleShowWelcomeScreen() {
 }
 
 async function _handleLockScreenWarning() {
-    const path = '%s/lock-warning-shown'.format(global.userdatadir);
+    const path = `${global.userdatadir}/lock-warning-shown`;
     const file = Gio.File.new_for_path(path);
 
     const hasLockScreen = screenShield !== null;
@@ -362,7 +368,7 @@ async function _handleLockScreenWarning() {
 function _getStylesheet(name) {
     let stylesheet;
 
-    stylesheet = Gio.File.new_for_uri('resource:///org/gnome/shell/theme/%s'.format(name));
+    stylesheet = Gio.File.new_for_uri(`resource:///org/gnome/shell/theme/${name}`);
     if (stylesheet.query_exists(null))
         return stylesheet;
 
@@ -374,7 +380,7 @@ function _getStylesheet(name) {
             return stylesheet;
     }
 
-    stylesheet = Gio.File.new_for_path('%s/theme/%s'.format(global.datadir, name));
+    stylesheet = Gio.File.new_for_path(`${global.datadir}/theme/${name}`);
     if (stylesheet.query_exists(null))
         return stylesheet;
 
@@ -385,9 +391,8 @@ function _getDefaultStylesheet() {
     let stylesheet = null;
     let name = sessionMode.stylesheetName;
 
-    // Look for a high-contrast variant first when using GTK+'s HighContrast
-    // theme
-    if (St.Settings.get().gtk_theme == 'HighContrast')
+    // Look for a high-contrast variant first
+    if (St.Settings.get().high_contrast)
         stylesheet = _getStylesheet(name.replace('.css', '-high-contrast.css'));
 
     if (stylesheet == null)
@@ -432,13 +437,19 @@ function reloadThemeResource() {
     if (_themeResource)
         _themeResource._unregister();
 
-    _themeResource = Gio.Resource.load('%s/%s'.format(global.datadir,
-        sessionMode.themeResourceName));
+    _themeResource = Gio.Resource.load(
+        `${global.datadir}/${sessionMode.themeResourceName}`);
     _themeResource._register();
 }
 
+/** @private */
+function _loadIcons() {
+    _iconResource = Gio.Resource.load(`${global.datadir}/gnome-shell-icons.gresource`);
+    _iconResource._register();
+}
+
 function _loadOskLayouts() {
-    _oskResource = Gio.Resource.load('%s/gnome-shell-osk-layouts.gresource'.format(global.datadir));
+    _oskResource = Gio.Resource.load(`${global.datadir}/gnome-shell-osk-layouts.gresource`);
     _oskResource._register();
 }
 
@@ -457,7 +468,7 @@ function loadTheme() {
     });
 
     if (theme.default_stylesheet == null)
-        throw new Error("No valid stylesheet found for '%s'".format(sessionMode.stylesheetName));
+        throw new Error(`No valid stylesheet found for '${sessionMode.stylesheetName}'`);
 
     if (previousTheme) {
         let customStylesheets = previousTheme.get_custom_stylesheets();
@@ -492,16 +503,24 @@ function notify(msg, details) {
 function notifyError(msg, details) {
     // Also print to stderr so it's logged somewhere
     if (details)
-        log('error: %s: %s'.format(msg, details));
+        log(`error: ${msg}: ${details}`);
     else
-        log('error: %s'.format(msg));
+        log(`error: ${msg}`);
 
     notify(msg, details);
 }
 
-function _findModal(actor) {
+/**
+ * _findModal:
+ *
+ * @param {Clutter.Grab} grab - grab
+ *
+ * Private function.
+ *
+ */
+function _findModal(grab) {
     for (let i = 0; i < modalActorFocusStack.length; i++) {
-        if (modalActorFocusStack[i].actor == actor)
+        if (modalActorFocusStack[i].grab === grab)
             return i;
     }
     return -1;
@@ -533,26 +552,23 @@ function _findModal(actor) {
  *                global keybindings; the default of NONE will filter
  *                out all keybindings
  *
- * @returns {bool}: true iff we successfully acquired a grab or already had one
+ * @returns {Clutter.Grab}: the grab handle created
  */
 function pushModal(actor, params) {
     params = Params.parse(params, { timestamp: global.get_current_time(),
                                     options: 0,
                                     actionMode: Shell.ActionMode.NONE });
 
-    if (modalCount == 0) {
-        if (!global.begin_modal(params.timestamp, params.options)) {
-            log('pushModal: invocation of begin_modal failed');
-            return false;
-        }
+    let grab = global.stage.grab(actor);
+
+    if (modalCount === 0)
         Meta.disable_unredirect_for_display(global.display);
-    }
 
     modalCount += 1;
     let actorDestroyId = actor.connect('destroy', () => {
-        let index = _findModal(actor);
+        let index = _findModal(grab);
         if (index >= 0)
-            popModal(actor);
+            popModal(grab);
     });
 
     let prevFocus = global.stage.get_key_focus();
@@ -567,21 +583,22 @@ function pushModal(actor, params) {
         });
     }
     modalActorFocusStack.push({ actor,
-                                destroyId: actorDestroyId,
-                                prevFocus,
-                                prevFocusDestroyId,
-                                actionMode });
+        grab,
+        destroyId: actorDestroyId,
+        prevFocus,
+        prevFocusDestroyId,
+        actionMode,
+    });
 
     actionMode = params.actionMode;
     global.stage.set_key_focus(actor);
-    return true;
+    return grab;
 }
 
 /**
  * popModal:
- * @param {Clutter.Actor} actor: the actor passed to original invocation
- *     of pushModal()
- * @param {number=} timestamp: optional timestamp
+ * @param {Clutter.Grab} grab - the grab given by pushModal()
+ * @param {number=} timestamp - optional timestamp
  *
  * Reverse the effect of pushModal(). If this invocation is undoing
  * the topmost invocation, then the focus will be restored to the
@@ -591,14 +608,13 @@ function pushModal(actor, params) {
  * initiated event. If not provided then the value of
  * global.get_current_time() is assumed.
  */
-function popModal(actor, timestamp) {
+function popModal(grab, timestamp) {
     if (timestamp == undefined)
         timestamp = global.get_current_time();
 
-    let focusIndex = _findModal(actor);
+    let focusIndex = _findModal(grab);
     if (focusIndex < 0) {
         global.stage.set_key_focus(null);
-        global.end_modal(timestamp);
         actionMode = Shell.ActionMode.NORMAL;
 
         throw new Error('incorrect pop');
@@ -608,6 +624,8 @@ function popModal(actor, timestamp) {
 
     let record = modalActorFocusStack[focusIndex];
     record.actor.disconnect(record.destroyId);
+
+    record.grab.dismiss();
 
     if (focusIndex == modalActorFocusStack.length - 1) {
         if (record.prevFocus)
@@ -646,7 +664,6 @@ function popModal(actor, timestamp) {
         return;
 
     layoutManager.modalEnded();
-    global.end_modal(timestamp);
     Meta.enable_unredirect_for_display(global.display);
     actionMode = Shell.ActionMode.NORMAL;
 }
@@ -770,7 +787,7 @@ function _queueBeforeRedraw(workId) {
  */
 function initializeDeferredWork(actor, callback) {
     // Turn into a string so we can use as an object property
-    let workId = (++_deferredWorkSequence).toString();
+    let workId = `${++_deferredWorkSequence}`;
     _deferredWorkData[workId] = { actor,
                                   callback };
     actor.connect('notify::mapped', () => {
@@ -800,7 +817,7 @@ function initializeDeferredWork(actor, callback) {
 function queueDeferredWork(workId) {
     let data = _deferredWorkData[workId];
     if (!data) {
-        let message = 'Invalid work id %d'.format(workId);
+        let message = `Invalid work id ${workId}`;
         logError(new Error(message), message);
         return;
     }

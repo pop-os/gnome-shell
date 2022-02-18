@@ -105,6 +105,8 @@ struct _StEntryPrivate
 
   gboolean      has_ibeam;
 
+  StShadow     *shadow_spec;
+
   CoglPipeline *text_shadow_material;
   gfloat        shadow_width;
   gfloat        shadow_height;
@@ -242,12 +244,22 @@ st_entry_style_changed (StWidget *self)
 {
   StEntryPrivate *priv = ST_ENTRY_PRIV (self);
   StThemeNode *theme_node;
+  StShadow *shadow_spec;
   ClutterColor color;
   gdouble size;
 
-  cogl_clear_object (&priv->text_shadow_material);
-
   theme_node = st_widget_get_theme_node (self);
+
+  shadow_spec = st_theme_node_get_text_shadow (theme_node);
+  if (!priv->shadow_spec || !shadow_spec ||
+      !st_shadow_equal (shadow_spec, priv->shadow_spec))
+    {
+      g_clear_pointer (&priv->text_shadow_material, cogl_object_unref);
+
+      g_clear_pointer (&priv->shadow_spec, st_shadow_unref);
+      if (shadow_spec)
+        priv->shadow_spec = st_shadow_ref (shadow_spec);
+    }
 
   _st_set_text_from_style (CLUTTER_TEXT (priv->entry), theme_node);
 
@@ -539,7 +551,11 @@ static void
 clutter_text_cursor_changed (ClutterText *text,
                              StEntry     *entry)
 {
+  StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
+
   st_entry_update_hint_visibility (entry);
+
+  g_clear_pointer (&priv->text_shadow_material, cogl_object_unref);
 }
 
 static void
@@ -556,6 +572,16 @@ clutter_text_changed_cb (GObject    *object,
   cogl_clear_object (&priv->text_shadow_material);
 
   g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_TEXT]);
+}
+
+static void
+invalidate_shadow_pipeline (GObject    *object,
+                            GParamSpec *pspec,
+                            StEntry    *entry)
+{
+  StEntryPrivate *priv = ST_ENTRY_PRIV (entry);
+
+  g_clear_pointer (&priv->text_shadow_material, cogl_object_unref);
 }
 
 static void
@@ -785,13 +811,11 @@ st_entry_paint (ClutterActor        *actor,
                 ClutterPaintContext *paint_context)
 {
   StEntryPrivate *priv = ST_ENTRY_PRIV (actor);
-  StThemeNode *theme_node = st_widget_get_theme_node (ST_WIDGET (actor));
-  StShadow *shadow_spec = st_theme_node_get_text_shadow (theme_node);
   ClutterActorClass *parent_class;
 
   st_widget_paint_background (ST_WIDGET (actor), paint_context);
 
-  if (shadow_spec)
+  if (priv->shadow_spec)
     {
       ClutterActorBox allocation;
       float width, height;
@@ -807,7 +831,7 @@ st_entry_paint (ClutterActor        *actor,
 
           cogl_clear_object (&priv->text_shadow_material);
 
-          material = _st_create_shadow_pipeline_from_actor (shadow_spec,
+          material = _st_create_shadow_pipeline_from_actor (priv->shadow_spec,
                                                             priv->entry);
 
           priv->shadow_width = width;
@@ -820,7 +844,7 @@ st_entry_paint (ClutterActor        *actor,
           CoglFramebuffer *framebuffer =
             clutter_paint_context_get_framebuffer (paint_context);
 
-          _st_paint_shadow_with_opacity (shadow_spec,
+          _st_paint_shadow_with_opacity (priv->shadow_spec,
                                          framebuffer,
                                          priv->text_shadow_material,
                                          &allocation,
@@ -903,7 +927,7 @@ st_entry_class_init (StEntryClass *klass)
                          "Primary Icon",
                          "Primary Icon actor",
                          CLUTTER_TYPE_ACTOR,
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StEntry:secondary-icon:
@@ -915,7 +939,7 @@ st_entry_class_init (StEntryClass *klass)
                          "Secondary Icon",
                          "Secondary Icon actor",
                          CLUTTER_TYPE_ACTOR,
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StEntry:hint-text:
@@ -929,7 +953,7 @@ st_entry_class_init (StEntryClass *klass)
                          "Text to display when the entry is not focused "
                          "and the text property is empty",
                          NULL,
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StEntry:hint-actor:
@@ -943,7 +967,7 @@ st_entry_class_init (StEntryClass *klass)
                          "An actor to display when the entry is not focused "
                          "and the text property is empty",
                          CLUTTER_TYPE_ACTOR,
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StEntry:text:
@@ -955,7 +979,7 @@ st_entry_class_init (StEntryClass *klass)
                          "Text",
                          "Text of the entry",
                          NULL,
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StEntry:input-purpose:
@@ -969,7 +993,7 @@ st_entry_class_init (StEntryClass *klass)
                        "Purpose of the text field",
                        CLUTTER_TYPE_INPUT_CONTENT_PURPOSE,
                        CLUTTER_INPUT_CONTENT_PURPOSE_NORMAL,
-                       ST_PARAM_READWRITE);
+                       ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StEntry:input-hints:
@@ -984,7 +1008,7 @@ st_entry_class_init (StEntryClass *klass)
                         "Hints for the text field behaviour",
                         CLUTTER_TYPE_INPUT_CONTENT_HINT_FLAGS,
                         0,
-                        ST_PARAM_READWRITE);
+                        ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (gobject_class, N_PROPS, props);
 
@@ -1053,6 +1077,20 @@ st_entry_init (StEntry *entry)
 
   g_signal_connect (priv->entry, "notify::text",
                     G_CALLBACK (clutter_text_changed_cb), entry);
+
+  /* These properties might get set from CSS using _st_set_text_from_style */
+  g_signal_connect (priv->entry, "notify::font-description",
+                    G_CALLBACK (invalidate_shadow_pipeline), entry);
+
+  g_signal_connect (priv->entry, "notify::attributes",
+                    G_CALLBACK (invalidate_shadow_pipeline), entry);
+
+  g_signal_connect (priv->entry, "notify::justify",
+                    G_CALLBACK (invalidate_shadow_pipeline), entry);
+
+  g_signal_connect (priv->entry, "notify::line-alignment",
+                    G_CALLBACK (invalidate_shadow_pipeline), entry);
+
 
   priv->spacing = 6.0f;
 
@@ -1170,6 +1208,7 @@ st_entry_set_hint_text (StEntry     *entry,
   st_widget_add_style_class_name (label, "hint-text");
 
   st_entry_set_hint_actor (ST_ENTRY (entry), CLUTTER_ACTOR (label));
+  g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_HINT_TEXT]);
 }
 
 /**
@@ -1358,6 +1397,7 @@ st_entry_set_primary_icon (StEntry      *entry,
   priv = st_entry_get_instance_private (entry);
 
   _st_entry_set_icon (entry, &priv->primary_icon, icon);
+  g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_PRIMARY_ICON]);
 }
 
 /**
@@ -1397,6 +1437,7 @@ st_entry_set_secondary_icon (StEntry      *entry,
   priv = st_entry_get_instance_private (entry);
 
   _st_entry_set_icon (entry, &priv->secondary_icon, icon);
+  g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_SECONDARY_ICON]);
 }
 
 /**
@@ -1448,6 +1489,7 @@ st_entry_set_hint_actor (StEntry      *entry,
     }
 
   st_entry_update_hint_visibility (entry);
+  g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_HINT_ACTOR]);
 
   clutter_actor_queue_relayout (CLUTTER_ACTOR (entry));
 }

@@ -162,7 +162,11 @@ var Overview = class {
         this._coverPane = new Clutter.Actor({ opacity: 0,
                                               reactive: true });
         Main.layoutManager.overviewGroup.add_child(this._coverPane);
-        this._coverPane.connect('event', () => Clutter.EVENT_STOP);
+        this._coverPane.connect('event', (_actor, event) => {
+            return event.type() === Clutter.EventType.ENTER ||
+                event.type() === Clutter.EventType.LEAVE
+                ? Clutter.EVENT_PROPAGATE : Clutter.EVENT_STOP;
+        });
         this._coverPane.hide();
 
         // XDND
@@ -386,7 +390,7 @@ var Overview = class {
             this._shown = false;
             this._visibleTarget = false;
             this.emit('hiding');
-            Main.panel.style = 'transition-duration: %dms;'.format(duration);
+            Main.panel.style = `transition-duration: ${duration}ms;`;
             onComplete = () => this._hideDone();
         } else {
             onComplete = () => this._showDone();
@@ -488,9 +492,12 @@ var Overview = class {
             let shouldBeModal = !this._inXdndDrag;
             if (shouldBeModal && !this._modal) {
                 let actionMode = Shell.ActionMode.OVERVIEW;
-                if (Main.pushModal(this._overview, { actionMode })) {
+                let grab = Main.pushModal(global.stage, { actionMode });
+                if (grab.get_seat_state() !== Clutter.GrabState.NONE) {
+                    this._grab = grab;
                     this._modal = true;
                 } else {
+                    Main.popModal(grab);
                     this.hide();
                     return false;
                 }
@@ -498,7 +505,8 @@ var Overview = class {
         } else {
             // eslint-disable-next-line no-lonely-if
             if (this._modal) {
-                Main.popModal(this._overview);
+                Main.popModal(this._grab);
+                this._grab = false;
                 this._modal = false;
             }
         }

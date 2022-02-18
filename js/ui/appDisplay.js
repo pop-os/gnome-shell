@@ -119,7 +119,7 @@ function _findBestFolderName(apps) {
     }, commonCategories);
 
     for (let category of commonCategories) {
-        const directory = '%s.directory'.format(category);
+        const directory = `${category}.directory`;
         const translated = Shell.util_get_translated_folder_name(directory);
         if (translated !== null)
             return translated;
@@ -238,8 +238,8 @@ var BaseAppView = GObject.registerClass({
         this._nextPageArrow = new St.Icon({
             style_class: 'page-navigation-arrow',
             icon_name: rtl
-                ? 'carousel-arrow-back-24-symbolic'
-                : 'carousel-arrow-next-24-symbolic',
+                ? 'carousel-arrow-previous-symbolic'
+                : 'carousel-arrow-next-symbolic',
             opacity: 0,
             reactive: false,
             visible: false,
@@ -249,8 +249,8 @@ var BaseAppView = GObject.registerClass({
         this._prevPageArrow = new St.Icon({
             style_class: 'page-navigation-arrow',
             icon_name: rtl
-                ? 'carousel-arrow-next-24-symbolic'
-                : 'carousel-arrow-back-24-symbolic',
+                ? 'carousel-arrow-next-symbolic'
+                : 'carousel-arrow-previous-symbolic',
             opacity: 0,
             reactive: false,
             visible: false,
@@ -870,7 +870,7 @@ var BaseAppView = GObject.registerClass({
         if (this._items.has(id))
             this._items.get(id).navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
         else
-            log('No such application %s'.format(id));
+            log(`No such application ${id}`);
     }
 
     selectApp(id) {
@@ -1533,7 +1533,7 @@ class AppDisplay extends BaseAppView {
 
         let folders = this._folderSettings.get_strv('folder-children');
         folders.forEach(id => {
-            let path = '%sfolders/%s/'.format(this._folderSettings.path, id);
+            let path = `${this._folderSettings.path}folders/${id}/`;
             let icon = this._items.get(id);
             if (!icon) {
                 icon = new FolderIcon(id, path, this);
@@ -1933,7 +1933,7 @@ class AppViewItem extends St.Button {
             label.disconnect(id);
         });
 
-        const expand = this.hover || this.has_key_focus();
+        const expand = this._forcedHighlight || this.hover || this.has_key_focus();
         label.save_easing_state();
         label.set_easing_duration(expand
             ? APP_ICON_TITLE_EXPAND_TIME
@@ -2081,6 +2081,14 @@ class AppViewItem extends St.Button {
     get name() {
         return this._name;
     }
+
+    setForcedHighlight(highlighted) {
+        this._forcedHighlight = highlighted;
+        this.set({
+            track_hover: !highlighted,
+            hover: highlighted,
+        });
+    }
 });
 
 var FolderGrid = GObject.registerClass(
@@ -2205,7 +2213,7 @@ class FolderView extends BaseAppView {
         let icon = new St.Widget({
             layout_manager: layout,
             x_align: Clutter.ActorAlign.CENTER,
-            style: 'width: %dpx; height: %dpx;'.format(size, size),
+            style: `width: ${size}px; height: ${size}px;`,
         });
 
         let subSize = Math.floor(FOLDER_SUBICON_FRACTION * size);
@@ -2213,7 +2221,7 @@ class FolderView extends BaseAppView {
         let numItems = this._orderedItems.length;
         let rtl = icon.get_text_direction() == Clutter.TextDirection.RTL;
         for (let i = 0; i < 4; i++) {
-            const style = 'width: %dpx; height: %dpx;'.format(subSize, subSize);
+            const style = `width: ${subSize}px; height: ${subSize}px;`;
             let bin = new St.Bin({ style });
             if (i < numItems)
                 bin.child = this._orderedItems[i].app.create_icon_texture(subSize);
@@ -2565,7 +2573,6 @@ var AppFolderDialog = GObject.registerClass({
         this._grabHelper = new GrabHelper.GrabHelper(this, {
             actionMode: Shell.ActionMode.POPUP,
         });
-        this._grabHelper.addActor(Main.layoutManager.overviewGroup);
         this.connect('destroy', this._onDestroy.bind(this));
 
         this._dragMonitor = null;
@@ -3143,6 +3150,7 @@ var AppIcon = GObject.registerClass({
     }
 
     popupMenu(side = St.Side.LEFT) {
+        this.setForcedHighlight(true);
         this._removeMenuTimeout();
         this.fake_release();
 
@@ -3163,16 +3171,12 @@ var AppIcon = GObject.registerClass({
                 Main.overview.disconnect(id);
             });
 
-            // We want to keep the item hovered while the menu is up
-            this._menu.blockSourceEvents = true;
-
             Main.uiGroup.add_actor(this._menu.actor);
             this._menuManager.addMenu(this._menu);
         }
 
         this.emit('menu-state-changed', true);
 
-        this.set_hover(true);
         this._menu.open(BoxPointer.PopupAnimation.FULL);
         this._menuManager.ignoreRelease();
         this.emit('sync-tooltip');
@@ -3181,7 +3185,7 @@ var AppIcon = GObject.registerClass({
     }
 
     _onMenuPoppedDown() {
-        this.sync_hover();
+        this.setForcedHighlight(false);
         this.emit('menu-state-changed', false);
     }
 
@@ -3215,7 +3219,7 @@ var AppIcon = GObject.registerClass({
 
     shellWorkspaceLaunch(params) {
         let { stack } = new Error();
-        log('shellWorkspaceLaunch is deprecated, use app.open_new_window() instead\n%s'.format(stack));
+        log(`shellWorkspaceLaunch is deprecated, use app.open_new_window() instead\n${stack}`);
 
         params = Params.parse(params, { workspace: -1,
                                         timestamp: 0 });

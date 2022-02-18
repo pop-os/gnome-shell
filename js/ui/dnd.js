@@ -45,7 +45,7 @@ let currentDraggable = null;
 
 function _getEventHandlerActor() {
     if (!eventHandlerActor) {
-        eventHandlerActor = new Clutter.Actor({ width: 0, height: 0 });
+        eventHandlerActor = new Clutter.Actor({ width: 0, height: 0, reactive: true });
         Main.uiGroup.add_actor(eventHandlerActor);
         // We connect to 'event' rather than 'captured-event' because the capturing phase doesn't happen
         // when you've grabbed the pointer.
@@ -116,9 +116,6 @@ var _Draggable = class _Draggable {
         this._buttonDown = false; // The mouse button has been pressed and has not yet been released.
         this._animationInProgress = false; // The drag is over and the item is in the process of animating to its original position (snapping back or reverting).
         this._dragCancellable = true;
-
-        this._eventsGrabbed = false;
-        this._capturedEventId = 0;
     }
 
     _onButtonPress(actor, event) {
@@ -165,34 +162,16 @@ var _Draggable = class _Draggable {
     }
 
     _grabDevice(actor, pointer, touchSequence) {
-        if (touchSequence)
-            pointer.sequence_grab(touchSequence, actor);
-        else if (pointer)
-            pointer.grab(actor);
-
+        this._grab = global.stage.grab(actor);
         this._grabbedDevice = pointer;
         this._touchSequence = touchSequence;
-
-        this._capturedEventId = global.stage.connect('captured-event', (o, event) => {
-            let device = event.get_device();
-            if (device != this._grabbedDevice &&
-                device.get_device_type() != Clutter.InputDeviceType.KEYBOARD_DEVICE)
-                return Clutter.EVENT_STOP;
-            return Clutter.EVENT_PROPAGATE;
-        });
     }
 
     _ungrabDevice() {
-        if (this._capturedEventId != 0) {
-            global.stage.disconnect(this._capturedEventId);
-            this._capturedEventId = 0;
+        if (this._grab) {
+            this._grab.dismiss();
+            this._grab = null;
         }
-
-        if (this._touchSequence)
-            this._grabbedDevice.sequence_ungrab(this._touchSequence);
-        else
-            this._grabbedDevice.ungrab();
-
         this._touchSequence = null;
         this._grabbedDevice = null;
     }
@@ -213,18 +192,22 @@ var _Draggable = class _Draggable {
     }
 
     _grabEvents(device, touchSequence) {
-        if (!this._eventsGrabbed) {
-            this._eventsGrabbed = Main.pushModal(_getEventHandlerActor());
-            if (this._eventsGrabbed)
+        if (!this._eventsGrab) {
+            let grab = Main.pushModal(_getEventHandlerActor());
+            if ((grab.get_seat_state() & Clutter.GrabState.POINTER) !== 0) {
                 this._grabDevice(_getEventHandlerActor(), device, touchSequence);
+                this._eventsGrab = grab;
+            } else {
+                Main.popModal(grab);
+            }
         }
     }
 
     _ungrabEvents() {
-        if (this._eventsGrabbed) {
+        if (this._eventsGrab) {
             this._ungrabDevice();
-            Main.popModal(_getEventHandlerActor());
-            this._eventsGrabbed = false;
+            Main.popModal(this._eventsGrab);
+            this._eventsGrab = null;
         }
     }
 

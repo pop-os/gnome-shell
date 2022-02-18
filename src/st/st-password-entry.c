@@ -155,7 +155,7 @@ st_password_entry_class_init (StPasswordEntryClass *klass)
                                                        "Password visible",
                                                        "Whether the text in the entry is masked or not",
                                                        FALSE,
-                                                       ST_PARAM_READWRITE);
+                                                       ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StPasswordEntry:show-peek-icon:
@@ -167,7 +167,7 @@ st_password_entry_class_init (StPasswordEntryClass *klass)
                                                      "Show peek icon",
                                                      "Whether to show the password peek icon",
                                                      TRUE,
-                                                     ST_PARAM_READWRITE);
+                                                     ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (gobject_class, N_PROPS, props);
 }
@@ -224,7 +224,7 @@ st_password_entry_init (StPasswordEntry *entry)
 
   priv->peek_password_icon = g_object_new (ST_TYPE_ICON,
                                            "style-class", "peek-password",
-                                           "icon-name", "eye-not-looking-symbolic",
+                                           "icon-name", "view-reveal-symbolic",
                                            NULL);
   st_entry_set_secondary_icon (ST_ENTRY (entry), priv->peek_password_icon);
 
@@ -332,12 +332,12 @@ st_password_entry_set_password_visible (StPasswordEntry *entry,
   if (priv->password_visible)
     {
       clutter_text_set_password_char (CLUTTER_TEXT (clutter_text), 0);
-      st_icon_set_icon_name (ST_ICON (priv->peek_password_icon), "eye-open-negative-filled-symbolic");
+      st_icon_set_icon_name (ST_ICON (priv->peek_password_icon), "view-conceal-symbolic");
     }
   else
     {
       clutter_text_set_password_char (CLUTTER_TEXT (clutter_text), BLACK_CIRCLE);
-      st_icon_set_icon_name (ST_ICON (priv->peek_password_icon), "eye-not-looking-symbolic");
+      st_icon_set_icon_name (ST_ICON (priv->peek_password_icon), "view-reveal-symbolic");
     }
 
   g_object_notify_by_pspec (G_OBJECT (entry), props[PROP_PASSWORD_VISIBLE]);
