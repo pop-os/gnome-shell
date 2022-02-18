@@ -1,3 +1,9 @@
+gnome-shell (42~alpha-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 18 Feb 2022 04:51:25 +0100
+
 gnome-shell (41.3-2) unstable; urgency=medium
 
   * Team upload
