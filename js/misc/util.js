@@ -2,7 +2,7 @@
 /* exported findUrls, spawn, spawnCommandLine, spawnApp, trySpawnCommandLine,
             formatTime, formatTimeSpan, createTimeLabel, insertSorted,
             ensureActorVisibleInScrollView, wiggle, lerp, GNOMEversionCompare,
-            DBusSenderChecker */
+            DBusSenderChecker, Highlighter */
 
 const { Clutter, Gio, GLib, Shell, St, GnomeDesktop } = imports.gi;
 const Gettext = imports.gettext;
@@ -553,5 +553,57 @@ var DBusSenderChecker = class {
         for (const id in this._watchList)
             Gio.DBus.unwatch_name(id);
         this._watchList = [];
+    }
+};
+
+/* @class Highlighter Highlight given terms in text using markup. */
+var Highlighter = class {
+    /**
+     * @param {?string[]} terms - list of terms to highlight
+     */
+    constructor(terms) {
+        if (!terms)
+            return;
+
+        const escapedTerms = terms
+            .map(term => Shell.util_regex_escape(term))
+            .filter(term => term.length > 0);
+
+        if (escapedTerms.length === 0)
+            return;
+
+        this._highlightRegex = new RegExp('(%s)'.format(
+            escapedTerms.join('|')), 'gi');
+    }
+
+    /**
+     * Highlight all occurences of the terms defined for this
+     * highlighter in the provided text using markup.
+     *
+     * @param {string} text - text to highlight the defined terms in
+     * @returns {string}
+     */
+    highlight(text) {
+        if (!this._highlightRegex)
+            return GLib.markup_escape_text(text, -1);
+
+        let escaped = [];
+        let lastMatchEnd = 0;
+        let match;
+        while ((match = this._highlightRegex.exec(text))) {
+            if (match.index > lastMatchEnd) {
+                let unmatched = GLib.markup_escape_text(
+                    text.slice(lastMatchEnd, match.index), -1);
+                escaped.push(unmatched);
+            }
+            let matched = GLib.markup_escape_text(match[0], -1);
+            escaped.push('<b>%s</b>'.format(matched));
+            lastMatchEnd = match.index + match[0].length;
+        }
+        let unmatched = GLib.markup_escape_text(
+            text.slice(lastMatchEnd), -1);
+        escaped.push(unmatched);
+
+        return escaped.join('');
     }
 };

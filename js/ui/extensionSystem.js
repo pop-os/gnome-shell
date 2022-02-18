@@ -22,7 +22,6 @@ const UPDATE_CHECK_TIMEOUT = 24 * 60 * 60; // 1 day in seconds
 var ExtensionManager = class {
     constructor() {
         this._initialized = false;
-        this._enabled = false;
         this._updateNotified = false;
 
         this._extensions = new Map();
@@ -72,6 +71,21 @@ var ExtensionManager = class {
 
     getUuids() {
         return [...this._extensions.keys()];
+    }
+
+    _extensionSupportsSessionMode(uuid) {
+        const extension = this.lookup(uuid);
+
+        if (!extension)
+            return false;
+
+        if (extension.sessionModes.includes(Main.sessionMode.currentMode))
+            return true;
+
+        if (extension.sessionModes.includes(Main.sessionMode.parentMode))
+            return true;
+
+        return false;
     }
 
     _callExtensionDisable(uuid) {
@@ -133,7 +147,7 @@ var ExtensionManager = class {
     }
 
     _callExtensionEnable(uuid) {
-        if (!Main.sessionMode.allowExtensions)
+        if (!this._extensionSupportsSessionMode(uuid))
             return;
 
         let extension = this.lookup(uuid);
@@ -315,6 +329,7 @@ var ExtensionManager = class {
             hasPrefs: dir.get_child('prefs.js').query_exists(null),
             hasUpdate: false,
             canChange: false,
+            sessionModes: meta['session-modes'] ? meta['session-modes'] : ['user'],
         };
         this._extensions.set(uuid, extension);
 
@@ -399,7 +414,7 @@ var ExtensionManager = class {
     }
 
     _callExtensionInit(uuid) {
-        if (!Main.sessionMode.allowExtensions)
+        if (!this._extensionSupportsSessionMode(uuid))
             return false;
 
         let extension = this.lookup(uuid);
@@ -488,13 +503,15 @@ var ExtensionManager = class {
         // Find and enable all the newly enabled extensions: UUIDs found in the
         // new setting, but not in the old one.
         newEnabledExtensions
-            .filter(uuid => !this._enabledExtensions.includes(uuid))
+            .filter(uuid => !this._enabledExtensions.includes(uuid) &&
+                             this._extensionSupportsSessionMode(uuid))
             .forEach(uuid => this._callExtensionEnable(uuid));
 
         // Find and disable all the newly disabled extensions: UUIDs found in the
         // old setting, but not in the new one.
         this._extensionOrder
-            .filter(uuid => !newEnabledExtensions.includes(uuid))
+            .filter(uuid => !newEnabledExtensions.includes(uuid) ||
+                            !this._extensionSupportsSessionMode(uuid))
             .reverse().forEach(uuid => this._callExtensionDisable(uuid));
 
         this._enabledExtensions = newEnabledExtensions;
@@ -589,9 +606,6 @@ var ExtensionManager = class {
     }
 
     _enableAllExtensions() {
-        if (this._enabled)
-            return;
-
         if (!this._initialized) {
             this._loadExtensions();
             this._initialized = true;
@@ -600,34 +614,20 @@ var ExtensionManager = class {
                 this._callExtensionEnable(uuid);
             });
         }
-        this._enabled = true;
     }
 
     _disableAllExtensions() {
-        if (!this._enabled)
-            return;
-
         if (this._initialized) {
             this._extensionOrder.slice().reverse().forEach(uuid => {
                 this._callExtensionDisable(uuid);
             });
         }
-
-        this._enabled = false;
     }
 
     _sessionUpdated() {
-        // For now sessionMode.allowExtensions controls extensions from both the
-        // 'enabled-extensions' preference and the sessionMode.enabledExtensions
-        // property; it might make sense to make enabledExtensions independent
-        // from allowExtensions in the future
-        if (Main.sessionMode.allowExtensions) {
-            // Take care of added or removed sessionMode extensions
-            this._onEnabledExtensionsChanged();
-            this._enableAllExtensions();
-        } else {
-            this._disableAllExtensions();
-        }
+        // Take care of added or removed sessionMode extensions
+        this._onEnabledExtensionsChanged();
+        this._enableAllExtensions();
     }
 };
 Signals.addSignalMethods(ExtensionManager.prototype);
