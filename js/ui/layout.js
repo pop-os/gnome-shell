@@ -934,13 +934,6 @@ var LayoutManager = GObject.registerClass({
         }
     }
 
-    _getWindowActorsForWorkspace(workspace) {
-        return global.get_window_actors().filter(actor => {
-            let win = actor.meta_window;
-            return win.located_on_workspace(workspace);
-        });
-    }
-
     _updateFullscreen() {
         this._updateVisibility();
         this._queueUpdateRegions();
@@ -974,6 +967,9 @@ var LayoutManager = GObject.registerClass({
 
         for (i = 0; i < this._trackedActors.length; i++) {
             let actorData = this._trackedActors[i];
+            if (!actorData.actor.get_paint_visibility())
+                continue;
+
             if (!(actorData.affectsInputRegion && wantsInputRegion) && !actorData.affectsStruts)
                 continue;
 
@@ -984,7 +980,7 @@ var LayoutManager = GObject.registerClass({
             w = Math.round(w);
             h = Math.round(h);
 
-            if (actorData.affectsInputRegion && wantsInputRegion && actorData.actor.get_paint_visibility())
+            if (actorData.affectsInputRegion && wantsInputRegion)
                 rects.push(new Meta.Rectangle({ x, y, width: w, height: h }));
 
             let monitor = null;

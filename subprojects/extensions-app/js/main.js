@@ -1,10 +1,9 @@
 /* exported main */
-imports.gi.versions.Gdk = '4.0';
 imports.gi.versions.Gtk = '4.0';
 
 const Gettext = imports.gettext;
 const Package = imports.package;
-const { Gdk, GLib, Gio, GObject, Gtk, Shew } = imports.gi;
+const { Adw, GLib, Gio, GObject, Gtk, Shew } = imports.gi;
 
 Package.initFormat();
 
@@ -38,7 +37,7 @@ function toggleState(action) {
 }
 
 var Application = GObject.registerClass(
-class Application extends Gtk.Application {
+class Application extends Adw.Application {
     _init() {
         GLib.set_prgname('gnome-extensions-app');
         super._init({ application_id: Package.name });
@@ -58,17 +57,6 @@ class Application extends Gtk.Application {
     vfunc_startup() {
         super.vfunc_startup();
 
-        let provider = new Gtk.CssProvider();
-        let uri = 'resource:///org/gnome/Extensions/css/application.css';
-        try {
-            provider.load_from_file(Gio.File.new_for_uri(uri));
-        } catch (e) {
-            logError(e, 'Failed to add application style');
-        }
-        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
-
         const action = new Gio.SimpleAction({ name: 'quit' });
         action.connect('activate', () => this._window.close());
         this.add_action(action);
@@ -86,10 +74,11 @@ var ExtensionsWindow = GObject.registerClass({
     GTypeName: 'ExtensionsWindow',
     Template: 'resource:///org/gnome/Extensions/ui/extensions-window.ui',
     InternalChildren: [
+        'userGroup',
         'userList',
+        'systemGroup',
         'systemList',
         'mainStack',
-        'scrolledWindow',
         'searchBar',
         'searchButton',
         'searchEntry',
@@ -328,10 +317,10 @@ var ExtensionsWindow = GObject.registerClass({
     }
 
     _syncListVisibility() {
-        this._userList.visible = [...this._userList].length > 1;
-        this._systemList.visible = [...this._systemList].length > 1;
+        this._userGroup.visible = [...this._userList].length > 1;
+        this._systemGroup.visible = [...this._systemList].length > 1;
 
-        if (this._userList.visible || this._systemList.visible)
+        if (this._userGroup.visible || this._systemGroup.visible)
             this._mainStack.visible_child_name = 'main';
         else
             this._mainStack.visible_child_name = 'placeholder';

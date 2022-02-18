@@ -1,6 +1,6 @@
 project('gnome-shell', 'c',
-  version: '41.3',
-  meson_version: '>= 0.53.0',
+  version: '42.alpha',
+  meson_version: '>= 0.58.0',
   license: 'GPLv2+'
 )
 
@@ -8,10 +8,9 @@ split_version = meson.project_version().split('.')
 
 # We depend on a specific version of the libmutter API. The mutter variants of
 # the Cogl and Clutter libraries also use this API version.
-# The API version is increased automatically each development cycle,
+# The API version is increased each development cycle,
 # starting with 0 in 3.23.x
-api_version = split_version[0].to_int() - 32
-mutter_api_version = '@0@'.format(api_version)
+mutter_api_version = '10'
 
 clutter_pc = 'mutter-clutter-' + mutter_api_version
 cogl_pc = 'mutter-cogl-' + mutter_api_version
@@ -66,7 +65,7 @@ servicedir = join_paths(datadir, 'dbus-1', 'services')
 
 keybindings_dep = dependency('gnome-keybindings', required: false)
 if keybindings_dep.found()
-  keysdir = keybindings_dep.get_pkgconfig_variable('keysdir', define_variable: ['datadir', datadir])
+  keysdir = keybindings_dep.get_variable('keysdir', pkgconfig_define: ['datadir', datadir])
 else
   keysdir = join_paths(datadir, 'gnome-control-center', 'keybindings')
 endif
@@ -118,8 +117,8 @@ endif
 if get_option('systemd')
   libsystemd_dep = dependency('libsystemd')
   systemd_dep = dependency('systemd')
-  systemduserunitdir = systemd_dep.get_pkgconfig_variable('systemduserunitdir',
-                                                          define_variable: ['prefix', prefix])
+  systemduserunitdir = systemd_dep.get_variable('systemduserunitdir',
+    pkgconfig_define: ['prefix', prefix])
   have_systemd = true
 else
   libsystemd_dep = []
@@ -137,7 +136,7 @@ if get_option('man')
   endif
 endif
 
-mutter_typelibdir = mutter_dep.get_pkgconfig_variable('typelibdir')
+mutter_typelibdir = mutter_dep.get_variable('typelibdir')
 python = find_program('python3')
 gjs = find_program('gjs')
 
@@ -296,7 +295,11 @@ if get_option('gtk_doc')
   subdir('docs/reference')
 endif
 
-meson.add_install_script('meson/postinstall.py')
+gnome.post_install(
+  glib_compile_schemas: true,
+  gtk_update_icon_cache: true
+)
+
 meson.add_dist_script('meson/generate-manpages.py')
 meson.add_dist_script('meson/generate-stylesheets.py')
 meson.add_dist_script('meson/check-version.py', meson.project_version(), 'NEWS')

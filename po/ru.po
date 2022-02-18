@@ -15,28 +15,22 @@
 # Stas Solovey <whats_up@tut.by>, 2011, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020.
 # Ivan Molodetskikh <yalterz@gmail.com>, 2020.
 # Konstantin Nezhbert <zhbert@yandex.ru>, 2021.
-# Melman <Alexmelman88@gmail.com>, 2021.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: gnome-shell\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/gnome-shell/issues\n"
-"POT-Creation-Date: 2021-11-03 10:04+0000\n"
-"PO-Revision-Date: 2021-11-03 14:58+0300\n"
-"Last-Translator: Melman <Alexmelman88@gmail.com>\n"
+"POT-Creation-Date: 2021-12-09 23:42+0000\n"
+"PO-Revision-Date: 2021-12-11 15:09+0300\n"
+"Last-Translator: Aleksandr Melman <Alexmelman88@gmail.com>\n"
 "Language-Team: Russian <gnome-cyr@gnome.org>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
-"X-Generator: Gtranslator 40.0\n"
-"X-DL-Team: ru\n"
-"X-DL-Module: gnome-shell\n"
-"X-DL-Branch: gnome-41\n"
-"X-DL-Domain: po\n"
-"X-DL-State: None\n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Poedit 3.0\n"
 
 # Запуск приложений, как другой вариант
 #: data/50-gnome-shell-launchers.xml:6
@@ -679,7 +673,7 @@ msgstr[0] "%d час назад"
 msgstr[1] "%d часа назад"
 msgstr[2] "%d часов назад"
 
-#: js/misc/util.js:192 js/ui/dateMenu.js:162
+#: js/misc/util.js:192 js/ui/dateMenu.js:163
 msgid "Yesterday"
 msgstr "Вчера"
 
@@ -812,7 +806,7 @@ msgstr "Запретить доступ"
 msgid "Grant Access"
 msgstr "Предоставить доступ"
 
-#: js/ui/appDisplay.js:1846
+#: js/ui/appDisplay.js:1791
 msgid "Unnamed Folder"
 msgstr "Безымянная папка"
 
@@ -892,7 +886,7 @@ msgid "Settings"
 msgstr "Параметры"
 
 #. Translators: Enter 0-6 (Sunday-Saturday) for non-work days. Examples: "0" (Sunday) "6" (Saturday) "06" (Sunday and Saturday).
-#: js/ui/calendar.js:36
+#: js/ui/calendar.js:35
 msgctxt "calendar-no-work"
 msgid "06"
 msgstr "06"
@@ -902,43 +896,43 @@ msgstr "06"
 #. * NOTE: These grid abbreviations are always shown together
 #. * and in order, e.g. "S M T W T F S".
 #.
-#: js/ui/calendar.js:65
+#: js/ui/calendar.js:61
 msgctxt "grid sunday"
 msgid "S"
 msgstr "Вс"
 
 #. Translators: Calendar grid abbreviation for Monday
-#: js/ui/calendar.js:67
+#: js/ui/calendar.js:63
 msgctxt "grid monday"
 msgid "M"
 msgstr "Пн"
 
 #. Translators: Calendar grid abbreviation for Tuesday
-#: js/ui/calendar.js:69
+#: js/ui/calendar.js:65
 msgctxt "grid tuesday"
 msgid "T"
 msgstr "Вт"
 
 #. Translators: Calendar grid abbreviation for Wednesday
-#: js/ui/calendar.js:71
+#: js/ui/calendar.js:67
 msgctxt "grid wednesday"
 msgid "W"
 msgstr "Ср"
 
 #. Translators: Calendar grid abbreviation for Thursday
-#: js/ui/calendar.js:73
+#: js/ui/calendar.js:69
 msgctxt "grid thursday"
 msgid "T"
 msgstr "Чт"
 
 #. Translators: Calendar grid abbreviation for Friday
-#: js/ui/calendar.js:75
+#: js/ui/calendar.js:71
 msgctxt "grid friday"
 msgid "F"
 msgstr "Пт"
 
 #. Translators: Calendar grid abbreviation for Saturday
-#: js/ui/calendar.js:77
+#: js/ui/calendar.js:73
 msgctxt "grid saturday"
 msgid "S"
 msgstr "Сб"
@@ -949,7 +943,7 @@ msgstr "Сб"
 #. * "%OB" is the new format specifier introduced in glibc 2.27,
 #. * in most cases you should not change it.
 #.
-#: js/ui/calendar.js:392
+#: js/ui/calendar.js:400
 msgid "%OB"
 msgstr "%OB"
 
@@ -962,37 +956,37 @@ msgstr "%OB"
 #. * in most cases you should not use the old "%B" here unless you
 #. * absolutely know what you are doing.
 #.
-#: js/ui/calendar.js:402
+#: js/ui/calendar.js:410
 msgid "%OB %Y"
 msgstr "%OB %Y"
 
-#: js/ui/calendar.js:461
+#: js/ui/calendar.js:469
 msgid "Previous month"
 msgstr "Предыдущий месяц"
 
-#: js/ui/calendar.js:476
+#: js/ui/calendar.js:484
 msgid "Next month"
 msgstr "Следующий месяц"
 
-#: js/ui/calendar.js:626
+#: js/ui/calendar.js:632
 #, no-javascript-format
 msgctxt "date day number format"
 msgid "%d"
 msgstr "%d"
 
-#: js/ui/calendar.js:682
+#: js/ui/calendar.js:688
 msgid "Week %V"
 msgstr "%V неделя"
 
-#: js/ui/calendar.js:896
+#: js/ui/calendar.js:902
 msgid "No Notifications"
 msgstr "Уведомлений нет"
 
-#: js/ui/calendar.js:950
+#: js/ui/calendar.js:956
 msgid "Do Not Disturb"
 msgstr "Не беспокоить"
 
-#: js/ui/calendar.js:971
+#: js/ui/calendar.js:977
 msgid "Clear"
 msgstr "Очистить"
 
@@ -1178,62 +1172,62 @@ msgid "%A %B %e %Y"
 msgstr "%A, %-d %B %Y"
 
 #. Translators: Shown on calendar heading when selected day occurs on current year
-#: js/ui/dateMenu.js:151
+#: js/ui/dateMenu.js:152
 msgctxt "calendar heading"
 msgid "%B %-d"
 msgstr "%-d %B %Y"
 
 #. Translators: Shown on calendar heading when selected day occurs on different year
-#: js/ui/dateMenu.js:154
+#: js/ui/dateMenu.js:155
 msgctxt "calendar heading"
 msgid "%B %-d %Y"
 msgstr "%-d %B %Y"
 
-#: js/ui/dateMenu.js:160
+#: js/ui/dateMenu.js:161
 msgid "Today"
 msgstr "Сегодня"
 
-#: js/ui/dateMenu.js:164
+#: js/ui/dateMenu.js:165
 msgid "Tomorrow"
 msgstr "Завтра"
 
 #. Translators: Shown in calendar event list for all day events
 #. * Keep it short, best if you can use less then 10 characters
 #.
-#: js/ui/dateMenu.js:180
+#: js/ui/dateMenu.js:181
 msgctxt "event list time"
 msgid "All Day"
 msgstr "Весь день"
 
-#: js/ui/dateMenu.js:231
+#: js/ui/dateMenu.js:232
 msgid "No Events"
 msgstr "Событий нет"
 
-#: js/ui/dateMenu.js:348
+#: js/ui/dateMenu.js:349
 msgid "Add world clocks…"
 msgstr "Добавить мировые часы…"
 
-#: js/ui/dateMenu.js:349
+#: js/ui/dateMenu.js:350
 msgid "World Clocks"
 msgstr "Мировые часы"
 
-#: js/ui/dateMenu.js:629
+#: js/ui/dateMenu.js:630
 msgid "Loading…"
 msgstr "Загрузка…"
 
-#: js/ui/dateMenu.js:639
+#: js/ui/dateMenu.js:640
 msgid "Go online for weather information"
 msgstr "Подключите интернет для получения информации о погоде"
 
-#: js/ui/dateMenu.js:641
+#: js/ui/dateMenu.js:642
 msgid "Weather information is currently unavailable"
 msgstr "Информация о погоде сейчас недоступна"
 
-#: js/ui/dateMenu.js:651
+#: js/ui/dateMenu.js:652
 msgid "Weather"
 msgstr "Погода"
 
-#: js/ui/dateMenu.js:653
+#: js/ui/dateMenu.js:654
 msgid "Select weather location…"
 msgstr "Выберите ваше местоположение…"
 
@@ -1416,11 +1410,11 @@ msgstr "Установить расширение"
 msgid "Download and install “%s” from extensions.gnome.org?"
 msgstr "Загрузить и установить расширение «%s» из extensions.gnome.org?"
 
-#: js/ui/extensionSystem.js:252
+#: js/ui/extensionSystem.js:266
 msgid "Extension Updates Available"
 msgstr "Доступны обновления расширений"
 
-#: js/ui/extensionSystem.js:253
+#: js/ui/extensionSystem.js:267
 msgid "Extension updates are ready to be installed."
 msgstr "Обновления расширений готовы к установке."
 
@@ -1570,11 +1564,23 @@ msgstr "Показать код"
 msgid "Web Page"
 msgstr "Веб-страница"
 
-#: js/ui/main.js:290
+#: js/ui/main.js:259
+msgid "System was put in unsafe mode"
+msgstr "Система была переведена в небезопасный режим"
+
+#: js/ui/main.js:260
+msgid "Applications now have unrestricted access"
+msgstr "Приложения теперь имеют неограниченный доступ"
+
+#: js/ui/main.js:261 js/ui/overview.js:58
+msgid "Undo"
+msgstr "Отменить"
+
+#: js/ui/main.js:307
 msgid "Logged in as a privileged user"
 msgstr "Авторизован как привилегированный пользователь"
 
-#: js/ui/main.js:291
+#: js/ui/main.js:308
 msgid ""
 "Running a session as a privileged user should be avoided for security "
 "reasons. If possible, you should log in as a normal user."
@@ -1583,11 +1589,11 @@ msgstr ""
 "привилегированного пользователя. Если это возможно, вам следует войти от "
 "имени обычного пользователя."
 
-#: js/ui/main.js:340
+#: js/ui/main.js:357
 msgid "Screen Lock disabled"
 msgstr "Блокировка экрана отключена"
 
-#: js/ui/main.js:341
+#: js/ui/main.js:358
 msgid "Screen Locking requires the GNOME display manager."
 msgstr "Для блокировки экрана требуется GNOME display manager."
 
@@ -1609,15 +1615,11 @@ msgstr "Неизвестное название"
 #. characters.
 #: js/ui/overviewControls.js:313
 msgid "Type to search"
-msgstr "Найти…"
+msgstr "Введите для поиска"
 
 #: js/ui/overviewControls.js:392
 msgid "Applications"
 msgstr "Приложения"
-
-#: js/ui/overview.js:58
-msgid "Undo"
-msgstr "Отменить"
 
 #. Translators: This is the main view to select
 #. activities. See also note for "Activities" string.
@@ -2365,28 +2367,28 @@ msgstr "Громкость"
 #. Translators: this is for display mirroring i.e. cloning.
 #. * Try to keep it under around 15 characters.
 #.
-#: js/ui/switchMonitor.js:17
+#: js/ui/switchMonitor.js:20
 msgid "Mirror"
 msgstr "Зеркальное отображение"
 
 #. Translators: this is for the desktop spanning displays.
 #. * Try to keep it under around 15 characters.
 #.
-#: js/ui/switchMonitor.js:22
+#: js/ui/switchMonitor.js:29
 msgid "Join Displays"
 msgstr "Объединить дисплеи"
 
 #. Translators: this is for using only an external display.
 #. * Try to keep it under around 15 characters.
 #.
-#: js/ui/switchMonitor.js:27
+#: js/ui/switchMonitor.js:39
 msgid "External Only"
 msgstr "Только внешний"
 
 #. Translators: this is for using only the laptop display.
 #. * Try to keep it under around 15 characters.
 #.
-#: js/ui/switchMonitor.js:32
+#: js/ui/switchMonitor.js:47
 msgid "Built-in Only"
 msgstr "Только встроенный"
 
@@ -2419,11 +2421,11 @@ msgstr "Добро пожаловать в GNOME %s"
 
 #: js/ui/welcomeDialog.js:37
 msgid "If you want to learn your way around, check out the tour."
-msgstr "Для знакомства с возможностями пройдите ознакомительный тур"
+msgstr "Для знакомства с возможностями пройдите ознакомительный тур."
 
 #: js/ui/welcomeDialog.js:45
 msgid "No Thanks"
-msgstr "Нет, спасибо!"
+msgstr "Нет, спасибо"
 
 #: js/ui/welcomeDialog.js:50
 msgid "Take Tour"
@@ -2631,7 +2633,8 @@ msgid "translator-credits"
 msgstr ""
 "Stas Solovey <whats_up@tut.by>, 2011-2020\n"
 "Ivan Molodetskikh <yalterz@gmail.com>, 2020\n"
-"Alexey Rubtsov <rushills@gmail.com>, 2021"
+"Alexey Rubtsov <rushills@gmail.com>, 2021\n"
+"Aleksandr Melman <alexmelman88@gmail.com>, 2021"
 
 #: subprojects/extensions-app/js/main.js:344
 #, javascript-format

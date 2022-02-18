@@ -1,8 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported AppDisplay, AppSearchProvider */
 
-const { Clutter, Gio, GLib, GObject, Graphene, Meta,
-    Pango, Shell, St } = imports.gi;
+const {
+    Clutter, Gio, GLib, GObject, Graphene, Pango, Shell, St,
+} = imports.gi;
 
 const AppFavorites = imports.ui.appFavorites;
 const { AppMenu } = imports.ui.appMenu;
@@ -297,10 +298,6 @@ var BaseAppView = GObject.registerClass({
 
         this._items = new Map();
         this._orderedItems = [];
-
-        this._animateLaterId = 0;
-        this._viewLoadedHandlerId = 0;
-        this._viewIsReady = false;
 
         // Filter the apps through the user’s parental controls.
         this._parentalControlsManager = ParentalControlsManager.getDefault();
@@ -858,7 +855,6 @@ var BaseAppView = GObject.registerClass({
                 this._moveItem(icon, page, position);
         });
 
-        this._viewIsReady = true;
         this.emit('view-loaded');
     }
 
@@ -898,61 +894,6 @@ var BaseAppView = GObject.registerClass({
                 this.disconnect(signalId);
                 this.selectApp(id);
             });
-        }
-    }
-
-    _doSpringAnimation(animationDirection) {
-        this._grid.opacity = 255;
-        this._grid.animateSpring(
-            animationDirection,
-            Main.overview.dash.showAppsButton);
-    }
-
-    _clearAnimateLater() {
-        if (this._animateLaterId) {
-            Meta.later_remove(this._animateLaterId);
-            this._animateLaterId = 0;
-        }
-        if (this._viewLoadedHandlerId) {
-            this.disconnect(this._viewLoadedHandlerId);
-            this._viewLoadedHandlerId = 0;
-        }
-    }
-
-    animate(animationDirection, onComplete) {
-        if (onComplete) {
-            let animationDoneId = this._grid.connect('animation-done', () => {
-                this._grid.disconnect(animationDoneId);
-                onComplete();
-            });
-        }
-
-        this._clearAnimateLater();
-        this._grid.opacity = 255;
-
-        if (animationDirection == IconGrid.AnimationDirection.IN) {
-            const doSpringAnimationLater = laterType => {
-                this._animateLaterId = Meta.later_add(laterType,
-                    () => {
-                        this._animateLaterId = 0;
-                        this._doSpringAnimation(animationDirection);
-                        return GLib.SOURCE_REMOVE;
-                    });
-            };
-
-            if (this._viewIsReady) {
-                this._grid.opacity = 0;
-                doSpringAnimationLater(Meta.LaterType.IDLE);
-            } else {
-                this._viewLoadedHandlerId = this.connect('view-loaded',
-                    () => {
-                        this._clearAnimateLater();
-                        this._grid.opacity = 255;
-                        doSpringAnimationLater(Meta.LaterType.BEFORE_REDRAW);
-                    });
-            }
-        } else {
-            this._doSpringAnimation(animationDirection);
         }
     }
 
@@ -1040,7 +981,6 @@ var BaseAppView = GObject.registerClass({
 
     vfunc_unmap() {
         this._swipeTracker.enabled = false;
-        this._clearAnimateLater();
         this._disconnectDnD();
         super.vfunc_unmap();
     }
@@ -1443,12 +1383,10 @@ class AppDisplay extends BaseAppView {
         this._redisplayWorkId = Main.initializeDeferredWork(this, this._redisplay.bind(this));
 
         Shell.AppSystem.get_default().connect('installed-changed', () => {
-            this._viewIsReady = false;
             Main.queueDeferredWork(this._redisplayWorkId);
         });
         this._folderSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders' });
         this._folderSettings.connect('changed::folder-children', () => {
-            this._viewIsReady = false;
             Main.queueDeferredWork(this._redisplayWorkId);
         });
     }
@@ -1654,24 +1592,6 @@ class AppDisplay extends BaseAppView {
             appIcons.push(this._placeholder);
 
         return appIcons;
-    }
-
-    // Overridden from BaseAppView
-    animate(animationDirection, onComplete) {
-        this._scrollView.reactive = false;
-        this._swipeTracker.enabled = false;
-        let completionFunc = () => {
-            this._scrollView.reactive = true;
-            this._swipeTracker.enabled = this.mapped;
-            if (onComplete)
-                onComplete();
-        };
-
-        if (animationDirection == IconGrid.AnimationDirection.OUT &&
-            this._displayingDialog && this._currentDialog)
-            this._currentDialog.popdown();
-        else
-            super.animate(animationDirection, completionFunc);
     }
 
     animateSwitch(animationDirection) {
@@ -2275,11 +2195,6 @@ class FolderView extends BaseAppView {
             return -1;
 
         return aPosition - bPosition;
-    }
-
-    // Overridden from BaseAppView
-    animate(animationDirection) {
-        this._grid.animatePulse(animationDirection);
     }
 
     createFolderIcon(size) {

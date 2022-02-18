@@ -937,7 +937,7 @@ var WindowManager = class {
 
         let appSwitchAction = new AppSwitchAction();
         appSwitchAction.connect('activated', this._switchApp.bind(this));
-        global.stage.add_action(appSwitchAction);
+        global.stage.add_action_full('app-switch', Clutter.EventPhase.CAPTURE, appSwitchAction);
 
         let mode = Shell.ActionMode.ALL & ~Shell.ActionMode.LOCK_SCREEN;
         let topDragAction = new EdgeDragAction.EdgeDragAction(St.Side.TOP, mode);
@@ -956,7 +956,7 @@ var WindowManager = class {
         global.display.connect('in-fullscreen-changed', updateUnfullscreenGesture);
         updateUnfullscreenGesture();
 
-        global.stage.add_action(topDragAction);
+        global.stage.add_action_full('unfullscreen', Clutter.EventPhase.CAPTURE, topDragAction);
 
         this._workspaceAnimation =
             new WorkspaceAnimation.WorkspaceAnimationController();
@@ -1399,22 +1399,8 @@ var WindowManager = class {
         }
     }
 
-    _hasAttachedDialogs(window, ignoreWindow) {
-        var count = 0;
-        window.foreach_transient(win => {
-            if (win != ignoreWindow &&
-                win.is_attached_dialog() &&
-                win.get_transient_for() == window) {
-                count++;
-                return false;
-            }
-            return true;
-        });
-        return count != 0;
-    }
-
-    _checkDimming(window, ignoreWindow) {
-        let shouldDim = this._hasAttachedDialogs(window, ignoreWindow);
+    _checkDimming(window) {
+        const shouldDim = window.has_attached_dialogs();
 
         if (shouldDim && !window._dimmed) {
             window._dimmed = true;
@@ -1560,7 +1546,7 @@ var WindowManager = class {
         }
 
         if (window.is_attached_dialog())
-            this._checkDimming(window.get_transient_for(), window);
+            this._checkDimming(window.get_transient_for());
 
         let types = [Meta.WindowType.NORMAL,
                      Meta.WindowType.DIALOG,
