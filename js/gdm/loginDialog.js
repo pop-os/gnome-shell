@@ -418,15 +418,20 @@ var LoginDialog = GObject.registerClass({
         this._userManager = AccountsService.UserManager.get_default();
         this._gdmClient = new Gdm.Client();
 
+        try {
+            this._gdmClient.set_enabled_extensions([Gdm.UserVerifierChoiceList.interface_info().name]);
+        } catch (e) {
+        }
+
         this._settings = new Gio.Settings({ schema_id: GdmUtil.LOGIN_SCREEN_SCHEMA });
 
-        this._settings.connect('changed::%s'.format(GdmUtil.BANNER_MESSAGE_KEY),
+        this._settings.connect(`changed::${GdmUtil.BANNER_MESSAGE_KEY}`,
                                this._updateBanner.bind(this));
-        this._settings.connect('changed::%s'.format(GdmUtil.BANNER_MESSAGE_TEXT_KEY),
+        this._settings.connect(`changed::${GdmUtil.BANNER_MESSAGE_TEXT_KEY}`,
                                this._updateBanner.bind(this));
-        this._settings.connect('changed::%s'.format(GdmUtil.DISABLE_USER_LIST_KEY),
+        this._settings.connect(`changed::${GdmUtil.DISABLE_USER_LIST_KEY}`,
                                this._updateDisableUserList.bind(this));
-        this._settings.connect('changed::%s'.format(GdmUtil.LOGO_KEY),
+        this._settings.connect(`changed::${GdmUtil.LOGO_KEY}`,
                                this._updateLogo.bind(this));
 
         this._textureCache = St.TextureCache.get_default();
@@ -1054,9 +1059,10 @@ var LoginDialog = GObject.registerClass({
         let tasks = [
             () => {
                 if (this._disableUserList)
-                    return;
+                    return null;
 
                 this._timedLoginUserListHold = this._waitForItemForUser(userName);
+                return this._timedLoginUserListHold;
             },
 
             () => {
@@ -1283,7 +1289,7 @@ var LoginDialog = GObject.registerClass({
 
         this.opacity = 0;
 
-        Main.pushModal(this, { actionMode: Shell.ActionMode.LOGIN_SCREEN });
+        this._grab = Main.pushModal(global.stage, { actionMode: Shell.ActionMode.LOGIN_SCREEN });
 
         this.ease({
             opacity: 255,
@@ -1295,7 +1301,8 @@ var LoginDialog = GObject.registerClass({
     }
 
     close() {
-        Main.popModal(this);
+        Main.popModal(this._grab);
+        this._grab = null;
         Main.ctrlAltTabManager.removeGroup(this);
     }
 

@@ -6,31 +6,6 @@ const { Clutter, St } = imports.gi;
 const Main = imports.ui.main;
 const Params = imports.misc.params;
 
-let _capturedEventId = 0;
-let _grabHelperStack = [];
-function _onCapturedEvent(actor, event) {
-    let grabHelper = _grabHelperStack[_grabHelperStack.length - 1];
-    return grabHelper.onCapturedEvent(event);
-}
-
-function _pushGrabHelper(grabHelper) {
-    _grabHelperStack.push(grabHelper);
-
-    if (_capturedEventId == 0)
-        _capturedEventId = global.stage.connect('captured-event', _onCapturedEvent);
-}
-
-function _popGrabHelper(grabHelper) {
-    let poppedHelper = _grabHelperStack.pop();
-    if (poppedHelper != grabHelper)
-        throw new Error("incorrect grab helper pop");
-
-    if (_grabHelperStack.length == 0) {
-        global.stage.disconnect(_capturedEventId);
-        _capturedEventId = 0;
-    }
-}
-
 // GrabHelper:
 // @owner: the actor that owns the GrabHelper
 // @params: optional parameters to pass to Main.pushModal()
@@ -52,44 +27,14 @@ var GrabHelper = class GrabHelper {
 
         this._grabStack = [];
 
-        this._actors = [];
         this._ignoreUntilRelease = false;
 
         this._modalCount = 0;
     }
 
-    // addActor:
-    // @actor: an actor
-    //
-    // Adds @actor to the set of actors that are allowed to process events
-    // during a grab.
-    addActor(actor) {
-        actor.__grabHelperDestroyId = actor.connect('destroy', () => {
-            this.removeActor(actor);
-        });
-        this._actors.push(actor);
-    }
-
-    // removeActor:
-    // @actor: an actor
-    //
-    // Removes @actor from the set of actors that are allowed to
-    // process events during a grab.
-    removeActor(actor) {
-        let index = this._actors.indexOf(actor);
-        if (index != -1)
-            this._actors.splice(index, 1);
-        if (actor.__grabHelperDestroyId) {
-            actor.disconnect(actor.__grabHelperDestroyId);
-            delete actor.__grabHelperDestroyId;
-        }
-    }
-
     _isWithinGrabbedActor(actor) {
         let currentActor = this.currentGrab.actor;
         while (actor) {
-            if (this._actors.includes(actor))
-                return true;
             if (actor == currentActor)
                 return true;
             actor = actor.get_parent();
@@ -206,10 +151,17 @@ var GrabHelper = class GrabHelper {
     _takeModalGrab() {
         let firstGrab = this._modalCount == 0;
         if (firstGrab) {
-            if (!Main.pushModal(this._owner, this._modalParams))
+            let grab = Main.pushModal(this._owner, this._modalParams);
+            if (grab.get_seat_state() === Clutter.GrabState.NONE) {
+                Main.popModal(grab);
                 return false;
+            }
 
-            _pushGrabHelper(this);
+            this._grab = grab;
+            this._capturedEventId = this._owner.connect('captured-event',
+                (actor, event) => {
+                    return this.onCapturedEvent(event);
+                });
         }
 
         this._modalCount++;
@@ -221,11 +173,11 @@ var GrabHelper = class GrabHelper {
         if (this._modalCount > 0)
             return;
 
-        _popGrabHelper(this);
-
+        this._owner.disconnect(this._capturedEventId);
         this._ignoreUntilRelease = false;
 
-        Main.popModal(this._owner);
+        Main.popModal(this._grab);
+        this._grab = null;
     }
 
     // ignoreRelease:
@@ -309,7 +261,9 @@ var GrabHelper = class GrabHelper {
             return Clutter.EVENT_PROPAGATE;
         }
 
-        if (this._isWithinGrabbedActor(event.get_source()))
+        if (type === Clutter.EventType.ENTER ||
+            type === Clutter.EventType.LEAVE ||
+            this.currentGrab.actor.contains(event.get_source()))
             return Clutter.EVENT_PROPAGATE;
 
         if (Main.keyboard.shouldTakeEvent(event))

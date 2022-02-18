@@ -4,6 +4,7 @@ const { AccountsService, Clutter, Gdm, Gio, GLib, GObject, Meta } = imports.gi;
 const GnomeSession = imports.misc.gnomeSession;
 const LoginManager = imports.misc.loginManager;
 const Main = imports.ui.main;
+const Screenshot = imports.ui.screenshot;
 
 const LOCKDOWN_SCHEMA = 'org.gnome.desktop.lockdown';
 const LOGIN_SCREEN_SCHEMA = 'org.gnome.login-screen';
@@ -20,6 +21,7 @@ const LOGOUT_ACTION_ID           = 'logout';
 const SUSPEND_ACTION_ID          = 'suspend';
 const SWITCH_USER_ACTION_ID      = 'switch-user';
 const LOCK_ORIENTATION_ACTION_ID = 'lock-orientation';
+const SCREENSHOT_UI_ACTION_ID    = 'open-screenshot-ui';
 
 let _singleton = null;
 
@@ -132,6 +134,14 @@ const SystemActions = GObject.registerClass({
             keywords: tokenizeKeywords(_('lock orientation;unlock orientation;screen;rotation')),
             available: false,
         });
+        this._actions.set(SCREENSHOT_UI_ACTION_ID, {
+            // Translators: The name of the screenshot UI action in search
+            name: C_('search-result', 'Take a Screenshot'),
+            iconName: 'record-screen-symbolic',
+            // Translators: A list of keywords that match the screenshot UI action, separated by semicolons
+            keywords: tokenizeKeywords(_('screenshot;screencast;snip;capture;record')),
+            available: true,
+        });
 
         this._loginScreenSettings = new Gio.Settings({ schema_id: LOGIN_SCREEN_SCHEMA });
         this._lockdownSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
@@ -152,17 +162,17 @@ const SystemActions = GObject.registerClass({
         this._userManager.connect('user-removed',
                                   () => this._updateMultiUser());
 
-        this._lockdownSettings.connect('changed::%s'.format(DISABLE_USER_SWITCH_KEY),
+        this._lockdownSettings.connect(`changed::${DISABLE_USER_SWITCH_KEY}`,
                                        () => this._updateSwitchUser());
-        this._lockdownSettings.connect('changed::%s'.format(DISABLE_LOG_OUT_KEY),
+        this._lockdownSettings.connect(`changed::${DISABLE_LOG_OUT_KEY}`,
                                        () => this._updateLogout());
-        global.settings.connect('changed::%s'.format(ALWAYS_SHOW_LOG_OUT_KEY),
+        global.settings.connect(`changed::${ALWAYS_SHOW_LOG_OUT_KEY}`,
                                 () => this._updateLogout());
 
-        this._lockdownSettings.connect('changed::%s'.format(DISABLE_LOCK_SCREEN_KEY),
+        this._lockdownSettings.connect(`changed::${DISABLE_LOCK_SCREEN_KEY}`,
                                        () => this._updateLockScreen());
 
-        this._lockdownSettings.connect('changed::%s'.format(DISABLE_LOG_OUT_KEY),
+        this._lockdownSettings.connect(`changed::${DISABLE_LOG_OUT_KEY}`,
                                        () => this._updateHaveShutdown());
 
         this.forceUpdate();
@@ -306,6 +316,9 @@ const SystemActions = GObject.registerClass({
         case LOCK_ORIENTATION_ACTION_ID:
             this.activateLockOrientation();
             break;
+        case SCREENSHOT_UI_ACTION_ID:
+            this.activateScreenshotUI();
+            break;
         }
     }
 
@@ -445,5 +458,19 @@ const SystemActions = GObject.registerClass({
             throw new Error('The suspend action is not available!');
 
         this._loginManager.suspend();
+    }
+
+    activateScreenshotUI() {
+        if (!this._actions.get(SCREENSHOT_UI_ACTION_ID).available)
+            throw new Error('The screenshot UI action is not available!');
+
+        if (this._overviewHiddenId)
+            return;
+
+        this._overviewHiddenId = Main.overview.connect('hidden', () => {
+            Main.overview.disconnect(this._overviewHiddenId);
+            delete this._overviewHiddenId;
+            Screenshot.showScreenshotUI();
+        });
     }
 });

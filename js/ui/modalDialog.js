@@ -32,9 +32,11 @@ var ModalDialog = GObject.registerClass({
 }, class ModalDialog extends St.Widget {
     _init(params) {
         super._init({ visible: false,
-                      x: 0,
-                      y: 0,
-                      accessible_role: Atk.Role.DIALOG });
+            reactive: true,
+            x: 0,
+            y: 0,
+            accessible_role: Atk.Role.DIALOG,
+        });
 
         params = Params.parse(params, { shellReactive: false,
                                         styleClass: null,
@@ -97,6 +99,13 @@ var ModalDialog = GObject.registerClass({
 
         this._state = state;
         this.notify('state');
+    }
+
+    vfunc_key_press_event() {
+        if (global.focus_manager.navigate_from_event(Clutter.get_current_event()))
+            return Clutter.EVENT_STOP;
+
+        return Clutter.EVENT_PROPAGATE;
     }
 
     clearButtons() {
@@ -202,7 +211,8 @@ var ModalDialog = GObject.registerClass({
             this._savedKeyFocus = focus;
         else
             this._savedKeyFocus = null;
-        Main.popModal(this, timestamp);
+        Main.popModal(this._grab, timestamp);
+        this._grab = null;
         this._hasModal = false;
 
         if (!this._shellReactive)
@@ -216,9 +226,13 @@ var ModalDialog = GObject.registerClass({
         let params = { actionMode: this._actionMode };
         if (timestamp)
             params['timestamp'] = timestamp;
-        if (!Main.pushModal(this, params))
+        let grab = Main.pushModal(this, params);
+        if (grab.get_seat_state() === Clutter.GrabState.NONE) {
+            Main.popModal(grab);
             return false;
+        }
 
+        this._grab = grab;
         Main.layoutManager.emit('system-modal-opened');
 
         this._hasModal = true;

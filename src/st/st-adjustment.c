@@ -203,24 +203,37 @@ actor_destroyed (gpointer  user_data,
 }
 
 static void
+st_adjustment_set_actor (StAdjustment *adj,
+                         ClutterActor *actor)
+{
+  StAdjustmentPrivate *priv;
+
+  priv = st_adjustment_get_instance_private (adj);
+
+  if (priv->actor == actor)
+    return;
+
+  if (priv->actor)
+    g_object_weak_unref (G_OBJECT (priv->actor), actor_destroyed, adj);
+  priv->actor = actor;
+  if (priv->actor)
+    g_object_weak_ref (G_OBJECT (priv->actor), actor_destroyed, adj);
+
+  g_object_notify_by_pspec (G_OBJECT (adj), props[PROP_ACTOR]);
+}
+
+static void
 st_adjustment_set_property (GObject      *gobject,
                             guint         prop_id,
                             const GValue *value,
                             GParamSpec   *pspec)
 {
   StAdjustment *adj = ST_ADJUSTMENT (gobject);
-  StAdjustmentPrivate *priv;
-
-  priv = st_adjustment_get_instance_private (ST_ADJUSTMENT (gobject));
 
   switch (prop_id)
     {
     case PROP_ACTOR:
-      if (priv->actor)
-        g_object_weak_unref (G_OBJECT (priv->actor), actor_destroyed, adj);
-      priv->actor = g_value_get_object (value);
-      if (priv->actor)
-        g_object_weak_ref (G_OBJECT (priv->actor), actor_destroyed, adj);
+      st_adjustment_set_actor (adj, g_value_get_object (value));
       break;
 
     case PROP_LOWER:
@@ -289,7 +302,8 @@ st_adjustment_class_init (StAdjustmentClass *klass)
   props[PROP_ACTOR] =
     g_param_spec_object ("actor", "Actor", "Actor",
                          CLUTTER_TYPE_ACTOR,
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE |
+                         G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StAdjustment:lower:

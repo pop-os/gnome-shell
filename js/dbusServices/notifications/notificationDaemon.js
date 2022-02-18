@@ -9,13 +9,15 @@ const { ServiceImplementation } = imports.dbusService;
 const NotificationsIface = loadInterfaceXML('org.freedesktop.Notifications');
 const NotificationsProxy = Gio.DBusProxy.makeProxyWrapper(NotificationsIface);
 
-Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+Gio._promisify(Gio.DBusConnection.prototype, 'call');
 
 var NotificationDaemon = class extends ServiceImplementation {
     constructor() {
         super(NotificationsIface, '/org/freedesktop/Notifications');
 
         this._autoShutdown = false;
+
+        this._activeNotifications = new Map();
 
         this._proxy = new NotificationsProxy(Gio.DBus.session,
             'org.gnome.Shell',
@@ -27,14 +29,57 @@ var NotificationDaemon = class extends ServiceImplementation {
 
         this._proxy.connectSignal('ActionInvoked',
             (proxy, sender, params) => {
-                this._dbusImpl.emit_signal('ActionInvoked',
+                const [id] = params;
+                this._emitSignal(
+                    this._activeNotifications.get(id),
+                    'ActionInvoked',
                     new GLib.Variant('(us)', params));
             });
         this._proxy.connectSignal('NotificationClosed',
             (proxy, sender, params) => {
-                this._dbusImpl.emit_signal('NotificationClosed',
+                const [id] = params;
+                this._emitSignal(
+                    this._activeNotifications.get(id),
+                    'NotificationClosed',
                     new GLib.Variant('(uu)', params));
+                this._activeNotifications.delete(id);
             });
+    }
+
+    _emitSignal(sender, signalName, params) {
+        if (!sender)
+            return;
+        this._dbusImpl.get_connection()?.emit_signal(
+            sender,
+            this._dbusImpl.get_object_path(),
+            'org.freedesktop.Notifications',
+            signalName,
+            params);
+    }
+
+    _untrackSender(sender) {
+        super._untrackSender(sender);
+
+        this._activeNotifications.forEach((value, key) => {
+            if (value === sender)
+                this._activeNotifications.delete(key);
+        });
+    }
+
+    _checkNotificationId(invocation, id) {
+        if (id === 0)
+            return true;
+
+        if (!this._activeNotifications.has(id))
+            return true;
+
+        if (this._activeNotifications.get(id) === invocation.get_sender())
+            return true;
+
+        const error = new GLib.Error(Gio.DBusError,
+            Gio.DBusError.INVALID_ARGS, 'Invalid notification ID');
+        this._handleError(invocation, error);
+        return false;
     }
 
     register() {
@@ -45,8 +90,13 @@ var NotificationDaemon = class extends ServiceImplementation {
     }
 
     async NotifyAsync(params, invocation) {
-        const pid = await this._getSenderPid(invocation.get_sender());
+        const sender = invocation.get_sender();
+        const pid = await this._getSenderPid(sender);
+        const replaceId = params[1];
         const hints = params[6];
+
+        if (!this._checkNotificationId(invocation, replaceId))
+            return;
 
         params[6] = {
             ...hints,
@@ -57,11 +107,17 @@ var NotificationDaemon = class extends ServiceImplementation {
             if (this._handleError(invocation, error))
                 return;
 
+            const [id] = res;
+            this._activeNotifications.set(id, sender);
             invocation.return_value(new GLib.Variant('(u)', res));
         });
     }
 
     CloseNotificationAsync(params, invocation) {
+        const [id] = params;
+        if (!this._checkNotificationId(invocation, id))
+            return;
+
         this._proxy.CloseNotificationRemote(...params, (res, error) => {
             if (this._handleError(invocation, error))
                 return;

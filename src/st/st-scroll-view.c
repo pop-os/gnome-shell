@@ -211,6 +211,23 @@ st_scroll_view_update_fade_effect (StScrollView  *scroll,
 }
 
 static void
+st_scroll_view_set_content_padding (StScrollView  *scroll,
+                                    ClutterMargin *content_padding)
+{
+  StScrollViewPrivate *priv = ST_SCROLL_VIEW (scroll)->priv;
+
+  if (priv->content_padding.left == content_padding->left &&
+      priv->content_padding.right == content_padding->right &&
+      priv->content_padding.top == content_padding->top &&
+      priv->content_padding.bottom == content_padding->bottom)
+    return;
+
+  priv->content_padding = *content_padding;
+
+  g_object_notify_by_pspec (G_OBJECT (scroll), props[PROP_CONTENT_PADDING]);
+}
+
+static void
 st_scroll_view_set_property (GObject      *object,
                              guint         property_id,
                              const GValue *value,
@@ -240,7 +257,8 @@ st_scroll_view_set_property (GObject      *object,
                                  g_value_get_enum (value));
       break;
     case PROP_CONTENT_PADDING:
-      priv->content_padding = * (ClutterMargin *) g_value_get_boxed (value);
+      st_scroll_view_set_content_padding (self,
+                                          (ClutterMargin *)g_value_get_boxed (value));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -880,7 +898,7 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                        "When the vertical scrollbar is displayed",
                        ST_TYPE_POLICY_TYPE,
                        ST_POLICY_AUTOMATIC,
-                       ST_PARAM_READWRITE);
+                       ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StScrollView:hscrollbar-policy:
@@ -893,7 +911,7 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                        "When the horizontal scrollbar is displayed",
                        ST_TYPE_POLICY_TYPE,
                        ST_POLICY_AUTOMATIC,
-                       ST_PARAM_READWRITE);
+                       ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StScrollView:hscrollbar-visible:
@@ -929,7 +947,7 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                           "Enable Mouse Scrolling",
                           "Enable automatic mouse wheel scrolling",
                           TRUE,
-                          ST_PARAM_READWRITE);
+                          ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StScrollView:overlay-scrollbars:
@@ -941,14 +959,14 @@ st_scroll_view_class_init (StScrollViewClass *klass)
                           "Use Overlay Scrollbars",
                           "Overlay scrollbars over the content",
                           FALSE,
-                          ST_PARAM_READWRITE);
+                          ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   props[PROP_CONTENT_PADDING] =
     g_param_spec_boxed ("content-padding",
                         "Content padding",
                         "Content padding",
                         CLUTTER_TYPE_MARGIN,
-                        ST_PARAM_READWRITE);
+                        ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (object_class, N_PROPS, props);
 }
@@ -1228,6 +1246,8 @@ st_scroll_view_set_mouse_scrolling (StScrollView *scroll,
       /* make sure we can receive mouse wheel events */
       if (enabled)
         clutter_actor_set_reactive ((ClutterActor *) scroll, TRUE);
+
+      g_object_notify_by_pspec (G_OBJECT (scroll), props[PROP_MOUSE_SCROLL]);
     }
 }
 
