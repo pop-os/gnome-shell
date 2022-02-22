@@ -1,0 +1,28 @@
+From: Ivan Molodetskikh <yalterz@gmail.com>
+Date: Thu, 17 Feb 2022 09:05:10 +0300
+Subject: screenshot: Make screencast area indicator hidden from pick
+
+It's a non-reactive actor on top of most of the stage. Set it as hidden
+from pick so it doesn't break in-Shell DnD.
+
+Fixes https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/5083
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2192>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/5fb5c9f75e
+---
+ js/ui/screenshot.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/screenshot.js b/js/ui/screenshot.js
+index 8ed51ef..adc1f8c 100644
+--- a/js/ui/screenshot.js
++++ b/js/ui/screenshot.js
+@@ -1047,6 +1047,7 @@ var ScreenshotUI = GObject.registerClass({
+             GObject.BindingFlags.DEFAULT);
+         // Add it directly to the stage so that it's above popup menus.
+         global.stage.add_child(this._screencastAreaIndicator);
++        Shell.util_set_hidden_from_pick(this._screencastAreaIndicator, true);
+ 
+         Main.layoutManager.screenshotUIGroup.add_child(this);
+ 

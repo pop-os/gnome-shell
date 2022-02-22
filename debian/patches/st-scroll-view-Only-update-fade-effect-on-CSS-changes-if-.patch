@@ -1,0 +1,59 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Wed, 16 Feb 2022 12:56:49 +0100
+Subject: st/scroll-view: Only update fade effect on CSS changes if CSS sets
+ it
+
+The fade effect can also be added to the scroll view programatically
+instead of using CSS via the st_scroll_view_update_fade_effect() API.
+
+We make use of this API in the appDisplay, but since commit ba547ec1d
+the fade margins get overridden to 0.0 from the ::style-changed handler.
+Fix this by only setting the fade margins when CSS actually defines a
+custom vfade/hfade offset.
+
+Related: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/5079
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2189>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/0b9b13942a
+---
+ src/st/st-scroll-view.c | 25 ++++++++++++++++---------
+ 1 file changed, 16 insertions(+), 9 deletions(-)
+
+diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
+index 949d799..7dedc45 100644
+--- a/src/st/st-scroll-view.c
++++ b/src/st/st-scroll-view.c
+@@ -770,17 +770,24 @@ static void
+ st_scroll_view_style_changed (StWidget *widget)
+ {
+   StScrollView *self = ST_SCROLL_VIEW (widget);
++  gboolean has_vfade, has_hfade;
++  double vfade_offset = 0.0;
++  double hfade_offset = 0.0;
+ 
+   StThemeNode *theme_node = st_widget_get_theme_node (widget);
+-  gdouble vfade_offset = st_theme_node_get_length (theme_node, "-st-vfade-offset");
+-  gdouble hfade_offset = st_theme_node_get_length (theme_node, "-st-hfade-offset");
+-  st_scroll_view_update_fade_effect (self,
+-                                     &(ClutterMargin) {
+-                                       .top = vfade_offset,
+-                                       .bottom = vfade_offset,
+-                                       .left = hfade_offset,
+-                                       .right = hfade_offset,
+-                                     });
++
++  has_vfade = st_theme_node_lookup_length (theme_node, "-st-vfade-offset", FALSE, &vfade_offset);
++  has_hfade = st_theme_node_lookup_length (theme_node, "-st-hfade-offset", FALSE, &hfade_offset);
++  if (has_vfade || has_hfade)
++    {
++      st_scroll_view_update_fade_effect (self,
++                                         &(ClutterMargin) {
++                                           .top = vfade_offset,
++                                           .bottom = vfade_offset,
++                                           .left = hfade_offset,
++                                           .right = hfade_offset,
++                                         });
++    }
+ 
+   ST_WIDGET_CLASS (st_scroll_view_parent_class)->style_changed (widget);
+ }

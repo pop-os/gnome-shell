@@ -1,0 +1,44 @@
+From: Sebastian Keller <skeller@gnome.org>
+Date: Sun, 20 Feb 2022 16:53:43 +0100
+Subject: workspacesView: Disable workspace switching while in search
+
+WorkspacesDisplay connects to key-press-event on the stage to switch
+workspaces when page up or down is pressed and nothing else intercepts
+these keys. This means that it is still possible to switch workspaces
+while they are hidden behind the search.
+
+So only allow these keybinding while the WorkspacesDisplay is reactive
+which gets updated by ControlsManager depending on whether there is an
+active search or not. Also set it as initially reactive, because
+otherwise the keybindings would only work after performing an initial
+search.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2204>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/23047b6d80
+---
+ js/ui/workspacesView.js | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/js/ui/workspacesView.js b/js/ui/workspacesView.js
+index 6dad2df..0acc3e5 100644
+--- a/js/ui/workspacesView.js
++++ b/js/ui/workspacesView.js
+@@ -833,6 +833,7 @@ class WorkspacesDisplay extends St.Widget {
+     _init(controls, scrollAdjustment, overviewAdjustment) {
+         super._init({
+             layout_manager: new Clutter.BinLayout(),
++            reactive: true,
+         });
+ 
+         this._controls = controls;
+@@ -1150,6 +1151,9 @@ class WorkspacesDisplay extends St.Widget {
+         if (this._overviewAdjustment.value !== ControlsState.WINDOW_PICKER)
+             return Clutter.EVENT_PROPAGATE;
+ 
++        if (!this.reactive)
++            return Clutter.EVENT_PROPAGATE;
++
+         const { workspaceManager } = global;
+         const vertical = workspaceManager.layout_rows === -1;
+         const rtl = this.get_text_direction() === Clutter.TextDirection.RTL;
