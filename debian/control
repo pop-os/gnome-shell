@@ -104,7 +104,6 @@ Depends: evolution-data-server (>= 3.33.1),
          gir1.2-soup-2.4 (>= 2.40.1),
          gir1.2-upowerglib-1.0 (>= 0.99),
          gir1.2-webkit2-4.0 (>= 2.16.0),
-         gjs (>= 1.71.1),
          gnome-backgrounds (>= 3.13.90),
          gnome-settings-daemon (>= 40~),
          gnome-shell-common (= ${source:Version}),
@@ -165,6 +164,7 @@ Description: common files for the GNOME graphical shell
 Package: gnome-shell-extension-prefs
 Architecture: linux-any
 Depends: gir1.2-gtk-4.0,
+         gjs (>= 1.71.1),
          gnome-shell (= ${binary:Version}),
          gnome-shell-common (= ${source:Version}),
          ${gir:Depends},
