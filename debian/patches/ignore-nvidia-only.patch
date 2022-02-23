@@ -1,8 +1,8 @@
 Index: gnome-shell/js/ui/appDisplay.js
 ===================================================================
---- gnome-shell.orig/js/ui/appDisplay.js	2020-04-20 11:05:31.673300893 -0600
-+++ gnome-shell/js/ui/appDisplay.js	2020-04-20 11:08:07.038630275 -0600
-@@ -2504,7 +2504,10 @@
+--- gnome-shell.orig/js/ui/appDisplay.js
++++ gnome-shell/js/ui/appDisplay.js
+@@ -2534,7 +2534,10 @@
                  this._appendSeparator();
              }
  
@@ -11,13 +11,13 @@ Index: gnome-shell/js/ui/appDisplay.js
 +                vendor != "NVIDIA Corporation" &&
 +                vendor != "nouveau" &&
                  this._source.app.state == Shell.AppState.STOPPED) {
-                 this._onDiscreteGpuMenuItem = this._appendMenuItem(_("Launch using Dedicated Graphics Card"));
-                 this._onDiscreteGpuMenuItem.connect('activate', () => {
+                 let appPrefersNonDefaultGPU = appInfo.get_boolean('PrefersNonDefaultGPU');
+                 let gpuPref = appPrefersNonDefaultGPU
 Index: gnome-shell/src/shell-util.c
 ===================================================================
---- gnome-shell.orig/src/shell-util.c	2020-04-20 11:04:36.062327680 -0600
-+++ gnome-shell/src/shell-util.c	2020-04-20 11:06:59.515758370 -0600
-@@ -408,8 +408,8 @@
+--- gnome-shell.orig/src/shell-util.c
++++ gnome-shell/src/shell-util.c
+@@ -409,8 +409,8 @@
  
  typedef const gchar *(*ShellGLGetString) (GLenum);
  
@@ -28,7 +28,7 @@ Index: gnome-shell/src/shell-util.c
  {
    static const gchar *vendor = NULL;
  
-@@ -430,7 +430,7 @@
+@@ -431,7 +431,7 @@
    if (!clutter_check_windowing_backend (CLUTTER_WINDOWING_X11))
      return FALSE;
  
@@ -39,8 +39,8 @@ Index: gnome-shell/src/shell-util.c
    return FALSE;
 Index: gnome-shell/src/shell-util.h
 ===================================================================
---- gnome-shell.orig/src/shell-util.h	2020-04-20 11:04:36.062327680 -0600
-+++ gnome-shell/src/shell-util.h	2020-04-20 11:06:35.672168190 -0600
+--- gnome-shell.orig/src/shell-util.h
++++ gnome-shell/src/shell-util.h
 @@ -49,6 +49,8 @@
                                                 int                height,
                                                 int                rowstride);
@@ -50,3 +50,39 @@ Index: gnome-shell/src/shell-util.h
  gboolean shell_util_need_background_refresh (void);
  
  ClutterContent * shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
+Index: gnome-shell/src/shell-app.c
+===================================================================
+--- gnome-shell.orig/src/shell-app.c
++++ gnome-shell/src/shell-app.c
+@@ -1362,6 +1362,8 @@
+   gboolean ret;
+   GSpawnFlags flags;
+   gboolean discrete_gpu = FALSE;
++  gboolean nvidia_only = FALSE;
++  const gchar *vendor;
+ 
+   if (app->info == NULL)
+     {
+@@ -1376,6 +1378,13 @@
+       return TRUE;
+     }
+ 
++  /* Even if multiple GPUs are available, the system may be running in "NVIDIA
++   * only" mode. We don't want to apply PRIME variables in that case.
++   */
++  vendor = shell_util_get_gl_vendor ();
++  nvidia_only = g_strcmp0 (vendor, "NVIDIA Corporation") == 0 ||
++                g_strcmp0 (vendor, "nouveau") == 0;
++
+   global = shell_global_get ();
+   context = shell_global_create_app_launch_context (global, timestamp, workspace);
+   if (gpu_pref == SHELL_APP_LAUNCH_GPU_APP_PREF)
+@@ -1383,7 +1392,7 @@
+   else
+     discrete_gpu = (gpu_pref == SHELL_APP_LAUNCH_GPU_DISCRETE);
+ 
+-  if (discrete_gpu)
++  if (discrete_gpu && !nvidia_only)
+     apply_discrete_gpu_env (context, global);
+ 
+   /* Set LEAVE_DESCRIPTORS_OPEN in order to use an optimized gspawn
