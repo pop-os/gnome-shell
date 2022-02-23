@@ -1,4 +1,4 @@
-gnome-shell (42~beta-1) UNRELEASED; urgency=medium
+gnome-shell (42~beta-1) experimental; urgency=medium
 
   * New upstream release:
     - Implement in-shell screenshot and screencast UI
@@ -17,7 +17,7 @@ gnome-shell (42~beta-1) UNRELEASED; urgency=medium
     - Explicitly list freedesktop gir dependency
     - Add runtime dependency on libadwaita via gir1.2-adw-1
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 23 Feb 2022 07:28:42 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 23 Feb 2022 07:33:39 +0100
 
 gnome-shell (41.3-2) unstable; urgency=medium
 
