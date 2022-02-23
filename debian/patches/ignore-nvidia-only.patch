@@ -62,7 +62,7 @@ Index: gnome-shell/src/shell-app.c
    GSpawnFlags flags;
    gboolean discrete_gpu = FALSE;
 +  gboolean nvidia_only = FALSE;
-+  g_autofree const gchar *vendor;
++  const gchar *vendor;
  
    if (app->info == NULL)
      {
