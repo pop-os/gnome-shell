@@ -1,10 +1,10 @@
 Index: gnome-shell/js/ui/appDisplay.js
 ===================================================================
---- gnome-shell.orig/js/ui/appDisplay.js	2020-05-04 08:03:18.103905856 -0600
-+++ gnome-shell/js/ui/appDisplay.js	2020-05-04 08:14:02.561328622 -0600
-@@ -2509,10 +2509,17 @@
-                 vendor != "NVIDIA Corporation" &&
-                 vendor != "nouveau" &&
+--- gnome-shell.orig/js/ui/appDisplay.js
++++ gnome-shell/js/ui/appDisplay.js
+@@ -2536,10 +2536,17 @@
+ 
+             if (discreteGpuAvailable &&
                  this._source.app.state == Shell.AppState.STOPPED) {
 -                this._onDiscreteGpuMenuItem = this._appendMenuItem(_("Launch using Dedicated Graphics Card"));
 -                this._onDiscreteGpuMenuItem.connect('activate', () => {
@@ -25,8 +25,8 @@ Index: gnome-shell/js/ui/appDisplay.js
              }
 Index: gnome-shell/src/shell-app.c
 ===================================================================
---- gnome-shell.orig/src/shell-app.c	2020-05-04 08:03:17.391917641 -0600
-+++ gnome-shell/src/shell-app.c	2020-05-04 08:10:59.480377032 -0600
+--- gnome-shell.orig/src/shell-app.c
++++ gnome-shell/src/shell-app.c
 @@ -1345,10 +1345,23 @@
                    gboolean      discrete_gpu,
                    GError      **error)
@@ -65,8 +65,8 @@ Index: gnome-shell/src/shell-app.c
  
 Index: gnome-shell/src/shell-app.h
 ===================================================================
---- gnome-shell.orig/src/shell-app.h	2020-05-04 08:02:45.716442665 -0600
-+++ gnome-shell/src/shell-app.h	2020-05-04 08:06:48.888442984 -0600
+--- gnome-shell.orig/src/shell-app.h
++++ gnome-shell/src/shell-app.h
 @@ -18,6 +18,12 @@
    SHELL_APP_STATE_RUNNING
  } ShellAppState;

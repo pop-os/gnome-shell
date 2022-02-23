@@ -39,5 +39,5 @@ ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 ubuntu/configure_login_screen.patch
 pop-dark-theme.patch
-ignore-nvidia-only.patch
 always-launch-on-dgpu.patch
+ignore-nvidia-only.patch
