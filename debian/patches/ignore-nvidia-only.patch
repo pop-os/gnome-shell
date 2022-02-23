@@ -2,7 +2,7 @@ Index: gnome-shell/js/ui/appDisplay.js
 ===================================================================
 --- gnome-shell.orig/js/ui/appDisplay.js
 +++ gnome-shell/js/ui/appDisplay.js
-@@ -3480,7 +3480,10 @@ var AppIconMenu = class AppIconMenu exte
+@@ -3480,7 +3480,10 @@
                  this._appendSeparator();
              }
  
@@ -17,7 +17,7 @@ Index: gnome-shell/src/shell-util.c
 ===================================================================
 --- gnome-shell.orig/src/shell-util.c
 +++ gnome-shell/src/shell-util.c
-@@ -354,6 +354,22 @@ shell_util_create_pixbuf_from_data (cons
+@@ -354,6 +354,22 @@
  
  typedef const gchar *(*ShellGLGetString) (GLenum);
  
@@ -44,7 +44,7 @@ Index: gnome-shell/src/shell-util.h
 ===================================================================
 --- gnome-shell.orig/src/shell-util.h
 +++ gnome-shell/src/shell-util.h
-@@ -46,6 +46,8 @@ GdkPixbuf *shell_util_create_pixbuf_from
+@@ -46,6 +46,8 @@
                                                 int                height,
                                                 int                rowstride);
  
@@ -53,3 +53,39 @@ Index: gnome-shell/src/shell-util.h
  ClutterContent * shell_util_get_content_for_window_actor (MetaWindowActor *window_actor,
                                                            MetaRectangle   *window_rect);
  
+Index: gnome-shell/src/shell-app.c
+===================================================================
+--- gnome-shell.orig/src/shell-app.c
++++ gnome-shell/src/shell-app.c
+@@ -1373,6 +1373,8 @@
+   gboolean ret;
+   GSpawnFlags flags;
+   gboolean discrete_gpu = FALSE;
++  gboolean nvidia_only = FALSE;
++  g_autofree const gchar *vendor;
+ 
+   if (app->info == NULL)
+     {
+@@ -1387,6 +1389,13 @@
+       return TRUE;
+     }
+ 
++  /* Even if multiple GPUs are available, the system may be running in "NVIDIA
++   * only" mode. We don't want to apply PRIME variables in that case.
++   */
++  vendor = shell_util_get_gl_vendor ();
++  nvidia_only = g_strcmp0 (vendor, "NVIDIA Corporation") == 0 ||
++                g_strcmp0 (vendor, "nouveau") == 0;
++
+   global = shell_global_get ();
+   context = shell_global_create_app_launch_context (global, timestamp, workspace);
+   if (gpu_pref == SHELL_APP_LAUNCH_GPU_APP_PREF)
+@@ -1394,7 +1403,7 @@
+   else
+     discrete_gpu = (gpu_pref == SHELL_APP_LAUNCH_GPU_DISCRETE);
+ 
+-  if (discrete_gpu)
++  if (discrete_gpu && !nvidia_only)
+     apply_discrete_gpu_env (context, global);
+ 
+   /* Set LEAVE_DESCRIPTORS_OPEN in order to use an optimized gspawn
