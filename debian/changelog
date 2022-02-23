@@ -1,9 +1,23 @@
 gnome-shell (42~beta-1) UNRELEASED; urgency=medium
 
-  * New upstream release
-  * New upstream release
+  * New upstream release:
+    - Implement in-shell screenshot and screencast UI
+    - Use libadwaita for extension preferences
+    - Improve presentation of multi-day events in calendar
+    - Implement OSD redesign
+    - Allow extensions to opt-in to running on lock/login screen
+  * debian/patches:
+    - Drop applied upstream
+    - Revert switch to gnome-bluetooth-3
+    - Cherry-pick various upstream fixes
+  * debian: Update runtime-dependencies and use mozjs-91 based gjs
+  * debian/gnome-shell.lintian-overrides: Overrides for new messages
+  * debian/control:
+    - Drop shell dependency on gjs cli tool, add to extensions tool
+    - Explicitly list freedesktop gir dependency
+    - Add runtime dependency on libadwaita via gir1.2-adw-1
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 18 Feb 2022 05:05:21 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 23 Feb 2022 07:28:42 +0100
 
 gnome-shell (41.3-2) unstable; urgency=medium
 
