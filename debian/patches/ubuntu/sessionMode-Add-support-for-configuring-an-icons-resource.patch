@@ -3,7 +3,7 @@ Date: Thu, 24 Feb 2022 04:22:32 +0100
 Subject: sessionMode: Add support for configuring an icons resource name
 
 Similar to what we did (and upstreamed) for the theme, in this case
-however there's very likely no interest upstream for this.
+however there's very likely no interest from upstream for this.
 
 Forwarded: not-needed
 ---

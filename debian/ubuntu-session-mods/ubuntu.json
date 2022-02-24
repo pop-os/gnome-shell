@@ -2,6 +2,7 @@
     "parentMode": "user",
     "stylesheetName": "Yaru/gnome-shell.css",
     "themeResourceName": "theme/Yaru/gnome-shell-theme.gresource",
+    "iconsResourceName": "theme/Yaru/gnome-shell-icons.gresource",
     "debugFlags": ["backtrace-crashes-all"],
     "enabledExtensions": [
         "ubuntu-dock@ubuntu.com",
