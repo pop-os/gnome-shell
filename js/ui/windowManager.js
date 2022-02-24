@@ -46,10 +46,8 @@ const GsdWacomProxy = Gio.DBusProxy.makeProxyWrapper(GsdWacomIface);
 
 const WINDOW_DIMMER_EFFECT_NAME = "gnome-shell-window-dimmer";
 
-Gio._promisify(Shell,
-    'util_start_systemd_unit', 'util_start_systemd_unit_finish');
-Gio._promisify(Shell,
-    'util_stop_systemd_unit', 'util_stop_systemd_unit_finish');
+Gio._promisify(Shell, 'util_start_systemd_unit');
+Gio._promisify(Shell, 'util_stop_systemd_unit');
 
 var DisplayChangeDialog = GObject.registerClass(
 class DisplayChangeDialog extends ModalDialog.ModalDialog {
@@ -134,8 +132,7 @@ class WindowDimmer extends Clutter.BrightnessContrastEffect {
     }
 
     _syncEnabled() {
-        let transitionName = '@effects.%s.brightness'.format(this.name);
-        let animating = this.actor.get_transition(transitionName) != null;
+        let animating = this.actor.get_transition(`@effects.${this.name}.brightness`) !== null;
         let dimmed = this.brightness.red != 127;
         this.enabled = this._enabled && (animating || dimmed);
     }
@@ -149,8 +146,7 @@ class WindowDimmer extends Clutter.BrightnessContrastEffect {
         let val = 127 * (1 + (dimmed ? 1 : 0) * DIM_BRIGHTNESS);
         let color = Clutter.Color.new(val, val, val, 255);
 
-        let transitionName = '@effects.%s.brightness'.format(this.name);
-        this.actor.ease_property(transitionName, color, {
+        this.actor.ease_property(`@effects.${this.name}.brightness`, color, {
             mode: Clutter.AnimationMode.LINEAR,
             duration: (dimmed ? DIM_TIME : UNDIM_TIME) * (animate ? 1 : 0),
             onComplete: () => this._syncEnabled(),
@@ -937,7 +933,7 @@ var WindowManager = class {
 
         let appSwitchAction = new AppSwitchAction();
         appSwitchAction.connect('activated', this._switchApp.bind(this));
-        global.stage.add_action(appSwitchAction);
+        global.stage.add_action_full('app-switch', Clutter.EventPhase.CAPTURE, appSwitchAction);
 
         let mode = Shell.ActionMode.ALL & ~Shell.ActionMode.LOCK_SCREEN;
         let topDragAction = new EdgeDragAction.EdgeDragAction(St.Side.TOP, mode);
@@ -956,7 +952,7 @@ var WindowManager = class {
         global.display.connect('in-fullscreen-changed', updateUnfullscreenGesture);
         updateUnfullscreenGesture();
 
-        global.stage.add_action(topDragAction);
+        global.stage.add_action_full('unfullscreen', Clutter.EventPhase.CAPTURE, topDragAction);
 
         this._workspaceAnimation =
             new WorkspaceAnimation.WorkspaceAnimationController();
@@ -978,7 +974,7 @@ var WindowManager = class {
             // already.
             // Note that we do log cancellation from here.
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED)) {
-                log('Error starting X11 services: %s'.format(e.message));
+                log(`Error starting X11 services: ${e.message}`);
                 status = false;
             }
         } finally {
@@ -996,7 +992,7 @@ var WindowManager = class {
             // already.
             // Note that we do log cancellation from here.
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_SUPPORTED))
-                log('Error stopping X11 services: %s'.format(e.message));
+                log(`Error stopping X11 services: ${e.message}`);
         }
     }
 
@@ -1294,7 +1290,7 @@ var WindowManager = class {
         actor.freeze();
 
         if (this._clearAnimationInfo(actor)) {
-            log('Old animationInfo removed from actor %s'.format(actor));
+            log(`Old animationInfo removed from actor ${actor}`);
             this._shellwm.completed_size_change(actor);
         }
 
@@ -1399,22 +1395,8 @@ var WindowManager = class {
         }
     }
 
-    _hasAttachedDialogs(window, ignoreWindow) {
-        var count = 0;
-        window.foreach_transient(win => {
-            if (win != ignoreWindow &&
-                win.is_attached_dialog() &&
-                win.get_transient_for() == window) {
-                count++;
-                return false;
-            }
-            return true;
-        });
-        return count != 0;
-    }
-
-    _checkDimming(window, ignoreWindow) {
-        let shouldDim = this._hasAttachedDialogs(window, ignoreWindow);
+    _checkDimming(window) {
+        const shouldDim = window.has_attached_dialogs();
 
         if (shouldDim && !window._dimmed) {
             window._dimmed = true;
@@ -1560,7 +1542,7 @@ var WindowManager = class {
         }
 
         if (window.is_attached_dialog())
-            this._checkDimming(window.get_transient_for(), window);
+            this._checkDimming(window.get_transient_for());
 
         let types = [Meta.WindowType.NORMAL,
                      Meta.WindowType.DIALOG,
@@ -1838,7 +1820,7 @@ var WindowManager = class {
                     this._isWorkspacePrepended = false;
                 });
             }
-            this._workspaceSwitcherPopup.display(direction, newWs.index());
+            this._workspaceSwitcherPopup.display(newWs.index());
         }
     }
 

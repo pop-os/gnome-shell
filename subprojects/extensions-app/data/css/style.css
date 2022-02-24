@@ -1,0 +1,21 @@
+row.extension>box {
+ margin: 12px;
+}
+
+row.extension>box,
+row.extension box.header {
+  border-spacing: 12px;
+}
+
+row.extension box.actions,
+row.extension box.actions>box {
+  border-spacing: 6px;
+}
+
+row.extension box.information,
+row.extension box.status {
+  border-spacing: 3px;
+}
+
+image.error { color: @error_color; }
+image.warning { color: @warning_color; }

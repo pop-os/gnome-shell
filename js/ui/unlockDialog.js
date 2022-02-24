@@ -100,7 +100,7 @@ var NotificationsBox = GObject.registerClass({
 
         let count = source.unseenCount;
         let countLabel = new St.Label({
-            text: count.toString(),
+            text: `${count}`,
             visible: count > 1,
             style_class: 'unlock-dialog-notification-count-text',
         });
@@ -140,7 +140,7 @@ var NotificationsBox = GObject.registerClass({
             }
 
             let label = new St.Label({ style_class: 'unlock-dialog-notification-count-text' });
-            label.clutter_text.set_markup('<b>%s</b> %s'.format(n.title, body));
+            label.clutter_text.set_markup(`<b>${n.title}</b> ${body}`);
             textBox.add(label);
 
             visible = true;
@@ -272,7 +272,7 @@ var NotificationsBox = GObject.registerClass({
             this._showSource(source, obj, obj.sourceBox);
         } else {
             let count = source.unseenCount;
-            obj.countLabel.text = count.toString();
+            obj.countLabel.text = `${count}`;
             obj.countLabel.visible = count > 1;
         }
 
@@ -493,6 +493,13 @@ var UnlockDialog = GObject.registerClass({
 
         this._gdmClient = new Gdm.Client();
 
+        try {
+            this._gdmClient.set_enabled_extensions([
+                Gdm.UserVerifierChoiceList.interface_info().name,
+            ]);
+        } catch (e) {
+        }
+
         this._adjustment = new St.Adjustment({
             actor: this,
             lower: 0,
@@ -572,6 +579,7 @@ var UnlockDialog = GObject.registerClass({
         this._otherUserButton = new St.Button({
             style_class: 'modal-dialog-button button switch-user-button',
             accessible_name: _('Log in as another user'),
+            button_mask: St.ButtonMask.ONE | St.ButtonMask.THREE,
             reactive: false,
             opacity: 0,
             x_align: Clutter.ActorAlign.END,
@@ -685,16 +693,14 @@ var UnlockDialog = GObject.registerClass({
     }
 
     _ensureAuthPrompt() {
-        if (this._authPrompt)
-            return;
-
-        this._authPrompt = new AuthPrompt.AuthPrompt(this._gdmClient,
-            AuthPrompt.AuthPromptMode.UNLOCK_ONLY);
-        this._authPrompt.connect('failed', this._fail.bind(this));
-        this._authPrompt.connect('cancelled', this._fail.bind(this));
-        this._authPrompt.connect('reset', this._onReset.bind(this));
-
-        this._promptBox.add_child(this._authPrompt);
+        if (!this._authPrompt) {
+            this._authPrompt = new AuthPrompt.AuthPrompt(this._gdmClient,
+                AuthPrompt.AuthPromptMode.UNLOCK_ONLY);
+            this._authPrompt.connect('failed', this._fail.bind(this));
+            this._authPrompt.connect('cancelled', this._fail.bind(this));
+            this._authPrompt.connect('reset', this._onReset.bind(this));
+            this._promptBox.add_child(this._authPrompt);
+        }
 
         this._authPrompt.reset();
         this._authPrompt.updateSensitivity(true);
@@ -881,7 +887,11 @@ var UnlockDialog = GObject.registerClass({
     }
 
     finish(onComplete) {
-        this._ensureAuthPrompt();
+        if (!this._authPrompt) {
+            onComplete();
+            return;
+        }
+
         this._authPrompt.finish(onComplete);
     }
 
@@ -895,9 +905,13 @@ var UnlockDialog = GObject.registerClass({
             timestamp,
             actionMode: Shell.ActionMode.UNLOCK_SCREEN,
         };
-        if (!Main.pushModal(this, modalParams))
+        let grab = Main.pushModal(this, modalParams);
+        if (grab.get_seat_state() !== Clutter.GrabState.ALL) {
+            Main.popModal(grab);
             return false;
+        }
 
+        this._grab = grab;
         this._isModal = true;
 
         return true;
@@ -909,7 +923,8 @@ var UnlockDialog = GObject.registerClass({
 
     popModal(timestamp) {
         if (this._isModal) {
-            Main.popModal(this, timestamp);
+            Main.popModal(this._grab, timestamp);
+            this._grab = null;
             this._isModal = false;
         }
     }

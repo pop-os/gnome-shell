@@ -48,8 +48,13 @@ G_DEFINE_TYPE (ShellWindowTracker, shell_window_tracker, G_TYPE_OBJECT);
 
 enum {
   PROP_0,
-  PROP_FOCUS_APP
+
+  PROP_FOCUS_APP,
+
+  N_PROPS
 };
+
+static GParamSpec *props[N_PROPS] = { NULL, };
 
 enum {
   STARTUP_SEQUENCE_CHANGED,
@@ -97,13 +102,14 @@ shell_window_tracker_class_init (ShellWindowTrackerClass *klass)
   gobject_class->get_property = shell_window_tracker_get_property;
   gobject_class->finalize = shell_window_tracker_finalize;
 
-  g_object_class_install_property (gobject_class,
-                                   PROP_FOCUS_APP,
-                                   g_param_spec_object ("focus-app",
-                                                        "Focus App",
-                                                        "Focused application",
-                                                        SHELL_TYPE_APP,
-                                                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  props[PROP_FOCUS_APP] =
+    g_param_spec_object ("focus-app",
+                         "Focus App",
+                         "Focused application",
+                         SHELL_TYPE_APP,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_properties (gobject_class, N_PROPS, props);
 
   signals[STARTUP_SEQUENCE_CHANGED] = g_signal_new ("startup-sequence-changed",
                                    SHELL_TYPE_WINDOW_TRACKER,
@@ -591,15 +597,13 @@ disassociate_window (ShellWindowTracker   *self,
 static void
 load_initial_windows (ShellWindowTracker *tracker)
 {
-  g_autoptr (GList) window_actors = NULL;
+  MetaDisplay *display = shell_global_get_display (shell_global_get ());
+  g_autoptr (GList) windows = NULL;
   GList *l;
 
-  window_actors = shell_global_get_window_actors (shell_global_get ());
-  for (l = window_actors; l; l = l->next)
-    {
-      MetaWindowActor *actor = l->data;
-      track_window (tracker, meta_window_actor_get_meta_window (actor));
-    }
+  windows = meta_display_list_all_windows (display);
+  for (l = windows; l; l = l->next)
+    track_window (tracker, l->data);
 }
 
 static void
@@ -733,7 +737,7 @@ set_focus_app (ShellWindowTracker  *tracker,
   if (tracker->focus_app != NULL)
     g_object_ref (tracker->focus_app);
 
-  g_object_notify (G_OBJECT (tracker), "focus-app");
+  g_object_notify_by_pspec (G_OBJECT (tracker), props[PROP_FOCUS_APP]);
 }
 
 static void

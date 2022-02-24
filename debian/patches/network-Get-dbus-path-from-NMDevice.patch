@@ -1,0 +1,41 @@
+From: Xiaoguang Wang <xwang@suse.com>
+Date: Mon, 21 Feb 2022 09:11:23 +0800
+Subject: network: Get dbus path from NMDevice
+
+In the NetworkManager new version the NMDevice.get_path returns pci
+path, we need to use NM prototype to get device dbus path.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4565
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2194>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/8655814329
+---
+ js/ui/status/network.js | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/status/network.js b/js/ui/status/network.js
+index f7db379..e8d8568 100644
+--- a/js/ui/status/network.js
++++ b/js/ui/status/network.js
+@@ -990,7 +990,7 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
+                 // 802.1x-enabled APs require further configuration, so they're
+                 // handled in gnome-control-center
+                 launchSettingsPanel('wifi', 'connect-8021x-wifi',
+-                    this._device.get_path(), accessPoints[0].get_path());
++                    this._getDeviceDBusPath(), accessPoints[0].get_path());
+             } else {
+                 let connection = new NM.SimpleConnection();
+                 this._client.add_and_activate_connection_async(connection, this._device, accessPoints[0].get_path(), null, null);
+@@ -1000,6 +1000,11 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
+         this.close();
+     }
+ 
++    _getDeviceDBusPath() {
++        // nm_object_get_path() is shadowed by nm_device_get_path()
++        return NM.Object.prototype.get_path.call(this._device);
++    }
++
+     _notifySsidCb(accessPoint) {
+         if (accessPoint.get_ssid() != null) {
+             accessPoint.disconnect(accessPoint._notifySsidId);

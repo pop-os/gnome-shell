@@ -354,7 +354,7 @@ var PadDiagram = GObject.registerClass({
         return '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
                '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" ' +
                'xmlns:xi="http://www.w3.org/2001/XInclude" ' +
-               'width="%d" height="%d">'.format(this._imageWidth, this._imageHeight) +
+               `width="${this._imageWidth}" height="${this._imageHeight}"> ` +
                '<style type="text/css">';
     }
 
@@ -369,8 +369,8 @@ var PadDiagram = GObject.registerClass({
 
         for (let i = 0; i < this._activeButtons.length; i++) {
             let ch = String.fromCharCode('A'.charCodeAt() + this._activeButtons[i]);
-            css += '.%s.Leader { stroke: %s !important; }'.format(ch, ACTIVE_COLOR);
-            css += '.%s.Button { stroke: %s !important; fill: %s !important; }'.format(ch, ACTIVE_COLOR, ACTIVE_COLOR);
+            css += `.${ch}.Leader { stroke: ${ACTIVE_COLOR} !important; }`;
+            css += `.${ch}.Button { stroke: ${ACTIVE_COLOR} !important; fill: ${ACTIVE_COLOR} !important; }`;
         }
 
         return css;
@@ -471,12 +471,12 @@ var PadDiagram = GObject.registerClass({
         let leaderPos, leaderSize, pos;
         let found, direction;
 
-        [found, pos] = this._handle.get_position_sub('#%s'.format(labelName));
+        [found, pos] = this._handle.get_position_sub(`#${labelName}`);
         if (!found)
             return [false];
 
-        [found, leaderPos] = this._handle.get_position_sub('#%s'.format(leaderName));
-        [found, leaderSize] = this._handle.get_dimensions_sub('#%s'.format(leaderName));
+        [found, leaderPos] = this._handle.get_position_sub(`#${leaderName}`);
+        [found, leaderSize] = this._handle.get_dimensions_sub(`#${leaderName}`);
         if (!found)
             return [false];
 
@@ -496,24 +496,24 @@ var PadDiagram = GObject.registerClass({
 
     _getButtonLabels(button) {
         let ch = String.fromCharCode('A'.charCodeAt() + button);
-        let labelName = 'Label%s'.format(ch);
-        let leaderName = 'Leader%s'.format(ch);
+        const labelName = `Label${ch}`;
+        const leaderName = `Leader${ch}`;
         return [labelName, leaderName];
     }
 
     _getRingLabels(number, dir) {
         let numStr = number > 0 ? (number + 1).toString() : '';
         let dirStr = dir == CW ? 'CW' : 'CCW';
-        let labelName = 'LabelRing%s%s'.format(numStr, dirStr);
-        let leaderName = 'LeaderRing%s%s'.format(numStr, dirStr);
+        const labelName = `LabelRing${numStr}${dirStr}`;
+        const leaderName = `LeaderRing${numStr}${dirStr}`;
         return [labelName, leaderName];
     }
 
     _getStripLabels(number, dir) {
         let numStr = number > 0 ? (number + 1).toString() : '';
         let dirStr = dir == UP ? 'Up' : 'Down';
-        let labelName = 'LabelStrip%s%s'.format(numStr, dirStr);
-        let leaderName = 'LeaderStrip%s%s'.format(numStr, dirStr);
+        const labelName = `LabelStrip${numStr}${dirStr}`;
+        const leaderName = `LeaderStrip${numStr}${dirStr}`;
         return [labelName, leaderName];
     }
 
@@ -638,7 +638,6 @@ var PadOsd = GObject.registerClass({
         this._settings = settings;
         this._imagePath = imagePath;
         this._editionMode = editionMode;
-        this._capturedEventId = global.stage.connect('captured-event', this._onCapturedEvent.bind(this));
         this._padChooser = null;
 
         let seat = Clutter.get_default_backend().get_default_seat();
@@ -724,7 +723,7 @@ var PadOsd = GObject.registerClass({
         buttonBox.add_actor(this._editButton);
 
         this._syncEditionMode();
-        Main.pushModal(this);
+        this._grab = Main.pushModal(this);
     }
 
     _updatePadChooser() {
@@ -762,7 +761,7 @@ var PadOsd = GObject.registerClass({
         this._padDiagram.updateLabels(this._getActionText.bind(this));
     }
 
-    _onCapturedEvent(actor, event) {
+    vfunc_captured_event(event) {
         let isModeSwitch =
             (event.type() == Clutter.EventType.PAD_BUTTON_PRESS ||
              event.type() == Clutter.EventType.PAD_BUTTON_RELEASE) &&
@@ -895,19 +894,19 @@ var PadOsd = GObject.registerClass({
 
     _startButtonActionEdition(button) {
         let ch = String.fromCharCode('A'.charCodeAt() + button);
-        let key = 'button%s'.format(ch);
+        let key = `button${ch}`;
         this._startActionEdition(key, Meta.PadActionType.BUTTON, button);
     }
 
     _startRingActionEdition(ring, dir, mode) {
         let ch = String.fromCharCode('A'.charCodeAt() + ring);
-        let key = 'ring%s-%s-mode-%d'.format(ch, dir == CCW ? 'ccw' : 'cw', mode);
+        const key = `ring${ch}-${dir === CCW ? 'ccw' : 'cw'}-mode-${mode}`;
         this._startActionEdition(key, Meta.PadActionType.RING, ring, dir, mode);
     }
 
     _startStripActionEdition(strip, dir, mode) {
         let ch = String.fromCharCode('A'.charCodeAt() + strip);
-        let key = 'strip%s-%s-mode-%d'.format(ch, dir == UP ? 'up' : 'down', mode);
+        const key = `strip${ch}-${dir === UP ? 'up' : 'down'}-mode-${mode}`;
         this._startActionEdition(key, Meta.PadActionType.STRIP, strip, dir, mode);
     }
 
@@ -920,7 +919,8 @@ var PadOsd = GObject.registerClass({
     }
 
     _onDestroy() {
-        Main.popModal(this);
+        Main.popModal(this._grab);
+        this._grab = null;
         this._actionEditor.close();
 
         let seat = Clutter.get_default_backend().get_default_seat();
@@ -931,11 +931,6 @@ var PadOsd = GObject.registerClass({
         if (this._deviceAddedId != 0) {
             seat.disconnect(this._deviceAddedId);
             this._deviceAddedId = 0;
-        }
-
-        if (this._capturedEventId != 0) {
-            global.stage.disconnect(this._capturedEventId);
-            this._capturedEventId = 0;
         }
 
         this.emit('closed');

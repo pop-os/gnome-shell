@@ -20,7 +20,6 @@ const _modes = {
         showCalendarEvents: false,
         showWelcomeDialog: false,
         allowSettings: false,
-        allowExtensions: false,
         allowScreencast: false,
         enabledExtensions: [],
         hasRunDialog: false,
@@ -74,7 +73,6 @@ const _modes = {
         showCalendarEvents: true,
         showWelcomeDialog: true,
         allowSettings: true,
-        allowExtensions: true,
         allowScreencast: true,
         hasRunDialog: true,
         hasWorkspaces: true,
@@ -93,7 +91,7 @@ const _modes = {
         panel: {
             left: ['activities', 'appMenu'],
             center: ['dateMenu'],
-            right: ['dwellClick', 'a11y', 'keyboard', 'aggregateMenu'],
+            right: ['screenRecording', 'dwellClick', 'a11y', 'keyboard', 'aggregateMenu'],
         },
     },
 };

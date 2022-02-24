@@ -907,7 +907,7 @@ st_widget_class_init (StWidgetClass *klass)
                          "Pseudo Class",
                          "Pseudo class for styling",
                          "",
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:style-class:
@@ -919,7 +919,7 @@ st_widget_class_init (StWidgetClass *klass)
                          "Style Class",
                          "Style class for styling",
                          "",
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:style:
@@ -932,7 +932,7 @@ st_widget_class_init (StWidgetClass *klass)
                           "Style",
                           "Inline style string",
                           "",
-                          ST_PARAM_READWRITE);
+                          ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:track-hover:
@@ -948,7 +948,7 @@ st_widget_class_init (StWidgetClass *klass)
                            "Track hover",
                            "Determines whether the widget tracks hover state",
                            FALSE,
-                           ST_PARAM_READWRITE);
+                           ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:hover:
@@ -962,7 +962,7 @@ st_widget_class_init (StWidgetClass *klass)
                            "Hover",
                            "Whether the pointer is hovering over the widget",
                            FALSE,
-                           ST_PARAM_READWRITE);
+                           ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:can-focus:
@@ -974,7 +974,7 @@ st_widget_class_init (StWidgetClass *klass)
                            "Can focus",
                            "Whether the widget can be focused via keyboard navigation",
                            FALSE,
-                           ST_PARAM_READWRITE);
+                           ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:label-actor:
@@ -986,7 +986,7 @@ st_widget_class_init (StWidgetClass *klass)
                           "Label",
                           "Label that identifies this widget",
                           CLUTTER_TYPE_ACTOR,
-                          ST_PARAM_READWRITE);
+                          ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:accessible-role:
@@ -999,7 +999,7 @@ st_widget_class_init (StWidgetClass *klass)
                         "The accessible role of this object",
                         ATK_TYPE_ROLE,
                         ATK_ROLE_INVALID,
-                        ST_PARAM_READWRITE);
+                        ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StWidget:accessible-name:
@@ -1011,7 +1011,7 @@ st_widget_class_init (StWidgetClass *klass)
                           "Accessible name",
                           "Object instance's name for assistive technology access.",
                           NULL,
-                          ST_PARAM_READWRITE);
+                          ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (gobject_class, N_PROPS, props);
 
@@ -1740,29 +1740,7 @@ st_widget_recompute_style (StWidget    *widget,
         st_theme_node_paint_state_invalidate (current_paint_state (widget));
     }
 
-  /* It is very likely that custom CSS properties are used with StDrawingArea
-     to control the custom drawing, so never omit the ::style-changed signal */
-  if (paint_equal)
-    paint_equal = !ST_IS_DRAWING_AREA (widget);
-
-  if (paint_equal && old_theme_node->font_desc != NULL)
-    paint_equal = pango_font_description_equal (old_theme_node->font_desc,
-                                                st_theme_node_get_font (new_theme_node));
-
-  if (paint_equal && old_theme_node->foreground_computed)
-    {
-      ClutterColor col;
-
-      st_theme_node_get_foreground_color (new_theme_node, &col);
-      paint_equal = clutter_color_equal (&old_theme_node->foreground_color, &col);
-    }
-
-  if (paint_equal && old_theme_node->icon_colors)
-    paint_equal = st_icon_colors_equal (old_theme_node->icon_colors,
-                                        st_theme_node_get_icon_colors (new_theme_node));
-
-  if (!paint_equal || !geometry_equal)
-    g_signal_emit (widget, signals[STYLE_CHANGED], 0);
+  g_signal_emit (widget, signals[STYLE_CHANGED], 0);
 
   priv->is_style_dirty = FALSE;
 }

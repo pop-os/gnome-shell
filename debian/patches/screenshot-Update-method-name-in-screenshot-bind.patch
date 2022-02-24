@@ -1,0 +1,26 @@
+From: Ivan Molodetskikh <yalterz@gmail.com>
+Date: Sun, 20 Feb 2022 08:54:11 +0300
+Subject: screenshot: Update method name in screenshot bind
+
+I missed it during refactoring. Makes this bind work again.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2202>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/89fd575b99
+---
+ js/ui/screenshot.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/screenshot.js b/js/ui/screenshot.js
+index adc1f8c..d40c5b2 100644
+--- a/js/ui/screenshot.js
++++ b/js/ui/screenshot.js
+@@ -1332,7 +1332,7 @@ var ScreenshotUI = GObject.registerClass({
+             async () => {
+                 try {
+                     const shooter = new Shell.Screenshot();
+-                    const [content] = await shooter.to_content();
++                    const [content] = await shooter.screenshot_stage_to_content();
+                     const texture = content.get_texture();
+ 
+                     await captureScreenshot(texture, null, 1, null);

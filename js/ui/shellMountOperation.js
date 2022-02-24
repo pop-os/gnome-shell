@@ -28,7 +28,7 @@ function _setButtonsForChoices(dialog, oldChoices, choices) {
     for (let idx = 0; idx < choices.length; idx++) {
         let button = idx;
 
-        buttonsChanged = buttonsChanged || oldChoices[idx] !== choices[idx];
+        buttonsChanged ||= oldChoices[idx] !== choices[idx];
 
         buttons.unshift({
             label: choices[idx],
@@ -542,7 +542,6 @@ var GnomeShellMountOpHandler = class {
                                        Gio.BusNameOwnerFlags.REPLACE, null, null);
 
         this._dialog = null;
-        this._volumeMonitor = Gio.VolumeMonitor.get();
 
         this._ensureEmptyRequest();
     }
@@ -565,7 +564,7 @@ var GnomeShellMountOpHandler = class {
     _setCurrentRequest(invocation, id, type) {
         let oldId = this._currentId;
         let oldType = this._currentType;
-        let requestId = '%s@%s'.format(id, invocation.get_sender());
+        let requestId = `${id}@${invocation.get_sender()}`;
 
         this._clearCurrentRequest(Gio.MountOperationResult.UNHANDLED, {});
 

@@ -54,6 +54,7 @@ struct _StScrollBarPrivate
   gfloat        y_origin;
 
   ClutterInputDevice *grab_device;
+  ClutterGrab *grab;
 
   ClutterActor *trough;
   ClutterActor *handle;
@@ -103,6 +104,27 @@ handle_button_press_event_cb (ClutterActor       *actor,
 static void stop_scrolling (StScrollBar *bar);
 
 static void
+st_scroll_bar_set_vertical (StScrollBar *bar,
+                            gboolean     vertical)
+{
+  StScrollBarPrivate *priv = ST_SCROLL_BAR_PRIVATE (bar);
+
+  if (priv->vertical == vertical)
+    return;
+
+  priv->vertical = vertical;
+
+  if (priv->vertical)
+    clutter_actor_set_name (CLUTTER_ACTOR (priv->handle),
+                        "vhandle");
+  else
+    clutter_actor_set_name (CLUTTER_ACTOR (priv->handle),
+                        "hhandle");
+  clutter_actor_queue_relayout (CLUTTER_ACTOR (bar));
+  g_object_notify_by_pspec (G_OBJECT (bar), props[PROP_VERTICAL]);
+}
+
+static void
 st_scroll_bar_get_property (GObject    *gobject,
                             guint       prop_id,
                             GValue     *value,
@@ -133,7 +155,6 @@ st_scroll_bar_set_property (GObject      *gobject,
                             GParamSpec   *pspec)
 {
   StScrollBar *bar = ST_SCROLL_BAR (gobject);
-  StScrollBarPrivate *priv = st_scroll_bar_get_instance_private (bar);
 
   switch (prop_id)
     {
@@ -142,14 +163,7 @@ st_scroll_bar_set_property (GObject      *gobject,
       break;
 
     case PROP_VERTICAL:
-      priv->vertical = g_value_get_boolean (value);
-      if (priv->vertical)
-        clutter_actor_set_name (CLUTTER_ACTOR (priv->handle),
-                                "vhandle");
-      else
-        clutter_actor_set_name (CLUTTER_ACTOR (priv->handle),
-                                "hhandle");
-      clutter_actor_queue_relayout ((ClutterActor*) gobject);
+      st_scroll_bar_set_vertical (bar, g_value_get_boolean (value));
       break;
 
     default:
@@ -520,7 +534,7 @@ st_scroll_bar_class_init (StScrollBarClass *klass)
   props[PROP_ADJUSTMENT] =
     g_param_spec_object ("adjustment", "Adjustment", "The adjustment",
                          ST_TYPE_ADJUSTMENT,
-                         ST_PARAM_READWRITE);
+                         ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
    * StScrollBar:vertical:
@@ -532,7 +546,7 @@ st_scroll_bar_class_init (StScrollBarClass *klass)
                           "Vertical Orientation",
                           "Vertical Orientation",
                           FALSE,
-                          ST_PARAM_READWRITE);
+                          ST_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (object_class, N_PROPS, props);
 
@@ -626,7 +640,12 @@ stop_scrolling (StScrollBar *bar)
 
   st_widget_remove_style_pseudo_class (ST_WIDGET (priv->handle), "active");
 
-  clutter_input_device_ungrab (priv->grab_device);
+  if (priv->grab)
+    {
+      clutter_grab_dismiss (priv->grab);
+      g_clear_pointer (&priv->grab, clutter_grab_unref);
+    }
+
   priv->grab_device = NULL;
   g_signal_emit (bar, signals[SCROLL_STOP], 0);
 }
@@ -663,6 +682,7 @@ handle_button_press_event_cb (ClutterActor       *actor,
 {
   StScrollBarPrivate *priv = st_scroll_bar_get_instance_private (bar);
   ClutterInputDevice *device = clutter_event_get_device ((ClutterEvent*) event);
+  ClutterActor *stage;
 
   if (event->button != 1)
     return FALSE;
@@ -682,7 +702,8 @@ handle_button_press_event_cb (ClutterActor       *actor,
 
   g_assert (!priv->grab_device);
 
-  clutter_input_device_grab (device, priv->handle);
+  stage = clutter_actor_get_stage (actor);
+  priv->grab = clutter_stage_grab (CLUTTER_STAGE (stage), priv->handle);
   priv->grab_device = device;
   g_signal_emit (bar, signals[SCROLL_START], 0);
 

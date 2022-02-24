@@ -1,3 +1,39 @@
+gnome-shell (42~beta-1) experimental; urgency=medium
+
+  * New upstream release:
+    - Implement in-shell screenshot and screencast UI
+    - Use libadwaita for extension preferences
+    - Improve presentation of multi-day events in calendar
+    - Implement OSD redesign
+    - Allow extensions to opt-in to running on lock/login screen
+  * debian/patches:
+    - Drop applied upstream
+    - Revert switch to gnome-bluetooth-3
+    - Cherry-pick various upstream fixes
+  * debian: Update runtime-dependencies and use mozjs-91 based gjs
+  * debian/gnome-shell.lintian-overrides: Overrides for new messages
+  * debian/control:
+    - Drop shell dependency on gjs cli tool, add to extensions tool
+    - Explicitly list freedesktop gir dependency
+    - Add runtime dependency on libadwaita via gir1.2-adw-1
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 23 Feb 2022 07:33:39 +0100
+
+gnome-shell (41.3-2) unstable; urgency=medium
+
+  * Team upload
+  * d/p/environment-Require-GnomeBluetooth-1.0.patch,
+    d/p/environment-Require-gnome-desktop-3.0.patch:
+    Add patches from 42~alpha to avoid a crash with experimental GIR.
+    Previously, gnome-shell would crash if gir1.2-gnomedesktop-4.0 or
+    gir1.2-gnomebluetooth-2.0 were installed.
+  * d/patches: Update to gnome-41 branch commit 41.3-10-g3ca661b73
+    - Don't break extensions that look up a window's app on ::window-added,
+      fixing a regression in 41.3
+    - Translation updates: cs, es, he, is, ja
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 15 Feb 2022 13:11:19 +0000
+
 gnome-shell (41.3-1ubuntu1) jammy; urgency=medium
 
   * Merge with debian, containing various upstream fixes:

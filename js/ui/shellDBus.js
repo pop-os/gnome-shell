@@ -1,7 +1,7 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported GnomeShell, ScreenSaverDBus */
 
-const { Gio, GLib, Meta } = imports.gi;
+const { Gio, GLib, Meta, Shell } = imports.gi;
 
 const Config = imports.misc.config;
 const ExtensionDownloader = imports.ui.extensionDownloader;
@@ -22,7 +22,7 @@ var GnomeShell = class {
         this._dbusImpl.export(Gio.DBus.session, '/org/gnome/Shell');
 
         this._senderChecker = new DBusSenderChecker([
-            'org.gnome.ControlCenter',
+            'org.gnome.Settings',
             'org.gnome.SettingsDaemon.MediaKeys',
         ]);
 
@@ -153,6 +153,15 @@ var GnomeShell = class {
             return;
         }
 
+        const appSys = Shell.AppSystem.get_default();
+        if (appSys.lookup_app(id) === null) {
+            invocation.return_error_literal(
+                Gio.DBusError,
+                Gio.DBusError.FILE_NOT_FOUND,
+                `No application with ID ${id}`);
+            return;
+        }
+
         Main.overview.selectApp(id);
         invocation.return_value(null);
     }
@@ -240,6 +249,19 @@ var GnomeShell = class {
             ungrabSucceeded &= this._ungrabAcceleratorForSender(actions[i], sender);
 
         invocation.return_value(GLib.Variant.new('(b)', [ungrabSucceeded]));
+    }
+
+    ScreenTransitionAsync(params, invocation) {
+        try {
+            this._senderChecker.checkInvocation(invocation);
+        } catch (e) {
+            invocation.return_gerror(e);
+            return;
+        }
+
+        Main.layoutManager.screenTransition.run();
+
+        invocation.return_value(null);
     }
 
     _emitAcceleratorActivated(action, device, timestamp) {

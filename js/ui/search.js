@@ -10,6 +10,8 @@ const ParentalControlsManager = imports.misc.parentalControlsManager;
 const RemoteSearch = imports.ui.remoteSearch;
 const Util = imports.misc.util;
 
+const { Highlighter } = imports.misc.util;
+
 const SEARCH_PROVIDERS_SCHEMA = 'org.gnome.desktop.search-providers';
 
 var MAX_LIST_SEARCH_RESULTS_ROWS = 5;
@@ -230,18 +232,18 @@ var SearchResultsBase = GObject.registerClass({
             this.provider.getResultMetas(metasNeeded, metas => {
                 if (this._cancellable.is_cancelled()) {
                     if (metas.length > 0)
-                        log('Search provider %s returned results after the request was canceled'.format(this.provider.id));
+                        log(`Search provider ${this.provider.id} returned results after the request was canceled`);
                     callback(false);
                     return;
                 }
                 if (metas.length != metasNeeded.length) {
-                    log('Wrong number of result metas returned by search provider %s: '.format(this.provider.id) +
-                        'expected %d but got %d'.format(metasNeeded.length, metas.length));
+                    log(`Wrong number of result metas returned by search provider ${this.provider.id}: ` +
+                        `expected ${metasNeeded.length} but got ${metas.length}`);
                     callback(false);
                     return;
                 }
                 if (metas.some(meta => !meta.name || !meta.id)) {
-                    log('Invalid result meta returned from search provider %s'.format(this.provider.id));
+                    log(`Invalid result meta returned from search provider ${this.provider.id}`);
                     callback(false);
                     return;
                 }
@@ -596,7 +598,7 @@ var SearchResultsView = GObject.registerClass({
 
         this._providers = [];
 
-        this._highlightRegex = null;
+        this._highlighter = new Highlighter();
 
         this._searchSettings = new Gio.Settings({ schema_id: SEARCH_PROVIDERS_SCHEMA });
         this._searchSettings.connect('changed::disabled', this._reloadRemoteProviders.bind(this));
@@ -739,8 +741,7 @@ var SearchResultsView = GObject.registerClass({
         if (this._searchTimeoutId == 0)
             this._searchTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, this._onSearchTimeout.bind(this));
 
-        let escapedTerms = this._terms.map(term => Shell.util_regex_escape(term));
-        this._highlightRegex = new RegExp('(%s)'.format(escapedTerms.join('|')), 'gi');
+        this._highlighter = new Highlighter(this._terms);
 
         this.emit('terms-changed');
     }
@@ -894,10 +895,7 @@ var SearchResultsView = GObject.registerClass({
         if (!description)
             return '';
 
-        if (!this._highlightRegex)
-            return description;
-
-        return description.replace(this._highlightRegex, '<b>$1</b>');
+        return this._highlighter.highlight(description);
     }
 });
 

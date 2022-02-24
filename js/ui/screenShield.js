@@ -112,10 +112,10 @@ var ScreenShield = class {
         });
 
         this._settings = new Gio.Settings({ schema_id: SCREENSAVER_SCHEMA });
-        this._settings.connect('changed::%s'.format(LOCK_ENABLED_KEY), this._syncInhibitor.bind(this));
+        this._settings.connect(`changed::${LOCK_ENABLED_KEY}`, this._syncInhibitor.bind(this));
 
         this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
-        this._lockSettings.connect('changed::%s'.format(DISABLE_LOCK_KEY), this._syncInhibitor.bind(this));
+        this._lockSettings.connect(`changed::${DISABLE_LOCK_KEY}`, this._syncInhibitor.bind(this));
 
         this._isModal = false;
         this._isGreeter = false;
@@ -192,14 +192,15 @@ var ScreenShield = class {
         if (this._isModal)
             return true;
 
-        this._isModal = Main.pushModal(this.actor, { actionMode: Shell.ActionMode.LOCK_SCREEN });
-        if (this._isModal)
-            return true;
+        let grab = Main.pushModal(this.actor, { actionMode: Shell.ActionMode.LOCK_SCREEN });
 
-        // We failed to get a pointer grab, it means that
-        // something else has it. Try with a keyboard grab only
-        this._isModal = Main.pushModal(this.actor, { options: Meta.ModalOptions.POINTER_ALREADY_GRABBED,
-                                                     actionMode: Shell.ActionMode.LOCK_SCREEN });
+        // We expect at least a keyboard grab here
+        this._isModal = (grab.get_seat_state() & Clutter.GrabState.KEYBOARD) !== 0;
+        if (this._isModal)
+            this._grab = grab;
+        else
+            Main.popModal(grab);
+
         return this._isModal;
     }
 
@@ -257,7 +258,7 @@ var ScreenShield = class {
             // We could not become modal, so we can't activate the
             // screenshield. The user is probably very upset at this
             // point, but any application using global grabs is broken
-            // Just tell him to stop using this app
+            // Just tell them to stop using this app
             //
             // XXX: another option is to kick the user into the gdm login
             // screen, where we're not affected by grabs
@@ -550,7 +551,8 @@ var ScreenShield = class {
             this._dialog.popModal();
 
         if (this._isModal) {
-            Main.popModal(this.actor);
+            Main.popModal(this._grab);
+            this._grab = null;
             this._isModal = false;
         }
 

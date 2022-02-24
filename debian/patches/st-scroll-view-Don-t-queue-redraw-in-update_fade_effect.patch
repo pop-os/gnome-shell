@@ -1,0 +1,32 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Wed, 16 Feb 2022 13:07:34 +0100
+Subject: st/scroll-view: Don't queue redraw in update_fade_effect()
+
+ClutterEffects are responsible for queueing redraws when their
+properties change (and StScrollViewFade is a good citizen already), also
+Clutter itself should queue a redraw when adding/removing an effect.
+
+Users of Clutter should never have to queue redraws themselves (unless
+they're implementing a custom ClutterEffect or ClutterContent), so don't
+queue a redraw here.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2189>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/8f4427f87b
+---
+ src/st/st-scroll-view.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/src/st/st-scroll-view.c b/src/st/st-scroll-view.c
+index 7dedc45..cf13cce 100644
+--- a/src/st/st-scroll-view.c
++++ b/src/st/st-scroll-view.c
+@@ -206,8 +206,6 @@ st_scroll_view_update_fade_effect (StScrollView  *scroll,
+           priv->fade_effect = NULL;
+         }
+     }
+-
+-  clutter_actor_queue_redraw (CLUTTER_ACTOR (scroll));
+ }
+ 
+ static void

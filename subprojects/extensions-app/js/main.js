@@ -1,10 +1,9 @@
 /* exported main */
-imports.gi.versions.Gdk = '4.0';
 imports.gi.versions.Gtk = '4.0';
 
 const Gettext = imports.gettext;
 const Package = imports.package;
-const { Gdk, GLib, Gio, GObject, Gtk, Shew } = imports.gi;
+const { Adw, GLib, Gio, GObject, Gtk, Shew } = imports.gi;
 
 Package.initFormat();
 
@@ -15,18 +14,18 @@ const { ExtensionState, ExtensionType } = ExtensionUtils;
 const GnomeShellIface = loadInterfaceXML('org.gnome.Shell.Extensions');
 const GnomeShellProxy = Gio.DBusProxy.makeProxyWrapper(GnomeShellIface);
 
-Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
-Gio._promisify(Shew.WindowExporter.prototype, 'export', 'export_finish');
+Gio._promisify(Gio.DBusConnection.prototype, 'call');
+Gio._promisify(Shew.WindowExporter.prototype, 'export');
 
 function loadInterfaceXML(iface) {
-    const uri = 'resource:///org/gnome/Extensions/dbus-interfaces/%s.xml'.format(iface);
+    const uri = `resource:///org/gnome/Extensions/dbus-interfaces/${iface}.xml`;
     const f = Gio.File.new_for_uri(uri);
 
     try {
         let [ok_, bytes] = f.load_contents(null);
         return new TextDecoder().decode(bytes);
     } catch (e) {
-        log('Failed to load D-Bus interface %s'.format(iface));
+        log(`Failed to load D-Bus interface ${iface}`);
     }
 
     return null;
@@ -38,7 +37,7 @@ function toggleState(action) {
 }
 
 var Application = GObject.registerClass(
-class Application extends Gtk.Application {
+class Application extends Adw.Application {
     _init() {
         GLib.set_prgname('gnome-extensions-app');
         super._init({ application_id: Package.name });
@@ -58,17 +57,6 @@ class Application extends Gtk.Application {
     vfunc_startup() {
         super.vfunc_startup();
 
-        let provider = new Gtk.CssProvider();
-        let uri = 'resource:///org/gnome/Extensions/css/application.css';
-        try {
-            provider.load_from_file(Gio.File.new_for_uri(uri));
-        } catch (e) {
-            logError(e, 'Failed to add application style');
-        }
-        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(),
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
-
         const action = new Gio.SimpleAction({ name: 'quit' });
         action.connect('activate', () => this._window.close());
         this.add_action(action);
@@ -86,10 +74,11 @@ var ExtensionsWindow = GObject.registerClass({
     GTypeName: 'ExtensionsWindow',
     Template: 'resource:///org/gnome/Extensions/ui/extensions-window.ui',
     InternalChildren: [
+        'userGroup',
         'userList',
+        'systemGroup',
         'systemList',
         'mainStack',
-        'scrolledWindow',
         'searchBar',
         'searchButton',
         'searchEntry',
@@ -145,6 +134,7 @@ var ExtensionsWindow = GObject.registerClass({
             margin_top: 12,
             margin_bottom: 12,
         }));
+        this._userList.connect('row-activated', (_list, row) => row.activate());
 
         this._systemList.set_sort_func(this._sortList.bind(this));
         this._systemList.set_filter_func(this._filterList.bind(this));
@@ -155,6 +145,7 @@ var ExtensionsWindow = GObject.registerClass({
             margin_top: 12,
             margin_bottom: 12,
         }));
+        this._systemList.connect('row-activated', (_list, row) => row.activate());
 
         this._shellProxy.connectSignal('ExtensionStateChanged',
             this._onExtensionStateChanged.bind(this));
@@ -197,7 +188,7 @@ var ExtensionsWindow = GObject.registerClass({
             try {
                 this._exportedHandle = await this._exporter.export();
             } catch (e) {
-                log('Failed to export window: %s'.format(e.message));
+                log(`Failed to export window: ${e.message}`);
             }
         }
 
@@ -212,6 +203,7 @@ var ExtensionsWindow = GObject.registerClass({
                 'Florian Müllner <fmuellner@gnome.org>',
                 'Jasper St. Pierre <jstpierre@mecheye.net>',
                 'Didier Roche <didrocks@ubuntu.com>',
+                'Romain Vigier <contact@romainvigier.fr>',
             ],
             translator_credits: _('translator-credits'),
             program_name: _('Extensions'),
@@ -289,7 +281,7 @@ var ExtensionsWindow = GObject.registerClass({
         this._shellProxy.ListExtensionsRemote(([extensionsMap], e) => {
             if (e) {
                 if (e instanceof Gio.DBusError) {
-                    log('Failed to connect to shell proxy: %s'.format(e.toString()));
+                    log(`Failed to connect to shell proxy: ${e}`);
                     this._mainStack.visible_child_name = 'noshell';
                 } else {
                     throw e;
@@ -328,10 +320,10 @@ var ExtensionsWindow = GObject.registerClass({
     }
 
     _syncListVisibility() {
-        this._userList.visible = [...this._userList].length > 1;
-        this._systemList.visible = [...this._systemList].length > 1;
+        this._userGroup.visible = [...this._userList].length > 1;
+        this._systemGroup.visible = [...this._systemList].length > 1;
 
-        if (this._userList.visible || this._systemList.visible)
+        if (this._userGroup.visible || this._systemGroup.visible)
             this._mainStack.visible_child_name = 'main';
         else
             this._mainStack.visible_child_name = 'placeholder';
@@ -360,13 +352,11 @@ var ExtensionRow = GObject.registerClass({
         'nameLabel',
         'descriptionLabel',
         'versionLabel',
-        'authorLabel',
         'errorLabel',
         'errorIcon',
         'updatesIcon',
         'switch',
-        'revealButton',
-        'revealer',
+        'actionsBox',
     ],
 }, class ExtensionRow extends Gtk.ListBoxRow {
     _init(extension) {
@@ -425,16 +415,6 @@ var ExtensionRow = GObject.registerClass({
         this._descriptionLabel.label = desc;
         this._descriptionLabel.tooltip_text = desc;
 
-        this._revealButton.connect('clicked', () => {
-            this._revealer.reveal_child = !this._revealer.reveal_child;
-        });
-        this._revealer.connect('notify::reveal-child', () => {
-            if (this._revealer.reveal_child)
-                this._revealButton.get_style_context().add_class('expanded');
-            else
-                this._revealButton.get_style_context().remove_class('expanded');
-        });
-
         this.connect('destroy', this._onDestroy.bind(this));
 
         this._extensionStateChangedId = this._app.shellProxy.connectSignal(
@@ -446,6 +426,10 @@ var ExtensionRow = GObject.registerClass({
                 this._updateState();
             });
         this._updateState();
+    }
+
+    vfunc_activate() {
+        this._switch.mnemonic_activate(false);
     }
 
     get uuid() {
@@ -514,14 +498,13 @@ var ExtensionRow = GObject.registerClass({
         this._updatesIcon.visible = this.hasUpdate;
         this._errorIcon.visible = this.hasError;
 
+        this._descriptionLabel.visible = !this.hasError;
+
         this._errorLabel.label = this.error;
         this._errorLabel.visible = this.error !== '';
 
         this._versionLabel.label = this.version.toString();
         this._versionLabel.visible = this.version !== '';
-
-        this._authorLabel.label = this.creator.toString();
-        this._authorLabel.visible = this.creator !== '';
     }
 
     _onDestroy() {
@@ -547,7 +530,7 @@ function initEnvironment() {
         },
 
         logError(s) {
-            log('ERROR: %s'.format(s));
+            log(`ERROR: ${s}`);
         },
 
         userdatadir: GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell']),

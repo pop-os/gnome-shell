@@ -22,13 +22,13 @@ const UPDATE_CHECK_TIMEOUT = 24 * 60 * 60; // 1 day in seconds
 var ExtensionManager = class {
     constructor() {
         this._initialized = false;
-        this._enabled = false;
         this._updateNotified = false;
 
         this._extensions = new Map();
         this._unloadedExtensions = new Map();
         this._enabledExtensions = [];
         this._extensionOrder = [];
+        this._checkVersion = false;
 
         Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
     }
@@ -43,7 +43,7 @@ var ExtensionManager = class {
         try {
             disableFile.create(Gio.FileCreateFlags.REPLACE_DESTINATION, null);
         } catch (e) {
-            log('Failed to create file %s: %s'.format(disableFilename, e.message));
+            log(`Failed to create file ${disableFilename}: ${e.message}`);
         }
 
         GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 60, () => {
@@ -72,6 +72,21 @@ var ExtensionManager = class {
 
     getUuids() {
         return [...this._extensions.keys()];
+    }
+
+    _extensionSupportsSessionMode(uuid) {
+        const extension = this.lookup(uuid);
+
+        if (!extension)
+            return false;
+
+        if (extension.sessionModes.includes(Main.sessionMode.currentMode))
+            return true;
+
+        if (extension.sessionModes.includes(Main.sessionMode.parentMode))
+            return true;
+
+        return false;
     }
 
     _callExtensionDisable(uuid) {
@@ -133,7 +148,7 @@ var ExtensionManager = class {
     }
 
     _callExtensionEnable(uuid) {
-        if (!Main.sessionMode.allowExtensions)
+        if (!this._extensionSupportsSessionMode(uuid))
             return;
 
         let extension = this.lookup(uuid);
@@ -146,7 +161,7 @@ var ExtensionManager = class {
         if (extension.state != ExtensionState.DISABLED)
             return;
 
-        let stylesheetNames = ['%s.css'.format(global.session_mode), 'stylesheet.css'];
+        let stylesheetNames = [`${global.session_mode}.css`, 'stylesheet.css'];
         let theme = St.ThemeContext.get_for_stage(global.stage).get_theme();
         for (let i = 0; i < stylesheetNames.length; i++) {
             try {
@@ -271,7 +286,7 @@ var ExtensionManager = class {
             extension.errors = [];
         extension.errors.push(message);
 
-        logError(error, 'Extension %s'.format(uuid));
+        logError(error, `Extension ${uuid}`);
         this._updateCanChange(extension);
         this.emit('extension-state-changed', extension);
     }
@@ -286,24 +301,24 @@ var ExtensionManager = class {
             [success_, metadataContents] = metadataFile.load_contents(null);
             metadataContents = new TextDecoder().decode(metadataContents);
         } catch (e) {
-            throw new Error('Failed to load metadata.json: %s'.format(e.toString()));
+            throw new Error(`Failed to load metadata.json: ${e}`);
         }
         let meta;
         try {
             meta = JSON.parse(metadataContents);
         } catch (e) {
-            throw new Error('Failed to parse metadata.json: %s'.format(e.toString()));
+            throw new Error(`Failed to parse metadata.json: ${e}`);
         }
 
         let requiredProperties = ['uuid', 'name', 'description', 'shell-version'];
         for (let i = 0; i < requiredProperties.length; i++) {
             let prop = requiredProperties[i];
             if (!meta[prop])
-                throw new Error('missing "%s" property in metadata.json'.format(prop));
+                throw new Error(`missing "${prop}" property in metadata.json`);
         }
 
         if (uuid != meta.uuid)
-            throw new Error('uuid "%s" from metadata.json does not match directory name "%s"'.format(meta.uuid, uuid));
+            throw new Error(`uuid "${meta.uuid}" from metadata.json does not match directory name "${uuid}"`);
 
         let extension = {
             metadata: meta,
@@ -315,6 +330,7 @@ var ExtensionManager = class {
             hasPrefs: dir.get_child('prefs.js').query_exists(null),
             hasUpdate: false,
             canChange: false,
+            sessionModes: meta['session-modes'] ? meta['session-modes'] : ['user'],
         };
         this._extensions.set(uuid, extension);
 
@@ -333,9 +349,7 @@ var ExtensionManager = class {
         // Default to error, we set success as the last step
         extension.state = ExtensionState.ERROR;
 
-        let checkVersion = !global.settings.get_boolean(EXTENSION_DISABLE_VERSION_CHECK_KEY);
-
-        if (checkVersion && ExtensionUtils.isOutOfDate(extension)) {
+        if (this._checkVersion && ExtensionUtils.isOutOfDate(extension)) {
             extension.state = ExtensionState.OUT_OF_DATE;
         } else if (!this._canLoad(extension)) {
             this.logExtensionError(extension.uuid, new Error(
@@ -399,7 +413,7 @@ var ExtensionManager = class {
     }
 
     _callExtensionInit(uuid) {
-        if (!Main.sessionMode.allowExtensions)
+        if (!this._extensionSupportsSessionMode(uuid))
             return false;
 
         let extension = this.lookup(uuid);
@@ -488,13 +502,15 @@ var ExtensionManager = class {
         // Find and enable all the newly enabled extensions: UUIDs found in the
         // new setting, but not in the old one.
         newEnabledExtensions
-            .filter(uuid => !this._enabledExtensions.includes(uuid))
+            .filter(uuid => !this._enabledExtensions.includes(uuid) &&
+                             this._extensionSupportsSessionMode(uuid))
             .forEach(uuid => this._callExtensionEnable(uuid));
 
         // Find and disable all the newly disabled extensions: UUIDs found in the
         // old setting, but not in the new one.
         this._extensionOrder
-            .filter(uuid => !newEnabledExtensions.includes(uuid))
+            .filter(uuid => !newEnabledExtensions.includes(uuid) ||
+                            !this._extensionSupportsSessionMode(uuid))
             .reverse().forEach(uuid => this._callExtensionDisable(uuid));
 
         this._enabledExtensions = newEnabledExtensions;
@@ -508,6 +524,12 @@ var ExtensionManager = class {
     }
 
     _onVersionValidationChanged() {
+        const checkVersion = !global.settings.get_boolean(EXTENSION_DISABLE_VERSION_CHECK_KEY);
+        if (checkVersion === this._checkVersion)
+            return;
+
+        this._checkVersion = checkVersion;
+
         // Disabling extensions modifies the order array, so use a copy
         let extensionOrder = this._extensionOrder.slice();
 
@@ -539,7 +561,7 @@ var ExtensionManager = class {
                 FileUtils.recursivelyDeleteDir(extensionDir, false);
                 FileUtils.recursivelyMoveDir(dir, extensionDir);
             } catch (e) {
-                log('Failed to install extension updates for %s'.format(uuid));
+                log(`Failed to install extension updates for ${uuid}`);
             } finally {
                 FileUtils.recursivelyDeleteDir(dir, true);
             }
@@ -547,18 +569,20 @@ var ExtensionManager = class {
     }
 
     _loadExtensions() {
-        global.settings.connect('changed::%s'.format(ENABLED_EXTENSIONS_KEY),
+        global.settings.connect(`changed::${ENABLED_EXTENSIONS_KEY}`,
             this._onEnabledExtensionsChanged.bind(this));
-        global.settings.connect('changed::%s'.format(DISABLED_EXTENSIONS_KEY),
+        global.settings.connect(`changed::${DISABLED_EXTENSIONS_KEY}`,
             this._onEnabledExtensionsChanged.bind(this));
-        global.settings.connect('changed::%s'.format(DISABLE_USER_EXTENSIONS_KEY),
+        global.settings.connect(`changed::${DISABLE_USER_EXTENSIONS_KEY}`,
             this._onUserExtensionsEnabledChanged.bind(this));
-        global.settings.connect('changed::%s'.format(EXTENSION_DISABLE_VERSION_CHECK_KEY),
+        global.settings.connect(`changed::${EXTENSION_DISABLE_VERSION_CHECK_KEY}`,
             this._onVersionValidationChanged.bind(this));
-        global.settings.connect('writable-changed::%s'.format(ENABLED_EXTENSIONS_KEY),
+        global.settings.connect(`writable-changed::${ENABLED_EXTENSIONS_KEY}`,
             this._onSettingsWritableChanged.bind(this));
-        global.settings.connect('writable-changed::%s'.format(DISABLED_EXTENSIONS_KEY),
+        global.settings.connect(`writable-changed::${DISABLED_EXTENSIONS_KEY}`,
             this._onSettingsWritableChanged.bind(this));
+
+        this._onVersionValidationChanged();
 
         this._enabledExtensions = this._getEnabledExtensions();
 
@@ -570,7 +594,7 @@ var ExtensionManager = class {
             let uuid = info.get_name();
             let existing = this.lookup(uuid);
             if (existing) {
-                log('Extension %s already installed in %s. %s will not be loaded'.format(uuid, existing.path, dir.get_path()));
+                log(`Extension ${uuid} already installed in ${existing.path}. ${dir.get_path()} will not be loaded`);
                 return;
             }
 
@@ -581,7 +605,7 @@ var ExtensionManager = class {
             try {
                 extension = this.createExtensionObject(uuid, dir, type);
             } catch (e) {
-                logError(e, 'Could not load extension %s'.format(uuid));
+                logError(e, `Could not load extension ${uuid}`);
                 return;
             }
             this.loadExtension(extension);
@@ -589,9 +613,6 @@ var ExtensionManager = class {
     }
 
     _enableAllExtensions() {
-        if (this._enabled)
-            return;
-
         if (!this._initialized) {
             this._loadExtensions();
             this._initialized = true;
@@ -600,34 +621,20 @@ var ExtensionManager = class {
                 this._callExtensionEnable(uuid);
             });
         }
-        this._enabled = true;
     }
 
     _disableAllExtensions() {
-        if (!this._enabled)
-            return;
-
         if (this._initialized) {
             this._extensionOrder.slice().reverse().forEach(uuid => {
                 this._callExtensionDisable(uuid);
             });
         }
-
-        this._enabled = false;
     }
 
     _sessionUpdated() {
-        // For now sessionMode.allowExtensions controls extensions from both the
-        // 'enabled-extensions' preference and the sessionMode.enabledExtensions
-        // property; it might make sense to make enabledExtensions independent
-        // from allowExtensions in the future
-        if (Main.sessionMode.allowExtensions) {
-            // Take care of added or removed sessionMode extensions
-            this._onEnabledExtensionsChanged();
-            this._enableAllExtensions();
-        } else {
-            this._disableAllExtensions();
-        }
+        // Take care of added or removed sessionMode extensions
+        this._onEnabledExtensionsChanged();
+        this._enableAllExtensions();
     }
 };
 Signals.addSignalMethods(ExtensionManager.prototype);

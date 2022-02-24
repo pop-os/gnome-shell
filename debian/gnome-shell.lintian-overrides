@@ -1,6 +1,6 @@
 # These RUNPATHs are needed to find mutter's private clutter fork
-gnome-shell: custom-library-search-path RUNPATH /usr/lib/*/mutter-* [usr/bin/gnome-shell]
-gnome-shell: custom-library-search-path RUNPATH /usr/lib/*/mutter-* [usr/lib/gnome-shell/*.so]
+gnome-shell: custom-library-search-path usr/bin/gnome-shell RUNPATH usr/lib/*/mutter-*/
+gnome-shell: custom-library-search-path usr/lib/gnome-shell/*.so RUNPATH usr/lib/*/mutter-*/
 
 # This is just a launcher for a desktop-required component (evolution)
 gnome-shell: desktop-command-not-in-package usr/share/applications/evolution-calendar.desktop evolution

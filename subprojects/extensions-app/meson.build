@@ -1,6 +1,6 @@
 project('gnome-extensions-app',
-  version: '41.3',
-  meson_version: '>= 0.53.0',
+  version: '42.beta',
+  meson_version: '>= 0.58.0',
   license: 'GPLv2+'
 )
 
@@ -60,7 +60,9 @@ if not meson.is_subproject()
 
   subdir('po')
 
-  meson.add_install_script('build-aux/meson/postinstall.py')
+  gnome.post_install(
+    gtk_update_icon_cache: true
+  )
 
   if appstream_util.found()
     meson.add_dist_script('build-aux/meson/check-version.py',

@@ -1,8 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported AppDisplay, AppSearchProvider */
 
-const { Clutter, Gio, GLib, GObject, Graphene, Meta,
-    Pango, Shell, St } = imports.gi;
+const {
+    Clutter, Gio, GLib, GObject, Graphene, Pango, Shell, St,
+} = imports.gi;
 
 const AppFavorites = imports.ui.appFavorites;
 const { AppMenu } = imports.ui.appMenu;
@@ -118,7 +119,7 @@ function _findBestFolderName(apps) {
     }, commonCategories);
 
     for (let category of commonCategories) {
-        const directory = '%s.directory'.format(category);
+        const directory = `${category}.directory`;
         const translated = Shell.util_get_translated_folder_name(directory);
         if (translated !== null)
             return translated;
@@ -237,8 +238,8 @@ var BaseAppView = GObject.registerClass({
         this._nextPageArrow = new St.Icon({
             style_class: 'page-navigation-arrow',
             icon_name: rtl
-                ? 'carousel-arrow-back-24-symbolic'
-                : 'carousel-arrow-next-24-symbolic',
+                ? 'carousel-arrow-previous-symbolic'
+                : 'carousel-arrow-next-symbolic',
             opacity: 0,
             reactive: false,
             visible: false,
@@ -248,8 +249,8 @@ var BaseAppView = GObject.registerClass({
         this._prevPageArrow = new St.Icon({
             style_class: 'page-navigation-arrow',
             icon_name: rtl
-                ? 'carousel-arrow-next-24-symbolic'
-                : 'carousel-arrow-back-24-symbolic',
+                ? 'carousel-arrow-next-symbolic'
+                : 'carousel-arrow-previous-symbolic',
             opacity: 0,
             reactive: false,
             visible: false,
@@ -297,10 +298,6 @@ var BaseAppView = GObject.registerClass({
 
         this._items = new Map();
         this._orderedItems = [];
-
-        this._animateLaterId = 0;
-        this._viewLoadedHandlerId = 0;
-        this._viewIsReady = false;
 
         // Filter the apps through the user’s parental controls.
         this._parentalControlsManager = ParentalControlsManager.getDefault();
@@ -858,7 +855,6 @@ var BaseAppView = GObject.registerClass({
                 this._moveItem(icon, page, position);
         });
 
-        this._viewIsReady = true;
         this.emit('view-loaded');
     }
 
@@ -874,7 +870,7 @@ var BaseAppView = GObject.registerClass({
         if (this._items.has(id))
             this._items.get(id).navigate_focus(null, St.DirectionType.TAB_FORWARD, false);
         else
-            log('No such application %s'.format(id));
+            log(`No such application ${id}`);
     }
 
     selectApp(id) {
@@ -898,61 +894,6 @@ var BaseAppView = GObject.registerClass({
                 this.disconnect(signalId);
                 this.selectApp(id);
             });
-        }
-    }
-
-    _doSpringAnimation(animationDirection) {
-        this._grid.opacity = 255;
-        this._grid.animateSpring(
-            animationDirection,
-            Main.overview.dash.showAppsButton);
-    }
-
-    _clearAnimateLater() {
-        if (this._animateLaterId) {
-            Meta.later_remove(this._animateLaterId);
-            this._animateLaterId = 0;
-        }
-        if (this._viewLoadedHandlerId) {
-            this.disconnect(this._viewLoadedHandlerId);
-            this._viewLoadedHandlerId = 0;
-        }
-    }
-
-    animate(animationDirection, onComplete) {
-        if (onComplete) {
-            let animationDoneId = this._grid.connect('animation-done', () => {
-                this._grid.disconnect(animationDoneId);
-                onComplete();
-            });
-        }
-
-        this._clearAnimateLater();
-        this._grid.opacity = 255;
-
-        if (animationDirection == IconGrid.AnimationDirection.IN) {
-            const doSpringAnimationLater = laterType => {
-                this._animateLaterId = Meta.later_add(laterType,
-                    () => {
-                        this._animateLaterId = 0;
-                        this._doSpringAnimation(animationDirection);
-                        return GLib.SOURCE_REMOVE;
-                    });
-            };
-
-            if (this._viewIsReady) {
-                this._grid.opacity = 0;
-                doSpringAnimationLater(Meta.LaterType.IDLE);
-            } else {
-                this._viewLoadedHandlerId = this.connect('view-loaded',
-                    () => {
-                        this._clearAnimateLater();
-                        this._grid.opacity = 255;
-                        doSpringAnimationLater(Meta.LaterType.BEFORE_REDRAW);
-                    });
-            }
-        } else {
-            this._doSpringAnimation(animationDirection);
         }
     }
 
@@ -1040,7 +981,6 @@ var BaseAppView = GObject.registerClass({
 
     vfunc_unmap() {
         this._swipeTracker.enabled = false;
-        this._clearAnimateLater();
         this._disconnectDnD();
         super.vfunc_unmap();
     }
@@ -1443,12 +1383,10 @@ class AppDisplay extends BaseAppView {
         this._redisplayWorkId = Main.initializeDeferredWork(this, this._redisplay.bind(this));
 
         Shell.AppSystem.get_default().connect('installed-changed', () => {
-            this._viewIsReady = false;
             Main.queueDeferredWork(this._redisplayWorkId);
         });
         this._folderSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders' });
         this._folderSettings.connect('changed::folder-children', () => {
-            this._viewIsReady = false;
             Main.queueDeferredWork(this._redisplayWorkId);
         });
     }
@@ -1595,7 +1533,7 @@ class AppDisplay extends BaseAppView {
 
         let folders = this._folderSettings.get_strv('folder-children');
         folders.forEach(id => {
-            let path = '%sfolders/%s/'.format(this._folderSettings.path, id);
+            let path = `${this._folderSettings.path}folders/${id}/`;
             let icon = this._items.get(id);
             if (!icon) {
                 icon = new FolderIcon(id, path, this);
@@ -1654,24 +1592,6 @@ class AppDisplay extends BaseAppView {
             appIcons.push(this._placeholder);
 
         return appIcons;
-    }
-
-    // Overridden from BaseAppView
-    animate(animationDirection, onComplete) {
-        this._scrollView.reactive = false;
-        this._swipeTracker.enabled = false;
-        let completionFunc = () => {
-            this._scrollView.reactive = true;
-            this._swipeTracker.enabled = this.mapped;
-            if (onComplete)
-                onComplete();
-        };
-
-        if (animationDirection == IconGrid.AnimationDirection.OUT &&
-            this._displayingDialog && this._currentDialog)
-            this._currentDialog.popdown();
-        else
-            super.animate(animationDirection, completionFunc);
     }
 
     animateSwitch(animationDirection) {
@@ -2013,7 +1933,7 @@ class AppViewItem extends St.Button {
             label.disconnect(id);
         });
 
-        const expand = this.hover || this.has_key_focus();
+        const expand = this._forcedHighlight || this.hover || this.has_key_focus();
         label.save_easing_state();
         label.set_easing_duration(expand
             ? APP_ICON_TITLE_EXPAND_TIME
@@ -2161,6 +2081,14 @@ class AppViewItem extends St.Button {
     get name() {
         return this._name;
     }
+
+    setForcedHighlight(highlighted) {
+        this._forcedHighlight = highlighted;
+        this.set({
+            track_hover: !highlighted,
+            hover: highlighted,
+        });
+    }
 });
 
 var FolderGrid = GObject.registerClass(
@@ -2277,11 +2205,6 @@ class FolderView extends BaseAppView {
         return aPosition - bPosition;
     }
 
-    // Overridden from BaseAppView
-    animate(animationDirection) {
-        this._grid.animatePulse(animationDirection);
-    }
-
     createFolderIcon(size) {
         const layout = new Clutter.GridLayout({
             row_homogeneous: true,
@@ -2290,7 +2213,7 @@ class FolderView extends BaseAppView {
         let icon = new St.Widget({
             layout_manager: layout,
             x_align: Clutter.ActorAlign.CENTER,
-            style: 'width: %dpx; height: %dpx;'.format(size, size),
+            style: `width: ${size}px; height: ${size}px;`,
         });
 
         let subSize = Math.floor(FOLDER_SUBICON_FRACTION * size);
@@ -2298,7 +2221,7 @@ class FolderView extends BaseAppView {
         let numItems = this._orderedItems.length;
         let rtl = icon.get_text_direction() == Clutter.TextDirection.RTL;
         for (let i = 0; i < 4; i++) {
-            const style = 'width: %dpx; height: %dpx;'.format(subSize, subSize);
+            const style = `width: ${subSize}px; height: ${subSize}px;`;
             let bin = new St.Bin({ style });
             if (i < numItems)
                 bin.child = this._orderedItems[i].app.create_icon_texture(subSize);
@@ -2650,7 +2573,6 @@ var AppFolderDialog = GObject.registerClass({
         this._grabHelper = new GrabHelper.GrabHelper(this, {
             actionMode: Shell.ActionMode.POPUP,
         });
-        this._grabHelper.addActor(Main.layoutManager.overviewGroup);
         this.connect('destroy', this._onDestroy.bind(this));
 
         this._dragMonitor = null;
@@ -3228,6 +3150,7 @@ var AppIcon = GObject.registerClass({
     }
 
     popupMenu(side = St.Side.LEFT) {
+        this.setForcedHighlight(true);
         this._removeMenuTimeout();
         this.fake_release();
 
@@ -3248,16 +3171,12 @@ var AppIcon = GObject.registerClass({
                 Main.overview.disconnect(id);
             });
 
-            // We want to keep the item hovered while the menu is up
-            this._menu.blockSourceEvents = true;
-
             Main.uiGroup.add_actor(this._menu.actor);
             this._menuManager.addMenu(this._menu);
         }
 
         this.emit('menu-state-changed', true);
 
-        this.set_hover(true);
         this._menu.open(BoxPointer.PopupAnimation.FULL);
         this._menuManager.ignoreRelease();
         this.emit('sync-tooltip');
@@ -3266,7 +3185,7 @@ var AppIcon = GObject.registerClass({
     }
 
     _onMenuPoppedDown() {
-        this.sync_hover();
+        this.setForcedHighlight(false);
         this.emit('menu-state-changed', false);
     }
 
@@ -3300,7 +3219,7 @@ var AppIcon = GObject.registerClass({
 
     shellWorkspaceLaunch(params) {
         let { stack } = new Error();
-        log('shellWorkspaceLaunch is deprecated, use app.open_new_window() instead\n%s'.format(stack));
+        log(`shellWorkspaceLaunch is deprecated, use app.open_new_window() instead\n${stack}`);
 
         params = Params.parse(params, { workspace: -1,
                                         timestamp: 0 });

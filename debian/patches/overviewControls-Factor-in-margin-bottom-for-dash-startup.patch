@@ -1,0 +1,28 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Wed, 16 Feb 2022 20:02:48 +0100
+Subject: overviewControls: Factor in margin-bottom for dash startup animation
+
+We set a margin-bottom on the dash to give it some margin towards the
+monitor edge, we need to factor in this margin when moving it outside of
+the monitor for our animation.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2191>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/b9abf6fcf5
+---
+ js/ui/overviewControls.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/overviewControls.js b/js/ui/overviewControls.js
+index 2344ad8..d3df21e 100644
+--- a/js/ui/overviewControls.js
++++ b/js/ui/overviewControls.js
+@@ -842,7 +842,7 @@ class ControlsManager extends St.Widget {
+ 
+         // The Dash rises from the bottom. This is the last animation to finish,
+         // so run the callback there.
+-        this.dash.translation_y = this.dash.height;
++        this.dash.translation_y = this.dash.height + this.dash.margin_bottom;
+         this.dash.ease({
+             translation_y: 0,
+             delay: STARTUP_ANIMATION_TIME,

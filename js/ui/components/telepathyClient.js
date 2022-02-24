@@ -8,13 +8,10 @@ var Tp = null;
 try {
     ({ TelepathyGLib: Tp, TelepathyLogger: Tpl } = imports.gi);
 
-    Gio._promisify(Tp.Channel.prototype, 'close_async', 'close_finish');
-    Gio._promisify(Tp.TextChannel.prototype,
-        'send_message_async', 'send_message_finish');
-    Gio._promisify(Tp.ChannelDispatchOperation.prototype,
-        'claim_with_async', 'claim_with_finish');
-    Gio._promisify(Tpl.LogManager.prototype,
-        'get_filtered_events_async', 'get_filtered_events_finish');
+    Gio._promisify(Tp.Channel.prototype, 'close_async');
+    Gio._promisify(Tp.TextChannel.prototype, 'send_message_async');
+    Gio._promisify(Tp.ChannelDispatchOperation.prototype, 'claim_with_async');
+    Gio._promisify(Tpl.LogManager.prototype, 'get_filtered_events_async');
 } catch (e) {
     log('Telepathy is not available, chat integration will be disabled.');
 }
@@ -117,7 +114,7 @@ var TelepathyComponent = class {
         try {
             this._client.register();
         } catch (e) {
-            throw new Error('Could not register Telepathy client. Error: %s'.format(e.toString()));
+            throw new Error(`Could not register Telepathy client. Error: ${e}`);
         }
 
         if (!this._client.account_manager.is_prepared(Tp.AccountManager.get_feature_quark_core()))
@@ -285,7 +282,7 @@ class TelepathyClient extends Tp.BaseClient {
             await dispatchOp.claim_with_async(this);
             this._handlingChannels(account, conn, [channel], false);
         } catch (err) {
-            log('Failed to Claim channel: %s'.format(err.toString()));
+            log(`Failed to claim channel: ${err}`);
         }
     }
 
@@ -705,7 +702,7 @@ var ChatNotification = HAVE_TP ? GObject.registerClass({
 
         if (message.messageType == Tp.ChannelTextMessageType.ACTION) {
             let senderAlias = GLib.markup_escape_text(message.sender, -1);
-            messageBody = '<i>%s</i> %s'.format(senderAlias, messageBody);
+            messageBody = `<i>${senderAlias}</i> ${messageBody}`;
             styles.push('chat-action');
         }
 

@@ -1,60 +1,104 @@
-41.3
-====
-* Improve window tracking [Florian; !2071]
-* Simplify scroll fade shader to work with old hardware [Sebastian; !2072]
-* Tweak (un)minimize animations [Daniel; !2066]
-* Don't wake up screen in DND mode [kyte; !2051]
-* Fix immediately withdrawn notifications getting stuck [Sebastian; !2079]
-* Honor XDG SingleMainWindow key in .desktop files [Nate; !2084]
-* Fixed crashes [Benjamin, Florian; !2065, !2073]
-* Misc. bug fixes and cleanups [Florian, Sebastian, Robert; !2076, !2087, !2088]
+42.beta
+=======
+* Add Swiss French and Swiss German OSK layouts [Jürg; !2096]
+* Add switches for debug flags to looking glass [Sebastian; !1994]
+* Support auth lists on the login screen [Ray; !1978]
+* Overhaul shell stylesheet [Sam; !2104, !2111, !2150, !2161, !2172]
+* Fix timing issue on login screen [Naïm; !2116]
+* Fix activating apps with tracked OR windows [Florian; !2131]
+* Fix banding issues with the vignette lightbox shader [Jonas; !2133]
+* Implement in-shell screenshot and screencast UI
+  [Ivan; !1954, !2103, !2149, !2147, !2106, !2105, !2107, !2163]
+* Fix keyboard navigation to windows/apps in overview [Florian; !2124]
+* Adjust to Clutter grab API changes [Carlos; !2045, !2046, !2140]
+* Fix stuck transition when using super-scroll gesture [kyte; !2135]
+* Support the new 'high-contrast' setting [Alexander, Florian; !2069]
+* Remove rounded top bar corners [Florian; !2151]
+* Fix calendar events with custom timezone [Milan; !2145]
+* Support dark wallpapers [Alexander; !2137]
+* Improve terminology for pinning icons to dash [Rachit; !2136]
+* Use libadwaita for extension preferences [Florian; !2012]
+* Fix out-of-sync location indicator [Florian; !2170]
+* Fade screen when switching between dark/light mode [Alexander; !2070]
+* Improve presentation of multi-day events in calendar [Björn; !2108]
+* Implement Extensions redesign [Romain; !2114]
+* Implement OSD redesign [Florian; !2127]
+* Misc. bug fixes and cleanups [Florian, Evan, Jonas, Aleksandr, Ivan, Georges,
+  Leleat, Daniel, Carlos, Sam, Olivier, Bastien, Mohammed, Sebastian, Razze,
+  Alexander, Marek; !2089, !2040, !2097, !2047, !2102, !2118, !2123, !2121,
+  !2115, !2113, !2125, !337, !2098, !2126, !2139, !2138, !2143, !2146, !2155,
+  !2141, !2157, !2158, !2153, !2156, !2152, !2117, !2101, !2162, !2164, !2055,
+  !2165, !2166, !2168, !2169, !1972, !2174, !2175, !2171, !2173, !2160, !2167,
+  !2176, !2177, !2178, !1744, !2179, !2099]
 
 Contributors:
-  Benjamin Berg, Nate Graham, Sebastian Keller, Robert Mader, Florian Müllner,
-  Daniel van Vugt, kyte
+  Milan Crha, Björn Daase, Rachit Keerti Das, Jonas Dreßler, Naïm Favier,
+  Olivier Fourdan, Carlos Garnacho, Sam Hewitt, Sebastian Keller, Leleat,
+  Jürg Lempen, Aleksandr Mezin, Alexander Mikhaylenko, Ivan Molodetskikh,
+  Florian Müllner, Georges Basile Stavracas Neto, Bastien Nocera, Razze,
+  Mohammed Sadiq, Ray Strode, Romain Vigier, Daniel van Vugt, Evan Welsh,
+  Sebastian Wick, kyte, Marek Černocký
 
 Translators:
-  Emin Tufan Çetin [tr], Мирослав Николић [sr]
+  Tao Liu [zh_CN], Yosef Or Boczko [he], Matej Urbančič [sl],
+  Yuri Chornoivan [uk], Daniel Mustieles [es], Aleksandr Melman [ru],
+  Rafael Fontenelle [pt_BR], Sveinn í Felli [is], Matheus Barbosa [pt_BR],
+  Luming Zh [zh_CN], Fran Dieguez [gl], sicklylife [ja], Hugo Carvalho [pt],
+  Quentin PAGÈS [oc], Yaron Shahrabani [he], Asier Sarasua Garmendia [eu],
+  Aurimas Černius [lt], Kukuh Syafaat [id], Marek Černocký [cs],
+  Leônidas Araújo [pt_BR], Alexander Shopov [bg]
 
-41.2
-====
-* Fix wrongly rejected D-Bus calls after gnome-shell restarts [Sebastian; !2048]
-* magnifier: Avoid offscreen rendering if possible [Sebastian; !2026]
-* Improve handling of all-day/zero-length events in calendar [Sebastian; !2023]
-* Keep keyboard focus in notification list after deleting message [Dylan; !2053]
-* Misc. bug fixes and cleanups [Evan; !2036]
-
-Contributors:
-  Sebastian Keller, Dylan McCall, Evan Welsh
-
-Translators:
-  Piotr Drąg [pl], Dušan Kazik [sk], Charles Monzat [fr], Milo Casagrande [it],
-  Goran Vidović [hr], Daniel Șerbănescu [ro], Quentin PAGÈS [oc],
-  Aurimas Černius [lt]
-
-41.1
-====
+42.alpha
+========
 * Fix icon updates while hidden [Marco; !1983]
-* Fix erratic scrolling in GTK apps [Christian, Carlos; !1993, #4647]
+* Fix erratic scrolling in GTK apps [Christian, Carlos; !1993, !2011]
 * Fix GTK color picker support [Florian; !1990]
 * Fix sound-file support in notifications [Florian; !1991]
 * Fix high-contrast switches [Florian; !2000]
-* Only allow one extension prefs dialog at a time [Florian; #4564]
-* Fixed crashes [Ray, Sebastian; !2004, !2014]
-* Misc. bug fixes and cleanups [Jonas, Florian, Jakub, Carlos; !1985, !1998,
-  !1996, !1979, !2007, !2010]
+* Allow extensions to opt-in to running on lock/login screen [Ray; !1967]
+* magnifier: Avoid offscreen rendering if possible [Sebastian; !2026]
+* Warn when unsafe-mode is toggled [Florian; !2050]
+* Improve handling of all-day/zero-length events in calendar [Sebastian; !2023]
+* Keep keyboard focus in notification list after deleting message [Dylan; !2053]
+* switchMonitor: Don't include builtin/external modes on desktops [Jonas; !2056]
+* Fix wrongly rejected D-Bus calls after gnome-shell restarts [Sebastian; !2048]
+* Improve window tracking [Florian; [Florian; !2029]
+* Simplify scroll fade shader to work with old hardware [Sebastian; !2072]
+* Tweak (un)minimize animations [Daniel; !2066]
+* Properly handle markup when highlighting search terms [Sebastian; !2033]
+* Don't wake up screen in DND mode [kyte; !2051]
+* Port to GWeather 4.0 [Florian; !2083]
+* extensions-app: Use libadwaita [Romain, Florian; !1997]
+* Fix immediately withdrawn notifications getting stuck [Sebastian; !2079]
+* Honor XDG SingleMainWindow key in .desktop files [Nate; !2084]
+* Opt-in to unique GType names in extension prefs [Florian; !2024]
+* Don't terminate remote sessions in headless mode [Joan; !2057]
+* Fixed crashes [Ray, Sebastian, Benjamin, Florian; !2004, !2014, !2025,
+  !2065, !2073]
+* Misc. bug fixes and cleanups [Jonas, Florian, Jakub, Ray, Carlos, Sebastian,
+  Georges, Evan, Sergio, Emily, Robert; !1985, !1998, !1996, !1999, !1979,
+  !2007, !2010, !2013, !2021, !2027, !2015, !2030, !2039, !2036, !2038, !2041,
+  !2034, !1992, !2059, !2054, !2068, !2076, !2077, !2078, !2081, !2082, !2031,
+  !2042, !2086, !2087, !2085, !2088]
 
 Contributors:
-  Marco Trevisan (Treviño), Carlos Garnacho, Christian Hergert,
-  Sebastian Keller, Florian Müllner, Jakub Steiner, Ray Strode, Jonas Ådahl
+  Marco Trevisan (Treviño), Benjamin Berg, Sergio Costas, Carlos Garnacho,
+  Emily Gonyer, Nate Graham, Christian Hergert, Sebastian Keller, Robert Mader,
+  Dylan McCall, Florian Müllner, Georges Basile Stavracas Neto, Jakub Steiner,
+  Ray Strode, Joan Torres, Romain Vigier, Daniel van Vugt, Evan Welsh, kyte,
+  Jonas Ådahl
 
 Translators:
   Марко Костић [sr], Ngọc Quân Trần [vi], Emin Tufan Çetin [tr],
   Yaron Shahrabani [he], Sveinn í Felli [is], Goran Vidović [hr],
   Marek Černocký [cs], Selyan Slimane AMIRI [kab], Rūdolfs Mazurs [lv],
-  eshagh shahidani [fa], Yuri Chornoivan [uk], Matej Urbančič [sl],
-  Anders Jonsson [sv], Rafael Fontenelle [pt_BR], Kukuh Syafaat [id],
-  Hugo Carvalho [pt], Aleksandr Melman [ru], Christian Kirbach [de]
+  eshagh shahidani [fa], Yuri Chornoivan [uk], Anders Jonsson [sv],
+  Rafael Fontenelle [pt_BR], Kukuh Syafaat [id], Christian Kirbach [de],
+  Piotr Drąg [pl], Dušan Kazik [sk], Charles Monzat [fr], Fabio Tomat [fur],
+  Quentin PAGÈS [oc], Hugo Carvalho [pt], Milo Casagrande [it],
+  Daniel Mustieles [es], MohammadSaleh Kamyab [fa], Aurimas Černius [lt],
+  Aleksandr Melman [ru], Fran Dieguez [gl], Мирослав Николић [sr],
+  Danial Behzadi [fa]
 
 41.0
 ====

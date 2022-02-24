@@ -2,7 +2,7 @@
 /* exported findUrls, spawn, spawnCommandLine, spawnApp, trySpawnCommandLine,
             formatTime, formatTimeSpan, createTimeLabel, insertSorted,
             ensureActorVisibleInScrollView, wiggle, lerp, GNOMEversionCompare,
-            DBusSenderChecker */
+            DBusSenderChecker, Highlighter */
 
 const { Clutter, Gio, GLib, Shell, St, GnomeDesktop } = imports.gi;
 const Gettext = imports.gettext;
@@ -22,7 +22,7 @@ const _leadingJunk = '[\\s`(\\[{\'\\"<\u00AB\u201C\u2018]';
 const _notTrailingJunk = '[^\\s`!()\\[\\]{};:\'\\".,<>?\u00AB\u00BB\u200E\u200F\u201C\u201D\u2018\u2019\u202A\u202C]';
 
 const _urlRegexp = new RegExp(
-    '(^|%s)'.format(_leadingJunk) +
+    `(^|${_leadingJunk})` +
     '(' +
         '(?:' +
             '(?:http|https|ftp)://' +             // scheme://
@@ -34,12 +34,12 @@ const _urlRegexp = new RegExp(
         '(?:' +                                   // one or more:
             '[^\\s()<>]+' +                       // run of non-space non-()
             '|' +                                 // or
-            '%s'.format(_balancedParens) +        // balanced parens
+            `${_balancedParens}` +                // balanced parens
         ')+' +
         '(?:' +                                   // end with:
-            '%s'.format(_balancedParens) +        // balanced parens
+            `${_balancedParens}` +                // balanced parens
             '|' +                                 // or
-            '%s'.format(_notTrailingJunk) +       // last non-junk char
+            `${_notTrailingJunk}` +               // last non-junk char
         ')' +
     ')', 'gi');
 
@@ -111,9 +111,16 @@ function spawnApp(argv) {
 function trySpawn(argv) {
     var success_, pid;
     try {
-        [success_, pid] = GLib.spawn_async(null, argv, null,
-                                           GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-                                           null);
+        [success_, pid] = GLib.spawn_async(
+            null, argv, null,
+            GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+            () => {
+                try {
+                    global.context.restore_rlimit_nofile();
+                } catch (err) {
+                }
+            }
+        );
     } catch (err) {
         /* Rewrite the error in case of ENOENT */
         if (err.matches(GLib.SpawnError, GLib.SpawnError.NOENT)) {
@@ -154,7 +161,7 @@ function trySpawnCommandLine(commandLine) {
     } catch (err) {
         // Replace "Error invoking GLib.shell_parse_argv: " with
         // something nicer
-        err.message = err.message.replace(/[^:]*: /, '%s\n'.format(_('Could not parse command:')));
+        err.message = err.message.replace(/[^:]*: /, `${_('Could not parse command:')}\n`);
         throw err;
     }
 
@@ -329,7 +336,7 @@ function createTimeLabel(date, params) {
 
 function lowerBound(array, val, cmp) {
     let min, max, mid, v;
-    cmp = cmp || ((a, b) => a - b);
+    cmp ||= (a, b) => a - b;
 
     if (array.length == 0)
         return 0;
@@ -543,7 +550,7 @@ var DBusSenderChecker = class {
 
         throw new GLib.Error(Gio.DBusError,
             Gio.DBusError.ACCESS_DENIED,
-            '%s is not allowed'.format(invocation.get_method_name()));
+            `${invocation.get_method_name()} is not allowed`);
     }
 
     /**
@@ -553,5 +560,57 @@ var DBusSenderChecker = class {
         for (const id in this._watchList)
             Gio.DBus.unwatch_name(id);
         this._watchList = [];
+    }
+};
+
+/* @class Highlighter Highlight given terms in text using markup. */
+var Highlighter = class {
+    /**
+     * @param {?string[]} terms - list of terms to highlight
+     */
+    constructor(terms) {
+        if (!terms)
+            return;
+
+        const escapedTerms = terms
+            .map(term => Shell.util_regex_escape(term))
+            .filter(term => term.length > 0);
+
+        if (escapedTerms.length === 0)
+            return;
+
+        this._highlightRegex = new RegExp(
+            `(${escapedTerms.join('|')})`, 'gi');
+    }
+
+    /**
+     * Highlight all occurences of the terms defined for this
+     * highlighter in the provided text using markup.
+     *
+     * @param {string} text - text to highlight the defined terms in
+     * @returns {string}
+     */
+    highlight(text) {
+        if (!this._highlightRegex)
+            return GLib.markup_escape_text(text, -1);
+
+        let escaped = [];
+        let lastMatchEnd = 0;
+        let match;
+        while ((match = this._highlightRegex.exec(text))) {
+            if (match.index > lastMatchEnd) {
+                let unmatched = GLib.markup_escape_text(
+                    text.slice(lastMatchEnd, match.index), -1);
+                escaped.push(unmatched);
+            }
+            let matched = GLib.markup_escape_text(match[0], -1);
+            escaped.push(`<b>${matched}</b>`);
+            lastMatchEnd = match.index + match[0].length;
+        }
+        let unmatched = GLib.markup_escape_text(
+            text.slice(lastMatchEnd), -1);
+        escaped.push(unmatched);
+
+        return escaped.join('');
     }
 };
