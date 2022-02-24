@@ -1,0 +1,38 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Thu, 24 Feb 2022 04:22:32 +0100
+Subject: sessionMode: Add support for configuring an icons resource name
+
+Similar to what we did (and upstreamed) for the theme, in this case
+however there's very likely no interest upstream for this.
+
+Forwarded: not-needed
+---
+ js/ui/main.js        | 2 +-
+ js/ui/sessionMode.js | 1 +
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/main.js b/js/ui/main.js
+index 0ae220b..8add6fc 100644
+--- a/js/ui/main.js
++++ b/js/ui/main.js
+@@ -455,7 +455,7 @@ function reloadThemeResource() {
+ 
+ /** @private */
+ function _loadIcons() {
+-    _iconResource = Gio.Resource.load(`${global.datadir}/gnome-shell-icons.gresource`);
++    _iconResource = Gio.Resource.load(`${global.datadir}/${sessionMode.iconsResourceName}`);
+     _iconResource._register();
+ }
+ 
+diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
+index 4e95b4e..c69565b 100644
+--- a/js/ui/sessionMode.js
++++ b/js/ui/sessionMode.js
+@@ -16,6 +16,7 @@ const _modes = {
+         parentMode: null,
+         stylesheetName: 'gnome-shell.css',
+         themeResourceName: 'gnome-shell-theme.gresource',
++        iconsResourceName: 'gnome-shell-icons.gresource',
+         hasOverview: false,
+         showCalendarEvents: false,
+         showWelcomeDialog: false,
