@@ -21,7 +21,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  3 files changed, 102 insertions(+), 13 deletions(-)
 
 diff --git a/src/main.c b/src/main.c
-index 9d952f0..7a1a0f0 100644
+index 549dcd8..714ca74 100644
 --- a/src/main.c
 +++ b/src/main.c
 @@ -276,14 +276,14 @@ shell_a11y_init (void)
@@ -128,7 +128,7 @@ index 9d952f0..7a1a0f0 100644
    shell_profiler_init ();
  
 diff --git a/src/shell-global.c b/src/shell-global.c
-index e8705f5..132b542 100644
+index efe1271..2794f9f 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
 @@ -59,6 +59,7 @@ struct _ShellGlobal {
@@ -139,17 +139,17 @@ index e8705f5..132b542 100644
  
    XserverRegion input_region;
  
-@@ -110,6 +111,7 @@ enum {
+@@ -109,6 +110,7 @@ enum {
    PROP_FRAME_TIMESTAMPS,
    PROP_FRAME_FINISH_TIMESTAMP,
    PROP_SWITCHEROO_CONTROL,
 +  PROP_DEBUG_FLAGS,
- };
  
- /* Signals */
-@@ -215,6 +217,9 @@ shell_global_set_property(GObject         *object,
-     case PROP_FRAME_FINISH_TIMESTAMP:
-       global->frame_finish_timestamp = g_value_get_boolean (value);
+   N_PROPS
+ };
+@@ -234,6 +236,9 @@ shell_global_set_property(GObject         *object,
+           }
+       }
        break;
 +    case PROP_DEBUG_FLAGS:
 +      shell_global_set_debug_flags (global, g_value_get_string (value));
@@ -157,7 +157,7 @@ index e8705f5..132b542 100644
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
        break;
-@@ -298,6 +303,9 @@ shell_global_get_property(GObject         *object,
+@@ -317,6 +322,9 @@ shell_global_get_property(GObject         *object,
      case PROP_SWITCHEROO_CONTROL:
        g_value_set_object (value, global->switcheroo_control);
        break;
@@ -167,21 +167,21 @@ index e8705f5..132b542 100644
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
        break;
-@@ -628,6 +636,13 @@ shell_global_class_init (ShellGlobalClass *klass)
-                                                         "D-Bus Proxy for switcheroo-control daemon",
-                                                         G_TYPE_DBUS_PROXY,
-                                                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-+  g_object_class_install_property (gobject_class,
-+                                   PROP_DEBUG_FLAGS,
-+                                   g_param_spec_string ("debug-flags",
-+                                                        "Debug Flags",
-+                                                        "The debugging flags",
-+                                                        NULL,
-+                                                        G_PARAM_READWRITE));
+@@ -641,6 +649,13 @@ shell_global_class_init (ShellGlobalClass *klass)
+                          G_TYPE_DBUS_PROXY,
+                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+ 
++  props[PROP_DEBUG_FLAGS] =
++    g_param_spec_string ("debug-flags",
++                         "Debug Flags",
++                         "The debugging flags",
++                         NULL,
++                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
++
+   g_object_class_install_properties (gobject_class, N_PROPS, props);
  }
  
- /*
-@@ -1901,3 +1916,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
+@@ -1842,3 +1857,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
  {
    g_signal_emit (global, shell_global_signals[LOCATE_POINTER], 0);
  }
@@ -223,10 +223,10 @@ index e8705f5..132b542 100644
 +    }
 +}
 diff --git a/src/shell-global.h b/src/shell-global.h
-index 60bda71..94d0f61 100644
+index d5e77ea..987b34d 100644
 --- a/src/shell-global.h
 +++ b/src/shell-global.h
-@@ -93,6 +93,9 @@ void     shell_global_set_persistent_state      (ShellGlobal  *global,
+@@ -87,6 +87,9 @@ void     shell_global_set_persistent_state      (ShellGlobal  *global,
  GVariant * shell_global_get_persistent_state    (ShellGlobal  *global,
                                                   const char   *property_type,
                                                   const char   *property_name);

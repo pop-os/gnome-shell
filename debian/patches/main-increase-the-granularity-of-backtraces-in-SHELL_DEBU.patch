@@ -15,7 +15,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 66 insertions(+), 21 deletions(-)
 
 diff --git a/src/main.c b/src/main.c
-index 7a1a0f0..2729782 100644
+index 714ca74..73ed10f 100644
 --- a/src/main.c
 +++ b/src/main.c
 @@ -34,16 +34,26 @@ extern GType gnome_shell_plugin_get_type (void);
@@ -146,10 +146,10 @@ index 7a1a0f0..2729782 100644
    g_signal_connect (shell_global_get (), "notify::debug-flags",
                      G_CALLBACK (global_notify_debug_flags), NULL);
 diff --git a/src/shell-global.c b/src/shell-global.c
-index 132b542..f526248 100644
+index 2794f9f..4c61142 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
-@@ -1934,11 +1934,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
+@@ -1875,11 +1875,15 @@ shell_global_get_debug_flags (ShellGlobal *global)
  /**
   * shell_global_set_debug_flags:
   * @global: a #ShellGlobal

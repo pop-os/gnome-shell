@@ -18,7 +18,7 @@ Forwarded: https://bugzilla.gnome.org/show_bug.cgi?id=789852
  2 files changed, 20 insertions(+)
 
 diff --git a/js/ui/extensionDownloader.js b/js/ui/extensionDownloader.js
-index 8bf4646..8f5bc3c 100644
+index 94ba8fa..54b1105 100644
 --- a/js/ui/extensionDownloader.js
 +++ b/js/ui/extensionDownloader.js
 @@ -4,6 +4,7 @@
@@ -29,7 +29,7 @@ index 8bf4646..8f5bc3c 100644
  const Dialog = imports.ui.dialog;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
-@@ -36,6 +37,13 @@ async function installExtension(uuid, invocation) {
+@@ -32,6 +33,13 @@ async function installExtension(uuid, invocation) {
          shell_version: Config.PACKAGE_VERSION,
      };
  
@@ -43,7 +43,7 @@ index 8bf4646..8f5bc3c 100644
      const message = Soup.Message.new_from_encoded_form('GET',
          REPOSITORY_URL_INFO,
          Soup.form_encode_hash(params));
-@@ -166,6 +174,9 @@ async function checkForUpdates() {
+@@ -161,6 +169,9 @@ async function checkForUpdates() {
              return;
          if (extension.hasUpdate)
              return;
@@ -54,7 +54,7 @@ index 8bf4646..8f5bc3c 100644
              version: extension.metadata.version,
          };
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
-index cc61cab..f5304b0 100644
+index 41a03fd..fd7899c 100644
 --- a/js/ui/extensionSystem.js
 +++ b/js/ui/extensionSystem.js
 @@ -4,6 +4,7 @@
@@ -65,7 +65,7 @@ index cc61cab..f5304b0 100644
  const ExtensionDownloader = imports.ui.extensionDownloader;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
-@@ -398,6 +399,10 @@ var ExtensionManager = class {
+@@ -412,6 +413,10 @@ var ExtensionManager = class {
          this.loadExtension(newExtension);
      }
  
@@ -74,9 +74,9 @@ index cc61cab..f5304b0 100644
 +    }
 +
      _callExtensionInit(uuid) {
-         if (!Main.sessionMode.allowExtensions)
+         if (!this._extensionSupportsSessionMode(uuid))
              return false;
-@@ -578,6 +583,10 @@ var ExtensionManager = class {
+@@ -602,6 +607,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;

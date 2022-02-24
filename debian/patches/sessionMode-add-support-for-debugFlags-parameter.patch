@@ -15,10 +15,10 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 4 insertions(+)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index c7bac11..fdeeb3d 100644
+index 3d7a044..c6ab5b7 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
-@@ -135,6 +135,9 @@ function _sessionUpdated() {
+@@ -138,6 +138,9 @@ function _sessionUpdated() {
              _remoteAccessInhibited = true;
          }
      }
@@ -29,12 +29,12 @@ index c7bac11..fdeeb3d 100644
  
  function start() {
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index 735cd86..ce5ded2 100644
+index 0ee05c6..4e95b4e 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -22,6 +22,7 @@ const _modes = {
+@@ -21,6 +21,7 @@ const _modes = {
+         showWelcomeDialog: false,
          allowSettings: false,
-         allowExtensions: false,
          allowScreencast: false,
 +        debugFlags: [],
          enabledExtensions: [],
