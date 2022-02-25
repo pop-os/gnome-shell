@@ -1,4 +1,4 @@
-gnome-shell (42~beta-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (42~beta-1ubuntu1) jammy; urgency=medium
 
   * Merge with debian
   * debian/patches: Refresh
@@ -57,7 +57,7 @@ gnome-shell (42~beta-1ubuntu1) UNRELEASED; urgency=medium
       + Support loading Yaru theme variants (for accent color)
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 25 Feb 2022 01:29:41 +0100
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 25 Feb 2022 01:59:17 +0100
 
 gnome-shell (42~beta-1) experimental; urgency=medium
 
