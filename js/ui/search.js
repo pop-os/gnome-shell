@@ -79,8 +79,6 @@ class ListSearchResult extends SearchResult {
         });
         this.set_child(content);
 
-        this._termsChangedId = 0;
-
         let titleBox = new St.BoxLayout({
             style_class: 'list-search-result-title',
             y_align: Clutter.ActorAlign.CENTER,
@@ -108,14 +106,11 @@ class ListSearchResult extends SearchResult {
             });
             content.add_child(this._descriptionLabel);
 
-            this._termsChangedId =
-                this._resultsView.connect('terms-changed',
-                                          this._highlightTerms.bind(this));
+            this._resultsView.connectObject(
+                'terms-changed', this._highlightTerms.bind(this), this);
 
             this._highlightTerms();
         }
-
-        this.connect('destroy', this._onDestroy.bind(this));
     }
 
     get ICON_SIZE() {
@@ -125,12 +120,6 @@ class ListSearchResult extends SearchResult {
     _highlightTerms() {
         let markup = this._resultsView.highlightTerms(this.metaInfo['description'].split('\n')[0]);
         this._descriptionLabel.clutter_text.set_markup(markup);
-    }
-
-    _onDestroy() {
-        if (this._termsChangedId)
-            this._resultsView.disconnect(this._termsChangedId);
-        this._termsChangedId = 0;
     }
 });
 
@@ -912,19 +901,27 @@ class ProviderInfo extends St.Button {
             y_align: Clutter.ActorAlign.START,
         });
 
-        this._content = new St.BoxLayout({ vertical: false,
-                                           style_class: 'list-search-provider-content' });
+        this._content = new St.BoxLayout({
+            vertical: false,
+            style_class: 'list-search-provider-content',
+        });
         this.set_child(this._content);
 
-        let icon = new St.Icon({ icon_size: this.PROVIDER_ICON_SIZE,
-                                 gicon: provider.appInfo.get_icon() });
+        const icon = new St.Icon({
+            icon_size: this.PROVIDER_ICON_SIZE,
+            gicon: provider.appInfo.get_icon(),
+        });
 
-        let detailsBox = new St.BoxLayout({ style_class: 'list-search-provider-details',
-                                            vertical: true,
-                                            x_expand: true });
+        const detailsBox = new St.BoxLayout({
+            style_class: 'list-search-provider-details',
+            vertical: true,
+            x_expand: true,
+        });
 
-        let nameLabel = new St.Label({ text: provider.appInfo.get_name(),
-                                       x_align: Clutter.ActorAlign.START });
+        const nameLabel = new St.Label({
+            text: provider.appInfo.get_name(),
+            x_align: Clutter.ActorAlign.START,
+        });
 
         this._moreLabel = new St.Label({ x_align: Clutter.ActorAlign.START });
 

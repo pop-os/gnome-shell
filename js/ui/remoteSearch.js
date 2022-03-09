@@ -198,12 +198,14 @@ var RemoteSearchProvider = class {
         else
             gFlags |= Gio.DBusProxyFlags.DO_NOT_AUTO_START;
 
-        this.proxy = new Gio.DBusProxy({ g_bus_type: Gio.BusType.SESSION,
-                                         g_name: dbusName,
-                                         g_object_path: dbusPath,
-                                         g_interface_info: proxyInfo,
-                                         g_interface_name: proxyInfo.name,
-                                         gFlags });
+        this.proxy = new Gio.DBusProxy({
+            g_bus_type: Gio.BusType.SESSION,
+            g_name: dbusName,
+            g_object_path: dbusPath,
+            g_interface_info: proxyInfo,
+            g_interface_name: proxyInfo.name,
+            gFlags,
+        });
         this.proxy.init_async(GLib.PRIORITY_DEFAULT, null);
 
         this.appInfo = appInfo;
@@ -221,8 +223,10 @@ var RemoteSearchProvider = class {
         } else if (meta['gicon']) {
             gicon = Gio.icon_new_for_string(meta['gicon']);
         } else if (meta['icon-data']) {
-            let [width, height, rowStride, hasAlpha,
-                 bitsPerSample, nChannels_, data] = meta['icon-data'];
+            const [
+                width, height, rowStride, hasAlpha,
+                bitsPerSample, nChannels_, data,
+            ] = meta['icon-data'];
             gicon = Shell.util_create_pixbuf_from_data(data, GdkPixbuf.Colorspace.RGB, hasAlpha,
                                                        bitsPerSample, width, height, rowStride);
         }
@@ -287,13 +291,13 @@ var RemoteSearchProvider = class {
                     metas[i][prop] = metas[i][prop].deep_unpack();
             }
 
-            resultMetas.push({ id: metas[i]['id'],
-                               name: metas[i]['name'],
-                               description: metas[i]['description'],
-                               createIcon: size => {
-                                   return this.createIcon(size, metas[i]);
-                               },
-                               clipboardText: metas[i]['clipboardText'] });
+            resultMetas.push({
+                id: metas[i]['id'],
+                name: metas[i]['name'],
+                description: metas[i]['description'],
+                createIcon: size => this.createIcon(size, metas[i]),
+                clipboardText: metas[i]['clipboardText'],
+            });
         }
         callback(resultMetas);
     }

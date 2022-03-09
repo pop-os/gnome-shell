@@ -228,10 +228,7 @@ var SearchController = GObject.registerClass({
 
     startSearch(event) {
         global.stage.set_key_focus(this._text);
-
-        let synthEvent = event.copy();
-        synthEvent.set_source(this._text);
-        this._text.event(synthEvent, false);
+        this._text.event(event, false);
     }
 
     // the entry does not show the hint
@@ -306,12 +303,12 @@ var SearchController = GObject.registerClass({
 
     _onCapturedEvent(actor, event) {
         if (event.type() === Clutter.EventType.BUTTON_PRESS) {
-            let source = event.get_source();
-            if (source !== this._text &&
+            const targetActor = global.stage.get_event_actor(event);
+            if (targetActor !== this._text &&
                 this._text.has_key_focus() &&
                 this._text.text === '' &&
                 !this._text.has_preedit() &&
-                !Main.layoutManager.keyboardBox.contains(source)) {
+                !Main.layoutManager.keyboardBox.contains(targetActor)) {
                 // the user clicked outside after activating the entry, but
                 // with no search term entered and no keyboard button pressed
                 // - cancel the search

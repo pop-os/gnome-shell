@@ -152,10 +152,12 @@ var UnalignedLayoutStrategy = class extends LayoutStrategy {
         //   meant to be scaled
         //
         // * neither height/fullHeight have any sort of spacing or padding
-        return { x: 0, y: 0,
-                 width: 0, height: 0,
-                 fullWidth: 0, fullHeight: 0,
-                 windows: [] };
+        return {
+            x: 0, y: 0,
+            width: 0, height: 0,
+            fullWidth: 0, fullHeight: 0,
+            windows: [],
+        };
     }
 
     // Computes and returns an individual scaling factor for @window,
@@ -422,6 +424,8 @@ var WorkspaceLayout = GObject.registerClass({
         this._windowSlots = [];
         this._layout = null;
 
+        this._needsLayout = true;
+
         this._stateAdjustment = new St.Adjustment({
             value: 0,
             lower: 0,
@@ -661,16 +665,20 @@ var WorkspaceLayout = GObject.registerClass({
         }
 
         let layoutChanged = false;
-        if (!this._layoutFrozen) {
-            if (this._layout === null) {
+        if (!this._layoutFrozen || this._needsLayout) {
+            if (this._needsLayout) {
                 this._layout = this._createBestLayout(this._workarea);
+                this._needsLayout = false;
                 layoutChanged = true;
             }
 
-            if (layoutChanged || containerAllocationChanged)
-                this._windowSlots = this._getWindowSlots(box.copy());
+            if (layoutChanged || containerAllocationChanged) {
+                this._windowSlotsBox = box.copy();
+                this._windowSlots = this._getWindowSlots(this._windowSlotsBox);
+            }
         }
 
+        const slotsScale = box.get_width() / this._windowSlotsBox.get_width();
         const workareaX = this._workarea.x;
         const workareaY = this._workarea.y;
         const workareaWidth = this._workarea.width;
@@ -685,6 +693,11 @@ var WorkspaceLayout = GObject.registerClass({
             let [x, y, width, height, child] = this._windowSlots[i];
             if (!child.visible)
                 continue;
+
+            x *= slotsScale;
+            y *= slotsScale;
+            width *= slotsScale;
+            height *= slotsScale;
 
             const windowInfo = this._windows.get(child);
 
@@ -785,7 +798,7 @@ var WorkspaceLayout = GObject.registerClass({
         this._windows.set(window, {
             metaWindow,
             sizeChangedId: metaWindow.connect('size-changed', () => {
-                this._layout = null;
+                this._needsLayout = true;
                 this.layout_changed();
             }),
             destroyId: window.connect('destroy', () =>
@@ -805,7 +818,7 @@ var WorkspaceLayout = GObject.registerClass({
         this._syncOverlay(window);
         this._container.add_child(window);
 
-        this._layout = null;
+        this._needsLayout = true;
         this.layout_changed();
     }
 
@@ -840,7 +853,7 @@ var WorkspaceLayout = GObject.registerClass({
         if (window.get_parent() === this._container)
             this._container.remove_child(window);
 
-        this._layout = null;
+        this._needsLayout = true;
         this.layout_changed();
     }
 
@@ -859,7 +872,7 @@ var WorkspaceLayout = GObject.registerClass({
             lastWindow = window;
         }
 
-        this._layout = null;
+        this._needsLayout = true;
         this.layout_changed();
     }
 
@@ -904,7 +917,7 @@ var WorkspaceLayout = GObject.registerClass({
 
         this._spacing = s;
 
-        this._layout = null;
+        this._needsLayout = true;
         this.notify('spacing');
         this.layout_changed();
     }
@@ -939,10 +952,10 @@ class WorkspaceBackground extends St.Widget {
         this._workarea = Main.layoutManager.getWorkAreaForMonitor(monitorIndex);
 
         this._stateAdjustment = stateAdjustment;
-        this._adjustmentId = stateAdjustment.connect('notify::value', () => {
+        this._stateAdjustment.connectObject('notify::value', () => {
             this._updateBorderRadius();
             this.queue_relayout();
-        });
+        }, this);
 
         this._bin = new Clutter.Actor({
             layout_manager: new Clutter.BinLayout(),
@@ -964,12 +977,11 @@ class WorkspaceBackground extends St.Widget {
             useContentSize: false,
         });
 
-        this._workareasChangedId =
-            global.display.connect('workareas-changed', () => {
-                this._workarea = Main.layoutManager.getWorkAreaForMonitor(monitorIndex);
-                this._updateRoundedClipBounds();
-                this.queue_relayout();
-            });
+        global.display.connectObject('workareas-changed', () => {
+            this._workarea = Main.layoutManager.getWorkAreaForMonitor(monitorIndex);
+            this._updateRoundedClipBounds();
+            this.queue_relayout();
+        }, this);
         this._updateRoundedClipBounds();
 
         this._updateBorderRadius();
@@ -1049,16 +1061,6 @@ class WorkspaceBackground extends St.Widget {
             this._bgManager.destroy();
             this._bgManager = null;
         }
-
-        if (this._workareasChangedId) {
-            global.display.disconnect(this._workareasChangedId);
-            delete this._workareasChangedId;
-        }
-
-        if (this._adjustmentId) {
-            this._stateAdjustment.disconnect(this._adjustmentId);
-            delete this._adjustmentId;
-        }
     }
 });
 
@@ -1092,10 +1094,6 @@ class Workspace extends St.Widget {
         this.add_child(this._container);
 
         this.metaWorkspace = metaWorkspace;
-        this._activeWorkspaceChangedId =
-            this.metaWorkspace?.connect('notify::active', () => {
-                layoutManager.syncOverlays();
-            });
 
         this._overviewAdjustment = overviewAdjustment;
 
@@ -1136,16 +1134,14 @@ class Workspace extends St.Widget {
         }
 
         // Track window changes, but let the window tracker process them first
-        if (this.metaWorkspace) {
-            this._windowAddedId = this.metaWorkspace.connect_after(
-                'window-added', this._windowAdded.bind(this));
-            this._windowRemovedId = this.metaWorkspace.connect_after(
-                'window-removed', this._windowRemoved.bind(this));
-        }
-        this._windowEnteredMonitorId = global.display.connect_after(
-            'window-entered-monitor', this._windowEnteredMonitor.bind(this));
-        this._windowLeftMonitorId = global.display.connect_after(
-            'window-left-monitor', this._windowLeftMonitor.bind(this));
+        this.metaWorkspace?.connectObject(
+            'window-added', this._windowAdded.bind(this), GObject.ConnectFlags.AFTER,
+            'window-removed', this._windowRemoved.bind(this), GObject.ConnectFlags.AFTER,
+            'notify::active', () => layoutManager.syncOverlays(), this);
+        global.display.connectObject(
+            'window-entered-monitor', this._windowEnteredMonitor.bind(this), GObject.ConnectFlags.AFTER,
+            'window-left-monitor', this._windowLeftMonitor.bind(this), GObject.ConnectFlags.AFTER,
+            this);
         this._layoutFrozenId = 0;
 
         // DND requires this to be set
@@ -1345,24 +1341,12 @@ class Workspace extends St.Widget {
         }
 
         this._container.layout_manager.layout_frozen = true;
-        this._overviewHiddenId = Main.overview.connect('hidden', this._doneLeavingOverview.bind(this));
+        Main.overview.connectObject(
+            'hidden', this._doneLeavingOverview.bind(this), this);
     }
 
     _onDestroy() {
         this._clearSkipTaskbarSignals();
-
-        if (this._overviewHiddenId) {
-            Main.overview.disconnect(this._overviewHiddenId);
-            this._overviewHiddenId = 0;
-        }
-
-        if (this.metaWorkspace) {
-            this.metaWorkspace.disconnect(this._windowAddedId);
-            this.metaWorkspace.disconnect(this._windowRemovedId);
-            this.metaWorkspace.disconnect(this._activeWorkspaceChangedId);
-        }
-        global.display.disconnect(this._windowEnteredMonitorId);
-        global.display.disconnect(this._windowLeftMonitorId);
 
         if (this._layoutFrozenId > 0) {
             GLib.source_remove(this._layoutFrozenId);
@@ -1499,8 +1483,10 @@ class Workspace extends St.Widget {
         } else if (!source.app && source.shellWorkspaceLaunch) {
             // While unused in our own drag sources, shellWorkspaceLaunch allows
             // extensions to define custom actions for their drag sources.
-            source.shellWorkspaceLaunch({ workspace: workspaceIndex,
-                                          timestamp: time });
+            source.shellWorkspaceLaunch({
+                workspace: workspaceIndex,
+                timestamp: time,
+            });
             return true;
         }
 

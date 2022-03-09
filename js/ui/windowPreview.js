@@ -1,8 +1,9 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported WindowPreview */
 
-const { Atk, Clutter, GLib, GObject,
-        Graphene, Meta, Pango, Shell, St } = imports.gi;
+const {
+    Atk, Clutter, GLib, GObject, Graphene, Meta, Pango, Shell, St,
+} = imports.gi;
 
 const DND = imports.ui.dnd;
 const OverviewControls = imports.ui.overviewControls;
@@ -93,8 +94,7 @@ var WindowPreview = GObject.registerClass({
                     this.emit('size-changed');
             });
 
-        this._windowDestroyId =
-            this._windowActor.connect('destroy', () => this.destroy());
+        this._windowActor.connectObject('destroy', () => this.destroy(), this);
 
         this._updateAttachedDialogs();
 
@@ -104,11 +104,12 @@ var WindowPreview = GObject.registerClass({
         this.add_action(clickAction);
         this.connect('destroy', this._onDestroy.bind(this));
 
-        this._draggable = DND.makeDraggable(this,
-                                            { restoreOnSuccess: true,
-                                              manualMode: true,
-                                              dragActorMaxSize: WINDOW_DND_SIZE,
-                                              dragActorOpacity: DRAGGING_WINDOW_OPACITY });
+        this._draggable = DND.makeDraggable(this, {
+            restoreOnSuccess: true,
+            manualMode: true,
+            dragActorMaxSize: WINDOW_DND_SIZE,
+            dragActorOpacity: DRAGGING_WINDOW_OPACITY,
+        });
         this._draggable.connect('drag-begin', this._onDragBegin.bind(this));
         this._draggable.connect('drag-cancelled', this._onDragCancelled.bind(this));
         this._draggable.connect('drag-end', this._onDragEnd.bind(this));
@@ -175,9 +176,9 @@ var WindowPreview = GObject.registerClass({
         }));
         this._title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         this.label_actor = this._title;
-        this._updateCaptionId = this.metaWindow.connect('notify::title', () => {
-            this._title.text = this._getCaption();
-        });
+        this.metaWindow.connectObject(
+            'notify::title', () => (this._title.text = this._getCaption()),
+            this);
 
         const layout = Meta.prefs_get_button_layout();
         this._closeButtonSide =
@@ -211,10 +212,8 @@ var WindowPreview = GObject.registerClass({
         this.add_child(this._icon);
         this.add_child(this._closeButton);
 
-        this._adjustmentChangedId =
-            this._overviewAdjustment.connect('notify::value', () => {
-                this._updateIconScale();
-            });
+        this._overviewAdjustment.connectObject(
+            'notify::value', () => this._updateIconScale(), this);
         this._updateIconScale();
 
         this.connect('notify::realized', () => {
@@ -524,12 +523,8 @@ var WindowPreview = GObject.registerClass({
     }
 
     _onDestroy() {
-        this._windowActor.disconnect(this._windowDestroyId);
-
         this.metaWindow._delegate = null;
         this._delegate = null;
-
-        this.metaWindow.disconnect(this._updateCaptionId);
 
         if (this._longPressLater) {
             Meta.later_remove(this._longPressLater);
@@ -539,11 +534,6 @@ var WindowPreview = GObject.registerClass({
         if (this._idleHideOverlayId > 0) {
             GLib.source_remove(this._idleHideOverlayId);
             this._idleHideOverlayId = 0;
-        }
-
-        if (this._adjustmentChangedId > 0) {
-            this._overviewAdjustment.disconnect(this._adjustmentChangedId);
-            this._adjustmentChangedId = 0;
         }
 
         if (this.inDrag) {

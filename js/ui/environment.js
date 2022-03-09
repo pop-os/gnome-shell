@@ -26,7 +26,9 @@ try {
 
 const { Clutter, Gio, GLib, GObject, Meta, Polkit, Shell, St } = imports.gi;
 const Gettext = imports.gettext;
+const Signals = imports.signals;
 const System = imports.system;
+const SignalTracker = imports.misc.signalTracker;
 
 Gio._promisify(Gio.DataInputStream.prototype, 'fill_async');
 Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async');
@@ -324,11 +326,34 @@ function init() {
 
     GObject.gtypeNameBasedOnJSPath = true;
 
+    GObject.Object.prototype.connectObject = function (...args) {
+        SignalTracker.connectObject(this, ...args);
+    };
+    GObject.Object.prototype.connect_object = function (...args) {
+        SignalTracker.connectObject(this, ...args);
+    };
+    GObject.Object.prototype.disconnectObject = function (...args) {
+        SignalTracker.disconnectObject(this, ...args);
+    };
+    GObject.Object.prototype.disconnect_object = function (...args) {
+        SignalTracker.disconnectObject(this, ...args);
+    };
+
+    const _addSignalMethods = Signals.addSignalMethods;
+    Signals.addSignalMethods = function (prototype) {
+        _addSignalMethods(prototype);
+        SignalTracker.addObjectSignalMethods(prototype);
+    };
+
+    SignalTracker.registerDestroyableType(Clutter.Actor);
+
     // Miscellaneous monkeypatching
     _patchContainerClass(St.BoxLayout);
 
-    _patchLayoutClass(Clutter.GridLayout, { row_spacing: 'spacing-rows',
-                                            column_spacing: 'spacing-columns' });
+    _patchLayoutClass(Clutter.GridLayout, {
+        row_spacing: 'spacing-rows',
+        column_spacing: 'spacing-columns',
+    });
     _patchLayoutClass(Clutter.BoxLayout, { spacing: 'spacing' });
 
     let origSetEasingDuration = Clutter.Actor.prototype.set_easing_duration;

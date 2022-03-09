@@ -43,8 +43,10 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
 
     _imageForNotificationData(hints) {
         if (hints['image-data']) {
-            let [width, height, rowStride, hasAlpha,
-                 bitsPerSample, nChannels_, data] = hints['image-data'];
+            const [
+                width, height, rowStride, hasAlpha,
+                bitsPerSample, nChannels_, data,
+            ] = hints['image-data'];
             return Shell.util_create_pixbuf_from_data(data, GdkPixbuf.Colorspace.RGB, hasAlpha,
                                                       bitsPerSample, width, height, rowStride);
         } else if (hints['image-path']) {
@@ -169,13 +171,15 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
                 hints['image-data'] = hints['icon_data'];
         }
 
-        let ndata = { appName,
-                      icon,
-                      summary,
-                      body,
-                      actions,
-                      hints,
-                      timeout };
+        const ndata = {
+            appName,
+            icon,
+            summary,
+            body,
+            actions,
+            hints,
+            timeout,
+        };
         if (replacesId != 0 && this._notifications[replacesId]) {
             ndata.id = id = replacesId;
             ndata.notification = this._notifications[replacesId].notification;
@@ -195,9 +199,8 @@ var FdoNotificationDaemon = class FdoNotificationDaemon {
     }
 
     _notifyForSource(source, ndata) {
-        let [id_, icon, summary, body, actions, hints, notification] =
-            [ndata.id, ndata.icon, ndata.summary, ndata.body,
-             ndata.actions, ndata.hints, ndata.notification];
+        const { icon, summary, body, actions, hints } = ndata;
+        let { notification } = ndata;
 
         if (notification == null) {
             notification = new MessageTray.Notification(source);
@@ -457,8 +460,10 @@ class FdoNotificationDaemonSource extends MessageTray.Source {
         if (this.app) {
             return this.app.create_icon_texture(size);
         } else if (this._gicon) {
-            return new St.Icon({ gicon: this._gicon,
-                                 icon_size: size });
+            return new St.Icon({
+                gicon: this._gicon,
+                icon_size: size,
+            });
         } else {
             return null;
         }
@@ -478,15 +483,17 @@ class GtkNotificationDaemonNotification extends MessageTray.Notification {
         super._init(source);
         this._serialized = GLib.Variant.new('a{sv}', notification);
 
-        let { title,
-              body,
-              icon: gicon,
-              urgent,
-              priority,
-              buttons,
-              "default-action": defaultAction,
-              "default-action-target": defaultActionTarget,
-              timestamp: time } = notification;
+        const {
+            title,
+            body,
+            icon: gicon,
+            urgent,
+            priority,
+            buttons,
+            'default-action': defaultAction,
+            'default-action-target': defaultActionTarget,
+            timestamp: time,
+        } = notification;
 
         if (priority) {
             let urgency = PRIORITY_URGENCY_MAP[priority.unpack()];
@@ -510,9 +517,12 @@ class GtkNotificationDaemonNotification extends MessageTray.Notification {
         this._defaultAction = defaultAction?.unpack();
         this._defaultActionTarget = defaultActionTarget;
 
-        this.update(title.unpack(), body?.unpack(),
-                    { gicon: gicon ? Gio.icon_deserialize(gicon) : null,
-                      datetime: time ? GLib.DateTime.new_from_unix_local(time.unpack()) : null });
+        this.update(title.unpack(), body?.unpack(), {
+            gicon: gicon
+                ? Gio.icon_deserialize(gicon) : null,
+            datetime: time
+                ? GLib.DateTime.new_from_unix_local(time.unpack()) : null,
+        });
     }
 
     _activateAction(namespacedActionId, target) {
@@ -545,7 +555,7 @@ const FdoApplicationIface = loadInterfaceXML('org.freedesktop.Application');
 const FdoApplicationProxy = Gio.DBusProxy.makeProxyWrapper(FdoApplicationIface);
 
 function objectPathFromAppId(appId) {
-    return '/' + appId.replace(/\./g, '/').replace(/-/g, '_');
+    return `/${appId.replace(/\./g, '/').replace(/-/g, '_')}`;
 }
 
 function getPlatformData() {

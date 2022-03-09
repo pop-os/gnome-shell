@@ -111,9 +111,11 @@ var GrabHelper = class GrabHelper {
     // use cases like menus, where we want to grab the menu actor, but keep
     // focus on the clicked on menu item.
     grab(params) {
-        params = Params.parse(params, { actor: null,
-                                        focus: null,
-                                        onUngrab: null });
+        params = Params.parse(params, {
+            actor: null,
+            focus: null,
+            onUngrab: null,
+        });
 
         let focus = global.stage.key_focus;
         let hadFocus = focus && this._isWithinGrabbedActor(focus);
@@ -202,8 +204,10 @@ var GrabHelper = class GrabHelper {
     // The onUngrab callback for every grab is called for every popped
     // grab with the parameter %false.
     ungrab(params) {
-        params = Params.parse(params, { actor: this.currentGrab.actor,
-                                        isUser: false });
+        params = Params.parse(params, {
+            actor: this.currentGrab.actor,
+            isUser: false,
+        });
 
         let grabStackIndex = this._findStackIndex(params.actor);
         if (grabStackIndex < 0)
@@ -261,9 +265,11 @@ var GrabHelper = class GrabHelper {
             return Clutter.EVENT_PROPAGATE;
         }
 
+        const targetActor = global.stage.get_event_actor(event);
+
         if (type === Clutter.EventType.ENTER ||
             type === Clutter.EventType.LEAVE ||
-            this.currentGrab.actor.contains(event.get_source()))
+            this.currentGrab.actor.contains(targetActor))
             return Clutter.EVENT_PROPAGATE;
 
         if (Main.keyboard.shouldTakeEvent(event))
@@ -275,7 +281,7 @@ var GrabHelper = class GrabHelper {
             if (press || touchBegin)
                 this._ignoreUntilRelease = true;
 
-            let i = this._actorInGrabStack(event.get_source()) + 1;
+            let i = this._actorInGrabStack(targetActor) + 1;
             this.ungrab({ actor: this._grabStack[i].actor, isUser: true });
             return Clutter.EVENT_STOP;
         }

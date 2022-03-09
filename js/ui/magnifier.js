@@ -1,7 +1,8 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 
-const { Atspi, Clutter, GDesktopEnums,
-        Gio, GLib, GObject, Meta, Shell, St } = imports.gi;
+const {
+    Atspi, Clutter, GDesktopEnums, Gio, GLib, GObject, Meta, Shell, St,
+} = imports.gi;
 const Signals = imports.signals;
 
 const Background = imports.ui.background;
@@ -157,13 +158,12 @@ var Magnifier = class Magnifier {
 
         if (activate) {
             this._updateMouseSprite();
-            this._cursorSpriteChangedId =
-                this._cursorTracker.connect('cursor-changed',
-                                            this._updateMouseSprite.bind(this));
+            this._cursorTracker.connectObject(
+                'cursor-changed', this._updateMouseSprite.bind(this), this);
             Meta.disable_unredirect_for_display(global.display);
             this.startTrackingMouse();
         } else {
-            this._cursorTracker.disconnect(this._cursorSpriteChangedId);
+            this._cursorTracker.disconnectObject(this);
             this._mouseSprite.content.texture = null;
             Meta.enable_unredirect_for_display(global.display);
             this.stopTrackingMouse();
@@ -802,8 +802,10 @@ var ZoomRegion = class ZoomRegion {
         }
 
         let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        let [xFocus, yFocus] = [(extents.x + (extents.width / 2)) * scaleFactor,
-                                (extents.y + (extents.height / 2)) * scaleFactor];
+        const [xFocus, yFocus] = [
+            (extents.x + (extents.width / 2)) * scaleFactor,
+            (extents.y + (extents.height / 2)) * scaleFactor,
+        ];
 
         if (this._xFocus !== xFocus || this._yFocus !== yFocus) {
             [this._xFocus, this._yFocus] = [xFocus, yFocus];
@@ -882,10 +884,12 @@ var ZoomRegion = class ZoomRegion {
      *     magnification factor to of the magnified view.
      */
     setMagFactor(xMagFactor, yMagFactor) {
-        this._changeROI({ xMagFactor,
-                          yMagFactor,
-                          redoCursorTracking: this._followingCursor,
-                          animate: true });
+        this._changeROI({
+            xMagFactor,
+            yMagFactor,
+            redoCursorTracking: this._followingCursor,
+            animate: true,
+        });
     }
 
     /**
@@ -979,10 +983,12 @@ var ZoomRegion = class ZoomRegion {
             return;
 
         this._followingCursor = false;
-        this._changeROI({ xMagFactor: this._viewPortWidth / roi.width,
-                          yMagFactor: this._viewPortHeight / roi.height,
-                          xCenter: roi.x + roi.width  / 2,
-                          yCenter: roi.y + roi.height / 2 });
+        this._changeROI({
+            xMagFactor: this._viewPortWidth / roi.width,
+            yMagFactor: this._viewPortHeight / roi.height,
+            xCenter: roi.x + roi.width  / 2,
+            yCenter: roi.y + roi.height / 2,
+        });
     }
 
     /**
@@ -997,9 +1003,11 @@ var ZoomRegion = class ZoomRegion {
         let roiWidth = this._viewPortWidth / this._xMagFactor;
         let roiHeight = this._viewPortHeight / this._yMagFactor;
 
-        return [this._xCenter - roiWidth / 2,
-                this._yCenter - roiHeight / 2,
-                roiWidth, roiHeight];
+        return [
+            this._xCenter - roiWidth / 2,
+            this._yCenter - roiHeight / 2,
+            roiWidth, roiHeight,
+        ];
     }
 
     /**
@@ -1205,9 +1213,11 @@ var ZoomRegion = class ZoomRegion {
         this._clearScrollContentsTimer();
 
         this._followingCursor = false;
-        this._changeROI({ xCenter: x,
-                          yCenter: y,
-                          animate: true });
+        this._changeROI({
+            xCenter: x,
+            yCenter: y,
+            animate: true,
+        });
     }
 
     /**
@@ -1341,8 +1351,10 @@ var ZoomRegion = class ZoomRegion {
 
         // Clone the group that contains all of UI on the screen.  This is the
         // chrome, the windows, etc.
-        this._uiGroupClone = new Clutter.Clone({ source: Main.uiGroup,
-                                                 clip_to_allocation: true });
+        this._uiGroupClone = new Clutter.Clone({
+            source: Main.uiGroup,
+            clip_to_allocation: true,
+        });
         mainGroup.add_actor(this._uiGroupClone);
 
         // Add either the given mouseSourceActor to the ZoomRegion, or a clone of
@@ -1415,12 +1427,14 @@ var ZoomRegion = class ZoomRegion {
         // and center can be set explicitly, or we can recompute
         // the position based on the mouse cursor position
 
-        params = Params.parse(params, { xMagFactor: this._xMagFactor,
-                                        yMagFactor: this._yMagFactor,
-                                        xCenter: this._xCenter,
-                                        yCenter: this._yCenter,
-                                        redoCursorTracking: false,
-                                        animate: false });
+        params = Params.parse(params, {
+            xMagFactor: this._xMagFactor,
+            yMagFactor: this._yMagFactor,
+            xCenter: this._xCenter,
+            yCenter: this._yCenter,
+            redoCursorTracking: false,
+            animate: false,
+        });
 
         if (params.xMagFactor <= 0)
             params.xMagFactor = this._xMagFactor;
@@ -1453,10 +1467,12 @@ var ZoomRegion = class ZoomRegion {
         // over the actual mouse. However, in full screen mode, the "lens" is
         // the size of the screen -- pointless to move such a large lens around.
         if (this._lensMode && !this._isFullScreen()) {
-            this._setViewPort({ x: this._xCenter - this._viewPortWidth / 2,
-                                y: this._yCenter - this._viewPortHeight / 2,
-                                width: this._viewPortWidth,
-                                height: this._viewPortHeight }, true);
+            this._setViewPort({
+                x: this._xCenter - this._viewPortWidth / 2,
+                y: this._yCenter - this._viewPortHeight / 2,
+                width: this._viewPortWidth,
+                height: this._viewPortHeight,
+            }, true);
         }
 
         this._updateCloneGeometry(params.animate);
@@ -1580,8 +1596,10 @@ var ZoomRegion = class ZoomRegion {
     _screenToViewPort(screenX, screenY) {
         // Converts coordinates relative to the (unmagnified) screen to coordinates
         // relative to the origin of this._magView
-        return [this._viewPortWidth / 2 + (screenX - this._xCenter) * this._xMagFactor,
-                this._viewPortHeight / 2 + (screenY - this._yCenter) * this._yMagFactor];
+        return [
+            this._viewPortWidth / 2 + (screenX - this._xCenter) * this._xMagFactor,
+            this._viewPortHeight / 2 + (screenY - this._yCenter) * this._yMagFactor,
+        ];
     }
 
     _updateMagViewGeometry() {

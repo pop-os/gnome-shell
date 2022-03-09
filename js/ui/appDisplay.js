@@ -54,6 +54,35 @@ const DELAYED_MOVE_TIMEOUT = 200;
 const DIALOG_SHADE_NORMAL = Clutter.Color.from_pixel(0x000000cc);
 const DIALOG_SHADE_HIGHLIGHT = Clutter.Color.from_pixel(0x00000055);
 
+const DEFAULT_FOLDERS = {
+    'Utilities': {
+        name: 'X-GNOME-Utilities.directory',
+        categories: ['X-GNOME-Utilities'],
+        apps: [
+            'gnome-abrt.desktop',
+            'gnome-system-log.desktop',
+            'nm-connection-editor.desktop',
+            'org.gnome.baobab.desktop',
+            'org.gnome.Connections.desktop',
+            'org.gnome.DejaDup.desktop',
+            'org.gnome.Dictionary.desktop',
+            'org.gnome.DiskUtility.desktop',
+            'org.gnome.eog.desktop',
+            'org.gnome.Evince.desktop',
+            'org.gnome.FileRoller.desktop',
+            'org.gnome.fonts.desktop',
+            'org.gnome.seahorse.Application.desktop',
+            'org.gnome.tweaks.desktop',
+            'org.gnome.Usage.desktop',
+            'vinagre.desktop',
+        ],
+    },
+    'YaST': {
+        name: 'suse-yast.directory',
+        categegories: ['X-SuSE-YaST'],
+    },
+};
+
 var SidePages = {
     NONE: 0,
     PREVIOUS: 1 << 0,
@@ -301,15 +330,13 @@ var BaseAppView = GObject.registerClass({
 
         // Filter the apps through the user’s parental controls.
         this._parentalControlsManager = ParentalControlsManager.getDefault();
-        this._appFilterChangedId =
-            this._parentalControlsManager.connect('app-filter-changed', () => {
-                this._redisplay();
-            });
+        this._parentalControlsManager.connectObject('app-filter-changed',
+            () => this._redisplay(), this);
 
         // Don't duplicate favorites
         this._appFavorites = AppFavorites.getAppFavorites();
-        this._appFavoritesChangedId =
-            this._appFavorites.connect('changed', () => this._redisplay());
+        this._appFavorites.connectObject('changed',
+            () => this._redisplay(), this);
 
         // Drag n' Drop
         this._lastOvershoot = -1;
@@ -326,16 +353,6 @@ var BaseAppView = GObject.registerClass({
     }
 
     _onDestroy() {
-        if (this._appFilterChangedId > 0) {
-            this._parentalControlsManager.disconnect(this._appFilterChangedId);
-            this._appFilterChangedId = 0;
-        }
-
-        if (this._appFavoritesChangedId > 0) {
-            this._appFavorites.disconnect(this._appFavoritesChangedId);
-            this._appFavoritesChangedId = 0;
-        }
-
         if (this._swipeTracker) {
             this._swipeTracker.destroy();
             delete this._swipeTracker;
@@ -1136,14 +1153,9 @@ var BaseAppView = GObject.registerClass({
         return (translationX - baseOffset) * page;
     }
 
-    _getPagePreviewAdjustment(page) {
-        const previewedPage = this._previewedPages.get(page);
-        return previewedPage?.adjustment;
-    }
-
     _syncClip() {
-        const nextPageAdjustment = this._getPagePreviewAdjustment(1);
-        const prevPageAdjustment = this._getPagePreviewAdjustment(-1);
+        const nextPageAdjustment = this._previewedPages.get(1);
+        const prevPageAdjustment = this._previewedPages.get(-1);
         this._grid.clip_to_view =
             (!prevPageAdjustment || prevPageAdjustment.value === 0) &&
             (!nextPageAdjustment || nextPageAdjustment.value === 0);
@@ -1151,7 +1163,7 @@ var BaseAppView = GObject.registerClass({
 
     _setupPagePreview(page, state) {
         if (this._previewedPages.has(page))
-            return this._previewedPages.get(page).adjustment;
+            return this._previewedPages.get(page);
 
         const adjustment = new St.Adjustment({
             actor: this,
@@ -1162,7 +1174,7 @@ var BaseAppView = GObject.registerClass({
         const indicator = page > 0
             ? this._nextPageIndicator : this._prevPageIndicator;
 
-        const notifyId = adjustment.connect('notify::value', () => {
+        adjustment.connectObject('notify::value', () => {
             const nextPage = this._grid.currentPage + page;
             const hasFollowingPage = nextPage >= 0 &&
                 nextPage < this._grid.nPages;
@@ -1200,23 +1212,20 @@ var BaseAppView = GObject.registerClass({
                 });
             }
             this._syncClip();
-        });
+        }, this);
 
-        this._previewedPages.set(page, {
-            adjustment,
-            notifyId,
-        });
+        this._previewedPages.set(page, adjustment);
 
         return adjustment;
     }
 
     _teardownPagePreview(page) {
-        const previewedPage = this._previewedPages.get(page);
-        if (!previewedPage)
+        const adjustment = this._previewedPages.get(page);
+        if (!adjustment)
             return;
 
-        previewedPage.adjustment.value = 1;
-        previewedPage.adjustment.disconnect(previewedPage.notifyId);
+        adjustment.value = 1;
+        adjustment.disconnectObject(this);
         this._previewedPages.delete(page);
     }
 
@@ -1237,7 +1246,7 @@ var BaseAppView = GObject.registerClass({
             this._prevPageIndicator.remove_style_class_name('dnd');
         }
 
-        adjustment = this._getPagePreviewAdjustment(1);
+        adjustment = this._previewedPages.get(1);
         if (showingNextPage) {
             adjustment = this._setupPagePreview(1, state);
 
@@ -1260,7 +1269,7 @@ var BaseAppView = GObject.registerClass({
             });
         }
 
-        adjustment = this._getPagePreviewAdjustment(-1);
+        adjustment = this._previewedPages.get(-1);
         if (showingPrevPage) {
             adjustment = this._setupPagePreview(-1, state);
 
@@ -1374,7 +1383,6 @@ class AppDisplay extends BaseAppView {
 
         this._currentDialog = null;
         this._displayingDialog = false;
-        this._currentDialogDestroyId = 0;
 
         this._placeholder = null;
 
@@ -1386,6 +1394,7 @@ class AppDisplay extends BaseAppView {
             Main.queueDeferredWork(this._redisplayWorkId);
         });
         this._folderSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders' });
+        this._ensureDefaultFolders();
         this._folderSettings.connect('changed::folder-children', () => {
             Main.queueDeferredWork(this._redisplayWorkId);
         });
@@ -1448,6 +1457,28 @@ class AppDisplay extends BaseAppView {
         }
 
         this._pageManager.pages = pages;
+    }
+
+    _ensureDefaultFolders() {
+        if (this._folderSettings.get_strv('folder-children').length > 0)
+            return;
+
+        const folders = Object.keys(DEFAULT_FOLDERS);
+        this._folderSettings.set_strv('folder-children', folders);
+
+        const { path } = this._folderSettings;
+        for (const folder in folders) {
+            const { name, categories, apps } = DEFAULT_FOLDERS[folder];
+            const child = new Gio.Settings({
+                schema_id: 'org.gnome.desktop.app-folders.folder',
+                path: `${path}/folders/${folder}/`,
+            });
+            child.set_string('name', name);
+            child.set_boolean('translate', true);
+            child.set_strv('categories', categories);
+            if (apps)
+                child.set_strv('apps', apps);
+        }
     }
 
     _ensurePlaceholder(source) {
@@ -1646,19 +1677,14 @@ class AppDisplay extends BaseAppView {
     addFolderDialog(dialog) {
         Main.layoutManager.overviewGroup.add_child(dialog);
         dialog.connect('open-state-changed', (o, isOpen) => {
-            if (this._currentDialog) {
-                this._currentDialog.disconnect(this._currentDialogDestroyId);
-                this._currentDialogDestroyId = 0;
-            }
+            this._currentDialog?.disconnectObject(this);
 
             this._currentDialog = null;
 
             if (isOpen) {
                 this._currentDialog = dialog;
-                this._currentDialogDestroyId = dialog.connect('destroy', () => {
-                    this._currentDialog = null;
-                    this._currentDialogDestroyId = 0;
-                });
+                this._currentDialog.connectObject('destroy',
+                    () => (this._currentDialog = null), this);
             }
             this._displayingDialog = isOpen;
         });
@@ -2352,8 +2378,10 @@ var FolderIcon = GObject.registerClass({
         this._name = '';
         this._parentView = parentView;
 
-        this._folder = new Gio.Settings({ schema_id: 'org.gnome.desktop.app-folders.folder',
-                                          path });
+        this._folder = new Gio.Settings({
+            schema_id: 'org.gnome.desktop.app-folders.folder',
+            path,
+        });
 
         this.icon = new IconGrid.BaseIcon('', {
             createIcon: this._createIcon.bind(this),
@@ -2364,8 +2392,8 @@ var FolderIcon = GObject.registerClass({
 
         this.view = new FolderView(this._folder, id, parentView);
 
-        this._folderChangedId = this._folder.connect(
-            'changed', this._sync.bind(this));
+        this._folder.connectObject(
+            'changed', this._sync.bind(this), this);
         this._sync();
     }
 
@@ -2376,11 +2404,6 @@ var FolderIcon = GObject.registerClass({
             this._dialog.destroy();
         else
             this.view.destroy();
-
-        if (this._folderChangedId) {
-            this._folder.disconnect(this._folderChangedId);
-            delete this._folderChangedId;
-        }
     }
 
     vfunc_clicked() {
@@ -3023,8 +3046,11 @@ var AppIcon = GObject.registerClass({
         this._id = app.get_id();
         this._name = app.get_name();
 
-        this._iconContainer = new St.Widget({ layout_manager: new Clutter.BinLayout(),
-                                              x_expand: true, y_expand: true });
+        this._iconContainer = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
 
         this.set_child(this._iconContainer);
 
@@ -3053,9 +3079,8 @@ var AppIcon = GObject.registerClass({
         this._menuManager = new PopupMenu.PopupMenuManager(this);
 
         this._menuTimeoutId = 0;
-        this._stateChangedId = this.app.connect('notify::state', () => {
-            this._updateRunningStyle();
-        });
+        this.app.connectObject('notify::state',
+            () => this._updateRunningStyle(), this);
         this._updateRunningStyle();
     }
 
@@ -3066,10 +3091,7 @@ var AppIcon = GObject.registerClass({
             GLib.source_remove(this._folderPreviewId);
             this._folderPreviewId = 0;
         }
-        if (this._stateChangedId > 0)
-            this.app.disconnect(this._stateChangedId);
 
-        this._stateChangedId = 0;
         this._removeMenuTimeout();
     }
 
@@ -3164,12 +3186,8 @@ var AppIcon = GObject.registerClass({
                 if (!isPoppedUp)
                     this._onMenuPoppedDown();
             });
-            let id = Main.overview.connect('hiding', () => {
-                this._menu.close();
-            });
-            this.connect('destroy', () => {
-                Main.overview.disconnect(id);
-            });
+            Main.overview.connectObject('hiding',
+                () => this._menu.close(), this);
 
             Main.uiGroup.add_actor(this._menu.actor);
             this._menuManager.addMenu(this._menu);
@@ -3221,8 +3239,10 @@ var AppIcon = GObject.registerClass({
         let { stack } = new Error();
         log(`shellWorkspaceLaunch is deprecated, use app.open_new_window() instead\n${stack}`);
 
-        params = Params.parse(params, { workspace: -1,
-                                        timestamp: 0 });
+        params = Params.parse(params, {
+            workspace: -1,
+            timestamp: 0,
+        });
 
         this.app.open_new_window(params.workspace);
     }

@@ -10,13 +10,13 @@ const dbusInterface = 'org.vmware.viewagent.Credentials';
 
 var SERVICE_NAME = 'gdm-vmwcred';
 
-const VmwareCredentialsIface = '<node> \
-<interface name="' + dbusInterface + '"> \
-<signal name="UserAuthenticated"> \
-    <arg type="s" name="token"/> \
-</signal> \
-</interface> \
-</node>';
+const VmwareCredentialsIface = `<node>
+<interface name="${dbusInterface}">
+<signal name="UserAuthenticated">
+    <arg type="s" name="token"/>
+</signal>
+</interface>
+</node>`;
 
 
 const VmwareCredentialsInfo = Gio.DBusInterfaceInfo.new_for_xml(VmwareCredentialsIface);
@@ -24,12 +24,14 @@ const VmwareCredentialsInfo = Gio.DBusInterfaceInfo.new_for_xml(VmwareCredential
 let _vmwareCredentialsManager = null;
 
 function VmwareCredentials() {
-    var self = new Gio.DBusProxy({ g_connection: Gio.DBus.session,
-                                   g_interface_name: VmwareCredentialsInfo.name,
-                                   g_interface_info: VmwareCredentialsInfo,
-                                   g_name: dbusInterface,
-                                   g_object_path: dbusPath,
-                                   g_flags: Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES });
+    var self = new Gio.DBusProxy({
+        g_connection: Gio.DBus.session,
+        g_interface_name: VmwareCredentialsInfo.name,
+        g_interface_info: VmwareCredentialsInfo,
+        g_name: dbusInterface,
+        g_object_path: dbusPath,
+        g_flags: Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES,
+    });
     self.init(null);
     return self;
 }

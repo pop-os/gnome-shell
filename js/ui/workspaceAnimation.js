@@ -40,8 +40,8 @@ class WorkspaceGroup extends Clutter.Actor {
         this._createWindows();
 
         this.connect('destroy', this._onDestroy.bind(this));
-        this._restackedId = global.display.connect('restacked',
-            this._syncStacking.bind(this));
+        global.display.connectObject('restacked',
+            this._syncStacking.bind(this), this);
     }
 
     get workspace() {
@@ -73,11 +73,13 @@ class WorkspaceGroup extends Clutter.Actor {
             this._shouldShowWindow(w.meta_window));
 
         let lastRecord;
+        const bottomActor = this._background ?? null;
 
         for (const windowActor of windowActors) {
             const record = this._windowRecords.find(r => r.windowActor === windowActor);
 
-            this.set_child_above_sibling(record.clone, lastRecord ? lastRecord.clone : this._background);
+            this.set_child_above_sibling(record.clone,
+                lastRecord ? lastRecord.clone : bottomActor);
             lastRecord = record;
         }
     }
@@ -97,26 +99,23 @@ class WorkspaceGroup extends Clutter.Actor {
 
             const record = { windowActor, clone };
 
-            record.windowDestroyId = windowActor.connect('destroy', () => {
+            windowActor.connectObject('destroy', () => {
                 clone.destroy();
                 this._windowRecords.splice(this._windowRecords.indexOf(record), 1);
-            });
+            }, this);
 
             this._windowRecords.push(record);
         }
     }
 
     _removeWindows() {
-        for (const record of this._windowRecords) {
-            record.windowActor.disconnect(record.windowDestroyId);
+        for (const record of this._windowRecords)
             record.clone.destroy();
-        }
 
         this._windowRecords = [];
     }
 
     _onDestroy() {
-        global.display.disconnect(this._restackedId);
         this._removeWindows();
 
         if (this._workspace)
