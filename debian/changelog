@@ -1,8 +1,12 @@
-gnome-shell (42~rc-1) UNRELEASED; urgency=medium
+gnome-shell (42~rc-1) experimental; urgency=medium
 
   * New upstream release
+  * debian/control.in: Bump minimum mutter to 42~rc
+  * debian/control.in: Switch to gnome-bluetooth3
+  * Drop patches reverting use of gnome-bluetooth3
+  * Drop patches applied in new release
 
- -- Jeremy Bicha <jeremy.bicha@canonical.com>  Wed, 09 Mar 2022 09:04:12 -0500
+ -- Jeremy Bicha <jeremy.bicha@canonical.com>  Wed, 09 Mar 2022 13:18:51 -0500
 
 gnome-shell (42~beta-1) experimental; urgency=medium
 
