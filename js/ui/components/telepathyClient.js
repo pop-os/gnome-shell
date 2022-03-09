@@ -145,18 +145,22 @@ class TelepathyClient extends Tp.BaseClient {
         factory.add_account_features([Tp.Account.get_feature_quark_connection()]);
         factory.add_connection_features([Tp.Connection.get_feature_quark_contact_list()]);
         factory.add_channel_features([Tp.Channel.get_feature_quark_contacts()]);
-        factory.add_contact_features([Tp.ContactFeature.ALIAS,
-                                      Tp.ContactFeature.AVATAR_DATA,
-                                      Tp.ContactFeature.PRESENCE,
-                                      Tp.ContactFeature.SUBSCRIPTION_STATES]);
+        factory.add_contact_features([
+            Tp.ContactFeature.ALIAS,
+            Tp.ContactFeature.AVATAR_DATA,
+            Tp.ContactFeature.PRESENCE,
+            Tp.ContactFeature.SUBSCRIPTION_STATES,
+        ]);
 
         // Set up a SimpleObserver, which will call _observeChannels whenever a
         // channel matching its filters is detected.
         // The second argument, recover, means _observeChannels will be run
         // for any existing channel as well.
-        super._init({ name: 'GnomeShell',
-                      account_manager: this._accountManager,
-                      uniquify_name: true });
+        super._init({
+            name: 'GnomeShell',
+            account_manager: this._accountManager,
+            uniquify_name: true,
+        });
 
         // We only care about single-user text-based chats
         let filter = {};
@@ -253,16 +257,20 @@ class TelepathyClient extends Tp.BaseClient {
         let chanType = channel.get_channel_type();
 
         if (channel.get_invalidated()) {
-            context.fail(new Tp.Error({ code: Tp.Error.INVALID_ARGUMENT,
-                                        message: 'Channel is invalidated' }));
+            context.fail(new Tp.Error({
+                code: Tp.Error.INVALID_ARGUMENT,
+                message: 'Channel is invalidated',
+            }));
             return;
         }
 
         if (chanType == Tp.IFACE_CHANNEL_TYPE_TEXT) {
             this._approveTextChannel(account, conn, channel, dispatchOp, context);
         } else {
-            context.fail(new Tp.Error({ code: Tp.Error.INVALID_ARGUMENT,
-                                        message: 'Unsupported channel type' }));
+            context.fail(new Tp.Error({
+                code: Tp.Error.INVALID_ARGUMENT,
+                message: 'Unsupported channel type',
+            }));
         }
     }
 
@@ -270,8 +278,10 @@ class TelepathyClient extends Tp.BaseClient {
         let [targetHandle_, targetHandleType] = channel.get_handle();
 
         if (targetHandleType != Tp.HandleType.CONTACT) {
-            context.fail(new Tp.Error({ code: Tp.Error.INVALID_ARGUMENT,
-                                        message: 'Unsupported handle type' }));
+            context.fail(new Tp.Error({
+                code: Tp.Error.INVALID_ARGUMENT,
+                message: 'Unsupported handle type',
+            }));
             return;
         }
 
@@ -306,19 +316,21 @@ class ChatSource extends MessageTray.Source {
 
         this._conn = conn;
         this._channel = channel;
-        this._closedId = this._channel.connect('invalidated', this._channelClosed.bind(this));
 
         this._notifyTimeoutId = 0;
 
         this._presence = contact.get_presence_type();
 
-        this._sentId = this._channel.connect('message-sent', this._messageSent.bind(this));
-        this._receivedId = this._channel.connect('message-received', this._messageReceived.bind(this));
-        this._pendingId = this._channel.connect('pending-message-removed', this._pendingRemoved.bind(this));
+        this._channel.connectObject(
+            'invalidated', this._channelClosed.bind(this),
+            'message-sent', this._messageSent.bind(this),
+            'message-received', this._messageReceived.bind(this),
+            'pending-message-removed', this._pendingRemoved.bind(this), this);
 
-        this._notifyAliasId = this._contact.connect('notify::alias', this._updateAlias.bind(this));
-        this._notifyAvatarId = this._contact.connect('notify::avatar-file', this._updateAvatarIcon.bind(this));
-        this._presenceChangedId = this._contact.connect('presence-changed', this._presenceChanged.bind(this));
+        this._contact.connectObject(
+            'notify::alias', this._updateAlias.bind(this),
+            'notify::avatar-file', this._updateAvatarIcon.bind(this),
+            'presence-changed', this._presenceChanged.bind(this), this);
 
         // Add ourselves as a source.
         Main.messageTray.add(this);
@@ -331,14 +343,13 @@ class ChatSource extends MessageTray.Source {
             return;
 
         this._notification = new ChatNotification(this);
-        this._notification.connect('activated', this.open.bind(this));
-        this._notification.connect('updated', () => {
-            if (this._banner && this._banner.expanded)
-                this._ackMessages();
-        });
-        this._notification.connect('destroy', () => {
-            this._notification = null;
-        });
+        this._notification.connectObject(
+            'activated', this.open.bind(this),
+            'destroy', () => (this._notification = null),
+            'updated', () => {
+                if (this._banner && this._banner.expanded)
+                    this._ackMessages();
+            }, this);
         this.pushNotification(this._notification);
     }
 
@@ -352,11 +363,9 @@ class ChatSource extends MessageTray.Source {
         this._banner = new ChatNotificationBanner(this._notification);
 
         // We ack messages when the user expands the new notification
-        let id = this._banner.connect('expanded', this._ackMessages.bind(this));
-        this._banner.connect('destroy', () => {
-            this._banner.disconnect(id);
-            this._banner = null;
-        });
+        this._banner.connectObject(
+            'expanded', this._ackMessages.bind(this),
+            'destroy', () => (this._banner = null), this);
 
         return this._banner;
     }
@@ -525,14 +534,8 @@ class ChatSource extends MessageTray.Source {
             return;
 
         this._destroyed = true;
-        this._channel.disconnect(this._closedId);
-        this._channel.disconnect(this._receivedId);
-        this._channel.disconnect(this._pendingId);
-        this._channel.disconnect(this._sentId);
-
-        this._contact.disconnect(this._notifyAliasId);
-        this._contact.disconnect(this._notifyAvatarId);
-        this._contact.disconnect(this._presenceChangedId);
+        this._channel.disconnectObject(this);
+        this._contact.disconnectObject(this);
 
         super.destroy(reason);
     }
@@ -707,19 +710,22 @@ var ChatNotification = HAVE_TP ? GObject.registerClass({
         }
 
         if (message.direction == NotificationDirection.RECEIVED) {
-            this.update(this.source.title, messageBody,
-                        { datetime: GLib.DateTime.new_from_unix_local(message.timestamp),
-                          bannerMarkup: true });
+            this.update(this.source.title, messageBody, {
+                datetime: GLib.DateTime.new_from_unix_local(message.timestamp),
+                bannerMarkup: true,
+            });
         }
 
         let group = message.direction == NotificationDirection.RECEIVED
             ? 'received' : 'sent';
 
-        this._append({ body: messageBody,
-                       group,
-                       styles,
-                       timestamp: message.timestamp,
-                       noTimestamp });
+        this._append({
+            body: messageBody,
+            group,
+            styles,
+            timestamp: message.timestamp,
+            noTimestamp,
+        });
     }
 
     _filterMessages() {
@@ -759,11 +765,13 @@ var ChatNotification = HAVE_TP ? GObject.registerClass({
      */
     _append(props) {
         let currentTime = Date.now() / 1000;
-        props = Params.parse(props, { body: null,
-                                      group: null,
-                                      styles: [],
-                                      timestamp: currentTime,
-                                      noTimestamp: false });
+        props = Params.parse(props, {
+            body: null,
+            group: null,
+            styles: [],
+            timestamp: currentTime,
+            noTimestamp: false,
+        });
         const { noTimestamp } = props;
         delete props.noTimestamp;
 
@@ -816,11 +824,14 @@ var ChatNotification = HAVE_TP ? GObject.registerClass({
 
         /* Translators: this is the other person changing their old IM name to their new
            IM name. */
-        let message = '<i>' + _("%s is now known as %s").format(oldAlias, newAlias) + '</i>';
+        const message = `<i>${
+            _('%s is now known as %s').format(oldAlias, newAlias)}</i>`;
 
-        this._append({ body: message,
-                       group: 'meta',
-                       styles: ['chat-meta-message'] });
+        this._append({
+            body: message,
+            group: 'meta',
+            styles: ['chat-meta-message'],
+        });
 
         this._filterMessages();
     }
@@ -839,9 +850,11 @@ class ChatNotificationBanner extends MessageTray.NotificationBanner {
     _init(notification) {
         super._init(notification);
 
-        this._responseEntry = new St.Entry({ style_class: 'chat-response',
-                                             x_expand: true,
-                                             can_focus: true });
+        this._responseEntry = new St.Entry({
+            style_class: 'chat-response',
+            x_expand: true,
+            can_focus: true,
+        });
         this._responseEntry.clutter_text.connect('activate', this._onEntryActivated.bind(this));
         this._responseEntry.clutter_text.connect('text-changed', this._onEntryChanged.bind(this));
         this.setActionArea(this._responseEntry);
@@ -854,12 +867,16 @@ class ChatNotificationBanner extends MessageTray.NotificationBanner {
             this.emit('unfocused');
         });
 
-        this._scrollArea = new St.ScrollView({ style_class: 'chat-scrollview vfade',
-                                               vscrollbar_policy: St.PolicyType.AUTOMATIC,
-                                               hscrollbar_policy: St.PolicyType.NEVER,
-                                               visible: this.expanded });
-        this._contentArea = new St.BoxLayout({ style_class: 'chat-body',
-                                               vertical: true });
+        this._scrollArea = new St.ScrollView({
+            style_class: 'chat-scrollview vfade',
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            hscrollbar_policy: St.PolicyType.NEVER,
+            visible: this.expanded,
+        });
+        this._contentArea = new St.BoxLayout({
+            style_class: 'chat-body',
+            vertical: true,
+        });
         this._scrollArea.add_actor(this._contentArea);
 
         this.setExpandedBody(this._scrollArea);
@@ -883,30 +900,17 @@ class ChatNotificationBanner extends MessageTray.NotificationBanner {
 
         this._messageActors = new Map();
 
-        this._messageAddedId = this.notification.connect('message-added',
-            (n, message) => {
-                this._addMessage(message);
-            });
-        this._messageRemovedId = this.notification.connect('message-removed',
-            (n, message) => {
+        this.notification.connectObject(
+            'timestamp-changed', (n, message) => this._updateTimestamp(message),
+            'message-added', (n, message) => this._addMessage(message),
+            'message-removed', (n, message) => {
                 let actor = this._messageActors.get(message);
                 if (this._messageActors.delete(message))
                     actor.destroy();
-            });
-        this._timestampChangedId = this.notification.connect('timestamp-changed',
-            (n, message) => {
-                this._updateTimestamp(message);
-            });
+            }, this);
 
         for (let i = this.notification.messages.length - 1; i >= 0; i--)
             this._addMessage(this.notification.messages[i]);
-    }
-
-    _onDestroy() {
-        super._onDestroy();
-        this.notification.disconnect(this._messageAddedId);
-        this.notification.disconnect(this._messageRemovedId);
-        this.notification.disconnect(this._timestampChangedId);
     }
 
     scrollTo(side) {

@@ -17,8 +17,10 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-const { AccountsService, Clutter, Gio,
-        GLib, GObject, Pango, Polkit, Shell, St, UPowerGlib: UPower }  = imports.gi;
+const {
+    AccountsService, Clutter, Gio, GLib, GObject,
+    Pango, Polkit, Shell, St, UPowerGlib: UPower,
+} = imports.gi;
 
 const CheckBox = imports.ui.checkBox;
 const Dialog = imports.ui.dialog;
@@ -226,8 +228,10 @@ function init() {
 var EndSessionDialog = GObject.registerClass(
 class EndSessionDialog extends ModalDialog.ModalDialog {
     _init() {
-        super._init({ styleClass: 'end-session-dialog',
-                      destroyOnClose: false });
+        super._init({
+            styleClass: 'end-session-dialog',
+            destroyOnClose: false,
+        });
 
         this._loginManager = LoginManager.getLoginManager();
         this._loginManager.canRebootToBootLoaderMenu(
@@ -265,13 +269,12 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         this._rebootButton = null;
         this._rebootButtonAlt = null;
 
-        this.connect('destroy',
-                     this._onDestroy.bind(this));
         this.connect('opened',
                      this._onOpened.bind(this));
 
-        this._userLoadedId = this._user.connect('notify::is-loaded', this._sync.bind(this));
-        this._userChangedId = this._user.connect('changed', this._sync.bind(this));
+        this._user.connectObject(
+            'notify::is-loaded', this._sync.bind(this),
+            'changed', this._sync.bind(this), this);
 
         this._messageDialogContent = new Dialog.MessageDialogContent();
 
@@ -324,11 +327,6 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
         } catch (e) {
             log(`No permission to trigger offline updates: ${e}`);
         }
-    }
-
-    _onDestroy() {
-        this._user.disconnect(this._userLoadedId);
-        this._user.disconnect(this._userChangedId);
     }
 
     _isDischargingBattery() {
@@ -434,9 +432,11 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
     _updateButtons() {
         this.clearButtons();
 
-        this.addButton({ action: this.cancel.bind(this),
-                         label: _("Cancel"),
-                         key: Clutter.KEY_Escape });
+        this.addButton({
+            action: this.cancel.bind(this),
+            label: _('Cancel'),
+            key: Clutter.KEY_Escape,
+        });
 
         let dialogContent = DialogContent[this._type];
         for (let i = 0; i < dialogContent.confirmButtons.length; i++) {
@@ -669,10 +669,12 @@ class EndSessionDialog extends ModalDialog.ModalDialog {
                 if (proxy.Id == sessionId)
                     continue;
 
-                let session = { user: this._userManager.get_user(userName),
-                                username: userName,
-                                type: proxy.Type,
-                                remote: proxy.Remote };
+                const session = {
+                    user: this._userManager.get_user(userName),
+                    username: userName,
+                    type: proxy.Type,
+                    remote: proxy.Remote,
+                };
                 this._sessions.push(session);
 
                 let userAvatar = new UserWidget.Avatar(session.user, { iconSize: _ITEM_ICON_SIZE });

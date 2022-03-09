@@ -425,10 +425,12 @@ var VPNRequestHandler = class {
 
         let connectionSetting = connection.get_setting_connection();
 
-        let argv = [authHelper.fileName,
-                    '-u', connectionSetting.uuid,
-                    '-n', connectionSetting.id,
-                    '-s', serviceType];
+        const argv = [
+            authHelper.fileName,
+            '-u', connectionSetting.uuid,
+            '-n', connectionSetting.id,
+            '-s', serviceType,
+        ];
         if (authHelper.externalUIMode)
             argv.push('--external-ui-mode');
         if (flags & NM.SecretAgentGetSecretsFlags.ALLOW_INTERACTION)
@@ -596,9 +598,11 @@ var VPNRequestHandler = class {
             if (keyfile.get_integer(VPN_UI_GROUP, 'Version') != 2)
                 throw new Error('Invalid plugin keyfile version, is %d');
 
-            contentOverride = { title: keyfile.get_string(VPN_UI_GROUP, 'Title'),
-                                message: keyfile.get_string(VPN_UI_GROUP, 'Description'),
-                                secrets: [] };
+            contentOverride = {
+                title: keyfile.get_string(VPN_UI_GROUP, 'Title'),
+                message: keyfile.get_string(VPN_UI_GROUP, 'Description'),
+                secrets: [],
+            };
 
             let [groups, len_] = keyfile.get_groups();
             for (let i = 0; i < groups.length; i++) {

@@ -1,8 +1,10 @@
 // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 /* exported Component */
 
-const { AccountsService, Clutter, GLib,
-        GObject, Pango, PolkitAgent, Polkit, Shell, St } = imports.gi;
+const {
+    AccountsService, Clutter, GLib, GObject,
+    Pango, PolkitAgent, Polkit, Shell, St,
+} = imports.gi;
 
 const Dialog = imports.ui.dialog;
 const Main = imports.ui.main;
@@ -30,9 +32,9 @@ var AuthenticationDialog = GObject.registerClass({
         this.message = description;
         this.userNames = userNames;
 
-        this._sessionUpdatedId = Main.sessionMode.connect('updated', () => {
+        Main.sessionMode.connectObject('updated', () => {
             this.visible = !Main.sessionMode.isLocked;
-        });
+        }, this);
 
         this.connect('closed', this._onDialogClosed.bind(this));
 
@@ -135,12 +137,16 @@ var AuthenticationDialog = GObject.registerClass({
         passwordBox.add_child(warningBox);
         bodyContent.add_child(passwordBox);
 
-        this._cancelButton = this.addButton({ label: _("Cancel"),
-                                              action: this.cancel.bind(this),
-                                              key: Clutter.KEY_Escape });
-        this._okButton = this.addButton({ label: _("Authenticate"),
-                                          action: this._onAuthenticateButtonPressed.bind(this),
-                                          reactive: false });
+        this._cancelButton = this.addButton({
+            label: _('Cancel'),
+            action: this.cancel.bind(this),
+            key: Clutter.KEY_Escape,
+        });
+        this._okButton = this.addButton({
+            label: _('Authenticate'),
+            action: this._onAuthenticateButtonPressed.bind(this),
+            reactive: false,
+        });
         this._okButton.bind_property('reactive',
             this._okButton, 'can-focus',
             GObject.BindingFlags.SYNC_CREATE);
@@ -158,22 +164,24 @@ var AuthenticationDialog = GObject.registerClass({
         this._identityToAuth = Polkit.UnixUser.new_for_name(userName);
         this._cookie = cookie;
 
-        this._userLoadedId = this._user.connect('notify::is-loaded',
-            this._onUserChanged.bind(this));
-        this._userChangedId = this._user.connect('changed',
-            this._onUserChanged.bind(this));
+        this._user.connectObject(
+            'notify::is-loaded', this._onUserChanged.bind(this),
+            'changed', this._onUserChanged.bind(this), this);
         this._onUserChanged();
     }
 
     _initiateSession() {
         this._destroySession(DELAYED_RESET_TIMEOUT);
 
-        this._session = new PolkitAgent.Session({ identity: this._identityToAuth,
-                                                  cookie: this._cookie });
-        this._sessionCompletedId = this._session.connect('completed', this._onSessionCompleted.bind(this));
-        this._sessionRequestId = this._session.connect('request', this._onSessionRequest.bind(this));
-        this._sessionShowErrorId = this._session.connect('show-error', this._onSessionShowError.bind(this));
-        this._sessionShowInfoId = this._session.connect('show-info', this._onSessionShowInfo.bind(this));
+        this._session = new PolkitAgent.Session({
+            identity: this._identityToAuth,
+            cookie: this._cookie,
+        });
+        this._session.connectObject(
+            'completed', this._onSessionCompleted.bind(this),
+            'request', this._onSessionRequest.bind(this),
+            'show-error', this._onSessionShowError.bind(this),
+            'show-info', this._onSessionShowInfo.bind(this), this);
         this._session.initiate();
     }
 
@@ -306,18 +314,13 @@ var AuthenticationDialog = GObject.registerClass({
     }
 
     _destroySession(delay = 0) {
-        if (this._session) {
-            this._session.disconnect(this._sessionCompletedId);
-            this._session.disconnect(this._sessionRequestId);
-            this._session.disconnect(this._sessionShowErrorId);
-            this._session.disconnect(this._sessionShowInfoId);
+        this._session?.disconnectObject(this);
 
-            if (!this._completed)
-                this._session.cancel();
+        if (!this._completed)
+            this._session?.cancel();
 
-            this._completed = false;
-            this._session = null;
-        }
+        this._completed = false;
+        this._session = null;
 
         if (this._sessionRequestTimeoutId) {
             GLib.source_remove(this._sessionRequestTimeoutId);
@@ -393,18 +396,14 @@ var AuthenticationDialog = GObject.registerClass({
     }
 
     _onDialogClosed() {
-        if (this._sessionUpdatedId)
-            Main.sessionMode.disconnect(this._sessionUpdatedId);
+        Main.sessionMode.disconnectObject(this);
 
         if (this._sessionRequestTimeoutId)
             GLib.source_remove(this._sessionRequestTimeoutId);
         this._sessionRequestTimeoutId = 0;
 
-        if (this._user) {
-            this._user.disconnect(this._userLoadedId);
-            this._user.disconnect(this._userChangedId);
-            this._user = null;
-        }
+        this._user?.disconnectObject(this);
+        this._user = null;
 
         this._destroySession();
     }
@@ -440,12 +439,11 @@ class AuthenticationAgent extends Shell.PolkitAuthenticationAgent {
     _onInitiate(nativeAgent, actionId, message, iconName, cookie, userNames) {
         // Don't pop up a dialog while locked
         if (Main.sessionMode.isLocked) {
-            this._sessionUpdatedId = Main.sessionMode.connect('updated', () => {
-                Main.sessionMode.disconnect(this._sessionUpdatedId);
-                this._sessionUpdatedId = 0;
+            Main.sessionMode.connectObject('updated', () => {
+                Main.sessionMode.disconnectObject(this);
 
                 this._onInitiate(nativeAgent, actionId, message, iconName, cookie, userNames);
-            });
+            }, this);
             return;
         }
 
@@ -465,9 +463,7 @@ class AuthenticationAgent extends Shell.PolkitAuthenticationAgent {
         this._currentDialog.close();
         this._currentDialog = null;
 
-        if (this._sessionUpdatedId)
-            Main.sessionMode.disconnect(this._sessionUpdatedId);
-        this._sessionUpdatedId = 0;
+        Main.sessionMode.disconnectObject(this);
 
         this.complete(dismissed);
     }

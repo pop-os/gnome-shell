@@ -151,13 +151,13 @@ var AutorunManager = class {
     }
 
     enable() {
-        this._mountAddedId = this._volumeMonitor.connect('mount-added', this._onMountAdded.bind(this));
-        this._mountRemovedId = this._volumeMonitor.connect('mount-removed', this._onMountRemoved.bind(this));
+        this._volumeMonitor.connectObject(
+            'mount-added', this._onMountAdded.bind(this),
+            'mount-removed', this._onMountRemoved.bind(this), this);
     }
 
     disable() {
-        this._volumeMonitor.disconnect(this._mountAddedId);
-        this._volumeMonitor.disconnect(this._mountRemovedId);
+        this._volumeMonitor.disconnectObject(this);
     }
 
     _onMountAdded(monitor, mount) {
@@ -323,8 +323,10 @@ class AutorunNotification extends MessageTray.Notification {
             x_expand: true,
             x_align: Clutter.ActorAlign.START,
         });
-        let icon = new St.Icon({ gicon: app.get_icon(),
-                                 style_class: 'hotplug-notification-item-icon' });
+        const icon = new St.Icon({
+            gicon: app.get_icon(),
+            style_class: 'hotplug-notification-item-icon',
+        });
         box.add(icon);
 
         let label = new St.Bin({
@@ -335,10 +337,12 @@ class AutorunNotification extends MessageTray.Notification {
         });
         box.add(label);
 
-        let button = new St.Button({ child: box,
-                                     x_expand: true,
-                                     button_mask: St.ButtonMask.ONE,
-                                     style_class: 'hotplug-notification-item button' });
+        const button = new St.Button({
+            child: box,
+            x_expand: true,
+            button_mask: St.ButtonMask.ONE,
+            style_class: 'hotplug-notification-item button',
+        });
 
         button.connect('clicked', () => {
             startAppForMount(app, this._mount);

@@ -349,8 +349,6 @@ var InputSourceManager = class {
 
         this._sourcesPerWindow = false;
         this._focusWindowNotifyId = 0;
-        this._overviewShowingId = 0;
-        this._overviewHiddenId = 0;
         this._settings.connect('per-window-changed', this._sourcesPerWindowChanged.bind(this));
         this._sourcesPerWindowChanged();
         this._disableIBus = false;
@@ -731,17 +729,13 @@ var InputSourceManager = class {
         if (this._sourcesPerWindow && this._focusWindowNotifyId == 0) {
             this._focusWindowNotifyId = global.display.connect('notify::focus-window',
                                                                this._setPerWindowInputSource.bind(this));
-            this._overviewShowingId = Main.overview.connect('showing',
-                                                            this._setPerWindowInputSource.bind(this));
-            this._overviewHiddenId = Main.overview.connect('hidden',
-                                                           this._setPerWindowInputSource.bind(this));
+            Main.overview.connectObject(
+                'showing', this._setPerWindowInputSource.bind(this),
+                'hidden', this._setPerWindowInputSource.bind(this), this);
         } else if (!this._sourcesPerWindow && this._focusWindowNotifyId != 0) {
             global.display.disconnect(this._focusWindowNotifyId);
             this._focusWindowNotifyId = 0;
-            Main.overview.disconnect(this._overviewShowingId);
-            this._overviewShowingId = 0;
-            Main.overview.disconnect(this._overviewHiddenId);
-            this._overviewHiddenId = 0;
+            Main.overview.disconnectObject(this);
 
             let windows = global.get_window_actors().map(w => w.meta_window);
             for (let i = 0; i < windows.length; ++i) {
@@ -795,16 +789,20 @@ class InputSourceIndicatorContainer extends St.Widget {
         // for those we don't actually display.
         return this.get_children().reduce((maxWidth, child) => {
             let width = child.get_preferred_width(forHeight);
-            return [Math.max(maxWidth[0], width[0]),
-                    Math.max(maxWidth[1], width[1])];
+            return [
+                Math.max(maxWidth[0], width[0]),
+                Math.max(maxWidth[1], width[1]),
+            ];
         }, [0, 0]);
     }
 
     vfunc_get_preferred_height(forWidth) {
         return this.get_children().reduce((maxHeight, child) => {
             let height = child.get_preferred_height(forWidth);
-            return [Math.max(maxHeight[0], height[0]),
-                    Math.max(maxHeight[1], height[1])];
+            return [
+                Math.max(maxHeight[0], height[0]),
+                Math.max(maxHeight[1], height[1]),
+            ];
         }, [0, 0]);
     }
 
@@ -849,19 +847,14 @@ class InputSourceIndicator extends PanelMenu.Button {
         this._sessionUpdated();
 
         this._inputSourceManager = getInputSourceManager();
-        this._inputSourceManagerSourcesChangedId =
-            this._inputSourceManager.connect('sources-changed', this._sourcesChanged.bind(this));
-        this._inputSourceManagerCurrentSourceChangedId =
-            this._inputSourceManager.connect('current-source-changed', this._currentSourceChanged.bind(this));
+        this._inputSourceManager.connectObject(
+            'sources-changed', this._sourcesChanged.bind(this),
+            'current-source-changed', this._currentSourceChanged.bind(this), this);
         this._inputSourceManager.reload();
     }
 
     _onDestroy() {
-        if (this._inputSourceManager) {
-            this._inputSourceManager.disconnect(this._inputSourceManagerSourcesChangedId);
-            this._inputSourceManager.disconnect(this._inputSourceManagerCurrentSourceChangedId);
-            this._inputSourceManager = null;
-        }
+        this._inputSourceManager = null;
     }
 
     _sessionUpdated() {
@@ -888,8 +881,10 @@ class InputSourceIndicator extends PanelMenu.Button {
             let menuItem = new LayoutMenuItem(is.displayName, is.shortName);
             menuItem.connect('activate', () => is.activate(true));
 
-            let indicatorLabel = new St.Label({ text: is.shortName,
-                                                visible: false });
+            const indicatorLabel = new St.Label({
+                text: is.shortName,
+                visible: false,
+            });
 
             this._menuItems[i] = menuItem;
             this._indicatorLabels[i] = indicatorLabel;

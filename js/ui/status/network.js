@@ -112,7 +112,6 @@ var NMConnectionItem = class {
         this._section = section;
         this._connection = connection;
         this._activeConnection = null;
-        this._activeConnectionChangedId = 0;
 
         this._buildUI();
         this._sync();
@@ -127,11 +126,7 @@ var NMConnectionItem = class {
     }
 
     destroy() {
-        if (this._activeConnectionChangedId) {
-            this._activeConnection.disconnect(this._activeConnectionChangedId);
-            this._activeConnectionChangedId = 0;
-        }
-
+        this._activeConnection?.disconnectObject(this);
         this.labelItem.destroy();
         this.radioItem.destroy();
     }
@@ -188,17 +183,12 @@ var NMConnectionItem = class {
     }
 
     setActiveConnection(activeConnection) {
-        if (this._activeConnectionChangedId > 0) {
-            this._activeConnection.disconnect(this._activeConnectionChangedId);
-            this._activeConnectionChangedId = 0;
-        }
+        this._activeConnection?.disconnectObject(this);
 
         this._activeConnection = activeConnection;
 
-        if (this._activeConnection) {
-            this._activeConnectionChangedId = this._activeConnection.connect('notify::state',
-                                                                             this._connectionStateChanged.bind(this));
-        }
+        this._activeConnection?.connectObject('notify::state',
+            this._connectionStateChanged.bind(this), this);
 
         this._sync();
     }
@@ -222,15 +212,12 @@ var NMConnectionSection = class NMConnectionSection {
         this.item.menu.addMenuItem(this._labelSection);
         this.item.menu.addMenuItem(this._radioSection);
 
-        this._notifyConnectivityId = this._client.connect('notify::connectivity', this._iconChanged.bind(this));
+        this._client.connectObject('notify::connectivity',
+            this._iconChanged.bind(this), this);
     }
 
     destroy() {
-        if (this._notifyConnectivityId != 0) {
-            this._client.disconnect(this._notifyConnectivityId);
-            this._notifyConnectivityId = 0;
-        }
-
+        this._client.disconnectObject(this);
         this.item.destroy();
     }
 
@@ -348,8 +335,10 @@ var NMConnectionDevice = class NMConnectionDevice extends NMConnectionSection {
         this._autoConnectItem = this.item.menu.addAction(_("Connect"), this._autoConnect.bind(this));
         this._deactivateItem = this._radioSection.addAction(_("Turn Off"), this.deactivateConnection.bind(this));
 
-        this._stateChangedId = this._device.connect('state-changed', this._deviceStateChanged.bind(this));
-        this._activeConnectionChangedId = this._device.connect('notify::active-connection', this._activeConnectionChanged.bind(this));
+        this._device.connectObject(
+            'state-changed', this._deviceStateChanged.bind(this),
+            'notify::active-connection', this._activeConnectionChanged.bind(this),
+            this);
     }
 
     _canReachInternet() {
@@ -365,14 +354,7 @@ var NMConnectionDevice = class NMConnectionDevice extends NMConnectionSection {
     }
 
     destroy() {
-        if (this._stateChangedId) {
-            GObject.signal_handler_disconnect(this._device, this._stateChangedId);
-            this._stateChangedId = 0;
-        }
-        if (this._activeConnectionChangedId) {
-            GObject.signal_handler_disconnect(this._device, this._activeConnectionChangedId);
-            this._activeConnectionChangedId = 0;
-        }
+        this._device.disconnectObject(this);
 
         super.destroy();
     }
@@ -560,15 +542,12 @@ var NMDeviceModem = class extends NMConnectionDevice {
         else if (capabilities & NM.DeviceModemCapabilities.LTE)
             this._mobileDevice = new ModemManager.ModemGsm(device.udi);
 
-        if (this._mobileDevice) {
-            this._operatorNameId = this._mobileDevice.connect('notify::operator-name', this._sync.bind(this));
-            this._signalQualityId = this._mobileDevice.connect('notify::signal-quality', () => {
-                this._iconChanged();
-            });
-        }
+        this._mobileDevice?.connectObject(
+            'notify::operator-name', this._sync.bind(this),
+            'notify::signal-quality', () => this._iconChanged(), this);
 
-        this._sessionUpdatedId =
-            Main.sessionMode.connect('updated', this._sessionUpdated.bind(this));
+        Main.sessionMode.connectObject('updated',
+            this._sessionUpdated.bind(this), this);
         this._sessionUpdated();
     }
 
@@ -596,18 +575,8 @@ var NMDeviceModem = class extends NMConnectionDevice {
     }
 
     destroy() {
-        if (this._operatorNameId) {
-            this._mobileDevice.disconnect(this._operatorNameId);
-            this._operatorNameId = 0;
-        }
-        if (this._signalQualityId) {
-            this._mobileDevice.disconnect(this._signalQualityId);
-            this._signalQualityId = 0;
-        }
-        if (this._sessionUpdatedId) {
-            Main.sessionMode.disconnect(this._sessionUpdatedId);
-            this._sessionUpdatedId = 0;
-        }
+        this._mobileDevice?.disconnectObject(this);
+        Main.sessionMode.disconnectObject(this);
 
         super.destroy();
     }
@@ -625,6 +594,13 @@ var NMDeviceModem = class extends NMConnectionDevice {
             return this._mobileDevice.operator_name;
         else
             return super._getStatus();
+    }
+
+    _getMenuIcon() {
+        if (!this._client.wwan_enabled)
+            return 'network-cellular-disabled-symbolic';
+
+        return this.getIndicatorIcon();
     }
 
     getIndicatorIcon() {
@@ -662,6 +638,13 @@ var NMDeviceBluetooth = class extends NMConnectionDevice {
         return _("Connect to Internet");
     }
 
+    _getMenuIcon() {
+        if (!this._device.active_connection)
+            return 'network-cellular-disabled-symbolic';
+
+        return this.getIndicatorIcon();
+    }
+
     getIndicatorIcon() {
         if (this._device.active_connection) {
             let state = this._device.active_connection.state;
@@ -686,9 +669,11 @@ var NMWirelessDialogItem = GObject.registerClass({
         this._network = network;
         this._ap = network.accessPoints[0];
 
-        super._init({ style_class: 'nm-dialog-item',
-                      can_focus: true,
-                      reactive: true });
+        super._init({
+            style_class: 'nm-dialog-item',
+            can_focus: true,
+            reactive: true,
+        });
 
         let action = new Clutter.ClickAction();
         action.connect('clicked', () => this.grab_key_focus());
@@ -703,8 +688,10 @@ var NMWirelessDialogItem = GObject.registerClass({
         this.label_actor = this._label;
         this.add_child(this._label);
 
-        this._selectedIcon = new St.Icon({ style_class: 'nm-dialog-icon',
-                                           icon_name: 'object-select-symbolic' });
+        this._selectedIcon = new St.Icon({
+            style_class: 'nm-dialog-icon',
+            icon_name: 'object-select-symbolic',
+        });
         this.add(this._selectedIcon);
 
         this._icons = new St.BoxLayout({
@@ -757,12 +744,12 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         this._client = client;
         this._device = device;
 
-        this._wirelessEnabledChangedId = this._client.connect('notify::wireless-enabled',
-                                                              this._syncView.bind(this));
+        this._client.connectObject('notify::wireless-enabled',
+            this._syncView.bind(this), this);
 
         this._rfkill = Rfkill.getRfkillManager();
-        this._airplaneModeChangedId = this._rfkill.connect('airplane-mode-changed',
-                                                           this._syncView.bind(this));
+        this._rfkill.connectObject('airplane-mode-changed',
+            this._syncView.bind(this), this);
 
         this._networks = [];
         this._buildLayout();
@@ -771,9 +758,10 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         this._connections = connections.filter(
             connection => device.connection_valid(connection));
 
-        this._apAddedId = device.connect('access-point-added', this._accessPointAdded.bind(this));
-        this._apRemovedId = device.connect('access-point-removed', this._accessPointRemoved.bind(this));
-        this._activeApChangedId = device.connect('notify::active-access-point', this._activeApChanged.bind(this));
+        device.connectObject(
+            'access-point-added', this._accessPointAdded.bind(this),
+            'access-point-removed', this._accessPointRemoved.bind(this),
+            'notify::active-access-point', this._activeApChanged.bind(this), this);
 
         // accessPointAdded will also create dialog items
         let accessPoints = device.get_access_points() || [];
@@ -802,27 +790,6 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
     }
 
     _onDestroy() {
-        if (this._apAddedId) {
-            GObject.Object.prototype.disconnect.call(this._device, this._apAddedId);
-            this._apAddedId = 0;
-        }
-        if (this._apRemovedId) {
-            GObject.Object.prototype.disconnect.call(this._device, this._apRemovedId);
-            this._apRemovedId = 0;
-        }
-        if (this._activeApChangedId) {
-            GObject.Object.prototype.disconnect.call(this._device, this._activeApChangedId);
-            this._activeApChangedId = 0;
-        }
-        if (this._wirelessEnabledChangedId) {
-            this._client.disconnect(this._wirelessEnabledChangedId);
-            this._wirelessEnabledChangedId = 0;
-        }
-        if (this._airplaneModeChangedId) {
-            this._rfkill.disconnect(this._airplaneModeChangedId);
-            this._airplaneModeChangedId = 0;
-        }
-
         if (this._scanTimeoutId) {
             GLib.source_remove(this._scanTimeoutId);
             this._scanTimeoutId = 0;
@@ -899,14 +866,20 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
     _buildLayout() {
         let headline = new St.BoxLayout({ style_class: 'nm-dialog-header-hbox' });
 
-        let icon = new St.Icon({ style_class: 'nm-dialog-header-icon',
-                                 icon_name: 'network-wireless-signal-excellent-symbolic' });
+        const icon = new St.Icon({
+            style_class: 'nm-dialog-header-icon',
+            icon_name: 'network-wireless-signal-excellent-symbolic',
+        });
 
         let titleBox = new St.BoxLayout({ vertical: true });
-        let title = new St.Label({ style_class: 'nm-dialog-header',
-                                   text: _("Wi-Fi Networks") });
-        let subtitle = new St.Label({ style_class: 'nm-dialog-subheader',
-                                      text: _("Select a network") });
+        const title = new St.Label({
+            style_class: 'nm-dialog-header',
+            text: _('Wi-Fi Networks'),
+        });
+        const subtitle = new St.Label({
+            style_class: 'nm-dialog-subheader',
+            text: _('Select a network'),
+        });
         titleBox.add(title);
         titleBox.add(subtitle);
 
@@ -930,21 +903,27 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         this._scrollView.add_actor(this._itemBox);
         this._stack.add_child(this._scrollView);
 
-        this._noNetworksBox = new St.BoxLayout({ vertical: true,
-                                                 style_class: 'no-networks-box',
-                                                 x_align: Clutter.ActorAlign.CENTER,
-                                                 y_align: Clutter.ActorAlign.CENTER });
+        this._noNetworksBox = new St.BoxLayout({
+            vertical: true,
+            style_class: 'no-networks-box',
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
 
         this._noNetworksSpinner = new Animation.Spinner(16);
         this._noNetworksBox.add_actor(this._noNetworksSpinner);
-        this._noNetworksBox.add_actor(new St.Label({ style_class: 'no-networks-label',
-                                                     text: _("No Networks") }));
+        this._noNetworksBox.add_actor(new St.Label({
+            style_class: 'no-networks-label',
+            text: _('No Networks'),
+        }));
         this._stack.add_child(this._noNetworksBox);
 
-        this._airplaneBox = new St.BoxLayout({ vertical: true,
-                                               style_class: 'nm-dialog-airplane-box',
-                                               x_align: Clutter.ActorAlign.CENTER,
-                                               y_align: Clutter.ActorAlign.CENTER });
+        this._airplaneBox = new St.BoxLayout({
+            vertical: true,
+            style_class: 'nm-dialog-airplane-box',
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
         this._airplaneIcon = new St.Icon({ icon_size: 48 });
         this._airplaneHeadline = new St.Label({ style_class: 'nm-dialog-airplane-headline headline' });
         this._airplaneText = new St.Label({ style_class: 'nm-dialog-airplane-text' });
@@ -958,8 +937,10 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
                 this._client.wireless_enabled = true;
         });
         airplaneSubStack.add_actor(this._airplaneButton);
-        this._airplaneInactive = new St.Label({ style_class: 'nm-dialog-airplane-text',
-                                                text: _("Use hardware switch to turn off") });
+        this._airplaneInactive = new St.Label({
+            style_class: 'nm-dialog-airplane-text',
+            text: _('Use hardware switch to turn off'),
+        });
         airplaneSubStack.add_actor(this._airplaneInactive);
 
         this._airplaneBox.add_child(this._airplaneIcon);
@@ -970,12 +951,16 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
 
         this.contentLayout.add_child(this._stack);
 
-        this._disconnectButton = this.addButton({ action: () => this.close(),
-                                                  label: _("Cancel"),
-                                                  key: Clutter.KEY_Escape });
-        this._connectButton = this.addButton({ action: this._connect.bind(this),
-                                               label: _("Connect"),
-                                               key: Clutter.KEY_Return });
+        this._disconnectButton = this.addButton({
+            action: () => this.close(),
+            label: _('Cancel'),
+            key: Clutter.KEY_Escape,
+        });
+        this._connectButton = this.addButton({
+            action: this._connect.bind(this),
+            label: _('Connect'),
+            key: Clutter.KEY_Return,
+        });
     }
 
     _connect() {
@@ -990,7 +975,7 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
                 // 802.1x-enabled APs require further configuration, so they're
                 // handled in gnome-control-center
                 launchSettingsPanel('wifi', 'connect-8021x-wifi',
-                    this._device.get_path(), accessPoints[0].get_path());
+                    this._getDeviceDBusPath(), accessPoints[0].get_path());
             } else {
                 let connection = new NM.SimpleConnection();
                 this._client.add_and_activate_connection_async(connection, this._device, accessPoints[0].get_path(), null, null);
@@ -1000,10 +985,14 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         this.close();
     }
 
+    _getDeviceDBusPath() {
+        // nm_object_get_path() is shadowed by nm_device_get_path()
+        return NM.Object.prototype.get_path.call(this._device);
+    }
+
     _notifySsidCb(accessPoint) {
         if (accessPoint.get_ssid() != null) {
-            accessPoint.disconnect(accessPoint._notifySsidId);
-            accessPoint._notifySsidId = 0;
+            accessPoint.disconnectObject(this);
             this._accessPointAdded(this._device, accessPoint);
         }
     }
@@ -1127,7 +1116,8 @@ class NMWirelessDialog extends ModalDialog.ModalDialog {
         if (accessPoint.get_ssid() == null) {
             // This access point is not visible yet
             // Wait for it to get a ssid
-            accessPoint._notifySsidId = accessPoint.connect('notify::ssid', this._notifySsidCb.bind(this));
+            accessPoint.connectObject('notify::ssid',
+                this._notifySsidCb.bind(this), this);
             return;
         }
 
@@ -1268,11 +1258,14 @@ var NMDeviceWireless = class {
 
         this.item.menu.addSettingsAction(_("Wi-Fi Settings"), 'gnome-wifi-panel.desktop');
 
-        this._wirelessEnabledChangedId = this._client.connect('notify::wireless-enabled', this._sync.bind(this));
-        this._wirelessHwEnabledChangedId = this._client.connect('notify::wireless-hardware-enabled', this._sync.bind(this));
-        this._activeApChangedId = this._device.connect('notify::active-access-point', this._activeApChanged.bind(this));
-        this._stateChangedId = this._device.connect('state-changed', this._deviceStateChanged.bind(this));
-        this._notifyConnectivityId = this._client.connect('notify::connectivity', this._iconChanged.bind(this));
+        this._client.connectObject(
+            'notify::wireless-enabled', this._sync.bind(this),
+            'notify::wireless-hardware-enabled', this._sync.bind(this),
+            'notify::connectivity', this._iconChanged.bind(this), this);
+
+        this._device.connectObject(
+            'notify::active-access-point', this._activeApChanged.bind(this),
+            'state-changed', this._deviceStateChanged.bind(this), this);
 
         this._sync();
     }
@@ -1287,33 +1280,13 @@ var NMDeviceWireless = class {
     }
 
     destroy() {
-        if (this._activeApChangedId) {
-            GObject.signal_handler_disconnect(this._device, this._activeApChangedId);
-            this._activeApChangedId = 0;
-        }
-        if (this._stateChangedId) {
-            GObject.signal_handler_disconnect(this._device, this._stateChangedId);
-            this._stateChangedId = 0;
-        }
-        if (this._strengthChangedId > 0) {
-            this._activeAccessPoint.disconnect(this._strengthChangedId);
-            this._strengthChangedId = 0;
-        }
-        if (this._wirelessEnabledChangedId) {
-            this._client.disconnect(this._wirelessEnabledChangedId);
-            this._wirelessEnabledChangedId = 0;
-        }
-        if (this._wirelessHwEnabledChangedId) {
-            this._client.disconnect(this._wirelessHwEnabledChangedId);
-            this._wirelessHwEnabledChangedId = 0;
-        }
+        this._device.disconnectObject(this);
+        this._activeAccessPoint?.disconnectObject(this);
+        this._client.disconnectObject(this);
+
         if (this._dialog) {
             this._dialog.destroy();
             this._dialog = null;
-        }
-        if (this._notifyConnectivityId) {
-            this._client.disconnect(this._notifyConnectivityId);
-            this._notifyConnectivityId = 0;
         }
 
         this.item.destroy();
@@ -1354,17 +1327,12 @@ var NMDeviceWireless = class {
     }
 
     _activeApChanged() {
-        if (this._activeAccessPoint) {
-            this._activeAccessPoint.disconnect(this._strengthChangedId);
-            this._strengthChangedId = 0;
-        }
+        this._activeAccessPoint?.disconnectObject(this);
 
         this._activeAccessPoint = this._device.active_access_point;
 
-        if (this._activeAccessPoint) {
-            this._strengthChangedId = this._activeAccessPoint.connect('notify::strength',
-                                                                      this._strengthChanged.bind(this));
-        }
+        this._activeAccessPoint?.connectObject('notify::strength',
+            this._strengthChanged.bind(this), this);
 
         this._sync();
     }
@@ -1408,6 +1376,9 @@ var NMDeviceWireless = class {
     }
 
     _getMenuIcon() {
+        if (!this._client.wireless_enabled)
+            return 'network-wireless-disabled-symbolic';
+
         if (this._device.active_connection)
             return this.getIndicatorIcon();
         else
@@ -1524,17 +1495,12 @@ var NMVpnConnectionItem = class extends NMConnectionItem {
     }
 
     setActiveConnection(activeConnection) {
-        if (this._activeConnectionChangedId > 0) {
-            this._activeConnection.disconnect(this._activeConnectionChangedId);
-            this._activeConnectionChangedId = 0;
-        }
+        this._activeConnection?.disconnectObject(this);
 
         this._activeConnection = activeConnection;
 
-        if (this._activeConnection) {
-            this._activeConnectionChangedId = this._activeConnection.connect('vpn-state-changed',
-                                                                             this._connectionStateChanged.bind(this));
-        }
+        this._activeConnection?.connectObject('vpn-state-changed',
+            this._connectionStateChanged.bind(this), this);
 
         this._sync();
     }
@@ -1586,7 +1552,7 @@ var NMVpnSection = class extends NMConnectionSection {
     }
 
     _getMenuIcon() {
-        return this.getIndicatorIcon() || 'network-vpn-symbolic';
+        return this.getIndicatorIcon() || 'network-vpn-disabled-symbolic';
     }
 
     activateConnection(connection) {
@@ -1722,17 +1688,17 @@ class Indicator extends PanelMenu.SystemIndicator {
         this._connectivityQueue = [];
 
         this._mainConnection = null;
-        this._mainConnectionIconChangedId = 0;
-        this._mainConnectionStateChangedId = 0;
 
         this._notification = null;
 
         this._nmDevices = [];
         this._devices = { };
 
-        let categories = [NMConnectionCategory.WIRED,
-                          NMConnectionCategory.WIRELESS,
-                          NMConnectionCategory.WWAN];
+        const categories = [
+            NMConnectionCategory.WIRED,
+            NMConnectionCategory.WIRELESS,
+            NMConnectionCategory.WWAN,
+        ];
         for (let category of categories) {
             this._devices[category] = new DeviceCategory(category);
             this.menu.addMenuItem(this._devices[category]);
@@ -1873,8 +1839,8 @@ class Indicator extends PanelMenu.SystemIndicator {
     }
 
     _addDeviceWrapper(wrapper) {
-        wrapper._activationFailedId = wrapper.connect('activation-failed',
-                                                      this._onActivationFailed.bind(this));
+        wrapper.connectObject('activation-failed',
+            this._onActivationFailed.bind(this), this);
 
         let section = this._devices[wrapper.category].section;
         section.addMenuItem(wrapper.item);
@@ -1900,7 +1866,7 @@ class Indicator extends PanelMenu.SystemIndicator {
     }
 
     _removeDeviceWrapper(wrapper) {
-        wrapper.disconnect(wrapper._activationFailedId);
+        wrapper.disconnectObject(this);
         wrapper.destroy();
 
         let devices = this._devices[wrapper.category].devices;
@@ -1927,22 +1893,16 @@ class Indicator extends PanelMenu.SystemIndicator {
     }
 
     _syncMainConnection() {
-        if (this._mainConnectionIconChangedId > 0) {
-            this._mainConnection._primaryDevice.disconnect(this._mainConnectionIconChangedId);
-            this._mainConnectionIconChangedId = 0;
-        }
-
-        if (this._mainConnectionStateChangedId > 0) {
-            this._mainConnection.disconnect(this._mainConnectionStateChangedId);
-            this._mainConnectionStateChangedId = 0;
-        }
+        this._mainConnection?._primaryDevice?.disconnectObject(this);
+        this._mainConnection?.disconnectObject(this);
 
         this._mainConnection = this._getMainConnection();
 
         if (this._mainConnection) {
-            if (this._mainConnection._primaryDevice)
-                this._mainConnectionIconChangedId = this._mainConnection._primaryDevice.connect('icon-changed', this._updateIcon.bind(this));
-            this._mainConnectionStateChangedId = this._mainConnection.connect('notify::state', this._mainConnectionStateChanged.bind(this));
+            this._mainConnection._primaryDevice?.connectObject('icon-changed',
+                this._updateIcon.bind(this), this);
+            this._mainConnection.connectObject('notify::state',
+                this._mainConnectionStateChanged.bind(this), this);
             this._mainConnectionStateChanged();
         }
 
@@ -1982,12 +1942,13 @@ class Indicator extends PanelMenu.SystemIndicator {
     _addConnection(connection) {
         if (this._ignoreConnection(connection))
             return;
-        if (connection._updatedId) {
+        if (this._connections.includes(connection)) {
             // connection was already seen
             return;
         }
 
-        connection._updatedId = connection.connect('changed', this._updateConnection.bind(this));
+        connection.connectObject('changed',
+            this._updateConnection.bind(this), this);
 
         this._updateConnection(connection);
         this._connections.push(connection);
@@ -2022,8 +1983,7 @@ class Indicator extends PanelMenu.SystemIndicator {
             }
         }
 
-        connection.disconnect(connection._updatedId);
-        connection._updatedId = 0;
+        connection.disconnectObject(this);
     }
 
     _updateConnection(connection) {
