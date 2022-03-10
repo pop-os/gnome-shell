@@ -1,0 +1,152 @@
+From: Jeremy Bicha <jbicha@debian.org>
+Date: Thu, 10 Mar 2022 07:58:15 -0500
+Subject: Revert "status/bluetooth: Port to new GListModel API"
+
+This reverts commit 4a480a78af06140e87100624028e62643664e92d.
+
+Ubuntu 22.04 LTS isn't using the new gnome-bluetooth series
+---
+ js/ui/environment.js      |  2 +-
+ js/ui/status/bluetooth.js | 71 ++++++++++++++++++++++++++---------------------
+ meson.build               |  2 +-
+ 3 files changed, 41 insertions(+), 34 deletions(-)
+
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index 93db3e3..316f676 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -6,7 +6,7 @@ const Config = imports.misc.config;
+ imports.gi.versions.Clutter = Config.LIBMUTTER_API_VERSION;
+ imports.gi.versions.Gio = '2.0';
+ imports.gi.versions.GdkPixbuf = '2.0';
+-imports.gi.versions.GnomeBluetooth = '3.0';
++imports.gi.versions.GnomeBluetooth = '1.0';
+ imports.gi.versions.GnomeDesktop = '3.0';
+ imports.gi.versions.Gtk = '3.0';
+ imports.gi.versions.GWeather = '3.0';
+diff --git a/js/ui/status/bluetooth.js b/js/ui/status/bluetooth.js
+index 087bc14..714e3ea 100644
+--- a/js/ui/status/bluetooth.js
++++ b/js/ui/status/bluetooth.js
+@@ -52,16 +52,10 @@ class Indicator extends PanelMenu.SystemIndicator {
+         this._adapter = null;
+ 
+         this._client = new GnomeBluetooth.Client();
+-        this._store = this._client.get_devices();
+-        this._deviceNotifyConnected = [];
+-        this._client.connect('device-removed', (c, path) => {
+-            this._deviceNotifyConnected[path] = false;
+-            this._queueSync.bind(this);
+-        });
+-        this._client.connect('device-added', (c, device) => {
+-            this._connectDeviceNotify(device);
+-            this._sync();
+-        });
++        this._model = this._client.get_model();
++        this._model.connect('row-deleted', this._queueSync.bind(this));
++        this._model.connect('row-changed', this._queueSync.bind(this));
++        this._model.connect('row-inserted', this._sync.bind(this));
+         Main.sessionMode.connect('updated', this._sync.bind(this));
+         this._sync();
+     }
+@@ -75,30 +69,42 @@ class Indicator extends PanelMenu.SystemIndicator {
+             HAD_BLUETOOTH_DEVICES_SETUP, this._hadSetupDevices);
+     }
+ 
+-    _connectDeviceNotify(device) {
+-        if (this._deviceNotifyConnected[device.get_object_path()] !== true)
+-            return;
+-        device.connect('notify::alias', this._queueSync.bind(this));
+-        device.connect('notify::paired', this._queueSync.bind(this));
+-        device.connect('notify::trusted', this._queueSync.bind(this));
+-        device.connect('notify::connected', this._queueSync.bind(this));
+-        this._deviceNotifyConnected.push([device.get_object_path(), true]);
++    _getDefaultAdapter() {
++        let [ret, iter] = this._model.get_iter_first();
++        while (ret) {
++            let isDefault = this._model.get_value(iter,
++                                                  GnomeBluetooth.Column.DEFAULT);
++            let isPowered = this._model.get_value(iter,
++                                                  GnomeBluetooth.Column.POWERED);
++            if (isDefault && isPowered)
++                return iter;
++            ret = this._model.iter_next(iter);
++        }
++        return null;
+     }
+ 
+-    _getDeviceInfos() {
+-        let deviceInfos = [];
+-        const numDevices = this._store.get_n_items();
+-
+-        for (let i = 0; i < numDevices; i++) {
+-            const device = this._store.get_item(i);
++    _getDeviceInfos(adapter) {
++        if (!adapter)
++            return [];
+ 
+-            if (device.paired || device.trusted) {
++        let deviceInfos = [];
++        let [ret, iter] = this._model.iter_children(adapter);
++        while (ret) {
++            const isPaired = this._model.get_value(iter,
++                GnomeBluetooth.Column.PAIRED);
++            const isTrusted = this._model.get_value(iter,
++                GnomeBluetooth.Column.TRUSTED);
++
++            if (isPaired || isTrusted) {
+                 deviceInfos.push({
+-                    connected: device.connected,
+-                    name: device.alias,
++                    connected: this._model.get_value(iter,
++                        GnomeBluetooth.Column.CONNECTED),
++                    name: this._model.get_value(iter,
++                        GnomeBluetooth.Column.ALIAS),
+                 });
+             }
+-            this._connectDeviceNotify(device);
++
++            ret = this._model.iter_next(iter);
+         }
+ 
+         return deviceInfos;
+@@ -115,13 +121,14 @@ class Indicator extends PanelMenu.SystemIndicator {
+     }
+ 
+     _sync() {
+-        const devices = this._getDeviceInfos();
++        let adapter = this._getDefaultAdapter();
++        let devices = this._getDeviceInfos(adapter);
+         const connectedDevices = devices.filter(dev => dev.connected);
+         const nConnectedDevices = connectedDevices.length;
+ 
+-        if (this._client.default_adapter && this._adapter)
++        if (adapter && this._adapter)
+             this._setHadSetupDevices(devices.length > 0);
+-        this._adapter = this._client.default_adapter ?? null;
++        this._adapter = adapter;
+ 
+         let sensitive = !Main.sessionMode.isLocked && !Main.sessionMode.isGreeter;
+ 
+@@ -143,7 +150,7 @@ class Indicator extends PanelMenu.SystemIndicator {
+             this._item.label.text = ngettext('%d Connected', '%d Connected', nConnectedDevices).format(nConnectedDevices);
+         else if (nConnectedDevices === 1)
+             this._item.label.text = connectedDevices[0].name;
+-        else if (this._adapter === null)
++        else if (adapter === null)
+             this._item.label.text = _('Bluetooth Off');
+         else
+             this._item.label.text = _('Bluetooth On');
+diff --git a/meson.build b/meson.build
+index fea7c40..6458cc8 100644
+--- a/meson.build
++++ b/meson.build
+@@ -93,7 +93,7 @@ x11_dep = dependency('x11')
+ schemas_dep = dependency('gsettings-desktop-schemas', version: schemas_req)
+ gnome_desktop_dep = dependency('gnome-desktop-3.0', version: gnome_desktop_req)
+ 
+-bt_dep = dependency('gnome-bluetooth-3.0', version: bt_req, required: false)
++bt_dep = dependency('gnome-bluetooth-1.0', version: bt_req, required: false)
+ gst_dep = dependency('gstreamer-1.0', version: gst_req, required: false)
+ gst_base_dep = dependency('gstreamer-base-1.0', required: false)
+ pipewire_dep = dependency('libpipewire-0.3', required: false)
