@@ -1,2 +1,3 @@
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
+Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
 Revert-dateMenu-Port-to-GWeather-4.0.patch
