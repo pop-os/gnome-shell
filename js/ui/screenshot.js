@@ -1047,6 +1047,7 @@ var ScreenshotUI = GObject.registerClass({
             GObject.BindingFlags.DEFAULT);
         // Add it directly to the stage so that it's above popup menus.
         global.stage.add_child(this._screencastAreaIndicator);
+        Shell.util_set_hidden_from_pick(this._screencastAreaIndicator, true);
 
         Main.layoutManager.screenshotUIGroup.add_child(this);
 
@@ -1331,7 +1332,7 @@ var ScreenshotUI = GObject.registerClass({
             async () => {
                 try {
                     const shooter = new Shell.Screenshot();
-                    const [content] = await shooter.to_content();
+                    const [content] = await shooter.screenshot_stage_to_content();
                     const texture = content.get_texture();
 
                     await captureScreenshot(texture, null, 1, null);
@@ -2541,8 +2542,10 @@ class SelectArea extends St.Widget {
 
         this._grabHelper = new GrabHelper.GrabHelper(this);
 
-        let constraint = new Clutter.BindConstraint({ source: global.stage,
-                                                      coordinate: Clutter.BindCoordinate.ALL });
+        const constraint = new Clutter.BindConstraint({
+            source: global.stage,
+            coordinate: Clutter.BindCoordinate.ALL,
+        });
         this.add_constraint(constraint);
 
         this._rubberband = new St.Widget({
@@ -2767,8 +2770,10 @@ class PickPixel extends St.Widget {
 
         this._grabHelper = new GrabHelper.GrabHelper(this);
 
-        let constraint = new Clutter.BindConstraint({ source: global.stage,
-                                                      coordinate: Clutter.BindCoordinate.ALL });
+        const constraint = new Clutter.BindConstraint({
+            source: global.stage,
+            coordinate: Clutter.BindCoordinate.ALL,
+        });
         this.add_constraint(constraint);
 
         const action = new Clutter.ClickAction();

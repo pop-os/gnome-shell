@@ -22,8 +22,6 @@ var CloseDialog = GObject.registerClass({
         this._dialog = null;
         this._tracked = undefined;
         this._timeoutId = 0;
-        this._windowFocusChangedId = 0;
-        this._keyFocusChangedId = 0;
     }
 
     get window() {
@@ -67,12 +65,16 @@ var CloseDialog = GObject.registerClass({
         this._dialog.height = windowActor.height;
 
         this._dialog.contentLayout.add_child(this._createDialogContent());
-        this._dialog.addButton({ label: _('Force Quit'),
-                                 action: this._onClose.bind(this),
-                                 default: true });
-        this._dialog.addButton({ label: _('Wait'),
-                                 action: this._onWait.bind(this),
-                                 key: Clutter.KEY_Escape });
+        this._dialog.addButton({
+            label: _('Force Quit'),
+            action: this._onClose.bind(this),
+            default: true,
+        });
+        this._dialog.addButton({
+            label: _('Wait'),
+            action: this._onWait.bind(this),
+            key: Clutter.KEY_Escape,
+        });
 
         global.focus_manager.add_group(this._dialog);
 
@@ -151,13 +153,11 @@ var CloseDialog = GObject.registerClass({
                 return GLib.SOURCE_CONTINUE;
             });
 
-        this._windowFocusChangedId =
-            global.display.connect('notify::focus-window',
-                                   this._onFocusChanged.bind(this));
+        global.display.connectObject(
+            'notify::focus-window', this._onFocusChanged.bind(this), this);
 
-        this._keyFocusChangedId =
-            global.stage.connect('notify::key-focus',
-                                 this._onFocusChanged.bind(this));
+        global.stage.connectObject(
+            'notify::key-focus', this._onFocusChanged.bind(this), this);
 
         this._addWindowEffect();
         this._initDialog();
@@ -182,11 +182,8 @@ var CloseDialog = GObject.registerClass({
         GLib.source_remove(this._timeoutId);
         this._timeoutId = 0;
 
-        global.display.disconnect(this._windowFocusChangedId);
-        this._windowFocusChangedId = 0;
-
-        global.stage.disconnect(this._keyFocusChangedId);
-        this._keyFocusChangedId = 0;
+        global.display.disconnectObject(this);
+        global.stage.disconnectObject(this);
 
         this._dialog._dialog.remove_all_transitions();
 

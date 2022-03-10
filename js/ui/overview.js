@@ -159,8 +159,10 @@ var Overview = class {
         // During transitions, we raise this to the top to avoid having the overview
         // area be reactive; it causes too many issues such as double clicks on
         // Dash elements, or mouseover handlers in the workspaces.
-        this._coverPane = new Clutter.Actor({ opacity: 0,
-                                              reactive: true });
+        this._coverPane = new Clutter.Actor({
+            opacity: 0,
+            reactive: true,
+        });
         Main.layoutManager.overviewGroup.add_child(this._coverPane);
         this._coverPane.connect('event', (_actor, event) => {
             return event.type() === Clutter.EventType.ENTER ||
@@ -258,7 +260,7 @@ var Overview = class {
         this._lastActiveWorkspaceIndex = workspaceManager.get_active_workspace_index();
     }
 
-    _onDragEnd(time) {
+    _onDragEnd() {
         this._inXdndDrag = false;
 
         // In case the drag was canceled while in the overview
@@ -266,7 +268,8 @@ var Overview = class {
         // the overview
         if (this._shown) {
             let workspaceManager = global.workspace_manager;
-            workspaceManager.get_workspace_by_index(this._lastActiveWorkspaceIndex).activate(time);
+            workspaceManager.get_workspace_by_index(this._lastActiveWorkspaceIndex)
+                .activate(global.get_current_time());
             this.hide();
         }
         this._resetWindowSwitchTimeout();
@@ -329,8 +332,11 @@ var Overview = class {
             return null;
 
         let window = windows[0];
-        let clone = new Clutter.Clone({ source: window,
-                                        x: window.x, y: window.y });
+        const clone = new Clutter.Clone({
+            source: window,
+            x: window.x,
+            y: window.y,
+        });
         clone.source.connect('destroy', () => {
             clone.destroy();
         });

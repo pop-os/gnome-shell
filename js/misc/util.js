@@ -124,8 +124,10 @@ function trySpawn(argv) {
     } catch (err) {
         /* Rewrite the error in case of ENOENT */
         if (err.matches(GLib.SpawnError, GLib.SpawnError.NOENT)) {
-            throw new GLib.SpawnError({ code: GLib.SpawnError.NOENT,
-                                        message: _("Command not found") });
+            throw new GLib.SpawnError({
+                code: GLib.SpawnError.NOENT,
+                message: _('Command not found'),
+            });
         } else if (err instanceof GLib.Error) {
             // The exception from gjs contains an error string like:
             //   Error invoking GLib.spawn_command_line_async: Failed to
@@ -313,10 +315,9 @@ function createTimeLabel(date, params) {
         _desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
 
     let label = new St.Label({ text: formatTime(date, params) });
-    let id = _desktopSettings.connect('changed::clock-format', () => {
-        label.text = formatTime(date, params);
-    });
-    label.connect('destroy', () => _desktopSettings.disconnect(id));
+    _desktopSettings.connectObject(
+        'changed::clock-format', () => (label.text = formatTime(date, params)),
+        label);
     return label;
 }
 

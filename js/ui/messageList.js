@@ -1,6 +1,7 @@
 /* exported MessageListSection */
-const { Atk, Clutter, Gio, GLib,
-        GObject, Graphene, Meta, Pango, St } = imports.gi;
+const {
+    Atk, Clutter, Gio, GLib, GObject, Graphene, Meta, Pango, St,
+} = imports.gi;
 const Main = imports.ui.main;
 const MessageTray = imports.ui.messageTray;
 
@@ -170,21 +171,14 @@ class ScaleLayout extends Clutter.BinLayout {
         if (this._container == container)
             return;
 
-        if (this._container) {
-            for (let id of this._signals)
-                this._container.disconnect(id);
-        }
+        this._container?.disconnectObject(this);
 
         this._container = container;
-        this._signals = [];
 
         if (this._container) {
-            for (let signal of ['notify::scale-x', 'notify::scale-y']) {
-                let id = this._container.connect(signal, () => {
-                    this.layout_changed();
-                });
-                this._signals.push(id);
-            }
+            this._container.connectObject(
+                'notify::scale-x', () => this.layout_changed(),
+                'notify::scale-y', () => this.layout_changed(), this);
         }
     }
 
@@ -192,16 +186,20 @@ class ScaleLayout extends Clutter.BinLayout {
         this._connectContainer(container);
 
         let [min, nat] = super.vfunc_get_preferred_width(container, forHeight);
-        return [Math.floor(min * container.scale_x),
-                Math.floor(nat * container.scale_x)];
+        return [
+            Math.floor(min * container.scale_x),
+            Math.floor(nat * container.scale_x),
+        ];
     }
 
     vfunc_get_preferred_height(container, forWidth) {
         this._connectContainer(container);
 
         let [min, nat] = super.vfunc_get_preferred_height(container, forWidth);
-        return [Math.floor(min * container.scale_y),
-                Math.floor(nat * container.scale_y)];
+        return [
+            Math.floor(min * container.scale_y),
+            Math.floor(nat * container.scale_y),
+        ];
     }
 });
 
@@ -275,10 +273,14 @@ var LabelExpanderLayout = GObject.registerClass({
 
         if (children[1]) {
             let [min2, nat2] = children[1].get_preferred_height(forWidth);
-            let [expMin, expNat] = [Math.min(min2, min * this._expandLines),
-                                    Math.min(nat2, nat * this._expandLines)];
-            [min, nat] = [min + this._expansion * (expMin - min),
-                          nat + this._expansion * (expNat - nat)];
+            const [expMin, expNat] = [
+                Math.min(min2, min * this._expandLines),
+                Math.min(nat2, nat * this._expandLines),
+            ];
+            [min, nat] = [
+                min + this._expansion * (expMin - min),
+                nat + this._expansion * (expNat - nat),
+            ];
         }
 
         return [min, nat];
@@ -323,18 +325,25 @@ var Message = GObject.registerClass({
         let hbox = new St.BoxLayout();
         vbox.add_actor(hbox);
 
-        this._actionBin = new St.Widget({ layout_manager: new ScaleLayout(),
-                                          visible: false });
+        this._actionBin = new St.Widget({
+            layout_manager: new ScaleLayout(),
+            visible: false,
+        });
         vbox.add_actor(this._actionBin);
 
-        this._iconBin = new St.Bin({ style_class: 'message-icon-bin',
-                                     y_expand: true,
-                                     y_align: Clutter.ActorAlign.START,
-                                     visible: false });
+        this._iconBin = new St.Bin({
+            style_class: 'message-icon-bin',
+            y_expand: true,
+            y_align: Clutter.ActorAlign.START,
+            visible: false,
+        });
         hbox.add_actor(this._iconBin);
 
-        let contentBox = new St.BoxLayout({ style_class: 'message-content',
-                                            vertical: true, x_expand: true });
+        const contentBox = new St.BoxLayout({
+            style_class: 'message-content',
+            vertical: true,
+            x_expand: true,
+        });
         hbox.add_actor(contentBox);
 
         this._mediaControls = new St.BoxLayout();
@@ -353,8 +362,10 @@ var Message = GObject.registerClass({
         });
         titleBox.add_actor(this._secondaryBin);
 
-        let closeIcon = new St.Icon({ icon_name: 'window-close-symbolic',
-                                      icon_size: 16 });
+        const closeIcon = new St.Icon({
+            icon_name: 'window-close-symbolic',
+            icon_size: 16,
+        });
         this._closeButton = new St.Button({
             style_class: 'message-close-button',
             child: closeIcon, opacity: 0,
@@ -427,8 +438,10 @@ var Message = GObject.registerClass({
 
     addMediaControl(iconName, callback) {
         let icon = new St.Icon({ icon_name: iconName, icon_size: 16 });
-        let button = new St.Button({ style_class: 'message-media-control',
-                                     child: icon });
+        const button = new St.Button({
+            style_class: 'message-media-control',
+            child: icon,
+        });
         button.connect('clicked', callback);
         this._mediaControls.add_actor(button);
         return button;
@@ -557,18 +570,17 @@ var MessageListSection = GObject.registerClass({
             x_expand: true,
         });
 
-        this._list = new St.BoxLayout({ style_class: 'message-list-section-list',
-                                        vertical: true });
+        this._list = new St.BoxLayout({
+            style_class: 'message-list-section-list',
+            vertical: true,
+        });
         this.add_actor(this._list);
 
         this._list.connect('actor-added', this._sync.bind(this));
         this._list.connect('actor-removed', this._sync.bind(this));
 
-        let id = Main.sessionMode.connect('updated',
-                                          this._sync.bind(this));
-        this.connect('destroy', () => {
-            Main.sessionMode.disconnect(id);
-        });
+        Main.sessionMode.connectObject(
+            'updated', () => this._sync(), this);
 
         this._empty = true;
         this._canClear = false;
