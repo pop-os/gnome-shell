@@ -22,6 +22,6 @@ ubuntu/main-Avoid-meta-finalize.patch
 # Pop!_OS patches
 sched-rr.patch
 pop-dark-theme.patch
-#ignore-nvidia-only.patch
+ignore-nvidia-only.patch
 pop-cosmic-keyboard-shortcuts.patch
 remove-assumptions-about-monitor-availability.patch
