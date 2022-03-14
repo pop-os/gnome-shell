@@ -1,4 +1,4 @@
-gnome-shell (42~rc-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (42.0-1ubuntu1) UNRELEASED; urgency=medium
 
   * Merge with Debian. Remaining changes:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -51,8 +51,6 @@ gnome-shell (42~rc-1ubuntu1) UNRELEASED; urgency=medium
       + Support loading iconsResourceName from session file
     - ubuntu/main-Support-loading-multiple-Yaru-theme-variants.patch:
       + Support loading Yaru theme variants (for accent color)
-    - Add patch to restore Settings item in system menu, because we're
-      using the older gnome-control-center.desktop
     - debian/patches: Support configuring icons resource to use for mode
     - debian/ubuntu-session-mods/ubuntu.json: Use Yaru's gnome-shell icons
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
@@ -60,6 +58,14 @@ gnome-shell (42~rc-1ubuntu1) UNRELEASED; urgency=medium
   * Revert "debian/control.in: Switch to gnome-bluetooth3"
 
  -- Jeremy Bicha <jeremy.bicha@canonical.com>  Thu, 10 Mar 2022 09:19:03 -0500
+
+gnome-shell (42.0-1) experimental; urgency=medium
+
+  * New upstream release
+  * debian/control.in: Bump minimum mutter to 42.0
+  * Add patch to restore Settings item in system menu (LP: #1964136)
+
+ -- Jeremy Bicha <jeremy.bicha@canonical.com>  Mon, 14 Mar 2022 10:37:23 -0400
 
 gnome-shell (42~rc-1) experimental; urgency=medium
 
