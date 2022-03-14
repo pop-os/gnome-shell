@@ -1,3 +1,9 @@
+gnome-shell (42.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bicha <jeremy.bicha@canonical.com>  Mon, 14 Mar 2022 09:53:54 -0400
+
 gnome-shell (42~rc-1) experimental; urgency=medium
 
   * New upstream release
