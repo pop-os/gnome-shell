@@ -13,12 +13,12 @@ that the shell theme will always be dark or light.
 
 Forwarded: not-needed
 ---
- js/ui/main.js        | 19 +++++++++++++
+ js/ui/main.js        | 20 +++++++++++++
  src/st/st-settings.c | 80 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 99 insertions(+)
+ 2 files changed, 100 insertions(+)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index 8add6fc..4ec3efe 100644
+index 8add6fc..146b078 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
 @@ -161,6 +161,8 @@ function start() {
@@ -30,24 +30,25 @@ index 8add6fc..4ec3efe 100644
  
      // Initialize ParentalControlsManager before the UI
      ParentalControlsManager.getDefault();
-@@ -398,6 +400,16 @@ function _getStylesheet(name) {
+@@ -398,6 +400,17 @@ function _getStylesheet(name) {
      return null;
  }
  
 +function _getYaruStyleSheet(themeVariant) {
 +    const baseThemeName = sessionMode.stylesheetName.split(".css").at(0);
++    const stylesheet = _getStylesheet(`${baseThemeName}-${themeVariant.toLowerCase()}.css`);
 +
-+    // Ignore dark variants for the shell, we've only one light/dark variant
-+    if (themeVariant.endsWith('-dark'))
-+        themeVariant = themeVariant.split('-dark').at(0);
++    // Try to use the dark theme if a dark variant is selected
++    if (!stylesheet && themeVariant.endsWith('-dark'))
++        return _getStylesheet(`${baseThemeName}-dark.css`);
 +
-+    return _getStylesheet(`${baseThemeName}-${themeVariant.toLowerCase()}.css`);
++    return stylesheet;
 +}
 +
  function _getDefaultStylesheet() {
      let stylesheet = null;
      let name = sessionMode.stylesheetName;
-@@ -406,6 +418,13 @@ function _getDefaultStylesheet() {
+@@ -406,6 +419,13 @@ function _getDefaultStylesheet() {
      if (St.Settings.get().high_contrast)
          stylesheet = _getStylesheet(name.replace('.css', '-high-contrast.css'));
  
