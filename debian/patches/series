@@ -41,3 +41,4 @@ ignore-nvidia-only.patch
 pop-cosmic-keyboard-shortcuts.patch
 remove-assumptions-about-monitor-availability.patch
 no-libadwaita.patch
+no-color-scheme-background.patch
