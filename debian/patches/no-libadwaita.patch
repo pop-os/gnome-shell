@@ -1548,3 +1548,23 @@ Index: gnome-shell/subprojects/extensions-app/data/meson.build
    gresource_bundle: true,
    install: true,
    install_dir: pkgdatadir
+Index: gnome-shell/js/dbusServices/org.gnome.Shell.Extensions.src.gresource.xml
+===================================================================
+--- gnome-shell.orig/js/dbusServices/org.gnome.Shell.Extensions.src.gresource.xml
++++ gnome-shell/js/dbusServices/org.gnome.Shell.Extensions.src.gresource.xml
+@@ -3,7 +3,6 @@
+   <gresource prefix="/org/gnome/Shell/Extensions/js">
+     <file>main.js</file>
+     <file>extensionsService.js</file>
+-    <file>extensionPrefsDialog.js</file>
+     <file>dbusService.js</file>
+ 
+     <file>misc/config.js</file>
+@@ -14,6 +13,6 @@
+ 
+   <gresource prefix="/org/gnome/Shell/Extensions">
+     <file>css/application.css</file>
+-    <file>ui/extension-error-page.ui</file>
++    <file>ui/extension-prefs-dialog.ui</file>
+   </gresource>
+ </gresources>
