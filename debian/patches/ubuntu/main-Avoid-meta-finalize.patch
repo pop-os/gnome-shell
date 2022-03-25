@@ -19,6 +19,7 @@ https://launchpad.net/bugs/1944054 expected fixed
 https://launchpad.net/bugs/1945010 expected fixed
 https://launchpad.net/bugs/1945116 expected fixed
 https://launchpad.net/bugs/1944388 expected fixed
+https://launchpad.net/bugs/1964458 expected fixed
 
 Proper fixes will eventually come upstream when these are finished or
 replaced by something else:
@@ -29,11 +30,6 @@ https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/648
 Given that, and upstream's usual preference for proper permanent fixes,
 this will not be forwarded.
 
-This patch is currently for GNOME 40. In GNOME 41, the workaround will
-need to change to:
--  meta_context_destroy (g_steal_pointer (&context));
-+  g_steal_pointer (&context);
-
 Bug-Ubuntu: https://launchpad.net/bugs/1936826,
             https://launchpad.net/bugs/1942031,
             https://launchpad.net/bugs/1942121,
@@ -41,18 +37,19 @@ Bug-Ubuntu: https://launchpad.net/bugs/1936826,
             https://launchpad.net/bugs/1944054,
             https://launchpad.net/bugs/1945010,
             https://launchpad.net/bugs/1945116,
-            https://launchpad.net/bugs/1944388
+            https://launchpad.net/bugs/1944388,
+            https://launchpad.net/bugs/1964458
 Forwarded: no
-Last-Update: 2021-09-30
+Last-Update: 2022-03-25
 ---
  src/main.c | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/src/main.c b/src/main.c
-index f4fc012..1338503 100644
---- a/src/main.c
-+++ b/src/main.c
-@@ -653,7 +653,8 @@ main (int argc, char **argv)
+Index: gnome-shell/src/main.c
+===================================================================
+--- gnome-shell.orig/src/main.c
++++ gnome-shell/src/main.c
+@@ -653,13 +653,15 @@ main (int argc, char **argv)
        ecode = EXIT_FAILURE;
      }
  
@@ -62,3 +59,12 @@ index f4fc012..1338503 100644
  
    shell_profiler_shutdown ();
  
+   g_debug ("Doing final cleanup");
+-  _shell_global_destroy_gjs_context (shell_global_get ());
+-  g_object_unref (shell_global_get ());
++  // Workaround live session crashes by leaking JS contexts (LP: #1964458)
++  // _shell_global_destroy_gjs_context (shell_global_get ());
++  // g_object_unref (shell_global_get ());
+ 
+   return ecode;
+ }
