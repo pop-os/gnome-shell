@@ -119,10 +119,10 @@ index 30d4917..546202d 100644
    command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
    build_by_default: true)
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index 642265f..ce4b724 100644
+index d7c8824..1c0bfec 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
-@@ -26,6 +26,12 @@ const DISABLE_LOCK_KEY = 'disable-lock-screen';
+@@ -28,6 +28,12 @@ const DISABLE_LOCK_KEY = 'disable-lock-screen';
  
  const LOCKED_STATE_STR = 'screenShield.locked';
  
@@ -135,7 +135,7 @@ index 642265f..ce4b724 100644
  // ScreenShield animation time
  // - STANDARD_FADE_TIME is used when the session goes idle
  // - MANUAL_FADE_TIME is used for lowering the shield when asked by the user,
-@@ -119,6 +125,16 @@ var ScreenShield = class {
+@@ -121,6 +127,16 @@ var ScreenShield = class {
          this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
          this._lockSettings.connect(`changed::${DISABLE_LOCK_KEY}`, this._syncInhibitor.bind(this));
  
@@ -152,7 +152,7 @@ index 642265f..ce4b724 100644
          this._isModal = false;
          this._isGreeter = false;
          this._isActive = false;
-@@ -206,6 +222,27 @@ var ScreenShield = class {
+@@ -210,6 +226,27 @@ var ScreenShield = class {
          return this._isModal;
      }
  

@@ -138,7 +138,7 @@ index 087bc14..714e3ea 100644
          else
              this._item.label.text = _('Bluetooth On');
 diff --git a/meson.build b/meson.build
-index fea7c40..6458cc8 100644
+index 8d7478f..77cc633 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -93,7 +93,7 @@ x11_dep = dependency('x11')

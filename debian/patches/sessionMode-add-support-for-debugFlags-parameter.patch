@@ -15,7 +15,7 @@ Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/merge_requests/6
  2 files changed, 4 insertions(+)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index 3d7a044..c6ab5b7 100644
+index 76223b9..8c31630 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
 @@ -138,6 +138,9 @@ function _sessionUpdated() {
@@ -29,10 +29,10 @@ index 3d7a044..c6ab5b7 100644
  
  function start() {
 diff --git a/js/ui/sessionMode.js b/js/ui/sessionMode.js
-index 0ee05c6..4e95b4e 100644
+index 5d6f20f..48ddd0a 100644
 --- a/js/ui/sessionMode.js
 +++ b/js/ui/sessionMode.js
-@@ -21,6 +21,7 @@ const _modes = {
+@@ -29,6 +29,7 @@ const _modes = {
          showWelcomeDialog: false,
          allowSettings: false,
          allowScreencast: false,

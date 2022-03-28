@@ -54,7 +54,7 @@ index 9502340..8141bc0 100644
    </interface>
  </node>
 diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
-index 368afc5..63ea816 100644
+index 6df1434f..a30517c 100644
 --- a/js/ui/remoteSearch.js
 +++ b/js/ui/remoteSearch.js
 @@ -26,6 +26,7 @@ const SearchProviderIface = `
@@ -73,7 +73,7 @@ index 368afc5..63ea816 100644
  </interface>
  </node>`;
  
-@@ -306,6 +308,19 @@ var RemoteSearchProvider = class {
+@@ -310,6 +312,19 @@ var RemoteSearchProvider = class {
                                          cancellable);
      }
  
@@ -94,10 +94,10 @@ index 368afc5..63ea816 100644
          this.proxy.ActivateResultRemote(id);
      }
 diff --git a/js/ui/search.js b/js/ui/search.js
-index 1e8aeb6..7fbb131 100644
+index 3bfb83f..58ea12b 100644
 --- a/js/ui/search.js
 +++ b/js/ui/search.js
-@@ -229,7 +229,9 @@ var SearchResultsBase = GObject.registerClass({
+@@ -218,7 +218,9 @@ var SearchResultsBase = GObject.registerClass({
              this._cancellable.cancel();
              this._cancellable.reset();
  
@@ -107,7 +107,7 @@ index 1e8aeb6..7fbb131 100644
                  if (this._cancellable.is_cancelled()) {
                      if (metas.length > 0)
                          log(`Search provider ${this.provider.id} returned results after the request was canceled`);
-@@ -608,6 +610,10 @@ var SearchResultsView = GObject.registerClass({
+@@ -597,6 +599,10 @@ var SearchResultsView = GObject.registerClass({
  
          this._searchTimeoutId = 0;
          this._cancellable = new Gio.Cancellable();
@@ -118,7 +118,7 @@ index 1e8aeb6..7fbb131 100644
  
          this._registerProvider(new AppDisplay.AppSearchProvider());
  
-@@ -662,11 +668,32 @@ var SearchResultsView = GObject.registerClass({
+@@ -651,11 +657,32 @@ var SearchResultsView = GObject.registerClass({
          }
      }
  
@@ -151,7 +151,7 @@ index 1e8aeb6..7fbb131 100644
          this._defaultResult = null;
          this._startingSearch = false;
  
-@@ -734,6 +761,13 @@ var SearchResultsView = GObject.registerClass({
+@@ -723,6 +750,13 @@ var SearchResultsView = GObject.registerClass({
          if (this._terms.length > 0)
              isSubSearch = searchString.indexOf(previousSearchString) == 0;
  

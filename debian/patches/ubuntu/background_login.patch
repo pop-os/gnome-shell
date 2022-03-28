@@ -18,7 +18,7 @@ Forwarded: not-needed
  1 file changed, 5 insertions(+)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index 0b53f3f..5d98cfd 100644
+index 198194a..ea50940 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
 @@ -105,6 +105,11 @@ Gio._promisify(Gio.File.prototype, 'query_info_async');
