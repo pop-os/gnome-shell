@@ -1,0 +1,62 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Tue, 8 Mar 2022 12:50:03 +0100
+Subject: magnifier: Properly hide the second (real) cursor
+
+The magnifier uses a PointerWatcher (which is based on a simple timeout
+source) to update the zoom region based on the current mouse cursor
+position 60 times a second. When updating the zoom region, it would also
+hide mutters cursor using meta_cursor_tracker_set_pointer_visible().
+
+Since a few months, mutter has decoupled the handling of input events
+from the monitor refresh rate though, which means it's no longer
+guaranteed that the cursor changes only 60 times a second (on higher
+refresh rate monitors it actually never was). This means mutter might
+show the cursor more often than 60 times a second, while we hide it only
+60 times a second, leading to a flickering second cursor.
+
+To fix this, implement the cursor-hiding by listening to
+MetaCursorTrackers visibility-changed signal, and immediately hiding the
+cursor again when it's shown.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2234>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/f13a6145
+---
+ js/ui/magnifier.js | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
+index c0c750e..0585e88 100644
+--- a/js/ui/magnifier.js
++++ b/js/ui/magnifier.js
+@@ -126,7 +126,13 @@ var Magnifier = class Magnifier {
+ 
+         if (seat.is_unfocus_inhibited())
+             seat.uninhibit_unfocus();
+-        this._cursorTracker.set_pointer_visible(true);
++
++        if (this._cursorVisibilityChangedId) {
++            this._cursorTracker.disconnect(this._cursorVisibilityChangedId);
++            delete this._cursorVisibilityChangedId;
++
++            this._cursorTracker.set_pointer_visible(true);
++        }
+     }
+ 
+     /**
+@@ -138,7 +144,14 @@ var Magnifier = class Magnifier {
+ 
+         if (!seat.is_unfocus_inhibited())
+             seat.inhibit_unfocus();
+-        this._cursorTracker.set_pointer_visible(false);
++
++        if (!this._cursorVisibilityChangedId) {
++            this._cursorTracker.set_pointer_visible(false);
++            this._cursorVisibilityChangedId = this._cursorTracker.connect('visibility-changed', () => {
++                if (this._cursorTracker.get_pointer_visible())
++                    this._cursorTracker.set_pointer_visible(false);
++            });
++        }
+     }
+ 
+     /**

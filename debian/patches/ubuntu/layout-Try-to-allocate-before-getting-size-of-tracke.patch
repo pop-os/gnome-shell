@@ -21,10 +21,10 @@ Last-Update: 2021-04-07
  1 file changed, 1 insertion(+)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 7bcde8e..9a37a17 100644
+index f99254c..68835b8 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -1017,6 +1017,7 @@ var LayoutManager = GObject.registerClass({
+@@ -1021,6 +1021,7 @@ var LayoutManager = GObject.registerClass({
              if (!(actorData.affectsInputRegion && wantsInputRegion) && !actorData.affectsStruts)
                  continue;
  

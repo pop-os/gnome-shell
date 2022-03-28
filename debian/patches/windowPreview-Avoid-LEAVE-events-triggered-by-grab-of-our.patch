@@ -1,0 +1,59 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Mon, 7 Mar 2022 12:14:52 +0100
+Subject: windowPreview: Avoid LEAVE events triggered by grab of our own
+ StButton
+
+Since the ClutterGrab rework, grabbing properly emits crossing events.
+
+StButtons take a ClutterGrab as soon as they are pressed, so pressing
+the close StButton of the WindowPreview takes a grab and causes a
+LEAVE+key-focus-out event getting sent to the WindowPreview. This in
+turn makes us hide our overlay (which the StButton is part of). We
+automatically ungrab ClutterGrabs when hiding actors, so the StButtons
+grab now gets released again, key-focus and hover state are updated
+again and we emit an ENTER event to the WindowPreview. The preview now
+tries show its overlay again and things explode because we re-enter the
+mapping machinery.
+
+For the LEAVE event we can break this cycle by detecting the GRAB_NOTIFY
+crossing event of our own StButton and not reacting to that.
+
+We should do the same for the key-focus-out event, but these don't pass
+context information like a GRAB_NOTIFY flag yet, so just check the
+current grab actor here.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3165
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2231>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/95f4a1ec
+---
+ js/ui/windowPreview.js | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/windowPreview.js b/js/ui/windowPreview.js
+index 3730000..228189b 100644
+--- a/js/ui/windowPreview.js
++++ b/js/ui/windowPreview.js
+@@ -553,6 +553,10 @@ var WindowPreview = GObject.registerClass({
+     }
+ 
+     vfunc_leave_event(crossingEvent) {
++        if ((crossingEvent.flags & Clutter.EventFlags.FLAG_GRAB_NOTIFY) !== 0 &&
++            global.stage.get_grab_actor() === this._closeButton)
++            return super.vfunc_leave_event(crossingEvent);
++
+         if (this._idleHideOverlayId > 0)
+             GLib.source_remove(this._idleHideOverlayId);
+ 
+@@ -582,7 +586,9 @@ var WindowPreview = GObject.registerClass({
+ 
+     vfunc_key_focus_out() {
+         super.vfunc_key_focus_out();
+-        this.hideOverlay(true);
++
++        if (global.stage.get_grab_actor() !== this._closeButton)
++            this.hideOverlay(true);
+     }
+ 
+     vfunc_key_press_event(keyEvent) {

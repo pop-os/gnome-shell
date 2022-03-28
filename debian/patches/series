@@ -1,5 +1,16 @@
+windowManager-Change-unfullscreen-mode-to-NORMAL.patch
+workspaceAnimation-Get-time-outside-of-the-animation-comp.patch
+magnifier-Properly-hide-the-second-real-cursor.patch
+magnifier-Update-zoom-region-right-after-enabling-the-mag.patch
+workspace-Force-creating-new-layout-when-there-s-no-alloc.patch
 switchMonitor-Fix-switching-configuration.patch
+theme-Minor-screenshot-UI-fixes.patch
+popupMenu-Fix-usage-of-GRAB_NOTIFY-ClutterEventFlag.patch
+windowPreview-Avoid-LEAVE-events-triggered-by-grab-of-our.patch
+appDisplay-Avoid-double-slash-when-creating-default-folde.patch
 overview-Remove-desktop-fade-logic.patch
+appDisplay-Home-and-End-keys-for-app-grid-navigation.patch
+layout-Check-again-for-primary-monitor-after-startup-anim.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
 Revert-dateMenu-Port-to-GWeather-4.0.patch
