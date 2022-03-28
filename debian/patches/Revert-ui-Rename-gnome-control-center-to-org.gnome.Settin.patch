@@ -16,7 +16,7 @@ https://launchpad.net/bugs/1964136
  4 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/js/ui/backgroundMenu.js b/js/ui/backgroundMenu.js
-index c5763d9..e31e4c1 100644
+index 4c7372a..74d494b 100644
 --- a/js/ui/backgroundMenu.js
 +++ b/js/ui/backgroundMenu.js
 @@ -14,7 +14,7 @@ var BackgroundMenu = class BackgroundMenu extends PopupMenu.PopupMenu {
@@ -29,7 +29,7 @@ index c5763d9..e31e4c1 100644
          this.actor.add_style_class_name('background-menu');
  
 diff --git a/js/ui/inhibitShortcutsDialog.js b/js/ui/inhibitShortcutsDialog.js
-index 84081a9..c59544e 100644
+index dec522c..7580aaa 100644
 --- a/js/ui/inhibitShortcutsDialog.js
 +++ b/js/ui/inhibitShortcutsDialog.js
 @@ -7,7 +7,7 @@ const PermissionStore = imports.misc.permissionStore;
@@ -42,10 +42,10 @@ index 84081a9..c59544e 100644
  const APP_PERMISSIONS_ID = 'shortcuts-inhibitor';
  const GRANTED = 'GRANTED';
 diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
-index 63ea816..786a5c2 100644
+index 8ebb550..6df1434f 100644
 --- a/js/ui/remoteSearch.js
 +++ b/js/ui/remoteSearch.js
-@@ -142,7 +142,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {
+@@ -140,7 +140,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {
      let sortOrder = searchSettings.get_strv('sort-order');
  
      // Special case gnome-control-center to be always active and always first
