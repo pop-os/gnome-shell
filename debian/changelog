@@ -1,3 +1,19 @@
+gnome-shell (42.0-2) unstable; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * js: Support legacy GNOME Control Center (now Settings) dbus name
+  * debian/patches: Cherry-pick various upstream fixes targeting 42.1
+  * debian/patches: Fix monitor switching configuration (LP: #1964496)
+  * debian/patches: Overview, remove desktop fade logic (LP: #1965072)
+  * shellDBus: Actually make ScreenTransitionAsync async
+
+  [ Jeremy Bicha ]
+  * Use libgweather4 instead of old libgweather
+  * Add patch to work around meson issue (Debian 1008189)
+  * Release to unstable
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 28 Mar 2022 11:14:05 -0400
+
 gnome-shell (42.0-1ubuntu1) jammy; urgency=medium
 
   [ Jeremy Bicha ]

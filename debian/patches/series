@@ -15,6 +15,8 @@ shellDBus-Actually-make-ScreenTransitionAsync-async.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
 Revert-dateMenu-Port-to-GWeather-4.0.patch
+js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
+meson-don-t-update-icon-cache.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
@@ -41,4 +43,3 @@ ubuntu/Revert-status-bluetooth-Use-BlueZ-state-to-determine-whet.patch
 ubuntu/Revert-status-bluetooth-Fix-wedged-state.patch
 ubuntu/Revert-status-bluetooth-Port-to-new-GListModel-API.patch
 ubuntu/Revert-status-bluetooth-Show-bluetooth-disabled-icon-when.patch
-ubuntu/js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
