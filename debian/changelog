@@ -1,6 +1,20 @@
 gnome-shell (42.0-1ubuntu1) UNRELEASED; urgency=medium
 
-  * Merge with Debian. Remaining changes:
+  [ Jeremy Bicha ]
+  * Merge with Debian.
+  * Add patches to revert switch to new gnome-bluetooth
+  * Revert "debian/control.in: Switch to gnome-bluetooth3"
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/patches: Refresh
+  * debian/patches: Fix monitor switching configuration (LP: #1964496)
+  * debian/patches: Overview, remove desktop fade logic (LP: #1965072)
+  * debian/patches: Cherry-pick various upstream fixes targeting 42.1
+  * js: Support legacy GNOME Control Center (now Settings) dbus name
+  * shellDBus: Actually make ScreenTransitionAsync async
+
+  [ Jeremy Bicha ]
+  * Remaining changes with debian:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
       gnome-themes-standard-data, gnome-backgrounds
     - Add some Recommends:
@@ -54,10 +68,8 @@ gnome-shell (42.0-1ubuntu1) UNRELEASED; urgency=medium
     - debian/patches: Support configuring icons resource to use for mode
     - debian/ubuntu-session-mods/ubuntu.json: Use Yaru's gnome-shell icons
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
-  * Add patches to revert switch to new gnome-bluetooth
-  * Revert "debian/control.in: Switch to gnome-bluetooth3"
 
- -- Jeremy Bicha <jeremy.bicha@canonical.com>  Thu, 10 Mar 2022 09:19:03 -0500
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Mon, 28 Mar 2022 16:23:46 +0200
 
 gnome-shell (42.0-1) experimental; urgency=medium
 
