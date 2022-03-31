@@ -1,0 +1,42 @@
+Index: gnome-shell/js/ui/appMenu.js
+===================================================================
+--- gnome-shell.orig/js/ui/appMenu.js
++++ gnome-shell/js/ui/appMenu.js
+@@ -4,6 +4,7 @@ const { Clutter, Gio, GLib, Meta, Shell,
+ 
+ const AppFavorites = imports.ui.appFavorites;
+ const Main = imports.ui.main;
++const Util = imports.misc.util;
+ const ParentalControlsManager = imports.misc.parentalControlsManager;
+ const PopupMenu = imports.ui.popupMenu;
+ 
+@@ -76,18 +77,10 @@ var AppMenu = class AppMenu extends Popu
+                 this._appFavorites.addFavorite(appId);
+         });
+ 
+-        this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+-
+         this._detailsItem = this.addAction(_('Show Details'), async () => {
+             const id = this._app.get_id();
+-            const args = GLib.Variant.new('(ss)', [id, '']);
+-            const bus = await Gio.DBus.get(Gio.BusType.SESSION, null);
+-            bus.call(
+-                'org.gnome.Software',
+-                '/org/gnome/Software',
+-                'org.gtk.Actions', 'Activate',
+-                new GLib.Variant('(sava{sv})', ['details', [args], null]),
+-                null, 0, -1, null);
++            Util.trySpawn(["io.elementary.appcenter", "appstream://" + id]);
++            Main.overview.hide();
+         });
+ 
+         this.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+@@ -186,7 +179,7 @@ var AppMenu = class AppMenu extends Popu
+     }
+ 
+     _updateDetailsVisibility() {
+-        const sw = this._appSystem.lookup_app('org.gnome.Software.desktop');
++        const sw = this._appSystem.lookup_app('io.elementary.appcenter.desktop');
+         this._detailsItem.visible = sw !== null;
+     }
+ 
