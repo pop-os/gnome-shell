@@ -121,6 +121,7 @@ Recommends: bolt (>= 0.3),
             gnome-user-docs,
             ibus,
             iio-sensor-proxy,
+            power-profiles-daemon,
             switcheroo-control,
             unzip
 Suggests: gir1.2-malcontent-0 (>= 0.6.0) [linux-any],

@@ -6,7 +6,7 @@ Source: gnome-shell
 Section: gnome
 Priority: optional
 Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Iain Lane <laney@debian.org>, Laurent Bigonville <bigon@debian.org>
+Uploaders: Iain Lane <laney@debian.org>, Jeremy Bicha <jbicha@ubuntu.com>
 Build-Depends: appstream,
                asciidoc-base,
                bash-completion,
@@ -125,6 +125,7 @@ Recommends: bolt (>= 0.3),
             gnome-user-docs,
             ibus,
             iio-sensor-proxy,
+            power-profiles-daemon,
             switcheroo-control,
             unzip
 Suggests: gir1.2-malcontent-0 (>= 0.6.0) [linux-any],
