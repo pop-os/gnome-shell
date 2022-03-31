@@ -7,7 +7,7 @@ Section: gnome
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Iain Lane <laney@debian.org>, Jeremy Bicha <jbicha@debian.org>
+Uploaders: Iain Lane <laney@debian.org>, Jeremy Bicha <jbicha@ubuntu.com>
 Build-Depends: appstream,
                asciidoc-base,
                bash-completion,
@@ -128,6 +128,7 @@ Recommends: bolt (>= 0.3),
             gnome-user-docs,
             ibus,
             iio-sensor-proxy,
+            power-profiles-daemon,
             switcheroo-control,
             ubuntu-session | gnome-session,
             xserver-xorg-legacy,
