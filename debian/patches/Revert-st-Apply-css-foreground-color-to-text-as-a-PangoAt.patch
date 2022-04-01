@@ -1,0 +1,95 @@
+From: =?utf-8?b?Ik1hcmNvIFRyZXZpc2FuIChUcmV2acOxbyki?= <mail@3v1n0.net>
+Date: Fri, 1 Apr 2022 02:41:07 +0200
+Subject: Revert "st: Apply css foreground color to text as a PangoAttribute"
+
+Using the pango foreground color implies that such part will have a
+color set at pango level and so that cogl will use this value as a
+color override (as per cogl_pango_renderer_set_color_for_part()).
+
+This is fine for most labels, but in case the clutter-text has the
+selected text color set, it is simply ignored, because the overridden
+color is always preferred.
+
+Also the reason for this commit, was not to apply colors on top of
+colored fonts, but this won't happen anymore now because mutter's commit
+aa136f45 ensures that no color will be applied to glyphs that are
+already colored.
+
+So to me it looks that's just safer to revert it, instead of adding
+different logic to handle the selected-text-color case.
+
+This reverts commit 66c4b1a8b607600f193b34e6a9f8c85f76c2ac2c.
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2260
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1878998
+---
+ src/st/st-entry.c   |  2 ++
+ src/st/st-private.c | 32 ++++++++++++++++++++++++++------
+ 2 files changed, 28 insertions(+), 6 deletions(-)
+
+diff --git a/src/st/st-entry.c b/src/st/st-entry.c
+index 625bbf2..9e85af4 100644
+--- a/src/st/st-entry.c
++++ b/src/st/st-entry.c
+@@ -1095,6 +1095,8 @@ st_entry_init (StEntry *entry)
+   g_signal_connect (priv->entry, "notify::line-alignment",
+                     G_CALLBACK (invalidate_shadow_pipeline), entry);
+ 
++  g_signal_connect_swapped (priv->entry, "notify::editable",
++                            G_CALLBACK (st_widget_style_changed), entry);
+ 
+   priv->spacing = 6.0f;
+ 
+diff --git a/src/st/st-private.c b/src/st/st-private.c
+index bb98151..1b70c5e 100644
+--- a/src/st/st-private.c
++++ b/src/st/st-private.c
+@@ -115,22 +115,42 @@ _st_set_text_from_style (ClutterText *text,
+   StTextDecoration decoration;
+   PangoAttrList *attribs = NULL;
+   const PangoFontDescription *font;
+-  PangoAttribute *foreground;
+   StTextAlign align;
+   gdouble spacing;
+   gchar *font_features;
++  gboolean foreground_color_set;
+ 
+   font = st_theme_node_get_font (theme_node);
+   clutter_text_set_font_description (text, (PangoFontDescription *) font);
+ 
+   attribs = pango_attr_list_new ();
+ 
++  foreground_color_set = FALSE;
+   st_theme_node_get_foreground_color (theme_node, &color);
+-  clutter_text_set_cursor_color (text, &color);
+-  foreground = pango_attr_foreground_new (color.red * 255,
+-                                          color.green * 255,
+-                                          color.blue * 255);
+-  pango_attr_list_insert (attribs, foreground);
++
++  if (clutter_text_get_editable (text))
++    {
++      ClutterColor selected_color;
++
++      if (st_theme_node_lookup_color (theme_node, "selected-color",
++                                      TRUE, &selected_color) &&
++          !clutter_color_equal (&selected_color, &color))
++        {
++          clutter_text_set_color (text, &color);
++          clutter_text_set_cursor_color (text, &color);
++          foreground_color_set = TRUE;
++        }
++    }
++
++  if (!foreground_color_set)
++    {
++      PangoAttribute *foreground;
++      clutter_text_set_cursor_color (text, &color);
++      foreground = pango_attr_foreground_new (color.red * 255,
++                                              color.green * 255,
++                                              color.blue * 255);
++      pango_attr_list_insert (attribs, foreground);
++    }
+ 
+   if (color.alpha != 255)
+     {

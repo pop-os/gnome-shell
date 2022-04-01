@@ -34,6 +34,7 @@ ubuntu/secure_mode_extension.patch
 ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
 ubuntu/configure_login_screen.patch
 ubuntu/layout-Try-to-allocate-before-getting-size-of-tracke.patch
+Revert-st-Apply-css-foreground-color-to-text-as-a-PangoAt.patch
 ubuntu/main-Avoid-meta-finalize.patch
 ubuntu/sessionMode-Add-support-for-configuring-an-icons-resource.patch
 ubuntu/main-Support-loading-multiple-Yaru-theme-variants.patch
