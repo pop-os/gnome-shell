@@ -5,6 +5,7 @@ magnifier-Update-zoom-region-right-after-enabling-the-mag.patch
 workspace-Force-creating-new-layout-when-there-s-no-alloc.patch
 switchMonitor-Fix-switching-configuration.patch
 theme-Minor-screenshot-UI-fixes.patch
+Specify-API-versions-for-all-public-GIR-APIs-except-GLib.patch
 popupMenu-Fix-usage-of-GRAB_NOTIFY-ClutterEventFlag.patch
 windowPreview-Avoid-LEAVE-events-triggered-by-grab-of-our.patch
 appDisplay-Avoid-double-slash-when-creating-default-folde.patch

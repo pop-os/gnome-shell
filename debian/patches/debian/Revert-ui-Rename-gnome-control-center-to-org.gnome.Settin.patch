@@ -42,7 +42,7 @@ index dec522c..7580aaa 100644
  const APP_PERMISSIONS_ID = 'shortcuts-inhibitor';
  const GRANTED = 'GRANTED';
 diff --git a/js/ui/remoteSearch.js b/js/ui/remoteSearch.js
-index 8ebb550..6df1434f 100644
+index 8ebb550..6df1434 100644
 --- a/js/ui/remoteSearch.js
 +++ b/js/ui/remoteSearch.js
 @@ -140,7 +140,7 @@ function loadRemoteSearchProviders(searchSettings, callback) {

@@ -1,0 +1,124 @@
+From: Simon McVittie <smcv@debian.org>
+Date: Mon, 4 Apr 2022 11:26:43 +0100
+Subject: Specify API versions for all public GIR APIs, except GLib
+
+If one of these libraries breaks its GIR API in future, then upgrading
+packages unrelated to gnome-shell might pull in the newer version,
+causing gnome-shell to crash when it gets a newer GIR API that is
+incompatible with its expectations. For example, this seems to be
+happening in Debian testing at the moment, when GNOME Shell 41.4
+imports GWeather and can get version 4.0 instead of the version 3.0 that
+it expected.
+
+Adding explicit API versions at the time the newer version is released
+is too late, because that will still let the newer version of the GIR API
+break pre-existing GNOME Shell packages. Prevent similar crashes in
+future by making the desired versions explicit.
+
+This is done for all third-party libraries except GLib, similar to the
+common practice in Python code; if GLib breaks API, then that will be
+a disruptive change to the whole GLib/GObject ecosystem, regardless.
+
+Gvc, Meta, Shell, Shew, St are not included because they're private
+(only exist in a non-default search path entry).
+
+Clutter and Cogl *are* included, because we need to import the fork of
+them that comes with Meta, as opposed to their deprecated standalone
+versions.
+
+Signed-off-by: Simon McVittie <smcv@debian.org>
+Bug-Debian: https://bugs.debian.org/1008926
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2261
+---
+ js/dbusServices/extensions/main.js              |  1 +
+ js/dbusServices/screencast/screencastService.js |  1 +
+ js/portalHelper/main.js                         |  2 ++
+ js/ui/environment.js                            | 19 +++++++++++++++++++
+ subprojects/extensions-app/js/main.js           |  1 +
+ 5 files changed, 24 insertions(+)
+
+diff --git a/js/dbusServices/extensions/main.js b/js/dbusServices/extensions/main.js
+index b13e52e..306fe36 100644
+--- a/js/dbusServices/extensions/main.js
++++ b/js/dbusServices/extensions/main.js
+@@ -1,5 +1,6 @@
+ /* exported main */
+ 
++imports.gi.versions.Adw = '1';
+ imports.gi.versions.Gdk = '4.0';
+ imports.gi.versions.Gtk = '4.0';
+ 
+diff --git a/js/dbusServices/screencast/screencastService.js b/js/dbusServices/screencast/screencastService.js
+index e91d0b6..1fdf5c7 100644
+--- a/js/dbusServices/screencast/screencastService.js
++++ b/js/dbusServices/screencast/screencastService.js
+@@ -1,6 +1,7 @@
+ // -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
+ /* exported ScreencastService */
+ 
++imports.gi.versions.Gst = '1.0';
+ imports.gi.versions.Gtk = '4.0';
+ 
+ const { Gio, GLib, Gst, Gtk } = imports.gi;
+diff --git a/js/portalHelper/main.js b/js/portalHelper/main.js
+index bc9958e..94f4b8a 100644
+--- a/js/portalHelper/main.js
++++ b/js/portalHelper/main.js
+@@ -1,5 +1,7 @@
+ /* exported main */
++imports.gi.versions.Pango = '1.0';
+ imports.gi.versions.Gtk = '3.0';
++imports.gi.versions.WebKit2 = '4.0';
+ 
+ const Format = imports.format;
+ const Gettext = imports.gettext;
+diff --git a/js/ui/environment.js b/js/ui/environment.js
+index 7bd848f..affc2b6 100644
+--- a/js/ui/environment.js
++++ b/js/ui/environment.js
+@@ -3,16 +3,35 @@
+ 
+ const Config = imports.misc.config;
+ 
++imports.gi.versions.AccountsService = '1.0';
++imports.gi.versions.Atk = '1.0';
++imports.gi.versions.Atspi = '2.0';
+ imports.gi.versions.Clutter = Config.LIBMUTTER_API_VERSION;
++imports.gi.versions.Cogl = Config.LIBMUTTER_API_VERSION;
++imports.gi.versions.Gcr = '3';
++imports.gi.versions.Gdk = '3.0';
++imports.gi.versions.Gdm = '1.0';
++imports.gi.versions.Geoclue = '2.0';
+ imports.gi.versions.Gio = '2.0';
++imports.gi.versions.GDesktopEnums = '3.0';
+ imports.gi.versions.GdkPixbuf = '2.0';
+ imports.gi.versions.GnomeBluetooth = '3.0';
+ imports.gi.versions.GnomeDesktop = '3.0';
++imports.gi.versions.Graphene = '1.0';
+ imports.gi.versions.Gtk = '3.0';
+ imports.gi.versions.GWeather = '4.0';
++imports.gi.versions.IBus = '1.0';
++imports.gi.versions.Malcontent = '0';
++imports.gi.versions.NM = '1.0';
++imports.gi.versions.NMA = '1.0';
++imports.gi.versions.Pango = '1.0';
++imports.gi.versions.Polkit = '1.0';
++imports.gi.versions.PolkitAgent = '1.0';
++imports.gi.versions.Rsvg = '2.0';
+ imports.gi.versions.Soup = '3.0';
+ imports.gi.versions.TelepathyGLib = '0.12';
+ imports.gi.versions.TelepathyLogger = '0.2';
++imports.gi.versions.UPowerGlib = '1.0';
+ 
+ try {
+     if (Config.HAVE_SOUP2)
+diff --git a/subprojects/extensions-app/js/main.js b/subprojects/extensions-app/js/main.js
+index 361477d..56e1076 100644
+--- a/subprojects/extensions-app/js/main.js
++++ b/subprojects/extensions-app/js/main.js
+@@ -1,4 +1,5 @@
+ /* exported main */
++imports.gi.versions.Adw = '1';
+ imports.gi.versions.Gtk = '4.0';
+ 
+ const Gettext = imports.gettext;
