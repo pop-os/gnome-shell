@@ -29,6 +29,7 @@ versions.
 Signed-off-by: Simon McVittie <smcv@debian.org>
 Bug-Debian: https://bugs.debian.org/1008926
 Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2261
+Applied-upstream: 42.1, commit:7f4f328a7fbf03f51a9290dd6d26ee04ab05b69a
 ---
  js/dbusServices/extensions/main.js              |  1 +
  js/dbusServices/screencast/screencastService.js |  1 +
