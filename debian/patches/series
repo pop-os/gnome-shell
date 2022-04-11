@@ -12,6 +12,16 @@ overview-Remove-desktop-fade-logic.patch
 appDisplay-Home-and-End-keys-for-app-grid-navigation.patch
 layout-Check-again-for-primary-monitor-after-startup-anim.patch
 shellDBus-Actually-make-ScreenTransitionAsync-async.patch
+messageList-Center-align-close-button-vertically.patch
+st-theme-node-Default-to-right-text-align-in-RTL.patch
+shell-app-Do-not-include-OR-windows-in-get_windows.patch
+Revert-shell-app-Do-not-try-to-activate-OR-windows.patch
+calendar-Fix-alignment-of-world-clocks-header-in-RTL.patch
+HC-Do-not-set-icon-theme-from-gnome-icon-theme-extra.patch
+main-Add-help-function-for-moving-window-to-monitor-works.patch
+workspace-Use-new-helper-function-when-accepting-drops.patch
+workspaceThumbnail-Use-new-helper-function-when-accepting.patch
+Specify-API-versions-for-all-public-GIR-APIs-except-GLib.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
 Revert-dateMenu-Port-to-GWeather-4.0.patch

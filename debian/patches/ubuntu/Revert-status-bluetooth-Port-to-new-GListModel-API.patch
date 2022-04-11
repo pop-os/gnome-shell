@@ -12,18 +12,18 @@ Ubuntu 22.04 LTS isn't using the new gnome-bluetooth series
  3 files changed, 41 insertions(+), 34 deletions(-)
 
 diff --git a/js/ui/environment.js b/js/ui/environment.js
-index 93db3e3..316f676 100644
+index e0ae8ee..0eb4f68 100644
 --- a/js/ui/environment.js
 +++ b/js/ui/environment.js
-@@ -6,7 +6,7 @@ const Config = imports.misc.config;
- imports.gi.versions.Clutter = Config.LIBMUTTER_API_VERSION;
+@@ -15,7 +15,7 @@ imports.gi.versions.Geoclue = '2.0';
  imports.gi.versions.Gio = '2.0';
+ imports.gi.versions.GDesktopEnums = '3.0';
  imports.gi.versions.GdkPixbuf = '2.0';
 -imports.gi.versions.GnomeBluetooth = '3.0';
 +imports.gi.versions.GnomeBluetooth = '1.0';
  imports.gi.versions.GnomeDesktop = '3.0';
+ imports.gi.versions.Graphene = '1.0';
  imports.gi.versions.Gtk = '3.0';
- imports.gi.versions.GWeather = '3.0';
 diff --git a/js/ui/status/bluetooth.js b/js/ui/status/bluetooth.js
 index 087bc14..714e3ea 100644
 --- a/js/ui/status/bluetooth.js

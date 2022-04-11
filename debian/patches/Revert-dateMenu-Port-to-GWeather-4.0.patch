@@ -12,7 +12,7 @@ for this tiny change
  2 files changed, 10 insertions(+), 10 deletions(-)
 
 diff --git a/js/ui/dateMenu.js b/js/ui/dateMenu.js
-index 36fcc10..105b10e 100644
+index 2e5c141..05fc102 100644
 --- a/js/ui/dateMenu.js
 +++ b/js/ui/dateMenu.js
 @@ -382,13 +382,9 @@ class WorldClocksSection extends St.Button {
@@ -31,7 +31,7 @@ index 36fcc10..105b10e 100644
          });
  
          let layout = this._grid.layout_manager;
-@@ -463,9 +459,8 @@ class WorldClocksSection extends St.Button {
+@@ -466,9 +462,8 @@ class WorldClocksSection extends St.Button {
      }
  
      _getTimezoneOffsetAtLocation(location) {
@@ -42,7 +42,7 @@ index 36fcc10..105b10e 100644
          const offsetCurrentTz = utcOffset - localOffset;
          const offsetHours = Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR;
          const offsetMinutes =
-@@ -479,10 +474,15 @@ class WorldClocksSection extends St.Button {
+@@ -482,10 +477,15 @@ class WorldClocksSection extends St.Button {
          return text;
      }
  
@@ -60,15 +60,15 @@ index 36fcc10..105b10e 100644
          }
      }
 diff --git a/js/ui/environment.js b/js/ui/environment.js
-index 7bd848f..93db3e3 100644
+index affc2b6..e0ae8ee 100644
 --- a/js/ui/environment.js
 +++ b/js/ui/environment.js
-@@ -9,7 +9,7 @@ imports.gi.versions.GdkPixbuf = '2.0';
- imports.gi.versions.GnomeBluetooth = '3.0';
+@@ -19,7 +19,7 @@ imports.gi.versions.GnomeBluetooth = '3.0';
  imports.gi.versions.GnomeDesktop = '3.0';
+ imports.gi.versions.Graphene = '1.0';
  imports.gi.versions.Gtk = '3.0';
 -imports.gi.versions.GWeather = '4.0';
 +imports.gi.versions.GWeather = '3.0';
- imports.gi.versions.Soup = '3.0';
- imports.gi.versions.TelepathyGLib = '0.12';
- imports.gi.versions.TelepathyLogger = '0.2';
+ imports.gi.versions.IBus = '1.0';
+ imports.gi.versions.Malcontent = '0';
+ imports.gi.versions.NM = '1.0';
