@@ -1,0 +1,55 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Sun, 20 Mar 2022 19:15:58 +0100
+Subject: Revert "shell/app: Do not try to activate OR windows"
+
+Now that shell_app_get_windows() itself filters out OR windows, this is
+no longer needed.
+
+This reverts commit f9037f5889801c80d15ee3dc45c9a9f8cc57feba.
+
+https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/5233
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2252>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/e4446cd1
+---
+ src/shell-app.c | 19 +++----------------
+ 1 file changed, 3 insertions(+), 16 deletions(-)
+
+diff --git a/src/shell-app.c b/src/shell-app.c
+index 1510971..96fe31b 100644
+--- a/src/shell-app.c
++++ b/src/shell-app.c
+@@ -428,19 +428,8 @@ shell_app_activate_window (ShellApp     *app,
+     return;
+ 
+   windows = shell_app_get_windows (app);
+-  if (window == NULL)
+-    {
+-      for (GSList *l = windows; l; l = l->next)
+-        {
+-          MetaWindow *current_window = l->data;
+-
+-          if (!meta_window_is_override_redirect (current_window))
+-            {
+-              window = current_window;
+-              break;
+-            }
+-        }
+-    }
++  if (window == NULL && windows)
++    window = windows->data;
+ 
+   if (!g_slist_find (windows, window))
+     return;
+@@ -469,9 +458,7 @@ shell_app_activate_window (ShellApp     *app,
+         {
+           MetaWindow *other_window = iter->data;
+ 
+-          if (other_window != window &&
+-              !meta_window_is_override_redirect (other_window) &&
+-              meta_window_get_workspace (other_window) == workspace)
++          if (other_window != window && meta_window_get_workspace (other_window) == workspace)
+             meta_window_raise (other_window);
+         }
+       g_slist_free (windows_reversed);

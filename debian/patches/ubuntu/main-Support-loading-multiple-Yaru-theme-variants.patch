@@ -18,10 +18,10 @@ Forwarded: not-needed
  2 files changed, 100 insertions(+)
 
 diff --git a/js/ui/main.js b/js/ui/main.js
-index abbd072..ca3bf53 100644
+index b81b264..328ba3d 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
-@@ -161,6 +161,8 @@ function start() {
+@@ -162,6 +162,8 @@ function start() {
      sessionMode.connect('updated', _sessionUpdated);
  
      St.Settings.get().connect('notify::high-contrast', _loadDefaultStylesheet);
@@ -30,7 +30,7 @@ index abbd072..ca3bf53 100644
  
      // Initialize ParentalControlsManager before the UI
      ParentalControlsManager.getDefault();
-@@ -398,6 +400,17 @@ function _getStylesheet(name) {
+@@ -399,6 +401,17 @@ function _getStylesheet(name) {
      return null;
  }
  
@@ -48,7 +48,7 @@ index abbd072..ca3bf53 100644
  function _getDefaultStylesheet() {
      let stylesheet = null;
      let name = sessionMode.stylesheetName;
-@@ -406,6 +419,13 @@ function _getDefaultStylesheet() {
+@@ -407,6 +420,13 @@ function _getDefaultStylesheet() {
      if (St.Settings.get().high_contrast)
          stylesheet = _getStylesheet(name.replace('.css', '-high-contrast.css'));
  
@@ -63,7 +63,7 @@ index abbd072..ca3bf53 100644
          stylesheet = _getStylesheet(sessionMode.stylesheetName);
  
 diff --git a/src/st/st-settings.c b/src/st/st-settings.c
-index c7db08b..13f2aac 100644
+index 839171b..8714671 100644
 --- a/src/st/st-settings.c
 +++ b/src/st/st-settings.c
 @@ -33,6 +33,7 @@
@@ -101,9 +101,9 @@ index c7db08b..13f2aac 100644
    g_free (settings->gtk_icon_theme);
  
    G_OBJECT_CLASS (st_settings_parent_class)->finalize (object);
-@@ -188,6 +195,12 @@ st_settings_get_property (GObject    *object,
-       else
-         g_value_set_string (value, settings->gtk_icon_theme);
+@@ -185,6 +192,12 @@ st_settings_get_property (GObject    *object,
+     case PROP_GTK_ICON_THEME:
+       g_value_set_string (value, settings->gtk_icon_theme);
        break;
 +    case PROP_GTK_THEME:
 +      g_value_set_string (value, settings->gtk_theme);
@@ -114,7 +114,7 @@ index c7db08b..13f2aac 100644
      case PROP_MAGNIFIER_ACTIVE:
        g_value_set_boolean (value, settings->magnifier_active);
        break;
-@@ -278,6 +291,28 @@ st_settings_class_init (StSettingsClass *klass)
+@@ -275,6 +288,28 @@ st_settings_class_init (StSettingsClass *klass)
                                                      "",
                                                      ST_PARAM_READABLE);
  
@@ -143,7 +143,7 @@ index c7db08b..13f2aac 100644
    /**
     * StSettings:magnifier-active:
     *
-@@ -314,6 +349,45 @@ st_settings_class_init (StSettingsClass *klass)
+@@ -311,6 +346,45 @@ st_settings_class_init (StSettingsClass *klass)
    g_object_class_install_properties (object_class, N_PROPS, props);
  }
  
@@ -189,7 +189,7 @@ index c7db08b..13f2aac 100644
  static void
  on_interface_settings_changed (GSettings   *g_settings,
                                 const gchar *key,
-@@ -335,6 +409,10 @@ on_interface_settings_changed (GSettings   *g_settings,
+@@ -332,6 +406,10 @@ on_interface_settings_changed (GSettings   *g_settings,
        settings->font_name = g_settings_get_string (g_settings, key);
        g_object_notify_by_pspec (G_OBJECT (settings), props[PROP_FONT_NAME]);
      }
@@ -200,7 +200,7 @@ index c7db08b..13f2aac 100644
    else if (g_str_equal (key, KEY_GTK_ICON_THEME))
      {
        g_free (settings->gtk_icon_theme);
-@@ -417,6 +495,8 @@ st_settings_init (StSettings *settings)
+@@ -414,6 +492,8 @@ st_settings_init (StSettings *settings)
    g_signal_connect (settings->lockdown_settings, "changed",
                      G_CALLBACK (on_lockdown_settings_changed), settings);
  

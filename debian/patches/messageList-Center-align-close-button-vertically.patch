@@ -1,0 +1,25 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Fri, 25 Mar 2022 17:11:28 +0100
+Subject: messageList: Center-align close button vertically
+
+Otherwise it may end up stretched when using larger text.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2257>
+
+Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/42159135
+---
+ js/ui/messageList.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/js/ui/messageList.js b/js/ui/messageList.js
+index 6151bb4..99c544d 100644
+--- a/js/ui/messageList.js
++++ b/js/ui/messageList.js
+@@ -369,6 +369,7 @@ var Message = GObject.registerClass({
+         this._closeButton = new St.Button({
+             style_class: 'message-close-button',
+             child: closeIcon, opacity: 0,
++            y_align: Clutter.ActorAlign.CENTER,
+         });
+         titleBox.add_actor(this._closeButton);
+ 
