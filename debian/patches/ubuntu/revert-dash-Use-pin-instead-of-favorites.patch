@@ -1,0 +1,78 @@
+From: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
+Date: Mon, Apr 11 2022 21:10:37 +0200
+Subject: Revert "dash: Use pin instead of favorites"
+
+This effectively reverts this commit:
+https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/a67877f5
+
+We do that as a temporary measure in Ubuntu 22.04 in order to address
+a translation issue. The issue was reported by Mitsuya Shibata:
+
+* https://github.com/micheleg/dash-to-dock/issues/1697
+
+* https://lists.ubuntu.com/archives/ubuntu-translators/2022-April/007829.html
+
+In short: By using the old labels for those menu items, we can make use
+of existing gnome-shell translations in Launchpad both for gnome-shell
+and ubuntu-dock. Thanks Jeremy Bicha for the idea!
+
+So even if it technically introduces new translatable strings very late,
+it does not break the UIF spirit.
+
+Forwarded: not-needed
+---
+ js/ui/appFavorites.js | 4 ++--
+ js/ui/appMenu.js      | 4 ++--
+ js/ui/dash.js         | 2 +-
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/js/ui/appFavorites.js b/js/ui/appFavorites.js
+index 18fc3d0..c20d7fd 100644
+--- a/js/ui/appFavorites.js
++++ b/js/ui/appFavorites.js
+@@ -161,7 +161,7 @@ class AppFavorites {
+ 
+         let app = Shell.AppSystem.get_default().lookup_app(appId);
+ 
+-        let msg = _('%s has been pinned to the dash.').format(app.get_name());
++        let msg = _('%s has been added to your favorites.').format(app.get_name());
+         Main.overview.setMessage(msg, {
+             forFeedback: true,
+             undoCallback: () => this._removeFavorite(appId),
+@@ -194,7 +194,7 @@ class AppFavorites {
+         if (!this._removeFavorite(appId))
+             return;
+ 
+-        let msg = _('%s has been unpinned from the dash.').format(app.get_name());
++        let msg = _('%s has been removed from your favorites.').format(app.get_name());
+         Main.overview.setMessage(msg, {
+             forFeedback: true,
+             undoCallback: () => this._addFavorite(appId, pos),
+diff --git a/js/ui/appMenu.js b/js/ui/appMenu.js
+index 3ee64bf..bc39a51 100644
+--- a/js/ui/appMenu.js
++++ b/js/ui/appMenu.js
+@@ -153,8 +153,8 @@ var AppMenu = class AppMenu extends PopupMenu.PopupMenu {
+ 
+         const { id } = this._app;
+         this._toggleFavoriteItem.label.text = this._appFavorites.isFavorite(id)
+-            ? _('Unpin')
+-            : _('Pin to Dash');
++            ? _('Remove from Favorites')
++            : _('Add to Favorites');
+     }
+ 
+     _updateGpuItem() {
+diff --git a/js/ui/dash.js b/js/ui/dash.js
+index a40377c..b6d6d8a 100644
+--- a/js/ui/dash.js
++++ b/js/ui/dash.js
+@@ -246,7 +246,7 @@ class ShowAppsIcon extends DashItemContainer {
+             this._iconActor.set_hover(canRemove);
+ 
+         if (canRemove)
+-            this.setLabelText(_('Unpin'));
++            this.setLabelText(_('Remove from Favorites'));
+         else
+             this.setLabelText(_("Show Applications"));
+     }
