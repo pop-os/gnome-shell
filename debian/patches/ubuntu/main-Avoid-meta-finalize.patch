@@ -1,6 +1,6 @@
 From: Daniel van Vugt <daniel.van.vugt@canonical.com>
 Date: Tue, 5 Oct 2021 04:39:09 +0200
-Subject: main: Avoid meta finalize
+Subject: main: Avoid meta and gjs finalization
 
 This is a workaround to maintain a clean environment for gnome-shell
 and particularly JavaScript/GJS to shutdown without crashing.
@@ -42,14 +42,14 @@ Bug-Ubuntu: https://launchpad.net/bugs/1936826,
 Forwarded: no
 Last-Update: 2022-03-25
 ---
- src/main.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ src/main.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-Index: gnome-shell/src/main.c
-===================================================================
---- gnome-shell.orig/src/main.c
-+++ gnome-shell/src/main.c
-@@ -653,13 +653,15 @@ main (int argc, char **argv)
+diff --git a/src/main.c b/src/main.c
+index f4fc012..5681651 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -653,11 +653,17 @@ main (int argc, char **argv)
        ecode = EXIT_FAILURE;
      }
  
@@ -60,11 +60,11 @@ Index: gnome-shell/src/main.c
    shell_profiler_shutdown ();
  
    g_debug ("Doing final cleanup");
--  _shell_global_destroy_gjs_context (shell_global_get ());
--  g_object_unref (shell_global_get ());
++
 +  // Workaround live session crashes by leaking JS contexts (LP: #1964458)
-+  // _shell_global_destroy_gjs_context (shell_global_get ());
-+  // g_object_unref (shell_global_get ());
++  if (g_strcmp0 (shell_global_get_session_mode (shell_global_get ()), "ubiquity") == 0)
++    return ecode;
++
+   _shell_global_destroy_gjs_context (shell_global_get ());
+   g_object_unref (shell_global_get ());
  
-   return ecode;
- }
