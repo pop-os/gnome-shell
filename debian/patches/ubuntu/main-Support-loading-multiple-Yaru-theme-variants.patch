@@ -13,33 +13,110 @@ that the shell theme will always be dark or light.
 
 Forwarded: not-needed
 ---
- js/ui/main.js        | 20 +++++++++++++
- src/st/st-settings.c | 80 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 100 insertions(+)
+ data/meson.build                           |  8 ++-
+ data/org.gnome.shell.ubuntu.gschema.xml.in | 17 +++++++
+ js/ui/main.js                              | 45 +++++++++++++++++
+ src/st/st-settings.c                       | 80 ++++++++++++++++++++++++++++++
+ 4 files changed, 149 insertions(+), 1 deletion(-)
+ create mode 100644 data/org.gnome.shell.ubuntu.gschema.xml.in
 
+diff --git a/data/meson.build b/data/meson.build
+index 22d6665..e16d108 100644
+--- a/data/meson.build
++++ b/data/meson.build
+@@ -95,6 +95,12 @@ schema = configure_file(
+   configuration: schemaconf,
+   install_dir: schemadir
+ )
++schema_ubuntu = configure_file(
++  input: 'org.gnome.shell.ubuntu.gschema.xml.in',
++  output: 'org.gnome.shell.ubuntu.gschema.xml',
++  configuration: schemaconf,
++  install_dir: schemadir
++)
+ schema_ubuntu_login = configure_file(
+   input: 'com.ubuntu.login-screen.gschema.xml.in',
+   output: 'com.ubuntu.login-screen.gschema.xml',
+@@ -138,7 +144,7 @@ endif
+ 
+ # for unit tests - gnome.compile_schemas() only looks in srcdir
+ custom_target('compile-schemas',
+-  input: [schema, chema_ubuntu_login],
++  input: [schema, schema_ubuntu, schema_ubuntu_login],
+   output: 'gschemas.compiled',
+   command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
+   build_by_default: true)
+diff --git a/data/org.gnome.shell.ubuntu.gschema.xml.in b/data/org.gnome.shell.ubuntu.gschema.xml.in
+new file mode 100644
+index 0000000..6f9cc62
+--- /dev/null
++++ b/data/org.gnome.shell.ubuntu.gschema.xml.in
+@@ -0,0 +1,17 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<schemalist gettext-domain="@GETTEXT_PACKAGE@">
++  <enum id="org.gnome.shell.ubuntu.GDesktopColorScheme">
++    <value value="1" nick="default"/>
++    <value value="2" nick="prefer-dark"/>
++    <value value="3" nick="prefer-light"/>
++  </enum>
++  <schema id="org.gnome.shell.ubuntu" path="/org/gnome/shell/ubuntu/">
++    <key name="color-scheme" enum="org.gnome.shell.ubuntu.GDesktopColorScheme">
++      <default>'default'</default>
++      <summary>Color scheme</summary>
++      <description>
++        The preferred color scheme for the shell user interface. Valid values are “default”, “prefer-dark”, “prefer-light”.
++      </description>
++    </key>
++  </schema>
++</schemalist>
 diff --git a/js/ui/main.js b/js/ui/main.js
-index b81b264..328ba3d 100644
+index b81b264..2e844de 100644
 --- a/js/ui/main.js
 +++ b/js/ui/main.js
-@@ -162,6 +162,8 @@ function start() {
+@@ -162,6 +162,12 @@ function start() {
      sessionMode.connect('updated', _sessionUpdated);
  
      St.Settings.get().connect('notify::high-contrast', _loadDefaultStylesheet);
 +    St.Settings.get().connect('notify::gtk-theme', _loadDefaultStylesheet);
 +    St.Settings.get().connect('notify::gtk-theme-variant', _loadDefaultStylesheet);
++
++    ubuntuSettings = new Gio.Settings({ schema_id: 'org.gnome.shell.ubuntu' });
++    ubuntuSettings.connect('changed::color-scheme', _loadDefaultStylesheet);
++    St.Settings.get()._ubuntuSettings = ubuntuSettings;
  
      // Initialize ParentalControlsManager before the UI
      ParentalControlsManager.getDefault();
-@@ -399,6 +401,17 @@ function _getStylesheet(name) {
+@@ -399,6 +405,38 @@ function _getStylesheet(name) {
      return null;
  }
  
 +function _getYaruStyleSheet(themeVariant) {
++    const colorScheme = St.Settings.get()._ubuntuSettings.get_string('color-scheme');
 +    const baseThemeName = sessionMode.stylesheetName.split(".css").at(0);
-+    const stylesheet = _getStylesheet(`${baseThemeName}-${themeVariant.toLowerCase()}.css`);
++    const isDark = themeVariant === 'dark' || themeVariant?.endsWith('-dark');
++    let colorSchemeVariant;
++
++    if (isDark && colorScheme == 'prefer-light') {
++        colorSchemeVariant = themeVariant.split('-').slice(0, -1).join('-');
++    } else if (!isDark && colorScheme == 'prefer-dark' ) {
++        colorSchemeVariant = themeVariant ? `${themeVariant}-dark` : 'dark';
++    }
++
++    if (colorSchemeVariant !== undefined) {
++        if (colorSchemeVariant.length)
++            colorSchemeVariant = `-${colorSchemeVariant}`;
++        const stylesheet = _getStylesheet(`${baseThemeName}${colorSchemeVariant}.css`);
++        if (stylesheet)
++            return stylesheet;
++    }
++
++    if (!themeVariant)
++        return null;
++
++    const stylesheet = _getStylesheet(`${baseThemeName}-${themeVariant}.css`);
 +
 +    // Try to use the dark theme if a dark variant is selected
-+    if (!stylesheet && themeVariant.endsWith('-dark'))
++    if (!stylesheet && isDark)
 +        return _getStylesheet(`${baseThemeName}-dark.css`);
 +
 +    return stylesheet;
@@ -48,15 +125,15 @@ index b81b264..328ba3d 100644
  function _getDefaultStylesheet() {
      let stylesheet = null;
      let name = sessionMode.stylesheetName;
-@@ -407,6 +420,13 @@ function _getDefaultStylesheet() {
+@@ -407,6 +445,13 @@ function _getDefaultStylesheet() {
      if (St.Settings.get().high_contrast)
          stylesheet = _getStylesheet(name.replace('.css', '-high-contrast.css'));
  
 +    if (stylesheet == null) {
 +        const settings = St.Settings.get();
 +
-+        if (settings.gtk_theme == 'Yaru' && settings.gtk_theme_variant)
-+            stylesheet = _getYaruStyleSheet(settings.gtk_theme_variant);
++        if (settings.gtk_theme == 'Yaru')
++            stylesheet = _getYaruStyleSheet(settings.gtk_theme_variant?.toLowerCase());
 +    }
 +
      if (stylesheet == null)
