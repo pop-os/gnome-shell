@@ -54,4 +54,4 @@ ubuntu/Revert-status-bluetooth-Use-BlueZ-state-to-determine-whet.patch
 ubuntu/Revert-status-bluetooth-Fix-wedged-state.patch
 ubuntu/Revert-status-bluetooth-Port-to-new-GListModel-API.patch
 ubuntu/Revert-status-bluetooth-Show-bluetooth-disabled-icon-when.patch
-ubuntu/revert-dash-Use-pin-instead-of-favorites.patch
+ubuntu/Revert-dash-Use-pin-instead-of-favorites.patch
