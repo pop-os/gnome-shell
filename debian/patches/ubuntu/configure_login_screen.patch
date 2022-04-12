@@ -12,8 +12,9 @@ Origin: ubuntu
 ---
  data/com.ubuntu.login-screen.gschema.xml.in | 70 +++++++++++++++++++++++++++++
  data/meson.build                            |  8 +++-
+ js/ui/background.js                         |  4 ++
  js/ui/screenShield.js                       | 37 +++++++++++++++
- 3 files changed, 114 insertions(+), 1 deletion(-)
+ 4 files changed, 118 insertions(+), 1 deletion(-)
  create mode 100644 data/com.ubuntu.login-screen.gschema.xml.in
 
 diff --git a/data/com.ubuntu.login-screen.gschema.xml.in b/data/com.ubuntu.login-screen.gschema.xml.in
@@ -93,14 +94,14 @@ index 0000000..ee8b3a2
 +  </schema>
 +</schemalist>
 diff --git a/data/meson.build b/data/meson.build
-index 30d4917..546202d 100644
+index 30d4917..22d6665 100644
 --- a/data/meson.build
 +++ b/data/meson.build
 @@ -95,6 +95,12 @@ schema = configure_file(
    configuration: schemaconf,
    install_dir: schemadir
  )
-+schemaubuntu = configure_file(
++schema_ubuntu_login = configure_file(
 +  input: 'com.ubuntu.login-screen.gschema.xml.in',
 +  output: 'com.ubuntu.login-screen.gschema.xml',
 +  configuration: schemaconf,
@@ -114,12 +115,28 @@ index 30d4917..546202d 100644
  # for unit tests - gnome.compile_schemas() only looks in srcdir
  custom_target('compile-schemas',
 -  input: schema,
-+  input: [schema, schemaubuntu],
++  input: [schema, chema_ubuntu_login],
    output: 'gschemas.compiled',
    command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
    build_by_default: true)
+diff --git a/js/ui/background.js b/js/ui/background.js
+index 15ae239..30f1c1a 100644
+--- a/js/ui/background.js
++++ b/js/ui/background.js
+@@ -530,7 +530,11 @@ var SystemBackground = GObject.registerClass({
+ 
+             let backgroundColor = DEFAULT_BACKGROUND_COLOR;
+             if (imports.misc.desktop.is("ubuntu")) {
++                const loginSettings = new Gio.Settings({ schema_id: 'com.ubuntu.login-screen' });
++                const bgColor = loginSettings.get_string('background-color');
+                 const dummyBgActor = new imports.gi.St.Widget({ name: 'lockDialogGroup' });
++                if (bgColor)
++                    dummyBgActor.set_style(`background-color: ${bgColor};`);
+                 Main.uiGroup.add_actor(dummyBgActor);
+                 backgroundColor = dummyBgActor.get_theme_node().get_background_color();
+                 dummyBgActor.destroy();
 diff --git a/js/ui/screenShield.js b/js/ui/screenShield.js
-index d7c8824..1c0bfec 100644
+index d7c8824..3c77e0f 100644
 --- a/js/ui/screenShield.js
 +++ b/js/ui/screenShield.js
 @@ -28,6 +28,12 @@ const DISABLE_LOCK_KEY = 'disable-lock-screen';
@@ -145,8 +162,8 @@ index d7c8824..1c0bfec 100644
 +            LOGIN_SCREEN_BACKGROUND_PICTURE_URI_KEY,
 +            LOGIN_SCREEN_BACKGROUND_REPEAT_KEY,
 +            LOGIN_SCREEN_BACKGROUND_SIZE_KEY,
-+        ].forEach(schema => this._loginScreenSettings.connect(
-+            'changed::%s'.format(schema), () => this._refreshBackground()));
++        ].forEach(schema => this._loginScreenSettings.connect(`changed::${schema}`,
++            () => this._refreshBackground()));
 +        this._refreshBackground();
 +
          this._isModal = false;
@@ -166,13 +183,13 @@ index d7c8824..1c0bfec 100644
 +        const backgroundSize = getSetting(LOGIN_SCREEN_BACKGROUND_SIZE_KEY);
 +
 +        if (backgroundColor)
-+            inlineStyle.push('background-color: %s'.format(backgroundColor));
++            inlineStyle.push(`background-color: ${backgroundColor}`);
 +        if (backgroundPictureUri)
-+            inlineStyle.push('background-image: url("%s")'.format(backgroundPictureUri));
++            inlineStyle.push(`background-image: url("${backgroundPictureUri}")`);
 +        if (backgroundRepeat !== 'default')
-+            inlineStyle.push('background-repeat: %s'.format(backgroundRepeat));
++            inlineStyle.push(`background-repeat: ${backgroundRepeat}`);
 +        if (backgroundSize !== 'default')
-+            inlineStyle.push('background-size: %s'.format(backgroundSize));
++            inlineStyle.push(`background-size: ${backgroundSize}`);
 +
 +        this._lockDialogGroup.set_style(inlineStyle.join('; '));
 +    }
