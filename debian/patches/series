@@ -22,6 +22,7 @@ main-Add-help-function-for-moving-window-to-monitor-works.patch
 workspace-Use-new-helper-function-when-accepting-drops.patch
 workspaceThumbnail-Use-new-helper-function-when-accepting.patch
 Specify-API-versions-for-all-public-GIR-APIs-except-GLib.patch
+gmd-util-Only-start-fingerprint-service-synchronously-whe.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
 Revert-dateMenu-Port-to-GWeather-4.0.patch
