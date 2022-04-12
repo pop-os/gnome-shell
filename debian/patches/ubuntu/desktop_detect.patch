@@ -9,8 +9,8 @@ Origin: ubuntu
 ===================================================================
 ---
  js/js-resources.gresource.xml |  1 +
- js/misc/desktop.js            | 39 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 40 insertions(+)
+ js/misc/desktop.js            | 33 +++++++++++++++++++++++++++++++++
+ 2 files changed, 34 insertions(+)
  create mode 100644 js/misc/desktop.js
 
 diff --git a/js/js-resources.gresource.xml b/js/js-resources.gresource.xml
@@ -27,17 +27,17 @@ index eb4e365..d573b31 100644
      <file>misc/history.js</file>
 diff --git a/js/misc/desktop.js b/js/misc/desktop.js
 new file mode 100644
-index 0000000..3b0d128
+index 0000000..8bdca57
 --- /dev/null
 +++ b/js/misc/desktop.js
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,33 @@
 +// -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*-
 +
 +const GLib = imports.gi.GLib;
 +
 +// current desktop doesn't change unless we restart the shell or control
 +// the env variable. It's safe to cache matching result
-+let _currentDesktopsMatches = {};
++const _currentDesktopsMatches = new Map();
 +
 +// is:
 +// @name: desktop string you want to assert if it matches the current desktop env
@@ -48,25 +48,19 @@ index 0000000..3b0d128
 +// Return value: if the environment isn't set or doesn't match, return False
 +// otherwise, return True.
 +function is(name) {
-+
-+    if (_currentDesktopsMatches[name] !== undefined) {
-+        return _currentDesktopsMatches[name];
-+    }
-+
-+    let desktopsEnv = GLib.getenv('XDG_CURRENT_DESKTOP');
-+    if (!desktopsEnv) {
-+        _currentDesktopsMatches[name] = false;
-+        return false;
-+    }
-+
-+    let desktops = desktopsEnv.split(":");
-+    for (let i = 0; i < desktops.length; i++) {
-+        if (desktops[i] === name) {
-+            _currentDesktopsMatches[name] = true;
-+            return true;
++    if (!_currentDesktopsMatches.size) {
++        const desktopsEnv = GLib.getenv('XDG_CURRENT_DESKTOP');
++        if (!desktopsEnv) {
++            _currentDesktopsMatches.set(name, false);
++            return false;
 +        }
++
++        const desktops = desktopsEnv.split(':');
++        desktops.forEach(d => _currentDesktopsMatches.set(d, true));
++
++        if (!_currentDesktopsMatches.size)
++            _currentDesktopsMatches.set(name, _currentDesktopsMatches.has(name));
 +    }
 +
-+    _currentDesktopsMatches[name] = false;
-+    return false;
++    return !!_currentDesktopsMatches.get(name);
 +}
