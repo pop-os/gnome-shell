@@ -1,3 +1,93 @@
+gnome-shell (42.0-2ubuntu1) UNRELEASED; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/patches: Cherry-pick upstream fixes targetting 42.1
+  * debian/patches: Compute system ackground color from theme (LP: #1965727)
+  * ubuntu/configure-login-screen.patch: Use bg color for initial system bg
+    (LP: #1965727)
+  * debian/patches: Ensure St.Entry's `selected-color` CSS property is honored
+    (LP: #1878998)
+  * ubuntu/support-loading-Yaru-variants: Handle dark/light variants better
+  * d/p/main-Avoid-meta-finalize: Leak gjs context only on ubiquity sessions
+    (LP: #1964458)
+  * d/p/use-favorites-strings: Only apply this to ubuntu session
+  * debian/patches: Do not hang and crash if fingerprint service fails to start
+    (LP: #1962566)
+  * debian: Use gnomebluetooth-3.0 as dependency and revert patches disabling it
+    (LP: #1738838, #1968364, #1964600)
+
+  [ Jeremy Bicha ]
+  * Use libgweather4 instead of old libgweather (LP: #1964600)
+  * Add patch to work around meson issue (Debian 1008189)
+  * releasing package gnome-shell version 42.0-2
+  * debian/control.in: Recommend power-profiles-daemon for power mode feature
+
+  [ Daniel van Vugt ]
+  * main-Avoid-meta-finalize.patch: Leak GJS to work around LP: #1964458
+
+  [ Gunnar Hjalmarsson ]
+  * Revert "dash: Use pin instead of favorites"
+
+  [ Jeremy Bicha ]
+  * Remaining changes with debian:
+    - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    - Add some Recommends:
+      + ubuntu-session (| gnome-session) to have the ubuntu session available
+      + xserver-xorg-legacy
+      + yaru-theme-gnome-shell for the default ubuntu theming
+      + gnome-remote-desktop to provide remote desktop support by default
+    - Moved some Recommends to Suggests:
+      + chrome-gnome-shell
+    - Update debian/gbp.conf with Ubuntu settings
+    - gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    - ubuntu/desktop_detect.patch:
+      + add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    - ubuntu/smarter_alt_tab.patch:
+      + quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    - ubuntu/lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - ubuntu/lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - ubuntu/background_login.patch
+      + Change default background color as we modified the default GDM color
+        for our ubuntu session.
+    - ubuntu/gdm_alternatives.patch
+      + Add support for GDM3 theme alternatives
+    - optional-hot-corner.patch
+      + enable patch proposed by upstream developer already in package (but
+        not in series) to add a settings for optional hot corner activation.
+    - main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      + Improve debug JS tracing for crash reports
+    - ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      + stop searches when requested from UI
+    - magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      + Show monitor scaled cursor when magnifier is enabled
+    - ubuntu/layout-Make-starting-in-the-overview-optional.patch:
+      + Makes dock replace overview easier
+    - ubuntu/layout-Try-to-allocate-before-getting-size-of-tracke.patch:
+      + Ensure windows don't get maximized under the panels / dock
+    - ubuntu/sessionMode-Add-support-for-configuring-an-icons-resource.patch:
+      + Support loading iconsResourceName from session file
+    - ubuntu/main-Support-loading-multiple-Yaru-theme-variants.patch:
+      + Support loading Yaru theme variants (for accent color)
+    - debian/patches: Support configuring icons resource to use for mode
+    - debian/ubuntu-session-mods/ubuntu.json: Use Yaru's gnome-shell icons
+    - Revert-st-Apply-css-foreground-color-to-text-as-a-PangoAt.patch:
+      + Ensure selected-text foreground color is preserved
+    - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 13 Apr 2022 01:56:20 +0200
+
 gnome-shell (42.0-2) unstable; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
