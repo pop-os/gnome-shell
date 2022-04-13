@@ -1,3 +1,21 @@
+gnome-shell (42.0-3) unstable; urgency=medium
+
+  * Team upload
+
+  [ Jeremy Bicha ]
+  * Move Debian-specific temporary patches to debian/
+  * debian/control.in: Recommend power-profiles-daemon for power mode feature
+
+  [ Simon McVittie ]
+
+  * d/p/Specify-API-versions-for-all-public-GIR-APIs-except-GLib.patch:
+    Add patch to make Shell more robust against GIR API breaks.
+    This avoids future bugs similar to #1008926.
+  * d/patches: Remove compatibility with older gnome-control-center
+  * Bump Recommends to gnome-control-center (>= 1:42)
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Apr 2022 16:47:53 +0100
+
 gnome-shell (42.0-2) unstable; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
