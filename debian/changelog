@@ -1,4 +1,4 @@
-gnome-shell (42.0-2ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (42.0-2ubuntu1) jammy; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
   * debian/patches: Cherry-pick upstream fixes targetting 42.1
@@ -86,7 +86,7 @@ gnome-shell (42.0-2ubuntu1) UNRELEASED; urgency=medium
       + Ensure selected-text foreground color is preserved
     - Break gnome-shell-extension-desktop-icons (<< 19.01.3+git20190814)
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 13 Apr 2022 01:56:20 +0200
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 13 Apr 2022 03:30:47 +0200
 
 gnome-shell (42.0-2) unstable; urgency=medium
 
