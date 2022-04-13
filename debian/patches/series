@@ -14,6 +14,4 @@ appDisplay-Home-and-End-keys-for-app-grid-navigation.patch
 layout-Check-again-for-primary-monitor-after-startup-anim.patch
 shellDBus-Actually-make-ScreenTransitionAsync-async.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
-debian/Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
-debian/js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
 debian/meson-don-t-update-icon-cache.patch
