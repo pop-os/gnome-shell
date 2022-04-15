@@ -1,3 +1,9 @@
+gnome-shell (42.0-2ubuntu1pop0) jammy; urgency=medium
+
+  * Pop!_OS patches
+
+ -- Michael Aaron Murphy <mmstick@pm.me>  Fri, 15 Apr 2022 18:08:18 +0200
+
 gnome-shell (42.0-2) unstable; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
