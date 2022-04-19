@@ -6,8 +6,7 @@ We want the zoom region to always be where the mouse cursor is, so make
 sure to update it initially, too.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2234>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/7bf8f40c
+Origin: upstream, 42.1, commit:7bf8f40c84e7fb697f39b145252a7467cbb2ab73
 ---
  js/ui/magnifier.js | 2 ++
  1 file changed, 2 insertions(+)

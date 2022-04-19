@@ -7,8 +7,7 @@ overview in particular it also prevents clicking on the top bar items on
 a workspace with a fullscreen client.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2227>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/4bc195e7
+Origin: upstream, 42.1, commit:4bc195e79714f1c6787e05728a62e25b5b353040
 ---
  js/ui/windowManager.js | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

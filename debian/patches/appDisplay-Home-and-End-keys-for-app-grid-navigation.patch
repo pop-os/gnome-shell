@@ -6,8 +6,7 @@ Include Home and End keys for consistent behaviour with respect to
 overview navigation.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2241>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/db687493
+Origin: upstream, 42.1, commit:db6874933593ae514a1acdb3e73ef7765a749bc9
 ---
  js/ui/appDisplay.js | 6 ++++++
  1 file changed, 6 insertions(+)

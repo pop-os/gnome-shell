@@ -15,8 +15,7 @@ This fixes an error message when switching workspaces using the swipe
 gesture where MetaWorkspace complains about the 0-timestamp we pass it.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2233>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/aa9edc37
+Origin: upstream, 42.1, commit:aa9edc37a57e5267237c7c998d035eb2042e43eb
 ---
  js/ui/workspaceAnimation.js | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)

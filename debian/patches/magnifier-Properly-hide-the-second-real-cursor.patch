@@ -19,8 +19,7 @@ MetaCursorTrackers visibility-changed signal, and immediately hiding the
 cursor again when it's shown.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2234>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/f13a6145
+Origin: upstream, 42.1, commit:f13a6145fd67b583af22be04c800a9b64ef258a1
 ---
  js/ui/magnifier.js | 17 +++++++++++++++--
  1 file changed, 15 insertions(+), 2 deletions(-)

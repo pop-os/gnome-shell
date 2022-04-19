@@ -8,12 +8,10 @@ use `switchMode` as property name, so we always end up passing `undefined`.
 
 Change both to `configType` which matches the API on the other end.
 
-https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/5217
-
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/5217
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2245>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/6c44162c
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1964496
+Origin: upstream, 42.1, commit:6c44162c17033fa8cbd2bcd58be9b2d3bb9a714a
 ---
  js/ui/switchMonitor.js | 10 +++++-----
  1 file changed, 5 insertions(+), 5 deletions(-)

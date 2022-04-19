@@ -10,10 +10,9 @@ thus methods will be called on a null value. This adds more checks for a valid
 primary monitor, and wont play the animation until the system is idle AND has a valid
 priamry monitor.
 
-Fixes: #5003
+Bug: #5003
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2144>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/85b51b99
+Origin: upstream, 42.1, commit:85b51b9974e253e90ced85cd77090eb0b6d33d02
 ---
  js/ui/layout.js | 12 ++++++++----
  1 file changed, 8 insertions(+), 4 deletions(-)

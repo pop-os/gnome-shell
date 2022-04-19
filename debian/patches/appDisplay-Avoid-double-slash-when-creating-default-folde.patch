@@ -18,8 +18,7 @@ slash from the template.
 
 Signed-off-by: Adam Williamson <awilliam@redhat.com>
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2242>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/c5f64827
+Origin: upstream, 42.1, commit:c5f6482705797f33f6411e4ee57755fa170eadeb
 ---
  js/ui/appDisplay.js | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

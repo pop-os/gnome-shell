@@ -7,7 +7,8 @@ checkInvocation result in the proper way.
 
 So on failure the shell would report an unhandled promise rejection.
 
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2258
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2258>
+Origin: upstream, 42.1, commit:8ba7f0f4a902439f87c7c9c887b385f9fa85384f
 ---
  js/ui/shellDBus.js | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)

@@ -13,9 +13,8 @@ fade logic around in gnome-shell. Removing it actually fixes a bug with
 DING (https://launchpad.net/bugs/1965072).
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2244>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/2127222b
 Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1965072
+Origin: upstream, 42.1, commit:2127222b39c763d2f018ecd03e4d6abdc995d1b0
 ---
  js/ui/overview.js         | 53 +----------------------------------------------
  js/ui/overviewControls.js |  4 ----

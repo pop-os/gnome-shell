@@ -1,0 +1,28 @@
+From: =?utf-8?q?Florian_M=C3=BCllner?= <fmuellner@gnome.org>
+Date: Sat, 19 Mar 2022 21:15:50 +0100
+Subject: dateMenu: Mark string for translation
+
+T_() is a convenience shortcut for looking up a string from the
+locale defined by LC_TIME, but it isn't recognized as a gettext
+keyword. To do that, we also have to wrap the string in N_() or
+NC_().
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2246>
+Origin: upstream, 42.1, commit:034e59af2d7f9f2f147e2a6112315fdc315752de
+---
+ js/ui/dateMenu.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/dateMenu.js b/js/ui/dateMenu.js
+index 36fcc10..71b932a 100644
+--- a/js/ui/dateMenu.js
++++ b/js/ui/dateMenu.js
+@@ -219,7 +219,7 @@ class EventsSection extends St.Button {
+                 /* Translators: Shown in calendar event list as the start/end of events
+                  * that only show day and month
+                  */
+-                format = T_('%m/%d');
++                format = T_(N_('%m/%d'));
+             else
+                 format = '%x';
+ 

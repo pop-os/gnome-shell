@@ -1,0 +1,28 @@
+From: Raghuveer Kasaraneni <raghu@kasara.net>
+Date: Mon, 21 Mar 2022 19:24:25 +0100
+Subject: dateMenu: Limit timezone offset hours to integers
+
+If the timezone offset calculation in the World Clocks contains non-zero
+minutes, then a decimal Hours value is being displayed. Limit the Hours value
+to integers by using Math.floor().
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2255>
+Origin: upstream, 42.1, commit:0e45273330288370dc6bad630db4159f5a2b104f
+---
+ js/ui/dateMenu.js | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/dateMenu.js b/js/ui/dateMenu.js
+index 71b932a..ca98cdd 100644
+--- a/js/ui/dateMenu.js
++++ b/js/ui/dateMenu.js
+@@ -467,7 +467,8 @@ class WorldClocksSection extends St.Button {
+         const localOffset = GLib.DateTime.new_now_local().get_utc_offset();
+         const utcOffset = GLib.DateTime.new_now(tz).get_utc_offset();
+         const offsetCurrentTz = utcOffset - localOffset;
+-        const offsetHours = Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR;
++        const offsetHours =
++            Math.floor(Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR);
+         const offsetMinutes =
+             (Math.abs(offsetCurrentTz) % GLib.TIME_SPAN_HOUR) /
+             GLib.TIME_SPAN_MINUTE;

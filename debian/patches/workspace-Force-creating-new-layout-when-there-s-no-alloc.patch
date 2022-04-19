@@ -16,8 +16,7 @@ the new layout when there's no allocation yet. This makes freezing the
 layout after closing a window work again.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2236>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/b17f00cf
+Origin: upstream, 42.1, commit:b17f00cfb1196946232b9733e315cb91f27cbb26
 ---
  js/ui/workspace.js | 5 +++--
  1 file changed, 3 insertions(+), 2 deletions(-)

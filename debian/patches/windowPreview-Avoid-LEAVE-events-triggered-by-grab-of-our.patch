@@ -22,11 +22,9 @@ We should do the same for the key-focus-out event, but these don't pass
 context information like a GRAB_NOTIFY flag yet, so just check the
 current grab actor here.
 
-https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3165
-
+Bug: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3165
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2231>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/95f4a1ec
+Origin: upstream, 42.1, commit:95f4a1ecd6bdabf6d6ee68c42dec389799c6bdb2
 ---
  js/ui/windowPreview.js | 8 +++++++-
  1 file changed, 7 insertions(+), 1 deletion(-)

@@ -6,8 +6,7 @@ Actually the flag gjs gives us here is called
 Clutter.EventFlags.FLAG_GRAB_NOTIFY, so fix that.
 
 Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2231>
-
-Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/64e4d5df
+Origin: upstream, 42.1, commit:64e4d5df48dc77d1a219b029d66bbf62907e01e0
 ---
  js/ui/popupMenu.js | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
