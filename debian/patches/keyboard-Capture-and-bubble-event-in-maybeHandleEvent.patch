@@ -1,0 +1,28 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Wed, 6 Apr 2022 12:50:32 +0200
+Subject: keyboard: Capture and bubble event in maybeHandleEvent
+
+Right now the clutter_actor_event() call here errors out because the
+second argument is missing, make it capture and bubble the event
+properly to fix that.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2263>
+Origin: upstream, 42.1, commit:61713c736613b83868a4eb057ee77d14989e0859
+---
+ js/ui/keyboard.js | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/keyboard.js b/js/ui/keyboard.js
+index 37c71b1..e0c4221 100644
+--- a/js/ui/keyboard.js
++++ b/js/ui/keyboard.js
+@@ -1276,7 +1276,8 @@ var KeyboardManager = class KeyBoardManager {
+ 
+         if (Main.layoutManager.keyboardBox.contains(actor) ||
+             !!actor._extendedKeys || !!actor.extendedKey) {
+-            actor.event(event);
++            actor.event(event, true);
++            actor.event(event, false);
+             return true;
+         }
+ 

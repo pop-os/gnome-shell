@@ -1,0 +1,57 @@
+From: Sam Hewitt <sam@snwh.org>
+Date: Tue, 19 Apr 2022 15:08:37 -0130
+Subject: osd: Restyle OSD display popup
+
+- remove class from label box
+- new style for label itself
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2277>
+Origin: upstream, 42.1, commit:cb2ee0cf1f6f3bb730dde3889e6213769b9d4d88
+---
+ data/theme/gnome-shell-sass/widgets/_osd.scss | 13 +++++++++++--
+ js/ui/osdMonitorLabeler.js                    |  1 -
+ 2 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/data/theme/gnome-shell-sass/widgets/_osd.scss b/data/theme/gnome-shell-sass/widgets/_osd.scss
+index e4fb0e5..a8d1a55 100644
+--- a/data/theme/gnome-shell-sass/widgets/_osd.scss
++++ b/data/theme/gnome-shell-sass/widgets/_osd.scss
+@@ -14,8 +14,6 @@ $osd_levelbar_height:6px;
+ 
+   StIcon { icon-size:$large_icon_size;}
+ 
+-  .osd-monitor-label { font-size: 3em; }
+-  
+   StLabel {
+     &:ltr { margin-right: 6px; }
+     &:rtl { margin-left: 6px; }
+@@ -37,6 +35,17 @@ $osd_levelbar_height:6px;
+   }
+ }
+ 
++// Monitor number label
++.osd-monitor-label { 
++  @extend %osd_panel;
++  border-radius: $modal_radius;
++  font-size: 3em;
++  font-weight: bold;
++  margin: $base_margin * 3;
++  text-align: center;
++  min-width: 1.3em;
++}
++
+ /* Pad OSD */
+ .pad-osd-window {
+   padding: 32px;
+diff --git a/js/ui/osdMonitorLabeler.js b/js/ui/osdMonitorLabeler.js
+index 9fdf3e8..540af75 100644
+--- a/js/ui/osdMonitorLabeler.js
++++ b/js/ui/osdMonitorLabeler.js
+@@ -13,7 +13,6 @@ class OsdMonitorLabel extends St.Widget {
+         this._monitor = monitor;
+ 
+         this._box = new St.BoxLayout({
+-            style_class: 'osd-window',
+             vertical: true,
+         });
+         this.add_actor(this._box);

@@ -1,3 +1,11 @@
+gnome-shell (42.0-5) UNRELEASED; urgency=medium
+
+  * d/patches: Update to upstream git commit 42.0-84-g9ee7af233
+    - Bug fixes targeted for 42.1
+    - Translation updates
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 25 Apr 2022 09:51:16 +0100
+
 gnome-shell (42.0-4) unstable; urgency=medium
 
   * Team upload

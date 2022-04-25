@@ -1,0 +1,33 @@
+From: =?utf-8?q?Jonas_Dre=C3=9Fler?= <verdre@v0yd.nl>
+Date: Sun, 10 Apr 2022 00:48:39 +0200
+Subject: appDisplay: Use icon grid size as distance passed to SwipeTracker
+
+The swipeTracker wants the distance between two pages passed to it in
+confirmSwipe(). In case of the app grid, the correct distance is not the
+size of the scrollView (which has the width of the whole screen), but
+instead the allocation size of the iconGrid (which is the actual size
+of a page in the grid).
+
+So pass the allocation size of the iconGrid to the swipeTracker, this
+makes sure the pages move perfectly in sync with the pointer when
+dragging using the mouse or touchscreen.
+
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2275>
+Origin: upstream, 42.1, commit:851a1e30fad49ff997c863132de1d7b8bc7470db
+---
+ js/ui/appDisplay.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/js/ui/appDisplay.js b/js/ui/appDisplay.js
+index 62d0c9c..dd75a09 100644
+--- a/js/ui/appDisplay.js
++++ b/js/ui/appDisplay.js
+@@ -523,7 +523,7 @@ var BaseAppView = GObject.registerClass({
+         const progress = adjustment.value / adjustment.page_size;
+         const points = Array.from({ length: this._grid.nPages }, (v, i) => i);
+         const size = tracker.orientation === Clutter.Orientation.VERTICAL
+-            ? this._scrollView.height : this._scrollView.width;
++            ? this._grid.allocation.get_height() : this._grid.allocation.get_width();
+ 
+         tracker.confirmSwipe(size, points, progress, Math.round(progress));
+     }
