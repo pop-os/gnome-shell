@@ -1,3 +1,9 @@
+gnome-shell (42.0-2ubuntu2) kinetic; urgency=medium
+
+  * Use libgweather4 instead of old libgweather
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 29 Apr 2022 13:31:08 -0400
+
 gnome-shell (42.0-2ubuntu1) jammy; urgency=medium
 
   [ Marco Trevisan (Treviño) ]
