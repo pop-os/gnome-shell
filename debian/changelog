@@ -1,3 +1,9 @@
+gnome-shell (42.0-2ubuntu2pop1) jammy; urgency=medium
+
+  * Pop!_OS patches
+
+ -- Michael Aaron Murphy <mmstick@pm.me>  Wed, 04 May 2022 12:15:28 +0200
+
 gnome-shell (42.0-2ubuntu2) kinetic; urgency=medium
 
   * Use libgweather4 instead of old libgweather
