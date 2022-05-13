@@ -333,6 +333,8 @@ var Background = GObject.registerClass({
             return;
 
         this.isLoaded = true;
+        if (this._cancellable?.is_cancelled())
+            return;
 
         let id = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             this.emit('loaded');
@@ -492,7 +494,7 @@ var Background = GObject.registerClass({
                 Gio.FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
                 Gio.FileQueryInfoFlags.NONE,
                 0,
-                null);
+                this._cancellable);
         } catch (e) {
             this._setLoaded();
             return;

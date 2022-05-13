@@ -628,7 +628,6 @@ var WorkspaceLayout = GObject.registerClass({
         const [containerWidth, containerHeight] = containerBox.get_size();
         const containerAllocationChanged =
             this._lastBox === null || !this._lastBox.equal(containerBox);
-        this._lastBox = containerBox.copy();
 
         // If the containers size changed, we can no longer keep around
         // the old windowSlots, so we must unfreeze the layout.
@@ -665,7 +664,7 @@ var WorkspaceLayout = GObject.registerClass({
         }
 
         let layoutChanged = false;
-        if (!this._layoutFrozen || this._needsLayout) {
+        if (!this._layoutFrozen || !this._lastBox) {
             if (this._needsLayout) {
                 this._layout = this._createBestLayout(this._workarea);
                 this._needsLayout = false;
@@ -765,6 +764,8 @@ var WorkspaceLayout = GObject.registerClass({
                 child.allocate(childBox);
             }
         }
+
+        this._lastBox = containerBox.copy();
     }
 
     _syncOverlay(preview) {
@@ -1466,13 +1467,8 @@ class Workspace extends St.Widget {
             if (this._isMyWindow(window))
                 return false;
 
-            // We need to move the window before changing the workspace, because
-            // the move itself could cause a workspace change if the window enters
-            // the primary monitor
-            if (window.get_monitor() != this.monitorIndex)
-                window.move_to_monitor(this.monitorIndex);
-
-            window.change_workspace_by_index(workspaceIndex, false);
+            Main.moveWindowToMonitorAndWorkspace(window,
+                this.monitorIndex, workspaceIndex);
             return true;
         } else if (source.app && source.app.can_open_new_window()) {
             if (source.animateLaunchAtPos)

@@ -23,7 +23,7 @@ stage {
   color: #fff; }
 
 /* Common Stylings */
-.screenshot-ui-panel, .workspace-switcher, .switcher-list, .resize-popup, .osd-window {
+.screenshot-ui-panel, .workspace-switcher, .switcher-list, .resize-popup, .osd-monitor-label, .osd-window {
   color: #eeeeec;
   background-color: #2e3436;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -562,8 +562,8 @@ StScrollBar {
     text-align: center;
     margin: 2px;
     padding: 0 !important;
-    height: 32px !important;
-    width: 32px !important;
+    height: 3em !important;
+    width: 3em !important;
     border-radius: 99px; }
     .calendar .calendar-day-base:hover {
       background-color: #0a0a0a; }
@@ -1155,8 +1155,6 @@ StScrollBar {
     spacing: 8px; }
   .osd-window StIcon {
     icon-size: 2.18em; }
-  .osd-window .osd-monitor-label {
-    font-size: 3em; }
   .osd-window StLabel:ltr {
     margin-right: 6px; }
   .osd-window StLabel:rtl {
@@ -1176,6 +1174,14 @@ StScrollBar {
       margin-right: 6px; }
     .osd-window .level:rtl {
       margin-left: 6px; }
+
+.osd-monitor-label {
+  border-radius: 16px;
+  font-size: 3em;
+  font-weight: bold;
+  margin: 12px;
+  text-align: center;
+  min-width: 1.3em; }
 
 /* Pad OSD */
 .pad-osd-window {
@@ -1277,13 +1283,14 @@ StScrollBar {
   spacing: 12px; }
 
 .screenshot-ui-close-button {
-  padding: 6px; }
+  padding: 6px !important; }
   .screenshot-ui-close-button.left {
     margin-left: 8px; }
   .screenshot-ui-close-button.right {
     margin-right: 8px; }
 
 .screenshot-ui-type-button {
+  min-width: 48px;
   padding: 12px 18px !important;
   border-radius: 19px; }
 
@@ -1306,9 +1313,9 @@ StScrollBar {
   .screenshot-ui-capture-button:cast .screenshot-ui-capture-button-circle {
     background-color: #cc0000; }
   .screenshot-ui-capture-button:cast:hover .screenshot-ui-capture-button-circle, .screenshot-ui-capture-button:cast:focus .screenshot-ui-capture-button-circle {
-    background-color: maroon; }
+    background-color: #e60000; }
   .screenshot-ui-capture-button:cast:active .screenshot-ui-capture-button-circle {
-    background-color: #330000; }
+    background-color: #a80000; }
 
 .screenshot-ui-shot-cast-container {
   background-color: #0a0a0a;
@@ -1383,7 +1390,7 @@ StScrollBar {
   background-color: rgba(33, 93, 156, 0.2); }
 
 .screenshot-ui-window-selector-window:checked .screenshot-ui-window-selector-check {
-  color: white;
+  color: #ffffff;
   background-color: #215d9c; }
 
 .screenshot-ui-screen-selector {
@@ -1547,7 +1554,7 @@ StScrollBar {
 .window-close, .screenshot-ui-close-button {
   background-color: rgba(39, 44, 46, 0.95);
   color: #eeeeec;
-  border-radius: 21px;
+  border-radius: 99px;
   padding: 3px;
   height: 30px;
   width: 30px;
