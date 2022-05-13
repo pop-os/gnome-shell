@@ -1,8 +1,10 @@
-gnome-shell (42.1-1) UNRELEASED; urgency=medium
+gnome-shell (42.1-1) unstable; urgency=medium
 
-  * New upstream release
+  * New upstream release (LP: #1973373, LP: #1968911)
+  * Drop all patches except 1 Debian-specific patch: applied in new release
+  * Release to unstable
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 May 2022 14:23:27 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 May 2022 15:09:47 -0400
 
 gnome-shell (42.0-5) experimental; urgency=medium
 
