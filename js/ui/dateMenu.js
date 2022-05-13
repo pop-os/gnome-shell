@@ -219,7 +219,7 @@ class EventsSection extends St.Button {
                 /* Translators: Shown in calendar event list as the start/end of events
                  * that only show day and month
                  */
-                format = T_('%m/%d');
+                format = T_(N_('%m/%d'));
             else
                 format = '%x';
 
@@ -400,7 +400,10 @@ class WorldClocksSection extends St.Button {
             x_align: Clutter.ActorAlign.START,
             text: title,
         });
-        layout.attach(header, 0, 0, 2, 1);
+        if (this._grid.text_direction === Clutter.TextDirection.RTL)
+            layout.attach(header, 2, 0, 1, 1);
+        else
+            layout.attach(header, 0, 0, 2, 1);
         this.label_actor = header;
 
         for (let i = 0; i < this._locations.length; i++) {
@@ -467,7 +470,8 @@ class WorldClocksSection extends St.Button {
         const localOffset = GLib.DateTime.new_now_local().get_utc_offset();
         const utcOffset = GLib.DateTime.new_now(tz).get_utc_offset();
         const offsetCurrentTz = utcOffset - localOffset;
-        const offsetHours = Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR;
+        const offsetHours =
+            Math.floor(Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR);
         const offsetMinutes =
             (Math.abs(offsetCurrentTz) % GLib.TIME_SPAN_HOUR) /
             GLib.TIME_SPAN_MINUTE;

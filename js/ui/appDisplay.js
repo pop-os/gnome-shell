@@ -523,7 +523,7 @@ var BaseAppView = GObject.registerClass({
         const progress = adjustment.value / adjustment.page_size;
         const points = Array.from({ length: this._grid.nPages }, (v, i) => i);
         const size = tracker.orientation === Clutter.Orientation.VERTICAL
-            ? this._scrollView.height : this._scrollView.width;
+            ? this._grid.allocation.get_height() : this._grid.allocation.get_width();
 
         tracker.confirmSwipe(size, points, progress, Math.round(progress));
     }
@@ -1471,7 +1471,7 @@ class AppDisplay extends BaseAppView {
             const { name, categories, apps } = DEFAULT_FOLDERS[folder];
             const child = new Gio.Settings({
                 schema_id: 'org.gnome.desktop.app-folders.folder',
-                path: `${path}/folders/${folder}/`,
+                path: `${path}folders/${folder}/`,
             });
             child.set_string('name', name);
             child.set_boolean('translate', true);
@@ -1668,6 +1668,12 @@ class AppDisplay extends BaseAppView {
             return Clutter.EVENT_STOP;
         } else if (event.get_key_symbol() === Clutter.KEY_Page_Down) {
             this.goToPage(this._grid.currentPage + 1);
+            return Clutter.EVENT_STOP;
+        } else if (event.get_key_symbol() === Clutter.KEY_Home) {
+            this.goToPage(0);
+            return Clutter.EVENT_STOP;
+        } else if (event.get_key_symbol() === Clutter.KEY_End) {
+            this.goToPage(this._grid.nPages - 1);
             return Clutter.EVENT_STOP;
         }
 
