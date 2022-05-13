@@ -1,3 +1,9 @@
+gnome-shell (42.1-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream release (LP: #1973373, LP: #1968911)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 May 2022 15:20:42 -0400
+
 gnome-shell (42.0-2ubuntu2) kinetic; urgency=medium
 
   * Use libgweather4 instead of old libgweather
