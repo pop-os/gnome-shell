@@ -23,7 +23,7 @@ stage {
   color: white; }
 
 /* Common Stylings */
-.screenshot-ui-panel, .workspace-switcher, .switcher-list, .resize-popup, .osd-window {
+.screenshot-ui-panel, .workspace-switcher, .switcher-list, .resize-popup, .osd-monitor-label, .osd-window {
   color: white;
   background-color: rgba(48, 48, 48, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.02);
@@ -247,7 +247,7 @@ StEntry {
     color: #979797; }
   StEntry StIcon.capslock-warning {
     icon-size: 16px;
-    warning-color: #f5c211;
+    warning-color: #cd9309;
     padding: 0 4px; }
   StEntry StIcon.peek-password {
     icon-size: 1.09em;
@@ -296,7 +296,7 @@ StEntry {
   -barlevel-border-color: transparent;
   -barlevel-active-background-color: #3584e4;
   -barlevel-active-border-color: transparent;
-  -barlevel-overdrive-color: #b2161d;
+  -barlevel-overdrive-color: #c01c28;
   -barlevel-overdrive-border-color: transparent;
   -barlevel-overdrive-separator-width: 1px;
   -slider-handle-radius: 8px;
@@ -562,8 +562,8 @@ StScrollBar {
     text-align: center;
     margin: 2px;
     padding: 0 !important;
-    height: 32px !important;
-    width: 32px !important;
+    height: 3em !important;
+    width: 3em !important;
     border-radius: 99px; }
     .calendar .calendar-day-base:hover {
       background-color: #3a3a3a; }
@@ -986,7 +986,7 @@ StScrollBar {
   width: 30em; }
   .end-session-dialog .end-session-dialog-battery-warning,
   .end-session-dialog .dialog-list-title {
-    color: #f5c211; }
+    color: #cd9309; }
 
 /* Message Dialog */
 .message-dialog-content {
@@ -1052,7 +1052,7 @@ StScrollBar {
   text-align: center; }
 
 .prompt-dialog-error-label {
-  color: #f5c211; }
+  color: #cd9309; }
 
 /* Polkit Dialog */
 .polkit-dialog-user-layout {
@@ -1060,7 +1060,7 @@ StScrollBar {
   spacing: 8px;
   margin-bottom: 6px; }
   .polkit-dialog-user-layout .polkit-dialog-user-root-label {
-    color: #f5c211; }
+    color: #cd9309; }
 
 /* Audio selection dialog */
 .audio-device-selection-dialog .modal-dialog-content-box {
@@ -1155,8 +1155,6 @@ StScrollBar {
     spacing: 8px; }
   .osd-window StIcon {
     icon-size: 2.18em; }
-  .osd-window .osd-monitor-label {
-    font-size: 3em; }
   .osd-window StLabel:ltr {
     margin-right: 6px; }
   .osd-window StLabel:rtl {
@@ -1168,7 +1166,7 @@ StScrollBar {
     -barlevel-height: 6px;
     -barlevel-background-color: rgba(255, 255, 255, 0.1);
     -barlevel-active-background-color: white;
-    -barlevel-overdrive-color: #b2161d;
+    -barlevel-overdrive-color: #c01c28;
     -barlevel-overdrive-separator-width: 3px; }
     .osd-window .level:first-child {
       margin-bottom: 0px; }
@@ -1176,6 +1174,14 @@ StScrollBar {
       margin-right: 6px; }
     .osd-window .level:rtl {
       margin-left: 6px; }
+
+.osd-monitor-label {
+  border-radius: 16px;
+  font-size: 3em;
+  font-weight: bold;
+  margin: 12px;
+  text-align: center;
+  min-width: 1.3em; }
 
 /* Pad OSD */
 .pad-osd-window {
@@ -1277,13 +1283,14 @@ StScrollBar {
   spacing: 12px; }
 
 .screenshot-ui-close-button {
-  padding: 6px; }
+  padding: 6px !important; }
   .screenshot-ui-close-button.left {
     margin-left: 8px; }
   .screenshot-ui-close-button.right {
     margin-right: 8px; }
 
 .screenshot-ui-type-button {
+  min-width: 48px;
   padding: 12px 18px !important;
   border-radius: 19px; }
 
@@ -1306,9 +1313,9 @@ StScrollBar {
   .screenshot-ui-capture-button:cast .screenshot-ui-capture-button-circle {
     background-color: #c01c28; }
   .screenshot-ui-capture-button:cast:hover .screenshot-ui-capture-button-circle, .screenshot-ui-capture-button:cast:focus .screenshot-ui-capture-button-circle {
-    background-color: #7d121a; }
+    background-color: #d61f2d; }
   .screenshot-ui-capture-button:cast:active .screenshot-ui-capture-button-circle {
-    background-color: #3a090c; }
+    background-color: #a11722; }
 
 .screenshot-ui-shot-cast-container {
   background-color: #3a3a3a;
@@ -1383,7 +1390,7 @@ StScrollBar {
   background-color: rgba(53, 132, 228, 0.2); }
 
 .screenshot-ui-window-selector-window:checked .screenshot-ui-window-selector-check {
-  color: white;
+  color: #fff;
   background-color: #3584e4; }
 
 .screenshot-ui-screen-selector {
@@ -1497,7 +1504,7 @@ StScrollBar {
     spacing: 0; }
   #panel .screencast-indicator,
   #panel .remote-access-indicator {
-    color: #f5c211; }
+    color: #cd9309; }
 
 #appMenu {
   spacing: 6px; }
@@ -1547,7 +1554,7 @@ StScrollBar {
 .window-close, .screenshot-ui-close-button {
   background-color: rgba(40, 40, 40, 0.91);
   color: white;
-  border-radius: 21px;
+  border-radius: 99px;
   padding: 3px;
   height: 30px;
   width: 30px;
@@ -1976,7 +1983,7 @@ StScrollBar {
 .caps-lock-warning-label {
   text-align: center;
   padding-bottom: 8px;
-  color: #f5c211; }
+  color: #cd9309; }
 
 /* Workspace animation */
 .workspace-animation {

@@ -114,6 +114,13 @@ var ModalDialog = GObject.registerClass({
         return Clutter.EVENT_PROPAGATE;
     }
 
+    vfunc_captured_event(event) {
+        if (Main.keyboard.maybeHandleEvent(event))
+            return Clutter.EVENT_STOP;
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
     clearButtons() {
         this.dialogLayout.clearButtons();
     }
@@ -230,7 +237,7 @@ var ModalDialog = GObject.registerClass({
         if (timestamp)
             params['timestamp'] = timestamp;
         let grab = Main.pushModal(this, params);
-        if (grab.get_seat_state() === Clutter.GrabState.NONE) {
+        if (grab.get_seat_state() !== Clutter.GrabState.ALL) {
             Main.popModal(grab);
             return false;
         }

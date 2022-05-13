@@ -67,6 +67,9 @@ var PadChooser = GObject.registerClass({
         this._padChooserMenu.actor.hide();
         Main.uiGroup.add_actor(this._padChooserMenu.actor);
 
+        this._menuManager = new PopupMenu.PopupMenuManager(this);
+        this._menuManager.addMenu(this._padChooserMenu);
+
         for (let i = 0; i < devices.length; i++) {
             let device = devices[i];
             if (device == this.currentDevice)
@@ -143,6 +146,9 @@ var ActionComboBox = GObject.registerClass({
         });
         this._editMenu.actor.hide();
         Main.uiGroup.add_actor(this._editMenu.actor);
+
+        this._editMenuManager = new PopupMenu.PopupMenuManager(this);
+        this._editMenuManager.addMenu(this._editMenu);
 
         this._actionLabels = new Map();
         this._actionLabels.set(GDesktopEnums.PadButtonAction.NONE, _("Application defined"));

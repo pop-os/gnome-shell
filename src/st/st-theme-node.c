@@ -456,7 +456,7 @@ ensure_properties (StThemeNode *node)
       if (node->theme)
         properties = _st_theme_get_matched_properties (node->theme, node);
 
-      if (node->inline_style)
+      if (node->inline_style && *node->inline_style != '\0')
         {
           CRDeclaration *cur_decl;
 
@@ -2649,6 +2649,9 @@ st_theme_node_get_text_align(StThemeNode *node)
     }
   if(node->parent_node)
     return st_theme_node_get_text_align(node->parent_node);
+
+  if (clutter_get_default_text_direction () == CLUTTER_TEXT_DIRECTION_RTL)
+    return ST_TEXT_ALIGN_RIGHT;
   return ST_TEXT_ALIGN_LEFT;
 }
 

@@ -453,7 +453,7 @@ class ObjInspector extends St.ScrollView {
             return;
 
         const grab = Main.pushModal(this, { actionMode: Shell.ActionMode.LOOKING_GLASS });
-        if (grab.get_seat_state() === Clutter.GrabState.NONE) {
+        if (grab.get_seat_state() !== Clutter.GrabState.ALL) {
             Main.popModal(grab);
             return;
         }
@@ -484,6 +484,15 @@ class ObjInspector extends St.ScrollView {
         this.hide();
         this._previousObj = null;
         this._obj = null;
+    }
+
+    vfunc_key_press_event(keyPressEvent) {
+        const symbol = keyPressEvent.keyval;
+        if (symbol === Clutter.KEY_Escape) {
+            this.close();
+            return Clutter.EVENT_STOP;
+        }
+        return super.vfunc_key_press_event(keyPressEvent);
     }
 
     _onInsert() {
@@ -1412,6 +1421,13 @@ class LookingGlass extends St.BoxLayout {
         this._resize();
     }
 
+    vfunc_captured_event(event) {
+        if (Main.keyboard.maybeHandleEvent(event))
+            return Clutter.EVENT_STOP;
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
     _updateFont() {
         let fontName = this._interfaceSettings.get_string('monospace-font-name');
         let fontDesc = Pango.FontDescription.from_string(fontName);
@@ -1578,10 +1594,7 @@ class LookingGlass extends St.BoxLayout {
     vfunc_key_press_event(keyPressEvent) {
         let symbol = keyPressEvent.keyval;
         if (symbol == Clutter.KEY_Escape) {
-            if (this._objInspector.visible)
-                this._objInspector.close();
-            else
-                this.close();
+            this.close();
             return Clutter.EVENT_STOP;
         }
         // Ctrl+PgUp and Ctrl+PgDown switches tabs in the notebook view
@@ -1599,7 +1612,7 @@ class LookingGlass extends St.BoxLayout {
             return;
 
         let grab = Main.pushModal(this, { actionMode: Shell.ActionMode.LOOKING_GLASS });
-        if (grab.get_seat_state() === Clutter.GrabState.NONE) {
+        if (grab.get_seat_state() !== Clutter.GrabState.ALL) {
             Main.popModal(grab);
             return;
         }
