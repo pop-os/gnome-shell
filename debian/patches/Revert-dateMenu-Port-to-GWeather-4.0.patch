@@ -40,8 +40,8 @@ index 2e5c141..05fc102 100644
 -        const utcOffset = GLib.DateTime.new_now(tz).get_utc_offset();
 +        const utcOffset = this._getTimeAtLocation(location).get_utc_offset();
          const offsetCurrentTz = utcOffset - localOffset;
-         const offsetHours = Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR;
-         const offsetMinutes =
+         const offsetHours =
+             Math.floor(Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR);
 @@ -482,10 +477,15 @@ class WorldClocksSection extends St.Button {
          return text;
      }
