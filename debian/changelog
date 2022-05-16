@@ -1,15 +1,9 @@
-gnome-shell (42.1-0ubuntu1) kinetic; urgency=medium
+gnome-shell (42.1-0ubuntu0.1) jammy; urgency=medium
 
   * New upstream release (LP: #1973373, LP: #1968911)
   * Drop patches applied in new release
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 May 2022 16:32:49 -0400
-
-gnome-shell (42.0-2ubuntu2) kinetic; urgency=medium
-
-  * Use libgweather4 instead of old libgweather
-
- -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 29 Apr 2022 13:31:08 -0400
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 16 May 2022 08:21:57 -0400
 
 gnome-shell (42.0-2ubuntu1) jammy; urgency=medium
 
