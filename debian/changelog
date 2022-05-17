@@ -1,3 +1,9 @@
+gnome-shell (42.1-0ubuntu0.1pop1) jammy; urgency=medium
+
+  * Pop!_OS patches 
+
+ -- Michael Aaron Murphy <mmstick@pm.me>  Tue, 17 May 2022 14:36:32 +0200
+
 gnome-shell (42.1-0ubuntu0.1) jammy; urgency=medium
 
   * New upstream release (LP: #1973373, LP: #1968911)
