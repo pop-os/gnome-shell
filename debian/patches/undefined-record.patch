@@ -1,0 +1,14 @@
+Index: gnome-shell/js/ui/workspaceAnimation.js
+===================================================================
+--- gnome-shell.orig/js/ui/workspaceAnimation.js
++++ gnome-shell/js/ui/workspaceAnimation.js
+@@ -78,6 +78,9 @@ class WorkspaceGroup extends Clutter.Act
+         for (const windowActor of windowActors) {
+             const record = this._windowRecords.find(r => r.windowActor === windowActor);
+ 
++            /// The window my not have a record.
++            if (!record) continue
++
+             this.set_child_above_sibling(record.clone,
+                 lastRecord ? lastRecord.clone : bottomActor);
+             lastRecord = record;
