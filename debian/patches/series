@@ -30,3 +30,4 @@ pop-dark-theme.patch
 ignore-nvidia-only.patch
 pop-cosmic-keyboard-shortcuts.patch
 remove-assumptions-about-monitor-availability.patch
+greeter-exception.patch
