@@ -706,7 +706,7 @@ var EmojiPager = GObject.registerClass({
         panAction.connect('gesture-cancel', this._onPanCancel.bind(this));
         panAction.connect('gesture-end', this._onPanEnd.bind(this));
         this._panAction = panAction;
-        this.add_action(panAction);
+        this.add_action_full('pan', Clutter.EventPhase.CAPTURE, panAction);
     }
 
     get delta() {
@@ -1203,7 +1203,7 @@ var KeyboardManager = class KeyBoardManager {
             if (this._keyboard)
                 this._keyboard.gestureCancel();
         });
-        global.stage.add_action(bottomDragAction);
+        global.stage.add_action_full('osk', Clutter.EventPhase.CAPTURE, bottomDragAction);
         this._bottomDragAction = bottomDragAction;
 
         this._syncEnabled();
@@ -1697,6 +1697,7 @@ var Keyboard = GObject.registerClass({
              * we allow the OSK being smaller than 1/3rd of the monitor height
              * there.
              */
+            this.height = -1;
             const forWidth = this.get_theme_node().adjust_for_width(monitor.width);
             const [, natHeight] = this.get_preferred_height(forWidth);
             this.height = Math.min(maxHeight, natHeight);
