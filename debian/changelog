@@ -1,3 +1,9 @@
+gnome-shell (42.2-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 06 Jun 2022 11:03:30 +0100
+
 gnome-shell (42.1-1) unstable; urgency=medium
 
   * New upstream release (LP: #1973373, LP: #1968911)
