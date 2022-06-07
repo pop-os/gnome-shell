@@ -42,7 +42,7 @@ index 2e5c141..05fc102 100644
          const offsetCurrentTz = utcOffset - localOffset;
          const offsetHours =
              Math.floor(Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR);
-@@ -482,10 +477,15 @@ class WorldClocksSection extends St.Button {
+@@ -482,12 +477,17 @@ class WorldClocksSection extends St.Button {
          return text;
      }
  
@@ -52,13 +52,15 @@ index 2e5c141..05fc102 100644
 +    }
 +
      _updateTimeLabels() {
+         let differentLength = false;
+         let lastLength;
          for (let i = 0; i < this._locations.length; i++) {
              let l = this._locations[i];
 -            const now = GLib.DateTime.new_now(l.location.get_timezone());
 +            let now = this._getTimeAtLocation(l.location);
-             l.timeLabel.text = Util.formatTime(now, { timeOnly: true });
-         }
-     }
+             const text = Util.formatTime(now, { timeOnly: true });
+             l.timeLabel.text = text;
+ 
 diff --git a/js/ui/environment.js b/js/ui/environment.js
 index affc2b6..e0ae8ee 100644
 --- a/js/ui/environment.js
