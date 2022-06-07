@@ -1,4 +1,4 @@
-gnome-shell (42.2-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (42.2-0ubuntu1) kinetic; urgency=medium
 
   * New upstream release (LP: #1977776)
 
