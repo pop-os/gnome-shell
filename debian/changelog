@@ -1,3 +1,9 @@
+gnome-shell (42.2-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream release (LP: #1977776)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 06 Jun 2022 20:30:49 -0400
+
 gnome-shell (42.1-0ubuntu1) kinetic; urgency=medium
 
   * New upstream release (LP: #1973373, LP: #1968911)
