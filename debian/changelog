@@ -1,3 +1,9 @@
+gnome-shell (42.2-0ubuntu0.2pop1) jammy; urgency=medium
+
+  * New upstream release
+
+ -- Michael Aaron Murphy <mmstick@pm.me>  Mon, 27 Jun 2022 23:42:04 +0200
+
 gnome-shell (42.2-0ubuntu0.2) jammy; urgency=medium
 
   * New upstream release (LP: #1977776)
