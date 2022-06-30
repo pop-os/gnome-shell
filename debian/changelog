@@ -1,3 +1,12 @@
+gnome-shell (42.2-0ubuntu2) kinetic; urgency=medium
+
+  * Drop two patches that support the old gnome-control-center
+    desktop file (LP: #1980245):
+    - js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
+    - Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
+
+ -- Nathan Pratta Teodosio <nathan.teodosio@canonical.com>  Thu, 30 Jun 2022 08:23:15 -0300
+
 gnome-shell (42.2-0ubuntu1) kinetic; urgency=medium
 
   * New upstream release (LP: #1977776)
