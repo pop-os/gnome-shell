@@ -1,3 +1,9 @@
+gnome-shell (42.3.1-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 16 Jul 2022 17:47:09 +0200
+
 gnome-shell (42.2-1) unstable; urgency=medium
 
   * Team upload
