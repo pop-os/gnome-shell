@@ -1506,6 +1506,10 @@ var ScreenshotUI = GObject.registerClass({
         // pop their grabs.
         Main.layoutManager.emit('system-modal-opened');
 
+        const { screenshotUIGroup } = Main.layoutManager;
+        screenshotUIGroup.get_parent().set_child_above_sibling(
+            screenshotUIGroup, null);
+
         const grabResult = this._grabHelper.grab({
             actor: this,
             onUngrab: () => this.close(),
@@ -2064,7 +2068,7 @@ function _storeScreenshot(bytes, pixbuf) {
 
     if (!disableSaveToDisk) {
         const dir = Gio.File.new_for_path(GLib.build_filenamev([
-            GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES),
+            GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES) || GLib.get_home_dir(),
             // Translators: name of the folder under ~/Pictures for screenshots.
             _('Screenshots'),
         ]));
