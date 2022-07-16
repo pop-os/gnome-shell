@@ -155,7 +155,7 @@ class IbusCandidatePopup extends BoxPointer.BoxPointer {
         this._dummyCursor = new Clutter.Actor({ opacity: 0 });
         Main.layoutManager.uiGroup.add_actor(this._dummyCursor);
 
-        Main.layoutManager.addChrome(this);
+        Main.layoutManager.addTopChrome(this);
 
         const box = new St.BoxLayout({
             style_class: 'candidate-popup-content',
@@ -272,6 +272,7 @@ class IbusCandidatePopup extends BoxPointer.BoxPointer {
                 indexes.push(indexLabel.get_text());
 
             Main.keyboard.resetSuggestions();
+            Main.keyboard.setSuggestionsVisible(visible);
 
             let candidates = [];
             for (let i = startIndex; i < endIndex; ++i) {
@@ -291,10 +292,12 @@ class IbusCandidatePopup extends BoxPointer.BoxPointer {
             this._candidateArea.updateButtons(lookupTable.is_round(), page, nPages);
         });
         panelService.connect('show-lookup-table', () => {
+            Main.keyboard.setSuggestionsVisible(true);
             this._candidateArea.show();
             this._updateVisibility();
         });
         panelService.connect('hide-lookup-table', () => {
+            Main.keyboard.setSuggestionsVisible(false);
             this._candidateArea.hide();
             this._updateVisibility();
         });
@@ -321,7 +324,12 @@ class IbusCandidatePopup extends BoxPointer.BoxPointer {
         if (isVisible) {
             this.setPosition(this._dummyCursor, 0);
             this.open(BoxPointer.PopupAnimation.NONE);
-            this.get_parent().set_child_above_sibling(this, null);
+            // We shouldn't be above some components like the screenshot UI,
+            // so don't raise to the top.
+            // The on-screen keyboard is expected to be above any entries,
+            // so just above the keyboard gets us to the right layer.
+            const { keyboardBox } = Main.layoutManager;
+            this.get_parent().set_child_above_sibling(this, keyboardBox);
         } else {
             this.close(BoxPointer.PopupAnimation.NONE);
         }
