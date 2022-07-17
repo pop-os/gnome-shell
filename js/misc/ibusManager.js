@@ -90,24 +90,41 @@ var IBusManager = class {
             this._spawn(Meta.is_wayland_compositor() ? [] : ['--xim']);
     }
 
+    _tryAppendEnv(env, varname) {
+        const value = GLib.getenv(varname);
+        if (value)
+            env.push(`${varname}=${value}`);
+    }
+
     _spawn(extraArgs = []) {
         try {
             let cmdLine = ['ibus-daemon', '--panel', 'disable', ...extraArgs];
-            // Forward the right X11 Display for ibus-x11
-            let display = GLib.getenv('GNOME_SETUP_DISPLAY');
             let env = [];
 
-            if (display)
-                env.push('DISPLAY=%s'.format(display));
-            GLib.spawn_async(
+            this._tryAppendEnv(env, 'DBUS_SESSION_BUS_ADDRESS');
+            this._tryAppendEnv(env, 'WAYLAND_DISPLAY');
+            this._tryAppendEnv(env, 'HOME');
+            this._tryAppendEnv(env, 'LANG');
+            this._tryAppendEnv(env, 'LC_CTYPE');
+            this._tryAppendEnv(env, 'COMPOSE_FILE');
+            this._tryAppendEnv(env, 'DISPLAY');
+
+            // Use DO_NOT_REAP_CHILD to avoid adouble-fork internally
+            // since ibus-daemon refuses to start with init as its parent.
+            const [success_, pid] = GLib.spawn_async(
                 null, cmdLine, env,
-                GLib.SpawnFlags.SEARCH_PATH,
+                GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
                 () => {
                     try {
                         global.context.restore_rlimit_nofile();
                     } catch (err) {
                     }
                 }
+            );
+            GLib.child_watch_add(
+                GLib.PRIORITY_DEFAULT,
+                pid,
+                () => GLib.spawn_close_pid(pid)
             );
         } catch (e) {
             log(`Failed to launch ibus-daemon: ${e.message}`);
