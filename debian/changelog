@@ -1,4 +1,4 @@
-gnome-shell (42.3.1-1ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (42.3.1-1ubuntu1) kinetic; urgency=medium
 
   * Merge with Debian (LP: #1981937) Remaining changes with Debian:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -72,22 +72,13 @@ gnome-shell (42.3.1-1ubuntu1) UNRELEASED; urgency=medium
       + Support loading Yaru theme variants (for accent color)
     - ubuntu/Revert-dash-Use-pin-instead-of-favorites
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 17 Jul 2022 22:31:40 +0200
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 17 Jul 2022 22:54:29 +0200
 
 gnome-shell (42.3.1-1) unstable; urgency=medium
 
   * New upstream release
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 16 Jul 2022 18:16:17 +0200
-
-gnome-shell (42.2-0ubuntu2) kinetic; urgency=medium
-
-  * Drop two patches that support the old gnome-control-center
-    desktop file (LP: #1980245):
-    - js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
-    - Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
-
- -- Nathan Pratta Teodosio <nathan.teodosio@canonical.com>  Thu, 30 Jun 2022 08:23:15 -0300
 
 gnome-shell (42.2-1) unstable; urgency=medium
 
@@ -146,6 +137,15 @@ gnome-shell (42.0-3) unstable; urgency=medium
   * Bump Recommends to gnome-control-center (>= 1:42)
 
  -- Simon McVittie <smcv@debian.org>  Wed, 13 Apr 2022 16:47:53 +0100
+
+gnome-shell (42.2-0ubuntu2) kinetic; urgency=medium
+
+  * Drop two patches that support the old gnome-control-center
+    desktop file (LP: #1980245):
+    - js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
+    - Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
+
+ -- Nathan Pratta Teodosio <nathan.teodosio@canonical.com>  Thu, 30 Jun 2022 08:23:15 -0300
 
 gnome-shell (42.2-0ubuntu1) kinetic; urgency=medium
 
