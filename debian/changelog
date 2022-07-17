@@ -1,3 +1,85 @@
+gnome-shell (42.3.1-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with Debian (LP: #1981937) Remaining changes with Debian:
+    - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
+      gnome-themes-standard-data, gnome-backgrounds
+    - Add some Recommends:
+      + ubuntu-session (| gnome-session) to have the ubuntu session available
+      + xserver-xorg-legacy
+      + yaru-theme-gnome-shell for the default ubuntu theming
+      + gnome-remote-desktop to provide remote desktop support by default
+    - Moved some Recommends to Suggests:
+      + chrome-gnome-shell
+    - Break gnome-shell-extension-desktop-icons (<< 68ubuntu20.10.1)
+    - gnome-shell-common.prerm: Remove deprecated ubuntu theme alternative
+    - Update debian/gbp.conf with Ubuntu settings
+    - debian/ubuntu-session-mods/ubuntu.json: Use Yaru's gnome-shell icons
+    - debian/patches: Do not hang & crash if fingerprint service fails to start
+      (LP: #1962566)
+    - ubuntu/desktop_detect.patch:
+      + add caching for desktop detection to avoid querying the current
+        desktop env variable as iterate through the list each time. For the
+        time of the Shell process, we can expect this env variable to stay
+        stable.
+    - ubuntu/lightdm-user-switching.patch:
+      + Allow user switching when using LightDM.
+    - ubuntu/lock_on_suspend.patch
+      + Respect Ubuntu's lock-on-suspend setting.
+    - ubuntu/background_login.patch
+      + Change default background color as we modified the default GDM color
+        for our ubuntu session.
+    - ubuntu/gdm_alternatives.patch
+      + Add support for GDM3 theme alternatives
+    - main-show-an-error-message-on-gnome-shell-crash.patch,
+      global-make-possible-to-set-debug-flags-dynamically.patch,
+      main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch,
+      main-add-backtrace-crashes-all-and-backtrace-all.patch,
+      sessionMode-add-support-for-debugFlags-parameter.patch:
+      + Improve debug JS tracing for crash reports
+    - ubuntu/smarter_alt_tab.patch:
+      + quick alt-tab (without showing up the switcher) switch only between
+        the last window of the last 2 applications to be focused instead of
+        raising all windows of those apps.
+    - magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch:
+      + Show monitor scaled cursor when magnifier is enabled
+    - ubuntu/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch:
+      + stop searches when requested from UI
+    - magnifier-Show-cursor-when-magnifier-is-enabled-and-scale.patch
+    - u/search-call-XUbuntuCancel-method-on-providers-when-no-dat.patch
+    - ubuntu/resolve_alternate_theme_path.patch
+    - ubuntu/secure_mode_extension.patch
+    - ubuntu/keep-ubuntu-logo-bright-lp1867133-v1.patch
+    - ubuntu/configure_login_screen.patch
+    - ubuntu/layout-Make-starting-in-the-overview-optional.patch:
+      + Makes dock replace overview easier
+    - ubuntu/layout-Try-to-allocate-before-getting-size-of-tracke.patch:
+      + Ensure windows don't get maximized under the panels / dock
+    - debian/patches: Compute system background color from theme (LP: #1965727)
+    - ubuntu/configure-login-screen.patch: Use bg color for initial system bg
+      (LP: #1965727)
+    - debian/patches: Ensure St.Entry's `selected-color` CSS property is
+      honored (LP: #1878998)
+    - ubuntu/support-loading-Yaru-variants: Handle dark/light variants better
+    - d/p/use-favorites-strings: Only apply this to ubuntu session
+    - debian/patches: Support configuring icons resource to use for mode
+    - Revert-st-Apply-css-foreground-color-to-text-as-a-PangoAt.patch:
+      + Ensure selected-text foreground color is preserved
+    - u/main-Avoid-meta-finalize: Leak gjs context only on ubiquity sessions
+      (LP: #1964458)
+    - ubuntu/sessionMode-Add-support-for-configuring-an-icons-resource.patch:
+      + Support loading iconsResourceName from session file
+    - ubuntu/main-Support-loading-multiple-Yaru-theme-variants.patch:
+      + Support loading Yaru theme variants (for accent color)
+    - ubuntu/Revert-dash-Use-pin-instead-of-favorites
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 17 Jul 2022 22:31:40 +0200
+
+gnome-shell (42.3.1-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Sat, 16 Jul 2022 18:16:17 +0200
+
 gnome-shell (42.2-0ubuntu2) kinetic; urgency=medium
 
   * Drop two patches that support the old gnome-control-center
@@ -6,6 +88,64 @@ gnome-shell (42.2-0ubuntu2) kinetic; urgency=medium
     - Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
 
  -- Nathan Pratta Teodosio <nathan.teodosio@canonical.com>  Thu, 30 Jun 2022 08:23:15 -0300
+
+gnome-shell (42.2-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 06 Jun 2022 11:05:06 +0100
+
+gnome-shell (42.1-1) unstable; urgency=medium
+
+  * New upstream release (LP: #1973373, LP: #1968911)
+  * Drop all patches except 1 Debian-specific patch: applied in new release
+  * Release to unstable
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 13 May 2022 15:09:47 -0400
+
+gnome-shell (42.0-5) experimental; urgency=medium
+
+  * Team upload
+  * d/patches: Update to upstream git commit 42.0-84-g9ee7af233
+    - Bug fixes targeted for 42.1
+    - Translation updates
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 25 Apr 2022 10:04:11 +0100
+
+gnome-shell (42.0-4) unstable; urgency=medium
+
+  * Team upload
+
+  [ Pablo Mazzini ]
+  * Move evolution-data-server from Depends to Recommends
+    (Closes: #869230)
+
+  [ Simon McVittie ]
+  * Update to upstream git commit 42.0-69-g653697683
+    - Bug fixes targeted for 42.1
+    - Translation updates
+    - Update metadata of patches that were already present
+
+ -- Simon McVittie <smcv@debian.org>  Tue, 19 Apr 2022 12:28:27 +0100
+
+gnome-shell (42.0-3) unstable; urgency=medium
+
+  * Team upload
+
+  [ Jeremy Bicha ]
+  * Move Debian-specific temporary patches to debian/
+  * debian/control.in: Recommend power-profiles-daemon for power mode feature
+
+  [ Simon McVittie ]
+
+  * d/p/Specify-API-versions-for-all-public-GIR-APIs-except-GLib.patch:
+    Add patch to make Shell more robust against GIR API breaks.
+    This avoids future bugs similar to #1008926.
+  * d/patches: Remove compatibility with older gnome-control-center
+  * Bump Recommends to gnome-control-center (>= 1:42)
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 13 Apr 2022 16:47:53 +0100
 
 gnome-shell (42.2-0ubuntu1) kinetic; urgency=medium
 
