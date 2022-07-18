@@ -1,4 +1,4 @@
-gnome-shell (42.3.1-2ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (42.3.1-2ubuntu1) kinetic; urgency=medium
 
   * Merge with Debian (LP: #1981937) Remaining changes with Debian:
     - Replace gnome-backgrounds dep with ubuntu-wallpapers and Suggests
@@ -71,7 +71,7 @@ gnome-shell (42.3.1-2ubuntu1) UNRELEASED; urgency=medium
       + Support loading Yaru theme variants (for accent color)
     - ubuntu/Revert-dash-Use-pin-instead-of-favorites
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 17 Jul 2022 22:54:29 +0200
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 18 Jul 2022 07:39:38 +0200
 
 gnome-shell (42.3.1-2) unstable; urgency=medium
 
