@@ -1,8 +1,10 @@
-gnome-shell (42.3.1-0ubuntu1) jammy; urgency=medium
+gnome-shell (42.3.1-0ubuntu2) jammy; urgency=medium
 
   * New upstream release (LP: #1981937)
+  * Cherry-pick patch to allow Extension Manager update feature to work
+    without the older Extensions app installed (LP: #1981952)
 
- -- Jeremy Bicha <jbicha@ubuntu.com>  Sun, 17 Jul 2022 22:59:29 +0200
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 18 Jul 2022 07:43:39 +0200
 
 gnome-shell (42.2-0ubuntu0.2) jammy; urgency=medium
 
