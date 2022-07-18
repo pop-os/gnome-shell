@@ -1,3 +1,15 @@
+gnome-shell (42.3.1-2) unstable; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/source_gnome-shell.py: Support gdm name only
+  * debian/control: Recommend gnome-remote-desktop
+
+  [ Jeremy Bicha ]
+  * Cherry-pick patch to allow Extension Manager update feature to work
+    without the older Extensions app installed (LP: #1981952)
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Mon, 18 Jul 2022 07:36:31 +0200
+
 gnome-shell (42.3.1-1) unstable; urgency=medium
 
   * New upstream release
