@@ -1,3 +1,9 @@
+gnome-shell (42.3.1-2ubuntu1pop1) jammy; urgency=medium
+
+  * Backport to Pop
+
+ -- Michael Aaron Murphy <mmstick@pm.me>  Wed, 20 Jul 2022 16:24:58 +0200
+
 gnome-shell (42.3.1-2ubuntu1) kinetic; urgency=medium
 
   * Merge with Debian (LP: #1981937) Remaining changes with Debian:
