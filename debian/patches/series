@@ -1,6 +1,8 @@
 gmd-util-Only-start-fingerprint-service-synchronously-whe.patch
 debian/gnome-shell-extension-prefs-Give-Debian-specific-advice.patch
 extensions-Allow-updating-with-only-extension-manager-ins.patch
+Revert-ui-Rename-gnome-control-center-to-org.gnome.Settin.patch
+js-Support-legacy-GNOME-Control-Center-now-Settings-dbus-.patch
 ubuntu/desktop_detect.patch
 ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
