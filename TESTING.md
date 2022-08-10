@@ -63,6 +63,59 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
      - [ ] Workspaces and Applications can be toggled on an off
      - [ ] Date & Time position can be move Center, Left, Right
      - [ ] Windows Controls Minimize and Maximize can be toggled on and off
+     
+### GNOME Shell Extensions
+
+#### Dock
+- [ ] Settings > Desktop > Dock (toggle the settings)
+     - [ ] Enable Dock
+     - [ ] Extend dock to the edges of the screen 
+     - [ ] Show Launcher in Dock
+     - [ ] Show Workspaces in Dock
+     - [ ] Show Application in Dock
+     - [ ] Dock visibility can be changed
+       - [ ] Dock shows and hides when set to Always Hide
+       - [ ] Dock hides when a window is maximized when set to Intelligently Hide
+     - [ ] Dock size can be changed
+     - [ ] Dock position can be changed
+     - [ ] Dock and Icon Alignment on the Screen can be changed
+     
+#### Workspaces
+- [ ] Settings > Desktop > Workspaces
+     - [ ] Switch between Dynamic and Fixed Workspaces
+     - [ ] Change number of Fixed Workspaces
+     - [ ] Change Multi-monitor Behavior (requires testing with external display)
+     - [ ] Change placement of the Workspace Picker
+     
+#### Gestures
+- [ ] Four finger swipe up and down switches between workspaces
+- [ ] Four finger swipe left toggles workspace menu
+- [ ] Four finger swipe right toggles applications menu
+- [ ] Pinch-Zoom works for the following apps
+  - Firefox
+  - GNOME Terminal
+  - GIMP and Glimpse
+  - Nautilus
+  - Image Viewer
+  - Inkscape
+  
+##### With tiling and show active hint enabled open any two windows.
+- With windows next to each other.
+  - [ ] Three finger swipe left and right swaps focus between the windows
+- With windows on top of each other.
+  - [ ] Three finger swipe up and down swaps focus between the windows
+  
+#### Desktop Icons NG (DING)
+##### Test on an empty workspace right click and select Desktop Icons Settings
+- [ ] Show the personal folder in the desktop
+- [ ] Show the trash icon in the desktop
+- [ ] Show external driver in the desktop
+- [ ] Change size of the icons in the desktop
+
+#### Install and open any of the following
+##### Mattermost, Slack, Psensor, Steam
+##### With any or all of the apps running open Extensions and toggle Ubuntu AppIndicators
+- [ ] Toggling on and off hides and shows AppIndicators in the Top Bar
 
 ### Reset GNOME Shell
 - [ ] Gnome Shell restarts with `Alt` + `F2` type `r` and `Enter`
@@ -82,6 +135,6 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
   - [ ] Hide Battery Percentage
     - `gsettings set org.gnome.desktop.interface show-battery-percentage true`
 
-### Reset GNOME initial setup
-Run `sudo rm .config/gnome-initial-setup-done` then log out and log back in. 
- - [ ] Run through the initial setup
+### Testing for pop-shell
+After running all tests run through the pop-shell testing checklist
+ - [ ] All pop-shell testing passed [pop-shell testing](https://github.com/pop-os/shell/blob/master_jammy/TESTING.md)
