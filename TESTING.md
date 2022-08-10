@@ -55,7 +55,7 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
      - Power Off
      - Log Out
 
-### GNOME Shell Settings (this could use more specific tests)
+### GNOME Shell Settings
  - [ ] Settings can be launched and settings can be changed
  - [ ] Settings > Desktop > Desktop Options
      - [ ] Superkey action can be changed
