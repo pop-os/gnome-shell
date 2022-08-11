@@ -63,7 +63,8 @@ var ExtensionManager = class {
 
     get updatesSupported() {
         const appSys = Shell.AppSystem.get_default();
-        return appSys.lookup_app('org.gnome.Extensions.desktop') !== null;
+        return (appSys.lookup_app('org.gnome.Extensions.desktop') !== null) ||
+               (appSys.lookup_app('com.mattjakeman.ExtensionManager.desktop') !== null);
     }
 
     lookup(uuid) {
@@ -373,7 +374,8 @@ var ExtensionManager = class {
             this.logExtensionError(extension.uuid, new Error(
                 'A different version was loaded previously. You need to log out for changes to take effect.'));
         } else {
-            let enabled = this._enabledExtensions.includes(extension.uuid);
+            let enabled = this._enabledExtensions.includes(extension.uuid) &&
+                          this._extensionSupportsSessionMode(extension.uuid);
             if (enabled) {
                 if (!this._callExtensionInit(extension.uuid))
                     return;
@@ -662,6 +664,8 @@ class ExtensionUpdateSource extends MessageTray.Source {
     _init() {
         let appSys = Shell.AppSystem.get_default();
         this._app = appSys.lookup_app('org.gnome.Extensions.desktop');
+        if (!this._app)
+            this._app = appSys.lookup_app('com.mattjakeman.ExtensionManager.desktop');
 
         super._init(this._app.get_name());
     }

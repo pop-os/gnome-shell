@@ -380,15 +380,15 @@ StScrollBar {
     .popup-menu-item:focus:active, .popup-menu-item:hover:active {
       background-color: #4e4e4e !important; }
   .popup-menu-item:checked {
-    background-color: #565656 !important; }
+    background-color: #424242 !important; }
   .popup-menu-item:checked {
     margin-bottom: 0;
-    box-shadow: inset 0 -1px 0 0 #494949;
+    box-shadow: inset 0 -1px 0 0 #353535;
     border-radius: 8px 8px 0 0; }
     .popup-menu-item:checked:focus, .popup-menu-item:checked:hover {
-      background-color: #5e5e5e !important; }
+      background-color: #494949 !important; }
     .popup-menu-item:checked:active {
-      background-color: #636363 !important; }
+      background-color: #4e4e4e !important; }
   .popup-menu-item:active {
     background-color: #5b5b5b;
     color: white; }
@@ -409,7 +409,7 @@ StScrollBar {
   icon-size: 16px !important; }
 
 .popup-sub-menu {
-  background-color: #565656;
+  background-color: #424242;
   border-radius: 0 0 8px 8px; }
   .popup-sub-menu .popup-menu-ornament {
     min-width: 1.09em !important; }
@@ -419,13 +419,13 @@ StScrollBar {
     .popup-sub-menu .popup-menu-item:last-child {
       border-radius: 0 0 8px 8px; }
     .popup-sub-menu .popup-menu-item:focus, .popup-sub-menu .popup-menu-item:hover {
-      background-color: #636363 !important; }
+      background-color: #494949 !important; }
     .popup-sub-menu .popup-menu-item:checked {
-      background-color: #6f6f6f !important; }
+      background-color: #424242 !important; }
       .popup-sub-menu .popup-menu-item:checked:focus, .popup-sub-menu .popup-menu-item:checked:hover {
-        background-color: #6a6a6a !important; }
+        background-color: #565656 !important; }
     .popup-sub-menu .popup-menu-item:active {
-      background-color: #686868 !important; }
+      background-color: #4e4e4e !important; }
   .popup-sub-menu .popup-menu-section .popup-menu-item:last-child:hover, .popup-sub-menu .popup-menu-section .popup-menu-item:last-child:focus {
     border-radius: 0; }
   .popup-sub-menu .popup-menu-section:last-child .popup-menu-item:last-child {
@@ -1138,6 +1138,10 @@ StScrollBar {
   /* Reasonable maximum dimensions */
   height: 300px;
   width: 300px; }
+
+/* Access portal dialog */
+.access-dialog {
+  text-align: center; }
 
 /* Select Network dialogs */
 .nm-dialog {

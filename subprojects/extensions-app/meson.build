@@ -1,12 +1,14 @@
 project('gnome-extensions-app',
-  version: '42.3.1',
+  version: '42.4',
   meson_version: '>= 0.58.0',
   license: 'GPLv2+'
 )
 
 if get_option('profile') == 'development'
   profile = '.Devel'
-  vcs_tag = run_command('git', 'rev-parse', '--short', '@').stdout().strip()
+  vcs_tag = run_command('git', 'rev-parse', '--short', '@',
+    check: false,
+  ).stdout().strip()
 else
   profile = ''
   vcs_tag = ''
