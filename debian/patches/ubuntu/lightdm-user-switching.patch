@@ -12,7 +12,7 @@ https://bugzilla.gnome.org/show_bug.cgi?id=685794
  1 file changed, 40 insertions(+), 7 deletions(-)
 
 diff --git a/js/misc/systemActions.js b/js/misc/systemActions.js
-index b43f93a..a606a52 100644
+index 6d0e049..0b3ba56 100644
 --- a/js/misc/systemActions.js
 +++ b/js/misc/systemActions.js
 @@ -224,6 +224,34 @@ const SystemActions = GObject.registerClass({
@@ -59,7 +59,7 @@ index b43f93a..a606a52 100644
          this.notify('can-lock-screen');
      }
  
-@@ -415,20 +443,25 @@ const SystemActions = GObject.registerClass({
+@@ -412,20 +440,25 @@ const SystemActions = GObject.registerClass({
          if (!this._actions.get(LOCK_SCREEN_ACTION_ID).available)
              throw new Error('The lock-screen action is not available!');
  

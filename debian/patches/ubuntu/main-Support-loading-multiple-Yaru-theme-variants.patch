@@ -140,7 +140,7 @@ index b81b264..2e844de 100644
          stylesheet = _getStylesheet(sessionMode.stylesheetName);
  
 diff --git a/src/st/st-settings.c b/src/st/st-settings.c
-index 839171b..8714671 100644
+index 04bf68f..aa2c41a 100644
 --- a/src/st/st-settings.c
 +++ b/src/st/st-settings.c
 @@ -33,6 +33,7 @@

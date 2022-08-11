@@ -25,7 +25,7 @@ index edc16eb..41d0fc9 100644
              'org.gnome.SettingsDaemon.MediaKeys',
          ]);
 diff --git a/js/ui/status/network.js b/js/ui/status/network.js
-index 05f27fc..7e75a01 100644
+index 1590499..659d09f 100644
 --- a/js/ui/status/network.js
 +++ b/js/ui/status/network.js
 @@ -90,6 +90,23 @@ function launchSettingsPanel(panel, ...args) {

@@ -128,7 +128,7 @@ index 549dcd8..714ca74 100644
    shell_profiler_init ();
  
 diff --git a/src/shell-global.c b/src/shell-global.c
-index efe1271..2794f9f 100644
+index 60f078f..ed1ff69 100644
 --- a/src/shell-global.c
 +++ b/src/shell-global.c
 @@ -59,6 +59,7 @@ struct _ShellGlobal {
@@ -181,7 +181,7 @@ index efe1271..2794f9f 100644
    g_object_class_install_properties (gobject_class, N_PROPS, props);
  }
  
-@@ -1842,3 +1857,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
+@@ -1847,3 +1862,40 @@ _shell_global_locate_pointer (ShellGlobal *global)
  {
    g_signal_emit (global, shell_global_signals[LOCATE_POINTER], 0);
  }

@@ -16,10 +16,10 @@ Forwarded: yes
  2 files changed, 73 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 0f279f8..f99254c 100644
+index 9bce258..075d28d 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -946,22 +946,38 @@ var LayoutManager = GObject.registerClass({
+@@ -951,22 +951,38 @@ var LayoutManager = GObject.registerClass({
          return ws.get_work_area_for_monitor(monitorIndex);
      }
  
@@ -63,7 +63,7 @@ index 0f279f8..f99254c 100644
          if (!this._updateRegionIdle) {
              this._updateRegionIdle = Meta.later_add(Meta.LaterType.BEFORE_REDRAW,
 diff --git a/js/ui/magnifier.js b/js/ui/magnifier.js
-index 8ff062b..5e915e6 100644
+index 44cdef0..b9e6942 100644
 --- a/js/ui/magnifier.js
 +++ b/js/ui/magnifier.js
 @@ -45,6 +45,8 @@ var MouseSpriteContent = GObject.registerClass({

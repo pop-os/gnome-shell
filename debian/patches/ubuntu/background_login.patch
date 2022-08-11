@@ -16,10 +16,10 @@ Forwarded: not-needed
  1 file changed, 10 insertions(+), 1 deletion(-)
 
 diff --git a/js/ui/background.js b/js/ui/background.js
-index 198194a..15ae239 100644
+index a68f233..3e44923 100644
 --- a/js/ui/background.js
 +++ b/js/ui/background.js
-@@ -527,7 +527,16 @@ var SystemBackground = GObject.registerClass({
+@@ -529,7 +529,16 @@ var SystemBackground = GObject.registerClass({
      _init() {
          if (_systemBackground == null) {
              _systemBackground = new Meta.Background({ meta_display: global.display });

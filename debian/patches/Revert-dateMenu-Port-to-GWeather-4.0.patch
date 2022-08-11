@@ -12,7 +12,7 @@ for this tiny change
  2 files changed, 10 insertions(+), 10 deletions(-)
 
 diff --git a/js/ui/dateMenu.js b/js/ui/dateMenu.js
-index 2e5c141..05fc102 100644
+index f3cb006..d3456ee 100644
 --- a/js/ui/dateMenu.js
 +++ b/js/ui/dateMenu.js
 @@ -382,13 +382,9 @@ class WorldClocksSection extends St.Button {
@@ -31,7 +31,7 @@ index 2e5c141..05fc102 100644
          });
  
          let layout = this._grid.layout_manager;
-@@ -466,9 +462,8 @@ class WorldClocksSection extends St.Button {
+@@ -469,9 +465,8 @@ class WorldClocksSection extends St.Button {
      }
  
      _getTimezoneOffsetAtLocation(location) {
@@ -42,7 +42,7 @@ index 2e5c141..05fc102 100644
          const offsetCurrentTz = utcOffset - localOffset;
          const offsetHours =
              Math.floor(Math.abs(offsetCurrentTz) / GLib.TIME_SPAN_HOUR);
-@@ -482,12 +477,17 @@ class WorldClocksSection extends St.Button {
+@@ -486,12 +481,17 @@ class WorldClocksSection extends St.Button {
          return text;
      }
  

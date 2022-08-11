@@ -54,7 +54,7 @@ index 94ba8fa..54b1105 100644
              version: extension.metadata.version,
          };
 diff --git a/js/ui/extensionSystem.js b/js/ui/extensionSystem.js
-index 41a03fd..fd7899c 100644
+index 3cc0048..86d7882 100644
 --- a/js/ui/extensionSystem.js
 +++ b/js/ui/extensionSystem.js
 @@ -4,6 +4,7 @@
@@ -65,7 +65,7 @@ index 41a03fd..fd7899c 100644
  const ExtensionDownloader = imports.ui.extensionDownloader;
  const ExtensionUtils = imports.misc.extensionUtils;
  const FileUtils = imports.misc.fileUtils;
-@@ -412,6 +413,10 @@ var ExtensionManager = class {
+@@ -432,6 +433,10 @@ var ExtensionManager = class {
          this.loadExtension(newExtension);
      }
  
@@ -76,7 +76,7 @@ index 41a03fd..fd7899c 100644
      _callExtensionInit(uuid) {
          if (!this._extensionSupportsSessionMode(uuid))
              return false;
-@@ -602,6 +607,10 @@ var ExtensionManager = class {
+@@ -622,6 +627,10 @@ var ExtensionManager = class {
              let type = dir.has_prefix(perUserDir)
                  ? ExtensionType.PER_USER
                  : ExtensionType.SYSTEM;

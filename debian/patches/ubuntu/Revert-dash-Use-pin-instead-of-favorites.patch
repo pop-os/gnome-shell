@@ -57,10 +57,10 @@ index 18fc3d0..da3a263 100644
              forFeedback: true,
              undoCallback: () => this._addFavorite(appId, pos),
 diff --git a/js/ui/appMenu.js b/js/ui/appMenu.js
-index 3ee64bf..ca2fdf7 100644
+index 010fdb3..e96043b 100644
 --- a/js/ui/appMenu.js
 +++ b/js/ui/appMenu.js
-@@ -152,9 +152,10 @@ var AppMenu = class AppMenu extends PopupMenu.PopupMenu {
+@@ -153,9 +153,10 @@ var AppMenu = class AppMenu extends PopupMenu.PopupMenu {
              return;
  
          const { id } = this._app;

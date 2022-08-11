@@ -34,7 +34,7 @@ Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2267
  1 file changed, 102 insertions(+), 25 deletions(-)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index 53cbb72..e78bd2c 100644
+index a4c796b..8829ebd 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
 @@ -43,6 +43,7 @@ var DISABLE_USER_LIST_KEY = 'disable-user-list';
@@ -122,7 +122,7 @@ index 53cbb72..e78bd2c 100644
      }
  
      destroy() {
-@@ -375,31 +413,57 @@ var ShellUserVerifier = class {
+@@ -372,31 +410,57 @@ var ShellUserVerifier = class {
      }
  
      _checkForFingerprintReader() {
@@ -194,7 +194,7 @@ index 53cbb72..e78bd2c 100644
      _onCredentialManagerAuthenticated(credentialManager, _token) {
          this._preemptingService = credentialManager.service;
          this.emit('credential-manager-authenticated');
-@@ -498,6 +562,7 @@ var ShellUserVerifier = class {
+@@ -495,6 +559,7 @@ var ShellUserVerifier = class {
              'problem', this._onProblem.bind(this),
              'info-query', this._onInfoQuery.bind(this),
              'secret-info-query', this._onSecretInfoQuery.bind(this),
@@ -202,7 +202,7 @@ index 53cbb72..e78bd2c 100644
              'conversation-stopped', this._onConversationStopped.bind(this),
              'service-unavailable', this._onServiceUnavailable.bind(this),
              'reset', this._onReset.bind(this),
-@@ -541,6 +606,10 @@ var ShellUserVerifier = class {
+@@ -538,6 +603,10 @@ var ShellUserVerifier = class {
              this._defaultService = SMARTCARD_SERVICE_NAME;
          else if (this._fingerprintReaderType !== FingerprintReaderType.NONE)
              this._defaultService = FINGERPRINT_SERVICE_NAME;
@@ -213,7 +213,7 @@ index 53cbb72..e78bd2c 100644
  
          if (!this._defaultService) {
              log("no authentication service is enabled, using password authentication");
-@@ -579,11 +648,14 @@ var ShellUserVerifier = class {
+@@ -576,11 +645,14 @@ var ShellUserVerifier = class {
  
      _beginVerification() {
          this._startService(this._getForegroundService());
@@ -229,7 +229,7 @@ index 53cbb72..e78bd2c 100644
      }
  
      _onChoiceListQuery(client, serviceName, promptMessage, list) {
-@@ -676,8 +748,9 @@ var ShellUserVerifier = class {
+@@ -673,8 +745,9 @@ var ShellUserVerifier = class {
      _onReset() {
          // Clear previous attempts to authenticate
          this._failCounter = 0;
@@ -240,7 +240,7 @@ index 53cbb72..e78bd2c 100644
  
          this.emit('reset');
      }
-@@ -756,6 +829,10 @@ var ShellUserVerifier = class {
+@@ -755,6 +828,10 @@ var ShellUserVerifier = class {
              this._queueMessage(serviceName, errorMessage, MessageType.ERROR);
      }
  

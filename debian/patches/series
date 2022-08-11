@@ -25,4 +25,3 @@ ubuntu/main-Avoid-meta-finalize.patch
 ubuntu/sessionMode-Add-support-for-configuring-an-icons-resource.patch
 ubuntu/main-Support-loading-multiple-Yaru-theme-variants.patch
 ubuntu/Revert-dash-Use-pin-instead-of-favorites.patch
-extensions-Allow-updating-with-only-extension-manager-ins.patch
