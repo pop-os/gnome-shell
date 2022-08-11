@@ -1,10 +1,10 @@
-gnome-shell (42.4-0ubuntu0.22.04.1) UNRELEASED; urgency=medium
+gnome-shell (42.4-0ubuntu0.22.04.1) jammy; urgency=medium
 
   * New upstream release (LP: #1985304):
     - Fix logging in with realmd (LP: #1985128)
   * debian/patches: Refresh and drop applied upstream
 
- -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 11 Aug 2022 17:57:51 -0400
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 11 Aug 2022 17:58:27 -0400
 
 gnome-shell (42.3.1-0ubuntu2) jammy; urgency=medium
 
