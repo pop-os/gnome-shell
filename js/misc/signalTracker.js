@@ -50,9 +50,12 @@ class SignalManager {
      * @returns {SignalTracker} - the signal tracker for object
      */
     getSignalTracker(obj) {
-        if (!this._signalTrackers.has(obj))
-            this._signalTrackers.set(obj, new SignalTracker(obj));
-        return this._signalTrackers.get(obj);
+        let signalTracker = this._signalTrackers.get(obj);
+        if (signalTracker === undefined) {
+            signalTracker = new SignalTracker(obj);
+            this._signalTrackers.set(obj, signalTracker);
+        }
+        return signalTracker;
     }
 }
 
@@ -80,9 +83,12 @@ class SignalTracker {
      * @returns {SignalData} - signal data for object
      */
     _getSignalData(obj) {
-        if (!this._map.has(obj))
-            this._map.set(obj, { ownerSignals: [], destroyId: 0 });
-        return this._map.get(obj);
+        let data = this._map.get(obj);
+        if (data === undefined) {
+            data = { ownerSignals: [], destroyId: 0 };
+            this._map.set(obj, data);
+        }
+        return data;
     }
 
     /**
@@ -96,11 +102,18 @@ class SignalTracker {
         signalData.destroyId = obj.connect_after('destroy', () => this.untrack(obj));
     }
 
-    _disconnectSignal(obj, id) {
-        const proto = obj instanceof GObject.Object
+    _disconnectSignalForProto(proto, obj, id) {
+        proto['disconnect'].call(obj, id);
+    }
+
+    _getObjectProto(obj) {
+        return obj instanceof GObject.Object
             ? GObject.Object.prototype
             : Object.getPrototypeOf(obj);
-        proto['disconnect'].call(obj, id);
+    }
+
+    _disconnectSignal(obj, id) {
+        this._disconnectSignalForProto(this._getObjectProto(obj), obj, id);
     }
 
     /**
@@ -123,7 +136,9 @@ class SignalTracker {
         const { ownerSignals, destroyId } = this._getSignalData(obj);
         this._map.delete(obj);
 
-        ownerSignals.forEach(id => this._disconnectSignal(this._owner, id));
+        const ownerProto = this._getObjectProto(this._owner);
+        ownerSignals.forEach(id =>
+            this._disconnectSignalForProto(ownerProto, this._owner, id));
         if (destroyId)
             this._disconnectSignal(obj, destroyId);
     }
@@ -132,7 +147,7 @@ class SignalTracker {
      * @returns {void}
      */
     clear() {
-        [...this._map.keys()].forEach(obj => this.untrack(obj));
+        this._map.forEach((_, obj) => this.untrack(obj));
     }
 
     /**
@@ -169,16 +184,18 @@ function connectObject(thisObj, ...args) {
             return [signalName, handler, 0, arg, ...rest];
 
         const flags = arg;
-        if (flags > GObject.ConnectFlags.SWAPPED)
+        let flagsMask = 0;
+        Object.values(GObject.ConnectFlags).forEach(v => (flagsMask |= v));
+        if (!(flags & flagsMask))
             throw new Error(`Invalid flag value ${flags}`);
-        if (flags === GObject.ConnectFlags.SWAPPED)
+        if (flags & GObject.ConnectFlags.SWAPPED)
             throw new Error('Swapped signals are not supported');
         return [signalName, handler, flags, ...rest];
     };
 
     const connectSignal = (emitter, signalName, handler, flags) => {
         const isGObject = emitter instanceof GObject.Object;
-        const func = flags === GObject.ConnectFlags.AFTER && isGObject
+        const func = (flags & GObject.ConnectFlags.AFTER) && isGObject
             ? 'connect_after'
             : 'connect';
         const emitterProto = isGObject
@@ -194,10 +211,7 @@ function connectObject(thisObj, ...args) {
         args = rest;
     }
 
-    let [obj] = args;
-    if (!obj)
-        obj = globalThis;
-
+    const obj = args.at(0) ?? globalThis;
     const tracker = SignalManager.getDefault().getSignalTracker(thisObj);
     tracker.track(obj, ...signalIds);
 }
