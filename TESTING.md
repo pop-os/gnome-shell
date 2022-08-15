@@ -45,7 +45,7 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
  - [ ] Switchable graphics modes can be changed from the menu
  - [ ] Power modes can be changed from the menu
  - [ ] Settings
-   - Launches gnome settings
+   - Launches GNOME Settings
  - [ ] Lock
    - Locks the desktop
  - [ ] Power Off / Log Out
