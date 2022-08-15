@@ -13,7 +13,7 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
 ### Top Bar
  - [ ] Pop Shell extension icon is showing
  - [ ] Clicking on the clock shows the calendar
- - [ ] Notifications display under the clock
+ - [ ] Notification pop-ups display under the clock
  - [ ] Notifications show in the notifications list
  - [ ] Notifications can be cleared
  - [ ] Do Not Disturb silences notifications 
