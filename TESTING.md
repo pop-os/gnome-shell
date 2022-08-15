@@ -58,11 +58,11 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
 ### GNOME Shell Settings
  - [ ] Settings can be launched and settings can be changed
  - [ ] Settings > Desktop > Desktop Options
-     - [ ] Superkey action can be changed
-     - [ ] Hot corner for workspaces works
-     - [ ] Workspaces and Applications can be toggled on an off
-     - [ ] Date & Time position can be move Center, Left, Right
-     - [ ] Windows Controls Minimize and Maximize can be toggled on and off
+     - [ ] Super Key Action can be changed
+     - [ ] Hot Corner for Workspaces works
+     - [ ] Workspaces and Applications can be toggled on and off
+     - [ ] Date & Time position can be moved to Center, Left, and Right
+     - [ ] Window Controls - Minimize and Maximize can be toggled on and off
      
 ### GNOME Shell Extensions
 
