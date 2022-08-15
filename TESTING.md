@@ -31,7 +31,7 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
    - Wired Connected/Off is showing
    - Turn On/Off (icon changes with state)
  - [ ] Bluetooth
-   - Turning off bluetooth removes it from the menu
+   - Turning off Bluetooth removes it from the menu
  - [ ] Power Menu
   - Machines with switchable graphics
      - Integrated Graphics
