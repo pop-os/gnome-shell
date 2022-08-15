@@ -18,7 +18,7 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
  - [ ] Notifications can be cleared
  - [ ] Do Not Disturb silences notifications 
  - [ ] `Super` + `V` shows notifications list
- - [ ] Open Weather app weather should now display under the calendar
+ - [ ] Open Weather app; weather should now display under the calendar
 
 ### Global/Main Menu (all the following should be showing)
  - [ ] Sound can be adjusted
