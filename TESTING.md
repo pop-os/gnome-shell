@@ -98,11 +98,11 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
 - [ ] Three finger swipe in any direction works to switch focus
   
 #### Desktop Icons NG (DING)
-##### Test on an empty workspace right click and select Desktop Icons Settings
-- [ ] Show the personal folder in the desktop
-- [ ] Show the trash icon in the desktop
-- [ ] Show external driver in the desktop
-- [ ] Change size of the icons in the desktop
+- [ ] Right-click -> Desktop Icons Settings opens settings
+- [ ] Show/hide the personal folder (home folder)
+- [ ] Show/hide the trash icon
+- [ ] Show/hide external drives
+- [ ] Change desktop icon size
 
 #### Install and open any of the following
 ##### Mattermost, Slack, Psensor, Steam
