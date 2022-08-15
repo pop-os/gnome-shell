@@ -23,7 +23,7 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
 ### Global/Main Menu (all the following should be showing)
  - [ ] Sound can be adjusted
  - [ ] Display Brightness can be adjusted
- - [ ] Wi-Fi the following are working
+ - [ ] Wi-Fi (the following are working):
    - Select Network
    - Turn On/Off (icon changes with state)
    - Wi-Fi Settings
