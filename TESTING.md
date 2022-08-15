@@ -66,26 +66,23 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
      
 ### GNOME Shell Extensions
 
-#### Dock
-- [ ] Settings > Desktop > Dock (toggle the settings)
-     - [ ] Enable Dock
-     - [ ] Extend dock to the edges of the screen 
-     - [ ] Show Launcher in Dock
-     - [ ] Show Workspaces in Dock
-     - [ ] Show Application in Dock
-     - [ ] Dock visibility can be changed
-       - [ ] Dock shows and hides when set to Always Hide
-       - [ ] Dock hides when a window is maximized when set to Intelligently Hide
-     - [ ] Dock size can be changed
-     - [ ] Dock position can be changed
-     - [ ] Dock and Icon Alignment on the Screen can be changed
+#### Dock settings (Settings > Desktop > Dock)
+- [ ] General Options
+    - [ ] Enable/Disable Dock
+    - [ ] Extend dock to the edges of the screen 
+    - [ ] Show Launcher, Workspaces, Applications Icons in Dock
+ - [ ] Dock visibility can be changed
+    - [ ] Dock shows and hides when set to Always Hide
+    - [ ] Dock hides when a window is maximized when set to Intelligently Hide
+ - [ ] Dock size can be changed
+ - [ ] Dock position can be changed
+ - [ ] Dock and Icon Alignment on the Screen can be changed
      
-#### Workspaces
-- [ ] Settings > Desktop > Workspaces
-     - [ ] Switch between Dynamic and Fixed Workspaces
-     - [ ] Change number of Fixed Workspaces
-     - [ ] Change Multi-monitor Behavior (requires testing with external display)
-     - [ ] Change placement of the Workspace Picker
+#### Workspaces settings (Settings > Desktop > Workspaces)
+- [ ] Switch between Dynamic and Fixed Workspaces
+- [ ] Change number of Fixed Workspaces
+- [ ] Change Multi-monitor Behavior (requires testing with external display)
+- [ ] Change placement of the Workspace Picker
      
 #### Gestures
 - [ ] Four finger swipe up and down switches between workspaces
@@ -98,12 +95,7 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
   - Nautilus
   - Image Viewer
   - Inkscape
-  
-##### With tiling and show active hint enabled open any two windows.
-- With windows next to each other.
-  - [ ] Three finger swipe left and right swaps focus between the windows
-- With windows on top of each other.
-  - [ ] Three finger swipe up and down swaps focus between the windows
+- [ ] Three finger swipe in any direction works to switch focus
   
 #### Desktop Icons NG (DING)
 ##### Test on an empty workspace right click and select Desktop Icons Settings
