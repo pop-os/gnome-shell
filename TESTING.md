@@ -104,10 +104,10 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
 - [ ] Show/hide external drives
 - [ ] Change desktop icon size
 
-#### Install and open any of the following
-##### Mattermost, Slack, Psensor, Steam
-##### With any or all of the apps running open Extensions and toggle Ubuntu AppIndicators
-- [ ] Toggling on and off hides and shows AppIndicators in the Top Bar
+#### AppIndicators
+
+- [ ] Launch an app that uses the notification tray (Mattermost, Slack, Psensor, Steam)
+- [ ] Open Extensions, toggle Ubuntu AppIndicators off and on (icons hide and show in Top Bar)
 
 ### Reset GNOME Shell
 - [ ] Gnome Shell restarts with `Alt` + `F2` type `r` and `Enter`
