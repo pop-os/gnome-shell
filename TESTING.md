@@ -112,21 +112,19 @@ journalctl -o cat -n 0 -f "$(which gnome-shell)" | grep -v warning
 ### Reset GNOME Shell
 - [ ] Gnome Shell restarts with `Alt` + `F2` type `r` and `Enter`
 
-### Change GNOME Shell Setting from the terminal
-#### Running the following commands makes changes to gnome-shell
-  - [ ] Classic Button Layout
+### Change GNOME Shell settings from the terminal
+  - [ ] Classic button layout
     - `gsettings set org.gnome.desktop.wm.preferences button-layout ':minimize,maximize,close'`
-  - [ ] Default Button Layout
+  - [ ] Default button layout
     - `gsettings set org.gnome.desktop.wm.preferences button-layout ':appmenu,minimize,close'`
-   - [ ] Set time to 24 hour 
+  - [ ] Set time to 24-hour
      - `gsettings set org.gnome.desktop.interface clock-format 24h`
-   - [ ] Set time to default 12 hour
+  - [ ] Set time to default 12-hour
      - `gsettings set org.gnome.desktop.interface clock-format 12h`
-  - [ ] Show Battery Percentage 
+  - [ ] Show battery percentage 
     - `gsettings set org.gnome.desktop.interface show-battery-percentage true`
-  - [ ] Hide Battery Percentage
+  - [ ] Hide battery percentage
     - `gsettings set org.gnome.desktop.interface show-battery-percentage true`
 
-### Testing for pop-shell
-After running all tests run through the pop-shell testing checklist
- - [ ] All pop-shell testing passed [pop-shell testing](https://github.com/pop-os/shell/blob/master_jammy/TESTING.md)
+### Pop Shell
+ - [ ] Complete Pop Shell regression testing checklist: https://github.com/pop-os/shell/blob/master_jammy/TESTING.md
