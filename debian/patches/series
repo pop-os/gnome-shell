@@ -25,3 +25,4 @@ ubuntu/main-Avoid-meta-finalize.patch
 ubuntu/sessionMode-Add-support-for-configuring-an-icons-resource.patch
 ubuntu/main-Support-loading-multiple-Yaru-theme-variants.patch
 ubuntu/Revert-dash-Use-pin-instead-of-favorites.patch
+ubuntu/switchMonitor-fix-initial-selection-on-desktop.patch
