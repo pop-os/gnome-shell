@@ -17,7 +17,6 @@ def add_info(report):
     attach_gsettings_package(report, 'gsettings-desktop-schemas')
     attach_gsettings_package(report, 'mutter-common')
     attach_gsettings_schema(report, 'org.gnome.settings-daemon.plugins.color')
-    attach_gsettings_schema(report, 'org.gnome.settings-daemon.peripherals.mouse')
     attach_gsettings_schema(report, 'org.gnome.settings-daemon.peripherals.touchscreen')
 
     try:
