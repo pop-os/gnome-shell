@@ -1,3 +1,9 @@
+gnome-shell (42.5-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 21 Oct 2022 07:13:47 -0400
+
 gnome-shell (42.4-0ubuntu0.22.04.1) jammy; urgency=medium
 
   * New upstream release (LP: #1985304):
