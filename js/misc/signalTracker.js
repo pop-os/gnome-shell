@@ -57,6 +57,22 @@ class SignalManager {
         }
         return signalTracker;
     }
+
+    /**
+     * @param {Object} obj - object to get signal tracker for
+     * @returns {?SignalTracker} - the signal tracker for object if it exists
+     */
+    maybeGetSignalTracker(obj) {
+        return this._signalTrackers.get(obj) ?? null;
+    }
+
+    /*
+     * @param {Object} obj - object to remove signal tracker for
+     * @returns {void}
+     */
+    removeSignalTracker(obj) {
+        this._signalTrackers.delete(obj);
+    }
 }
 
 class SignalTracker {
@@ -116,6 +132,16 @@ class SignalTracker {
         this._disconnectSignalForProto(this._getObjectProto(obj), obj, id);
     }
 
+    _removeTracker() {
+        if (this._ownerDestroyId)
+            this._disconnectSignal(this._owner, this._ownerDestroyId);
+
+        SignalManager.getDefault().removeSignalTracker(this._owner);
+
+        delete this._ownerDestroyId;
+        delete this._owner;
+    }
+
     /**
      * @param {Object} obj - tracked object
      * @param {...number} handlerIds - tracked handler IDs
@@ -141,6 +167,9 @@ class SignalTracker {
             this._disconnectSignalForProto(ownerProto, this._owner, id));
         if (destroyId)
             this._disconnectSignal(obj, destroyId);
+
+        if (this._map.size === 0)
+            this._removeTracker();
     }
 
     /**
@@ -155,12 +184,7 @@ class SignalTracker {
      */
     destroy() {
         this.clear();
-
-        if (this._ownerDestroyId)
-            this._disconnectSignal(this._owner, this._ownerDestroyId);
-
-        delete this._ownerDestroyId;
-        delete this._owner;
+        this._removeTracker();
     }
 }
 
@@ -225,7 +249,7 @@ function connectObject(thisObj, ...args) {
  * @returns {void}
  */
 function disconnectObject(thisObj, obj) {
-    SignalManager.getDefault().getSignalTracker(thisObj).untrack(obj);
+    SignalManager.getDefault().maybeGetSignalTracker(thisObj)?.untrack(obj);
 }
 
 /**
