@@ -1,6 +1,7 @@
-gnome-shell (42.5-1) UNRELEASED; urgency=medium
+gnome-shell (42.5-0ubuntu1) UNRELEASED; urgency=medium
 
-  * New upstream release
+  * New upstream release (LP: #1993809)
+    - Fix switching monitor with Super-P (LP: #1984147)
 
  -- Jeremy Bicha <jbicha@ubuntu.com>  Fri, 21 Oct 2022 07:13:47 -0400
 
