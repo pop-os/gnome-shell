@@ -1,3 +1,9 @@
+gnome-shell (3.36.9-0ubuntu0.20.04.2pop1) focal; urgency=medium
+
+  * Upstream update
+
+ -- Michael Murphy <michael@mmurphy.dev>  Mon, 30 Jan 2023 18:49:35 +0100
+
 gnome-shell (3.36.9-0ubuntu0.20.04.2) focal; urgency=medium
 
   [ Didier Roche ]
