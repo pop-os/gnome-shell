@@ -1,0 +1,170 @@
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Thu, 11 Mar 2021 10:12:06 +0200
+Subject: Allow configuring login screen background
+
+Configuring login screen backgound and properties is a recurring request
+especially on corporate environment.
+Allows to override the default embedded style in the theme with specific
+gsettings keys.
+Forwarded: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/680
+Bug: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1918613
+Origin: ubuntu
+Index: gnome-shell/data/com.ubuntu.login-screen.gschema.xml.in
+===================================================================
+--- /dev/null
++++ gnome-shell/data/com.ubuntu.login-screen.gschema.xml.in
+@@ -0,0 +1,70 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<schemalist gettext-domain="@GETTEXT_PACKAGE@">
++  <enum id="com.ubuntu.login-screen.BackgroundRepeat">
++    <value value="1" nick="default"/>
++    <value value="2" nick="repeat"/>
++    <value value="3" nick="repeat-x"/>
++    <value value="4" nick="repeat-y"/>
++    <value value="5" nick="no-repeat"/>
++    <value value="6" nick="space"/>
++    <value value="7" nick="round"/>
++  </enum>
++  <enum id="com.ubuntu.login-screen.BackgroundSize">
++    <value value="1" nick="default"/>
++    <value value="2" nick="auto"/>
++    <value value="3" nick="cover"/>
++    <value value="4" nick="contain"/>
++  </enum>
++  <schema id="com.ubuntu.login-screen" path="/com/ubuntu/login-screen/">
++    <key name="background-picture-uri" type="s">
++      <default>''</default>
++      <summary>
++        Sets the background image for the login screen.
++      </summary>
++      <description>
++        URI to use for the background image. Note that the backend only
++        supports local (file://) URIs.
++        It overrides the value defined in the default style sheet.
++      </description>
++    </key>
++    <key name="background-color" type="s">
++      <default>''</default>
++      <summary>
++        The background-color property sets the background color.
++      </summary>
++      <description>
++        The background-color property sets the background color to use when
++        the background picture URI is missing or when it doesn't cover the whole background.
++        It overrides the value defined in the default style sheet.
++      </description>
++    </key>
++    <key name="background-repeat" enum="com.ubuntu.login-screen.BackgroundRepeat">
++      <default>'default'</default>
++      <summary>
++        The background-repeat property sets if/how the background image will be repeated.
++      </summary>
++      <description>
++        The background-repeat property sets if/how a background image will be repeated.
++        By default, a background-image is repeated both vertically and horizontally.
++
++        It overrides the value defined in the default style sheet.
++      </description>
++    </key>
++    <key name="background-size" enum="com.ubuntu.login-screen.BackgroundSize">
++      <default>'default'</default>
++      <summary>
++        The background-size property specifies the size of the background image.
++      </summary>
++      <description>
++        The background-size property specifies the size of the background images.
++
++        There are three keywords you can use with this property:
++        auto: The background image is displayed in its original size;
++        cover: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges;
++        contain: Resize the background image to make sure the image is fully visible.
++
++        It overrides the value defined in the default style sheet.
++      </description>
++    </key>
++  </schema>
++</schemalist>
+Index: gnome-shell/data/meson.build
+===================================================================
+--- gnome-shell.orig/data/meson.build
++++ gnome-shell/data/meson.build
+@@ -85,6 +85,12 @@ schema = configure_file(
+   configuration: schemaconf,
+   install_dir: schemadir
+ )
++schemaubuntu = configure_file(
++  input: 'com.ubuntu.login-screen.gschema.xml.in',
++  output: 'com.ubuntu.login-screen.gschema.xml',
++  configuration: schemaconf,
++  install_dir: schemadir
++)
+ install_data('00_org.gnome.shell.gschema.override', install_dir: schemadir)
+ 
+ overrides_migration_conf = configuration_data()
+@@ -123,7 +129,7 @@ endif
+ 
+ # for unit tests - gnome.compile_schemas() only looks in srcdir
+ custom_target('compile-schemas',
+-  input: schema,
++  input: [schema, schemaubuntu],
+   output: 'gschemas.compiled',
+   command: [find_program('glib-compile-schemas'), meson.current_build_dir()],
+   build_by_default: true)
+Index: gnome-shell/js/ui/screenShield.js
+===================================================================
+--- gnome-shell.orig/js/ui/screenShield.js
++++ gnome-shell/js/ui/screenShield.js
+@@ -26,6 +26,12 @@ const DISABLE_LOCK_KEY = 'disable-lock-s
+ 
+ const LOCKED_STATE_STR = 'screenShield.locked';
+ 
++const LOGINSCREEN_SCHEMA = 'com.ubuntu.login-screen';
++const LOGINSCREEN_BACKGROUND_COLOR_KEY = 'background-color';
++const LOGINSCREEN_BACKGROUND_PICTURE_URI_KEY = 'background-picture-uri';
++const LOGINSCREEN_BACKGROUND_REPEAT_KEY = 'background-repeat';
++const LOGINSCREEN_BACKGROUND_SIZE_KEY = 'background-size';
++
+ // ScreenShield animation time
+ // - STANDARD_FADE_TIME is used when the session goes idle
+ // - MANUAL_FADE_TIME is used for lowering the shield when asked by the user,
+@@ -119,6 +125,13 @@ var ScreenShield = class {
+         this._lockSettings = new Gio.Settings({ schema_id: LOCKDOWN_SCHEMA });
+         this._lockSettings.connect('changed::%s'.format(DISABLE_LOCK_KEY), this._syncInhibitor.bind(this));
+ 
++        this._loginscreenSettings = new Gio.Settings({ schema_id: LOGINSCREEN_SCHEMA });
++        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_COLOR_KEY), this._refreshBackground.bind(this));
++        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_PICTURE_URI_KEY), this._refreshBackground.bind(this));
++        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_REPEAT_KEY), this._refreshBackground.bind(this));
++        this._loginscreenSettings.connect('changed::%s'.format(LOGINSCREEN_BACKGROUND_SIZE_KEY), this._refreshBackground.bind(this));
++        this._refreshBackground()
++
+         this._isModal = false;
+         this._isGreeter = false;
+         this._isActive = false;
+@@ -196,6 +209,26 @@ var ScreenShield = class {
+         return this._isModal;
+     }
+ 
++    _refreshBackground() {
++        let inline_style = [];
++
++        let backgroundColor = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_COLOR_KEY);
++        let backgroundPictureUri = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_PICTURE_URI_KEY);
++        let backgroundRepeat = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_REPEAT_KEY);
++        let backgroundSize = this._loginscreenSettings.get_string(LOGINSCREEN_BACKGROUND_SIZE_KEY);
++
++        if (backgroundColor != "")
++            inline_style.push("background-color: " + backgroundColor);
++        if (backgroundPictureUri != "")
++            inline_style.push("background-image: url(" + backgroundPictureUri + ")");
++        if (backgroundRepeat != "default")
++            inline_style.push("background-repeat: " + backgroundRepeat);
++        if (backgroundSize != "default")
++            inline_style.push("background-size: " + backgroundSize);
++
++        this._lockDialogGroup.set_style(inline_style.join('; '));
++    }
++
+     _syncInhibitor() {
+         let lockEnabled = this._settings.get_boolean(LOCK_ENABLED_KEY) ||
+                           this._settings.get_boolean(SUSPEND_LOCK_ENABLED_KEY);
