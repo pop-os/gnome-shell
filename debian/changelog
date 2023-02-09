@@ -1,3 +1,9 @@
+gnome-shell (42.5-0ubuntu1pop1) jammy; urgency=medium
+
+  * Fix package version
+
+ -- Brock <brock@pop-os.localdomain>  Wed, 08 Feb 2023 22:23:57 -0700
+
 gnome-shell (42.5-0ubuntu1) jammy; urgency=medium
 
   * New upstream release (LP: #1993809)
