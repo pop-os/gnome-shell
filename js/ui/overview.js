@@ -78,6 +78,14 @@ class OverviewActor extends St.BoxLayout {
         this.add_child(this._controls);
     }
 
+    prepareToEnterOverview() {
+        this._controls.prepareToEnterOverview();
+    }
+
+    prepareToLeaveOverview() {
+        this._controls.prepareToLeaveOverview();
+    }
+
     animateToOverview(state, callback) {
         this._controls.animateToOverview(state, callback);
     }
@@ -102,6 +110,34 @@ class OverviewActor extends St.BoxLayout {
         return this._controls;
     }
 });
+
+const OverviewShownState = {
+    HIDDEN: 'HIDDEN',
+    HIDING: 'HIDING',
+    SHOWING: 'SHOWING',
+    SHOWN: 'SHOWN',
+};
+
+const OVERVIEW_SHOWN_TRANSITIONS = {
+    [OverviewShownState.HIDDEN]: {
+        signal: 'hidden',
+        allowedTransitions: [OverviewShownState.SHOWING],
+    },
+    [OverviewShownState.HIDING]: {
+        signal: 'hiding',
+        allowedTransitions:
+            [OverviewShownState.HIDDEN, OverviewShownState.SHOWING],
+    },
+    [OverviewShownState.SHOWING]: {
+        signal: 'showing',
+        allowedTransitions:
+            [OverviewShownState.SHOWN, OverviewShownState.HIDING],
+    },
+    [OverviewShownState.SHOWN]: {
+        signal: 'shown',
+        allowedTransitions: [OverviewShownState.HIDING],
+    },
+};
 
 var Overview = class {
     constructor() {
@@ -152,6 +188,7 @@ var Overview = class {
         this._modal = false;            // have a modal grab
         this._animationInProgress = false;
         this._visibleTarget = false;
+        this._shownState = OverviewShownState.HIDDEN;
 
         // During transitions, we raise this to the top to avoid having the overview
         // area be reactive; it causes too many issues such as double clicks on
@@ -246,6 +283,19 @@ var Overview = class {
             return;
 
         this._shellInfo.setMessage(text, options);
+    }
+
+    _changeShownState(state) {
+        const {allowedTransitions} =
+            OVERVIEW_SHOWN_TRANSITIONS[this._shownState];
+
+        if (!allowedTransitions.includes(state)) {
+            throw new Error('Invalid overview shown transition from ' +
+                `${this._shownState} to ${state}`);
+        }
+
+        this._shownState = state;
+        this.emit(OVERVIEW_SHOWN_TRANSITIONS[state].signal);
     }
 
     _onDragBegin() {
@@ -360,7 +410,7 @@ var Overview = class {
             Main.layoutManager.overviewGroup.set_child_above_sibling(
                 this._coverPane, null);
             this._coverPane.show();
-            this.emit('showing');
+            this._changeShownState(OverviewShownState.SHOWING);
 
             Main.layoutManager.showOverview();
             this._syncGrab();
@@ -374,7 +424,7 @@ var Overview = class {
         if (endProgress === 0) {
             this._shown = false;
             this._visibleTarget = false;
-            this.emit('hiding');
+            this._changeShownState(OverviewShownState.HIDING);
             Main.panel.style = `transition-duration: ${duration}ms;`;
             onComplete = () => this._hideDone();
         } else {
@@ -448,7 +498,8 @@ var Overview = class {
         if (this._shown) {
             let shouldBeModal = !this._inXdndDrag;
             if (shouldBeModal && !this._modal) {
-                if (global.display.get_grab_op() !== Meta.GrabOp.NONE) {
+                if (global.display.get_grab_op() !== Meta.GrabOp.NONE &&
+                    global.display.get_grab_op() !== Meta.GrabOp.WAYLAND_POPUP) {
                     this.hide();
                     return false;
                 }
@@ -508,19 +559,22 @@ var Overview = class {
 
         Meta.disable_unredirect_for_display(global.display);
 
-        this._overview.animateToOverview(state, () => this._showDone());
-
         Main.layoutManager.overviewGroup.set_child_above_sibling(
             this._coverPane, null);
         this._coverPane.show();
-        this.emit('showing');
+
+        this._overview.prepareToEnterOverview();
+        this._changeShownState(OverviewShownState.SHOWING);
+        this._overview.animateToOverview(state, () => this._showDone());
     }
 
     _showDone() {
         this._animationInProgress = false;
         this._coverPane.hide();
 
-        this.emit('shown');
+        if (this._shownState !== OverviewShownState.SHOWN)
+            this._changeShownState(OverviewShownState.SHOWN);
+
         // Handle any calls to hide* while we were showing
         if (!this._shown)
             this._animateNotVisible();
@@ -561,12 +615,13 @@ var Overview = class {
         this._animationInProgress = true;
         this._visibleTarget = false;
 
-        this._overview.animateFromOverview(() => this._hideDone());
-
         Main.layoutManager.overviewGroup.set_child_above_sibling(
             this._coverPane, null);
         this._coverPane.show();
-        this.emit('hiding');
+
+        this._overview.prepareToLeaveOverview();
+        this._changeShownState(OverviewShownState.HIDING);
+        this._overview.animateFromOverview(() => this._hideDone());
     }
 
     _hideDone() {
@@ -580,11 +635,11 @@ var Overview = class {
 
         // Handle any calls to show* while we were hiding
         if (this._shown) {
-            this.emit('hidden');
+            this._changeShownState(OverviewShownState.HIDDEN);
             this._animateVisible(OverviewControls.ControlsState.WINDOW_PICKER);
         } else {
             Main.layoutManager.hideOverview();
-            this.emit('hidden');
+            this._changeShownState(OverviewShownState.HIDDEN);
         }
 
         Main.panel.style = null;
@@ -624,16 +679,23 @@ var Overview = class {
 
         Meta.disable_unredirect_for_display(global.display);
 
-        this.emit('showing');
+        this._changeShownState(OverviewShownState.SHOWING);
 
         this._overview.runStartupAnimation(() => {
-            if (!this._syncGrab()) {
+            // Overview got hidden during startup animation
+            if (this._shownState !== OverviewShownState.SHOWING) {
                 callback();
                 return;
             }
 
+            if (!this._syncGrab()) {
+                callback();
+                this.hide();
+                return;
+            }
+
             Main.panel.style = null;
-            this.emit('shown');
+            this._changeShownState(OverviewShownState.SHOWN);
             callback();
         });
     }

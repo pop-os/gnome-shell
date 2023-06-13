@@ -1,5 +1,5 @@
 /* exported InhibitShortcutsDialog */
-const { Clutter, Gio, GLib, GObject, Gtk, Meta, Pango, Shell, St } = imports.gi;
+const { Clutter, Gio, GObject, Gtk, Meta, Pango, Shell, St } = imports.gi;
 
 const Dialog = imports.ui.dialog;
 const ModalDialog = imports.ui.modalDialog;
@@ -57,15 +57,11 @@ var InhibitShortcutsDialog = GObject.registerClass({
         if (!this._shouldUsePermStore() || this._permStore == null)
             return;
 
-        let permissions = {};
-        permissions[this._app.get_id()] = [grant];
-        let data = GLib.Variant.new('av', {});
-
-        this._permStore.SetRemote(APP_PERMISSIONS_TABLE,
-                                  true,
-                                  APP_PERMISSIONS_ID,
-                                  permissions,
-                                  data,
+        this._permStore.SetPermissionRemote(APP_PERMISSIONS_TABLE,
+            true,
+            APP_PERMISSIONS_ID,
+            this._app.get_id(),
+            [grant],
             (result, error) => {
                 if (error != null)
                     log(error.message);
@@ -153,7 +149,7 @@ var InhibitShortcutsDialog = GObject.registerClass({
                     let [permissions] = res;
                     if (permissions[appId] === undefined) // Not found
                         this._dialog.open();
-                    else if (permissions[appId] == GRANTED)
+                    else if (permissions[appId][0] === GRANTED)
                         this._emitResponse(DialogResponse.ALLOW);
                     else
                         this._emitResponse(DialogResponse.DENY);

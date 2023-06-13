@@ -231,7 +231,8 @@ var Recorder = class {
     _ensurePipeline(nodeId) {
         const framerate = this._framerate;
         const needsCopy =
-            Gst.Registry.get().check_feature_version('pipewiresrc', 0, 3, 57);
+            Gst.Registry.get().check_feature_version('pipewiresrc', 0, 3, 57) &&
+            !Gst.Registry.get().check_feature_version('videoconvert', 1, 20, 4);
 
         let fullPipeline = `
             pipewiresrc path=${nodeId}
@@ -295,7 +296,10 @@ var ScreencastService = class extends ServiceImplementation {
         if (GLib.path_is_absolute(filename))
             return filename;
 
-        let videoDir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS);
+        const videoDir =
+            GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS) ||
+            GLib.get_home_dir();
+
         return GLib.build_filenamev([videoDir, filename]);
     }
 
