@@ -1250,28 +1250,36 @@ match_stream_with_devices (GvcMixerControl    *control,
                              "port-name", &device_port_name,
                               NULL);
 
-                card_id = gvc_mixer_card_get_index (card);
+                if (card == NULL) {
+                        if (device_stream_id == stream_id) {
+                                g_debug ("Matched stream %u with card-less device '%s', with stream already setup",
+                                         stream_id, description);
+                                in_possession = TRUE;
+                        }
+                } else {
+                        card_id = gvc_mixer_card_get_index (card);
 
-                g_debug ("Attempt to match_stream update_with_existing_outputs - Try description : '%s', origin : '%s', device port name : '%s', card : %p, AGAINST stream port: '%s', sink card id %i",
-                         description,
-                         origin,
-                         device_port_name,
-                         card,
-                         stream_port->port,
-                         stream_card_id);
-
-                if (stream_card_id == card_id &&
-                    g_strcmp0 (device_port_name, stream_port->port) == 0) {
-                        g_debug ("Match device with stream: We have a match with description: '%s', origin: '%s', cached already with device id %u, so set stream id to %i",
+                        g_debug ("Attempt to match_stream update_with_existing_outputs - Try description : '%s', origin : '%s', device port name : '%s', card : %p, AGAINST stream port: '%s', sink card id %i",
                                  description,
                                  origin,
-                                 gvc_mixer_ui_device_get_id (device),
-                                 stream_id);
+                                 device_port_name,
+                                 card,
+                                 stream_port->port,
+                                 stream_card_id);
 
-                        g_object_set (G_OBJECT (device),
-                                      "stream-id", (gint)stream_id,
-                                      NULL);
-                        in_possession = TRUE;
+                        if (stream_card_id == card_id &&
+                            g_strcmp0 (device_port_name, stream_port->port) == 0) {
+                                g_debug ("Match device with stream: We have a match with description: '%s', origin: '%s', cached already with device id %u, so set stream id to %i",
+                                         description,
+                                         origin,
+                                         gvc_mixer_ui_device_get_id (device),
+                                         stream_id);
+
+                                g_object_set (G_OBJECT (device),
+                                              "stream-id", (gint)stream_id,
+                                              NULL);
+                                in_possession = TRUE;
+                        }
                 }
 
                 g_free (device_port_name);
@@ -2582,7 +2590,6 @@ update_card (GvcMixerControl      *control,
                 }
                 card = gvc_mixer_card_new (control->priv->pa_context,
                                            info->index);
-                gvc_mixer_card_set_profiles (card, profile_list);
 
                 for (i = 0; i < info->n_ports; i++) {
                         GvcMixerCardPort *port;
@@ -2596,6 +2603,8 @@ update_card (GvcMixerControl      *control,
                         port->profiles = determine_profiles_for_port (info->ports[i], profile_list);
                         port_list = g_list_prepend (port_list, port);
                 }
+
+                gvc_mixer_card_set_profiles (card, profile_list);
                 gvc_mixer_card_set_ports (card, port_list);
                 is_new = TRUE;
         }
