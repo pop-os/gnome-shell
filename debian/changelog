@@ -1,8 +1,9 @@
-gnome-shell (42.9-0ubuntu1) UNRELEASED; urgency=medium
+gnome-shell (42.9-0ubuntu1) jammy; urgency=medium
 
   * New upstream release
+  * debian/control.in: Bump minimum mutter to 42.9
 
- -- Jeremy Bícha <jbicha@ubuntu.com>  Tue, 13 Jun 2023 16:12:16 -0400
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Wed, 14 Jun 2023 15:35:33 -0400
 
 gnome-shell (42.5-0ubuntu1) jammy; urgency=medium
 
