@@ -1,3 +1,9 @@
+gnome-shell (42.9-0ubuntu2pop0) jammy; urgency=medium
+
+  * Backport to Pop
+
+ -- Jeremy Soller <jeremy@system76.com>  Wed, 06 Sep 2023 10:42:57 -0600
+
 gnome-shell (42.9-0ubuntu2) jammy; urgency=medium
 
   * New upstream release (LP: #2023913)
