@@ -1,3 +1,9 @@
+gnome-shell (42.9-0ubuntu2.1pop0) jammy; urgency=medium
+
+  * Pop!_OS patches
+
+ -- Jeremy Soller <jeremy@system76.com>  Thu, 09 May 2024 09:00:00 -0600
+
 gnome-shell (42.9-0ubuntu2.1) jammy-security; urgency=medium
 
   * Fix compatibility with glib2.0 security update
