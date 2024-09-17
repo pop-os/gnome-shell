@@ -8,6 +8,7 @@ ubuntu/lightdm-user-switching.patch
 ubuntu/lock_on_suspend.patch
 ubuntu/background_login.patch
 ubuntu/gdm_alternatives.patch
+ubuntu/chromium-snap-pwa.patch
 main-show-an-error-message-on-gnome-shell-crash.patch
 global-make-possible-to-set-debug-flags-dynamically.patch
 main-increase-the-granularity-of-backtraces-in-SHELL_DEBU.patch
