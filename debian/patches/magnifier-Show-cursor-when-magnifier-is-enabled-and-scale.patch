@@ -16,10 +16,10 @@ Forwarded: yes
  2 files changed, 73 insertions(+), 6 deletions(-)
 
 diff --git a/js/ui/layout.js b/js/ui/layout.js
-index 9bce258..075d28d 100644
+index d225572..7064587 100644
 --- a/js/ui/layout.js
 +++ b/js/ui/layout.js
-@@ -951,22 +951,38 @@ var LayoutManager = GObject.registerClass({
+@@ -950,22 +950,38 @@ var LayoutManager = GObject.registerClass({
          return ws.get_work_area_for_monitor(monitorIndex);
      }
  

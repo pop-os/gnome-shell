@@ -62,7 +62,7 @@ index f3cb006..d3456ee 100644
              l.timeLabel.text = text;
  
 diff --git a/js/ui/environment.js b/js/ui/environment.js
-index affc2b6..e0ae8ee 100644
+index b25ba1a..09aea57 100644
 --- a/js/ui/environment.js
 +++ b/js/ui/environment.js
 @@ -19,7 +19,7 @@ imports.gi.versions.GnomeBluetooth = '3.0';

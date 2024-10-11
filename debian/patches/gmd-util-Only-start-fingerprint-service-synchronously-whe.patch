@@ -34,7 +34,7 @@ Origin: https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2267
  1 file changed, 102 insertions(+), 25 deletions(-)
 
 diff --git a/js/gdm/util.js b/js/gdm/util.js
-index a4c796b..8829ebd 100644
+index e2a88d0..75b3459 100644
 --- a/js/gdm/util.js
 +++ b/js/gdm/util.js
 @@ -43,6 +43,7 @@ var DISABLE_USER_LIST_KEY = 'disable-user-list';
@@ -202,7 +202,7 @@ index a4c796b..8829ebd 100644
              'conversation-stopped', this._onConversationStopped.bind(this),
              'service-unavailable', this._onServiceUnavailable.bind(this),
              'reset', this._onReset.bind(this),
-@@ -538,6 +603,10 @@ var ShellUserVerifier = class {
+@@ -539,6 +604,10 @@ var ShellUserVerifier = class {
              this._defaultService = SMARTCARD_SERVICE_NAME;
          else if (this._fingerprintReaderType !== FingerprintReaderType.NONE)
              this._defaultService = FINGERPRINT_SERVICE_NAME;
@@ -213,7 +213,7 @@ index a4c796b..8829ebd 100644
  
          if (!this._defaultService) {
              log("no authentication service is enabled, using password authentication");
-@@ -576,11 +645,14 @@ var ShellUserVerifier = class {
+@@ -577,11 +646,14 @@ var ShellUserVerifier = class {
  
      _beginVerification() {
          this._startService(this._getForegroundService());
@@ -229,7 +229,7 @@ index a4c796b..8829ebd 100644
      }
  
      _onChoiceListQuery(client, serviceName, promptMessage, list) {
-@@ -673,8 +745,9 @@ var ShellUserVerifier = class {
+@@ -674,8 +746,9 @@ var ShellUserVerifier = class {
      _onReset() {
          // Clear previous attempts to authenticate
          this._failCounter = 0;
@@ -240,7 +240,7 @@ index a4c796b..8829ebd 100644
  
          this.emit('reset');
      }
-@@ -755,6 +828,10 @@ var ShellUserVerifier = class {
+@@ -756,6 +829,10 @@ var ShellUserVerifier = class {
              this._queueMessage(serviceName, errorMessage, MessageType.ERROR);
      }
  
