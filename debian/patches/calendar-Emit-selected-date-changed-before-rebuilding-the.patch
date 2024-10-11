@@ -1,0 +1,45 @@
+From: Sebastian Keller <skeller@gnome.org>
+Date: Mon, 23 Oct 2023 01:06:59 +0200
+Subject: calendar: Emit selected-date-changed before rebuilding the calendar
+
+If the cursor was placed on one of the widgets that get removed when
+rebuilding the calendar due to a month change, destroying the hovered
+widget will trigger a repick. This repick can then trigger an allocation
+while not all buttons of the calendar are present.
+
+If the last allocation before selected-date-changed is emitted was from
+such an incomplete state, DateMenuButton will still freeze the layout in
+this state in its signal handler.
+
+What freezing the layout in DateMenuButton is supposed to do is to
+prevent size changes of the menu when changing days, but for this the
+layout needs to be frozen before potentially rebuilding calendar. This
+change ensures that by emitting the signal earlier.
+
+Closes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/5411
+Closes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/5469
+Part-of: <https://gitlab.gnome.org/GNOME/gnome-shell/-/merge_requests/2989>
+
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/gnome-shell/+bug/1970800
+---
+ js/ui/calendar.js | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/ui/calendar.js b/js/ui/calendar.js
+index 36c1a8b..e02c889 100644
+--- a/js/ui/calendar.js
++++ b/js/ui/calendar.js
+@@ -456,11 +456,12 @@ var Calendar = GObject.registerClass({
+             return;
+ 
+         this._selectedDate = date;
+-        this._update();
+ 
+         let datetime = GLib.DateTime.new_from_unix_local(
+             this._selectedDate.getTime() / 1000);
+         this.emit('selected-date-changed', datetime);
++
++        this._update();
+     }
+ 
+     updateTimeZone() {
