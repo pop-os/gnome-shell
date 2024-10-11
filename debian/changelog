@@ -1,3 +1,17 @@
+gnome-shell (42.9-0ubuntu2.3) UNRELEASED; urgency=medium
+
+  [ Nathan Pratta Teodosio ]
+  * d/p/chromium-snap-pwa.patch: Fixes tab and dock grouping.
+    Fixes tab and dock grouping of progressive web applications
+    for the Chromium snap (LP: #2007652)
+
+  [ Marco Trevisan (Treviño) ]
+  * d/p: Refresh git indexes
+  * d/p: calendar: Emit selected-date-changed before rebuilding it
+    (LP: #1970800)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 11 Oct 2024 16:59:40 +0200
+
 gnome-shell (42.9-0ubuntu2.2) jammy-security; urgency=medium
 
   * SECURITY UPDATE: resource consumption via portal helper
