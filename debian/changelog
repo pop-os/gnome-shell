@@ -1,3 +1,9 @@
+gnome-shell (42.9-0ubuntu2.3pop0) jammy; urgency=medium
+
+  * Pop!_OS patches
+
+ -- Jeremy Soller <jeremy@system76.com>  Tue, 29 Apr 2025 15:44:31 -0600
+
 gnome-shell (42.9-0ubuntu2.3) jammy; urgency=medium
 
   [ Nathan Pratta Teodosio ]
